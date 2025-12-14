@@ -8,7 +8,8 @@ import {
   Crosshair, LayoutGrid, Clock, Palette, Lock,
   Play, Pause, StopCircle, Volume2, Briefcase, Hourglass, Bell, 
   ChevronLeft, ChevronRight, BarChart3, Image as ImageIcon, 
-  PenTool, ArrowLeft, ArrowUp, Wallet, Shield, Crown, Anchor, Ghost, Feather, Type
+  PenTool, ArrowLeft, ArrowUp, Wallet, Shield, Crown, Anchor, Ghost, Feather, Type,
+  Settings, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 /**
@@ -366,30 +367,41 @@ const GlobalStyles = React.memo(() => (
       transform: translateZ(0);
     }
     .aura-container::before {
-      content: ''; position: absolute; inset: -50%;
+      content: ''; position: absolute; inset: 0;
+      padding: 1.5px;
+      border-radius: inherit;
       background: conic-gradient(from var(--angle), #3b82f6, #8b5cf6, #d946ef, #06b6d4, #3b82f6);
       animation: spin-aura 4s linear infinite; z-index: -2; 
       opacity: 0; transition: opacity 0.5s ease-in-out; will-change: opacity;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
     }
     .aura-container::after {
-      content: ''; position: absolute; inset: 1px; 
-      background: rgba(18, 18, 20, 0.4);
-      backdrop-filter: blur(60px) saturate(200%); -webkit-backdrop-filter: blur(60px) saturate(200%);
+      content: ''; position: absolute; inset: 2px; 
+      background: rgba(10, 10, 10, 0.2); 
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-radius: inherit; z-index: -1;
       transition: background 0.5s ease;
       box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
     }
-    .aura-active::before { opacity: 1; filter: blur(15px); }
-    .aura-active::after { background: rgba(10, 10, 12, 0.5); box-shadow: inset 0 0 30px rgba(255,255,255,0.1); } 
-    .aura-active { box-shadow: 0 0 80px -20px rgba(59, 130, 246, 0.5); border: 1px solid rgba(255,255,255,0.15); }
+    .aura-active::before { opacity: 1; filter: blur(8px); }
+    .aura-active::after { background: rgba(0, 0, 0, 0.05); box-shadow: inset 0 0 30px rgba(255,255,255,0.02); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } 
+    .aura-active { box-shadow: 0 20px 60px -15px rgba(0,0,0,0.8); border: none; }
 
     .btn-orb-glow {
       position: relative; overflow: hidden;
       background: #1a1a1a; z-index: 10;
-      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.1);
       transform: translateZ(0);
+    }
+    .btn-orb-active {
+        background: rgba(0,0,0,0.2) !important;
+        box-shadow: none !important;
+        border-color: rgba(255,255,255,0.05) !important;
     }
     .btn-orb-glow::before {
       content: ''; position: absolute; top: 50%; left: 50%;
@@ -1247,72 +1259,156 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
         return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    const radius = 120;
+    const handleModeSwitch = (newMode: 'POMO' | 'STOPWATCH') => {
+        if (isActive) {
+            if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback de error
+            return; // Bloquea el cambio si está activo
+        }
+        if (newMode === mode) return;
+        setMode(newMode);
+        if (newMode === 'POMO') {
+            const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
+            setTimeLeft(duration);
+            setTotalDuration(duration);
+        } else {
+            setTimeLeft(0);
+            setTotalDuration(0); // Stopwatch empieza en 0
+        }
+    };
+
+    const radius = 130; // Un poco más grande para presencia
     const circumference = 2 * Math.PI * radius;
+    // En Stopwatch, progress es 1 (círculo completo) o animado. Hagamos que sea un spinner visual o llene completo.
+    // Si es stopwatch, visualmente queremos que se vea "activo" de otra forma. 
+    // Mantenemos la lógica original visual para stopwatch (progress=1) pero mejorada abajo.
     const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
     const dashOffset = circumference * (1 - progress);
 
     return (
         <div className="flex flex-col h-full relative overflow-hidden">
-            <div className={`absolute inset-0 transition-all duration-700 ease-in-out flex flex-col ${viewState === 'LIST' ? 'relative opacity-100 z-10' : 'absolute opacity-0 scale-90 pointer-events-none'}`}>
-                <div className="flex justify-between items-center px-4 mb-2 mt-2 flex-shrink-0">
-                    <div><h2 className="text-2xl font-black text-white tracking-tight">Focus Studio</h2><p className="text-xs text-slate-400 font-medium">Select a flow to begin deep work</p></div>
-                    <button onClick={onOpenProjectModal} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-all active:scale-95 border border-white/5"><Plus size={18} /></button>
+            <div className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
+                <div className="flex justify-between items-center px-6 pt-6 pb-2 flex-shrink-0">
+                    <div><h2 className="text-3xl font-black text-white tracking-tighter">Focus Studio</h2><p className="text-sm text-slate-400 font-medium tracking-tight">Select a flow to begin deep work</p></div>
+                    <button onClick={onOpenProjectModal} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-all active:scale-90 border border-white/10 shadow-lg"><Plus size={24} /></button>
                 </div>
 
-                <div className="px-2 flex-shrink-0">
+                <div className="px-4 flex-shrink-0 mt-2">
                     <FocusStats isExpanded={isStatsExpanded} toggleExpand={() => setIsStatsExpanded(!isStatsExpanded)} projects={projects} attributes={attributes} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 px-4 pb-24 overflow-y-auto no-scrollbar flex-1 content-start">
+                <div className="grid grid-cols-2 gap-4 px-4 pb-32 overflow-y-auto no-scrollbar flex-1 content-start mt-4 min-h-0">
                     {projects.map((project) => {
                         const attr = attributes.find((a) => a.id === project.attribute);
                         const progressVal = Math.min(100, (project.totalTime / (project.goalTarget * 60)) * 100);
                         const Icon = attr?.icon || Star;
                         return (
-                            <div key={project.id} className="relative group rounded-[2rem] p-5 bg-white/5 border border-white/5 overflow-hidden transition-all duration-300 hover:bg-white/10 flex flex-col justify-between h-48 flex-shrink-0">
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" style={{ background: `radial-gradient(circle at top right, ${attr?.color}, transparent 70%)` }} />
+                            <div key={project.id} className="relative group rounded-[2.5rem] p-6 bg-[#121212] border border-white/5 overflow-hidden transition-all duration-300 hover:bg-[#1a1a1a] flex flex-col justify-between h-56 flex-shrink-0 shadow-2xl hover:shadow-white/5">
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: `radial-gradient(circle at top right, ${attr?.color}, transparent 70%)` }} />
                                 <div className="z-10 flex justify-between items-start">
-                                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner" style={{ backgroundColor: `${attr?.color}20` }}><Icon size={18} style={{ color: attr?.color }} /></div>
-                                    <div className="bg-black/20 px-2 py-1 rounded-lg"><span className="text-[10px] font-mono text-slate-300 font-bold">{project.pomoDuration}m</span></div>
+                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner border border-white/5" style={{ backgroundColor: `${attr?.color}15` }}><Icon size={22} style={{ color: attr?.color }} /></div>
+                                    <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5"><span className="text-[11px] font-mono text-slate-300 font-bold tracking-tight">{project.pomoDuration} MIN</span></div>
                                 </div>
-                                <div className="z-10">
-                                    <h3 className="text-white font-bold text-lg leading-tight mb-1">{project.title}</h3>
-                                    <div className="flex items-center gap-2 mb-4"><div className="h-1.5 flex-1 bg-black/30 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${progressVal}%`, backgroundColor: attr?.color }} /></div><span className="text-[9px] font-bold text-slate-500">{Math.floor(progressVal)}%</span></div>
+                                <div className="z-10 mt-2">
+                                    <h3 className="text-white font-bold text-xl leading-tight mb-2 tracking-tight">{project.title}</h3>
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressVal}%`, backgroundColor: attr?.color, boxShadow: `0 0 10px ${attr?.color}80` }} />
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-500">{Math.floor(progressVal)}%</span>
+                                    </div>
                                 </div>
-                                <button onClick={() => startSession(project.id)} className="z-10 w-full py-3 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"><Play size={12} fill="currentColor" /> Start Flow</button>
+                                <button onClick={() => startSession(project.id)} className="z-10 w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"><Play size={14} fill="currentColor" /> Start Flow</button>
                             </div>
                         )
                     })}
-                    <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:bg-white/5 transition-all h-48 flex-shrink-0"><div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><Plus size={20} /></div><span className="text-xs font-bold uppercase tracking-widest">Create New</span></button>
+                    <button onClick={onOpenProjectModal} className="rounded-[2.5rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4 text-slate-600 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-56 flex-shrink-0 group"><div className="w-14 h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div><span className="text-xs font-bold uppercase tracking-widest">Create New</span></button>
                 </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-700 ease-out ${viewState === 'TIMER' ? 'relative opacity-100 z-20 delay-200' : 'absolute opacity-0 scale-110 pointer-events-none'}`}>
-                <div className="absolute top-4 w-full flex justify-between px-6 z-30">
-                    <button onClick={stopSession} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white border border-white/5"><ChevronDown size={20} /></button>
-                    <div className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 flex gap-2">
-                        <button onClick={() => { setMode('POMO'); resetTimer(); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase transition-colors ${mode === 'POMO' ? 'bg-white text-black' : 'text-slate-500'}`}>Pomo</button>
-                        <button onClick={() => { setMode('STOPWATCH'); setTimeLeft(0); setIsActive(false); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase transition-colors ${mode === 'STOPWATCH' ? 'bg-white text-black' : 'text-slate-500'}`}>Stopwatch</button>
+            <div className={`absolute inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? 'opacity-100 z-20 delay-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
+                
+                {/* Header Controls (Top) */}
+                <div className="w-full flex justify-between items-start px-6 pt-8 z-30">
+                    <button onClick={stopSession} className="w-12 h-12 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90"><ChevronDown size={24} /></button>
+                    
+                    {/* Mode Switcher - Fixed visual overlap by creating dedicated space */}
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 flex gap-1 shadow-2xl relative overflow-hidden">
+                            {/* Disable overlay if active */}
+                            {isActive && <div className="absolute inset-0 z-20 bg-black/10 cursor-not-allowed" onClick={() => navigator.vibrate && navigator.vibrate(50)} />}
+                            
+                            <button 
+                                onClick={() => handleModeSwitch('POMO')} 
+                                className={`relative px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-300 z-10 ${mode === 'POMO' ? 'text-black shadow-lg scale-100' : 'text-slate-500 hover:text-slate-300 scale-95'}`}
+                            >
+                                {mode === 'POMO' && <div className="absolute inset-0 bg-white rounded-full -z-10 layout-id-bubble" />}
+                                Pomo
+                            </button>
+                            <button 
+                                onClick={() => handleModeSwitch('STOPWATCH')} 
+                                className={`relative px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-300 z-10 ${mode === 'STOPWATCH' ? 'text-black shadow-lg scale-100' : 'text-slate-500 hover:text-slate-300 scale-95'}`}
+                            >
+                                {mode === 'STOPWATCH' && <div className="absolute inset-0 bg-white rounded-full -z-10 layout-id-bubble" />}
+                                Stopwatch
+                            </button>
+                        </div>
+                        {isActive && <span className="text-[9px] font-bold text-red-500/80 tracking-wide animate-pulse">Stop timer to switch</span>}
                     </div>
-                    <div className="w-10" />
+                    
+                    <div className="w-12" /> {/* Spacer for balance */}
                 </div>
-                <div className="relative w-[320px] h-[320px] flex items-center justify-center mb-10">
-                    <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                        <circle cx="160" cy="160" r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                        <circle cx="160" cy="160" r={radius} fill="none" stroke={themeColor} strokeWidth="6" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={dashOffset} className={`ring-progress ${isActive && !isPaused ? 'pulse-glow' : ''}`} style={{ color: themeColor }} />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                        <div className={`flex flex-col items-center transition-all duration-500 ${isActive ? 'scale-110' : 'scale-100'}`}>
-                            <span className="text-[64px] font-black text-white tabular-nums tracking-tighter leading-none filter drop-shadow-2xl">{formatTime(timeLeft)}</span>
-                            <div className="flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md"><ActiveIcon size={14} style={{ color: themeColor }} /><span className="text-xs font-bold text-white tracking-wide">{selectedProject?.title}</span></div>
+
+                {/* Main Timer Display */}
+                <div className="flex-1 flex items-center justify-center w-full relative -mt-10">
+                    <div className="relative w-[340px] h-[340px] flex items-center justify-center">
+                        {/* Outer Glow */}
+                        <div className={`absolute inset-0 rounded-full blur-[60px] transition-opacity duration-1000 ${isActive ? 'opacity-40' : 'opacity-10'}`} style={{ backgroundColor: themeColor }} />
+                        
+                        <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible drop-shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                            {/* Track */}
+                            <circle cx="170" cy="170" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4" />
+                            {/* Progress */}
+                            <circle 
+                                cx="170" cy="170" r={radius} fill="none" 
+                                stroke={themeColor} 
+                                strokeWidth="8" 
+                                strokeLinecap="round" 
+                                strokeDasharray={circumference} 
+                                strokeDashoffset={dashOffset} 
+                                className={`transition-all duration-1000 ease-linear ${isActive && !isPaused ? 'drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]' : ''}`} 
+                            />
+                        </svg>
+
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                            <div className={`flex flex-col items-center transition-all duration-500 ${isActive ? 'scale-110' : 'scale-100'}`}>
+                                <span className="text-[82px] font-black text-white tabular-nums tracking-tighter leading-none filter drop-shadow-2xl select-none font-sf-display">
+                                    {formatTime(timeLeft)}
+                                </span>
+                                <div className="flex items-center gap-2 mt-6 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
+                                    <ActiveIcon size={14} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
+                                    <span className="text-xs font-bold text-white tracking-wide uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? 'Free Flow' : 'Focus')}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-8">
-                    <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 border border-white/10 flex items-center justify-center transition-all active:scale-90"><StopCircle size={24} /></button>
-                    <button onClick={toggleTimer} className="w-24 h-24 rounded-[3rem] bg-white text-black flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all">{isActive && !isPaused ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1" />}</button>
-                    <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 flex items-center justify-center transition-all active:scale-90"><Volume2 size={24} /></button>
+
+                {/* Bottom Controls */}
+                <div className="flex items-center gap-10 pb-20">
+                    <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 border border-white/10 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md group">
+                        <StopCircle size={26} className="group-hover:fill-current transition-colors" />
+                    </button>
+                    
+                    <button onClick={toggleTimer} className="w-24 h-24 rounded-[3rem] bg-white text-black flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white to-slate-200" />
+                        <div className="relative z-10">
+                            {isActive && !isPaused ? <Pause size={42} fill="currentColor" /> : <Play size={42} fill="currentColor" className="ml-2" />}
+                        </div>
+                    </button>
+                    
+                    <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md">
+                        <Volume2 size={26} />
+                    </button>
                 </div>
             </div>
         </div>
@@ -1559,25 +1655,51 @@ const ProjectModal = React.memo(({ isOpen, onClose, attributes, onConfirm }: { i
     );
 });
 
-const Header = React.memo(({ level, xp, nextXp, theme, onThemeToggle, isHidden }: { level: number, xp: number, nextXp: number, theme: string, onThemeToggle: (t: string) => void, isHidden: boolean }) => {
+const Header = React.memo(({ level, xp, nextXp, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar }: { level: number, xp: number, nextXp: number, theme: string, onThemeToggle: (t: string) => void, isHidden: boolean, showProfile: boolean, onToggleProfile: (v: boolean) => void, hideAvatar?: boolean }) => {
   const [isPickerOpen, setPickerOpen] = useState(false);
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const isCompact = !showProfile && !hideAvatar;
+  const shouldShowAvatar = showProfile && !hideAvatar;
+
   return (
-    <header className={`flex justify-between items-center mt-2 relative z-50 transition-all duration-700 ${isHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
-        <div className="flex items-center gap-4">
-            <div className="relative group active:scale-95 transition-transform">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-900 p-[1px] border border-white/10 shadow-2xl">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Avatar" className="w-full h-full rounded-[10px] object-cover opacity-90" />
-                </div>
+    <header className={`flex justify-between items-center z-50 relative ${
+        isCompact 
+            ? 'mt-0 mb-0' 
+            : 'mt-2'
+    } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className="flex items-center gap-4 pointer-events-auto">
+             {/* Settings Button */}
+             <div className="relative">
+                <button onClick={() => setSettingsOpen(!isSettingsOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isSettingsOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+                    <Settings size={18} />
+                </button>
+                {/* Settings Menu */}
+                {isSettingsOpen && (
+                    <div className="absolute left-0 top-12 p-3 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-2xl flex flex-col gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60] min-w-[200px]">
+                        <div className="flex items-center justify-between gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => { onToggleProfile(!showProfile); }}>
+                            <span className="text-xs font-bold text-white uppercase tracking-wider">Show Profile</span>
+                            {showProfile ? <ToggleRight size={20} className="text-green-400" /> : <ToggleLeft size={20} className="text-slate-500" />}
+                        </div>
+                    </div>
+                )}
             </div>
-            <div>
-                <h1 className="text-[17px] font-bold text-white tracking-tight leading-none mb-1.5">Level {Math.floor(level)}</h1>
-                <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden relative backdrop-blur-sm">
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 transition-transform duration-1000 ease-out origin-left" style={{ transform: `scaleX(${xp / nextXp})` }} />
+
+            <div className={`flex items-center gap-4 overflow-hidden ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0'}`}>
+                <div className="relative group active:scale-95 transition-transform shrink-0">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-900 p-[1px] border border-white/10 shadow-2xl">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Avatar" className="w-full h-full rounded-[10px] object-cover opacity-90" />
+                    </div>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1 font-mono tracking-wide">{xp} / {nextXp} XP</p>
+                <div className="whitespace-nowrap">
+                    <h1 className="text-[17px] font-bold text-white tracking-tight leading-none mb-1.5">Level {Math.floor(level)}</h1>
+                    <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden relative backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 transition-transform duration-1000 ease-out origin-left" style={{ transform: `scaleX(${xp / nextXp})` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 font-mono tracking-wide">{xp} / {nextXp} XP</p>
+                </div>
             </div>
         </div>
-        <div className="relative">
+        <div className="relative pointer-events-auto">
             <button onClick={() => setPickerOpen(!isPickerOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isPickerOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}><Palette size={18} /></button>
             {isPickerOpen && (
                 <div className="absolute right-0 top-12 p-2 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] flex gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60]">
@@ -1602,14 +1724,14 @@ const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onTog
            <div className={`pointer-events-auto relative aura-container overflow-hidden box-border w-[88vw] max-w-[330px] shadow-2xl transition-[height,border-radius,background-color,box-shadow] duration-500 cubic-bezier(0.32,0.72,0,1) ${isOpen ? 'h-[260px] rounded-[32px] aura-active' : 'h-[70px] rounded-[34px] bg-black/5 border border-white/10'}`}>
              <div className="relative w-full h-full z-10">
                  <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-75' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                     <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
-                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                     <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
                      </button>
-                     <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-md">
-                        <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.15)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Habit</span>
+                     <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Habit</span>
                      </button>
-                     <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-md">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.15)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
+                     <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
                      </button>
                  </div>
                  <div className="absolute bottom-0 left-0 right-0 h-[70px] flex items-center justify-between px-8 z-20">
@@ -1618,10 +1740,10 @@ const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onTog
                          <button onClick={() => handleView('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Zap size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} /></button>
                      </div>
                      <div className="flex items-center justify-center h-full -mt-1">
-                        <button onClick={() => onToggle(!isOpen)} className={`relative transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) flex items-center justify-center gap-2 rounded-full font-bold text-[13px] tracking-wide uppercase shadow-2xl z-20 overflow-hidden btn-orb-glow ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'}`}>
-                            {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" />)}
-                        </button>
-                     </div>
+                  <button onClick={() => onToggle(!isOpen)} className={`relative transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) flex items-center justify-center gap-2 rounded-full font-bold text-[13px] tracking-wide uppercase shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu will-change-[width,height,transform,background-color,box-shadow] backface-hidden ${isOpen ? 'w-16 h-12 btn-orb-active translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'}`}>
+                      {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" />)}
+                  </button>
+              </div>
                      <div className="flex gap-8">
                          <button onClick={() => handleView('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Target size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} /></button>
                          <button onClick={() => handleView('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Briefcase size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} /></button>
@@ -1633,7 +1755,7 @@ const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onTog
     );
 });
 
-// --- AUTH & ONBOARDING ---
+// --- CONSTANTS ---
 const TRAITS_LIST = [
   { id: 'DISCIPLINA', label: 'Disciplina', color: '#3b82f6', icon: Target, desc: 'Voluntad inquebrantable.' },
   { id: 'FISICO', label: 'Físico', color: '#ef4444', icon: Dumbbell, desc: 'Poder y resistencia.' },
@@ -1651,14 +1773,13 @@ const TRAITS_LIST = [
 
 // --- APP (DEFINED LAST) ---
 export default function Dashboard() {
-  // Use "neo-01" as default user ID or fetch from context if integrated
-  const [user, setUser] = useState<any>({ uid: 'neo-01', name: 'Neo' }); 
   const [currentTheme, setCurrentTheme] = useState('SPOTLIGHT');
   const [currentView, setCurrentView] = useState('TASKS');
   const [isDockOpen, setIsDockOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false); 
   const [isNoteTaking, setIsNoteTaking] = useState(false); 
   const [overrideBgColor, setOverrideBgColor] = useState<string | undefined>(undefined);
+  const [showProfile, setShowProfile] = useState(true);
 
   const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500 });
   const [health] = useState(100);
@@ -1730,8 +1851,6 @@ export default function Dashboard() {
       });
   }, [addNotification]);
 
-  /* Removed useEffect for level up logic as it is now handled in addPlayerXp */
-
   const updateAttributeXp = useCallback((attrId: string, amount: number) => {
       setAttributes(prev => prev.map(attr => {
           if (attr.id === attrId) {
@@ -1786,10 +1905,6 @@ export default function Dashboard() {
       spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
       addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' XP', icon: Clock, color: '#fbbf24' });
   }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerXp]);
-
-  /* Removed useEffect for level up logic as it is now handled in addPlayerXp */
-
-
 
   const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
     e.stopPropagation();
@@ -1927,27 +2042,34 @@ export default function Dashboard() {
         )})}
       </div>
 
-      <main className="relative z-10 max-w-md mx-auto min-h-screen p-6 pb-40 flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-700 fade-in">
-          {currentView !== 'FOCUS' && currentView !== 'TASKS' && (
-              <Header level={player.level} xp={player.xp} nextXp={player.nextXp} theme={currentTheme} onThemeToggle={setCurrentTheme} isHidden={isFocusMode || isNoteTaking} />
-          )}
-          {currentView === 'FOCUS' && (
-              <Header level={player.level} xp={player.xp} nextXp={player.nextXp} theme={currentTheme} onThemeToggle={setCurrentTheme} isHidden={isFocusMode || isNoteTaking} />
-          )}
+      <main className={`relative z-10 max-w-md mx-auto min-h-screen p-6 pt-safe pb-40 flex flex-col ${showProfile ? 'gap-6' : 'gap-2'}`}>
+          <Header 
+              level={player.level} 
+              xp={player.xp} 
+              nextXp={player.nextXp} 
+              theme={currentTheme} 
+              onThemeToggle={setCurrentTheme} 
+              isHidden={isFocusMode || isNoteTaking}
+              showProfile={showProfile}
+              onToggleProfile={setShowProfile}
+              hideAvatar={currentView === 'TASKS'}
+          />
 
           <div className="animate-enter-view h-full flex-1 w-full relative">
             {currentView === 'TASKS' && (
                 <div className="flex flex-col gap-6">
                     {/* 💎 STATUS HUD - THE MIRROR */}
-                    <div className="relative z-20 -mx-2">
-                        <StatusHUD 
-                            level={player.level} 
-                            xp={player.xp} 
-                            nextXp={player.nextXp} 
-                            health={health}
-                            streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                        />
-                    </div>
+                    {showProfile && (
+                        <div className="relative z-20 -mx-2">
+                            <StatusHUD 
+                                level={player.level} 
+                                xp={player.xp} 
+                                nextXp={player.nextXp} 
+                                health={health}
+                                streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                            />
+                        </div>
+                    )}
 
                     {/* ACTIVE MISSIONS */}
                     <div>

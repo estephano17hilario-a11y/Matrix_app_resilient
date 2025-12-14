@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Zap, Skull, Target, Brain, Crown, Ghost, Fingerprint, Mail, Lock, User } from 'lucide-react';
+import { ArrowRight, Zap, Skull, Target, Brain, Crown, Ghost } from 'lucide-react';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { GlassCard } from './components/GlassCard';
 import { SelectionButton } from './components/SelectionButton';
 import { TraitSelector } from './components/TraitSelector';
 
-type Step = 'intro' | 'identity' | 'pain' | 'ambition' | 'traits' | 'completion';
+type Step = 'intro' | 'identity' | 'ambition' | 'traits' | 'completion';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -14,12 +14,11 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>('intro');
-  const [pain, setPain] = useState<string | null>(null);
   const [ambition, setAmbition] = useState<string | null>(null);
   const [traits, setTraits] = useState<string[]>([]);
   
   // Identity State
-  const [codename, setCodename] = useState('Neo');
+  const codename = 'Neo';
 
   const nextStep = (target: Step) => {
     setStep(target);
@@ -54,63 +53,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => nextStep('pain')}
+                onClick={() => nextStep('ambition')}
                 className="w-full py-4 bg-white text-black font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2"
               >
                 Enter the System <ArrowRight className="w-5 h-5" />
               </motion.button>
-            </GlassCard>
-          )}
-
-          {/* STEP 3: PAIN (THE CONFESSION) */}
-          {step === 'pain' && (
-            <GlassCard key="pain">
-              <div className="mb-8">
-                <h2 className="text-xs font-bold text-purple-400 uppercase tracking-[0.2em] mb-3">The Confession</h2>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Why do you fail?</h1>
-                <p className="text-white/60 text-lg">Be honest. We can only fix what you admit.</p>
-              </div>
-
-              <div className="flex-1 overflow-y-auto no-scrollbar pr-1 -mr-1 space-y-4 py-2">
-                <SelectionButton 
-                  selected={pain === 'procrastination'} 
-                  onClick={() => setPain('procrastination')}
-                  icon={<Ghost className="w-7 h-7" />}
-                  subtitle="I wait until the last minute."
-                >
-                  Procrastination
-                </SelectionButton>
-                
-                <SelectionButton 
-                  selected={pain === 'distraction'} 
-                  onClick={() => setPain('distraction')}
-                  icon={<Brain className="w-7 h-7" />}
-                  subtitle="I can't focus for more than 10m."
-                >
-                  Distraction
-                </SelectionButton>
-                
-                <SelectionButton 
-                  selected={pain === 'fatigue'} 
-                  onClick={() => setPain('fatigue')}
-                  icon={<Skull className="w-7 h-7" />}
-                  subtitle="I burn out too fast."
-                >
-                  Lack of Energy
-                </SelectionButton>
-              </div>
-
-              <div className="mt-8 flex justify-end">
-                <motion.button
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: pain ? 1 : 0, x: pain ? 0 : 20 }}
-                  disabled={!pain}
-                  onClick={() => nextStep('ambition')}
-                  className="bg-white text-black px-8 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 disabled:pointer-events-none shadow-lg shadow-white/10"
-                >
-                  Next <ArrowRight className="w-5 h-5" />
-                </motion.button>
-              </div>
             </GlassCard>
           )}
 
@@ -206,10 +153,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <span className="text-white/40 text-sm font-medium">PROTOCOL</span>
                   <span className="text-white font-bold tracking-widest text-sm">MATRIX-V1</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/40 text-sm font-medium">WEAKNESS</span>
-                  <span className="text-white font-bold capitalize">{pain}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-white/40 text-sm font-medium">MISSION</span>

@@ -1,24 +1,7 @@
 {
-  "name": "matrix_app_resilient",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
-  },
   "dependencies": {
-    "expo": "~54.0.28",
-    "expo-status-bar": "~3.0.9",
-    "localtunnel": "^2.0.2",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-webview": "13.15.0"
-  },
-  "private": true,
-  "devDependencies": {
-    "@types/react": "~19.1.10",
-    "typescript": "~5.9.2"
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.26",
+    "tailwind-merge": "^3.4.0"
   }
 }

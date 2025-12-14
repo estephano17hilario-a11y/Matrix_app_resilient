@@ -15,7 +15,27 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Expose to network (0.0.0.0)
-    port: 5173,
-  }
+    host: true,
+    port: 5174,
+    hmr: {
+      clientPort: 5174,
+    },
+  },
+  build: {
+    target: 'esnext', // Use modern JS for smaller bundles
+    minify: 'esbuild', // Faster minification
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'firebase';
+            if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
+            if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) return 'ui-vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 })

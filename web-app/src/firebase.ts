@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app"; 
 import { getFirestore, enableIndexedDbPersistence, Firestore } from "firebase/firestore"; 
+import { getAuth, Auth } from "firebase/auth";
 
-// TUS CREDENCIALES DE MATRIX 
+// --- MATRIX FIREBASE CONFIGURATION ---
+// "The Source Code"
 const firebaseConfig = { 
   apiKey: "AIzaSyALLIuxXboJCvYa96NM4wzZICu5hLRzSF8", 
   authDomain: "matrix-4012f.firebaseapp.com", 
@@ -12,21 +14,23 @@ const firebaseConfig = {
   measurementId: "G-6Y71JPSLRQ" 
 }; 
 
-// 1. Inicializar la App 
+// 1. Initialize App
 const app = initializeApp(firebaseConfig); 
 
-// 2. Inicializar la Base de Datos 
+// 2. Initialize Services
 const db: Firestore = getFirestore(app); 
+const auth: Auth = getAuth(app);
 
-// 3. ACTIVAR MODO OFFLINE (CRÍTICO PARA MATRIX) 
+// 3. OFFLINE PERSISTENCE (Matrix Resiliency)
+// Allows the app to work seamlessly without network, syncing later.
 enableIndexedDbPersistence(db) 
   .catch((err: any) => { 
     if (err.code == 'failed-precondition') { 
-        console.warn('Hay múltiples pestañas abiertas. La persistencia solo funciona en una.'); 
+        console.warn('Matrix Offline Mode: Multiple tabs open. Persistence enabled in one tab only.'); 
     } else if (err.code == 'unimplemented') { 
-        console.warn('El navegador actual no soporta persistencia offline.'); 
+        console.warn('Matrix Offline Mode: Browser does not support offline persistence.'); 
     } 
   }); 
 
-// Exportamos "db" para usarla en toda la app 
-export { db };
+// Export core instances
+export { app, db, auth };

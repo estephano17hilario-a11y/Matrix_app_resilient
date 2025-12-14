@@ -1,56 +1,44 @@
-import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
 import Dashboard from './Dashboard';
-import { MatrixProvider } from './context/MatrixContext';
-import { db } from './firebase'; // Keep connection alive but don't block UI
+import LoginScreen from './modules/auth/LoginScreen';
 
-export default function App() {
-  const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true);
+function MatrixApp() {
+  const { user, isLoading, isNewUser, completeOnboarding } = useAuth();
 
-  useEffect(() => {
-    // DEV MODE: Always show onboarding for review
-    // const onboarded = localStorage.getItem('matrix_onboarding_completed');
-    // if (onboarded === 'true') {
-    //   setHasOnboarded(true);
-    // }
-    
-    // Check local storage for onboarding status
-    const onboarded = localStorage.getItem('matrix_onboarding_completed');
-    if (onboarded === 'true') {
-      setHasOnboarded(true);
-    }
-    
-    // Simulate "System Boot"
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleOnboardingComplete = () => {
-    localStorage.setItem('matrix_onboarding_completed', 'true');
-    setHasOnboarded(true);
-  };
-
-  // Loading State (Matrix Terminal Boot)
+  // STATE 1: LOADING (The Void)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-green-500">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm tracking-widest animate-pulse">CONNECTING TO MATRIX... V2.0</p>
+      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-green-500 selection:bg-green-900">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="w-12 h-12 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+            <div className="absolute inset-0 border-2 border-green-500/10 rounded-full blur-[2px]" />
+          </div>
+          <p className="text-xs tracking-[0.3em] animate-pulse font-bold">ESTABLISHING CONNECTION...</p>
         </div>
       </div>
     );
   }
 
+  // STATE 2: NO AUTH (The Gate)
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // STATE 3: NEW RECRUIT (The Training)
+  if (isNewUser) {
+    return <OnboardingFlow onComplete={completeOnboarding} />;
+  }
+
+  // STATE 4: VETERAN (The Matrix)
+  return <Dashboard />;
+}
+
+export default function App() {
   return (
-    <MatrixProvider userId="neo-01">
-      {hasOnboarded ? (
-        <Dashboard />
-      ) : (
-        <OnboardingFlow onComplete={handleOnboardingComplete} />
-      )}
-    </MatrixProvider>
+    <AuthProvider>
+      <MatrixApp />
+    </AuthProvider>
   );
 }
