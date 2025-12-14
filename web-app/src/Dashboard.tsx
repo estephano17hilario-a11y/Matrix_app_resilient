@@ -1189,14 +1189,15 @@ const FocusStats = React.memo(({ isExpanded, toggleExpand, projects, attributes 
 });
 
 // --- FOCUS VIEW ---
-const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode }: { projects: Project[], attributes: Attribute[], onCompleteSession: (id: string | null, duration: number) => void, onOpenProjectModal: () => void, setFocusMode: (attrId: string | null) => void, isFocusActive: boolean }) => {
+const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, isFocusActive }: { projects: Project[], attributes: Attribute[], onCompleteSession: (id: string | null, duration: number) => void, onOpenProjectModal: () => void, setFocusMode: (attrId: string | null) => void, isFocusActive: boolean }) => {
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
     const [isActive, setIsActive] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [isStatsExpanded, setIsStatsExpanded] = useState(true);
-    
+    const [shakeMode, setShakeMode] = useState(false);
+
     const selectedProject = useMemo(() => projects.find((p) => p.id === selectedProjectId), [projects, selectedProjectId]);
     const activeAttr = useMemo(() => attributes.find((a) => a.id === selectedProject?.attribute), [selectedProject, attributes]);
     const themeColor = activeAttr?.color || '#3b82f6';
@@ -1261,8 +1262,10 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
 
     const handleModeSwitch = (newMode: 'POMO' | 'STOPWATCH') => {
         if (isActive) {
-            if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback de error
-            return; // Bloquea el cambio si está activo
+            if (navigator.vibrate) navigator.vibrate(50);
+            setShakeMode(true);
+            setTimeout(() => setShakeMode(false), 500);
+            return;
         }
         if (newMode === mode) return;
         setMode(newMode);
@@ -1272,142 +1275,158 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
             setTotalDuration(duration);
         } else {
             setTimeLeft(0);
-            setTotalDuration(0); // Stopwatch empieza en 0
+            setTotalDuration(0);
         }
     };
 
-    const radius = 130; // Un poco más grande para presencia
+    const radius = 130; 
     const circumference = 2 * Math.PI * radius;
-    // En Stopwatch, progress es 1 (círculo completo) o animado. Hagamos que sea un spinner visual o llene completo.
-    // Si es stopwatch, visualmente queremos que se vea "activo" de otra forma. 
-    // Mantenemos la lógica original visual para stopwatch (progress=1) pero mejorada abajo.
     const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
     const dashOffset = circumference * (1 - progress);
 
     return (
-        <div className="flex flex-col h-full relative overflow-hidden">
-            <div className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
-                <div className="flex justify-between items-center px-6 pt-6 pb-2 flex-shrink-0">
-                    <div><h2 className="text-3xl font-black text-white tracking-tighter">Focus Studio</h2><p className="text-sm text-slate-400 font-medium tracking-tight">Select a flow to begin deep work</p></div>
-                    <button onClick={onOpenProjectModal} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-all active:scale-90 border border-white/10 shadow-lg"><Plus size={24} /></button>
+        <div className="grid grid-cols-1 grid-rows-1 w-full h-full relative overflow-hidden bg-transparent min-h-0">
+            <style>{`
+                @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+                .animate-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+            `}</style>
+            
+            {/* Ambient Noise */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+
+            {/* --- LIST VIEW --- */}
+            <div className={`col-start-1 row-start-1 w-full h-full flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
+                
+                {/* Header */}
+                <div className="flex justify-between items-end px-6 pt-6 pb-4 flex-shrink-0 z-20">
+                    <div>
+                        <h2 className="text-[34px] font-black text-white tracking-[-0.04em] leading-none drop-shadow-lg font-sf-display">Focus.</h2>
+                        <p className="text-[13px] text-slate-400 font-medium tracking-wide uppercase mt-1">Select Session</p>
+                    </div>
+                    
+                    {/* Mode Switcher (List) */}
+                    <div className={`flex bg-black/20 backdrop-blur-xl rounded-full p-1 border border-white/10 shadow-xl ${shakeMode ? 'animate-shake' : ''}`}>
+                         <button onClick={() => handleModeSwitch('POMO')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Pomo</button>
+                         <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Stopwatch</button>
+                    </div>
                 </div>
 
-                <div className="px-4 flex-shrink-0 mt-2">
+                {/* Stats & List */}
+                <div className="px-4 flex-shrink-0 relative z-10">
                     <FocusStats isExpanded={isStatsExpanded} toggleExpand={() => setIsStatsExpanded(!isStatsExpanded)} projects={projects} attributes={attributes} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 px-4 pb-32 overflow-y-auto no-scrollbar flex-1 content-start mt-4 min-h-0">
+                <div className="grid grid-cols-2 gap-3 px-4 pb-32 overflow-y-auto no-scrollbar flex-1 content-start mt-4 min-h-0 relative z-10">
+                    {projects.length === 0 && (
+                        <div className="col-span-2 flex flex-col items-center justify-center py-10 text-center opacity-60">
+                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4"><Plus size={24} className="text-white/50" /></div>
+                            <p className="text-sm text-white font-bold">No sessions yet</p>
+                            <p className="text-xs text-slate-500 mt-1">Create your first flow to start</p>
+                        </div>
+                    )}
                     {projects.map((project) => {
                         const attr = attributes.find((a) => a.id === project.attribute);
                         const progressVal = Math.min(100, (project.totalTime / (project.goalTarget * 60)) * 100);
                         const Icon = attr?.icon || Star;
                         return (
-                            <div key={project.id} className="relative group rounded-[2.5rem] p-6 bg-[#121212] border border-white/5 overflow-hidden transition-all duration-300 hover:bg-[#1a1a1a] flex flex-col justify-between h-56 flex-shrink-0 shadow-2xl hover:shadow-white/5">
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500" style={{ background: `radial-gradient(circle at top right, ${attr?.color}, transparent 70%)` }} />
+                            <div key={project.id} className="relative group rounded-[2rem] p-5 bg-[#121212]/60 backdrop-blur-md border border-white/5 overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-95 flex flex-col justify-between h-52 shadow-2xl hover:shadow-white/5">
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="z-10 flex justify-between items-start">
-                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner border border-white/5" style={{ backgroundColor: `${attr?.color}15` }}><Icon size={22} style={{ color: attr?.color }} /></div>
-                                    <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5"><span className="text-[11px] font-mono text-slate-300 font-bold tracking-tight">{project.pomoDuration} MIN</span></div>
+                                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner bg-black/20"><Icon size={18} style={{ color: attr?.color }} /></div>
+                                    <div className="bg-black/40 px-2 py-1 rounded-full border border-white/5 backdrop-blur-md"><span className="text-[10px] font-mono text-slate-300 font-bold">{project.pomoDuration}m</span></div>
                                 </div>
                                 <div className="z-10 mt-2">
-                                    <h3 className="text-white font-bold text-xl leading-tight mb-2 tracking-tight">{project.title}</h3>
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressVal}%`, backgroundColor: attr?.color, boxShadow: `0 0 10px ${attr?.color}80` }} />
+                                    <h3 className="text-white font-bold text-lg leading-tight mb-3 tracking-tight line-clamp-2">{project.title}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progressVal}%`, backgroundColor: attr?.color, boxShadow: `0 0 10px ${attr?.color}40` }} />
                                         </div>
-                                        <span className="text-[10px] font-black text-slate-500">{Math.floor(progressVal)}%</span>
                                     </div>
                                 </div>
-                                <button onClick={() => startSession(project.id)} className="z-10 w-full py-4 bg-white text-black rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"><Play size={14} fill="currentColor" /> Start Flow</button>
+                                <button onClick={() => startSession(project.id)} className="z-10 w-full py-3 bg-white text-black rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-colors mt-auto flex items-center justify-center gap-2 shadow-lg active:scale-95 transform">Start</button>
                             </div>
                         )
                     })}
-                    <button onClick={onOpenProjectModal} className="rounded-[2.5rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4 text-slate-600 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-56 flex-shrink-0 group"><div className="w-14 h-14 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div><span className="text-xs font-bold uppercase tracking-widest">Create New</span></button>
+                    <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
+                        <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">New Flow</span>
+                    </button>
                 </div>
             </div>
 
-            <div className={`absolute inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? 'opacity-100 z-20 delay-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
+            {/* --- TIMER VIEW --- */}
+            <div className={`col-start-1 row-start-1 w-full h-full flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? 'opacity-100 z-20 delay-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
-                {/* Header Controls (Top) */}
-                <div className="w-full flex justify-between items-start px-6 pt-8 z-30">
-                    <button onClick={stopSession} className="w-12 h-12 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90"><ChevronDown size={24} /></button>
+                {/* Timer Header */}
+                <div className="w-full flex justify-between items-center px-6 pt-8 z-30">
+                    <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
                     
-                    {/* Mode Switcher - Fixed visual overlap by creating dedicated space */}
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="bg-black/40 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 flex gap-1 shadow-2xl relative overflow-hidden">
-                            {/* Disable overlay if active */}
-                            {isActive && <div className="absolute inset-0 z-20 bg-black/10 cursor-not-allowed" onClick={() => navigator.vibrate && navigator.vibrate(50)} />}
+                    {/* Mode Switcher (Timer) */}
+                    <div className={`flex flex-col items-center gap-2 ${shakeMode ? 'animate-shake' : ''}`}>
+                        <div className="bg-black/30 backdrop-blur-2xl p-1 rounded-full border border-white/10 flex gap-1 shadow-2xl relative">
+                            {/* Blocker */}
+                            {isActive && <div className="absolute inset-0 z-50 cursor-not-allowed" onClick={() => { if(navigator.vibrate) navigator.vibrate(50); setShakeMode(true); setTimeout(()=>setShakeMode(false), 500); }} />}
                             
-                            <button 
-                                onClick={() => handleModeSwitch('POMO')} 
-                                className={`relative px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-300 z-10 ${mode === 'POMO' ? 'text-black shadow-lg scale-100' : 'text-slate-500 hover:text-slate-300 scale-95'}`}
-                            >
-                                {mode === 'POMO' && <div className="absolute inset-0 bg-white rounded-full -z-10 layout-id-bubble" />}
-                                Pomo
-                            </button>
-                            <button 
-                                onClick={() => handleModeSwitch('STOPWATCH')} 
-                                className={`relative px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-300 z-10 ${mode === 'STOPWATCH' ? 'text-black shadow-lg scale-100' : 'text-slate-500 hover:text-slate-300 scale-95'}`}
-                            >
-                                {mode === 'STOPWATCH' && <div className="absolute inset-0 bg-white rounded-full -z-10 layout-id-bubble" />}
-                                Stopwatch
-                            </button>
+                            <button onClick={() => handleModeSwitch('POMO')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Pomo</button>
+                            <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Stopwatch</button>
                         </div>
-                        {isActive && <span className="text-[9px] font-bold text-red-500/80 tracking-wide animate-pulse">Stop timer to switch</span>}
                     </div>
                     
-                    <div className="w-12" /> {/* Spacer for balance */}
+                    <div className="w-11" /> {/* Spacer */}
                 </div>
 
-                {/* Main Timer Display */}
+                {/* Timer Display */}
                 <div className="flex-1 flex items-center justify-center w-full relative -mt-10">
-                    <div className="relative w-[340px] h-[340px] flex items-center justify-center">
-                        {/* Outer Glow */}
-                        <div className={`absolute inset-0 rounded-full blur-[60px] transition-opacity duration-1000 ${isActive ? 'opacity-40' : 'opacity-10'}`} style={{ backgroundColor: themeColor }} />
+                     <div className="relative w-[320px] h-[320px] flex items-center justify-center">
+                        {/* Ambient Glow */}
+                        <div className={`absolute inset-0 rounded-full blur-[90px] transition-opacity duration-1000 ${isActive ? 'opacity-30' : 'opacity-0'}`} style={{ backgroundColor: themeColor }} />
                         
-                        <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible drop-shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                        <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible">
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor={themeColor} stopOpacity="1" />
+                                    <stop offset="100%" stopColor={themeColor} stopOpacity="0.5" />
+                                </linearGradient>
+                            </defs>
                             {/* Track */}
-                            <circle cx="170" cy="170" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4" />
+                            <circle cx="160" cy="160" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
                             {/* Progress */}
                             <circle 
-                                cx="170" cy="170" r={radius} fill="none" 
-                                stroke={themeColor} 
-                                strokeWidth="8" 
+                                cx="160" cy="160" r={radius} fill="none" 
+                                stroke="url(#gradient)" 
+                                strokeWidth="6" 
                                 strokeLinecap="round" 
                                 strokeDasharray={circumference} 
                                 strokeDashoffset={dashOffset} 
-                                className={`transition-all duration-1000 ease-linear ${isActive && !isPaused ? 'drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]' : ''}`} 
+                                className="transition-all duration-1000 ease-linear"
+                                style={{ filter: `drop-shadow(0 0 15px ${themeColor}50)` }}
                             />
                         </svg>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                            <div className={`flex flex-col items-center transition-all duration-500 ${isActive ? 'scale-110' : 'scale-100'}`}>
-                                <span className="text-[82px] font-black text-white tabular-nums tracking-tighter leading-none filter drop-shadow-2xl select-none font-sf-display">
-                                    {formatTime(timeLeft)}
-                                </span>
-                                <div className="flex items-center gap-2 mt-6 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg">
-                                    <ActiveIcon size={14} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
-                                    <span className="text-xs font-bold text-white tracking-wide uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? 'Free Flow' : 'Focus')}</span>
-                                </div>
+                            <span className="text-[86px] font-black text-white tabular-nums tracking-[-0.05em] leading-none filter drop-shadow-2xl select-none font-sf-display scale-y-105">
+                                {formatTime(timeLeft)}
+                            </span>
+                            <div className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl">
+                                <ActiveIcon size={12} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
+                                <span className="text-[10px] font-bold text-white tracking-widest uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? 'Free Flow' : 'Focus')}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom Controls */}
-                <div className="flex items-center gap-10 pb-20">
-                    <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 border border-white/10 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md group">
-                        <StopCircle size={26} className="group-hover:fill-current transition-colors" />
+                {/* Timer Controls */}
+                <div className="flex items-center gap-8 pb-24">
+                    <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md group shadow-lg">
+                        <StopCircle size={24} className="group-hover:text-red-400 transition-colors" />
                     </button>
                     
-                    <button onClick={toggleTimer} className="w-24 h-24 rounded-[3rem] bg-white text-black flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white to-slate-200" />
-                        <div className="relative z-10">
-                            {isActive && !isPaused ? <Pause size={42} fill="currentColor" /> : <Play size={42} fill="currentColor" className="ml-2" />}
-                        </div>
+                    <button onClick={toggleTimer} className="w-24 h-24 rounded-[3rem] bg-white text-black flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.15)] hover:scale-105 active:scale-95 transition-all z-20">
+                        {isActive && !isPaused ? <Pause size={38} fill="currentColor" /> : <Play size={38} fill="currentColor" className="ml-2" />}
                     </button>
                     
-                    <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md">
-                        <Volume2 size={26} />
+                    <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg">
+                        <Volume2 size={24} />
                     </button>
                 </div>
             </div>
