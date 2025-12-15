@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Sparkles, Layers } from 'lucide-react';
+import { ChevronLeft, Sparkles, Layers, Lock, ChevronRight } from 'lucide-react';
 import { useSmartTaskLogic } from './hooks/useSmartTaskLogic';
+import { cn } from '../../utils/cn';
 import { AuroraBackground } from '../../components/AuroraBackground';
-import { SmartProject } from '../../types/SmartGoal';
+import { SmartProject, TimeFrame } from '../../types/SmartGoal';
 import { SmartTaskTutorial } from './components/SmartTaskTutorial';
 import { getContextDates, formatDate } from '../../utils/dateUtils';
 
@@ -19,8 +20,10 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
     startProcess, 
     submitAnswer, 
     goBack, 
+    jumpToLevel,
     generateProject,
-    history 
+    history,
+    timeframeHierarchy
   } = useSmartTaskLogic();
 
   const [mainGoalInput, setMainGoalInput] = useState('');
@@ -33,7 +36,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       if (!currentNode) return 0;
       switch (currentNode.level) {
           case 'YEAR': return 2; // Needs 2 Semesters
-          case 'SEMESTER': return 6; // Needs 6 Months
+          case 'SEMESTER': return 2; // Needs 2 Quarters
+          case 'QUARTER': return 3; // Needs 3 Months
           case 'MONTH': return 4; // Needs 4 Weeks
           case 'WEEK': return 7; // Needs 7 Days
           default: return 0;
@@ -41,6 +45,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   };
 
   const requiredCount = getRequiredInputs();
+  const completionStepIndex = 5; // Index of DAY in hierarchy (0-based)
 
   // Initialize inputs when node changes
   useEffect(() => {
@@ -96,7 +101,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       if (!currentNode) return '';
       switch (currentNode.level) {
           case 'YEAR': return 'Strategic Semesters';
-          case 'SEMESTER': return 'Tactical Months';
+          case 'SEMESTER': return 'Key Quarters';
+          case 'QUARTER': return 'Monthly Tactics';
           case 'MONTH': return 'Weekly Execution';
           case 'WEEK': return 'Daily Actions';
           default: return '';
@@ -106,6 +112,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   const getStepDescription = () => {
        if (!currentNode) return '';
        if (currentNode.level === 'YEAR') return `Break down "${currentNode.title}" into 2 Key Semesters.`;
+       if (currentNode.level === 'SEMESTER') return `Break down "${currentNode.title}" into 2 Quarters.`;
        return `Break down "${currentNode.title}" into ${requiredCount} steps.`;
   };
 
@@ -180,7 +187,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                     >
                         <SmartTaskTutorial onComplete={handleTutorialComplete} />
                     </motion.div>
-                ) : !currentNode || currentStep >= 4 ? (
+                ) : !currentNode || currentStep > completionStepIndex ? (
               /* COMPLETION STATE */
               <motion.div
                   key="done"
@@ -251,11 +258,47 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
               transition={{ duration: 0.4 }}
               className="w-full"
             >
+                {/* ROADMAP NAVIGATION */}
+                <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+                   {timeframeHierarchy.map((level, idx) => {
+                      const isActive = currentNode.level === level;
+                      // Logic for past: current node's level index in hierarchy > this level's index
+                      // But wait, currentNode.level IS the current level.
+                      // Past levels are those BEFORE the current level in hierarchy.
+                      // Example: If current is QUARTER (index 2), then YEAR (0) and SEMESTER (1) are past.
+                      const currentIndex = timeframeHierarchy.indexOf(currentNode.level);
+                      const levelIndex = timeframeHierarchy.indexOf(level);
+                      const isPast = levelIndex < currentIndex;
+                      const isFuture = levelIndex > currentIndex;
+
+                      return (
+                         <div key={level} className="flex items-center">
+                             <button
+                                disabled={!isPast}
+                                onClick={() => isPast && jumpToLevel(level)}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border tracking-wider",
+                                    isActive ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-105" :
+                                    isPast ? "bg-white/10 text-white border-white/10 hover:bg-white/20 hover:border-white/30" :
+                                    "bg-transparent text-white/20 border-transparent cursor-not-allowed"
+                                )}
+                             >
+                                {isFuture && <Lock size={10} className="opacity-50" />}
+                                {level}
+                             </button>
+                             {idx < timeframeHierarchy.length - 1 && (
+                                 <div className={`w-4 h-px mx-1 transition-colors ${isPast ? 'bg-indigo-500/50' : 'bg-white/5'}`} />
+                             )}
+                         </div>
+                      )
+                   })}
+                </div>
+
                 {/* Header */}
                 <div className="mb-8 flex items-end gap-4">
                     {history.length > 1 && (
-                        <button onClick={goBack} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors">
-                            <ChevronLeft size={20} />
+                        <button onClick={goBack} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors group">
+                            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                         </button>
                     )}
                     <div>
@@ -298,9 +341,10 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                         <button
                             type="submit"
                             disabled={multiInputs.some(v => !v.trim())}
-                            className="px-8 py-4 bg-white text-black rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                            className="flex items-center gap-2 px-8 py-4 bg-white text-black rounded-full font-bold hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_-5px_rgba(255,255,255,0.5)]"
                         >
-                            Continue
+                            <span>Next Phase</span>
+                            <ChevronRight size={18} />
                         </button>
                     </div>
                 </form>

@@ -9,7 +9,7 @@ export const useSmartTaskLogic = () => {
   const [currentNode, setCurrentNode] = useState<StrategicNode | null>(null);
   const [history, setHistory] = useState<StrategicNode[]>([]);
   
-  const timeframeHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'MONTH', 'WEEK', 'DAY'];
+  const timeframeHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
 
   const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
     const index = timeframeHierarchy.indexOf(currentLevel);
@@ -98,6 +98,33 @@ export const useSmartTaskLogic = () => {
       }
   };
 
+  const jumpToLevel = (level: TimeFrame) => {
+    if (!currentNode || currentNode.level === level) return;
+
+    // Find the node in history that corresponds to this level
+    // History stores the path taken.
+    // e.g. [YearNode, SemesterNode, QuarterNode]
+    // If we are at Month (not in history yet) and want to go to Semester:
+    // We need to find SemesterNode in history.
+    
+    const targetIndex = history.findIndex(node => node.level === level);
+    
+    if (targetIndex !== -1) {
+        // We found it in history, so we are going back
+        const targetNode = history[targetIndex];
+        
+        // Reset history to up to that point (inclusive)
+        const newHistory = history.slice(0, targetIndex + 1);
+        setHistory(newHistory);
+        setCurrentNode(targetNode);
+        
+        // Update step index based on hierarchy
+        const newStepIndex = timeframeHierarchy.indexOf(level);
+        setCurrentStep(newStepIndex);
+        return;
+    }
+  };
+
   const generateProject = (): SmartProject | null => {
       if (!rootNode) return null;
       return {
@@ -117,7 +144,9 @@ export const useSmartTaskLogic = () => {
     startProcess,
     submitAnswer,
     goBack,
+    jumpToLevel,
     generateProject,
-    history
+    history,
+    timeframeHierarchy
   };
 };

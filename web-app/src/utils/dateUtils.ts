@@ -34,10 +34,11 @@ export const getContextDates = (startDate: Date, level: 'YEAR' | 'SEMESTER' | 'Q
             label = index === 0 ? 'Primeros 6 Meses' : 'Segundos 6 Meses';
             break;
         case 'SEMESTER':
-            // Month 1..6
-            start.setMonth(start.getMonth() + index);
-            end = addMonths(start, 1);
-            label = `Mes ${index + 1}`;
+            // Q1 vs Q2 (within the semester)
+            // Index 0 = Q1, Index 1 = Q2
+            start.setMonth(start.getMonth() + (index * 3));
+            end = addMonths(start, 3);
+            label = `Trimestre ${index + 1}`;
             break;
         case 'QUARTER':
             // Month 1..3

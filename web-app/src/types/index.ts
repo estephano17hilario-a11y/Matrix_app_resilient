@@ -35,6 +35,7 @@ export interface Quest {
   completed: boolean;
   deadline?: string;
   subtasks?: Subtask[];
+  fractalStructure?: any; // Stores the smart task structure
 }
 
 export interface Habit {
