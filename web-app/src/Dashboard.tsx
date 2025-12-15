@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PlayerHUD } from './modules/dashboard/PlayerHUD';
+import { TaskList } from './modules/tasks/TaskList';
+import { HabitList } from './modules/dashboard/HabitList';
 import StatusHUD from './components/StatusHUD';
 import { 
   Zap, Brain, Users, Target, CheckCircle2, Trophy, Flame, 
@@ -9,8 +12,15 @@ import {
   Play, Pause, StopCircle, Volume2, Briefcase, Hourglass, Bell, 
   ChevronLeft, ChevronRight, BarChart3, Image as ImageIcon, 
   PenTool, ArrowLeft, ArrowUp, Wallet, Shield, Crown, Anchor, Ghost, Feather, Type,
-  Settings, ToggleLeft, ToggleRight
+  Settings, ToggleLeft, ToggleRight, ShoppingBag
 } from 'lucide-react';
+import { AchievementsScreen } from './modules/achievements/AchievementsScreen';
+import { StoreScreen } from './modules/store/StoreScreen';
+import { useMatrix } from './context/MatrixContext';
+import { checkAchievements } from './services/achievementListener';
+import { AchievementToast } from './components/AchievementToast';
+import { AuroraBackground } from './components/AuroraBackground';
+import { Achievement } from './config/achievements';
 
 /**
  * ============================================================================
@@ -27,7 +37,7 @@ interface ThemeConfig {
   blobs?: { x: string; y: string; size: string }[];
 }
 
-interface Attribute {
+export interface Attribute {
   id: string;
   label: string;
   level: number;
@@ -65,6 +75,13 @@ interface Habit {
   reminderTime?: string;
 }
 
+export interface Session {
+  id: string;
+  type: 'POMO' | 'STOPWATCH';
+  duration: number; // seconds
+  date: string; // ISO string
+}
+
 interface Project {
   id: string;
   title: string;
@@ -76,6 +93,7 @@ interface Project {
   breakDuration: number;
   impact: number;
   totalTime: number;
+  sessions: Session[];
   reminder?: string;
 }
 
@@ -581,47 +599,20 @@ const BarChart = React.memo(({
                         <span className="text-[9px] font-bold text-slate-500 text-center mt-1 group-hover:text-white transition-colors">{label}</span>
                     </div>
                 ))}
+                </div>
             </div>
+            {selectedProject && (
+                <SessionHistoryModal 
+                    isOpen={showHistory} 
+                    onClose={() => setShowHistory(false)} 
+                    project={selectedProject} 
+                    onUpdateProject={onUpdateProject} 
+                />
+            )}
         </div>
     );
 });
 
-const QuestItem = React.memo(({ quest, attribute, onComplete }: { quest: Quest, attribute?: Attribute, onComplete: (e: React.MouseEvent, q: Quest) => void }) => {
-  const [expanded, setExpanded] = useState(false);
-  const Icon = attribute?.icon;
-  return (
-    <div className={`relative rounded-[1.25rem] transition-transform duration-300 ease-out mb-3 group active:scale-[0.98] ${expanded ? 'z-10' : ''}`} style={{ padding: '1px', background: `linear-gradient(145deg, ${attribute?.color || '#333'} 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` }}>
-        <div className="relative bg-[#121216] rounded-[1.2rem] overflow-hidden">
-            <div className="relative z-10 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-                <div className="flex items-center gap-4">
-                    <button onClick={(e) => onComplete(e, quest)} className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 active:scale-90 active:opacity-80 ${quest.completed ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-95' : 'bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10'}`}>{quest.completed ? <CheckCircle2 size={20} strokeWidth={3.5} /> : <div className="w-3 h-3 rounded-full bg-white/20" />}</button>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1"><h3 className={`text-[15px] font-bold truncate pr-2 leading-tight tracking-tight ${quest.completed ? 'text-slate-500 line-through' : 'text-white'}`}>{quest.title}</h3><span className={`text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide text-white/50 border-white/10`}>RANK {quest.difficulty}</span></div>
-                        <div className="flex items-center gap-3"><div className="flex items-center gap-1.5 text-slate-400">{attribute && Icon && (<div className="flex items-center gap-1.5"><Icon size={12} style={{ color: attribute.color }} strokeWidth={2.5} /><span className="text-[11px] font-bold tracking-wide" style={{ color: attribute.color }}>{attribute.label}</span></div>)}</div></div>
-                    </div>
-                </div>
-                <div className={`accordion-grid ${expanded ? 'open' : ''}`}><div className="accordion-inner"><div className="pt-4 pb-1"><div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-3" />{quest.description && (<div className="text-[13px] text-slate-400 leading-relaxed px-1 font-medium mb-3">"{quest.description}"</div>)}</div></div></div>
-            </div>
-        </div>
-    </div>
-  );
-});
-
-const HabitItem = React.memo(({ habit, attribute, onComplete }: { habit: Habit, attribute?: Attribute, onComplete: (e: React.MouseEvent, h: Habit) => void }) => {
-    const Icon = attribute?.icon;
-    return (
-        <div className="group relative glass-panel rounded-[1.5rem] p-1 transition-all duration-300 hover:bg-[#1a1a20]/80 active:scale-[0.99] active:opacity-95">
-            <div className="relative flex items-center p-3 gap-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-105" style={{ backgroundColor: `${attribute?.color}15` }}>{attribute && Icon && <Icon size={22} style={{ color: attribute.color }} strokeWidth={2} />}</div>
-                <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-bold text-[15px] mb-1 tracking-tight truncate">{habit.title}</h4>
-                    <div className="flex flex-wrap items-center gap-2"><div className={`flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border ${habit.completedToday ? 'text-orange-400 border-orange-500/20 bg-orange-500/10' : 'text-slate-500 border-white/5 bg-white/5'}`}><Flame size={10} className={habit.completedToday ? 'fill-orange-400' : ''} />{habit.streak}</div></div>
-                </div>
-                <button onClick={(e) => onComplete(e, habit)} className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 relative overflow-hidden active:scale-90 ${habit.completedToday ? 'bg-gradient-to-br from-emerald-500 to-green-600 border-transparent shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-[#0a0a0c] border-white/10 hover:border-white/30'}`}>{habit.completedToday ? (<Check size={24} className="text-white drop-shadow-md animate-in zoom-in spin-in-12 duration-300" strokeWidth={3.5} />) : (<div className="w-4 h-4 rounded-full border-[2.5px] border-white/20 group-hover:border-white/50 transition-colors" />)}</button>
-            </div>
-        </div>
-    );
-});
 
 const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: { blocks: NoteBlock[], onChange: (blocks: NoteBlock[]) => void, readOnly?: boolean }) => {
     // Removed synchronous useEffect to prevent rendering loops.
@@ -1188,8 +1179,92 @@ const FocusStats = React.memo(({ isExpanded, toggleExpand, projects, attributes 
     );
 });
 
+// --- SESSION HISTORY MODAL ---
+const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpdateProject }: { isOpen: boolean, onClose: () => void, project: Project, onUpdateProject: (p: Project) => void }) => {
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editDuration, setEditDuration] = useState('');
+    
+    if (!isOpen) return null;
+
+    const handleSave = (sessionId: string) => {
+        const newDuration = parseInt(editDuration);
+        if (isNaN(newDuration) || newDuration < 1) return;
+        
+        const newSessions = project.sessions.map(s => s.id === sessionId ? { ...s, duration: newDuration * 60 } : s);
+        const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
+        
+        onUpdateProject({ ...project, sessions: newSessions, totalTime: newTotal });
+        setEditingId(null);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-sm bg-[#1c1c1e] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300">
+                <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <div>
+                        <h3 className="text-white font-bold text-lg">Session History</h3>
+                        <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{project.title}</p>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+                    {(!project.sessions || project.sessions.length === 0) && (
+                        <div className="text-center py-8 text-slate-500 text-sm">No sessions recorded yet.</div>
+                    )}
+                    {project.sessions?.map((session) => (
+                        <div key={session.id} className="bg-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/10 transition-colors border border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${session.type === 'POMO' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                                    {session.type === 'POMO' ? <Target size={18} /> : <StopCircle size={18} />}
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">{session.type === 'POMO' ? 'Pomodoro' : 'Flow'}</div>
+                                    <div className="text-[10px] text-slate-500">{new Date(session.date).toLocaleDateString()} • {new Date(session.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {editingId === session.id ? (
+                                    <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1">
+                                        <input 
+                                            type="number" 
+                                            value={editDuration} 
+                                            onChange={(e) => setEditDuration(e.target.value)}
+                                            className="w-12 bg-transparent text-right text-sm font-bold text-white outline-none"
+                                            autoFocus
+                                        />
+                                        <span className="text-[10px] text-slate-500 pr-1">min</span>
+                                        <button onClick={() => handleSave(session.id)} className="w-6 h-6 rounded-md bg-green-500/20 text-green-500 flex items-center justify-center hover:bg-green-500/30"><Check size={12} /></button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => { setEditingId(session.id); setEditDuration(Math.floor(session.duration / 60).toString()); }} className="px-3 py-1.5 rounded-lg bg-black/20 text-sm font-mono font-bold text-white hover:bg-white/20 transition-colors min-w-[60px] text-center">
+                                        {Math.floor(session.duration / 60)}m
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Total Time</span>
+                    <span className="text-xl font-black text-white">{Math.floor(project.totalTime / 60)}<span className="text-sm font-medium text-white/40 ml-1">min</span></span>
+                </div>
+            </div>
+        </div>
+    );
+});
+
 // --- FOCUS VIEW ---
-const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, isFocusActive }: { projects: Project[], attributes: Attribute[], onCompleteSession: (id: string | null, duration: number) => void, onOpenProjectModal: () => void, setFocusMode: (attrId: string | null) => void, isFocusActive: boolean }) => {
+const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, isFocusActive, onUpdateProject, addNotification }: { 
+    projects: Project[], 
+    attributes: Attribute[], 
+    onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
+    onOpenProjectModal: () => void, 
+    setFocusMode: (attrId: string | null) => void, 
+    isFocusActive: boolean,
+    onUpdateProject: (p: Project) => void,
+    addNotification: (n: any) => void
+}) => {
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
     const [isActive, setIsActive] = useState(false);
@@ -1197,6 +1272,7 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [isStatsExpanded, setIsStatsExpanded] = useState(true);
     const [shakeMode, setShakeMode] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     const selectedProject = useMemo(() => projects.find((p) => p.id === selectedProjectId), [projects, selectedProjectId]);
     const activeAttr = useMemo(() => attributes.find((a) => a.id === selectedProject?.attribute), [selectedProject, attributes]);
@@ -1230,7 +1306,7 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
                     if (mode === 'POMO') {
                         if (prev <= 1) {
                             clearInterval(interval); setIsActive(false);
-                            onCompleteSession(selectedProjectId, totalDuration);
+                            onCompleteSession(selectedProjectId, totalDuration, mode);
                             if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
                             return 0;
                         }
@@ -1265,6 +1341,7 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
             if (navigator.vibrate) navigator.vibrate(50);
             setShakeMode(true);
             setTimeout(() => setShakeMode(false), 500);
+            addNotification({ type: 'SYSTEM', label: 'ACTIVE SESSION', fromLevel: 'Finish', toLevel: 'First', icon: Lock, color: '#ef4444' });
             return;
         }
         if (newMode === mode) return;
@@ -1292,10 +1369,10 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
             `}</style>
             
             {/* Ambient Noise */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+            {/* <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} /> */}
 
             {/* --- LIST VIEW --- */}
-            <div className={`col-start-1 row-start-1 w-full h-full flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
+            <div className={`col-start-1 row-start-1 w-full h-full overflow-y-auto no-scrollbar flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
                 {/* Header */}
                 <div className="flex justify-between items-end px-6 pt-6 pb-4 flex-shrink-0 z-20">
@@ -1316,7 +1393,7 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
                     <FocusStats isExpanded={isStatsExpanded} toggleExpand={() => setIsStatsExpanded(!isStatsExpanded)} projects={projects} attributes={attributes} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 px-4 pb-32 overflow-y-auto no-scrollbar flex-1 content-start mt-4 min-h-0 relative z-10">
+                <div className="grid grid-cols-2 gap-3 px-4 pb-32 content-start mt-4 relative z-10">
                     {projects.length === 0 && (
                         <div className="col-span-2 flex flex-col items-center justify-center py-10 text-center opacity-60">
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4"><Plus size={24} className="text-white/50" /></div>
@@ -1407,10 +1484,16 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
                             <span className="text-[86px] font-black text-white tabular-nums tracking-[-0.05em] leading-none filter drop-shadow-2xl select-none font-sf-display scale-y-105">
                                 {formatTime(timeLeft)}
                             </span>
-                            <div className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl">
+                            <button onClick={() => selectedProject && setShowHistory(true)} className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 active:scale-95 transition-all">
                                 <ActiveIcon size={12} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
                                 <span className="text-[10px] font-bold text-white tracking-widest uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? 'Free Flow' : 'Focus')}</span>
-                            </div>
+                                {selectedProject && selectedProject.sessions && selectedProject.sessions.length > 0 && (
+                                    <div className="ml-2 flex items-center gap-1 animate-in fade-in zoom-in">
+                                        <div className="w-[1px] h-3 bg-white/20" />
+                                        <span className="text-[10px] font-mono font-bold text-slate-300 ml-1">{selectedProject.sessions.length}</span>
+                                    </div>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1674,7 +1757,7 @@ const ProjectModal = React.memo(({ isOpen, onClose, attributes, onConfirm }: { i
     );
 });
 
-const Header = React.memo(({ level, xp, nextXp, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar }: { level: number, xp: number, nextXp: number, theme: string, onThemeToggle: (t: string) => void, isHidden: boolean, showProfile: boolean, onToggleProfile: (v: boolean) => void, hideAvatar?: boolean }) => {
+const Header = React.memo(({ level, xp, nextXp, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar, onShowStore }: { level: number, xp: number, nextXp: number, theme: string, onThemeToggle: (t: string) => void, isHidden: boolean, showProfile: boolean, onToggleProfile: (v: boolean) => void, hideAvatar?: boolean, onShowStore: () => void }) => {
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const isCompact = !showProfile && !hideAvatar;
@@ -1718,17 +1801,27 @@ const Header = React.memo(({ level, xp, nextXp, theme, onThemeToggle, isHidden, 
                 </div>
             </div>
         </div>
-        <div className="relative pointer-events-auto">
-            <button onClick={() => setPickerOpen(!isPickerOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isPickerOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}><Palette size={18} /></button>
-            {isPickerOpen && (
-                <div className="absolute right-0 top-12 p-2 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] flex gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60]">
-                    {Object.entries(THEMES).map(([key, t]) => (
-                        <button key={key} onClick={() => { onThemeToggle(key); setPickerOpen(false); }} className="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-all shadow-lg relative" style={{ background: t.accent, borderColor: theme === key ? 'white' : 'transparent' }}>
-                            {theme === key && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full" /></div>}
-                        </button>
-                    ))}
-                </div>
-            )}
+        
+        {/* RIGHT ACTIONS */}
+        <div className="flex items-center gap-3 pointer-events-auto">
+            {/* Store Button */}
+            <button onClick={onShowStore} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 group">
+                <ShoppingBag size={18} className="group-hover:text-yellow-400 transition-colors" />
+            </button>
+
+            {/* Theme Picker */}
+            <div className="relative">
+                <button onClick={() => setPickerOpen(!isPickerOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isPickerOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}><Palette size={18} /></button>
+                {isPickerOpen && (
+                    <div className="absolute right-0 top-12 p-2 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] flex gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60]">
+                        {Object.entries(THEMES).map(([key, t]) => (
+                            <button key={key} onClick={() => { onThemeToggle(key); setPickerOpen(false); }} className="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-all shadow-lg relative" style={{ background: t.accent, borderColor: theme === key ? 'white' : 'transparent' }}>
+                                {theme === key && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full" /></div>}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     </header>
   );
@@ -1740,19 +1833,26 @@ const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onTog
 
     return (
         <div className={`fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none transition-transform duration-1000 cubic-bezier(0.32,0.72,0,1) ${isHidden ? 'translate-y-[200%]' : 'translate-y-0'}`}>
-           <div className={`pointer-events-auto relative aura-container overflow-hidden box-border w-[88vw] max-w-[330px] shadow-2xl transition-[height,border-radius,background-color,box-shadow] duration-500 cubic-bezier(0.32,0.72,0,1) ${isOpen ? 'h-[260px] rounded-[32px] aura-active' : 'h-[70px] rounded-[34px] bg-black/5 border border-white/10'}`}>
-             <div className="relative w-full h-full z-10">
-                 <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-75' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                     <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
-                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
-                     </button>
-                     <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Habit</span>
-                     </button>
-                     <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
-                     </button>
-                 </div>
+           <div className={`pointer-events-auto relative aura-container overflow-hidden box-border w-[88vw] max-w-[330px] shadow-2xl transition-[height,border-radius,background-color,box-shadow] duration-500 cubic-bezier(0.32,0.72,0,1) ${isOpen ? 'h-[340px] rounded-[32px] aura-active' : 'h-[70px] rounded-[34px] bg-black/5 border border-white/10'}`}>
+            <div className="relative w-full h-full z-10">
+                <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-75' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+                       <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                    </button>
+                    <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Habit</span>
+                    </button>
+                    <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
+                    </button>
+                    <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-2 h-14 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.1)] group-hover:scale-110 transition-transform"><Trophy size={18} /></div>
+                            <div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">Hall of Fame</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Achievements</span></div>
+                        </div>
+                        <ChevronRight size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                    </button>
+                </div>
                  <div className="absolute bottom-0 left-0 right-0 h-[70px] flex items-center justify-between px-8 z-20">
                      <div className="flex gap-8">
                          <button onClick={() => handleView('TASKS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'TASKS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><CheckCircle2 size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'TASKS' ? 2.5 : 2} /></button>
@@ -1763,7 +1863,7 @@ const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onTog
                       {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" />)}
                   </button>
               </div>
-                     <div className="flex gap-8">
+                     <div className="flex gap-5">
                          <button onClick={() => handleView('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Target size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} /></button>
                          <button onClick={() => handleView('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Briefcase size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} /></button>
                      </div>
@@ -1792,6 +1892,9 @@ const TRAITS_LIST = [
 
 // --- APP (DEFINED LAST) ---
 export default function Dashboard() {
+  const { user } = useMatrix();
+  const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
+
   const [currentTheme, setCurrentTheme] = useState('SPOTLIGHT');
   const [currentView, setCurrentView] = useState('TASKS');
   const [isDockOpen, setIsDockOpen] = useState(false);
@@ -1802,6 +1905,51 @@ export default function Dashboard() {
 
   const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500 });
   const [health] = useState(100);
+
+  // --- SYNC WITH MATRIX CORE ---
+  useEffect(() => {
+    if (user && user.stats) {
+      // Sync local player state with global Matrix state
+      setPlayer(prev => {
+        // Only update if significantly different to avoid jitter during optimistic updates
+        if (Math.abs(prev.xp - user.stats.xp) > 10 || prev.level !== user.stats.level) {
+          return {
+            level: user.stats.level,
+            xp: user.stats.xp,
+            nextXp: prev.nextXp // Keep local nextXp calculation or derive it
+          };
+        }
+        return prev;
+      });
+    }
+  }, [user]);
+
+  // --- ACHIEVEMENT LISTENER ---
+  useEffect(() => {
+    const verifyAchievements = async () => {
+      if (user && player.xp > 0) {
+        // Construct a "Hybrid" user state with latest local stats
+        const hybridUser = { 
+          ...user, 
+          stats: { 
+            ...user.stats, 
+            xp: player.xp, 
+            level: player.level,
+            hp: health 
+          } 
+        };
+        
+        const newAchievements = await checkAchievements(hybridUser);
+        if (newAchievements.length > 0) {
+          setLastAchievement(newAchievements[0]);
+          // Optional: Sound effect here
+        }
+      }
+    };
+    
+    verifyAchievements();
+  }, [player.xp, player.level, user, health]);
+
     
   // Initialize attributes with ALL traits for now (or a default subset)
   const [attributes, setAttributes] = useState<Attribute[]>(() => 
@@ -1904,7 +2052,7 @@ export default function Dashboard() {
     setTimeout(() => { setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))); }, 2000); 
   }, []);
 
-  const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number) => {
+  const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
       const baseReward = Math.floor(durationSeconds / 60);
       let attrId = 'MENTAL';
       let multiplier = 1;
@@ -1913,7 +2061,12 @@ export default function Dashboard() {
           if (proj) {
               attrId = proj.attribute;
               multiplier = proj.impact;
-              setProjects(prev => prev.map(p => p.id === projectId ? { ...p, totalTime: p.totalTime + durationSeconds } : p));
+              const newSession: Session = { id: Date.now().toString(), type, duration: durationSeconds, date: new Date().toISOString() };
+              setProjects(prev => prev.map(p => p.id === projectId ? { 
+                  ...p, 
+                  totalTime: p.totalTime + durationSeconds,
+                  sessions: [newSession, ...(p.sessions || [])]
+              } : p));
           }
       }
       const totalReward = Math.floor(baseReward * multiplier);
@@ -2007,8 +2160,12 @@ export default function Dashboard() {
   }, []);
 
   const handleProjectConfirm = useCallback((data: Partial<Project>) => {
-      setProjects(prev => [{ id: Date.now().toString(), totalTime: 0, ...data } as Project, ...prev]);
+      setProjects(prev => [{ id: Date.now().toString(), totalTime: 0, sessions: [], ...data } as Project, ...prev]);
       setActiveModal(null);
+  }, []);
+
+  const handleUpdateProject = useCallback((updatedProject: Project) => {
+      setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
   }, []);
 
   const handleUpdateNote = useCallback((note: Note) => {
@@ -2035,7 +2192,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen text-slate-200 selection:bg-cyan-500/30 overflow-hidden relative">
       <GlobalStyles />
-      <LuxuryBackground theme={currentTheme} overrideColor={overrideBgColor} />
+      {/* <LuxuryBackground theme={currentTheme} overrideColor={overrideBgColor} /> */}
+      <AuroraBackground overrideColor={overrideBgColor} />
+
+      <AchievementToast 
+        achievement={lastAchievement} 
+        onClose={() => setLastAchievement(null)} 
+      />
 
       {/* FX LAYER */}
       <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
@@ -2072,6 +2235,7 @@ export default function Dashboard() {
               showProfile={showProfile}
               onToggleProfile={setShowProfile}
               hideAvatar={currentView === 'TASKS'}
+              onShowStore={() => setCurrentView('STORE')}
           />
 
           <div className="animate-enter-view h-full flex-1 w-full relative">
@@ -2080,55 +2244,36 @@ export default function Dashboard() {
                     {/* 💎 STATUS HUD - THE MIRROR */}
                     {showProfile && (
                         <div className="relative z-20 -mx-2">
-                            <StatusHUD 
+                            <PlayerHUD 
                                 level={player.level} 
                                 xp={player.xp} 
                                 nextXp={player.nextXp} 
                                 health={health}
                                 streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                                attributes={attributes}
                             />
                         </div>
                     )}
 
                     {/* ACTIVE MISSIONS */}
-                    <div>
-                        <div className="flex items-center justify-between px-1 mb-3">
-                            <h2 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">Active Missions</h2>
-                            <div className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                                <Flame size={10} className="text-orange-400 fill-orange-400" />
-                                <span className="text-[10px] font-black text-orange-400">{quests.filter(q => !q.completed).length} TARGETS</span>
-                            </div>
-                        </div>
-                        
-                        <div className="flex flex-col pb-32 gap-3">
-                            {quests.map((quest) => (
-                                <QuestItem key={quest.id} quest={quest} attribute={attributes.find(a => a.id === quest.attribute)} onComplete={completeQuest} />
-                            ))}
-                        </div>
-                    </div>
+                    <TaskList 
+                        quests={quests} 
+                        attributes={attributes} 
+                        onCompleteQuest={completeQuest} 
+                    />
                 </div>
             )}
 
             {currentView === 'HABITS' && (
-                <div>
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                    {[{ icon: Flame, color: 'text-orange-500', val: '12', label: 'Streak' }, { icon: Calendar, color: 'text-cyan-500', val: '85%', label: 'Consistency' }, { icon: CheckCircle2, color: 'text-green-500', val: '42', label: 'Perfect' }].map((stat, i) => (
-                        <div key={i} className="glass-panel p-3 rounded-2xl flex flex-col items-center">
-                            <stat.icon className={`${stat.color} mb-1`} size={20} />
-                            <span className="text-xl font-black text-white tracking-tight">{stat.val}</span>
-                            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">{stat.label}</span>
-                        </div>
-                    ))}
-                </div>
-                <h2 className="text-xl font-bold text-white tracking-tight px-1 mb-4">Daily Protocols</h2>
-                <div className="space-y-3 pb-32">
-                    {habits.map(habit => (<HabitItem key={habit.id} habit={habit} attribute={attributes.find(a => a.id === habit.attribute)} onComplete={handleHabitClick} />))}
-                </div>
-                </div>
+                <HabitList 
+                    habits={habits} 
+                    attributes={attributes} 
+                    onCompleteHabit={handleHabitClick} 
+                />
             )}
 
             {currentView === 'FOCUS' && (
-                <div className="h-full pt-4 relative flex-1">
+                <div className="h-[calc(100vh-140px)] pt-4 relative flex-1">
                     <FocusView projects={projects} attributes={attributes} onCompleteSession={handleCompleteSession} onOpenProjectModal={() => setActiveModal('PROJECT')} setFocusMode={handleFocusModeChange} isFocusActive={isFocusMode} />
                 </div>
             )}
@@ -2146,6 +2291,20 @@ export default function Dashboard() {
                         onInteractionEnd={() => setIsNoteTaking(false)}
                         projects={projects}
                     />
+                </div>
+            )}
+
+            {/* --- ACHIEVEMENTS SECTION --- */}
+            {currentView === 'ACHIEVEMENTS' && (
+                <div className="h-full pt-0 relative flex-1 animate-enter-view">
+                    <AchievementsScreen />
+                </div>
+            )}
+
+            {/* --- STORE SECTION --- */}
+            {currentView === 'STORE' && (
+                <div className="h-full pt-0 relative flex-1 animate-enter-view">
+                    <StoreScreen />
                 </div>
             )}
           </div>

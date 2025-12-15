@@ -1,32 +1,22 @@
+import { auth, db } from '../firebase';
 import { 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signOut,
+  signOut as firebaseSignOut,
   User
-} from "firebase/auth";
-import { 
-  doc, 
-  getDoc,
-  setDoc,
-  serverTimestamp 
-} from "firebase/firestore";
-import { auth, db } from "../firebase";
-
-// --- AUTHENTICATION SERVICES ---
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 /**
- * Initiates the Google Sign-In flow using a popup.
- * @returns Promise<User> - The authenticated Firebase User.
+ * SERVICE: Firebase Authentication & User Data
+ * LOGIC: Pure business logic. No UI.
  */
+
+const googleProvider = new GoogleAuthProvider();
+
 export const loginWithGoogle = async (): Promise<User> => {
   try {
-    const provider = new GoogleAuthProvider();
-    // Force account selection to avoid auto-login loops if multiple accounts exist
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
     console.error("Matrix Access Denied:", error);
@@ -34,55 +24,22 @@ export const loginWithGoogle = async (): Promise<User> => {
   }
 };
 
-/**
- * Terminates the current session.
- */
 export const logout = async (): Promise<void> => {
   try {
-    await signOut(auth);
+    await firebaseSignOut(auth);
   } catch (error) {
-    console.error("Disconnection Failed:", error);
+    console.error("Disconnection Error:", error);
     throw error;
   }
 };
 
-/**
- * Checks if a user document exists in the 'users' Firestore collection.
- * This determines if the user is a "Veteran" or "New Recruit".
- * 
- * @param uid - The unique Firebase User ID.
- * @returns Promise<boolean> - True if user exists in DB.
- */
 export const checkUserExists = async (uid: string): Promise<boolean> => {
   try {
-    const userRef = doc(db, "users", uid);
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists();
+    const userDocRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    return userDoc.exists();
   } catch (error) {
     console.error("Database Query Failed:", error);
-    return false;
-  }
-};
-
-/**
- * Creates the initial user record in Firestore.
- * Call this after Onboarding is complete.
- */
-export const createUserRecord = async (user: User, data: any = {}) => {
-  try {
-    const userRef = doc(db, "users", user.uid);
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-      onboardingCompleted: true,
-      ...data
-    }, { merge: true });
-  } catch (error) {
-    console.error("User Creation Failed:", error);
-    throw error;
+    return false; // Fail safe
   }
 };

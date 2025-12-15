@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export interface UserStats {
   hp: number;
@@ -10,6 +12,8 @@ export interface UserStats {
 export interface UserPreferences {
   theme: string;
   mode: string;
+  archetype?: string;
+  weakness?: string;
 }
 
 export interface UserData {
@@ -17,6 +21,8 @@ export interface UserData {
   stats: UserStats;
   preferences: UserPreferences;
   currentStreak: number;
+  inventory?: Record<string, number>; // Add inventory support
+  unlockedAchievements?: string[];
 }
 
 export interface Task {
@@ -44,45 +50,66 @@ export interface MatrixDataHook {
   completeTask: (taskId: string, difficulty: string, impactOnStats?: { xp: number; gold: number }) => Promise<void>;
 }
 
-// MOCK DATA FOR "GOLDEN MASTER" UI
+// MOCK DATA FALLBACK (If no user or offline/empty)
 const MOCK_USER: UserData = {
   uid: 'neo-01',
   stats: { hp: 100, xp: 2500, level: 5, gold: 500 },
   preferences: { theme: 'matrix', mode: 'focus' },
-  currentStreak: 7
+  currentStreak: 7,
+  inventory: {}
 };
-
-const MOCK_TASKS: Task[] = [
-  { id: '1', title: 'Complete System Core', status: 'pending', difficulty: 'hard' },
-  { id: '2', title: 'Neural Link Calibration', status: 'completed', difficulty: 'medium' }
-];
-
-const MOCK_HABITS: Habit[] = [
-  { id: 'h1', title: 'Deep Work', frequency: 'daily', current_streak: 5 }
-];
 
 export const useMatrixData = (userId: string | null): MatrixDataHook => {
   const [user, setUser] = useState<UserData | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Simulate Network Delay for "Realism"
-    const timer = setTimeout(() => {
-      if (userId) {
-        setUser(MOCK_USER);
-        setTasks(MOCK_TASKS);
-        setHabits(MOCK_HABITS);
-      }
+    if (!userId) {
       setLoading(false);
-    }, 800);
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    setLoading(true);
+
+    // Real-time listener for User Document
+    const userRef = doc(db, 'users', userId);
+    const unsubscribeUser = onSnapshot(userRef, 
+      (doc) => {
+        if (doc.exists()) {
+          setUser({ uid: doc.id, ...doc.data() } as UserData);
+        } else {
+            // If user doesn't exist in DB yet (new user), maybe show mock or null
+            // For now, let's fallback to mock if doc missing but userId exists (dev mode)
+            console.warn("User document not found in Firestore, using Mock.");
+            setUser(MOCK_USER); 
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Firestore Error:", err);
+        setError(err);
+        setLoading(false);
+      }
+    );
+
+    // TODO: Add listeners for Tasks and Habits subcollections here
+    // For now, we keep Mock tasks/habits to avoid breaking that part of the app
+    setTasks([
+      { id: '1', title: 'Complete System Core', status: 'pending', difficulty: 'hard' },
+      { id: '2', title: 'Neural Link Calibration', status: 'completed', difficulty: 'medium' }
+    ]);
+
+    return () => {
+      unsubscribeUser();
+    };
   }, [userId]);
 
   const completeTask = async (taskId: string) => {
     console.log(`Task ${taskId} completed (Mock)`);
+    // Here we would implement real task completion logic
   };
 
   return {
@@ -90,7 +117,7 @@ export const useMatrixData = (userId: string | null): MatrixDataHook => {
     tasks,
     habits,
     loading,
-    error: null,
+    error,
     syncing: false,
     completeTask
   };

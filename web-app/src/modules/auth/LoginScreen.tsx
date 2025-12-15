@@ -1,152 +1,155 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Terminal, ShieldAlert, Lock, ChevronRight } from 'lucide-react';
 import { loginWithGoogle } from '../../services/firebaseService';
 
+/**
+ * COMPONENT: THE PORTAL (Login Screen)
+ * DESIGN PHILOSOPHY: "Liquid Physiform"
+ * 
+ * - Deep Void Background
+ * - Aurora Borealis Orbs (Breathing)
+ * - Ultra-Fidelity Glass (The Monolith)
+ * - Apple Intelligence Button
+ */
+
 export default function LoginScreen() {
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isHovering, setIsHovering] = useState(false);
 
   const handleLogin = async () => {
-    setIsAuthenticating(true);
-    setError(null);
-    
     try {
       await loginWithGoogle();
-      // AuthContext will handle the redirect automatically
-    } catch (err: any) {
-      console.error("Matrix Auth Error:", err);
-      
-      // 🛡️ ERROR DECODING PROTOCOL
-      let msg = "ACCESS DENIED: CONNECTION RESET";
-      
-      if (err.code === 'auth/popup-closed-by-user') {
-        msg = "SEQUENCE ABORTED BY USER";
-      } else if (err.code === 'auth/unauthorized-domain') {
-        msg = "DOMAIN UNAUTHORIZED (CHECK FIREBASE CONSOLE)";
-      } else if (err.code === 'auth/popup-blocked') {
-        msg = "POPUP BLOCKED: ENABLE POPUPS FOR THIS SITE";
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        msg = "MULTIPLE REQUESTS DETECTED";
-      } else if (err.code === 'auth/operation-not-allowed') {
-        msg = "GOOGLE LOGIN DISABLED IN FIREBASE CONSOLE";
-      } else if (err.code) {
-        msg = `ERROR: ${err.code}`;
-      }
-
-      setError(msg);
-      setIsAuthenticating(false);
+      // Transition handled by App.tsx router state change + AnimatePresence
+    } catch (error) {
+      console.error("Authentication Failed", error);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden select-none touch-callout-none font-mono">
-      {/* 💎 AMBIENT LIGHTING (VOLUMETRIC) */}
-      <div className="absolute top-0 left-0 w-full h-96 bg-green-500/5 blur-[120px] pointer-events-none mix-blend-screen" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-900/10 blur-[100px] pointer-events-none" />
-      
-      {/* GRID TEXTURE */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
-      
-      {/* MAIN INTERFACE */}
-      <div className="relative z-10 w-full max-w-sm px-6 flex flex-col items-center">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      className="relative w-full h-screen overflow-hidden bg-[#050505] flex items-center justify-center"
+    >
+      {/* --- AMBIENT AURORA (BACKGROUND) --- */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Orb 1: Indigo/Violet */}
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1], 
+            x: [0, 50, 0], 
+            y: [0, -30, 0],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-indigo-600 rounded-full mix-blend-screen blur-[120px] opacity-30"
+        />
         
-        {/* LOGO SYSTEM */}
+        {/* Orb 2: Cyan/Blue */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-16 relative group"
-        >
-            <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <div className="w-24 h-24 border border-green-500/20 bg-black/50 backdrop-blur-md rounded-2xl flex items-center justify-center relative overflow-hidden shadow-2xl shadow-green-900/20">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-500/50 to-transparent opacity-50" />
-                <Terminal className="text-green-500 w-10 h-10 drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-            </div>
-        </motion.div>
+          animate={{ 
+            scale: [1.2, 1, 1.2], 
+            x: [0, -40, 0], 
+            y: [0, 60, 0],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] bg-cyan-500 rounded-full mix-blend-screen blur-[100px] opacity-20"
+        />
 
-        {/* TYPOGRAPHY */}
+        {/* Orb 3: Deep Violet (Center Pulse) */}
         <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 1 }}
-            className="text-center mb-12 space-y-2"
-        >
-            <h1 className="text-white text-3xl font-black tracking-tighter drop-shadow-lg">
-                SYSTEM <span className="text-green-500">ACCESS</span>
-            </h1>
-            <p className="text-green-500/60 text-xs tracking-[0.2em] uppercase font-bold">
-                Restricted Area • V.2.0.4
-            </p>
-        </motion.div>
-
-        {/* ERROR CONSOLE */}
-        {error && (
-            <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="w-full mb-6 bg-red-950/30 border border-red-500/30 rounded-lg p-3 flex items-center gap-3"
-            >
-                <ShieldAlert className="text-red-500 shrink-0" size={16} />
-                <span className="text-red-400 text-xs font-bold tracking-wide">{error}</span>
-            </motion.div>
-        )}
-
-        {/* INTERACTION LAYER */}
-        <motion.button
-            whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(34, 197, 94, 0.2)" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleLogin}
-            disabled={isAuthenticating}
-            className="group relative w-full h-16 bg-green-500/10 border border-green-500/30 rounded-xl overflow-hidden transition-all duration-300 active:bg-green-500/20"
-        >
-            {/* BUTTON GLASS EFFECT */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50" />
-            
-            {/* CONTENT */}
-            <div className="relative h-full flex items-center justify-between px-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-500/20 rounded-lg">
-                        <Lock className="text-green-400 w-4 h-4" />
-                    </div>
-                    <span className="text-green-400 font-bold tracking-wider text-sm">
-                        {isAuthenticating ? 'ESTABLISHING LINK...' : 'INITIALIZE UPLINK'}
-                    </span>
-                </div>
-                
-                <ChevronRight className={`text-green-500/50 transition-transform duration-300 ${isAuthenticating ? 'translate-x-10 opacity-0' : 'group-hover:translate-x-1'}`} />
-                
-                {/* LOADING SPINNER */}
-                {isAuthenticating && (
-                    <div className="absolute right-6 w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-                )}
-            </div>
-
-            {/* SCANLINE EFFECT */}
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-green-400/30 animate-scan-down opacity-0 group-hover:opacity-100" />
-        </motion.button>
-
-        {/* FOOTER */}
-        <div className="mt-12 flex flex-col items-center gap-4 opacity-40">
-            <div className="flex items-center gap-2">
-                <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[10px] text-green-500 font-mono">SECURE CONNECTION READY</span>
-            </div>
-        </div>
-
+          animate={{ scale: [0.8, 1.1, 0.8], opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] bg-violet-700 rounded-full mix-blend-overlay blur-[90px] opacity-20"
+        />
+        
+        {/* Noise Texture (Film Grain) - Avoids banding on OLED */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+        />
       </div>
+
+      {/* --- THE MONOLITH (CARD) --- */}
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+        className="relative z-10 w-full max-w-md p-8 mx-4"
+      >
+        {/* Glass Material Construction */}
+        <div className="absolute inset-0 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_-10px_rgba(120,119,198,0.3)] ring-1 ring-white/5" />
+        
+        <div className="relative z-20 flex flex-col items-center text-center space-y-8 py-4">
+          
+          {/* Typography */}
+          <div className="space-y-2">
+            <motion.h1 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-4xl font-sans font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70"
+            >
+              MATRIX
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-sm font-medium text-white/60 tracking-wide"
+            >
+              Architect your reality
+            </motion.p>
+          </div>
+
+          {/* Apple Intelligence Button */}
+          <motion.button
+            onClick={handleLogin}
+            onHoverStart={() => setIsHovering(true)}
+            onHoverEnd={() => setIsHovering(false)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative w-full h-14 rounded-2xl overflow-hidden"
+          >
+            {/* Button Background Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#1a1a1a] opacity-90" />
+            
+            {/* Specular Shine Effect (Moving) */}
+            <motion.div 
+              animate={{ x: isHovering ? ['100%', '-100%'] : '100%' }}
+              transition={{ duration: 1.5, repeat: isHovering ? Infinity : 0, ease: "linear" }}
+              className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+              style={{ x: '-100%' }}
+            />
+            
+            {/* Border Glow */}
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all duration-500" />
+            
+            {/* Content */}
+            <div className="relative flex items-center justify-center gap-3 h-full">
+              {/* Minimalist Google Icon */}
+              <svg className="w-5 h-5 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+                 <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/>
+              </svg>
+              <span className="text-[15px] font-medium text-white tracking-wide antialiased">
+                Continue with Google
+              </span>
+            </div>
+          </motion.button>
+
+        </div>
+      </motion.div>
       
-      <style>{`
-        @keyframes scan-down {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .animate-scan-down {
-            animation: scan-down 2s linear infinite;
-        }
-      `}</style>
-    </div>
+      {/* Bottom Legal/Version (Optional subtle detail) */}
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 0.3 }}
+        transition={{ delay: 1 }}
+        className="absolute bottom-8 text-[10px] text-white tracking-widest uppercase"
+      >
+        System v1.0 • Secure Enclave
+      </motion.div>
+    </motion.div>
   );
 }

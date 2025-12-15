@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
-import { checkUserExists, createUserRecord } from '../services/firebaseService';
+import { checkUserExists } from '../services/firebaseService';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  isNewUser: boolean;
-  completeOnboarding: () => Promise<void>;
-  logoutUser: () => Promise<void>;
+  isNewUser: boolean | null; // null until checked
+  completeOnboarding: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,61 +15,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
+
+  const completeOnboarding = () => {
+    setIsNewUser(false);
+  };
 
   useEffect(() => {
-    // The "Eye" of the Matrix - watching auth state
+    // MATRIX LINK ESTABLISHED
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      // Reset state on change to prevent leaking previous user data
-      setIsLoading(true);
-      
+      // Don't set loading to false immediately. We need to check Firestore.
       if (currentUser) {
         setUser(currentUser);
-        
-        // Critical Check: Is this a veteran or a new recruit?
-        // We check Firestore to see if they have a profile.
         try {
+          // Verify existence in the Matrix (Firestore)
           const exists = await checkUserExists(currentUser.uid);
           setIsNewUser(!exists);
         } catch (error) {
-          console.error("Identity Verification Failed", error);
-          // Default to safe state? Or maybe error state. 
-          // Assuming new user to be safe, or retry logic could go here.
-          setIsNewUser(false); 
+          console.error("Identity Verification Failed:", error);
+          setIsNewUser(true); // Default to onboarding if check fails
         }
       } else {
         setUser(null);
-        setIsNewUser(false);
+        setIsNewUser(null);
       }
-      
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const completeOnboarding = async () => {
-    if (!user) return;
-    
-    // 1. Write to Firestore to mark existence
-    await createUserRecord(user);
-    
-    // 2. Update local state to trigger redirect
-    setIsNewUser(false);
-  };
-
-  const logoutUser = async () => {
-    await auth.signOut();
-  };
-
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isLoading, 
-      isNewUser, 
-      completeOnboarding,
-      logoutUser
-    }}>
+    <AuthContext.Provider value={{ user, isLoading, isNewUser, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );
