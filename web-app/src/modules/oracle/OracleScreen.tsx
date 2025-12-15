@@ -1,309 +1,218 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Lock, Sparkles, X } from 'lucide-react';
-import { useMatrix } from '../../context/MatrixContext';
-import { sendMessageToOracle, OracleMessage } from '../../services/aiService';
-import { useTokenLimit } from '../../hooks/useTokenLimit';
+import { Send, Sparkles, Brain } from 'lucide-react';
+import { sendMessage, AIMessage } from '../../services/aiService';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-// --- HOOK: TYPEWRITER EFFECT ---
-const useTypewriter = (text: string, speed: number = 30) => {
-    const [displayedText, setDisplayedText] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
+// --- UTILS ---
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
-    useEffect(() => {
-        setDisplayedText('');
-        setIsTyping(true);
-        let i = 0;
-        const timer = setInterval(() => {
-            if (i < text.length) {
-                setDisplayedText((prev) => prev + text.charAt(i));
-                i++;
-            } else {
-                clearInterval(timer);
-                setIsTyping(false);
-            }
-        }, speed);
+// --- COMPONENTS ---
 
-        return () => clearInterval(timer);
-    }, [text, speed]);
+// 1. The Void Background (Aurora System)
+const TheVoid = () => (
+  <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#020204]">
+    {/* Orbs */}
+    <motion.div 
+      animate={{ 
+        scale: [1, 1.2, 1],
+        rotate: [0, 90, 0],
+        opacity: [0.2, 0.3, 0.2]
+      }}
+      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-[#4f46e5] rounded-full blur-[120px] opacity-20"
+    />
+    <motion.div 
+      animate={{ 
+        scale: [1, 1.1, 1],
+        x: [0, 100, 0],
+        opacity: [0.15, 0.25, 0.15]
+      }}
+      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+      className="absolute bottom-[-10%] right-[-20%] w-[600px] h-[600px] bg-[#06b6d4] rounded-full blur-[120px] opacity-15"
+    />
+    <motion.div 
+      animate={{ 
+        scale: [1, 1.3, 1],
+        y: [0, -50, 0],
+        opacity: [0.1, 0.2, 0.1]
+      }}
+      transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+      className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-[#ec4899] rounded-full blur-[100px] opacity-10"
+    />
+  </div>
+);
 
-    return { displayedText, isTyping };
+// 2. Chat Bubble (Hyper-Glass)
+const ChatBubble = ({ message }: { message: AIMessage }) => {
+  const isUser = message.role === 'user';
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className={cn(
+        "flex w-full mb-6",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
+      <div className={cn(
+        "relative max-w-[80%] p-4 rounded-2xl backdrop-blur-xl border",
+        isUser 
+          ? "bg-indigo-500/20 border-indigo-500/30 text-white rounded-br-sm" 
+          : "bg-gray-900/40 border-white/10 text-white/90 rounded-bl-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+      )}>
+        {/* Glow Shadow for Assistant */}
+        {!isUser && (
+          <div className="absolute inset-0 rounded-2xl shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)] pointer-events-none" />
+        )}
+        
+        <p className="relative z-10 text-base leading-relaxed font-light tracking-wide whitespace-pre-wrap">
+          {message.content}
+        </p>
+        
+        <span className="text-[10px] text-white/40 mt-2 block font-mono uppercase tracking-widest">
+          {isUser ? 'OPERATOR' : 'ORACLE SYSTEM'}
+        </span>
+      </div>
+    </motion.div>
+  );
 };
 
-// --- COMPONENT: ORACLE MESSAGE BUBBLE ---
-const MessageBubble = ({ message }: { message: OracleMessage }) => {
-    const isUser = message.role === 'user';
-    // Only stream the LAST message if it's from assistant
-    // Ideally we'd pass a prop "shouldStream"
-    // For simplicity, we'll just render text directly for history, 
-    // but the main screen logic handles the streaming for the *newest* message.
-    // Actually, let's just render full text here. The streaming happens in the main input area or we only stream the *latest* assistant message.
-    
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'} mb-6`}
-        >
-            <div 
-                className={`
-                    relative max-w-[85%] p-5 rounded-2xl border backdrop-blur-xl
-                    ${isUser 
-                        ? 'bg-slate-800/60 border-slate-600/30 text-slate-100 rounded-tr-sm' 
-                        : 'bg-indigo-900/20 border-indigo-500/20 text-indigo-100 rounded-tl-sm shadow-[0_0_30px_rgba(79,70,229,0.1)]'
-                    }
-                `}
-            >
-                <p className="text-sm font-light leading-relaxed tracking-wide">
-                    {message.content}
-                </p>
-                <span className="text-[10px] opacity-40 absolute bottom-1 right-3 font-mono">
-                    {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </span>
-            </div>
-        </motion.div>
-    );
-};
+// 3. Input Field (Liquid Bar)
+const InputField = ({ onSend, isLoading }: { onSend: (text: string) => void, isLoading: boolean }) => {
+  const [text, setText] = useState('');
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || isLoading) return;
+    onSend(text);
+    setText('');
+  };
 
-// --- COMPONENT: THE EYE (ORB) ---
-const OracleOrb = ({ isThinking }: { isThinking: boolean }) => {
-    return (
-        <div className="relative flex items-center justify-center w-64 h-64 mb-8 pointer-events-none">
-            {/* Core */}
-            <motion.div
-                animate={{ 
-                    scale: isThinking ? [1, 1.2, 1] : [1, 1.05, 1],
-                    filter: isThinking ? "hue-rotate(90deg)" : "hue-rotate(0deg)" 
-                }}
-                transition={{ duration: isThinking ? 1.5 : 4, repeat: Infinity }}
-                className="absolute w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 blur-xl opacity-60"
-            />
-            {/* Inner Light */}
-            <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute w-24 h-24 bg-white rounded-full blur-2xl opacity-40 mix-blend-overlay"
-            />
-            {/* Rings */}
-            <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute w-48 h-48 border border-white/10 rounded-full"
-            />
-            <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                className="absolute w-56 h-56 border border-white/5 rounded-full border-dashed"
-            />
+  return (
+    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
+      <div className="relative group">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 blur"></div>
+        <div className="relative flex items-center bg-gray-900/60 backdrop-blur-xl rounded-full border border-white/10 p-2 shadow-2xl">
+          
+          <div className="pl-4 pr-2">
+            <Brain className="w-5 h-5 text-indigo-400 animate-pulse" />
+          </div>
+
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Ask the Oracle..."
+            className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/30 font-light px-4 py-2"
+            disabled={isLoading}
+          />
+
+          <button
+            type="submit"
+            disabled={!text.trim() || isLoading}
+            className={cn(
+              "p-3 rounded-full transition-all duration-300",
+              text.trim() && !isLoading
+                ? "bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95" 
+                : "bg-white/5 text-white/20 cursor-not-allowed"
+            )}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </button>
         </div>
-    );
+      </div>
+    </form>
+  );
 };
 
-// --- MAIN SCREEN ---
-export const OracleScreen = ({ onClose }: { onClose: () => void }) => {
-    const { user } = useMatrix();
-    const { remaining, isLimitReached, consumeToken } = useTokenLimit(false); // Assume free tier for now
-    
-    const [messages, setMessages] = useState<OracleMessage[]>([]);
-    const [inputValue, setInputValue] = useState('');
-    const [isThinking, setIsThinking] = useState(false);
-    
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+export default function OracleScreen() {
+  const [messages, setMessages] = useState<AIMessage[]>([
+    {
+      role: 'assistant',
+      content: 'I am the Oracle. The Matrix is connected. How may I assist you, Operator?',
+      timestamp: Date.now()
+    }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isThinking]);
+  const handleSend = async (text: string) => {
+    const userMsg: AIMessage = { role: 'user', content: text, timestamp: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
 
-    // Initial Greeting
-    useEffect(() => {
-        if (messages.length === 0) {
-            setMessages([{
-                id: 'init',
-                role: 'assistant',
-                content: `Saludos, ${user?.preferences?.archetype || 'Viajero'}. El Oráculo está en línea. ¿Qué perturba tu mente hoy?`,
-                timestamp: Date.now()
-            }]);
-        }
-    }, []);
+    try {
+      const response = await sendMessage(text, messages);
+      const aiMsg: AIMessage = { 
+        role: 'assistant', 
+        content: response.text, 
+        timestamp: Date.now() 
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (error) {
+      console.error("Oracle Error:", error);
+      const errorMsg: AIMessage = {
+        role: 'assistant',
+        content: "Connection to the Intelligence Core interrupted.",
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleSend = async () => {
-        if (!inputValue.trim() || isThinking) return;
-        
-        if (isLimitReached) {
-            // Shake effect or toast could go here
-            return;
-        }
-
-        const userMsg: OracleMessage = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: inputValue,
-            timestamp: Date.now()
-        };
-
-        setMessages(prev => [...prev, userMsg]);
-        setInputValue('');
-        setIsThinking(true);
-        
-        // Consume token
-        if (!consumeToken()) {
-            setIsThinking(false);
-            return;
-        }
-
-        // Prepare context
-        const context = {
-            hp: user?.stats.hp || 100,
-            xp: user?.stats.xp || 0,
-            level: user?.stats.level || 1,
-            streak: user?.currentStreak || 0,
-            archetype: user?.preferences.archetype,
-            weakness: user?.preferences.weakness
-        };
-
-        try {
-            const responseText = await sendMessageToOracle(userMsg.content, context, messages);
-            
-            const aiMsg: OracleMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: responseText,
-                timestamp: Date.now()
-            };
-            
-            setMessages(prev => [...prev, aiMsg]);
-        } catch (error) {
-            // Error handled in service, but we need to stop thinking state
-        } finally {
-            setIsThinking(false);
-        }
-    };
-
-    return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex flex-col bg-[#020204]/95 backdrop-blur-xl"
-        >
-            {/* HEADER */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <Sparkles size={18} className="text-cyan-400" />
-                    <span className="text-sm font-bold tracking-widest text-white uppercase">The Oracle</span>
-                </div>
-                <button 
-                    onClick={onClose}
-                    className="p-2 transition-colors rounded-full hover:bg-white/10 text-white/50 hover:text-white"
-                >
-                    <X size={20} />
-                </button>
+  return (
+    <div className="relative min-h-screen w-full flex flex-col font-sans text-white">
+      <TheVoid />
+      
+      {/* Header */}
+      <header className="relative z-10 p-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Oracle</h1>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-mono text-white/50">ONLINE // V.2.0.4</span>
             </div>
+          </div>
+        </div>
+      </header>
 
-            {/* MAIN CONTENT */}
-            <div className="relative flex flex-col flex-1 overflow-hidden">
-                
-                {/* Background Atmosphere */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse-slow" />
-                    <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-900/10 rounded-full blur-[100px]" />
-                </div>
+      {/* Chat Area */}
+      <main className="relative z-10 flex-1 overflow-y-auto p-6 pb-32 scrollbar-hide">
+        <div className="max-w-3xl mx-auto">
+          <AnimatePresence mode='popLayout'>
+            {messages.map((msg, idx) => (
+              <ChatBubble key={msg.timestamp + idx} message={msg} />
+            ))}
+          </AnimatePresence>
+          <div ref={scrollRef} />
+        </div>
+      </main>
 
-                {/* Messages Area */}
-                <div className="relative z-10 flex-1 px-4 overflow-y-auto scroll-smooth">
-                    <div className="flex flex-col items-center justify-start min-h-full py-8 max-w-2xl mx-auto w-full">
-                        
-                        {/* The Orb is always visible at top, shrinks when chat grows? 
-                            Or maybe it stays in background? 
-                            Let's put it at the top as a header graphic that scrolls away. 
-                        */}
-                        <div className="shrink-0">
-                            <OracleOrb isThinking={isThinking} />
-                        </div>
-
-                        <AnimatePresence mode="popLayout">
-                            {messages.map((msg) => (
-                                <MessageBubble key={msg.id} message={msg} />
-                            ))}
-                            
-                            {isThinking && (
-                                <motion.div 
-                                    initial={{ opacity: 0 }} 
-                                    animate={{ opacity: 1 }}
-                                    className="self-start ml-4 mb-4 text-cyan-400/50 text-xs font-mono animate-pulse"
-                                >
-                                    ACCESSING NEURAL LINK...
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <div ref={messagesEndRef} className="h-4" />
-                    </div>
-                </div>
-
-                {/* INPUT AREA */}
-                <div className="relative z-20 w-full px-4 pb-8 pt-4 bg-gradient-to-t from-black via-black/80 to-transparent">
-                    <div className="max-w-2xl mx-auto">
-                        
-                        {/* Token Limit Indicator */}
-                        <div className="flex justify-between items-center px-4 mb-2 text-[10px] font-mono tracking-wider text-white/30">
-                            <span>NEURAL BANDWIDTH</span>
-                            <span className={remaining === 0 ? "text-red-400" : "text-cyan-400"}>
-                                {remaining} / 5 SIGNALS REMAINING
-                            </span>
-                        </div>
-
-                        <div className="relative group">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                disabled={isLimitReached || isThinking}
-                                placeholder={isLimitReached ? "LINK SEVERED. RECHARGE REQUIRED." : "Consult the Oracle..."}
-                                className={`
-                                    w-full h-14 pl-6 pr-14 rounded-full 
-                                    bg-white/5 border border-white/10 
-                                    text-white placeholder:text-white/20
-                                    focus:outline-none focus:bg-white/10 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50
-                                    transition-all duration-300
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                `}
-                            />
-                            
-                            <button
-                                onClick={handleSend}
-                                disabled={!inputValue.trim() || isLimitReached || isThinking}
-                                className={`
-                                    absolute right-2 top-2 w-10 h-10 rounded-full flex items-center justify-center
-                                    transition-all duration-300
-                                    ${inputValue.trim() && !isLimitReached
-                                        ? 'bg-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95' 
-                                        : 'bg-white/5 text-white/10 cursor-not-allowed'
-                                    }
-                                `}
-                            >
-                                {isLimitReached ? <Lock size={16} /> : <Send size={18} />}
-                            </button>
-                        </div>
-                        
-                        {isLimitReached && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mt-4 p-4 rounded-xl border border-red-500/20 bg-red-900/10 text-center"
-                            >
-                                <p className="text-red-200 text-xs font-medium">Neural Link Overheated</p>
-                                <p className="text-white/40 text-[10px] mt-1">Upgrade to Matrix PRO to restore connection immediately.</p>
-                            </motion.div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </motion.div>
-    );
-};
+      {/* Input Area */}
+      <footer className="relative z-20 p-6 pb-8 backdrop-blur-lg border-t border-white/5">
+        <InputField onSend={handleSend} isLoading={isLoading} />
+      </footer>
+    </div>
+  );
+}

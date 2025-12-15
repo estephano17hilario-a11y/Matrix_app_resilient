@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronDown } from 'lucide-react';
 import { Quest, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
+import { SubtaskManager } from './SubtaskManager';
 
 interface QuestItemProps {
   quest: Quest;
@@ -15,22 +16,17 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
   const Icon = attribute?.icon;
 
   const difficultyColors: Record<string, string> = {
-    EASY: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5',
-    MEDIUM: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/5',
-    HARD: 'text-rose-500 border-rose-500/20 bg-rose-500/5',
-    LEGENDARY: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
-    // Legacy support
     S: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
     A: 'text-rose-500 border-rose-500/20 bg-rose-500/5',
     B: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/5',
-    C: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5', 
-    D: 'text-slate-400 border-slate-400/20 bg-slate-400/5',
+    C: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/5', 
+    D: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5',
     E: 'text-slate-400 border-slate-400/20 bg-slate-400/5'
   };
 
   const diffColor = difficultyColors[quest.difficulty] || 'text-slate-400 border-slate-400/20';
-  const xp = quest.reward ? quest.reward.xp : quest.xpReward;
-  const coins = quest.reward ? quest.reward.coins : 0;
+  const xp = quest.xpReward;
+  const coins = quest.gold || 0;
 
   return (
     <motion.div
@@ -130,6 +126,9 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                       "{quest.description}"
                     </div>
                   )}
+
+                  <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} />
+
                   {quest.deadline && (
                      <div className="text-[10px] text-rose-400 font-mono text-right mt-2">
                         DUE: {quest.deadline}

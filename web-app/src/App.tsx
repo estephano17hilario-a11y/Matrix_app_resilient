@@ -1,8 +1,9 @@
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
 import LoginScreen from './modules/auth/LoginScreen';
-import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
+// import { OnboardingFlow } from './modules/onboarding/OnboardingFlow'; // Removed as per user request
 import Dashboard from './Dashboard';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,7 +35,7 @@ const LoadingGate = () => (
  * LOGIC: Determines the reality the user experiences.
  */
 const AppRoutes = () => {
-  const { user, isLoading, isNewUser, completeOnboarding } = useAuth();
+  const { user, isLoading, isNewUser } = useAuth();
   
   console.log('APP_ROUTES: Rendering. isLoading:', isLoading, 'User:', user ? user.uid : 'null', 'isNewUser:', isNewUser);
 
@@ -52,16 +53,6 @@ const AppRoutes = () => {
         // 3. REALITY FORK
         <MatrixProvider key="matrix-provider" userId={user.uid}>
           <EconomyProvider>
-          {isNewUser ? (
-            <motion.div 
-              key="onboarding"
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-            >
-              <OnboardingFlow onComplete={completeOnboarding} />
-            </motion.div>
-          ) : (
             <motion.div 
               key="dashboard"
               initial={{ opacity: 0 }} 
@@ -70,7 +61,6 @@ const AppRoutes = () => {
             >
               <Dashboard />
             </motion.div>
-          )}
           </EconomyProvider>
         </MatrixProvider>
       )}
@@ -81,7 +71,9 @@ const AppRoutes = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ThemeProvider>
+        <AppRoutes />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

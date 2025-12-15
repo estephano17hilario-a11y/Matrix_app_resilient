@@ -9,7 +9,7 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('');
-    const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
+    const [difficulty, setDifficulty] = useState<Difficulty>('D');
     const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
 
@@ -31,16 +31,18 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
             attribute: attrId, 
             difficulty, 
             deadline,
-            xpReward: prediction.xp, // Keep for backward compatibility
-            reward: prediction
+            xpReward: prediction.xp,
+            gold: prediction.coins
         });
     };
 
     const difficulties: { id: Difficulty, label: string, icon: React.ElementType, color: string }[] = [
-        { id: 'EASY', label: 'Easy', icon: Circle, color: 'text-emerald-400' },
-        { id: 'MEDIUM', label: 'Med', icon: Square, color: 'text-yellow-400' },
-        { id: 'HARD', label: 'Hard', icon: Triangle, color: 'text-rose-500' },
-        { id: 'LEGENDARY', label: 'Epic', icon: Diamond, color: 'text-purple-500' },
+        { id: 'E', label: 'E', icon: Circle, color: 'text-slate-400' },
+        { id: 'D', label: 'D', icon: Square, color: 'text-emerald-400' },
+        { id: 'C', label: 'C', icon: Triangle, color: 'text-cyan-400' },
+        { id: 'B', label: 'B', icon: Diamond, color: 'text-yellow-400' },
+        { id: 'A', label: 'A', icon: Star, color: 'text-rose-500' },
+        { id: 'S', label: 'S', icon: Crosshair, color: 'text-purple-500' },
     ];
 
     return (

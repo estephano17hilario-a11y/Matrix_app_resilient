@@ -4,6 +4,13 @@
 
 @layer base {
   :root {
+    /* Theme Variables (Default: Ether) */
+    --color-bg-depth: 2 2 4;
+    --color-primary-glow: 79 70 229;
+    --color-secondary-glow: 236 72 153;
+    --color-glass-tint: 255 255 255;
+    --color-text-primary: 255 255 255;
+
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     user-select: none;
@@ -11,6 +18,30 @@
     touch-action: manipulation;
     /* Prevent iOS rubber banding/overscroll */
     overscroll-behavior-y: none;
+  }
+
+  [data-theme='matrix'] {
+    --color-bg-depth: 0 5 0;
+    --color-primary-glow: 0 255 65;
+    --color-secondary-glow: 0 100 0;
+    --color-glass-tint: 20 255 50;
+    --color-text-primary: 220 255 220;
+  }
+
+  [data-theme='sunset'] {
+    --color-bg-depth: 20 10 10;
+    --color-primary-glow: 234 88 12;
+    --color-secondary-glow: 147 51 234;
+    --color-glass-tint: 255 200 150;
+    --color-text-primary: 255 240 230;
+  }
+
+  [data-theme='stealth'] {
+    --color-bg-depth: 5 5 5;
+    --color-primary-glow: 255 255 255;
+    --color-secondary-glow: 100 100 100;
+    --color-glass-tint: 200 200 200;
+    --color-text-primary: 255 255 255;
   }
   
   html, body {
@@ -20,11 +51,14 @@
   }
 
   body {
-    @apply bg-[#020204] text-white antialiased;
+    @apply antialiased transition-colors duration-700 ease-in-out;
+    background-color: rgb(var(--color-bg-depth));
+    color: rgb(var(--color-text-primary));
     text-rendering: optimizeLegibility;
   }
 
-  /* Noise Overlay */
+  /* Noise Overlay - DISABLED FOR OPTIMIZATION */
+  /*
   body::after {
     content: "";
     position: fixed;
@@ -38,6 +72,7 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
   }
+  */
 
   /* Custom Scrollbar hide */
   ::-webkit-scrollbar {
@@ -97,7 +132,7 @@
   }
   
   /* 
-   * PRIMARY ACTION: "Apple Intelligence" Button Style
+   * PRIMARY ACTION: "Matrix Core" Button Style
    * A capsule of energy.
    */
   .glass-button {
@@ -172,9 +207,13 @@
     box-shadow: 0 0 20px rgba(79, 70, 229, 0.1);
   }
 
-  .ai-gradient-text {
+  .matrix-gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x;
     background-size: 200% auto;
+  }
+
+  .matrix-border-glow {
+    animation: matrix-pulse-glow 3s infinite;
   }
 }
 
@@ -203,6 +242,11 @@
 @keyframes border-flow {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
+}
+
+@keyframes matrix-pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.6); }
 }
 
 /* 

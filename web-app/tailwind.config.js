@@ -22,6 +22,12 @@ export default {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
       colors: {
+        theme: {
+          bg: 'rgb(var(--color-bg-depth) / <alpha-value>)',
+          primary: 'rgb(var(--color-primary-glow) / <alpha-value>)',
+          secondary: 'rgb(var(--color-secondary-glow) / <alpha-value>)',
+          text: 'rgb(var(--color-text-primary) / <alpha-value>)',
+        },
         glass: {
           10: 'rgba(255, 255, 255, 0.1)',
           20: 'rgba(255, 255, 255, 0.2)',

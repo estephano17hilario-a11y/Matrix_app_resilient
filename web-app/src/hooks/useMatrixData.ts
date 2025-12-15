@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { doc, onSnapshot, db } from '../firebase';
 
 export interface UserStats {
   hp: number;
@@ -88,7 +87,7 @@ export const useMatrixData = (userId: string | null): MatrixDataHook => {
         }
         setLoading(false);
       },
-      (err) => {
+      (err: Error) => {
         console.error("Firestore Error:", err);
         setError(err);
         setLoading(false);

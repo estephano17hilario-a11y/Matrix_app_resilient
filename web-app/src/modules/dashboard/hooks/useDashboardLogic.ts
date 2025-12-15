@@ -9,6 +9,7 @@ import {
 } from '../../../types';
 import { TRAITS_LIST } from '../constants';
 import { completeTaskTransaction } from '../../../services/gameService';
+import { projectService } from '../../../services/projectService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
 
 export const useDashboardLogic = () => {
@@ -154,6 +155,13 @@ export const useDashboardLogic = () => {
     const [projects, setProjects] = useState<Project[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
     const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+
+    // --- LOAD PROJECTS ---
+    useEffect(() => {
+        if (user?.uid) {
+            projectService.getUserProjects(user.uid).then(setProjects);
+        }
+    }, [user?.uid]);
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -267,11 +275,18 @@ export const useDashboardLogic = () => {
                 attrId = proj.attribute;
                 multiplier = proj.impact;
                 const newSession: Session = { id: Date.now().toString(), type, duration: durationSeconds, date: new Date().toISOString() };
-                setProjects(prev => prev.map(p => p.id === projectId ? { 
-                    ...p, 
-                    totalTime: p.totalTime + durationSeconds,
-                    sessions: [newSession, ...(p.sessions || [])]
-                } : p));
+                
+                const updatedProject = { 
+                    ...proj, 
+                    totalTime: proj.totalTime + durationSeconds,
+                    sessions: [newSession, ...(proj.sessions || [])]
+                };
+
+                setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+
+                if (user?.uid) {
+                    projectService.saveProject(user.uid, updatedProject);
+                }
             }
         }
         const totalReward = Math.floor(baseReward * multiplier);
@@ -281,7 +296,7 @@ export const useDashboardLogic = () => {
         const AttrIcon = attr?.icon || Star;
         spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
         addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' XP', icon: Clock, color: '#fbbf24' });
-    }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward]);
+    }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user]);
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
@@ -289,8 +304,8 @@ export const useDashboardLogic = () => {
             if(navigator.vibrate) navigator.vibrate(5);
             
             // Reversal
-            const xp = quest.reward ? quest.reward.xp : quest.xpReward;
-            const coins = quest.reward ? quest.reward.coins : 0;
+            const xp = quest.xpReward;
+            const coins = quest.gold || 0;
             
             addPlayerReward({ xp: -xp, gold: -coins });
             updateAttributeXp(quest.attribute, -xp);
@@ -304,8 +319,8 @@ export const useDashboardLogic = () => {
             if(navigator.vibrate) navigator.vibrate(10); 
             
             // Rewards
-            const xp = quest.reward ? quest.reward.xp : quest.xpReward;
-            const coins = quest.reward ? quest.reward.coins : 0;
+            const xp = quest.xpReward;
+            const coins = quest.gold || 0;
 
             addPlayerReward({ xp, gold: coins });
             updateAttributeXp(quest.attribute, xp); 
@@ -317,7 +332,7 @@ export const useDashboardLogic = () => {
                 const fullReward: RewardPrediction = { 
                     xp, 
                     coins, 
-                    traitXp: quest.reward?.traitXp ?? Math.floor(xp * 0.4), 
+                    traitXp: Math.floor(xp * 0.4), 
                     baseXp: xp, // Approximation if missing
                     bonusApplied: false 
                 };
@@ -406,13 +421,20 @@ export const useDashboardLogic = () => {
     }, []);
 
     const handleProjectConfirm = useCallback((data: Partial<Project>) => {
-        setProjects(prev => [{ id: Date.now().toString(), totalTime: 0, sessions: [], ...data } as Project, ...prev]);
+        const newProject = { id: Date.now().toString(), totalTime: 0, sessions: [], ...data } as Project;
+        setProjects(prev => [newProject, ...prev]);
+        if (user?.uid) {
+            projectService.saveProject(user.uid, newProject);
+        }
         setActiveModal(null);
-    }, []);
+    }, [user]);
 
     const handleUpdateProject = useCallback((updatedProject: Project) => {
         setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-    }, []);
+        if (user?.uid) {
+            projectService.saveProject(user.uid, updatedProject);
+        }
+    }, [user]);
 
     const handleUpdateNote = useCallback((note: Note) => {
         setNotes(prev => {

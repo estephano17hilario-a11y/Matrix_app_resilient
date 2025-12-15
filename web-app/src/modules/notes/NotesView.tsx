@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2 } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save } from 'lucide-react';
 import { Note, JournalEntry, NoteBlock, Project } from '../../types';
 import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
 import { EditorToolbar } from './components/EditorToolbar';
 import { NotesStatsModal } from './components/NotesStatsModal';
+import { BlueprintSelector } from './components/BlueprintSelector';
+import { SaveBlueprintModal } from './components/SaveBlueprintModal';
 import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
 
 // Constants
@@ -39,6 +41,7 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
     const [draftDate, setDraftDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [showStats, setShowStats] = useState(false);
+    const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
     const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
 
     const openNote = useCallback((note: Note) => { 
@@ -149,7 +152,11 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
                             <div className="flex justify-between items-center p-6 border-b border-white/5 relative z-20">
                                 <button onClick={closeEditor} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5"><ArrowLeft size={20} /></button>
                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2"><DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} /></div>
+                                    <div className="flex items-center gap-1">
+                                        <BlueprintSelector onSelect={setDraftBlocks} />
+                                        <button onClick={() => setShowSaveBlueprintModal(true)} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Save as Blueprint"><Save size={18} /></button>
+                                        <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />
+                                    </div>
                                     <div className="w-[1px] h-6 bg-white/10" />
                                     {editorMode === 'NOTE' && <button onClick={handleDelete} className="w-10 h-10 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-500 flex items-center justify-center transition-all"><Trash2 size={18} /></button>}
                                     <button onClick={handleSave} className="px-6 py-2 bg-white text-black rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]">Save</button>
@@ -182,6 +189,7 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
                     </div>
                 )}
             </div>
+            <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
         </div>
     );
 });

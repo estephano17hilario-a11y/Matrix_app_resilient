@@ -1,36 +1,263 @@
-import { initializeApp } from "firebase/app"; 
-import { getFirestore, enableIndexedDbPersistence, Firestore } from "firebase/firestore"; 
-import { getAuth, Auth } from "firebase/auth";
+import { 
+  User
+} from 'firebase/auth';
 
-// --- MATRIX FIREBASE CONFIGURATION ---
-// "The Source Code"
-const firebaseConfig = { 
-  apiKey: "AIzaSyALLIuxXboJCvYa96NM4wzZICu5hLRzSF8", 
-  authDomain: "matrix-4012f.firebaseapp.com", 
-  projectId: "matrix-4012f", 
-  storageBucket: "matrix-4012f.firebasestorage.app", 
-  messagingSenderId: "770116190928", 
-  appId: "1:770116190928:web:c54645c2d2af5976c6d4d5", 
-  measurementId: "G-6Y71JPSLRQ" 
-}; 
+// --- MATRIX LOCAL PROTOCOL (OFFLINE-FIRST) ---
+// "The Construct" - A pure local simulation of the database.
+// Replaces Google Firebase to ensure 100% Privacy and Reliability.
 
-// 1. Initialize App
-const app = initializeApp(firebaseConfig); 
+const STORAGE_PREFIX = 'matrix_v1_';
 
-// 2. Initialize Services
-const db: Firestore = getFirestore(app); 
-const auth: Auth = getAuth(app);
+// --- MOCK TYPES ---
+export interface DocumentReference {
+  path: string;
+  id: string;
+}
 
-// 3. OFFLINE PERSISTENCE (Matrix Resiliency)
-// Allows the app to work seamlessly without network, syncing later.
-enableIndexedDbPersistence(db) 
-  .catch((err: any) => { 
-    if (err.code == 'failed-precondition') { 
-        console.warn('Matrix Offline Mode: Multiple tabs open. Persistence enabled in one tab only.'); 
-    } else if (err.code == 'unimplemented') { 
-        console.warn('Matrix Offline Mode: Browser does not support offline persistence.'); 
-    } 
-  }); 
+export interface DocumentSnapshot {
+  exists(): boolean;
+  data(): any;
+  id: string;
+}
 
-// Export core instances
-export { app, db, auth };
+// --- MOCK DATABASE ENGINE ---
+
+const dispatchUpdate = (path: string) => {
+  // Simple custom event for reactivity
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('matrix-db-update', { detail: { path } }));
+  }
+};
+
+const getLocalData = (path: string) => {
+  const data = localStorage.getItem(STORAGE_PREFIX + path);
+  return data ? JSON.parse(data) : null;
+};
+
+const setLocalData = (path: string, data: any) => {
+  localStorage.setItem(STORAGE_PREFIX + path, JSON.stringify(data));
+  dispatchUpdate(path);
+};
+
+// Helper: Handle "stats.xp" dot notation
+const updateNestedData = (obj: any, path: string, value: any) => {
+  const keys = path.split('.');
+  let current = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (!current[keys[i]]) current[keys[i]] = {};
+    current = current[keys[i]];
+  }
+  
+  const lastKey = keys[keys.length - 1];
+  
+  // Handle Special Operators
+  if (value && typeof value === 'object' && value.__op === 'increment') {
+    current[lastKey] = (current[lastKey] || 0) + value.value;
+  } else if (value && typeof value === 'object' && value.__op === 'arrayUnion') {
+    if (!Array.isArray(current[lastKey])) current[lastKey] = [];
+    // Avoid duplicates
+    const existing = new Set(current[lastKey]);
+    value.elements.forEach((el: any) => {
+      if (!existing.has(el)) current[lastKey].push(el);
+    });
+  } else {
+    current[lastKey] = value;
+  }
+};
+
+// --- FIRESTORE EXPORTS (MOCKED) ---
+
+export const db = { type: 'local' }; // Mock Instance
+export const auth = { type: 'local' }; // Mock Instance
+
+export const doc = (_dbInstance: any, ...paths: string[]): DocumentReference => {
+  const path = paths.join('/');
+  const id = paths[paths.length - 1];
+  return { path, id };
+};
+
+export const getDoc = async (ref: DocumentReference): Promise<DocumentSnapshot> => {
+  const data = getLocalData(ref.path);
+  return {
+    exists: () => !!data,
+    data: () => data,
+    id: ref.id
+  };
+};
+
+export const setDoc = async (ref: DocumentReference, data: any, options?: { merge: boolean }) => {
+  if (options?.merge) {
+    const existing = getLocalData(ref.path) || {};
+    setLocalData(ref.path, { ...existing, ...data });
+  } else {
+    setLocalData(ref.path, data);
+  }
+};
+
+export const updateDoc = async (ref: DocumentReference, data: any) => {
+  const existing = getLocalData(ref.path) || {};
+  
+  Object.keys(data).forEach(key => {
+    updateNestedData(existing, key, data[key]);
+  });
+  
+  setLocalData(ref.path, existing);
+};
+
+export const runTransaction = async (_dbInstance: any, updateFunction: (transaction: any) => Promise<any>) => {
+  // In local mode, we don't need real locking, but we simulate the interface
+  const transaction = {
+    get: async (ref: DocumentReference) => getDoc(ref),
+    update: (ref: DocumentReference, data: any) => updateDoc(ref, data),
+    set: (ref: DocumentReference, data: any) => setDoc(ref, data)
+  };
+  return await updateFunction(transaction);
+};
+
+export const arrayUnion = (...elements: any[]) => ({ __op: 'arrayUnion', elements });
+export const increment = (value: number) => ({ __op: 'increment', value });
+
+// Stub for collection/query/where/onSnapshot (Advanced features)
+// For now, if used, they might need more logic. 
+// Based on current usage, we mostly use doc/get/update.
+// We'll add basic stubs to prevent crashes.
+
+export const collection = (_dbInstance: any, ...paths: string[]) => ({ path: paths.join('/') });
+export const query = (colRef: any, ..._constraints: any[]) => ({ colRef, constraints: _constraints });
+export const where = (field: string, op: string, value: any) => ({ field, op, value });
+
+export const deleteDoc = async (ref: DocumentReference) => {
+  localStorage.removeItem(STORAGE_PREFIX + ref.path);
+};
+
+export const getDocs = async (queryOrCol: any) => {
+  const results = [];
+  const rootPath = STORAGE_PREFIX + queryOrCol.path + '/';
+  
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(rootPath)) {
+       const subPath = key.substring(STORAGE_PREFIX.length);
+       const relative = subPath.substring(queryOrCol.path.length + 1);
+       if (relative && !relative.includes('/')) {
+         const data = JSON.parse(localStorage.getItem(key) || '{}');
+         results.push({
+           id: relative,
+           data: () => data,
+           exists: () => true
+         });
+       }
+    }
+  }
+  return { docs: results, empty: results.length === 0 };
+};
+
+// Listener (Simple Polling or Event based? For now, no-op or simple fetch)
+export const onSnapshot = (ref: any, callback: (snap: any) => void, errorCallback?: (error: Error) => void) => {
+  // Initial call
+  if (ref.path) { // Doc ref
+     getDoc(ref).then(callback).catch(err => errorCallback && errorCallback(err));
+  }
+
+  // Listen for local updates
+  const listener = (e: any) => {
+    if (e.detail && e.detail.path === ref.path) {
+      getDoc(ref).then(callback).catch(err => errorCallback && errorCallback(err));
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('matrix-db-update', listener);
+  }
+
+  // Return unsubscribe
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('matrix-db-update', listener);
+    }
+  }; 
+};
+
+
+// --- AUTH EXPORTS (MOCKED) ---
+
+export const getAuth = (_app?: any) => auth;
+
+export class GoogleAuthProvider {
+  static PROVIDER_ID = 'google.com';
+}
+
+// Simple Auth State Observer
+let authStateListeners: ((user: User | null) => void)[] = [];
+
+const notifyAuthListeners = (user: User | null) => {
+  authStateListeners.forEach(listener => listener(user));
+  if (user) {
+    localStorage.setItem(STORAGE_PREFIX + 'session_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem(STORAGE_PREFIX + 'session_user');
+  }
+};
+
+export const onAuthStateChanged = (_authInstance: any, callback: (user: User | null) => void) => {
+  authStateListeners.push(callback);
+  // Initial check
+  const savedUser = localStorage.getItem(STORAGE_PREFIX + 'session_user');
+  if (savedUser) {
+    callback(JSON.parse(savedUser));
+  } else {
+    callback(null);
+  }
+  
+  return () => {
+    authStateListeners = authStateListeners.filter(l => l !== callback);
+  };
+};
+
+export const signInWithPopup = async (_authInstance: any, _provider: any) => {
+  // Simulate successful login
+  const mockUser: User = {
+    uid: 'local_neo_v1',
+    displayName: 'Neo (Local)',
+    email: 'neo@matrix.local',
+    emailVerified: true,
+    isAnonymous: false,
+    metadata: {},
+    providerData: [],
+    providerId: 'firebase',
+    refreshToken: '',
+    tenantId: null,
+    delete: async () => {},
+    getIdToken: async () => 'mock_token',
+    getIdTokenResult: async () => ({} as any),
+    reload: async () => {},
+    toJSON: () => ({}),
+    phoneNumber: null,
+    photoURL: null,
+  };
+  
+  // Auto-create user profile in DB if not exists
+  const userRef = doc(db, 'users', mockUser.uid);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      uid: mockUser.uid,
+      displayName: mockUser.displayName,
+      email: mockUser.email,
+      stats: { hp: 100, xp: 0, gold: 0, level: 1 },
+      createdAt: Date.now()
+    });
+  }
+  
+  notifyAuthListeners(mockUser);
+  return { user: mockUser };
+};
+
+export const signOut = async (_authInstance: any) => {
+  console.log('Matrix: Disconnected from Construct');
+  notifyAuthListeners(null);
+};
+
+// Export app as dummy
+export const app = { name: '[DEFAULT]' };
+export type { User };

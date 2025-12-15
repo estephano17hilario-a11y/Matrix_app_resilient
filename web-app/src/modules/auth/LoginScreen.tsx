@@ -9,7 +9,7 @@ import { loginWithGoogle } from '../../services/firebaseService';
  * - Deep Void Background
  * - Aurora Borealis Orbs (Breathing)
  * - Ultra-Fidelity Glass (The Monolith)
- * - Apple Intelligence Button
+ * - Primary Action Button
  */
 
 export default function LoginScreen() {

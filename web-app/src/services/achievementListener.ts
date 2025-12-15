@@ -1,5 +1,4 @@
-import { db } from '../firebase';
-import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { db, doc, updateDoc, arrayUnion, increment } from '../firebase';
 import { UserData } from '../hooks/useMatrixData';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
 

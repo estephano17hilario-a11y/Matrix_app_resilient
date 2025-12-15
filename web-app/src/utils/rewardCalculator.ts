@@ -1,4 +1,4 @@
-export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
+export type Difficulty = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface RewardPrediction {
   xp: number;
@@ -9,10 +9,12 @@ export interface RewardPrediction {
 }
 
 const BASE_REWARDS: Record<Difficulty, { xp: number; coins: number }> = {
-  EASY: { xp: 10, coins: 5 },
-  MEDIUM: { xp: 25, coins: 15 },
-  HARD: { xp: 50, coins: 35 },
-  LEGENDARY: { xp: 100, coins: 80 },
+  S: { xp: 500, coins: 250 },
+  A: { xp: 200, coins: 100 },
+  B: { xp: 100, coins: 50 },
+  C: { xp: 50, coins: 25 },
+  D: { xp: 25, coins: 10 },
+  E: { xp: 10, coins: 5 },
 };
 
 export const calculateTaskRewards = (

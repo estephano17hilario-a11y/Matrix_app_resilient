@@ -1,5 +1,4 @@
-import { doc, runTransaction } from "firebase/firestore";
-import { db } from "../firebase";
+import { doc, runTransaction, db } from "../firebase";
 import { RewardPrediction } from "../utils/rewardCalculator";
 
 /**
@@ -9,9 +8,9 @@ import { RewardPrediction } from "../utils/rewardCalculator";
 
 export const completeTaskTransaction = async (
   userId: string, 
-  taskId: string, 
+  _taskId: string, 
   reward: RewardPrediction,
-  attributeId: string
+  _attributeId: string
 ) => {
   const userRef = doc(db, "users", userId);
   // Assuming tasks are in a subcollection, but user instructions were vague.

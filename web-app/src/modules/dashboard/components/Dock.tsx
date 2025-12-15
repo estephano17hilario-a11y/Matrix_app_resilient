@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ChevronRight, CheckCircle2, Zap, ChevronDown, Briefcase } from 'lucide-react';
+import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean }) => {
@@ -17,7 +17,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 layout
                 initial={false}
                 animate={{ 
-                    height: isOpen ? 340 : 70,
+                    height: isOpen ? 320 : 70,
                     borderRadius: isOpen ? 32 : 34,
                     width: '88vw',
                     maxWidth: 330
@@ -34,6 +34,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
              <div className="absolute inset-0 overflow-hidden rounded-[inherit] z-10">
                 <div className="relative w-full h-full">
                 <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    
                     <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
                     </button>
@@ -43,12 +44,12 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
                     </button>
-                    <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-2 h-14 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.1)] group-hover:scale-110 transition-transform"><Trophy size={18} /></div>
-                            <div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">Hall of Fame</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Achievements</span></div>
-                        </div>
-                        <ChevronRight size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                    
+                    <button onClick={() => { handleView('STRATEGY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.1)]"><MapIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Strategy</span>
+                    </button>
+                    <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Fame</span>
                     </button>
                 </div>
                  <div className="absolute bottom-0 left-0 right-0 h-[70px] flex items-center justify-between px-8 z-20">

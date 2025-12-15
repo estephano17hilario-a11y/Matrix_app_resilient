@@ -17,20 +17,24 @@ export interface Attribute {
   icon: any; // Using any for React.ElementType to avoid strict type issues across files for now
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt: number;
+}
+
 export interface Quest {
   id: string;
   title: string;
   description?: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
-  reward?: {
-    xp: number;
-    coins: number;
-    traitXp: number;
-  };
-  xpReward: number; // Keeping for backward compatibility or display
+  difficulty: 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+  xpReward: number;
+  gold: number;
   attribute: string;
   completed: boolean;
   deadline?: string;
+  subtasks?: Subtask[];
 }
 
 export interface Habit {
@@ -95,6 +99,15 @@ export interface JournalEntry {
   mood?: string;
   theme?: string;
   tags: string[];
+}
+
+export interface NoteBlueprint {
+  id: string;
+  name: string;
+  icon: string; // Emoji or Icon name
+  content: string; // JSON string of NoteBlock[] (for now) or Markdown
+  category: 'SYSTEM' | 'USER';
+  accentColor: string;
 }
 
 export interface NotificationItem {

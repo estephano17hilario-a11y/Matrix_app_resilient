@@ -1,5 +1,4 @@
-import { doc, runTransaction, increment } from "firebase/firestore";
-import { db } from "../firebase";
+import { doc, runTransaction, increment, db } from "../firebase";
 
 export interface StoreItem {
   id: string;

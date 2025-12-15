@@ -6,14 +6,14 @@ import { GlassCard } from './components/GlassCard';
 import { SelectionButton } from './components/SelectionButton';
 import { TraitSelector } from './components/TraitSelector';
 
-type Step = 'intro' | 'identity' | 'ambition' | 'traits' | 'completion';
+type Step = 'ambition' | 'traits' | 'completion';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState<Step>('intro');
+  const [step, setStep] = useState<Step>('ambition');
   const [ambition, setAmbition] = useState<string | null>(null);
   const [traits, setTraits] = useState<string[]>([]);
   
@@ -29,38 +29,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full relative h-full">
         <AnimatePresence mode="wait">
           
-          {/* STEP 1: INTRO */}
-          {step === 'intro' && (
-            <GlassCard key="intro" className="flex flex-col items-center text-center py-12">
-              <motion.div 
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", duration: 0.8 }}
-                className="w-24 h-24 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(59,130,246,0.5)] relative"
-              >
-                <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
-                <Zap className="text-white w-10 h-10 drop-shadow-lg" />
-              </motion.div>
-              
-              <h1 className="text-5xl font-bold tracking-tighter mb-4 text-white">
-                Matrix
-              </h1>
-              <p className="text-white/70 text-xl mb-10 leading-relaxed font-medium">
-                Most apps are chores.<br/>
-                This is a <span className="text-white font-bold">weapon</span>.
-              </p>
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => nextStep('ambition')}
-                className="w-full py-4 bg-white text-black font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2"
-              >
-                Enter the System <ArrowRight className="w-5 h-5" />
-              </motion.button>
-            </GlassCard>
-          )}
-
           {/* STEP 4: AMBITION */}
           {step === 'ambition' && (
             <GlassCard key="ambition">
@@ -146,7 +114,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </motion.div>
 
               <h1 className="text-4xl font-bold tracking-tight text-white mb-6">
-                Welcome, <span className="ai-gradient-text">{codename}</span>.
+                Welcome, <span className="matrix-gradient-text">{codename}</span>.
               </h1>
               
               <div className="space-y-4 mb-10 text-left w-full bg-white/5 p-6 rounded-2xl border border-white/10">
@@ -171,7 +139,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onComplete}
-                className="w-full py-4 bg-white text-black font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.3)] ai-border-glow"
+                className="w-full py-4 bg-white text-black font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.3)] matrix-border-glow"
               >
                 Initialize Protocol
               </motion.button>

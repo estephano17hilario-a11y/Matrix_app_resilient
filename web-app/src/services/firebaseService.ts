@@ -1,11 +1,13 @@
-import { auth, db } from '../firebase';
 import { 
+  auth, 
+  db,
   GoogleAuthProvider, 
   signInWithPopup, 
   signOut as firebaseSignOut,
-  User
-} from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+  User,
+  doc, 
+  getDoc 
+} from '../firebase';
 
 /**
  * SERVICE: Firebase Authentication & User Data

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
@@ -18,8 +19,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isActive, setIsActive] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [isStatsExpanded, setIsStatsExpanded] = useState(true);
     const [shakeMode, setShakeMode] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
 
     const selectedProject = useMemo(() => projects.find((p) => p.id === selectedProjectId), [projects, selectedProjectId]);
     const activeAttr = useMemo(() => attributes.find((a) => a.id === selectedProject?.attribute), [selectedProject, attributes]);
@@ -45,36 +48,48 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         setFocusMode(null); setSelectedProjectId(null);
     };
 
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval>;
-        if (isActive && !isPaused) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (mode === 'POMO') {
-                        if (prev <= 1) {
-                            clearInterval(interval); setIsActive(false);
-                            onCompleteSession(selectedProjectId, totalDuration, mode);
-                            if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
-                            return 0;
-                        }
-                        return prev - 1;
-                    } else { return prev + 1; }
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [isActive, isPaused, mode, selectedProjectId, totalDuration, onCompleteSession]);
+    const handleFinishSession = async () => {
+        setIsActive(false);
+        setIsPaused(false);
+        setIsCompleting(true);
 
-    const toggleTimer = () => {
-        if (!isActive) { setIsActive(true); setIsPaused(false); if(navigator.vibrate) navigator.vibrate(20); }
-        else { setIsPaused(!isPaused); if(navigator.vibrate) navigator.vibrate(10); }
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+        // Animation delay (Faster)
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
+        let finalDuration = 0;
+        if (mode === 'POMO') {
+            // Elapsed time for Pomo
+            finalDuration = totalDuration - timeLeft;
+        } else {
+            // Elapsed time for Stopwatch
+            finalDuration = timeLeft; 
+        }
+
+        // Only save if meaningful duration (> 10 seconds? or just save all as requested)
+        // User asked for "exact progress", so we save it.
+        onCompleteSession(selectedProjectId, finalDuration, mode);
+        setIsCompleting(false);
+        setShowHistory(true);
+        
+        // Reset Timer
+        const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
+        setTimeLeft(mode === 'POMO' ? duration : 0);
+        if(mode === 'POMO') setTotalDuration(duration);
+        else setTotalDuration(0);
     };
 
     const resetTimer = () => {
-        setIsActive(false); setIsPaused(false);
-        const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
-        setTimeLeft(mode === 'POMO' ? duration : 0);
-        if (navigator.vibrate) navigator.vibrate(30);
+        // Now acts as Stop & Save
+        if (isActive || isPaused || (mode === 'STOPWATCH' && timeLeft > 0) || (mode === 'POMO' && timeLeft < totalDuration)) {
+            handleFinishSession();
+        } else {
+            // If nothing happened, just reset visually
+            setIsActive(false); setIsPaused(false);
+            const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
+            setTimeLeft(mode === 'POMO' ? duration : 0);
+        }
     };
 
     const formatTime = (seconds: number) => {
@@ -103,6 +118,30 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         }
     };
 
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (isActive && !isPaused && !isCompleting) {
+            interval = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (mode === 'POMO') {
+                        if (prev <= 1) {
+                            clearInterval(interval);
+                            handleFinishSession();
+                            return 0;
+                        }
+                        return prev - 1;
+                    } else { return prev + 1; }
+                });
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isActive, isPaused, mode, selectedProjectId, totalDuration, onCompleteSession, isCompleting]);
+
+    const toggleTimer = () => {
+        if (!isActive) { setIsActive(true); setIsPaused(false); if(navigator.vibrate) navigator.vibrate(20); }
+        else { setIsPaused(!isPaused); if(navigator.vibrate) navigator.vibrate(10); }
+    };
+
     const radius = 130; 
     const circumference = 2 * Math.PI * radius;
     const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
@@ -117,6 +156,27 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             
             {/* Ambient Noise */}
             {/* <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} /> */}
+
+            <AnimatePresence>
+                {isCompleting && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0, y: 50 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ type: "spring", damping: 15, stiffness: 200 }}
+                            className="relative flex flex-col items-center gap-4"
+                        >
+                            <ActiveIcon size={80} style={{ color: themeColor }} className="filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* --- LIST VIEW --- */}
             <div className={`col-start-1 row-start-1 w-full h-full overflow-y-auto no-scrollbar flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
@@ -7,6 +8,9 @@ import { FocusView } from './modules/focus/FocusView';
 import { NotesView } from './modules/notes/NotesView';
 import { AchievementsScreen } from './modules/achievements/AchievementsScreen';
 import { StoreScreen } from './modules/store/StoreScreen';
+import { SmartTaskWizard } from './modules/smart-tasks/SmartTaskWizard';
+import { StrategicMapView } from './modules/smart-tasks/components/StrategicMapView';
+import { SmartProject } from './types/SmartGoal';
 import { AchievementToast } from './components/AchievementToast';
 import { AuroraBackground } from './components/AuroraBackground';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
@@ -73,6 +77,9 @@ export default function Dashboard() {
         handleDeleteNote,
         handleUpdateJournal
     } = useDashboardLogic();
+
+    const [smartProject, setSmartProject] = useState<SmartProject | null>(null);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
 
     console.log('DASHBOARD: Matrix User:', user ? user.uid : 'null', 'Loading:', matrixLoading);
 
@@ -237,6 +244,49 @@ export default function Dashboard() {
                                 >
                                     <StoreScreen />
                                 </motion.div>
+                            )}
+
+                            {/* --- STRATEGY SECTION --- */}
+                            {currentView === 'STRATEGY' && (
+                                <motion.div 
+                                    key="STRATEGY"
+                                    {...pageTransition}
+                                    className="h-full pt-0 relative flex-1"
+                                >
+                                    {smartProject ? (
+                                        <StrategicMapView 
+                                            project={smartProject} 
+                                            onUpdateProject={(updated) => setSmartProject(updated)}
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                                            <div className="w-20 h-20 rounded-full bg-indigo-500/20 ring-1 ring-indigo-500/50 flex items-center justify-center mb-6 shadow-[0_0_40px_-10px_rgba(99,102,241,0.3)]">
+                                                <ArrowUp className="w-10 h-10 text-indigo-400 rotate-45" />
+                                            </div>
+                                            <h2 className="text-3xl font-bold mb-4">No Active Strategy</h2>
+                                            <p className="text-white/60 mb-8 max-w-md">You haven't defined your Grand Strategy yet. Break down your ultimate goal into actionable steps.</p>
+                                            <button 
+                                                onClick={() => setIsWizardOpen(true)}
+                                                className="px-8 py-3 bg-indigo-600 rounded-full font-bold text-white shadow-[0_0_30px_-5px_rgba(99,102,241,0.5)] hover:scale-105 transition-transform"
+                                            >
+                                                Initialize Protocol
+                                            </button>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* WIZARD OVERLAY */}
+                        <AnimatePresence>
+                            {isWizardOpen && (
+                                <SmartTaskWizard 
+                                    onComplete={(project) => {
+                                        setSmartProject(project);
+                                        setIsWizardOpen(false);
+                                    }}
+                                    onCancel={() => setIsWizardOpen(false)}
+                                />
                             )}
                         </AnimatePresence>
                     </div>
