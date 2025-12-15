@@ -9,8 +9,8 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp }: { level: number, 
         </div>
         <div className="whitespace-nowrap">
             <h1 className="text-[17px] font-bold text-white tracking-tight leading-none mb-1.5">Level {Math.floor(level)}</h1>
-            <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden relative backdrop-blur-sm">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 transition-transform duration-1000 ease-out origin-left" style={{ transform: `scaleX(${xp / nextXp})` }} />
+            <div className="h-1.5 w-32 liquid-bar">
+                <div className="liquid-bar-fill bg-gradient-to-r from-cyan-400 to-blue-500 origin-left" style={{ width: `${(xp / nextXp) * 100}%` }} />
             </div>
             <p className="text-[10px] text-slate-400 mt-1 font-mono tracking-wide">{xp} / {nextXp} XP</p>
         </div>

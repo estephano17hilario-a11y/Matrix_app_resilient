@@ -38,6 +38,8 @@ export default {
       animation: {
         'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 10s ease-in-out infinite',
+        'shimmer-slow': 'shimmer 5s linear infinite',
+        'gradient-x': 'gradient-x 3s ease infinite',
       },
       keyframes: {
         float: {
@@ -47,7 +49,17 @@ export default {
         shimmer: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' }
-        }
+        },
+        'gradient-x': {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center'
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center'
+          },
+        },
       }
     },
   },
