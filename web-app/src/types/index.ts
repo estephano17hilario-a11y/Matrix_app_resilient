@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type ThemeType = 'gradient' | 'blob';
 
 export interface ThemeConfig {
@@ -59,6 +57,14 @@ export interface Project {
   impact: number;
   totalTime: number;
   reminder?: string;
+  sessions?: Session[];
+}
+
+export interface Session {
+  id: string;
+  type: 'POMO' | 'STOPWATCH';
+  duration: number;
+  date: string;
 }
 
 export interface NoteBlock {
@@ -84,4 +90,26 @@ export interface JournalEntry {
   mood?: string;
   theme?: string;
   tags: string[];
+}
+
+export interface NotificationItem {
+  id: number;
+  type: string;
+  label: string;
+  fromLevel: string | number;
+  toLevel: string | number;
+  icon: any;
+  color: string;
+}
+
+export interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  icon: any;
+  color: string;
+  type: string;
 }

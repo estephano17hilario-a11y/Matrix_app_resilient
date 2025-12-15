@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatrix } from '../../context/MatrixContext';
 import { ACHIEVEMENTS, AchievementCategory, Achievement } from '../../config/achievements';
-import { Lock, Star, Zap, Trophy, Flame, Shield, Target } from 'lucide-react';
+import { Lock, Trophy } from 'lucide-react';
 import { AuroraBackground } from '../../components/AuroraBackground';
 
 // --- COMPONENTS ---
