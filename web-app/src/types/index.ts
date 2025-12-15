@@ -21,8 +21,13 @@ export interface Quest {
   id: string;
   title: string;
   description?: string;
-  difficulty: 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
-  xpReward: number;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
+  reward?: {
+    xp: number;
+    coins: number;
+    traitXp: number;
+  };
+  xpReward: number; // Keeping for backward compatibility or display
   attribute: string;
   completed: boolean;
   deadline?: string;

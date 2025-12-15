@@ -14,6 +14,24 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
   const [expanded, setExpanded] = useState(false);
   const Icon = attribute?.icon;
 
+  const difficultyColors: Record<string, string> = {
+    EASY: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5',
+    MEDIUM: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/5',
+    HARD: 'text-rose-500 border-rose-500/20 bg-rose-500/5',
+    LEGENDARY: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
+    // Legacy support
+    S: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
+    A: 'text-rose-500 border-rose-500/20 bg-rose-500/5',
+    B: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/5',
+    C: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5', 
+    D: 'text-slate-400 border-slate-400/20 bg-slate-400/5',
+    E: 'text-slate-400 border-slate-400/20 bg-slate-400/5'
+  };
+
+  const diffColor = difficultyColors[quest.difficulty] || 'text-slate-400 border-slate-400/20';
+  const xp = quest.reward ? quest.reward.xp : quest.xpReward;
+  const coins = quest.reward ? quest.reward.coins : 0;
+
   return (
     <motion.div
       layout
@@ -59,8 +77,8 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                 )}>
                   {quest.title}
                 </h3>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide text-white/50 border-white/10">
-                  RANK {quest.difficulty}
+                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide", diffColor)}>
+                  {quest.difficulty}
                 </span>
               </div>
               
@@ -75,13 +93,14 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                 )}
                 <AnimatePresence>
                   {expanded && (
-                     <motion.span 
+                     <motion.div 
                         initial={{ opacity: 0, x: -5 }} 
                         animate={{ opacity: 1, x: 0 }}
-                        className="text-[10px] text-slate-500 font-medium"
+                        className="flex items-center gap-2 text-[10px] font-medium"
                      >
-                        + {quest.xpReward} XP
-                     </motion.span>
+                        <span className="text-emerald-400">+{xp} XP</span>
+                        {coins > 0 && <span className="text-yellow-400">+{coins} G</span>}
+                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>

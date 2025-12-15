@@ -49,13 +49,48 @@
   /* 
    * MATERIALITY: "HYPER-GLASS" (PHYSICALLY BASED UI)
    * The Chemical Formula for the "Sentient Glass" aesthetic.
+   * UPDATED: Now includes the "Neon Rim" by default as requested.
    */
   .glass-panel {
-    @apply bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150 border border-white/10;
-    /* Specular Highlight (Top Rim Light) + Deep Glow Shadow */
+    @apply bg-[#1c1c1e]/90 backdrop-blur-3xl backdrop-saturate-150 relative;
+    /* We remove the standard border and use the gradient mask instead */
+    border: 1px solid transparent; 
     box-shadow: 
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
-      0 20px 50px -12px rgba(79, 70, 229, 0.15);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+      0 20px 50px -12px rgba(0, 0, 0, 0.5);
+    background-clip: padding-box;
+  }
+
+  /* THE NEON BORDER (Sharp, Gradient, Always On) */
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    inset: -1px; /* Hugs the box perfectly */
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px; /* The width of the border */
+    background: conic-gradient(
+      from var(--angle),
+      #06b6d4, 
+      #3b82f6, 
+      #8b5cf6, 
+      #ec4899, 
+      #06b6d4
+    );
+    animation: border-rotate 4s linear infinite;
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6; /* Subtle but visible */
+  }
+
+  /* Hover effect for the border */
+  .glass-panel:hover::before {
+    opacity: 1;
+    filter: brightness(1.2);
   }
   
   /* 
@@ -165,6 +200,91 @@
 @keyframes border-flow {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
+}
+
+/* 
+ * RGB BORDER (DESIGN FORK: "CLEAN & ELEGANT")
+ * Replaces the noisy glow with a sharp, thin, premium neon rim.
+ */
+
+@keyframes border-rotate {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.rgb-border-container {
+  position: relative;
+  /* Ensure the container doesn't clip the outer glow */
+  overflow: visible !important;
+}
+
+/* 
+ * LAYER 1: The Sharp Border (1.5px width) 
+ * Sits exactly on the edge.
+ */
+.rgb-border-container::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -1.5px; /* Thin, elegant width */
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--angle),
+    #06b6d4, /* Cyan */
+    #3b82f6, /* Blue */
+    #8b5cf6, /* Purple */
+    #ec4899, /* Pink */
+    #06b6d4  /* Loop back to Cyan */
+  );
+  animation: border-rotate 4s linear infinite;
+  
+  /* The Mask Logic: Show ONLY the border area */
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* 
+ * LAYER 2: The Subtle Halo - DISABLED BY USER REQUEST
+ * The user wants a clean border only, no background glow.
+ */
+.rgb-border-container::after {
+  content: none;
+}
+
+/* Active State */
+.rgb-border-active::before {
+  opacity: 1;
+}
+
+.rgb-border-active::after {
+  opacity: 0;
+}
+
+/* When active, we want the panel background to be slightly more opaque to block inner bleed */
+.rgb-border-active.glass-panel {
+  /* 
+   * APPLE DARK GREY (THE "TITANIUM" SHADE)
+   * Not #000 (OLED Black), but a sophisticated, metallic dark grey.
+   * Approx #1c1c1e (iOS System Gray 6) with high opacity.
+   * FORCE OVERRIDE: Use !important to ensure no Tailwind utility conflicts.
+   */
+  background-color: rgba(28, 28, 30, 0.98) !important; 
+  border-color: rgba(255, 255, 255, 0.08) !important; /* Very subtle inner rim */
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5) !important; /* Deep elevation shadow */
+  backdrop-filter: blur(40px) saturate(180%) !important; /* Ensure premium blur */
 }
 
 /* Utility to force hardware acceleration */

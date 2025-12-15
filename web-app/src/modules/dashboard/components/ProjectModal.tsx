@@ -22,7 +22,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, onConfirm
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose} />
             <div className="relative z-10 w-full max-w-[360px] animate-modal-enter">
-                <div className="glass-panel rounded-[2.5rem] p-5 overflow-visible flex flex-col max-h-[85vh] relative shadow-2xl transition-colors duration-500" style={{ background: activeColor !== '#3b82f6' ? `linear-gradient(135deg, ${activeColor}25, ${activeColor}10 40%, rgba(20,20,25,0.9) 100%)` : 'rgba(20, 20, 25, 0.9)', borderColor: activeColor !== '#3b82f6' ? `${activeColor}40` : 'rgba(255, 255, 255, 0.1)', boxShadow: activeColor !== '#3b82f6' ? `0 25px 50px -12px ${activeColor}25` : '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
+                <div className="glass-panel rounded-[2.5rem] p-5 overflow-visible flex flex-col max-h-[85vh] relative shadow-2xl transition-colors duration-500">
                     <div className="flex justify-between items-center mb-6 px-1 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: attrId ? activeColor : 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
@@ -38,7 +38,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, onConfirm
                     <div className="overflow-y-auto no-scrollbar pb-4 space-y-3">
                         <div className="flex gap-2">
                              <div className="flex-1 bg-white/5 rounded-[1.5rem] border border-white/5 p-1 focus-within:border-white/20 transition-all"><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Project Name..." className="w-full h-full bg-transparent px-5 text-[16px] font-bold text-white placeholder:text-white/20 outline-none" autoFocus /></div>
-                             <div onClick={() => setAttrPickerOpen(true)} className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative cursor-pointer ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} style={attrId ? { backgroundColor: `${activeColor}15`, borderColor: activeColor } : {}}>
+                             <div onClick={() => setAttrPickerOpen(true)} className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative cursor-pointer ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`}>
                                  {attrId ? (<SelectedIcon size={20} style={{ color: activeColor }} />) : <Plus size={20} className="text-white/30" />}
                                  {isAttrPickerOpen && (<><div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} /><div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-2xl border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>{attributes.map((attr) => {
                                      const Icon = attr.icon;
@@ -88,7 +88,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, onConfirm
                         </div>
                     </div>
                     <div className="pt-2">
-                        <button onClick={() => onConfirm({ title, description: desc, attribute: attrId, goalTarget, goalFrequency: goalFreq, pomoDuration, breakDuration: 5, reminder, impact })} disabled={!title || !attrId} className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${(!title || !attrId) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95'}`} style={(title && attrId) ? { background: `linear-gradient(to right, ${activeColor}, ${activeColor}dd)`, boxShadow: `0 10px 40px -10px ${activeColor}80` } : {}}>Initialize Project <ArrowUp size={16} /></button>
+                        <button onClick={() => onConfirm({ title, description: desc, attribute: attrId, goalTarget, goalFrequency: goalFreq, pomoDuration, breakDuration: 5, reminder, impact })} disabled={!title || !attrId} className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${(!title || !attrId) ? 'bg-white/5 text-white/20' : 'bg-white/10 text-white shadow-xl active:scale-95 border border-white/10 hover:bg-white/20'}`}>Initialize Project <ArrowUp size={16} /></button>
                     </div>
                 </div>
             </div>

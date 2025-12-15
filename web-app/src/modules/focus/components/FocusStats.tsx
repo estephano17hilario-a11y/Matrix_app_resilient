@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Target, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Target } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
 import { formatDateRange } from '../../../utils/dateUtils';
 
-export const FocusStats = React.memo(({ isExpanded, toggleExpand, projects, attributes }: { isExpanded: boolean, toggleExpand: () => void, projects: Project[], attributes: Attribute[] }) => {
+export const FocusStats = React.memo(({ projects, attributes }: { projects: Project[], attributes: Attribute[] }) => {
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
@@ -32,17 +32,8 @@ export const FocusStats = React.memo(({ isExpanded, toggleExpand, projects, attr
 
     return (
         <div className="relative transition-all duration-700 ease-in-out mb-4 flex-shrink-0">
-             <div className="flex justify-between items-center px-1 mb-2"> 
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400 tracking-widest uppercase flex items-center gap-2"><Sparkles size={12} className="text-purple-400" /> Focus Intelligence</span>
-                </div>
-                <button onClick={toggleExpand} className="p-2 -mr-2 text-slate-500 active:text-white transition-colors">{isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
-            </div>
-
-            <div className={`accordion-grid ${isExpanded ? 'open' : ''}`}>
-                <div className="accordion-inner">
-                    <div className="glass-panel rounded-[2rem] p-4 flex flex-col gap-4">
-                        {/* VIEW CONTROLS */}
+            <div className="glass-panel rounded-[2rem] p-4 flex flex-col gap-4">
+                {/* VIEW CONTROLS */}
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl">
                                 {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => (
@@ -98,8 +89,6 @@ export const FocusStats = React.memo(({ isExpanded, toggleExpand, projects, attr
                             barClassName="!rounded-t-sm"
                         />
                     </div>
-                </div>
-            </div>
         </div>
     );
 });

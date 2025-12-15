@@ -18,7 +18,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isActive, setIsActive] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-    const [isStatsExpanded, setIsStatsExpanded] = useState(true);
     const [shakeMode, setShakeMode] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
 
@@ -123,32 +122,25 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             <div className={`col-start-1 row-start-1 w-full h-full overflow-y-auto no-scrollbar flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
                 {/* Header */}
-                <div className="flex justify-between items-end px-6 pt-6 pb-4 flex-shrink-0 z-20">
-                    <div>
-                        <h2 className="text-[34px] font-black text-white tracking-[-0.04em] leading-none drop-shadow-lg font-sf-display">Focus.</h2>
-                        <p className="text-[13px] text-slate-400 font-medium tracking-wide uppercase mt-1">Select Session</p>
-                    </div>
-                    
-                    {/* Mode Switcher (List) */}
-                    <div className={`flex bg-black/20 backdrop-blur-xl rounded-full p-1 border border-white/10 shadow-xl ${shakeMode ? 'animate-shake' : ''}`}>
-                         <button onClick={() => handleModeSwitch('POMO')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Pomo</button>
-                         <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Stopwatch</button>
-                    </div>
+            <div className="flex justify-between items-end px-6 pt-2 pb-2 flex-shrink-0 z-20">
+                <div>
+                    <h2 className="text-[34px] font-black text-white tracking-[-0.04em] leading-none drop-shadow-lg font-sf-display">Focus.</h2>
+                    <p className="text-[13px] text-slate-400 font-medium tracking-wide uppercase mt-1">Select Session</p>
                 </div>
+                
+                {/* Mode Switcher (List) */}
+                <div className={`flex bg-black/20 backdrop-blur-xl rounded-full p-1 border border-white/10 shadow-xl ${shakeMode ? 'animate-shake' : ''}`}>
+                     <button onClick={() => handleModeSwitch('POMO')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Pomo</button>
+                     <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Stopwatch</button>
+                </div>
+            </div>
 
-                {/* Stats & List */}
-                <div className="px-4 flex-shrink-0 relative z-10">
-                    <FocusStats isExpanded={isStatsExpanded} toggleExpand={() => setIsStatsExpanded(!isStatsExpanded)} projects={projects} attributes={attributes} />
-                </div>
+            {/* Stats & List */}
+            <div className="px-4 flex-shrink-0 relative z-10">
+                <FocusStats projects={projects} attributes={attributes} />
+            </div>
 
                 <div className="grid grid-cols-2 gap-3 px-4 pb-32 content-start mt-4 relative z-10">
-                    {projects.length === 0 && (
-                        <div className="col-span-2 flex flex-col items-center justify-center py-10 text-center opacity-60">
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4"><Plus size={24} className="text-white/50" /></div>
-                            <p className="text-sm text-white font-bold">No sessions yet</p>
-                            <p className="text-xs text-slate-500 mt-1">Create your first flow to start</p>
-                        </div>
-                    )}
                     {projects.map((project) => {
                         const attr = attributes.find((a) => a.id === project.attribute);
                         const progressVal = Math.min(100, (project.totalTime / (project.goalTarget * 60)) * 100);

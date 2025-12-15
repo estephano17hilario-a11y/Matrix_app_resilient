@@ -24,13 +24,13 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       <motion.div 
         animate={{ 
           scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
+          opacity: [0.3, 0.5, 0.3], // Increased visibility
           x: [0, 50, 0],
           y: [0, -50, 0]
         }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px]" 
-        style={{ backgroundColor: overrideColor || '#4f46e5', opacity: overrideColor ? 0.4 : 0.2 }}
+        className="absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] rounded-full blur-[100px]" 
+        style={{ backgroundColor: overrideColor || '#4f46e5' }} 
       />
 
       {/* Orb 2: Electric Cyan - Bottom Left */}
@@ -42,19 +42,19 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
           y: [0, 30, 0]
         }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-[-10%] left-[-20%] w-[70vw] h-[70vw] max-w-[500px] max-h-[500px] rounded-full blur-[100px]" 
-        style={{ backgroundColor: overrideColor || '#06b6d4', opacity: overrideColor ? 0.4 : 0.15 }}
+        className="absolute bottom-[-10%] left-[-20%] w-[70vw] h-[70vw] max-w-[500px] max-h-[500px] rounded-full blur-[80px]" 
+        style={{ backgroundColor: overrideColor || '#06b6d4' }}
       />
 
       {/* Orb 3: Nebula Pink - Center/Top */}
       <motion.div 
         animate={{ 
           scale: [1, 1.1, 1],
-          opacity: [0.1, 0.3, 0.1],
+          opacity: [0.2, 0.4, 0.2],
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-        className="absolute top-[20%] left-[30%] w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] rounded-full blur-[140px]" 
-        style={{ backgroundColor: overrideColor || '#ec4899', opacity: overrideColor ? 0.3 : 0.1 }}
+        className="absolute top-[20%] left-[30%] w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] rounded-full blur-[120px]" 
+        style={{ backgroundColor: overrideColor || '#ec4899' }}
       />
 
       {/* Orb 4: Violet Mist - Floating */}
@@ -62,11 +62,11 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
         animate={{ 
           x: [0, 100, 0],
           y: [0, 50, 0],
-          opacity: [0.1, 0.2, 0.1]
+          opacity: [0.2, 0.4, 0.2]
         }}
         transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[40%] right-[20%] w-[400px] h-[400px] rounded-full blur-[120px]" 
-        style={{ backgroundColor: overrideColor || '#8b5cf6', opacity: overrideColor ? 0.3 : 0.15 }}
+        className="absolute top-[40%] right-[20%] w-[400px] h-[400px] rounded-full blur-[100px]" 
+        style={{ backgroundColor: overrideColor || '#8b5cf6' }}
       />
 
       {/* Noise Texture Overlay (Optional for grit/texture) */}
