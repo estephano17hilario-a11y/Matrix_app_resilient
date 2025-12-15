@@ -19,15 +19,22 @@ export const useSmartTaskLogic = () => {
     return timeframeHierarchy[index + 1];
   };
 
-  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string) => {
+  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string, deadline?: Date) => {
     const now = Timestamp.now();
     setProjectMeta({ traitId, traitColor });
+    
+    // Default to 1 year if no deadline provided
+    const defaultDeadline = new Date();
+    defaultDeadline.setFullYear(defaultDeadline.getFullYear() + 1);
+    
+    const finalDeadline = deadline ? Timestamp.fromDate(deadline) : Timestamp.fromDate(defaultDeadline);
+
     const root: StrategicNode = {
       id: crypto.randomUUID(),
       title: mainGoal,
       level: 'YEAR',
       startDate: now,
-      dueDate: Timestamp.fromMillis(now.toMillis() + (365 * 24 * 60 * 60 * 1000)), // Approx 1 year
+      dueDate: finalDeadline,
       isCompleted: false,
       reward: { xp: 1000, coins: 500 },
       children: [],
