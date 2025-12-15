@@ -11,11 +11,13 @@ import {
     Edit2,
     Trophy,
     Save,
-    X
+    X,
+    Clock
 } from 'lucide-react';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '../../../utils/cn';
+import { formatDate } from '../../../utils/dateUtils';
 
 interface StrategicMapViewProps {
   project: SmartProject;
@@ -53,7 +55,7 @@ const LevelIcons: Record<TimeFrame, React.ReactNode> = {
 const getExpectedChildrenCount = (level: TimeFrame): number => {
     switch (level) {
       case 'YEAR': return 2; // 2 Semesters
-      case 'SEMESTER': return 3; // 3 Months (Standard)
+      case 'SEMESTER': return 6; // 6 Months (Changed from 3)
       case 'QUARTER': return 3; // 3 Months
       case 'MONTH': return 4; // 4 Weeks
       case 'WEEK': return 7; // 7 Days
@@ -316,8 +318,14 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                                                     {LevelIcons[child.level] || <Circle size={18} />}
                                                 </div>
                                                 <div className="text-left">
-                                                    <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-40 text-white">
+                                                    <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-40 text-white flex items-center gap-2">
                                                         {LevelLabels[child.level]}
+                                                        {child.startDate && child.dueDate && !child.placeholder && (
+                                                            <span className="flex items-center gap-1 text-white/60">
+                                                                <Clock size={10} />
+                                                                {formatDate(child.startDate.toDate())} - {formatDate(child.dueDate.toDate())}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className={cn(
                                                         "text-xl font-semibold transition-colors",

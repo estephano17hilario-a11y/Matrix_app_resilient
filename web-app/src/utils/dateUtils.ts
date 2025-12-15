@@ -1,60 +1,68 @@
-export const toLocalISOString = (date: Date) => {
-    const offset = date.getTimezoneOffset() * 60000;
-    const localDate = new Date(date.getTime() - offset);
-    return localDate.toISOString().split('T')[0];
+export const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 };
 
-export const getStartOfWeek = (d: Date) => {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(date.setDate(diff));
+export const addMonths = (date: Date, months: number): Date => {
+    const newDate = new Date(date);
+    newDate.setMonth(newDate.getMonth() + months);
+    return newDate;
 };
 
-export const formatDateRange = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR') => {
-  if (range === 'DAY') return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-  if (range === 'MONTH') return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  if (range === 'YEAR') return date.getFullYear().toString();
-  
-  const start = getStartOfWeek(date);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { day: 'numeric' })}`;
+export const addWeeks = (date: Date, weeks: number): Date => {
+    const newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + (weeks * 7));
+    return newDate;
 };
 
-export const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
-    const firstDay = new Date(year, month, 1).getDay();
-    return { days, firstDay };
+export const addDays = (date: Date, days: number): Date => {
+    const newDate = new Date(date);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
 };
 
-// Assuming JournalEntry is needed for calculateStreak, but we can make it generic or import the type
-import { JournalEntry } from '../types';
+export const getContextDates = (startDate: Date, level: 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY', index: number): { start: Date, end: Date, label: string } => {
+    const start = new Date(startDate);
+    let end = new Date(startDate);
+    let label = '';
 
-export const calculateStreak = (entries: JournalEntry[]) => {
-    if (!entries.length) return 0;
-    const sortedDates = [...new Set(entries.map(e => e.date))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    let streak = 0;
-    const today = toLocalISOString(new Date());
-    const yesterday = toLocalISOString(new Date(Date.now() - 86400000));
-    
-    // Check if streak is alive (has entry today or yesterday)
-    if (sortedDates[0] !== today && sortedDates[0] !== yesterday) return 0;
-
-    let currentDate = new Date(sortedDates[0]);
-    for (let i = 0; i < sortedDates.length; i++) {
-        const entryDate = new Date(sortedDates[i]);
-        // Normalize times to compare only dates
-        const cDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-        const eDate = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
-        
-        const diffTime = Math.abs(cDate.getTime() - eDate.getTime());
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); 
-        
-        if (i === 0) { streak++; currentDate = entryDate; continue; }
-        if (diffDays === 1) { streak++; currentDate = entryDate; } else { break; }
+    switch (level) {
+        case 'YEAR':
+            // S1 vs S2
+            // Index 0 = S1, Index 1 = S2
+            start.setMonth(start.getMonth() + (index * 6));
+            end = addMonths(start, 6);
+            label = index === 0 ? 'Primeros 6 Meses' : 'Segundos 6 Meses';
+            break;
+        case 'SEMESTER':
+            // Month 1..6
+            start.setMonth(start.getMonth() + index);
+            end = addMonths(start, 1);
+            label = `Mes ${index + 1}`;
+            break;
+        case 'QUARTER':
+            // Month 1..3
+            start.setMonth(start.getMonth() + index);
+            end = addMonths(start, 1);
+            label = `Mes ${index + 1}`;
+            break;
+        case 'MONTH':
+            // Week 1..4
+            start.setDate(start.getDate() + (index * 7));
+            end = addDays(start, 7);
+            label = `Semana ${index + 1}`;
+            break;
+        case 'WEEK':
+            // Day 1..7
+            start.setDate(start.getDate() + index);
+            end = addDays(start, 1);
+            label = `Día ${index + 1}`;
+            break;
+        case 'DAY':
+            // Hours or sub-tasks (not implemented yet, but preventing crash/type error)
+            end = addDays(start, 1);
+            label = `Bloque ${index + 1}`;
+            break;
     }
-    return streak;
+    
+    return { start, end, label };
 };

@@ -4,6 +4,8 @@ import { ChevronLeft, Sparkles, Layers } from 'lucide-react';
 import { useSmartTaskLogic } from './hooks/useSmartTaskLogic';
 import { AuroraBackground } from '../../components/AuroraBackground';
 import { SmartProject } from '../../types/SmartGoal';
+import { SmartTaskTutorial } from './components/SmartTaskTutorial';
+import { getContextDates, formatDate } from '../../utils/dateUtils';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
@@ -24,13 +26,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   const [mainGoalInput, setMainGoalInput] = useState('');
   const [multiInputs, setMultiInputs] = useState<string[]>([]);
   const [isStarting, setIsStarting] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Determine how many inputs we need based on current node level
   const getRequiredInputs = () => {
       if (!currentNode) return 0;
       switch (currentNode.level) {
           case 'YEAR': return 2; // Needs 2 Semesters
-          case 'SEMESTER': return 3; // Needs 3 Months
+          case 'SEMESTER': return 6; // Needs 6 Months
           case 'MONTH': return 4; // Needs 4 Weeks
           case 'WEEK': return 7; // Needs 7 Days
           default: return 0;
@@ -49,9 +52,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
     if (mainGoalInput.trim()) {
-      setIsStarting(false);
       startProcess(mainGoalInput);
+      setIsStarting(false);
+      setShowTutorial(true);
     }
+  };
+
+  const handleTutorialComplete = () => {
+      setShowTutorial(false);
   };
 
   const handleMultiSubmit = (e: React.FormEvent) => {
@@ -77,13 +85,11 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
 
   const getPlaceholder = (index: number) => {
       if (!currentNode) return '';
-      switch (currentNode.level) {
-          case 'YEAR': return `Semester ${index + 1} Objective...`;
-          case 'SEMESTER': return `Month ${index + 1} Goal...`;
-          case 'MONTH': return `Week ${index + 1} Priority...`;
-          case 'WEEK': return `Day ${index + 1} Task...`;
-          default: return 'Enter objective...';
-      }
+      const startDate = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
+      const { label, start, end } = getContextDates(startDate, currentNode.level, index);
+      const dateRange = `${formatDate(start)} - ${formatDate(end)}`;
+      
+      return `${label} (${dateRange}) Objective...`;
   };
 
   const getStepTitle = () => {
@@ -131,42 +137,50 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       </button>
 
       <div className="w-full max-w-3xl px-6 relative z-10">
-        <AnimatePresence mode="wait">
-          {isStarting ? (
-            <motion.div
-              key="start"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
-              className="flex flex-col items-center text-center space-y-8"
-            >
-                <div className="relative">
-                    <div className="absolute inset-0 bg-indigo-500 blur-[60px] opacity-20 animate-pulse" />
-                    <Sparkles className="w-16 h-16 text-indigo-400 relative z-10" />
-                </div>
-                
-                <div className="space-y-2">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                        Apple Intelligence
-                    </h1>
-                    <p className="text-lg text-white/50">
-                        Neural Engine Protocol v2.0
-                    </p>
-                </div>
-
-                <form onSubmit={handleStart} className="w-full max-w-xl mt-8 relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-500" />
-                    <input
+              <AnimatePresence mode="wait">
+                {isStarting ? (
+                  <motion.div
+                    key="start"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+                    className="flex flex-col items-center text-center space-y-8"
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-indigo-500 blur-[60px] opacity-20 animate-pulse" />
+                      <Sparkles className="w-16 h-16 text-indigo-400 relative z-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                          Apple Intelligence
+                      </h1>
+                      <p className="text-lg text-white/50">
+                          Neural Engine Protocol v2.0
+                      </p>
+                    </div>
+                    <form onSubmit={handleStart} className="w-full max-w-xl mt-8 relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-500" />
+                      <input
                         autoFocus
                         type="text"
                         value={mainGoalInput}
                         onChange={(e) => setMainGoalInput(e.target.value)}
                         placeholder="What is your Main Objective?"
                         className="relative w-full px-8 py-6 text-2xl text-center text-white bg-black/80 rounded-2xl border border-white/10 focus:border-white/20 focus:outline-none placeholder:text-white/20 transition-all shadow-2xl"
-                    />
-                </form>
-            </motion.div>
-          ) : !currentNode || currentStep >= 4 ? (
+                      />
+                    </form>
+                  </motion.div>
+                ) : showTutorial ? (
+                    <motion.div
+                        key="tutorial"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="w-full"
+                    >
+                        <SmartTaskTutorial onComplete={handleTutorialComplete} />
+                    </motion.div>
+                ) : !currentNode || currentStep >= 4 ? (
               /* COMPLETION STATE */
               <motion.div
                   key="done"

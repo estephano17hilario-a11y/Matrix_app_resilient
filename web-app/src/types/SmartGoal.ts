@@ -6,6 +6,7 @@ export interface StrategicNode {
   id: string;
   title: string;
   level: TimeFrame;
+  startDate?: Timestamp;
   dueDate: Timestamp;
   isCompleted: boolean;
   reward: { xp: number; coins: number };
