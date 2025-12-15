@@ -218,7 +218,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
 
                 {/* Data Fill (Background) */}
                 <motion.path
-                    initial={{ d: chartData.map((p, i) => `${i === 0 ? 'M' : 'L'} ${CENTER} ${CENTER}`).join(" ") + " Z", opacity: 0 }}
+                    initial={{ d: chartData.map((_, i) => `${i === 0 ? 'M' : 'L'} ${CENTER} ${CENTER}`).join(" ") + " Z", opacity: 0 }}
                     animate={{ d: polygonPath, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 40, damping: 10 }}
                     fill="url(#radarGradient)" // Use the gradient fill again for depth

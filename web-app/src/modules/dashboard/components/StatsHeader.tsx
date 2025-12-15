@@ -22,7 +22,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, them
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const isCompact = !showProfile;
-  const shouldShowAvatar = showProfile;
+  const shouldShowAvatar = showProfile && !hideAvatar;
 
   return (
     <header className={`flex justify-between items-center z-50 relative ${

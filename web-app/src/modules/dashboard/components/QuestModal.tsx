@@ -3,7 +3,7 @@ import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond } from 'luc
 import { Attribute, Quest } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], onConfirm: (data: Partial<Quest>) => void }) => {
     const [title, setTitle] = useState('');

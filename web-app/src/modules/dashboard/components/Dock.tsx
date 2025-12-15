@@ -1,6 +1,6 @@
 import React from 'react';
 import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ChevronRight, CheckCircle2, Zap, ChevronDown, Briefcase } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean }) => {
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };

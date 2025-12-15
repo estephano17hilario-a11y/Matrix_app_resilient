@@ -1,4 +1,3 @@
-import React from 'react';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
@@ -153,11 +152,6 @@ export default function Dashboard() {
                                     {showProfile && (
                                         <div className="relative z-20 -mx-2">
                                             <PlayerHUD 
-                                                level={player.level} 
-                                                xp={player.xp} 
-                                                nextXp={player.nextXp} 
-                                                health={health}
-                                                streak={habits.reduce((acc, h) => acc + h.streak, 0)}
                                                 attributes={attributes}
                                             />
                                         </div>

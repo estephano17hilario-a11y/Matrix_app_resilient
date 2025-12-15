@@ -17,11 +17,6 @@ interface Attribute {
 }
 
 interface PlayerHUDProps {
-  level: number;
-  xp: number;
-  nextXp: number;
-  health: number;
-  streak: number;
   attributes?: Attribute[];
   className?: string;
 }
@@ -56,11 +51,6 @@ const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: bo
 };
 
 export const PlayerHUD: React.FC<PlayerHUDProps> = ({
-  level,
-  xp,
-  nextXp,
-  health,
-  streak,
   attributes = [],
   className
 }) => {

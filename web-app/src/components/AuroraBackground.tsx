@@ -7,8 +7,7 @@ interface AuroraBackgroundProps {
 
 export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColor }) => {
   // If overrideColor is provided (e.g. Focus Mode), we use it to tint the orbs
-  const baseStyle = overrideColor ? { backgroundColor: overrideColor } : {};
-
+  
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020204] transition-colors duration-1000">
       {/* 
