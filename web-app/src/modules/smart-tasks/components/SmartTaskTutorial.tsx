@@ -54,8 +54,8 @@ export const SmartTaskTutorial: React.FC<SmartTaskTutorialProps> = ({ onComplete
     },
     {
       title: "Example Flow",
-      content: "Goal: Launch App\n↓\nS1: MVP Built\n↓\nQ1: Core Features\n↓\nMonth 1: Backend\n↓\nWeek 1: Auth System\n↓\nDay 1: Setup Firebase",
-      detail: "FULL STACK",
+      content: "Goal: Perfect Body\n↓\nS1: Build Muscle\n↓\nQ1: Hypertrophy Phase\n↓\nMonth 1: Upper Body Focus\n↓\nWeek 1: Chest & Back\n↓\nDay 1: Heavy Bench Press",
+      detail: "GYM PROTOCOL",
       icon: Zap,
       color: "from-amber-500 to-yellow-600"
     }

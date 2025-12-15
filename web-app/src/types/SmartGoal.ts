@@ -22,4 +22,6 @@ export interface SmartProject {
   rootNode: StrategicNode;
   createdAt: Timestamp;
   status: 'ACTIVE' | 'COMPLETED';
+  traitId?: string;
+  traitColor?: string;
 }

@@ -9,6 +9,8 @@ export const useSmartTaskLogic = () => {
   const [currentNode, setCurrentNode] = useState<StrategicNode | null>(null);
   const [history, setHistory] = useState<StrategicNode[]>([]);
   
+  const [projectMeta, setProjectMeta] = useState<{ traitId?: string; traitColor?: string }>({});
+
   const timeframeHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
 
   const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
@@ -17,8 +19,9 @@ export const useSmartTaskLogic = () => {
     return timeframeHierarchy[index + 1];
   };
 
-  const startProcess = (mainGoal: string) => {
+  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string) => {
     const now = Timestamp.now();
+    setProjectMeta({ traitId, traitColor });
     const root: StrategicNode = {
       id: crypto.randomUUID(),
       title: mainGoal,
@@ -36,7 +39,7 @@ export const useSmartTaskLogic = () => {
     setCurrentStep(0);
   };
 
-  const submitAnswer = (answers: string[]) => {
+  const submitAnswer = (answers: (string | { title: string, startDate?: Date, endDate?: Date })[]) => {
     if (!currentNode) return;
 
     const nextLevel = getNextLevel(currentNode.level);
@@ -46,15 +49,22 @@ export const useSmartTaskLogic = () => {
     const currentStart = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
 
     const newChildren: StrategicNode[] = answers.map((answer, index) => {
+        const title = typeof answer === 'string' ? answer : answer.title;
+        const customStart = typeof answer !== 'string' ? answer.startDate : undefined;
+        const customEnd = typeof answer !== 'string' ? answer.endDate : undefined;
+
         // Calculate dates for this child based on parent context and index
         const { start, end } = getContextDates(currentStart, currentNode.level, index);
         
+        const finalStart = customStart || start;
+        const finalEnd = customEnd || end;
+        
         return {
           id: crypto.randomUUID(),
-          title: answer,
+          title: title,
           level: nextLevel,
-          startDate: Timestamp.fromDate(start),
-          dueDate: Timestamp.fromDate(end),
+          startDate: Timestamp.fromDate(finalStart),
+          dueDate: Timestamp.fromDate(finalEnd),
           isCompleted: false,
           reward: { xp: 500 / (index + 1), coins: 100 },
           parentId: currentNode.id,
@@ -133,7 +143,9 @@ export const useSmartTaskLogic = () => {
           totalTimeframe: rootNode.level,
           rootNode: rootNode,
           createdAt: Timestamp.now(),
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          traitId: projectMeta.traitId,
+          traitColor: projectMeta.traitColor
       };
   };
 
