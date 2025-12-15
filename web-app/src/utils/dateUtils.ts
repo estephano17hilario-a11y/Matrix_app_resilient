@@ -66,3 +66,66 @@ export const getContextDates = (startDate: Date, level: 'YEAR' | 'SEMESTER' | 'Q
     
     return { start, end, label };
 };
+
+export const getStartOfWeek = (date: Date): Date => {
+    const newDate = new Date(date);
+    const day = newDate.getDay();
+    const diff = newDate.getDate() - day + (day === 0 ? -6 : 1);
+    newDate.setDate(diff);
+    newDate.setHours(0, 0, 0, 0);
+    return newDate;
+};
+
+export const formatDateRange = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'): string => {
+    const d = new Date(date);
+    const locale = 'es-ES';
+
+    if (range === 'DAY') {
+        return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    } else if (range === 'WEEK') {
+        const start = getStartOfWeek(d);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`;
+    } else if (range === 'MONTH') {
+        return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+    } else if (range === 'YEAR') {
+        return d.getFullYear().toString();
+    }
+    return '';
+};
+
+export const toLocalISOString = (date: Date): string => {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+};
+
+export const calculateStreak = (entries: { date: string }[]): number => {
+    if (!entries.length) return 0;
+    const uniqueDates = new Set(entries.map(e => e.date.split('T')[0]));
+    const today = new Date();
+    const todayStr = toLocalISOString(today);
+    
+    let streak = 0;
+    let current = new Date(today);
+    
+    // If no entry today, check yesterday. If neither, streak is 0.
+    if (!uniqueDates.has(todayStr)) {
+        current.setDate(current.getDate() - 1);
+        if (!uniqueDates.has(toLocalISOString(current))) {
+            return 0;
+        }
+    }
+    
+    while (uniqueDates.has(toLocalISOString(current))) {
+        streak++;
+        current.setDate(current.getDate() - 1);
+    }
+    
+    return streak;
+};
+
+export const getDaysInMonth = (date: Date): number => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+};
