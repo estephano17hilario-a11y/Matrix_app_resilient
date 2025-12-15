@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, Target, Calendar, ChevronRight } from 'lucide-react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../../utils/cn';
 
 interface SmartTaskTutorialProps {
   onComplete: () => void;
