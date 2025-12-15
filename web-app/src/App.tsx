@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
@@ -36,6 +35,8 @@ const LoadingGate = () => (
  */
 const AppRoutes = () => {
   const { user, isLoading, isNewUser, completeOnboarding } = useAuth();
+  
+  console.log('APP_ROUTES: Rendering. isLoading:', isLoading, 'User:', user ? user.uid : 'null', 'isNewUser:', isNewUser);
 
   // 1. INITIALIZATION STATE
   if (isLoading) {

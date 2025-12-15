@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Zap, Skull, Target, Brain, Crown, Ghost } from 'lucide-react';
+import { ArrowRight, Zap, Target, Crown } from 'lucide-react';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { GlassCard } from './components/GlassCard';
 import { SelectionButton } from './components/SelectionButton';

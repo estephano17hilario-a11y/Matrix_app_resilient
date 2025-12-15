@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { TaskList } from './modules/tasks/TaskList';
 import { HabitList } from './modules/dashboard/HabitList';
-import StatusHUD from './components/StatusHUD';
 import { 
   Zap, Brain, Users, Target, CheckCircle2, Trophy, Flame, 
-  Plus, X, Dumbbell, Calendar, ListTodo, Star, Sparkles, 
+  Plus, X, Dumbbell, ListTodo, Star, Sparkles, 
   ChevronUp, ChevronDown, Check, Hash, List, Trash2, Infinity as InfinityIcon, 
   Crosshair, LayoutGrid, Clock, Palette, Lock,
   Play, Pause, StopCircle, Volume2, Briefcase, Hourglass, Bell, 
@@ -483,46 +482,8 @@ const MOODS = [
 ];
 
 // --- BACKGROUND ENGINE ---
-const LuxuryBackground = React.memo(({ theme, overrideColor }: { theme: string, overrideColor?: string }) => {
-  const activeTheme = THEMES[theme] || THEMES.SPOTLIGHT;
-  const baseColor = overrideColor || activeTheme.accent;
-  const palette = useMemo(() => ({
-      primary: hexToRgba(baseColor, 0.4),
-      secondary: hexToRgba(adjustColor(baseColor, -30), 0.35),
-      tertiary: hexToRgba(adjustColor(baseColor, 30), 0.3)
-  }), [baseColor]);
+// LuxuryBackground component removed as it was unused.
 
-    const [floatAnimation, setFloatAnimation] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        const x1 = Math.random() * 40 - 20;
-        const y1 = Math.random() * 40 - 20;
-        setFloatAnimation(`@keyframes float { 0% { transform: translate3d(0, 0, 0) scale(1); } 100% { transform: translate3d(${x1}px, ${y1}px, 0) scale(1.05); } }`);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className={`fixed inset-0 z-0 ${activeTheme.bg} overflow-hidden pointer-events-none transition-colors duration-[2500ms] cubic-bezier(0.4, 0, 0.2, 1) transform-gpu`}>
-      {activeTheme.type === 'gradient' && (
-          <>
-            <div className="absolute inset-0 transition-all duration-[2500ms] cubic-bezier(0.4, 0, 0.2, 1) will-change-[background]" style={{ background: `radial-gradient(circle at 50% -10%, ${palette.primary} 0%, transparent 70%)` }} />
-            <div className="absolute inset-0 transition-all duration-[2500ms] cubic-bezier(0.4, 0, 0.2, 1) will-change-[background]" style={{ background: `radial-gradient(circle at 50% 110%, ${palette.secondary} 0%, transparent 60%)` }} />
-          </>
-      )}
-      {activeTheme.type === 'blob' && activeTheme.blobs?.map((blob, i) => {
-          const blobColor = i === 0 ? palette.primary : i === 1 ? palette.secondary : palette.tertiary;
-          return (
-            <div key={i} className="absolute rounded-full blur-[100px] mix-blend-screen animate-pulse-slow transition-colors duration-[2500ms] cubic-bezier(0.4, 0, 0.2, 1) will-change-transform" 
-                 style={{ backgroundColor: blobColor, left: blob.x, top: blob.y, width: blob.size, height: blob.size, opacity: 1, transform: 'translate3d(0,0,0)', animation: `float ${20 + i * 5}s infinite ease-in-out alternate` }} />
-          )
-      })}
-      <div className="absolute inset-0 z-[1] opacity-[0.06] mix-blend-overlay" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
-      <style>{floatAnimation}</style>
-    </div>
-  );
-}, (prev, next) => prev.theme === next.theme && prev.overrideColor === next.overrideColor);
 
 // --- COMPONENT DEFINITIONS ---
 
@@ -601,15 +562,6 @@ const BarChart = React.memo(({
                 ))}
                 </div>
             </div>
-            {selectedProject && (
-                <SessionHistoryModal 
-                    isOpen={showHistory} 
-                    onClose={() => setShowHistory(false)} 
-                    project={selectedProject} 
-                    onUpdateProject={onUpdateProject} 
-                />
-            )}
-        </div>
     );
 });
 
@@ -1255,13 +1207,12 @@ const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpdateProj
 });
 
 // --- FOCUS VIEW ---
-const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, isFocusActive, onUpdateProject, addNotification }: { 
+const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
     onOpenProjectModal: () => void, 
     setFocusMode: (attrId: string | null) => void, 
-    isFocusActive: boolean,
     onUpdateProject: (p: Project) => void,
     addNotification: (n: any) => void
 }) => {
@@ -1513,6 +1464,16 @@ const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenP
                     </button>
                 </div>
             </div>
+
+            {/* Session History Modal */}
+            {selectedProject && (
+                <SessionHistoryModal 
+                    isOpen={showHistory} 
+                    onClose={() => setShowHistory(false)} 
+                    project={selectedProject} 
+                    onUpdateProject={onUpdateProject} 
+                />
+            )}
         </div>
     );
 });
@@ -1892,7 +1853,9 @@ const TRAITS_LIST = [
 
 // --- APP (DEFINED LAST) ---
 export default function Dashboard() {
-  const { user } = useMatrix();
+    console.log('DASHBOARD: Component rendering...');
+    const { user, loading: matrixLoading } = useMatrix();
+    console.log('DASHBOARD: Matrix User:', user ? user.uid : 'null', 'Loading:', matrixLoading);
   const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
   const [currentTheme, setCurrentTheme] = useState('SPOTLIGHT');
@@ -2274,7 +2237,15 @@ export default function Dashboard() {
 
             {currentView === 'FOCUS' && (
                 <div className="h-[calc(100vh-140px)] pt-4 relative flex-1">
-                    <FocusView projects={projects} attributes={attributes} onCompleteSession={handleCompleteSession} onOpenProjectModal={() => setActiveModal('PROJECT')} setFocusMode={handleFocusModeChange} isFocusActive={isFocusMode} />
+                    <FocusView 
+                        projects={projects} 
+                        attributes={attributes} 
+                        onCompleteSession={handleCompleteSession} 
+                        onOpenProjectModal={() => setActiveModal('PROJECT')} 
+                        setFocusMode={handleFocusModeChange} 
+                        onUpdateProject={handleUpdateProject}
+                        addNotification={addNotification}
+                    />
                 </div>
             )}
 

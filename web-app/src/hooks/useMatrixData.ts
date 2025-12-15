@@ -62,7 +62,7 @@ const MOCK_USER: UserData = {
 export const useMatrixData = (userId: string | null): MatrixDataHook => {
   const [user, setUser] = useState<UserData | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

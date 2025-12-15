@@ -52,7 +52,7 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
         relative group flex flex-col items-center p-6 text-center
         rounded-[32px] border transition-all duration-500 overflow-hidden
         ${isUnlocked 
-          ? 'bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)] shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)]' 
+          ? 'bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(79,70,229,0.15)]' 
           : 'bg-black/20 backdrop-blur-sm border-white/5'}
       `}
     >
