@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, Check } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
@@ -19,7 +19,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isActive, setIsActive] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-    const [isStatsExpanded, setIsStatsExpanded] = useState(true);
     const [shakeMode, setShakeMode] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);

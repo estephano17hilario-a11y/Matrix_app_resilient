@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronLeft, Sparkles, Target, Calendar, CheckCircle2, Zap, Layers } from 'lucide-react';
+import { ChevronLeft, Sparkles, Layers } from 'lucide-react';
 import { useSmartTaskLogic } from './hooks/useSmartTaskLogic';
-import { cn } from '../../utils/cn';
 import { AuroraBackground } from '../../components/AuroraBackground';
 import { SmartProject } from '../../types/SmartGoal';
 
@@ -15,7 +14,6 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   const { 
     currentStep, 
     currentNode, 
-    rootNode, 
     startProcess, 
     submitAnswer, 
     goBack, 
@@ -40,7 +38,6 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   };
 
   const requiredCount = getRequiredInputs();
-  const isLastStep = currentNode?.level === 'WEEK'; // We are inputting Days for the Week
 
   // Initialize inputs when node changes
   useEffect(() => {

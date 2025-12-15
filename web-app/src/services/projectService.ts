@@ -5,8 +5,7 @@ import {
   setDoc, 
   updateDoc, 
   deleteDoc,
-  query,
-  where
+  Firestore
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Project } from '../types';
@@ -17,7 +16,7 @@ export const projectService = {
    */
   getUserProjects: async (userId: string): Promise<Project[]> => {
     try {
-      const projectsRef = collection(db, 'users', userId, 'projects');
+      const projectsRef = collection(db as Firestore, 'users', userId, 'projects');
       const snapshot = await getDocs(projectsRef);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
     } catch (error) {
@@ -31,7 +30,7 @@ export const projectService = {
    */
   saveProject: async (userId: string, project: Project): Promise<void> => {
     try {
-      const projectRef = doc(db, 'users', userId, 'projects', project.id);
+      const projectRef = doc(db as Firestore, 'users', userId, 'projects', project.id);
       await setDoc(projectRef, project);
     } catch (error) {
       console.error('Error saving project:', error);
@@ -44,7 +43,7 @@ export const projectService = {
    */
   updateProject: async (userId: string, projectId: string, data: Partial<Project>): Promise<void> => {
     try {
-      const projectRef = doc(db, 'users', userId, 'projects', projectId);
+      const projectRef = doc(db as Firestore, 'users', userId, 'projects', projectId);
       await updateDoc(projectRef, data);
     } catch (error) {
       console.error('Error updating project:', error);
@@ -57,7 +56,7 @@ export const projectService = {
    */
   deleteProject: async (userId: string, projectId: string): Promise<void> => {
     try {
-      const projectRef = doc(db, 'users', userId, 'projects', projectId);
+      const projectRef = doc(db as Firestore, 'users', userId, 'projects', projectId);
       await deleteDoc(projectRef);
     } catch (error) {
       console.error('Error deleting project:', error);

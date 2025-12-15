@@ -16,27 +16,6 @@ export const useSmartTaskLogic = () => {
     return timeframeHierarchy[index + 1];
   };
 
-  const getChildrenCount = (level: TimeFrame): number => {
-    switch (level) {
-      case 'YEAR': return 2; // 2 Semesters
-      case 'SEMESTER': return 3; // 3 Months (Standard)
-      case 'QUARTER': return 3; // (Unused in this flow but safe to keep)
-      case 'MONTH': return 4; // 4 Weeks
-      case 'WEEK': return 7; // 7 Days
-      default: return 0;
-    }
-  };
-
-  const getChildTitle = (level: TimeFrame, index: number): string => {
-    switch (level) {
-      case 'SEMESTER': return `Semester ${index + 1}`;
-      case 'MONTH': return `Month ${index + 1}`;
-      case 'WEEK': return `Week ${index + 1}`;
-      case 'DAY': return `Day ${index + 1}`;
-      default: return 'Block';
-    }
-  };
-
   const startProcess = (mainGoal: string) => {
     const root: StrategicNode = {
       id: crypto.randomUUID(),
