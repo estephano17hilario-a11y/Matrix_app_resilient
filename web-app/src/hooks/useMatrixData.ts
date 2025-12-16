@@ -45,7 +45,6 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
   useEffect(() => {
     isMounted.current = true;
-    let timeoutId: NodeJS.Timeout;
 
     const connectToMatrix = async () => {
         if (!userId) {
@@ -59,9 +58,6 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
             return;
         }
 
-        // 🛡️ DEBOUNCE: REMOVED for Instant Feedback
-        // await new Promise(resolve => timeoutId = setTimeout(resolve, 800));
-        
         if (!isMounted.current) return;
 
         try {
@@ -111,7 +107,6 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
     return () => {
         isMounted.current = false;
-        clearTimeout(timeoutId);
         if (unsubscribeRef.current) {
             console.log("🔌 MATRIX: Terminating uplink.");
             unsubscribeRef.current();
