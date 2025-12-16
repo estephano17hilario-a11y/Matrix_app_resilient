@@ -1,5 +1,5 @@
-import { doc, runTransaction, db } from "./firebase";
-import { Transaction } from "firebase/firestore";
+import { db } from "./firebase";
+import { doc, runTransaction, Transaction } from "firebase/firestore";
 
 export interface StoreItem {
   id: string;
@@ -19,7 +19,7 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
   const userRef = doc(db, "users", userId);
 
   try {
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(db, async (transaction: Transaction) => {
       const userDoc = await transaction.get(userRef);
       if (!userDoc.exists()) {
         throw new Error("User does not exist!");
@@ -61,7 +61,7 @@ export const addGold = async (userId: string, amount: number) => {
   const userRef = doc(db, "users", userId);
 
   try {
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(db, async (transaction: Transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists()) {
             throw new Error("User does not exist!");
