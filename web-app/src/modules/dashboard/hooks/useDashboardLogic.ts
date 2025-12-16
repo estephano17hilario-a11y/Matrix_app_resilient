@@ -166,17 +166,41 @@ export const useDashboardLogic = () => {
                 persistenceService.quests.getAll(user.uid),
                 persistenceService.habits.getAll(user.uid),
                 persistenceService.notes.getAll(user.uid),
-                persistenceService.journal.getAll(user.uid)
-            ]).then(([loadedProjects, loadedQuests, loadedHabits, loadedNotes, loadedJournal]) => {
+                persistenceService.journal.getAll(user.uid),
+                persistenceService.attributes.getAll(user.uid),
+                persistenceService.settings.get(user.uid)
+            ]).then(([loadedProjects, loadedQuests, loadedHabits, loadedNotes, loadedJournal, loadedAttributes, loadedSettings]) => {
                 setProjects(loadedProjects);
                 setQuests(loadedQuests);
                 setHabits(loadedHabits);
                 setNotes(loadedNotes);
                 setJournalEntries(loadedJournal);
+
+                // Merge Loaded Attributes with Default List (to ensure all traits exist)
+                if (loadedAttributes && loadedAttributes.length > 0) {
+                    setAttributes(prev => prev.map(defAttr => {
+                        const saved = loadedAttributes.find(a => a.id === defAttr.id);
+                        return saved ? { ...defAttr, ...saved } : defAttr;
+                    }));
+                }
+
+                // Restore Settings
+                if (loadedSettings) {
+                    if (loadedSettings.theme) setCurrentTheme(loadedSettings.theme);
+                    if (loadedSettings.showProfile !== undefined) setShowProfile(loadedSettings.showProfile);
+                }
+
                 console.log("✅ REALITY SYNCED.");
             }).catch(err => console.error("❌ SYNC FAILED:", err));
         }
     }, [user?.uid]);
+
+    // --- AUTO-SAVE SETTINGS ---
+    useEffect(() => {
+        if (user?.uid) {
+             persistenceService.settings.save(user.uid, { theme: currentTheme, showProfile });
+        }
+    }, [currentTheme, showProfile, user?.uid]);
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -248,30 +272,41 @@ export const useDashboardLogic = () => {
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
 
     const updateAttributeXp = useCallback((attrId: string, amount: number) => {
-        setAttributes(prev => prev.map(attr => {
-            if (attr.id === attrId) {
-                let newXp = attr.xp + amount;
-                let newLevel = attr.level;
-                let newMaxXp = attr.maxXp;
-                if (amount > 0) {
-                    while (newXp >= newMaxXp) {
-                        newXp -= newMaxXp;
-                        newLevel += 1;
-                        newMaxXp = Math.floor(newMaxXp * 1.2);
+        setAttributes(prev => {
+            const newAttributes = prev.map(attr => {
+                if (attr.id === attrId) {
+                    let newXp = attr.xp + amount;
+                    let newLevel = attr.level;
+                    let newMaxXp = attr.maxXp;
+                    if (amount > 0) {
+                        while (newXp >= newMaxXp) {
+                            newXp -= newMaxXp;
+                            newLevel += 1;
+                            newMaxXp = Math.floor(newMaxXp * 1.2);
+                        }
+                    } else {
+                        while (newXp < 0 && newLevel > 1) {
+                            newLevel -= 1;
+                            newMaxXp = Math.floor(newMaxXp / 1.2); 
+                            newXp += newMaxXp;
+                        }
+                        if (newLevel === 1 && newXp < 0) newXp = 0;
                     }
-                } else {
-                    while (newXp < 0 && newLevel > 1) {
-                        newLevel -= 1;
-                        newMaxXp = Math.floor(newMaxXp / 1.2); 
-                        newXp += newMaxXp;
+                    
+                    const updatedAttr = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
+                    
+                    // SAVE TO FIRESTORE
+                    if (user?.uid) {
+                        persistenceService.attributes.save(user.uid, updatedAttr);
                     }
-                    if (newLevel === 1 && newXp < 0) newXp = 0;
+
+                    return updatedAttr;
                 }
-                return { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
-            }
-            return attr;
-        }));
-    }, []);
+                return attr;
+            });
+            return newAttributes;
+        });
+    }, [user?.uid]);
 
     const spawnParticles = useCallback((x: number, y: number, color: string, Icon: React.ElementType, type = 'icon') => {
         const count = type === 'fire' ? 12 : 8; 

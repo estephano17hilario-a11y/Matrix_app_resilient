@@ -10,7 +10,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Quest, Habit, Note, JournalEntry } from '../types';
+import { Quest, Habit, Note, JournalEntry, Attribute } from '../types';
 
 // Generic helper for subcollection CRUD
 const createSubCollectionService = <T extends { id: string }>(collectionName: string) => ({
@@ -56,14 +56,39 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
   }
 });
 
+// SETTINGS SERVICE (Single Doc)
+const settingsService = {
+    get: async (userId: string) => {
+        try {
+            const ref = doc(db as Firestore, 'users', userId, 'settings', 'config');
+            const snap = await import('firebase/firestore').then(mod => mod.getDoc(ref));
+            return snap.exists() ? snap.data() : null;
+        } catch (error) {
+            console.error("Error fetching settings:", error);
+            return null;
+        }
+    },
+    save: async (userId: string, data: any) => {
+        try {
+            const ref = doc(db as Firestore, 'users', userId, 'settings', 'config');
+            await setDoc(ref, data, { merge: true });
+        } catch (error) {
+            console.error("Error saving settings:", error);
+        }
+    }
+}
+
 export const questService = createSubCollectionService<Quest>('quests');
 export const habitService = createSubCollectionService<Habit>('habits');
 export const noteService = createSubCollectionService<Note>('notes');
 export const journalService = createSubCollectionService<JournalEntry>('journal');
+export const attributeService = createSubCollectionService<Attribute>('attributes');
 
 export const persistenceService = {
   quests: questService,
   habits: habitService,
   notes: noteService,
-  journal: journalService
+  journal: journalService,
+  attributes: attributeService,
+  settings: settingsService
 };
