@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Settings, ToggleLeft, ToggleRight, ShoppingBag, Palette } from 'lucide-react';
+import { Settings, ToggleLeft, ToggleRight, ShoppingBag, Palette, LogOut } from 'lucide-react';
 import { THEMES } from '../constants';
 import { AvatarWidget } from './AvatarWidget';
+import { useAuth } from '../../../context/AuthContext';
 
 interface StatsHeaderProps {
   level: number;
@@ -21,10 +22,17 @@ interface StatsHeaderProps {
 }
 
 export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar, onShowStore, displayName, email }: StatsHeaderProps) => {
+  const { logout } = useAuth();
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
+
+  const handleLogout = async () => {
+      // Optional: Add visual feedback here if needed (e.g. toast)
+      await logout();
+      setSettingsOpen(false);
+  };
 
   return (
     <header className={`flex justify-between items-center z-50 relative ${
@@ -53,6 +61,16 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, them
                             <span className="text-xs font-bold text-white uppercase tracking-wider">Show Profile</span>
                             {showProfile ? <ToggleRight size={20} className="text-green-400" /> : <ToggleLeft size={20} className="text-slate-500" />}
                         </div>
+                        
+                        <div className="h-px bg-white/10 my-1" />
+
+                        <button 
+                            onClick={handleLogout}
+                            className="flex items-center gap-3 p-2 hover:bg-red-500/10 hover:text-red-400 rounded-xl cursor-pointer transition-colors w-full text-left group"
+                        >
+                            <LogOut size={16} className="text-slate-500 group-hover:text-red-400 transition-colors" />
+                            <span className="text-xs font-bold text-slate-400 group-hover:text-red-400 uppercase tracking-wider">Disconnect</span>
+                        </button>
                     </div>
                 )}
             </div>

@@ -15,6 +15,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   isLoading: boolean;
   error: string | null;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +25,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const logout = async () => {
+    try {
+        await auth.signOut();
+        setUser(null);
+        setProfile(null);
+    } catch (error) {
+        console.error("Logout Error:", error);
+    }
+  };
 
   useEffect(() => {
     // MATRIX LINK INITIALIZATION
@@ -94,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, isLoading, error }}>
+    <AuthContext.Provider value={{ user, profile, isLoading, error, logout }}>
       {children}
     </AuthContext.Provider>
   );

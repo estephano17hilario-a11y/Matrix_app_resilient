@@ -12,6 +12,8 @@ import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../../services/firebase';
 
 export const useDashboardLogic = () => {
     const { user, loading: matrixLoading } = useMatrix();
@@ -264,9 +266,20 @@ export const useDashboardLogic = () => {
                 newXp = Math.max(0, newXp);
             }
             
-            return { level: newLevel, xp: newXp, nextXp: newNextXp, gold: newGold };
+            const newStats = { level: newLevel, xp: newXp, nextXp: newNextXp, gold: newGold };
+
+            // PERSISTENCE: Save new stats to Firestore immediately
+            if (user?.uid) {
+                updateDoc(doc(db, 'users', user.uid), {
+                    'stats.level': newStats.level,
+                    'stats.xp': newStats.xp,
+                    'stats.gold': newStats.gold
+                }).catch(err => console.error("Error saving player stats:", err));
+            }
+
+            return newStats;
         });
-    }, [calculateNextXp]);
+    }, [calculateNextXp, user]);
 
     const addPlayerXp = useCallback((amount: number) => addPlayerReward({ xp: amount, gold: 0 }), [addPlayerReward]);
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
