@@ -1,7 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../services/firebase';
+import { 
+  User, 
+  onAuthStateChanged,
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc 
+} from '../firebase';
+import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 
 interface AuthContextType {
@@ -21,7 +27,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // MATRIX LINK INITIALIZATION
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    
+    // SAFEGUARD: If Config is invalid, we proceed in PHANTOM MODE (Mock)
+    if (!configStatus.isValid) {
+        console.warn("⚠️ MATRIX CORE: RUNNING IN PHANTOM MODE (No Firebase Config)");
+        // We do NOT return here anymore. The wrapped onAuthStateChanged handles the mock.
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser: User | null) => {
       try {
         if (!currentUser) {
           // LOGOUT / NO SESSION
