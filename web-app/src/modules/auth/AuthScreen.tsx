@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GoogleAuthProvider, signInWithPopup } from '../../firebase';
 import { auth, configStatus } from '../../services/firebase';

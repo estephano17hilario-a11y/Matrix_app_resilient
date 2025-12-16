@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
   
-  // 1. INITIALIZATION STATE
+  // 1. INITIALIZATION STATE (The Loading Gate)
   if (isLoading) {
     return <LoadingScreen />;
   }

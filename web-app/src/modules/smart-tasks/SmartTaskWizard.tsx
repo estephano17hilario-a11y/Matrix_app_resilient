@@ -156,15 +156,15 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       setMultiInputs(newInputs);
   };
 
-  const updateDateOverride = (index: number, type: 'start' | 'end', value: string) => {
-      setDateOverrides(prev => ({
-          ...prev,
-          [index]: {
-              ...prev[index],
-              [type]: value
-          }
-      }));
-  };
+  // const updateDateOverride = (index: number, type: 'start' | 'end', value: string) => {
+  //     setDateOverrides(prev => ({
+  //         ...prev,
+  //         [index]: {
+  //             ...prev[index],
+  //             [type]: value
+  //         }
+  //     }));
+  // };
 
   const getPlaceholder = (index: number) => {
       if (!currentNode) return '';

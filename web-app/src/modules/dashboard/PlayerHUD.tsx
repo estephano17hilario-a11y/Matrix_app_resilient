@@ -22,7 +22,13 @@ interface PlayerHUDProps {
 }
 
 const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: boolean }) => {
-    const percent = Math.min(100, Math.max(0, (attribute.xp / attribute.maxXp) * 100));
+    // 🛡️ SAFE CALCULATION
+    const safeXp = Number.isFinite(attribute.xp) ? attribute.xp : 0;
+    const safeMax = (Number.isFinite(attribute.maxXp) && attribute.maxXp > 0) ? attribute.maxXp : 1;
+    
+    const rawPercent = (safeXp / safeMax) * 100;
+    const percent = Number.isFinite(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : 0;
+    
     const Icon = attribute.icon;
     
     return (

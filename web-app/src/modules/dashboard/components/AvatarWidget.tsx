@@ -21,7 +21,14 @@ const MiniLiquidBar = ({
   color: 'health' | 'xp';
   icon: React.ElementType;
 }) => {
-  const percent = Math.min(100, Math.max(0, (value / max) * 100));
+  // 🛡️ CÓDIGO BLINDADO (SAFE CALCULATION)
+  const safeValue = typeof value === 'number' ? value : 0;
+  const safeMax = (typeof max === 'number' && max > 0) ? max : 1;
+  
+  const rawPercent = (safeValue / safeMax) * 100;
+  const percent = Number.isFinite(rawPercent) 
+    ? Math.min(100, Math.max(0, rawPercent)) 
+    : 0;
   
   const themes = {
     health: {

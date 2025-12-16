@@ -24,6 +24,7 @@ export const PHANTOM_USER: User = {
         authTime: new Date().toISOString(),
         issuedAtTime: new Date().toISOString(),
         expirationTime: new Date().toISOString(),
+        signInSecondFactor: null, // Fixed missing property
     }),
     reload: async () => {},
     toJSON: () => ({}),
@@ -33,7 +34,7 @@ export const PHANTOM_USER: User = {
 
 // --- AUTH MOCKS ---
 
-export const phantomSignInWithPopup = async (auth: any, provider: any) => {
+export const phantomSignInWithPopup = async (auth: any, _provider: any) => {
     console.log("👻 PHANTOM: Signing in...");
     await new Promise(resolve => setTimeout(resolve, 800)); // Fake network delay
     
@@ -87,9 +88,9 @@ const PHANTOM_DB: Record<string, any> = {
     }
 };
 
-export const phantomDoc = (db: any, path: string, ...pathSegments: string[]) => {
+export const phantomDoc = (_db: any, path: string, ...pathSegments: string[]) => {
     const fullPath = [path, ...pathSegments].join('/');
-    return { type: 'document', path: fullPath, firestore: db };
+    return { type: 'document', path: fullPath, firestore: _db };
 };
 
 export const phantomGetDoc = async (ref: any) => {
@@ -105,15 +106,11 @@ export const phantomGetDoc = async (ref: any) => {
     };
 };
 
-export const phantomSetDoc = async (ref: any, data: any, options?: any) => {
+export const phantomSetDoc = async (ref: any, data: any, _options?: any) => {
     console.log(`👻 PHANTOM: setDoc(${ref.path})`, data);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    if (options?.merge && PHANTOM_DB[ref.path]) {
-        PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
-    } else {
-        PHANTOM_DB[ref.path] = data;
-    }
+    PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
 };
 
 export const phantomUpdateDoc = async (ref: any, data: any) => {
@@ -122,7 +119,7 @@ export const phantomUpdateDoc = async (ref: any, data: any) => {
     PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
 };
 
-export const phantomRunTransaction = async (db: any, updateFunction: (transaction: any) => Promise<any>) => {
+export const phantomRunTransaction = async (_db: any, updateFunction: (transaction: any) => Promise<any>) => {
     console.log("👻 PHANTOM: runTransaction");
     const transactionMock = {
         get: async (ref: any) => phantomGetDoc(ref),
@@ -141,4 +138,26 @@ export const phantomRunTransaction = async (db: any, updateFunction: (transactio
         }
     };
     return await updateFunction(transactionMock);
+};
+
+export const phantomOnSnapshot = (ref: any, onNext: (doc: any) => void, _onError?: (error: Error) => void) => {
+    console.log(`👻 PHANTOM: onSnapshot(${ref.path})`);
+    
+    // Initial data
+    const data = PHANTOM_DB[ref.path];
+    const snapshot = {
+        exists: () => !!data,
+        id: ref.path.split('/').pop(),
+        data: () => data,
+    };
+    
+    // Simulate async initial load
+    setTimeout(() => {
+        onNext(snapshot);
+    }, 100);
+    
+    // Return unsubscribe function
+    return () => {
+        // Cleanup if needed
+    };
 };

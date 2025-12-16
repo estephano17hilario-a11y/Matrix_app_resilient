@@ -1,7 +1,14 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { 
+  getFirestore, 
+  Firestore, 
+  initializeFirestore, 
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
 
+// --- 1. CONFIGURATION ---
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -11,35 +18,60 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// --- CONFIGURATION CHECK ---
-// Detects if the user hasn't set up the .env file yet
 const isConfigValid = 
   firebaseConfig.apiKey && 
-  firebaseConfig.apiKey !== 'your_api_key' &&
-  !firebaseConfig.apiKey.includes('undefined');
+  firebaseConfig.apiKey.length > 20 &&
+  !firebaseConfig.apiKey.includes('your_api_key');
 
-let app;
-let authInstance;
-let dbInstance;
+// --- 2. SINGLETON INSTANCES ---
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
 if (isConfigValid) {
   try {
+    // A. Initialize App
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    authInstance = getAuth(app);
-    dbInstance = getFirestore(app);
-  } catch (e) {
-    console.error("Matrix Core: Firebase Initialization Error", e);
+
+    // B. Initialize Auth
+    auth = getAuth(app);
+
+    // C. Initialize Firestore (STANDARD MODE)
+    // Reverting to standard persistent cache but with tab manager to handle multiple tabs.
+    // Removing "experimentalForceLongPolling" as it might be causing 400 Bad Request errors.
+    try {
+        db = initializeFirestore(app, {
+            localCache: persistentLocalCache({
+                tabManager: persistentMultipleTabManager()
+            })
+        });
+        console.log("🔥 MATRIX CORE: Firestore connected (Standard Persistence).");
+    } catch (e: any) {
+        if (e.code === 'failed-precondition') {
+            db = getFirestore(app);
+            console.log("🔥 MATRIX CORE: Firestore re-connected (HMR).");
+        } else {
+            console.error("🔥 MATRIX CORE: Firestore Init Failed", e);
+            throw e;
+        }
+    }
+
+  } catch (error) {
+    console.error("❌ CRITICAL: Firebase failed to load.", error);
+    app = {} as any;
+    auth = {} as any;
+    db = {} as any;
   }
 } else {
-  console.warn("⚠️ MATRIX OS: FIREBASE CONFIG MISSING OR INVALID.");
-  console.warn("Please update .env with your Firebase credentials.");
+  console.warn("⚠️ MATRIX CORE: Running in Config-Less Mode.");
+  app = {} as any;
+  auth = {} as any;
+  db = {} as any;
 }
 
-// Export safe instances (or mocks/nulls if failed) that won't crash the app immediately
-// We'll handle the null check in AuthContext/AuthScreen
-export const auth = authInstance || { _isMock: true } as any; 
-export const db = dbInstance || { _isMock: true } as any;
+// --- 3. EXPORTS ---
+export { app, auth, db };
 export const configStatus = {
     isValid: !!isConfigValid,
-    missingKeys: Object.keys(firebaseConfig).filter(k => !firebaseConfig[k as keyof typeof firebaseConfig] || firebaseConfig[k as keyof typeof firebaseConfig] === 'your_api_key' || firebaseConfig[k as keyof typeof firebaseConfig]?.includes('your_'))
+    hasKeys: Object.keys(firebaseConfig).length > 0
 };
