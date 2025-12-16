@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type TimeFrame = 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY';
+export type TimeFrame = '10_YEARS' | '5_YEARS' | 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY';
 
 export interface StrategicNode {
   id: string;

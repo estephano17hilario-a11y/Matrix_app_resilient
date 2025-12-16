@@ -49,7 +49,7 @@ export const BarChart = React.memo(({
                         </div>
 
                         {/* Bars Container */}
-                        <div className="w-full flex items-end justify-center gap-1 h-full relative px-0.5">
+                        <div className="w-full flex items-end justify-center gap-1 flex-1 relative px-0.5">
                             {datasets.map((ds, idx) => {
                                 const val = ds.data[i];
                                 const h = (val / maxValue);

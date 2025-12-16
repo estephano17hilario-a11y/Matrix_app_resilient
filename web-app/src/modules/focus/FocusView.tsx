@@ -181,17 +181,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             <div className={`col-start-1 row-start-1 w-full h-full overflow-y-auto no-scrollbar flex flex-col transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
                 {/* Header */}
-            <div className="flex justify-between items-end px-6 pt-2 pb-2 flex-shrink-0 z-20">
-                <div>
-                    <h2 className="text-[34px] font-black text-white tracking-[-0.04em] leading-none drop-shadow-lg font-sf-display">Focus.</h2>
-                    <p className="text-[13px] text-slate-400 font-medium tracking-wide uppercase mt-1">Select Session</p>
-                </div>
-                
-                {/* Mode Switcher (List) */}
-                <div className={`flex bg-black/20 backdrop-blur-xl rounded-full p-1 border border-white/10 shadow-xl ${shakeMode ? 'animate-shake' : ''}`}>
-                     <button onClick={() => handleModeSwitch('POMO')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Pomo</button>
-                     <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-slate-500 hover:text-white'}`}>Stopwatch</button>
-                </div>
+            <div className="flex justify-center items-center px-6 pt-0 pb-4 flex-shrink-0 z-20">
+                <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">FOCUS ESTUDIO</h2>
             </div>
 
             {/* Stats & List */}

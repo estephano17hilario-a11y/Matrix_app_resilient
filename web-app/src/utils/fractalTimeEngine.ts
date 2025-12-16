@@ -1,4 +1,16 @@
-import { differenceInDays, addDays, addMonths, addYears, differenceInMonths, differenceInYears } from 'date-fns';
+import { 
+    differenceInDays, 
+    addYears, 
+    differenceInMonths, 
+    differenceInYears,
+    endOfYear,
+    endOfQuarter,
+    endOfMonth,
+    endOfWeek,
+    endOfDay,
+    addMilliseconds,
+    getMonth
+} from 'date-fns';
 
 export type TimeUnit = '10_YEARS' | '5_YEARS' | '1_YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY';
 
@@ -30,123 +42,117 @@ const HIERARCHY: { unit: TimeUnit; months?: number; years?: number; days?: numbe
 export const generateTimeBlocks = (startDate: Date, endDate: Date): FractalStructure => {
     const structure: TimeBlock[] = [];
     let current = new Date(startDate);
-    // Normalize dates to start of day for cleaner math if needed, but keeping time is safer for precision
-    // Assuming inputs are already handled as dates.
+    
+    // 1. SELECT DOMINANT UNIT (Calendar Aware Selection)
+    // We check if the duration is roughly enough to trigger the unit.
+    // We favor larger units if they fit "mostly" or if the duration is large.
+    
+    let selectedUnit: typeof HIERARCHY[0] = HIERARCHY[HIERARCHY.length - 1]; // Default DAY
 
-    // Helper to check if a unit fits
-    const fitsUnit = (start: Date, end: Date, unitConf: typeof HIERARCHY[0]): boolean => {
-        let projectedEnd = new Date(start);
-        if (unitConf.years) {
-            projectedEnd = addYears(start, unitConf.years);
-        } else if (unitConf.months) {
-            projectedEnd = addMonths(start, unitConf.months);
-        } else if (unitConf.days) {
-            projectedEnd = addDays(start, unitConf.days);
+    const years = differenceInYears(endDate, startDate);
+    const months = differenceInMonths(endDate, startDate);
+    const days = differenceInDays(endDate, startDate);
+
+    if (years >= 10) selectedUnit = HIERARCHY.find(h => h.unit === '10_YEARS')!;
+    else if (years >= 5) selectedUnit = HIERARCHY.find(h => h.unit === '5_YEARS')!;
+    else if (years >= 1) selectedUnit = HIERARCHY.find(h => h.unit === '1_YEAR')!;
+    else if (months >= 6) selectedUnit = HIERARCHY.find(h => h.unit === 'SEMESTER')!;
+    else if (months >= 3) selectedUnit = HIERARCHY.find(h => h.unit === 'QUARTER')!;
+    else if (months >= 1) selectedUnit = HIERARCHY.find(h => h.unit === 'MONTH')!;
+    else if (days >= 7) selectedUnit = HIERARCHY.find(h => h.unit === 'WEEK')!;
+    else selectedUnit = HIERARCHY.find(h => h.unit === 'DAY')!;
+
+    // Special case: 5 months -> 3 Quarters logic requested by user?
+    // If months >= 3, we pick QUARTER. 
+    // 5 months >= 3 -> QUARTER. Correct.
+
+    // 2. GENERATE BLOCKS (Calendar Aligned)
+    
+    const getNextBoundary = (date: Date, unit: TimeUnit): Date => {
+        switch (unit) {
+            case '10_YEARS': return endOfYear(addYears(date, 10 - (date.getFullYear() % 10) - 1)); // End of decade
+            case '5_YEARS': return endOfYear(addYears(date, 4)); // Crude 5 year block? Or just 5 relative years? Let's use relative for > Year as calendar decades are weird for planning.
+            case '1_YEAR': return endOfYear(date);
+            case 'SEMESTER': 
+                // Jan-Jun, Jul-Dec
+                return getMonth(date) < 6 
+                    ? new Date(date.getFullYear(), 5, 30, 23, 59, 59, 999) 
+                    : endOfYear(date);
+            case 'QUARTER': return endOfQuarter(date);
+            case 'MONTH': return endOfMonth(date);
+            case 'WEEK': return endOfWeek(date, { weekStartsOn: 1 }); // Monday start
+            case 'DAY': return endOfDay(date);
+            default: return endOfDay(date);
         }
-        
-        // It fits if projectedEnd <= endDate
-        // We add a small buffer for "end of day" logic if needed, but strictly:
-        return projectedEnd.getTime() <= endDate.getTime();
     };
 
-    const addUnit = (date: Date, unitConf: typeof HIERARCHY[0]): Date => {
-        if (unitConf.years) return addYears(date, unitConf.years);
-        if (unitConf.months) return addMonths(date, unitConf.months);
-        if (unitConf.days) return addDays(date, unitConf.days);
-        return date;
-    };
+    // For Years > 1, stick to relative logic if it's cleaner, or Calendar Year?
+    // Calendar Year is better for "This Year", "Next Year".
+    // But for 5_YEARS, 10_YEARS, maybe just relative is fine or align to 5-year marks.
+    // Let's stick to Calendar End for everything < 5 Years.
+    // For 5/10 Years, maybe treat as blocks of 5 years relative to start?
+    // User complaint was about 5 Years -> 12 Semesters.
+    // If we picked 5_YEARS, we just have 1 block.
+    
+    let blockCount = 0;
 
-    // Greedy Algorithm
-    // We iterate through the hierarchy for the *remaining* time
-    // But the requirement implies we might have multiple blocks of the same type if they fit?
-    // "Example (4 months 10 days): ... 1 Quarter ... Remainder: 1 Month + 10 Days ... 1 Month ..."
-    // So for each iteration of the "Remainder", we try to find the largest unit again.
-
-    // Loop until current >= endDate
     while (current.getTime() < endDate.getTime()) {
-        let foundUnit = false;
+        blockCount++;
+        let boundary: Date;
 
-        for (const unitConf of HIERARCHY) {
-            if (fitsUnit(current, endDate, unitConf)) {
-                const nextDate = addUnit(current, unitConf);
-                
-                // Determine label
-                let durationLabel = '';
-                if (unitConf.unit === '10_YEARS') durationLabel = '10 Años';
-                else if (unitConf.unit === '5_YEARS') durationLabel = '5 Años';
-                else if (unitConf.unit === '1_YEAR') durationLabel = '1 Año';
-                else if (unitConf.unit === 'SEMESTER') durationLabel = '1 Semestre';
-                else if (unitConf.unit === 'QUARTER') durationLabel = '1 Trimestre';
-                else if (unitConf.unit === 'MONTH') durationLabel = '1 Mes';
-                else if (unitConf.unit === 'WEEK') durationLabel = '1 Semana';
-                else if (unitConf.unit === 'DAY') durationLabel = '1 Día';
-
-                structure.push({
-                    type: unitConf.unit,
-                    durationLabel,
-                    isFull: true,
-                    startDate: new Date(current),
-                    endDate: new Date(nextDate),
-                    count: 1
-                });
-
-                current = nextDate;
-                foundUnit = true;
-                break; // Restart hierarchy check for the remainder (Greedy Adaptive)
-            }
+        if (selectedUnit.unit === '10_YEARS' || selectedUnit.unit === '5_YEARS') {
+             // Use relative for massive units to avoid "2 years left in this decade" being a whole block
+             boundary = addYears(current, selectedUnit.years!);
+             // Adjust boundary to be 1ms before next start? No, addYears keeps time.
+             // Let's set to end of that day/period.
+             boundary = endOfDay(boundary);
+        } else {
+             boundary = getNextBoundary(current, selectedUnit.unit);
         }
 
-        if (!foundUnit) {
-            // If even DAY doesn't fit (less than 24h?), we break to avoid infinite loop.
-            // Or we treat it as a partial day if we cared about hours.
-            // For now, assuming Day is the atomic unit.
-            // If < 1 day remains, we might just snap to end.
-            break;
-        }
+        // If boundary is beyond endDate, cap it.
+        // BUT, if the unit "spans" (e.g. 10 days -> 2 weeks), we want the boundary to be the week end, 
+        // effectively saying "This covers Week 1".
+        // However, the *task duration* for that block shouldn't exceed the project end date?
+        // Actually, for planning, you plan for "The Week". Even if you only have 3 days.
+        // So the block END date can be the boundary, but we should know it's partial?
+        // The user says "even if one is incomplete".
+        // Let's clamp to endDate for the block data, but the loop continues from boundary?
+        // No, if we clamp to endDate, next loop `current` will be `endDate`. Loop finishes.
+        // If we use boundary, we jump to start of next week.
+        
+        const effectiveEnd = boundary.getTime() > endDate.getTime() ? endDate : boundary;
+        
+        // Determine Label
+        let label = `${selectedUnit.unit} ${blockCount}`;
+        // Enhance labels later if needed (e.g. "Week 1", "Q1 2025")
+
+        structure.push({
+            type: selectedUnit.unit,
+            durationLabel: label,
+            isFull: boundary.getTime() <= endDate.getTime(), // Full if boundary is within range
+            startDate: new Date(current),
+            endDate: new Date(effectiveEnd),
+            count: 1
+        });
+
+        // Advance to next unit start (boundary + 1ms)
+        current = addMilliseconds(boundary, 1);
     }
 
-    // Generate Drill Down Path
-    // "La ruta crítica para preguntar objetivos (Solo el primer bloque de cada nivel)"
-    // Logic: Start from the largest unit found in the structure (usually the first one if sorted by size, 
-    // but the structure is ordered chronologically. However, due to Greedy, the first block is the largest possible fit).
-    // From that unit, we go down the hierarchy step by step until Day?
-    // Hierarchy: 10Y > 5Y > 1Y > Sem > Q > M > W > D
-    
+    // 3. GENERATE DRILL DOWN PATH
     const drillDownPath: TimeUnit[] = [];
-    
     if (structure.length > 0) {
         const primaryBlock = structure[0];
         let currentLevelIndex = HIERARCHY.findIndex(h => h.unit === primaryBlock.type);
         
         if (currentLevelIndex !== -1) {
-            // Add the starting level
             drillDownPath.push(HIERARCHY[currentLevelIndex].unit);
-
-            // Now traverse down the hierarchy strictly? 
-            // 1 Year -> Semester -> Quarter -> Month -> Week -> Day
-            // User example: "1 Year -> 6 Months -> 3 Months -> 1 Month -> 1 Week -> 1 Day"
-            // If we start at Quarter, we should go Quarter -> Month -> Week -> Day.
-            
             for (let i = currentLevelIndex + 1; i < HIERARCHY.length; i++) {
-                // Skip 5 Years if we started at 10? 
-                // The prompt example for drill down: "1 Year -> 6 Months..." implies full descent.
-                // But typically you don't do Semester AND Quarter. 
-                // However, the user explicitly asked for "Semester to Quarter split" in previous prompts.
-                // "add semester-to-quarter split (2 quarters per semester) before months"
-                // So the path IS: Year -> Semester -> Quarter -> Month -> Week -> Day.
-                
-                // Are there skips?
-                // 10 Years -> 5 Years? Maybe.
-                // 5 Years -> 1 Year? Yes.
-                // 1 Year -> Semester? Yes.
-                
                 drillDownPath.push(HIERARCHY[i].unit);
             }
         }
     }
 
-    return {
-        structure,
-        drillDownPath
-    };
+    return { structure, drillDownPath };
 };

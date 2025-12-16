@@ -16,8 +16,8 @@ interface PlayerHUDProps {
 
 const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: boolean }) => {
     // 🛡️ SAFE CALCULATION
-    const safeXp = Number.isFinite(attribute.xp) ? attribute.xp : 0;
-    const safeMax = (Number.isFinite(attribute.maxXp) && attribute.maxXp > 0) ? attribute.maxXp : 1;
+    const safeXp = Number.isFinite(attribute.xp) ? Math.round(attribute.xp) : 0;
+    const safeMax = (Number.isFinite(attribute.maxXp) && attribute.maxXp > 0) ? Math.round(attribute.maxXp) : 1;
     
     const rawPercent = (safeXp / safeMax) * 100;
     const percent = Number.isFinite(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : 0;

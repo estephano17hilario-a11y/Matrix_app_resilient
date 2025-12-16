@@ -24,7 +24,7 @@ export const useSmartTaskLogic = () => {
     }
 
     // Fallback to static hierarchy if path not set
-    const staticHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
+    const staticHierarchy: TimeFrame[] = ['10_YEARS', '5_YEARS', 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
     const index = staticHierarchy.indexOf(currentLevel);
     if (index === -1 || index === staticHierarchy.length - 1) return null;
     return staticHierarchy[index + 1];
@@ -39,23 +39,30 @@ export const useSmartTaskLogic = () => {
     // Calculate Fractal Structure
     const { drillDownPath } = generateTimeBlocks(now.toDate(), endDate.toDate());
     
-    // Cast TimeUnit to TimeFrame (assuming they match mostly)
-    // TimeUnit has '10_YEARS', '5_YEARS', '1_YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'
-    // TimeFrame has 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'
-    // We map 1_YEAR, 5_YEARS, 10_YEARS to 'YEAR' for simplicity in the UI type, 
-    // OR we update TimeFrame type. For now, map to 'YEAR'.
+    // Cast TimeUnit to TimeFrame
     const mappedPath: TimeFrame[] = drillDownPath.map(u => {
-        if (u === '10_YEARS' || u === '5_YEARS' || u === '1_YEAR') return 'YEAR';
+        if (u === '1_YEAR') return 'YEAR';
         return u as TimeFrame;
     });
 
     // If path is empty (e.g. < 1 day), default to DAY
     const finalPath: TimeFrame[] = mappedPath.length > 0 ? mappedPath : ['DAY'];
     
-    setDrillDownPath(finalPath);
-    setTimeframeHierarchy(finalPath); // Update the visual roadmap too
+    // ADJUSTMENT FOR ROOT LEVEL:
+    const staticHierarchy: TimeFrame[] = ['10_YEARS', '5_YEARS', 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
+    let startLevel = finalPath[0];
+    
+    // Find the level strictly above the startLevel
+    const startIndex = staticHierarchy.indexOf(startLevel);
+    if (startIndex > 0) {
+        startLevel = staticHierarchy[startIndex - 1];
+        finalPath.unshift(startLevel);
+    } else {
+        // Already at top (10_YEARS)
+    }
 
-    const startLevel = finalPath[0] as TimeFrame;
+    setDrillDownPath(finalPath);
+    setTimeframeHierarchy(finalPath); 
 
     const root: StrategicNode = {
       id: crypto.randomUUID(),

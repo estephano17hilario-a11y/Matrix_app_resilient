@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
+import { TutorialProvider } from './context/TutorialContext';
 import { AuthScreen } from './modules/auth/AuthScreen';
 import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
 import { LoadingScreen } from './components/ui/LoadingScreen';
@@ -46,14 +47,17 @@ const AppRoutes = () => {
         // 4. REALITY FORK
         <MatrixProvider key="matrix-provider" userId={user.uid}>
           <EconomyProvider>
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-            >
-              <Dashboard />
-            </motion.div>
+            <TutorialProvider>
+              <motion.div 
+                key="dashboard"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.5 }}
+              >
+                <Dashboard />
+              </motion.div>
+            </TutorialProvider>
           </EconomyProvider>
         </MatrixProvider>
       )}

@@ -24,6 +24,7 @@ import { ValidationModal } from './modules/dashboard/components/ValidationModal'
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
 import { SettingsView } from './modules/dashboard/SettingsView';
+import { TutorialManager } from './components/Tutorial/TutorialManager';
 import { Quest } from './types';
 import { persistenceService } from './services/persistenceService';
 
@@ -329,6 +330,14 @@ export default function Dashboard() {
                 </div>
 
                 <main className={`relative z-10 max-w-md mx-auto min-h-screen p-6 pt-safe pb-40 flex flex-col ${showProfile ? 'gap-6' : 'gap-2'}`}>
+                    <TutorialManager 
+                        currentView={currentView} 
+                        setCurrentView={setCurrentView}
+                        activeModal={activeModal}
+                        setActiveModal={setActiveModal}
+                        isDockOpen={isDockOpen}
+                        setIsDockOpen={setIsDockOpen}
+                    />
                     <StatsHeader 
                         level={player.level} 
                         xp={player.xp} 
@@ -354,7 +363,7 @@ export default function Dashboard() {
                                 >
                                     {/* VIEW TOGGLE */}
                                     <div className="flex items-center justify-center gap-4 mb-2">
-                                         <div className="flex p-1 bg-white/5 rounded-full border border-white/5">
+                                         <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
                                              <button 
                                                  onClick={() => setTaskViewMode('LIST')}
                                                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
@@ -364,6 +373,7 @@ export default function Dashboard() {
                                              </button>
                                              <button 
                                                  onClick={() => setTaskViewMode('STRATEGY')}
+                                                 data-tour="view-toggle-strategy"
                                                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                              >
                                                  <Target size={14} />
@@ -531,6 +541,7 @@ export default function Dashboard() {
                         <AnimatePresence>
                             {isWizardOpen && (
                                 <SmartTaskWizard 
+                                    availableTraits={attributes}
                                     onComplete={(project) => {
                                         setSmartProject(project);
                                         const newQuests = convertNodeToQuests(project.rootNode, project.traitId || '');

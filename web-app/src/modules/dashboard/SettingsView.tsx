@@ -125,6 +125,7 @@ export const SettingsView = ({
                   </div>
                   <button 
                     onClick={() => onToggleProfile(!showProfile)}
+                    data-tour="profile-toggle"
                     className={`w-14 h-8 rounded-full transition-all relative border ${
                       showProfile ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10'
                     }`}

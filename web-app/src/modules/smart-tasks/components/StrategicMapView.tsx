@@ -23,6 +23,7 @@ import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '../../../utils/cn';
 import { formatDate } from '../../../utils/dateUtils';
+import { differenceInDays } from 'date-fns';
 import { TRAITS_LIST } from '../../dashboard/constants';
 
 interface StrategicMapViewProps {
@@ -34,6 +35,8 @@ interface StrategicMapViewProps {
 }
 
 const LevelLabels: Record<TimeFrame, string> = {
+    '10_YEARS': '10 Años',
+    '5_YEARS': '5 Años',
     YEAR: 'Año',
     SEMESTER: 'Semestre',
     QUARTER: 'Trimestre',
@@ -43,6 +46,8 @@ const LevelLabels: Record<TimeFrame, string> = {
 };
 
 const LevelIcons: Record<TimeFrame, React.ReactNode> = {
+    '10_YEARS': <Trophy size={22} />,
+    '5_YEARS': <Sparkles size={20} />,
     YEAR: <Target size={20} />,
     SEMESTER: <Flag size={20} />,
     QUARTER: <Calendar size={20} />,
@@ -51,28 +56,62 @@ const LevelIcons: Record<TimeFrame, React.ReactNode> = {
     DAY: <Circle size={16} />,
 };
 
-// Helper to get expected children count
-const getExpectedChildrenCount = (level: TimeFrame): number => {
-    switch (level) {
-      case 'YEAR': return 2; // 2 Semesters
-      case 'SEMESTER': return 6; // 6 Months (Changed from 3)
-      case 'QUARTER': return 3; // 3 Months
-      case 'MONTH': return 4; // 4 Weeks
-      case 'WEEK': return 7; // 7 Days
-      default: return 0;
+// Helper to get expected children count based on duration
+const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
+    if (!start || !end) {
+        // Fallback to standard counts if dates are missing
+        switch (level) {
+            case '10_YEARS': return 2;
+            case '5_YEARS': return 5;
+            case 'YEAR': return 2;
+            case 'SEMESTER': return 6;
+            case 'QUARTER': return 3;
+            case 'MONTH': return 4;
+            case 'WEEK': return 7;
+            default: return 0;
+        }
+    }
+
+    const days = differenceInDays(end, start) + 1; // Inclusive
+
+    // Map NEXT level capacity
+    // If current is MONTH, next is WEEK. We want to know how many WEEKS fit in this MONTH.
+    // This function receives the PARENT level, so we need to know the CHILD level logic.
+    // Actually, it's better to pass the CHILD level or determine it here.
+    // Let's look at how it's used: getExpectedChildrenCount(activeNode.level)
+    // So 'level' is the PARENT level.
+
+    // We need to know what the next level is to calculate capacity.
+    // But getNextLevel is defined below. Let's move getNextLevel up or merge logic.
+    
+    // Simplification: We calculate based on the *next* level's approximate duration in days.
+    const nextLevel = getNextLevel(level);
+    if (!nextLevel) return 0;
+
+    switch (nextLevel) {
+        case '5_YEARS': return Math.ceil(days / 1826) || 1;
+        case 'YEAR': return Math.ceil(days / 365) || 1;
+        case 'SEMESTER': return Math.ceil(days / 182) || 1;
+        case 'QUARTER': return Math.ceil(days / 91) || 1;
+        case 'MONTH': return Math.ceil(days / 30) || 1;
+        case 'WEEK': return Math.ceil(days / 7) || 1;
+        case 'DAY': return days; // Exact days
+        default: return 0;
     }
 };
 
 // Helper for next level
 const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
-    // Modified hierarchy to skip QUARTER as per new logic
-    const hierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'MONTH', 'WEEK', 'DAY'];
+    // Modified hierarchy to include QUARTER
+    const hierarchy: TimeFrame[] = ['10_YEARS', '5_YEARS', 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
     const index = hierarchy.indexOf(currentLevel);
     if (index === -1 || index === hierarchy.length - 1) return null;
     return hierarchy[index + 1];
 };
 const getPlaceholderTitle = (level: TimeFrame, index: number): string => {
     switch (level) {
+      case '5_YEARS': return `Lustro ${index + 1}`;
+      case 'YEAR': return `Año ${index + 1}`;
       case 'SEMESTER': return `Semestre ${index + 1}`;
       case 'QUARTER': return `Trimestre ${index + 1}`;
       case 'MONTH': return `Mes ${index + 1}`;
@@ -117,7 +156,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
   const displayChildren = React.useMemo(() => {
       if (!activeNode) return [];
       
-      const expectedCount = getExpectedChildrenCount(activeNode.level);
+      // Use dynamic capacity based on actual duration
+      const expectedCount = getCapacity(
+          activeNode.level, 
+          activeNode.startDate ? safeDate(activeNode.startDate) : undefined,
+          activeNode.dueDate ? safeDate(activeNode.dueDate) : undefined
+      );
+      
       const nextLevel = getNextLevel(activeNode.level);
       
       if (!nextLevel || expectedCount === 0) return activeNode.children || [];
@@ -246,14 +291,15 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                 </button>
             )}
 
-            {onCreateNew && activeNode.level === 'YEAR' && (
+            {onCreateNew && (
                 <button 
                     onClick={onCreateNew}
-                    className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    className="ml-6 px-4 py-2 rounded-full bg-black/40 border border-white/10 text-white font-medium text-xs shadow-lg hover:bg-white/5 transition-all flex items-center gap-2 backdrop-blur-md relative overflow-hidden group"
                     title="Nueva Estrategia"
                 >
-                    <Sparkles size={14} />
-                    <span>Apple Intelligence</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <Sparkles size={14} className="text-indigo-300 relative z-10" />
+                    <span className="relative z-10 tracking-wide text-indigo-100/90">New Smart Task</span>
                 </button>
             )}
         </div>

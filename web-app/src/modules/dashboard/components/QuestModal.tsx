@@ -75,7 +75,7 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                     <div className="space-y-4">
                         {/* Title & Attribute */}
                         <div className="flex gap-2">
-                             <div className="flex-1 bg-white/5 rounded-[1.5rem] border border-white/5 p-1 focus-within:border-white/20 transition-colors">
+                             <div className="flex-1 bg-white/5 rounded-[1.5rem] border border-white/5 p-1 focus-within:border-white/20 transition-colors" data-tour="modal-title-input">
                                  <input 
                                     type="text" 
                                     value={title} 
@@ -85,7 +85,7 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                                     autoFocus 
                                 />
                              </div>
-                             <div onClick={() => setAttrPickerOpen(true)} className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative cursor-pointer ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`}>
+                             <div onClick={() => setAttrPickerOpen(true)} className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative cursor-pointer ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} data-tour="modal-attributes">
                                  {attrId ? (<SelectedIcon size={22} style={{ color: activeColor }} />) : <Plus size={22} className="text-white/30" />}
                                  {isAttrPickerOpen && (
                                      <>
@@ -118,7 +118,7 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                         </div>
 
                         {/* Difficulty Selector (Liquid UI) */}
-                        <div className="bg-black/20 rounded-[1.5rem] p-1 flex justify-between relative">
+                        <div className="bg-black/20 rounded-[1.5rem] p-1 flex justify-between relative" data-tour="modal-difficulty">
                             {difficulties.map((diff) => {
                                 const isSelected = difficulty === diff.id;
                                 const DiffIcon = diff.icon;

@@ -24,8 +24,8 @@ const MiniLiquidBar = ({
   icon: React.ElementType;
 }) => {
   // 🛡️ CÓDIGO BLINDADO (SAFE CALCULATION)
-  const safeValue = typeof value === 'number' ? value : 0;
-  const safeMax = (typeof max === 'number' && max > 0) ? max : 1;
+  const safeValue = typeof value === 'number' ? Math.round(value) : 0;
+  const safeMax = (typeof max === 'number' && max > 0) ? Math.round(max) : 1;
   
   const rawPercent = (safeValue / safeMax) * 100;
   const percent = Number.isFinite(rawPercent) 
@@ -65,7 +65,7 @@ const MiniLiquidBar = ({
 };
 
 export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, displayName, email }: AvatarWidgetProps) => (
-    <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
+    <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1" data-tour="player-hud">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-800 to-slate-900 p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)]">

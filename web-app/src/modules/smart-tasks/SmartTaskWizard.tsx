@@ -10,13 +10,17 @@ import { getContextDates, formatDate } from '../../utils/dateUtils';
 import { TRAITS_LIST } from '../dashboard/constants';
 import { generateTimeBlocks, FractalStructure } from '../../utils/fractalTimeEngine';
 import { differenceInDays } from 'date-fns';
+import { Attribute } from '../../types';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
   onCancel: () => void;
+  availableTraits?: Attribute[];
 }
 
-export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, onCancel }) => {
+export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, onCancel, availableTraits }) => {
+  const traits = availableTraits || TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: 100 }));
+  
   const { 
     currentStep, 
     currentNode, 
@@ -43,8 +47,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   // Fractal Preview State
   const [fractalPreview, setFractalPreview] = useState<FractalStructure | null>(null);
 
+  // Input Mode State
+  const [inputType, setInputType] = useState<'date' | 'duration'>('date');
+  const [duration, setDuration] = useState<{years: number, months: number, days: number}>({ years: 0, months: 0, days: 0 });
+
+  const [wizardStep, setWizardStep] = useState(0); // 0: Objective, 1: Trait, 2: Date, 3: Confirmation
+
   // Get active color based on trait
-  const activeColor = selectedTraitId ? TRAITS_LIST.find(t => t.id === selectedTraitId)?.color : '#6366f1';
+  const activeColor = selectedTraitId ? traits.find(t => t.id === selectedTraitId)?.color : '#6366f1';
 
   // Calculate fractal preview when endDate changes
   useEffect(() => {
@@ -59,6 +69,25 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       }
     }
   }, [startDate, endDate]);
+
+  // Handle Duration Changes
+  useEffect(() => {
+      if (inputType === 'duration') {
+          const start = new Date(startDate);
+          // Calculate end date based on duration
+          // Simple addition: years, months, days
+          const end = new Date(start);
+          end.setFullYear(end.getFullYear() + (duration.years || 0));
+          end.setMonth(end.getMonth() + (duration.months || 0));
+          end.setDate(end.getDate() + (duration.days || 0));
+          
+          if (end > start) {
+              setEndDate(end.toISOString().split('T')[0]);
+          } else {
+              setEndDate('');
+          }
+      }
+  }, [duration, inputType, startDate]);
 
   // Determine how many inputs we need based on current node level (Dynamic/Greedy)
   const getRequiredInputs = () => {
@@ -77,6 +106,12 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
       // If duration is 30 days.
       
       switch (nextLevel) {
+          case '5_YEARS':
+              // ~1826 days
+              return Math.ceil(days / 1826) || 2;
+          case 'YEAR':
+              // ~365 days
+              return Math.ceil(days / 365) || 5;
           case 'SEMESTER': 
               // ~182 days
               return Math.ceil(days / 182) || 2; 
@@ -96,7 +131,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   };
 
   const requiredCount = getRequiredInputs();
-  const completionStepIndex = 5; // Index of DAY in hierarchy (0-based)
+  const completionStepIndex = timeframeHierarchy.length - 1;
 
   // Initialize inputs when node changes
   useEffect(() => {
@@ -227,12 +262,47 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-      {/* Dynamic Background based on Trait */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl overflow-hidden">
+      {/* Dynamic Background based on Trait - "VIAJE TOTAL" */}
       <div 
-        className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-1000"
-        style={{ background: `radial-gradient(circle at 50% 50%, ${activeColor} 0%, transparent 70%)` }}
+        className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out"
+        style={{ 
+            background: selectedTraitId 
+                ? `radial-gradient(circle at 50% 50%, ${activeColor}40 0%, ${activeColor}10 40%, #000000 90%)`
+                : 'radial-gradient(circle at 50% 50%, #6366f120 0%, transparent 70%)'
+        }}
       />
+      {/* Animated Shapes for Immersion */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            animate={{ 
+                rotate: 360, 
+                scale: [1, 1.2, 1],
+                opacity: selectedTraitId ? [0.3, 0.5, 0.3] : 0.1
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[url('/noise.png')] opacity-10 mix-blend-overlay" 
+          />
+          {selectedTraitId && (
+              <>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 0.4, scale: 1 }}
+                    transition={{ duration: 1 }}
+                    className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[100px] mix-blend-screen"
+                    style={{ backgroundColor: activeColor }}
+                />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 0.3, scale: 1.2 }}
+                    transition={{ duration: 1.5, delay: 0.2 }}
+                    className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[120px] mix-blend-screen"
+                    style={{ backgroundColor: activeColor }}
+                />
+              </>
+          )}
+      </div>
+      
       <AuroraBackground className="absolute inset-0 opacity-10 pointer-events-none" />
       
       {/* CANCEL BUTTON */}
@@ -252,151 +322,364 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
-                    className="flex flex-col items-center text-center space-y-8"
+                    className="flex flex-col items-center text-center space-y-6 w-full"
                   >
-                    <div className="relative">
-                      <div 
-                        className="absolute inset-0 blur-[60px] opacity-20 animate-pulse transition-colors duration-500" 
-                        style={{ backgroundColor: activeColor }}
-                      />
-                      <Sparkles 
-                        className="w-16 h-16 relative z-10 transition-colors duration-500" 
-                        style={{ color: activeColor }}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                          Apple Intelligence
-                      </h1>
-                      <p className="text-lg text-white/50">
-                          Neural Engine Protocol v2.0
-                      </p>
-                    </div>
-
-                    <form onSubmit={handleStart} className="w-full max-w-2xl mt-8 flex flex-col gap-6">
-                      
-                      {/* Trait Selector */}
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                          {TRAITS_LIST.map((trait) => {
-                              const Icon = trait.icon;
-                              const isSelected = selectedTraitId === trait.id;
-                              return (
-                                  <button
-                                      key={trait.id}
-                                      type="button"
-                                      onClick={() => setSelectedTraitId(trait.id)}
-                                      className={cn(
-                                          "flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 relative overflow-hidden group",
-                                          isSelected ? "bg-white/10 ring-1 ring-white/50 scale-105" : "hover:bg-white/5 opacity-60 hover:opacity-100"
-                                      )}
-                                  >
-                                      <div 
-                                          className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity"
-                                          style={{ backgroundColor: trait.color }}
-                                      />
-                                      <Icon 
-                                          size={20} 
-                                          style={{ color: isSelected ? trait.color : 'white' }} 
-                                          className="transition-colors"
-                                      />
-                                      <span className="text-[10px] font-bold uppercase tracking-wider">{trait.label}</span>
-                                      {isSelected && (
-                                          <motion.div 
-                                              layoutId="check"
-                                              className="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center"
-                                          >
-                                              <Check size={8} className="text-black" />
-                                          </motion.div>
-                                      )}
-                                  </button>
-                              );
-                          })}
-                      </div>
-
-                      {/* Date Selector & Fractal Preview */}
-                      <div className="flex flex-col gap-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                        
-                        {/* Single End Date Picker */}
-                        <div className="flex flex-col items-center gap-2">
-                          <label className="text-white/40 text-xs font-medium uppercase tracking-widest">Target Deadline</label>
-                          <div className="relative group/date-picker w-full max-w-xs">
-                              <div 
-                                  className="absolute -inset-0.5 rounded-xl opacity-0 group-hover/date-picker:opacity-100 blur transition duration-500"
-                                  style={{ backgroundColor: activeColor }}
-                              />
-                              <div className="relative flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl px-4 py-3 hover:bg-white/5 transition-colors">
-                                  <Calendar size={18} className="text-white/70" />
-                                  <input 
-                                      type="date" 
-                                      value={endDate}
-                                      min={new Date().toISOString().split('T')[0]}
-                                      onChange={(e) => setEndDate(e.target.value)}
-                                      className="bg-transparent text-white font-medium focus:outline-none w-full cursor-pointer [color-scheme:dark]"
-                                  />
-                              </div>
-                          </div>
+                    {/* APPLE INTELLIGENCE HEADER - Always Visible */}
+                    <div className="flex flex-col items-center mb-4">
+                        <div className="relative mb-4">
+                            <div 
+                                className="absolute inset-0 blur-[60px] opacity-20 animate-pulse transition-colors duration-500" 
+                                style={{ backgroundColor: activeColor }}
+                            />
+                            <Sparkles 
+                                className="w-12 h-12 relative z-10 transition-colors duration-500" 
+                                style={{ color: activeColor }}
+                            />
                         </div>
+                        <h1 className="text-3xl font-bold text-white tracking-tight">Apple Intelligence</h1>
+                        <p className="text-sm text-white/50">Neural Engine Protocol v2.0</p>
+                    </div>
 
-                        {/* Fractal Preview Panel */}
-                        {fractalPreview && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden"
+                    <form onSubmit={(e) => e.preventDefault()} className="w-full max-w-2xl flex flex-col gap-6 items-center">
+                        
+                        {/* STEP 0: OBJECTIVE */}
+                        {wizardStep === 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="w-full space-y-8"
                             >
-                                <div className="flex items-center gap-2 mb-3 text-white/50 border-b border-white/5 pb-2">
-                                    <Sparkles size={14} style={{ color: activeColor }} />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Time Decomposition Engine</span>
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-light text-white">What is your <span className="font-bold">Main Objective</span>?</h2>
+                                    <p className="text-white/40 text-sm">Define the core mission clearly.</p>
                                 </div>
                                 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {fractalPreview.structure.map((block, idx) => (
-                                        <div key={idx} className="flex flex-col items-center justify-center p-2 bg-black/30 rounded-lg border border-white/5">
-                                            <span className="text-xl font-bold text-white">{block.durationLabel.split(' ')[0]}</span>
-                                            <span className="text-[10px] text-white/50 uppercase">{block.durationLabel.split(' ')[1]}</span>
-                                        </div>
-                                    ))}
+                                <div className="relative group w-full">
+                                    <div 
+                                        className="absolute -inset-1 rounded-2xl opacity-30 group-hover:opacity-60 blur transition duration-500" 
+                                        style={{ background: `linear-gradient(to right, ${activeColor}, #4f46e5)` }}
+                                    />
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={mainGoalInput}
+                                        onChange={(e) => setMainGoalInput(e.target.value)}
+                                        placeholder="e.g. Launch Startup, Run Marathon..."
+                                        className="relative w-full px-6 py-5 text-xl text-center text-white bg-black/80 rounded-2xl border border-white/10 focus:border-white/20 focus:outline-none placeholder:text-white/20 transition-all shadow-2xl"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && mainGoalInput.trim()) {
+                                                e.preventDefault();
+                                                setWizardStep(1);
+                                            }
+                                        }}
+                                    />
                                 </div>
-                                
-                                <div className="mt-3 text-center">
-                                    <p className="text-[10px] text-white/30 font-mono">
-                                        Optimization Path: {fractalPreview.drillDownPath.join(' → ')}
-                                    </p>
+
+                                <div className="flex justify-center pt-4">
+                                    <button
+                                        type="button"
+                                        disabled={!mainGoalInput.trim()}
+                                        onClick={() => setWizardStep(1)}
+                                        className="px-8 py-3 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all flex items-center gap-2"
+                                    >
+                                        Next <ChevronRight size={16} />
+                                    </button>
                                 </div>
                             </motion.div>
                         )}
-                      </div>
 
-                      <div className="relative group">
-                          <div 
-                            className="absolute -inset-1 rounded-2xl opacity-50 group-hover:opacity-100 blur transition duration-500" 
-                            style={{ 
-                                background: `linear-gradient(to right, ${activeColor}, #4f46e5)` 
-                            }}
-                          />
-                          <input
-                            autoFocus
-                            type="text"
-                            value={mainGoalInput}
-                            onChange={(e) => setMainGoalInput(e.target.value)}
-                            placeholder="What is your Main Objective?"
-                            className="relative w-full px-8 py-6 text-2xl text-center text-white bg-black/80 rounded-2xl border border-white/10 focus:border-white/20 focus:outline-none placeholder:text-white/20 transition-all shadow-2xl"
-                          />
-                      </div>
+                        {/* STEP 1: TRAIT SELECTION (GRID) */}
+                        {wizardStep === 1 && (
+                            <motion.div 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="w-full h-full flex flex-col"
+                            >
+                                <div className="space-y-2 mb-4 flex-shrink-0 text-center">
+                                    <h2 className="text-2xl font-light text-white">Which <span className="font-bold">Attribute</span> governs this?</h2>
+                                    <p className="text-white/40 text-sm">Select the domain of influence.</p>
+                                </div>
 
-                      {mainGoalInput.trim() && selectedTraitId && endDate && (
-                          <motion.button
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              type="submit"
-                              className="mx-auto flex items-center gap-2 px-8 py-3 rounded-full font-bold text-white shadow-lg hover:scale-105 active:scale-95 transition-all"
-                              style={{ backgroundColor: activeColor }}
-                          >
-                              <span>Initialize System</span>
-                              <ChevronRight size={18} />
-                          </motion.button>
-                      )}
+                                <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-4">
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 w-full max-w-4xl mx-auto">
+                                        {traits.map((trait) => {
+                                            const Icon = trait.icon;
+                                            const isSelected = selectedTraitId === trait.id;
+                                            return (
+                                                <button
+                                                    key={trait.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedTraitId(trait.id)}
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all duration-300 relative overflow-hidden group aspect-square",
+                                                        isSelected ? "bg-white/20 ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"
+                                                    )}
+                                                >
+                                                    <div 
+                                                        className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-300"
+                                                        style={{ backgroundColor: trait.color }}
+                                                    />
+                                                    {isSelected && (
+                                                        <div 
+                                                            className="absolute inset-0 opacity-40 animate-pulse"
+                                                            style={{ backgroundColor: trait.color }}
+                                                        />
+                                                    )}
+                                                    
+                                                    {Icon && <Icon 
+                                                        size={22} 
+                                                        style={{ color: isSelected ? '#ffffff' : trait.color }} 
+                                                        className="transition-colors relative z-10 drop-shadow-md"
+                                                    />}
+                                                    <span className={cn(
+                                                        "text-[9px] font-bold uppercase tracking-wider text-center relative z-10 truncate w-full px-1",
+                                                        isSelected ? "text-white" : "text-white/70"
+                                                    )}>
+                                                        {trait.label}
+                                                    </span>
+                                                    {isSelected && (
+                                                        <motion.div 
+                                                            layoutId="check"
+                                                            className="absolute top-1.5 right-1.5 w-3 h-3 bg-white rounded-full flex items-center justify-center shadow-sm z-20"
+                                                        >
+                                                            <Check size={8} className="text-black" />
+                                                        </motion.div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-center gap-4 pt-4 flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWizardStep(0)}
+                                        className="px-6 py-3 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 transition-all flex items-center gap-2"
+                                    >
+                                        <ChevronLeft size={16} /> Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={!selectedTraitId}
+                                        onClick={() => setWizardStep(2)}
+                                        className="px-8 py-3 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all flex items-center gap-2 shadow-lg z-50"
+                                    >
+                                        Next <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* STEP 2: DATE & DECOMPOSITION */}
+                        {wizardStep === 2 && (
+                            <motion.div 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="w-full h-full flex flex-col"
+                            >
+                                <div className="space-y-2 mb-4 flex-shrink-0 text-center">
+                                    <h2 className="text-2xl font-light text-white">When is the <span className="font-bold">Deadline</span>?</h2>
+                                    <p className="text-white/40 text-sm">Set the timeframe for success.</p>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-4 space-y-4">
+                                    <div className="bg-white/5 p-4 rounded-3xl border border-white/10 w-full flex flex-col items-center gap-4">
+                                        {/* Input Type Toggle */}
+                                        <div className="flex justify-center">
+                                            <div className="bg-black/40 p-1 rounded-full flex gap-1 border border-white/10">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInputType('date')}
+                                                    className={cn(
+                                                        "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
+                                                        inputType === 'date' ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+                                                    )}
+                                                >
+                                                    Date
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInputType('duration')}
+                                                    className={cn(
+                                                        "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
+                                                        inputType === 'duration' ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+                                                    )}
+                                                >
+                                                    Duration
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Date Picker OR Duration Picker */}
+                                        <div className="w-full flex justify-center">
+                                            {inputType === 'date' ? (
+                                                <div className="relative group/date-picker w-full max-w-xs">
+                                                    <div 
+                                                        className="absolute inset-0 bg-indigo-500/20 rounded-xl blur-xl group-hover/date-picker:blur-2xl transition-all opacity-0 group-hover/date-picker:opacity-100" 
+                                                    />
+                                                    <div className="relative flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden hover:bg-white/5 transition-colors">
+                                                        <div className="pl-4 text-white/50">
+                                                            <Calendar size={18} />
+                                                        </div>
+                                                        <input 
+                                                            type="date" 
+                                                            value={endDate}
+                                                            min={startDate}
+                                                            onChange={(e) => setEndDate(e.target.value)}
+                                                            className="w-full bg-transparent border-none text-white px-4 py-4 focus:ring-0 outline-none text-center font-mono text-sm uppercase"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                                                    {[
+                                                        { label: 'Years', val: duration.years, set: (v: number) => setDuration(p => ({ ...p, years: v })) },
+                                                        { label: 'Months', val: duration.months, set: (v: number) => setDuration(p => ({ ...p, months: v })) },
+                                                        { label: 'Days', val: duration.days, set: (v: number) => setDuration(p => ({ ...p, days: v })) }
+                                                    ].map((item, i) => (
+                                                        <div key={i} className="flex flex-col gap-1">
+                                                            <input 
+                                                                type="number" 
+                                                                min="0"
+                                                                placeholder="0"
+                                                                value={item.val || ''}
+                                                                onChange={(e) => item.set(parseInt(e.target.value) || 0)}
+                                                                className="bg-black/40 border border-white/10 rounded-xl px-2 py-3 text-center text-white focus:bg-white/10 outline-none text-lg font-bold"
+                                                            />
+                                                            <span className="text-[9px] text-center text-white/30 uppercase font-bold">{item.label}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* FRACTAL PREVIEW */}
+                                    {fractalPreview && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden"
+                                        >
+                                            <div className="flex items-center gap-2 mb-3 text-white/50 border-b border-white/5 pb-2">
+                                                <Sparkles size={14} style={{ color: activeColor }} />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Time Decomposition Engine</span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                                                {fractalPreview.structure.map((block, idx) => (
+                                                    <div key={idx} className="flex flex-col items-center justify-center p-2 bg-black/30 rounded-lg border border-white/5 relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 w-6 h-6 bg-white/5 rounded-bl-lg flex items-center justify-center text-[8px] text-white/30 font-mono">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <span className="text-xl font-bold text-white">{block.durationLabel.split(' ')[0]}</span>
+                                                        <span className="text-[8px] text-white/50 uppercase tracking-wider">{block.durationLabel.split(' ')[1]}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            <div className="mt-3 text-center">
+                                                <p className="text-[9px] text-white/30 font-mono truncate">
+                                                    Path: <span className="text-white/60">{fractalPreview.drillDownPath.join(' → ')}</span>
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-center gap-4 pt-4 flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWizardStep(1)}
+                                        className="px-6 py-3 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 transition-all flex items-center gap-2"
+                                    >
+                                        <ChevronLeft size={16} /> Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={!endDate}
+                                        onClick={() => setWizardStep(3)}
+                                        className="px-8 py-3 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all flex items-center gap-2 shadow-lg z-50"
+                                    >
+                                        Review <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* STEP 3: CONFIRMATION */}
+                        {wizardStep === 3 && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="w-full space-y-8"
+                            >
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl font-bold text-white uppercase tracking-tight">¿Empezamos con esta planeación?</h2>
+                                    <p className="text-white/40 text-sm">Review your strategy before initializing.</p>
+                                </div>
+
+                                {/* SUMMARY CARD */}
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 relative overflow-hidden">
+                                    <div 
+                                        className="absolute inset-0 opacity-10"
+                                        style={{ background: `linear-gradient(to bottom right, ${activeColor}, transparent)` }}
+                                    />
+                                    
+                                    <div className="relative z-10 flex flex-col gap-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+                                                {traits.find(t => t.id === selectedTraitId)?.icon && React.createElement(traits.find(t => t.id === selectedTraitId)!.icon, { size: 32, color: activeColor })}
+                                            </div>
+                                            <div className="text-left">
+                                                <h3 className="text-2xl font-bold text-white">{mainGoalInput}</h3>
+                                                <p className="text-white/50 text-sm uppercase tracking-wider">{traits.find(t => t.id === selectedTraitId)?.label}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-px w-full bg-white/10" />
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-left">
+                                                <p className="text-[10px] text-white/40 uppercase font-bold mb-1">Target Deadline</p>
+                                                <p className="text-lg text-white font-mono">{endDate}</p>
+                                            </div>
+                                            {fractalPreview && (
+                                                <div className="text-left">
+                                                    <p className="text-[10px] text-white/40 uppercase font-bold mb-1">Structure</p>
+                                                    <p className="text-lg text-white font-mono">{fractalPreview.structure.length} x {fractalPreview.structure[0]?.type}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-3 pt-4 w-full max-w-sm mx-auto">
+                                    <button
+                                        type="button"
+                                        onClick={handleStart}
+                                        className="w-full py-4 rounded-2xl font-bold text-black text-lg hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_-5px_rgba(34,211,238,0.4)] relative overflow-hidden group"
+                                        style={{ background: 'linear-gradient(135deg, #6ee7b7 0%, #22d3ee 100%)' }} // Emerald-300 to Cyan-400
+                                    >
+                                        <span className="relative z-10">SI, VAMOS</span>
+                                        <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                    </button>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={() => setWizardStep(2)}
+                                        className="w-full py-4 rounded-2xl font-bold text-white/80 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-white transition-all text-sm uppercase tracking-widest"
+                                    >
+                                        Volver Atrás
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
                     </form>
                   </motion.div>
                 ) : showTutorial ? (
@@ -536,7 +819,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 gap-2 mb-4 overflow-y-auto pr-2 max-h-[50vh] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                        className="flex-1 min-h-0 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-2 pb-4"
                     >
                         {multiInputs.map((val, idx) => {
                             // Calculate default dates for placeholder
@@ -580,19 +863,19 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                                 </motion.div>
                             );
                         })}
+                        
+                        <div className="flex justify-end pt-4">
+                            <button
+                                type="submit"
+                                disabled={multiInputs.some(v => !v.trim())}
+                                className="flex items-center gap-2 px-8 py-4 text-black rounded-full font-bold hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_-5px_rgba(255,255,255,0.5)]"
+                                style={{ backgroundColor: 'white' }}
+                            >
+                                <span>Next Phase</span>
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
                     </motion.div>
-
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={multiInputs.some(v => !v.trim())}
-                            className="flex items-center gap-2 px-8 py-4 text-black rounded-full font-bold hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-[0_0_20px_-5px_rgba(255,255,255,0.5)]"
-                            style={{ backgroundColor: 'white' }}
-                        >
-                            <span>Next Phase</span>
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
                 </form>
             </motion.div>
           )}

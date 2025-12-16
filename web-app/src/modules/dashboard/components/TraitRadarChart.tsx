@@ -133,24 +133,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                             <feMergeNode in="SourceGraphic"/>
                         </feMerge>
                     </filter>
-                    {/* Dynamic Gradients for Perimeter Segments - SHARP TRANSITION FIXED */}
-                    {chartData.map((p, i) => {
-                        const nextP = chartData[(i + 1) % chartData.length];
-                        return (
-                            <linearGradient 
-                                key={`seg-grad-${i}`} 
-                                id={`seg-grad-${i}`} 
-                                gradientUnits="userSpaceOnUse"
-                                x1={p.valuePoint.x}
-                                y1={p.valuePoint.y}
-                                x2={nextP.valuePoint.x}
-                                y2={nextP.valuePoint.y}
-                            >
-                                <stop offset="40%" stopColor={p.color} />
-                                <stop offset="60%" stopColor={nextP.color} />
-                            </linearGradient>
-                        );
-                    })}
+                    {/* Dynamic Gradients for Perimeter Segments - REMOVED (Lines are now white) */}
                 </defs>
 
                 {/* Grid Web - WHITE & VISIBLE (Reference Lines) */}
@@ -237,9 +220,9 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                             y1={p.valuePoint.y}
                             x2={nextP.valuePoint.x}
                             y2={nextP.valuePoint.y}
-                            stroke={`url(#seg-grad-${i})`} // Gradient connecting traits
-                            strokeWidth="0.5" // Ultra-thin (0.7 -> 0.5)
-                            strokeOpacity="0.8"
+                            stroke="#ffffff"
+                            strokeWidth="0.8"
+                            strokeOpacity="1"
                             strokeLinecap="round"
                             initial={{ pathLength: 0, opacity: 0 }}
                             animate={{ pathLength: 1, opacity: 1, x1: p.valuePoint.x, y1: p.valuePoint.y, x2: nextP.valuePoint.x, y2: nextP.valuePoint.y }}

@@ -45,7 +45,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHi
 
              {/* Settings Button - Updated to trigger view */}
              <div className="relative">
-                <button onClick={onShowSettings} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10`}>
+                <button onClick={onShowSettings} data-tour="settings-trigger" className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10`}>
                     <Settings size={18} />
                 </button>
             </div>

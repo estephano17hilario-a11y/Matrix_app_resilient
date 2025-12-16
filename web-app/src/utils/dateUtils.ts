@@ -23,7 +23,7 @@ export const addDays = (date: Date, days: number): Date => {
 export const getContextDates = (
     parentStart: Date, 
     parentEnd: Date, 
-    level: 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY', 
+    level: '10_YEARS' | '5_YEARS' | 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY', 
     index: number,
     totalChildren: number
 ): { start: Date, end: Date, label: string } => {
@@ -35,6 +35,32 @@ export const getContextDates = (
     const isLast = index === totalChildren - 1;
 
     switch (level) {
+        case '10_YEARS':
+            // Parent: 10 Years. Child: 5 Years.
+            // Logic: Add 5 years.
+            start.setFullYear(start.getFullYear() + (index * 5));
+            if (isLast) {
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setFullYear(end.getFullYear() + 5);
+            }
+            label = index === 0 ? 'Primer Lustro' : 'Segundo Lustro';
+            break;
+
+        case '5_YEARS':
+            // Parent: 5 Years. Child: Year.
+            // Logic: Add 1 year.
+            start.setFullYear(start.getFullYear() + index);
+            if (isLast) {
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setFullYear(end.getFullYear() + 1);
+            }
+            label = `Año ${index + 1}`;
+            break;
+
         case 'YEAR':
             // Parent: Year. Child: Semester.
             // Logic: Add 6 months for each index.
@@ -115,23 +141,9 @@ export const getContextDates = (
 
     // FINAL SAFEGUARD:
     // If we are the last child, we FORCE the end date to match the parent's end date
-    // to ensure no gaps (e.g. 31st of the month).
-    // EXCEPT if the calculated end is drastically different (e.g. user added 10 weeks to a month),
-    // but assuming the user follows the wizard's constraints (4 weeks), this works.
+    // to ensure no gaps and perfect precision (e.g. 31st of the month, or partial blocks).
     if (isLast) {
-        // We use the parentEnd provided.
-        // However, for Year/Semester/Quarter we used 'addMonth' which is generally accurate for calendar math.
-        // Let's trust the 'addMonth' logic for high levels, but for Month->Week (where 7*4 != 30/31), we need this clamp.
-        if (level === 'MONTH' || level === 'WEEK') {
-             end = new Date(parentEnd);
-        }
-        // For others, if the logic drifts (e.g. feb 28), setMonth handles it well enough.
-        // But if we want "Hard Logic", we should respect the parent container.
-        // If Parent is Jan 1 - Dec 31.
-        // S1: Jan 1 - Jun 30? Or Jul 1?
-        // standard addMonths(6) from Jan 1 is Jul 1.
-        // S2: Jul 1 - Jan 1.
-        // It matches.
+        end = new Date(parentEnd);
     }
     
     return { start, end, label };
