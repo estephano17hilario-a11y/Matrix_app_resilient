@@ -19,22 +19,15 @@ export const useSmartTaskLogic = () => {
     return timeframeHierarchy[index + 1];
   };
 
-  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string, deadline?: Date) => {
-    const now = Timestamp.now();
+  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string, customStartDate?: Date) => {
+    const now = customStartDate ? Timestamp.fromDate(customStartDate) : Timestamp.now();
     setProjectMeta({ traitId, traitColor });
-    
-    // Default to 1 year if no deadline provided
-    const defaultDeadline = new Date();
-    defaultDeadline.setFullYear(defaultDeadline.getFullYear() + 1);
-    
-    const finalDeadline = deadline ? Timestamp.fromDate(deadline) : Timestamp.fromDate(defaultDeadline);
-
     const root: StrategicNode = {
       id: crypto.randomUUID(),
       title: mainGoal,
       level: 'YEAR',
       startDate: now,
-      dueDate: finalDeadline,
+      dueDate: Timestamp.fromMillis(now.toMillis() + (365 * 24 * 60 * 60 * 1000)), // Approx 1 year
       isCompleted: false,
       reward: { xp: 1000, coins: 500 },
       children: [],
@@ -54,6 +47,8 @@ export const useSmartTaskLogic = () => {
     
     // Get start date from current node (default to now if missing)
     const currentStart = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
+    // Get end date from current node (default to start + 1 year if missing)
+    const currentEnd = currentNode.dueDate ? currentNode.dueDate.toDate() : new Date(currentStart.getTime() + 31536000000);
 
     const newChildren: StrategicNode[] = answers.map((answer, index) => {
         const title = typeof answer === 'string' ? answer : answer.title;
@@ -61,7 +56,8 @@ export const useSmartTaskLogic = () => {
         const customEnd = typeof answer !== 'string' ? answer.endDate : undefined;
 
         // Calculate dates for this child based on parent context and index
-        const { start, end } = getContextDates(currentStart, currentNode.level, index);
+        // UPDATED: Passing parentEnd and totalChildren for robust logic
+        const { start, end } = getContextDates(currentStart, currentEnd, currentNode.level, index, answers.length);
         
         const finalStart = customStart || start;
         const finalEnd = customEnd || end;

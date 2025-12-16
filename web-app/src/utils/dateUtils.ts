@@ -20,49 +20,106 @@ export const addDays = (date: Date, days: number): Date => {
     return newDate;
 };
 
-export const getContextDates = (startDate: Date, level: 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY', index: number): { start: Date, end: Date, label: string } => {
-    const start = new Date(startDate);
-    let end = new Date(startDate);
+export const getContextDates = (
+    parentStart: Date, 
+    parentEnd: Date, 
+    level: 'YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY', 
+    index: number,
+    totalChildren: number
+): { start: Date, end: Date, label: string } => {
+    const start = new Date(parentStart);
+    let end = new Date(parentStart);
     let label = '';
+
+    // Helper to check if this is the last child
+    const isLast = index === totalChildren - 1;
 
     switch (level) {
         case 'YEAR':
-            // S1 vs S2
-            // Index 0 = S1, Index 1 = S2
+            // Parent: Year. Child: Semester.
+            // Logic: Add 6 months for each index.
             start.setMonth(start.getMonth() + (index * 6));
-            end = addMonths(start, 6);
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 6);
             label = index === 0 ? 'Primeros 6 Meses' : 'Segundos 6 Meses';
             break;
+
         case 'SEMESTER':
-            // Q1 vs Q2 (within the semester)
-            // Index 0 = Q1, Index 1 = Q2
+            // Parent: Semester (6mo). Child: Quarter.
+            // Logic: Add 3 months.
             start.setMonth(start.getMonth() + (index * 3));
-            end = addMonths(start, 3);
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 3);
             label = `Trimestre ${index + 1}`;
             break;
+
         case 'QUARTER':
-            // Month 1..3
+            // Parent: Quarter (3mo). Child: Month.
+            // Logic: Add 1 month.
             start.setMonth(start.getMonth() + index);
-            end = addMonths(start, 1);
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 1);
             label = `Mes ${index + 1}`;
             break;
+
         case 'MONTH':
-            // Week 1..4
+            // Parent: Month. Child: Week.
+            // Logic: Month usually has 4 weeks in this system, but could be more.
+            // We use 7 days per week.
+            // IMPORTANT: The last week must absorb the remainder of the month.
             start.setDate(start.getDate() + (index * 7));
-            end = addDays(start, 7);
+            
+            if (isLast) {
+                // If last child, end date is strictly the parent's end date.
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setDate(end.getDate() + 7);
+            }
             label = `Semana ${index + 1}`;
             break;
+
         case 'WEEK':
-            // Day 1..7
+            // Parent: Week. Child: Day.
+            // Logic: 1 Day.
             start.setDate(start.getDate() + index);
-            end = addDays(start, 1);
+            end = new Date(start);
+            end.setDate(end.getDate() + 1);
+            
+            if (isLast) {
+                 // Ensure last day matches parent end (though for week->day it usually aligns perfectly)
+                 end = new Date(parentEnd);
+            }
             label = `Día ${index + 1}`;
             break;
+
         case 'DAY':
-            // Hours or sub-tasks (not implemented yet, but preventing crash/type error)
+            // Parent: Day. Child: Blocks/Hours.
+            // Just placeholder logic.
             end = addDays(start, 1);
             label = `Bloque ${index + 1}`;
             break;
+    }
+
+    // FINAL SAFEGUARD:
+    // If we are the last child, we FORCE the end date to match the parent's end date
+    // to ensure no gaps (e.g. 31st of the month).
+    // EXCEPT if the calculated end is drastically different (e.g. user added 10 weeks to a month),
+    // but assuming the user follows the wizard's constraints (4 weeks), this works.
+    if (isLast) {
+        // We use the parentEnd provided.
+        // However, for Year/Semester/Quarter we used 'addMonth' which is generally accurate for calendar math.
+        // Let's trust the 'addMonth' logic for high levels, but for Month->Week (where 7*4 != 30/31), we need this clamp.
+        if (level === 'MONTH' || level === 'WEEK') {
+             end = new Date(parentEnd);
+        }
+        // For others, if the logic drifts (e.g. feb 28), setMonth handles it well enough.
+        // But if we want "Hard Logic", we should respect the parent container.
+        // If Parent is Jan 1 - Dec 31.
+        // S1: Jan 1 - Jun 30? Or Jul 1?
+        // standard addMonths(6) from Jan 1 is Jul 1.
+        // S2: Jul 1 - Jan 1.
+        // It matches.
     }
     
     return { start, end, label };
