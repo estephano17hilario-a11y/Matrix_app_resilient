@@ -145,6 +145,8 @@ export default function Dashboard() {
                         showProfile={showProfile}
                         onToggleProfile={setShowProfile}
                         onShowStore={() => setCurrentView('STORE')}
+                        displayName={user?.displayName}
+                        email={user?.email}
                     />
 
                     <div className="h-full flex-1 w-full relative">

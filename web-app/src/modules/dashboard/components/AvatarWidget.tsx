@@ -8,6 +8,8 @@ interface AvatarWidgetProps {
   nextXp: number;
   health: number;
   streak: number;
+  displayName?: string | null;
+  email?: string | null;
 }
 
 const MiniLiquidBar = ({ 
@@ -61,7 +63,7 @@ const MiniLiquidBar = ({
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak }: AvatarWidgetProps) => (
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, displayName, email }: AvatarWidgetProps) => (
     <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
@@ -78,7 +80,16 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak }: A
         <div className="flex flex-col gap-1">
             {/* HEADER: NAME + STREAK */}
             <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-white tracking-tight">Matrix Architect</span>
+                <div className="flex flex-col leading-none">
+                    <span className="text-sm font-bold text-white tracking-tight">
+                        {displayName || 'Neo'}
+                    </span>
+                    {email && (
+                        <span className="text-[10px] text-slate-400 font-mono tracking-tight truncate max-w-[120px]">
+                            {email}
+                        </span>
+                    )}
+                </div>
                 {streak > 0 && (
                      <div className="flex items-center gap-1 bg-orange-500/10 px-1.5 py-0.5 rounded-full border border-orange-500/20">
                         <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />

@@ -16,9 +16,11 @@ interface StatsHeaderProps {
   onToggleProfile: (v: boolean) => void;
   hideAvatar?: boolean;
   onShowStore: () => void;
+  displayName?: string | null;
+  email?: string | null;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar, onShowStore }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar, onShowStore, displayName, email }: StatsHeaderProps) => {
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const isCompact = !showProfile;
@@ -33,7 +35,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, them
         <div className="flex items-center gap-4 pointer-events-auto">
              {/* Avatar Widget - MOVED FIRST */}
             <div className={`transition-all duration-500 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}>
-                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} />}
+                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} displayName={displayName} email={email} />}
             </div>
         </div>
         

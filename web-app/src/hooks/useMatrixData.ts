@@ -53,9 +53,8 @@ export const useMatrixData = (userId: string | null | undefined) => {
             return;
         }
 
-        // 🛡️ DEBOUNCE: Wait 800ms to ensure component is stable before connecting.
-        // This prevents "flickering" connections during rapid re-renders/HMR.
-        await new Promise(resolve => timeoutId = setTimeout(resolve, 800));
+        // 🛡️ DEBOUNCE: REMOVED for Instant Feedback
+        // await new Promise(resolve => timeoutId = setTimeout(resolve, 800));
         
         if (!isMounted.current) return;
 
