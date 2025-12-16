@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, configStatus } from '../services/firebase';
 
 export interface UserStats {
   hp: number;
@@ -20,6 +20,12 @@ export interface UserData {
   archetype: string;
 }
 
+export interface MatrixDataHook {
+  user: UserData | null;
+  loading: boolean;
+  error: string | null;
+}
+
 const DEFAULT_STATS: UserStats = {
     hp: 100,
     maxHp: 100,
@@ -29,7 +35,7 @@ const DEFAULT_STATS: UserStats = {
     streak: 0
 };
 
-export const useMatrixData = (userId: string | null | undefined) => {
+export const useMatrixData = (userId: string | null | undefined): MatrixDataHook => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +53,8 @@ export const useMatrixData = (userId: string | null | undefined) => {
             return;
         }
 
-        if (!db || Object.keys(db).length === 0) {
-            console.warn("Matrix Data: DB not ready.");
+        if (!configStatus.isValid) {
+            console.warn("Matrix Data: No Valid Config (Phantom Mode).");
             setLoading(false);
             return;
         }
