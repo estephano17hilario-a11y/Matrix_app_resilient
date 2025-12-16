@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Brain, Target, Calendar, ChevronRight, ChevronLeft, ArrowRight, Layers, Lock } from 'lucide-react';
+import { Sparkles, Brain, Target, Calendar, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
 
 interface SmartTaskTutorialProps {
   onComplete: () => void;

@@ -37,7 +37,6 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
 
   // Get active color based on trait
   const activeColor = selectedTraitId ? TRAITS_LIST.find(t => t.id === selectedTraitId)?.color : '#6366f1';
-  const activeTrait = TRAITS_LIST.find(t => t.id === selectedTraitId);
 
   // Determine how many inputs we need based on current node level
   const getRequiredInputs = () => {
@@ -459,7 +458,9 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                         {multiInputs.map((val, idx) => {
                             // Calculate default dates for placeholder
                             const defaultStart = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
-                            const { start, end } = getContextDates(defaultStart, currentNode.level, idx);
+                            const defaultEnd = currentNode.dueDate ? currentNode.dueDate.toDate() : new Date(defaultStart.getTime() + 31536000000);
+                            
+                            const { start, end } = getContextDates(defaultStart, defaultEnd, currentNode.level, idx, requiredCount);
                             
                             const currentStart = dateOverrides[idx]?.start ? new Date(dateOverrides[idx].start!) : start;
                             const currentEnd = dateOverrides[idx]?.end ? new Date(dateOverrides[idx].end!) : end;

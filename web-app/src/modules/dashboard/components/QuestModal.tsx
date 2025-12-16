@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Brain, ArrowRight, ChevronLeft, Calendar } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Brain, ArrowRight, ChevronLeft } from 'lucide-react';
 import { Attribute, Quest } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
