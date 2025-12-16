@@ -10,6 +10,7 @@ import {
 import { TRAITS_LIST } from '../constants';
 import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
+import { persistenceService } from '../../../services/persistenceService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
 
 export const useDashboardLogic = () => {
@@ -156,10 +157,24 @@ export const useDashboardLogic = () => {
     const [notes, setNotes] = useState<Note[]>([]);
     const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
 
-    // --- LOAD PROJECTS ---
+    // --- SYNC DATA WITH FIREBASE ---
     useEffect(() => {
         if (user?.uid) {
-            projectService.getUserProjects(user.uid).then(setProjects);
+            console.log("📥 DOWNLOADING REALITY DATA...");
+            Promise.all([
+                projectService.getUserProjects(user.uid),
+                persistenceService.quests.getAll(user.uid),
+                persistenceService.habits.getAll(user.uid),
+                persistenceService.notes.getAll(user.uid),
+                persistenceService.journal.getAll(user.uid)
+            ]).then(([loadedProjects, loadedQuests, loadedHabits, loadedNotes, loadedJournal]) => {
+                setProjects(loadedProjects);
+                setQuests(loadedQuests);
+                setHabits(loadedHabits);
+                setNotes(loadedNotes);
+                setJournalEntries(loadedJournal);
+                console.log("✅ REALITY SYNCED.");
+            }).catch(err => console.error("❌ SYNC FAILED:", err));
         }
     }, [user?.uid]);
         
@@ -311,6 +326,9 @@ export const useDashboardLogic = () => {
             updateAttributeXp(quest.attribute, -xp);
             
             setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: false } : q));
+            if (user?.uid) {
+                persistenceService.quests.update(user.uid, quest.id, { completed: false });
+            }
         } else {
             const attr = attributes.find(a => a.id === quest.attribute);
             const AttrIcon = attr?.icon || Star;
@@ -328,6 +346,8 @@ export const useDashboardLogic = () => {
             setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: true } : q));
 
             if (user?.uid) {
+                persistenceService.quests.update(user.uid, quest.id, { completed: true });
+
                 // Normalize Reward Object for Transaction
                 const fullReward: RewardPrediction = { 
                     xp, 
@@ -356,6 +376,14 @@ export const useDashboardLogic = () => {
                 } 
                 return h; 
             }));
+            
+            if (user?.uid) {
+                persistenceService.habits.update(user.uid, habit.id, { 
+                    completedToday: false, 
+                    streak: Math.max(0, habit.streak - 1), 
+                    totalCompletions: Math.max(0, habit.totalCompletions - 1) 
+                });
+            }
             return;
         }
         if (habit.type === 'SIMPLE') {
@@ -373,10 +401,18 @@ export const useDashboardLogic = () => {
                 } 
                 return h; 
             }));
+
+            if (user?.uid) {
+                persistenceService.habits.update(user.uid, habit.id, { 
+                    completedToday: true, 
+                    streak: habit.streak + 1, 
+                    totalCompletions: habit.totalCompletions + 1 
+                });
+            }
         } else {
             setValidationHabit(habit); setValTempValue('');
         }
-    }, [spawnParticles, updateAttributeXp, addPlayerReward]);
+    }, [spawnParticles, updateAttributeXp, addPlayerReward, user]);
 
     const validateHabitProgress = () => {
         if (!validationHabit) return;
@@ -406,19 +442,42 @@ export const useDashboardLogic = () => {
             }
             return h;
         }));
+
+        if (user?.uid && validationHabit) {
+            if (isComplete) {
+                persistenceService.habits.update(user.uid, validationHabit.id, { 
+                    completedToday: true, 
+                    streak: validationHabit.streak + 1, 
+                    totalCompletions: validationHabit.totalCompletions + 1, 
+                    currentValue: newCurrentValue 
+                });
+            } else {
+                persistenceService.habits.update(user.uid, validationHabit.id, { 
+                    currentValue: newCurrentValue 
+                });
+            }
+        }
+
         setValidationHabit(null);
     };
 
     const handleQuestConfirm = useCallback((data: Partial<Quest>) => {
-        setQuests(prev => [{ id: Date.now().toString(), completed: false, ...data } as Quest, ...prev]);
+        const newQuest = { id: Date.now().toString(), completed: false, ...data } as Quest;
+        setQuests(prev => [newQuest, ...prev]);
+        if (user?.uid) {
+            persistenceService.quests.save(user.uid, newQuest);
+        }
         setActiveModal(null);
-    }, []);
+    }, [user]);
 
     const handleHabitConfirm = useCallback((data: Partial<Habit>) => {
         const newHabit: Habit = { id: Date.now().toString(), streak: 0, completedToday: false, totalCompletions: 0, checklist: data.checklist || [], ...data } as Habit; 
         setHabits(prev => [newHabit, ...prev]);
+        if (user?.uid) {
+            persistenceService.habits.save(user.uid, newHabit);
+        }
         setActiveModal(null);
-    }, []);
+    }, [user]);
 
     const handleProjectConfirm = useCallback((data: Partial<Project>) => {
         const newProject = { id: Date.now().toString(), totalTime: 0, sessions: [], ...data } as Project;
@@ -442,12 +501,18 @@ export const useDashboardLogic = () => {
             if (exists) return prev.map(n => n.id === note.id ? note : n);
             return [note, ...prev];
         });
-    }, []);
+        if (user?.uid) {
+            persistenceService.notes.save(user.uid, note);
+        }
+    }, [user]);
 
     const handleDeleteNote = useCallback((id: string) => {
         setNotes(prev => prev.filter(n => n.id !== id));
+        if (user?.uid) {
+            persistenceService.notes.delete(user.uid, id);
+        }
         setActiveModal(null);
-    }, []);
+    }, [user]);
 
     const handleUpdateJournal = useCallback((entry: JournalEntry) => {
         setJournalEntries(prev => {
@@ -455,7 +520,10 @@ export const useDashboardLogic = () => {
             if (exists) return prev.map(e => e.id === entry.id ? entry : e);
             return [...prev, entry];
         });
-    }, []);
+        if (user?.uid) {
+            persistenceService.journal.save(user.uid, entry);
+        }
+    }, [user]);
 
     return {
         user,
