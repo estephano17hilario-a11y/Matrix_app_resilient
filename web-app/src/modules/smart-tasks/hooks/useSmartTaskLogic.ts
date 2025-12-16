@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { StrategicNode, TimeFrame, SmartProject } from '../../../types/SmartGoal';
 import { getContextDates } from '../../../utils/dateUtils';
-import { generateTimeBlocks, TimeUnit } from '../../../utils/fractalTimeEngine';
+import { generateTimeBlocks } from '../../../utils/fractalTimeEngine';
 
 export const useSmartTaskLogic = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -50,7 +50,7 @@ export const useSmartTaskLogic = () => {
     });
 
     // If path is empty (e.g. < 1 day), default to DAY
-    const finalPath = mappedPath.length > 0 ? mappedPath : ['DAY'];
+    const finalPath: TimeFrame[] = mappedPath.length > 0 ? mappedPath : ['DAY'];
     
     setDrillDownPath(finalPath);
     setTimeframeHierarchy(finalPath); // Update the visual roadmap too

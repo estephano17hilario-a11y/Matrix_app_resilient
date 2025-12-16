@@ -2,53 +2,35 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
-import LoginScreen from './modules/auth/LoginScreen';
-// import { OnboardingFlow } from './modules/onboarding/OnboardingFlow'; // Removed as per user request
+import { AuthScreen } from './modules/auth/AuthScreen';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import Dashboard from './Dashboard';
 import { motion, AnimatePresence } from 'framer-motion';
-
-/**
- * COMPONENT: LOADING GATE
- * VISUAL: A breathing Matrix core while the system initializes.
- */
-const LoadingGate = () => (
-  <motion.div 
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]"
-  >
-    <motion.div
-      animate={{ 
-        scale: [1, 1.1, 1],
-        opacity: [0.5, 1, 0.5],
-        filter: ["blur(0px)", "blur(2px)", "blur(0px)"]
-      }}
-      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      className="w-16 h-16 bg-white rounded-full shadow-[0_0_40px_rgba(255,255,255,0.5)]"
-    />
-  </motion.div>
-);
 
 /**
  * COMPONENT: APP ROUTER
  * LOGIC: Determines the reality the user experiences.
  */
 const AppRoutes = () => {
-  const { user, isLoading, isNewUser } = useAuth();
+  const { user, isLoading } = useAuth();
   
-  console.log('APP_ROUTES: Rendering. isLoading:', isLoading, 'User:', user ? user.uid : 'null', 'isNewUser:', isNewUser);
-
   // 1. INITIALIZATION STATE
   if (isLoading) {
-    return <LoadingGate />;
+    return <LoadingScreen />;
   }
 
   return (
     <AnimatePresence mode="wait">
       {/* 2. AUTHENTICATION GATE */}
       {!user ? (
-        <LoginScreen key="login" />
+        <motion.div
+            key="auth"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+        >
+            <AuthScreen />
+        </motion.div>
       ) : (
         // 3. REALITY FORK
         <MatrixProvider key="matrix-provider" userId={user.uid}>

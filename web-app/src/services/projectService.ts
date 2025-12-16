@@ -7,7 +7,7 @@ import {
   deleteDoc,
   Firestore
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../services/firebase';
 import { Project } from '../types';
 
 export const projectService = {
