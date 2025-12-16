@@ -22,6 +22,14 @@ export interface UserProfile {
   lastLoginAt: number;
   // Configuración visual
   theme: 'ETHER' | 'MATRIX' | 'SUNSET';
+  
+  // Onboarding Data
+  onboarding?: {
+    successDefinition: string;
+    obstacles: string[];
+    coachingTone: string;
+    completedAt: number;
+  };
 }
 
 export const DEFAULT_USER_STATS: UserStats = {

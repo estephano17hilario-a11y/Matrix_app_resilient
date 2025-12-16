@@ -3,6 +3,22 @@ import './index.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
+// 🛡️ CONSOLE SILENCER
+// Prevents specific Firestore spam from polluting the console
+const originalConsoleError = console.error;
+console.error = (...args) => {
+    const errorStr = args.map(a => a && a.toString ? a.toString() : String(a)).join(' ');
+    if (
+        errorStr.includes('net::ERR_ABORTED') || 
+        errorStr.includes('Firestore/Write/channel') ||
+        errorStr.includes('The user aborted a request')
+    ) {
+        // Shhh... 🤫
+        return;
+    }
+    originalConsoleError(...args);
+};
+
 // 🛡️ GLOBAL ERROR TRAP
 // This swallows the annoying "net::ERR_ABORTED" which is harmless in dev
 // but terrifying to users.

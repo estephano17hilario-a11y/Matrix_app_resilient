@@ -12,20 +12,23 @@ import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../../services/firebase';
+
+import { useTheme } from '../../../context/ThemeContext';
 
 export const useDashboardLogic = () => {
     const { user, loading: matrixLoading } = useMatrix();
+    const { theme: currentTheme, setTheme: setCurrentTheme } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
-    const [currentTheme, setCurrentTheme] = useState('SPOTLIGHT');
     const [currentView, setCurrentView] = useState('TASKS');
     const [isDockOpen, setIsDockOpen] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false); 
     const [isNoteTaking, setIsNoteTaking] = useState(false); 
     const [overrideBgColor, setOverrideBgColor] = useState<string | undefined>(undefined);
     const [showProfile, setShowProfile] = useState(true);
+    const [defaultChartMode, setDefaultChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -159,50 +162,37 @@ export const useDashboardLogic = () => {
     const [notes, setNotes] = useState<Note[]>([]);
     const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
 
-    // --- SYNC DATA WITH FIREBASE ---
+    // --- LOAD PROJECTS, QUESTS, HABITS, NOTES, JOURNAL ---
     useEffect(() => {
         if (user?.uid) {
-            console.log("📥 DOWNLOADING REALITY DATA...");
-            Promise.all([
-                projectService.getUserProjects(user.uid),
-                persistenceService.quests.getAll(user.uid),
-                persistenceService.habits.getAll(user.uid),
-                persistenceService.notes.getAll(user.uid),
-                persistenceService.journal.getAll(user.uid),
-                persistenceService.attributes.getAll(user.uid),
-                persistenceService.settings.get(user.uid)
-            ]).then(([loadedProjects, loadedQuests, loadedHabits, loadedNotes, loadedJournal, loadedAttributes, loadedSettings]) => {
-                setProjects(loadedProjects);
-                setQuests(loadedQuests);
-                setHabits(loadedHabits);
-                setNotes(loadedNotes);
-                setJournalEntries(loadedJournal);
-
-                // Merge Loaded Attributes with Default List (to ensure all traits exist)
-                if (loadedAttributes && loadedAttributes.length > 0) {
-                    setAttributes(prev => prev.map(defAttr => {
-                        const saved = loadedAttributes.find(a => a.id === defAttr.id);
-                        return saved ? { ...defAttr, ...saved } : defAttr;
-                    }));
+            projectService.getUserProjects(user.uid).then(setProjects);
+            // Load other data
+            persistenceService.quests.getAll(user.uid).then(setQuests);
+            persistenceService.habits.getAll(user.uid).then(setHabits);
+            persistenceService.notes.getAll(user.uid).then(setNotes);
+            persistenceService.journal.getAll(user.uid).then(setJournalEntries);
+            persistenceService.attributes.getAll(user.uid).then(fetchedAttrs => {
+                if (fetchedAttrs.length > 0) {
+                     setAttributes(prev => {
+                        // Merge fetched attributes with default icons/colors if needed, 
+                        // or just use fetched if they have everything.
+                        // Ideally we keep the static definition for icons/colors and merge stats.
+                        return prev.map(def => {
+                            const found = fetchedAttrs.find(fa => fa.id === def.id);
+                            return found ? { ...def, ...found, icon: def.icon, color: def.color } : def;
+                        });
+                     });
                 }
-
-                // Restore Settings
-                if (loadedSettings) {
-                    if (loadedSettings.theme) setCurrentTheme(loadedSettings.theme);
-                    if (loadedSettings.showProfile !== undefined) setShowProfile(loadedSettings.showProfile);
-                }
-
-                console.log("✅ REALITY SYNCED.");
-            }).catch(err => console.error("❌ SYNC FAILED:", err));
+            });
         }
     }, [user?.uid]);
 
     // --- AUTO-SAVE SETTINGS ---
     useEffect(() => {
         if (user?.uid) {
-             persistenceService.settings.save(user.uid, { theme: currentTheme, showProfile });
+             persistenceService.settings.save(user.uid, { theme: currentTheme, showProfile, defaultChartMode });
         }
-    }, [currentTheme, showProfile, user?.uid]);
+    }, [currentTheme, showProfile, defaultChartMode, user?.uid]);
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -230,7 +220,16 @@ export const useDashboardLogic = () => {
     }, []);
 
     // --- NOTIFICATION EFFECTS (Safe from Render Cycle) ---
+    const isFirstLoad = useRef(true);
+
     useEffect(() => {
+        // Skip notification on first load or if level hasn't increased
+        if (isFirstLoad.current) {
+            isFirstLoad.current = false;
+            prevPlayerLevel.current = player.level;
+            return;
+        }
+
         if (player.level > prevPlayerLevel.current) {
             addNotification({ type: 'GLOBAL', label: 'HERO', fromLevel: prevPlayerLevel.current, toLevel: player.level, icon: Trophy, color: '#fbbf24' });
         }
@@ -270,11 +269,13 @@ export const useDashboardLogic = () => {
 
             // PERSISTENCE: Save new stats to Firestore immediately
             if (user?.uid) {
-                updateDoc(doc(db, 'users', user.uid), {
-                    'stats.level': newStats.level,
-                    'stats.xp': newStats.xp,
-                    'stats.gold': newStats.gold
-                }).catch(err => console.error("Error saving player stats:", err));
+                setDoc(doc(db, 'users', user.uid), {
+                    stats: {
+                        level: newStats.level,
+                        xp: newStats.xp,
+                        gold: newStats.gold
+                    }
+                }, { merge: true }).catch(err => console.error("Error saving player stats:", err));
             }
 
             return newStats;
@@ -313,6 +314,23 @@ export const useDashboardLogic = () => {
                         persistenceService.attributes.save(user.uid, updatedAttr);
                     }
 
+                    return updatedAttr;
+                }
+                return attr;
+            });
+            return newAttributes;
+        });
+    }, [user?.uid]);
+
+    const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
+        setAttributes(prev => {
+            const newAttributes = prev.map(attr => {
+                if (attr.id === attrId) {
+                    const updatedAttr = { ...attr, ...updates };
+                    // SAVE TO FIRESTORE
+                    if (user?.uid) {
+                        persistenceService.attributes.save(user.uid, updatedAttr);
+                    }
                     return updatedAttr;
                 }
                 return attr;
@@ -509,13 +527,41 @@ export const useDashboardLogic = () => {
         setValidationHabit(null);
     };
 
-    const handleQuestConfirm = useCallback((data: Partial<Quest>) => {
-        const newQuest = { id: Date.now().toString(), completed: false, ...data } as Quest;
-        setQuests(prev => [newQuest, ...prev]);
+    const handleQuestConfirm = useCallback((questData: Partial<Quest>) => {
+        // If ID exists, it's an update. If not, it's a create.
+        const quest: Quest = questData.id 
+            ? questData as Quest 
+            : { 
+                id: Date.now().toString(), 
+                completed: false, 
+                subtasks: [], 
+                difficulty: 'D',
+                xpReward: 10,
+                gold: 0,
+                attribute: 'DISCIPLINA',
+                title: 'New Quest',
+                ...questData 
+            } as Quest;
+
+        setQuests(prev => {
+            const exists = prev.find(q => q.id === quest.id);
+            if (exists) return prev.map(q => q.id === quest.id ? quest : q);
+            return [...prev, quest];
+        });
         if (user?.uid) {
-            persistenceService.quests.save(user.uid, newQuest);
+            persistenceService.quests.save(user.uid, quest);
         }
         setActiveModal(null);
+    }, [user]);
+
+    const handleDeleteQuest = useCallback(async (questId: string) => {
+        if (!user) return;
+        setQuests(prev => prev.filter(q => q.id !== questId));
+        try {
+            await persistenceService.quests.delete(user.uid, questId);
+        } catch (error) {
+            console.error("Error deleting quest:", error);
+        }
     }, [user]);
 
     const handleHabitConfirm = useCallback((data: Partial<Habit>) => {
@@ -527,13 +573,44 @@ export const useDashboardLogic = () => {
         setActiveModal(null);
     }, [user]);
 
-    const handleProjectConfirm = useCallback((data: Partial<Project>) => {
-        const newProject = { id: Date.now().toString(), totalTime: 0, sessions: [], ...data } as Project;
-        setProjects(prev => [newProject, ...prev]);
-        if (user?.uid) {
-            projectService.saveProject(user.uid, newProject);
+    const handleProjectConfirm = useCallback(async (projectData: Partial<Project>) => {
+        const project: Project = projectData.id
+            ? projectData as Project
+            : {
+                id: Date.now().toString(),
+                totalTime: 0,
+                sessions: [],
+                goalTarget: 0,
+                goalFrequency: 'WEEKLY',
+                pomoDuration: 25,
+                breakDuration: 5,
+                impact: 1,
+                title: 'New Project',
+                description: '',
+                attribute: 'MENTAL',
+                ...projectData
+            } as Project;
+
+        setProjects(prev => {
+            const exists = prev.find(p => p.id === project.id);
+            if (exists) return prev.map(p => p.id === project.id ? project : p);
+            return [...prev, project];
+        });
+        
+        if (user) {
+            await projectService.saveProject(user.uid, project);
         }
         setActiveModal(null);
+    }, [user]);
+
+    const handleDeleteProject = useCallback(async (projectId: string) => {
+        if (!user) return;
+        setProjects(prev => prev.filter(p => p.id !== projectId));
+        try {
+            await projectService.deleteProject(user.uid, projectId);
+        } catch (error) {
+            console.error("Error deleting project:", error);
+        }
     }, [user]);
 
     const handleUpdateProject = useCallback((updatedProject: Project) => {
@@ -592,6 +669,8 @@ export const useDashboardLogic = () => {
         setOverrideBgColor,
         showProfile,
         setShowProfile,
+        defaultChartMode,
+        setDefaultChartMode,
         player,
         health,
         attributes,
@@ -618,7 +697,7 @@ export const useDashboardLogic = () => {
         addNotification,
         addPlayerXp,
         addPlayerGold,
-        addPlayerReward, // New export
+        addPlayerReward,
         updateAttributeXp,
         spawnParticles,
         handleCompleteSession,
@@ -626,11 +705,14 @@ export const useDashboardLogic = () => {
         handleHabitClick,
         validateHabitProgress,
         handleQuestConfirm,
+        handleDeleteQuest,
         handleHabitConfirm,
         handleProjectConfirm,
+        handleDeleteProject,
         handleUpdateProject,
         handleUpdateNote,
         handleDeleteNote,
-        handleUpdateJournal
+        handleUpdateJournal,
+        updateAttributeMetadata
     };
 };

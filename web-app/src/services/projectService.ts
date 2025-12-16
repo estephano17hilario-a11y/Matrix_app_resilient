@@ -3,12 +3,12 @@ import {
   doc, 
   getDocs, 
   setDoc, 
-  updateDoc, 
   deleteDoc,
   Firestore
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { Project } from '../types';
+import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 export const projectService = {
   /**
@@ -31,7 +31,8 @@ export const projectService = {
   saveProject: async (userId: string, project: Project): Promise<void> => {
     try {
       const projectRef = doc(db as Firestore, 'users', userId, 'projects', project.id);
-      await setDoc(projectRef, project);
+      const cleanProject = sanitizeFirestoreData(project);
+      await setDoc(projectRef, cleanProject, { merge: true });
     } catch (error) {
       console.error('Error saving project:', error);
       throw error;
@@ -44,7 +45,8 @@ export const projectService = {
   updateProject: async (userId: string, projectId: string, data: Partial<Project>): Promise<void> => {
     try {
       const projectRef = doc(db as Firestore, 'users', userId, 'projects', projectId);
-      await updateDoc(projectRef, data);
+      const cleanData = sanitizeFirestoreData(data);
+      await setDoc(projectRef, cleanData, { merge: true });
     } catch (error) {
       console.error('Error updating project:', error);
       throw error;

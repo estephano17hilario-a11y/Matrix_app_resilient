@@ -1,11 +1,12 @@
-import { doc, runTransaction, increment, db } from "../firebase";
+import { doc, runTransaction, db } from "./firebase";
+import { Transaction } from "firebase/firestore";
 
 export interface StoreItem {
   id: string;
   name: string;
   description: string;
   price: number;
-  category: 'boost' | 'cosmetic' | 'black_market';
+  category: 'power_up' | 'theme' | 'cosmetic' | 'bad_habit';
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference
 }

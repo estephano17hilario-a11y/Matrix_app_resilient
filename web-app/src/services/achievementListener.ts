@@ -1,4 +1,4 @@
-import { db, doc, updateDoc, arrayUnion, increment } from '../firebase';
+import { db, doc, updateDoc, setDoc, arrayUnion, increment } from '../firebase';
 import { UserData } from '../hooks/useMatrixData';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
 
@@ -56,7 +56,7 @@ export const checkAchievements = async (
     try {
       // Optimistic UI handled by the caller (React State), 
       // but we ensure the DB catches up.
-      await updateDoc(userRef, updates);
+      await setDoc(userRef, updates, { merge: true });
       console.log('Achievements Unlocked & Saved:', newAchievements.map(a => a.title));
     } catch (error) {
       console.error('Matrix Database Error (Achievements):', error);

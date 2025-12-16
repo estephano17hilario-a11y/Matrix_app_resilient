@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
 import { AuthScreen } from './modules/auth/AuthScreen';
+import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import Dashboard from './Dashboard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  * LOGIC: Determines the reality the user experiences.
  */
 const AppRoutes = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   
   // 1. INITIALIZATION STATE (The Loading Gate)
   if (isLoading) {
@@ -31,8 +32,18 @@ const AppRoutes = () => {
         >
             <AuthScreen />
         </motion.div>
+      ) : !profile?.onboarding ? (
+        // 3. ONBOARDING GATE (New "Apple Intelligence" Flow)
+        <motion.div
+            key="onboarding"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+        >
+            <OnboardingFlow />
+        </motion.div>
       ) : (
-        // 3. REALITY FORK
+        // 4. REALITY FORK
         <MatrixProvider key="matrix-provider" userId={user.uid}>
           <EconomyProvider>
             <motion.div 

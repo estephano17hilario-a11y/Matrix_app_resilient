@@ -14,7 +14,7 @@ export interface Attribute {
   xp: number;
   maxXp: number;
   color: string;
-  icon: any; // Using any for React.ElementType to avoid strict type issues across files for now
+  icon?: any; // Using any for React.ElementType, optional to avoid persistence issues
 }
 
 export interface Subtask {
@@ -36,6 +36,7 @@ export interface Quest {
   deadline?: string;
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
+  isSmartQuest?: boolean;
 }
 
 export interface Habit {

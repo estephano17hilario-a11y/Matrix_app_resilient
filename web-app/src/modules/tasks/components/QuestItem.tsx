@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2 } from 'lucide-react';
 import { Quest, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
@@ -9,9 +9,10 @@ interface QuestItemProps {
   quest: Quest;
   attribute?: Attribute;
   onComplete: (e: React.MouseEvent, q: Quest) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const Icon = attribute?.icon;
 
@@ -27,6 +28,7 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
   const diffColor = difficultyColors[quest.difficulty] || 'text-slate-400 border-slate-400/20';
   const xp = quest.xpReward;
   const coins = quest.gold || 0;
+  const isSmart = quest.isSmartQuest;
 
   return (
     <motion.div
@@ -36,14 +38,22 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
         "relative rounded-[1.25rem] transition-all duration-300 mb-3 group",
-        expanded ? "z-10 ring-1 ring-white/10" : "hover:bg-white/5"
+        expanded ? "z-10 ring-1 ring-white/10" : "hover:bg-white/5",
+        isSmart && "ring-1 ring-indigo-500/30 shadow-[0_0_15px_-5px_rgba(99,102,241,0.2)]"
       )}
       style={{ 
         padding: '1px', 
-        background: `linear-gradient(145deg, ${attribute?.color || '#333'}20 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` 
+        background: isSmart 
+            ? `linear-gradient(145deg, ${attribute?.color || '#333'}40 0%, rgba(99,102,241,0.1) 40%, transparent 100%)`
+            : `linear-gradient(145deg, ${attribute?.color || '#333'}20 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` 
       }}
     >
       <div className="relative bg-[#121216]/80 backdrop-blur-xl rounded-[1.2rem] overflow-hidden">
+        {isSmart && (
+            <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+                <div className="w-24 h-24 bg-indigo-500/50 blur-[40px] rounded-full" />
+            </div>
+        )}
         <div 
           className="relative z-10 p-4 cursor-pointer" 
           onClick={() => setExpanded(!expanded)}
@@ -55,13 +65,15 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                 "w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 active:scale-90",
                 quest.completed 
                   ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-95" 
-                  : "bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10"
+                  : isSmart 
+                    ? "bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-500/20"
+                    : "bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10"
               )}
             >
               {quest.completed ? (
                 <CheckCircle2 size={20} strokeWidth={3.5} />
               ) : (
-                <div className="w-3 h-3 rounded-full bg-white/20" />
+                <div className={cn("w-3 h-3 rounded-full", isSmart ? "bg-indigo-400/40" : "bg-white/20")} />
               )}
             </button>
             
@@ -73,9 +85,16 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                 )}>
                   {quest.title}
                 </h3>
-                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide", diffColor)}>
-                  {quest.difficulty}
-                </span>
+                <div className="flex items-center gap-2">
+                    {isSmart && (
+                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                            SMART
+                        </span>
+                    )}
+                    <span className={cn("text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide", diffColor)}>
+                      {quest.difficulty}
+                    </span>
+                </div>
               </div>
               
               <div className="flex items-center gap-3">
@@ -88,7 +107,7 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                   </div>
                 )}
                 <AnimatePresence>
-                  {expanded && (
+                  {(expanded || isSmart) && (
                      <motion.div 
                         initial={{ opacity: 0, x: -5 }} 
                         animate={{ opacity: 1, x: 0 }}
@@ -102,6 +121,19 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
               </div>
             </div>
             
+            {/* DELETE BUTTON (Visible on Expand or Hover) - Allowed for all tasks */}
+            {onDelete && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(quest.id); }}
+                    className={cn(
+                        "p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors",
+                        expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
+                >
+                    <Trash2 size={16} />
+                </button>
+            )}
+
             <ChevronDown 
               size={16} 
               className={cn(
@@ -130,8 +162,11 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete }: QuestItem
                   <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} />
 
                   {quest.deadline && (
-                     <div className="text-[10px] text-rose-400 font-mono text-right mt-2">
-                        DUE: {quest.deadline}
+                     <div className={cn(
+                        "text-right mt-2 font-mono",
+                        isSmart ? "text-xs font-bold text-indigo-400" : "text-[10px] text-rose-400"
+                     )}>
+                        {isSmart ? `TARGET: ${quest.deadline}` : `DUE: ${quest.deadline}`}
                      </div>
                   )}
                 </div>

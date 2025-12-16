@@ -38,21 +38,39 @@ if (isConfigValid) {
 
     // C. Initialize Firestore (STANDARD MODE)
     // Reverting to standard persistent cache but with tab manager to handle multiple tabs.
-    // Removing "experimentalForceLongPolling" as it might be causing 400 Bad Request errors.
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager()
-            })
+            }),
+            // Force long polling to avoid "Write/channel" stream aborts
+            experimentalForceLongPolling: true, 
         });
-        console.log("🔥 MATRIX CORE: Firestore connected (Standard Persistence).");
+        console.log("🔥 MATRIX CORE: Firestore connected with Persistence (LongPolling).");
     } catch (e: any) {
-        if (e.code === 'failed-precondition') {
-            db = getFirestore(app);
-            console.log("🔥 MATRIX CORE: Firestore re-connected (HMR).");
+        // Fallback for HMR or environments where persistence fails (e.g., Private Mode)
+        if (e.code === 'failed-precondition' || e.code === 'unimplemented') {
+            console.warn("⚠️ MATRIX CORE: Persistence unavailable, falling back to memory cache.");
+            try {
+                // Try getting existing instance first
+                db = getFirestore(app);
+            } catch {
+                // If that fails, initialize without persistence
+                db = initializeFirestore(app, {
+                    localCache: persistentLocalCache({}) // Try minimal cache or let it default
+                });
+            }
+        } else if (e.message && e.message.includes('already exists')) {
+             db = getFirestore(app);
         } else {
             console.error("🔥 MATRIX CORE: Firestore Init Failed", e);
-            throw e;
+            // Last resort fallback to keep app alive
+            try {
+                 db = getFirestore(app);
+            } catch (finalErr) {
+                 console.error("☠️ FATAL: Could not initialize Firestore.", finalErr);
+                 throw e;
+            }
         }
     }
 

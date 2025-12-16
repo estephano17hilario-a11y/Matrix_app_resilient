@@ -7,9 +7,10 @@ interface TaskListProps {
   quests: Quest[];
   attributes: Attribute[];
   onCompleteQuest: (e: React.MouseEvent, q: Quest) => void;
+  onDeleteQuest?: (id: string) => void;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onCompleteQuest }) => {
+export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onCompleteQuest, onDeleteQuest }) => {
   const activeQuests = quests.filter(q => !q.completed);
   const completedQuests = quests.filter(q => q.completed);
 
@@ -39,6 +40,7 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onComple
               quest={quest} 
               attribute={attributes.find(a => a.id === quest.attribute)} 
               onComplete={onCompleteQuest} 
+              onDelete={onDeleteQuest}
             />
           ))}
           {sortedQuests.length === 0 && (

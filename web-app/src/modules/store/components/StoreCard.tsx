@@ -1,7 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { StoreItem } from '../../../services/economyService';
-import { Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Lock } from 'lucide-react';
+import { 
+  Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Lock, Clock, Code, Smartphone, 
+  Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX, 
+  Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash 
+} from 'lucide-react';
 import clsx from 'clsx';
 
 interface StoreCardProps {
@@ -12,100 +16,87 @@ interface StoreCardProps {
 }
 
 const IconMap: Record<string, React.ElementType> = {
-  Zap, Brain, Palette, User, ShieldAlert, ShoppingBag
+  Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Clock, Code, Smartphone,
+  Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX,
+  Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash
 };
 
-export const StoreCard: React.FC<StoreCardProps> = ({ item, userGold, onPurchase, disabled }) => {
+export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ item, userGold, onPurchase, disabled }, ref) => {
   const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
   const canAfford = userGold >= item.price;
   const isAffordable = canAfford && !disabled;
 
   return (
     <motion.div
+      ref={ref}
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ 
-        opacity: canAfford ? 1 : 0.5, 
+        opacity: canAfford ? 1 : 0.6, 
         scale: 1 
       }}
-      whileHover={isAffordable ? { 
-        scale: 1.02,
-        boxShadow: "0 20px 50px -12px rgba(79, 70, 229, 0.3)" 
-      } : {}}
-      whileTap={isAffordable ? { scale: 0.98 } : {}}
+      whileHover={isAffordable ? { scale: 1.01 } : {}}
+      whileTap={isAffordable ? { scale: 0.99 } : {}}
       className={clsx(
-        "relative flex flex-col p-5 rounded-2xl overflow-hidden transition-all duration-300",
-        // Glassmorphism Base
-        "bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150",
-        "border border-white/10",
-        // Top Highlight (Specular)
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]",
-        // Glow Shadow
-        "shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)]",
-        !canAfford && "grayscale-[0.5]"
+        "relative flex flex-col p-4 rounded-[20px] overflow-hidden transition-all duration-200",
+        // Apple Glassmorphism (Cleaner)
+        "bg-[#1c1c1e]/80 backdrop-blur-xl", // Apple dark system gray
+        "border border-white/5",
+        canAfford ? "shadow-sm" : "grayscale-[0.3] opacity-80"
       )}
     >
-      {/* Background Gradient Blob for Hover Effect */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-
       {/* Header: Icon & Price */}
-      <div className="flex justify-between items-start mb-4 relative z-10">
+      <div className="flex justify-between items-start mb-3">
         <div className={clsx(
-          "p-3 rounded-xl",
-          "bg-white/5 border border-white/10",
-          "text-indigo-400"
+          "p-2.5 rounded-xl flex items-center justify-center",
+          "bg-white/10 text-white"
         )}>
-          <Icon size={24} />
+          <Icon size={20} strokeWidth={2} />
         </div>
-        <div className="flex items-center space-x-1">
+        
+        {/* Price Tag - Minimal */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/20">
           <span className={clsx(
-            "font-mono font-bold text-lg",
-            canAfford ? "text-emerald-400" : "text-rose-400"
+            "font-semibold text-[15px] tracking-tight",
+            canAfford ? "text-white" : "text-red-400"
           )}>
             {item.price}
           </span>
-          <span className="text-xs text-white/40 uppercase font-medium">Gold</span>
+          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Gold</span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 relative z-10">
-        <h3 className="text-lg font-semibold text-white mb-1 tracking-tight">
+      <div className="flex-1 mb-4">
+        <h3 className="text-[17px] font-semibold text-white mb-1 leading-snug tracking-tight">
           {item.name}
         </h3>
-        <p className="text-sm text-white/60 leading-relaxed">
+        <p className="text-[13px] text-white/50 leading-relaxed font-medium">
           {item.description}
         </p>
       </div>
 
-      {/* Action Button */}
+      {/* Action Button - Apple Style */}
       <button
         onClick={() => isAffordable && onPurchase(item)}
         disabled={!isAffordable}
         className={clsx(
-          "mt-5 w-full py-3 rounded-xl font-medium text-sm transition-all relative overflow-hidden group",
+          "w-full py-2.5 rounded-xl font-semibold text-[13px] tracking-wide transition-all active:scale-[0.98]",
           canAfford 
-            ? "bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 text-white hover:text-white border border-white/10 hover:border-white/30"
-            : "bg-white/5 text-white/30 cursor-not-allowed border border-white/5"
+            ? "bg-white text-black hover:bg-white/90"
+            : "bg-white/10 text-white/20 cursor-not-allowed"
         )}
       >
-        <span className="relative z-10 flex items-center justify-center gap-2">
-          {canAfford ? (
-            <>
-              PURCHASE
-            </>
-          ) : (
-            <>
-              <Lock size={14} /> INSUFFICIENT FUNDS
-            </>
-          )}
-        </span>
-        
-        {/* Shimmer Effect on affordable button */}
-        {canAfford && (
-          <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent z-0" />
+        {canAfford ? (
+          "Purchase"
+        ) : (
+          <div className="flex items-center justify-center gap-1.5">
+            <Lock size={12} /> <span>Locked</span>
+          </div>
         )}
       </button>
     </motion.div>
   );
-};
+});
+
+StoreCard.displayName = 'StoreCard';

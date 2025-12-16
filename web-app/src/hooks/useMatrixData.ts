@@ -88,10 +88,13 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
                     if (!isMounted.current) return;
                     console.error("❌ MATRIX UPLINK ERROR:", err);
                     // Silently handle abortions to keep UI clean
-                    if (err.message.includes("Aborted") || err.code === 'unavailable') {
-                         console.warn("⚠️ Retrying connection...");
-                         // Optional: Implement retry logic here if needed
+                    if (err.message.includes("Aborted") || err.code === 'unavailable' || err.code === 'resource-exhausted') {
+                         console.warn("⚠️ MATRIX: Connection unstable (retrying silently)...");
+                    } else if (err.code === 'permission-denied') {
+                        console.error("⛔ MATRIX: Access Denied. Check your Neural Link (Security Rules).");
+                        setError("Access Denied: Neural Link blocked.");
                     } else {
+                        console.error("❌ MATRIX UPLINK ERROR:", err);
                         setError(err.message);
                     }
                     setLoading(false);

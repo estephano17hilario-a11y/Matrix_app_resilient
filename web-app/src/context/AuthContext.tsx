@@ -4,11 +4,11 @@ import {
   onAuthStateChanged,
   doc, 
   getDoc, 
-  setDoc, 
-  updateDoc 
+  setDoc 
 } from '../firebase';
 import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
+import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,13 +27,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+         setProfile(userSnap.data() as UserProfile);
+      }
+    } catch (e) {
+      console.error("Error refreshing profile:", e);
+    }
+  };
+
   const logout = async () => {
     try {
-        await auth.signOut();
-        setUser(null);
-        setProfile(null);
+      await auth.signOut();
+      setUser(null);
+      setProfile(null);
     } catch (error) {
-        console.error("Logout Error:", error);
+      console.error("Logout Error:", error);
     }
   };
 
@@ -63,24 +77,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-          // CASE B: EXISTING USER
+          // CASE B: EXISTING USER (OR SKELETON FROM REGISTRATION)
           const existingProfile = userSnap.data() as UserProfile;
           
-          // TACTICAL UPDATE: lastLoginAt (Non-blocking ideally, but await here for safety)
-          await updateDoc(userRef, {
-            lastLoginAt: Date.now()
-          });
-
-          setProfile({
-            ...existingProfile,
-            lastLoginAt: Date.now()
-          });
+          // HYDRATION CHECK: Ensure critical fields exist
+          // (Fixes race condition where AuthView creates a partial doc with just name/email)
+          if (!existingProfile.stats || !existingProfile.archetype) {
+             console.log("⚠️ MATRIX: Hydrating skeleton user profile...");
+             const completeProfile = {
+                ...existingProfile,
+                stats: existingProfile.stats || DEFAULT_USER_STATS,
+                archetype: existingProfile.archetype || 'NEO',
+                plan: existingProfile.plan || 'FREE',
+                theme: existingProfile.theme || 'MATRIX',
+                createdAt: existingProfile.createdAt || Date.now(),
+                lastLoginAt: Date.now()
+             };
+             
+             // Save the missing pieces
+             await setDoc(userRef, completeProfile, { merge: true });
+             setProfile(completeProfile);
+          } else {
+             // NORMAL LOGIN: Just update timestamp
+             await setDoc(userRef, {
+               lastLoginAt: Date.now()
+             }, { merge: true });
+  
+             setProfile({
+               ...existingProfile,
+               lastLoginAt: Date.now()
+             });
+          }
         } else {
           // CASE A: NEW USER
+          // Fallback for name if null (common in Email/Pass flow before profile update)
+          const fallbackName = currentUser.displayName || currentUser.email?.split('@')[0] || "Operator";
+          
           const newUserProfile: UserProfile = {
             uid: currentUser.uid,
             email: currentUser.email,
-            displayName: currentUser.displayName,
+            displayName: fallbackName,
             photoURL: currentUser.photoURL,
             plan: 'FREE',
             archetype: 'NEO', // Default archetype
@@ -90,7 +126,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             theme: 'MATRIX'
           };
 
-          await setDoc(userRef, newUserProfile);
+          // SANITIZE & SAVE
+          // Use merge: true to be robust against race conditions
+          const cleanProfile = sanitizeFirestoreData(newUserProfile);
+          await setDoc(userRef, cleanProfile, { merge: true });
           setProfile(newUserProfile);
         }
       } catch (err: any) {
@@ -105,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, isLoading, error, logout }}>
+    <AuthContext.Provider value={{ user, profile, isLoading, error, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

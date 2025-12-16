@@ -1,24 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Hexagon, BarChart3 } from 'lucide-react';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { cn } from '../../utils/cn';
 import { TraitRadarChart } from './components/TraitRadarChart';
 import { TRAITS_LIST } from './constants';
-
-interface Attribute {
-  id: string;
-  label: string;
-  level: number;
-  xp: number;
-  maxXp: number;
-  color: string;
-  icon: React.ElementType;
-}
+import { Attribute } from '../../types';
+import { HelpCircle } from 'lucide-react';
 
 interface PlayerHUDProps {
   attributes?: Attribute[];
   className?: string;
+  defaultChartMode?: 'RADAR' | 'BAR';
 }
 
 const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: boolean }) => {
@@ -29,7 +22,7 @@ const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: bo
     const rawPercent = (safeXp / safeMax) * 100;
     const percent = Number.isFinite(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : 0;
     
-    const Icon = attribute.icon;
+    const Icon = attribute.icon || HelpCircle;
     
     return (
         <div className={cn("flex flex-col gap-1", mini ? "w-full" : "w-full")}>
@@ -40,7 +33,10 @@ const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: bo
                     </div>
                     {!mini && <span className="font-medium text-white/80">{attribute.label}</span>}
                 </div>
-                <span className="font-mono text-[10px] opacity-60">Lvl {attribute.level}</span>
+                <div className="flex flex-col items-end leading-none gap-0.5">
+                    <span className="font-mono text-[9px] text-white/50">{safeXp}/{safeMax}</span>
+                    <span className="font-mono text-[10px] opacity-60 font-bold">Lvl {attribute.level}</span>
+                </div>
             </div>
             {!mini && (
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -58,9 +54,15 @@ const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: bo
 
 export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   attributes = [],
-  className
+  className,
+  defaultChartMode = 'RADAR'
 }) => {
-  const [chartMode, setChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
+  const [chartMode, setChartMode] = useState<'RADAR' | 'BAR'>(defaultChartMode);
+
+  useEffect(() => {
+    setChartMode(defaultChartMode);
+  }, [defaultChartMode]);
+
   const orderedAttributes = useMemo(() => {
     const orderMap = new Map(TRAITS_LIST.map((t, index) => [t.id, index] as const));
     return [...attributes].sort((a, b) => {

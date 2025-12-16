@@ -12,26 +12,26 @@ import {
     Trophy,
     Save,
     X,
-    Clock
+    Clock,
+    Trash2,
+    Sparkles,
+    ChevronUp,
+    ChevronDown,
+    LayoutList
 } from 'lucide-react';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '../../../utils/cn';
 import { formatDate } from '../../../utils/dateUtils';
+import { TRAITS_LIST } from '../../dashboard/constants';
 
 interface StrategicMapViewProps {
   project: SmartProject;
   onUpdateProject?: (project: SmartProject) => void;
+  onDeleteProject?: () => void;
+  onDeleteNode?: (nodeId: string) => void;
+  onCreateNew?: () => void; // New prop for creating new smart tasks
 }
-
-const LevelColors: Record<TimeFrame, string> = {
-  YEAR: 'from-amber-500/20 to-orange-600/20 border-amber-500/30 text-amber-400',
-  SEMESTER: 'from-purple-500/20 to-indigo-600/20 border-purple-500/30 text-purple-400',
-  QUARTER: 'from-blue-500/20 to-cyan-600/20 border-blue-500/30 text-blue-400',
-  MONTH: 'from-emerald-500/10 to-teal-600/10 border-emerald-500/20 text-emerald-400',
-  WEEK: 'from-slate-800/50 to-slate-900/50 border-white/10 text-slate-300',
-  DAY: 'bg-transparent border-transparent text-slate-400',
-};
 
 const LevelLabels: Record<TimeFrame, string> = {
     YEAR: 'Año',
@@ -82,12 +82,24 @@ const getPlaceholderTitle = (level: TimeFrame, index: number): string => {
     }
 };
 
-export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onUpdateProject }) => {
+const safeDate = (val: any): Date => {
+    if (!val) return new Date();
+    if (val instanceof Date) return val;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val.seconds) return new Date(val.seconds * 1000);
+    return new Date(val);
+};
+
+export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onUpdateProject, onDeleteProject, onDeleteNode, onCreateNew }) => {
   // Navigation State
   const [path, setPath] = useState<StrategicNode[]>([project.rootNode]);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [isCollapsed, setIsCollapsed] = useState(false); // Collapsed state for content list
   
+  // Get Trait Color
+  const traitColor = project.traitColor || TRAITS_LIST.find(t => t.id === project.traitId)?.color || '#6366f1';
+
   // Safety check
   if (!project || !project.rootNode) {
       return <div className="p-8 text-white/50">No hay datos de estrategia disponibles.</div>;
@@ -169,7 +181,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
     <div className="w-full h-full flex flex-col bg-black/20 font-sans">
         
         {/* --- 1. NAVIGATION HEADER --- */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl z-10">
+        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl z-10 flex items-center justify-between">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar mask-linear-fade">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;
@@ -184,7 +196,10 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                                         : "text-white/40 hover:text-white/80"
                                 )}
                             >
-                                <span className={cn("opacity-70", isLast && "text-indigo-400")}>
+                                <span 
+                                    className={cn("opacity-70")}
+                                    style={{ color: isLast ? traitColor : undefined }}
+                                >
                                     {LevelIcons[node.level] || <Circle size={14}/>}
                                 </span>
                                 <span className={cn(isLast && "font-bold")}>
@@ -198,6 +213,49 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                     );
                 })}
             </div>
+            
+            {onDeleteProject && activeNode.level === 'YEAR' && (
+                <button 
+                    onClick={() => {
+                        if (window.confirm('¿Estás seguro de que quieres eliminar este Plan Inteligente? Se borrarán todas las tareas asociadas.')) {
+                            onDeleteProject();
+                        }
+                    }}
+                    className="ml-4 p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
+                    title="Eliminar Estrategia Completa"
+                >
+                    <Trash2 size={16} />
+                </button>
+            )}
+
+            {onDeleteNode && activeNode.level !== 'YEAR' && (
+                <button 
+                    onClick={() => {
+                        if (window.confirm('¿Eliminar esta sección completa y volver al nivel superior?')) {
+                            onDeleteNode(activeNode.id);
+                            // Navigate up automatically handled by parent update or we can manually go back
+                            if (path.length > 1) {
+                                setPath(path.slice(0, path.length - 1));
+                            }
+                        }
+                    }}
+                    className="ml-4 p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
+                    title="Eliminar Sección Actual"
+                >
+                    <Trash2 size={16} />
+                </button>
+            )}
+
+            {onCreateNew && activeNode.level === 'YEAR' && (
+                <button 
+                    onClick={onCreateNew}
+                    className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    title="Nueva Estrategia"
+                >
+                    <Sparkles size={14} />
+                    <span>Apple Intelligence</span>
+                </button>
+            )}
         </div>
 
         {/* --- 2. MAIN CONTENT AREA --- */}
@@ -215,10 +273,19 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                     >
                         {/* ACTIVE CONTEXT HEADER (Apple Event Style) */}
                         <div className="text-center relative">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-indigo-500/20 blur-[80px] rounded-full pointer-events-none" />
+                            <div 
+                                className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-[80px] rounded-full pointer-events-none transition-colors duration-700"
+                                style={{ backgroundColor: `${traitColor}33` }} 
+                            />
                             
                             <div className="space-y-4 relative z-10">
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] shadow-lg backdrop-blur-md">
+                                <div 
+                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg backdrop-blur-md transition-colors"
+                                    style={{ 
+                                        borderColor: `${traitColor}33`,
+                                        color: traitColor 
+                                    }}
+                                >
                                     {previousNode ? `Dentro de ${previousNode.title}` : 'Estrategia Maestra'}
                                 </div>
                                 
@@ -230,10 +297,15 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                                                 type="text" 
                                                 value={editTitle}
                                                 onChange={(e) => setEditTitle(e.target.value)}
-                                                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-2xl md:text-4xl font-bold text-white text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-2xl md:text-4xl font-bold text-white text-center focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
+                                                style={{ caretColor: traitColor }}
                                                 onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
                                             />
-                                            <button onClick={saveTitle} className="p-3 bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition-colors">
+                                            <button 
+                                                onClick={saveTitle} 
+                                                className="p-3 rounded-xl text-white hover:opacity-90 transition-all"
+                                                style={{ backgroundColor: traitColor }}
+                                            >
                                                 <Save size={20} />
                                             </button>
                                             <button onClick={() => setIsEditing(false)} className="p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition-colors">
@@ -266,88 +338,181 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                         </div>
 
                         {/* CONTENT LIST */}
-                        <div>
-                            {isLeafLevel ? (
-                                <div className="bg-white/5 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl">
-                                    {activeNode.children && activeNode.children.length > 0 ? (
-                                        activeNode.children.map((child) => (
-                                            <div key={child.id} className={cn(
-                                                "p-5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0 group",
-                                            )}>
-                                                <div className="w-6 h-6 rounded-full border-2 border-white/20 flex-shrink-0 group-hover:border-indigo-400 transition-colors" />
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-white/90 truncate font-medium text-lg">{child.title}</div>
-                                                    {child.reward && (
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-xs font-bold text-indigo-400/80 flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                                                                <Trophy size={10} /> {child.reward.xp} XP
-                                                            </span>
+                        <div className="relative">
+                            <div className="flex items-center justify-between mb-4 px-2">
+                                <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-widest">
+                                    <LayoutList size={14} />
+                                    <span>Contenido</span>
+                                </div>
+                                <button 
+                                    onClick={() => setIsCollapsed(!isCollapsed)}
+                                    className="p-2 hover:bg-white/5 rounded-lg text-white/40 hover:text-white transition-colors"
+                                >
+                                    {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {!isCollapsed && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        {isLeafLevel ? (
+                                            <div className="bg-white/5 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl">
+                                                {activeNode.children && activeNode.children.length > 0 ? (
+                                                    activeNode.children.map((child) => (
+                                                        <div key={child.id} className={cn(
+                                                            "p-5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0 group relative overflow-hidden",
+                                                        )}>
+                                                            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none" style={{ backgroundColor: traitColor }} />
+                                                            <div 
+                                                                className="w-6 h-6 rounded-full border-2 border-white/20 flex-shrink-0 transition-colors"
+                                                                style={{ borderColor: 'var(--border-color)' }}
+                                                                // Use a ref or simple style injection for hover effect? 
+                                                                // Tailwind group-hover doesn't work easily with dynamic colors in style. 
+                                                                // We can use a CSS variable.
+                                                            >
+                                                                <style>{`
+                                                                    .group:hover .w-6.h-6.rounded-full {
+                                                                        border-color: ${traitColor} !important;
+                                                                    }
+                                                                `}</style>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 relative z-10">
+                                                                <div className="text-white/90 truncate font-medium text-lg">{child.title}</div>
+                                                                {child.reward && (
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <span 
+                                                                            className="text-xs font-bold flex items-center gap-1 px-2 py-0.5 rounded-full"
+                                                                            style={{ 
+                                                                                color: traitColor,
+                                                                                backgroundColor: `${traitColor}20`
+                                                                            }}
+                                                                        >
+                                                                            <Trophy size={10} /> {child.reward.xp} XP
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {onDeleteNode && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (window.confirm('¿Eliminar esta tarea?')) {
+                                                                            onDeleteNode(child.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all relative z-20"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="p-12 text-center">
-                                            <div className="w-20 h-20 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-6 text-white/20">
-                                                <CheckCircle2 size={40} />
-                                            </div>
-                                            <h3 className="text-white font-medium text-xl">Sin Tareas Aún</h3>
-                                            <p className="text-white/40 mt-2">Añade tareas para ejecutar el plan de este día.</p>
-                                            <button className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-all shadow-lg shadow-white/10">
-                                                Crear Tarea
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-4">
-                                    {displayChildren.map((child) => (
-                                        <button
-                                            key={child.id}
-                                            onClick={() => handleNavigate(child)}
-                                            className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-[1.01]"
-                                        >
-                                            <div className="flex items-center gap-5">
-                                                <div className={cn(
-                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner",
-                                                    child.placeholder 
-                                                        ? "bg-white/5 text-white/20 group-hover:bg-white/10 group-hover:text-white/40" 
-                                                        : cn("bg-gradient-to-br", LevelColors[child.level] || "bg-gray-700")
-                                                )}>
-                                                    {LevelIcons[child.level] || <Circle size={18} />}
-                                                </div>
-                                                <div className="text-left">
-                                                    <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-40 text-white flex items-center gap-2">
-                                                        {LevelLabels[child.level]}
-                                                        {child.startDate && child.dueDate && !child.placeholder && (
-                                                            <span className="flex items-center gap-1 text-white/60">
-                                                                <Clock size={10} />
-                                                                {formatDate(child.startDate.toDate())} - {formatDate(child.dueDate.toDate())}
-                                                            </span>
-                                                        )}
+                                                    ))
+                                                ) : (
+                                                    <div className="p-12 text-center">
+                                                        <div className="w-20 h-20 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-6 text-white/20">
+                                                            <CheckCircle2 size={40} />
+                                                        </div>
+                                                        <h3 className="text-white font-medium text-xl">Sin Tareas Aún</h3>
+                                                        <p className="text-white/40 mt-2">Añade tareas para ejecutar el plan de este día.</p>
+                                                        <button className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-all shadow-lg shadow-white/10">
+                                                            Crear Tarea
+                                                        </button>
                                                     </div>
-                                                    <div className={cn(
-                                                        "text-xl font-semibold transition-colors",
-                                                        child.placeholder ? "text-white/30 italic" : "text-white"
-                                                    )}>
-                                                        {child.title || "Espacio Vacío"}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors">
-                                                {child.placeholder && (
-                                                    <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/5 text-white/40 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-                                                        Crear
-                                                    </span>
                                                 )}
-                                                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                             </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {displayChildren.map((child) => (
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        key={child.id}
+                                                        onClick={() => handleNavigate(child)}
+                                                        className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
+                                                        style={{
+                                                            boxShadow: `0 0 0 1px ${traitColor}10, 0 10px 30px -10px ${traitColor}10`
+                                                        }}
+                                                    >
+                                                        {/* Subtle Trait Glow */}
+                                                        <div 
+                                                            className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
+                                                            style={{ background: `linear-gradient(to right, ${traitColor}20, transparent)` }}
+                                                        />
+
+                                                        <div className="flex items-center gap-5 relative z-10">
+                                                            <div 
+                                                                className={cn(
+                                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner",
+                                                                    child.placeholder 
+                                                                        ? "bg-white/5 text-white/20 group-hover:bg-white/10 group-hover:text-white/40" 
+                                                                        : "text-white"
+                                                                )}
+                                                                style={!child.placeholder ? {
+                                                                    background: `linear-gradient(135deg, ${traitColor}66, ${traitColor}22)`, // Stronger gradient
+                                                                    boxShadow: `0 0 15px ${traitColor}40`
+                                                                } : undefined}
+                                                            >
+                                                                {LevelIcons[child.level] || <Circle size={18} />}
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50 text-white flex items-center gap-2">
+                                                                    <span style={{ color: traitColor }}>{child.level}</span>
+                                                                    {child.startDate && child.dueDate && !child.placeholder && (
+                                                                        <span className="flex items-center gap-1 text-white/60 ml-2">
+                                                                            <Clock size={10} />
+                                                                            {formatDate(safeDate(child.startDate))} - {formatDate(safeDate(child.dueDate))}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className={cn(
+                                                                    "text-lg font-medium transition-colors",
+                                                                    child.placeholder ? "text-white/30 italic" : "text-white/90"
+                                                                )}>
+                                                                    {child.title || "Espacio Vacío"}
+                                                                </div>
+                                                                
+                                                                {/* Deadline specific for leaf nodes or just extra info */}
+                                                                {child.dueDate && !child.placeholder && (
+                                                                    <div className="text-[10px] font-mono text-white/30 mt-1">
+                                                                        DEADLINE: {formatDate(safeDate(child.dueDate))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors relative z-10">
+                                                            {onDeleteNode && !child.placeholder && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (window.confirm('¿Eliminar esta rama y todas sus subtareas?')) {
+                                                                            onDeleteNode(child.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all z-20"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            )}
+                                                            {child.placeholder && (
+                                                                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/5 text-white/40 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                                                    Crear
+                                                                </span>
+                                                            )}
+                                                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </motion.div>
                 </AnimatePresence>

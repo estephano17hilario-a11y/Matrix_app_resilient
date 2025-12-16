@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon } from 'lucide-react';
+import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon, Package, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean }) => {
@@ -17,7 +17,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 layout
                 initial={false}
                 animate={{ 
-                    height: isOpen ? 320 : 70,
+                    height: isOpen ? 410 : 70, // Increased height for new row
                     borderRadius: isOpen ? 32 : 34,
                     width: '88vw',
                     maxWidth: 330
@@ -51,6 +51,15 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Fame</span>
                     </button>
+
+                    {/* NEW ROW */}
+                    <button onClick={() => { handleView('INVENTORY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.1)]"><Package size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Inventory</span>
+                    </button>
+                    <button onClick={() => { handleView('STORE'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Store</span>
+                    </button>
+
                 </div>
                  <div className="absolute bottom-0 left-0 right-0 h-[70px] flex items-center justify-between px-8 z-20">
                      <div className="flex gap-8">

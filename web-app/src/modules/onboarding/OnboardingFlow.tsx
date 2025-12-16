@@ -1,79 +1,190 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Zap, Target, Crown } from 'lucide-react';
+import { ArrowRight, Crown, Target, Zap, Heart, Cloud, Lock, AlertTriangle, Battery, HelpCircle, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
+import { useAuth } from '../../context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { GlassCard } from './components/GlassCard';
 import { SelectionButton } from './components/SelectionButton';
-import { TraitSelector } from './components/TraitSelector';
 
-type Step = 'ambition' | 'traits' | 'completion';
+type Step = 'intro' | 'success' | 'obstacles' | 'tone' | 'saving';
 
-interface OnboardingFlowProps {
-  onComplete: () => void;
-}
-
-export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState<Step>('ambition');
-  const [ambition, setAmbition] = useState<string | null>(null);
-  const [traits, setTraits] = useState<string[]>([]);
+export function OnboardingFlow() {
+  const { user, refreshProfile } = useAuth();
+  const [step, setStep] = useState<Step>('intro');
   
-  // Identity State
-  const codename = 'Neo';
+  const [success, setSuccess] = useState<string>('');
+  const [obstacles, setObstacles] = useState<string[]>([]);
+  const [tone, setTone] = useState<string>('');
 
-  const nextStep = (target: Step) => {
-    setStep(target);
+  const handleNext = () => {
+    if (step === 'intro') setStep('success');
+    else if (step === 'success') setStep('obstacles');
+    else if (step === 'obstacles') setStep('tone');
+    else if (step === 'tone') handleSubmit();
+  };
+
+  const toggleObstacle = (id: string) => {
+    if (obstacles.includes(id)) {
+      setObstacles(obstacles.filter(o => o !== id));
+    } else {
+      if (obstacles.length < 2) {
+        setObstacles([...obstacles, id]);
+      }
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    setStep('saving');
+    
+    try {
+      const userRef = doc(db, "users", user.uid);
+      
+      await updateDoc(userRef, {
+        onboarding: {
+          successDefinition: success,
+          obstacles: obstacles,
+          coachingTone: tone,
+          completedAt: Date.now()
+        }
+      });
+      
+      // Update local state to redirect to dashboard
+      await refreshProfile();
+      
+    } catch (error) {
+      console.error("Error saving onboarding:", error);
+      // Handle error UI if needed
+    }
+  };
+
+  const getStepTitle = () => {
+    switch(step) {
+      case 'success': return "Define Success";
+      case 'obstacles': return "Identify Blockers";
+      case 'tone': return "Select Protocol";
+      default: return "";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch(step) {
+      case 'success': return "What does the peak look like for you?";
+      case 'obstacles': return "What has held you back? (Select up to 2)";
+      case 'tone': return "How should the system communicate with you?";
+      default: return "";
+    }
   };
 
   return (
     <OnboardingLayout>
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full relative h-full">
+        
+        {/* Progress Indicator */}
+        {step !== 'intro' && step !== 'saving' && (
+            <div className="absolute top-0 left-0 right-0 flex justify-between px-2 py-4">
+                <div className={`h-1 flex-1 rounded-full mx-1 transition-colors duration-500 ${step === 'success' ? 'bg-white' : 'bg-white/20'}`} />
+                <div className={`h-1 flex-1 rounded-full mx-1 transition-colors duration-500 ${step === 'obstacles' ? 'bg-white' : 'bg-white/20'}`} />
+                <div className={`h-1 flex-1 rounded-full mx-1 transition-colors duration-500 ${step === 'tone' ? 'bg-white' : 'bg-white/20'}`} />
+            </div>
+        )}
+
         <AnimatePresence mode="wait">
           
-          {/* STEP 4: AMBITION */}
-          {step === 'ambition' && (
-            <GlassCard key="ambition">
-              <div className="mb-8">
-                <h2 className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-3">The Goal</h2>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-3">What do you want?</h1>
-                <p className="text-white/60 text-lg">Define your North Star.</p>
+          {/* STEP 0: INTRO */}
+          {step === 'intro' && (
+            <GlassCard key="intro" className="text-center py-12">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="mb-8 flex justify-center"
+              >
+                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                   <Target className="w-10 h-10 text-white" />
+                </div>
+              </motion.div>
+              
+              <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">System Initialization</h1>
+              <p className="text-white/60 text-lg mb-8 leading-relaxed">
+                To construct your optimal path, the Matrix needs to calibrate to your unique psychological profile.
+              </p>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleNext}
+                className="bg-white text-black px-10 py-4 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all"
+              >
+                Begin Calibration
+              </motion.button>
+            </GlassCard>
+          )}
+
+          {/* STEP 1: SUCCESS */}
+          {step === 'success' && (
+            <GlassCard key="success">
+              <div className="mb-6">
+                <h2 className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-2">{getStepTitle()}</h2>
+                <h1 className="text-2xl font-bold tracking-tight text-white mb-2">{getStepDescription()}</h1>
               </div>
 
-              <div className="flex-1 overflow-y-auto no-scrollbar pr-1 -mr-1 space-y-4 py-2">
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pr-1">
                 <SelectionButton 
-                  selected={ambition === 'freedom'} 
-                  onClick={() => setAmbition('freedom')}
-                  icon={<Crown className="w-7 h-7" />}
-                  subtitle="I want to escape the system."
+                  selected={success === 'freedom'} 
+                  onClick={() => setSuccess('freedom')}
+                  icon={<Crown className="w-6 h-6" />}
+                  subtitle="To wake up every day and do exactly what I want."
                 >
-                  Financial Freedom
+                  Freedom
                 </SelectionButton>
                 
                 <SelectionButton 
-                  selected={ambition === 'legacy'} 
-                  onClick={() => setAmbition('legacy')}
-                  icon={<Target className="w-7 h-7" />}
-                  subtitle="Build something that lasts."
+                  selected={success === 'impact'} 
+                  onClick={() => setSuccess('impact')}
+                  icon={<Target className="w-6 h-6" />}
+                  subtitle="To leave a mark on the world that outlasts me."
                 >
-                  Legacy
+                  Impact
                 </SelectionButton>
                 
                 <SelectionButton 
-                  selected={ambition === 'mastery'} 
-                  onClick={() => setAmbition('mastery')}
-                  icon={<Zap className="w-7 h-7" />}
-                  subtitle="Be the absolute best at my craft."
+                  selected={success === 'mastery'} 
+                  onClick={() => setSuccess('mastery')}
+                  icon={<Zap className="w-6 h-6" />}
+                  subtitle="To reach the absolute peak of my potential."
                 >
                   Mastery
+                </SelectionButton>
+
+                <SelectionButton 
+                  selected={success === 'connection'} 
+                  onClick={() => setSuccess('connection')}
+                  icon={<Heart className="w-6 h-6" />}
+                  subtitle="To build deep, meaningful relationships."
+                >
+                  Connection
+                </SelectionButton>
+
+                <SelectionButton 
+                  selected={success === 'peace'} 
+                  onClick={() => setSuccess('peace')}
+                  icon={<Cloud className="w-6 h-6" />}
+                  subtitle="To find tranquility in a chaotic world."
+                >
+                  Peace
                 </SelectionButton>
               </div>
 
               <div className="mt-8 flex justify-end">
                 <motion.button
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: ambition ? 1 : 0, x: ambition ? 0 : 20 }}
-                  disabled={!ambition}
-                  onClick={() => nextStep('traits')}
-                  className="bg-white text-black px-8 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 disabled:pointer-events-none shadow-lg shadow-white/10"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: success ? 1 : 0.5 }}
+                  disabled={!success}
+                  onClick={handleNext}
+                  className="bg-white text-black px-6 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next <ArrowRight className="w-5 h-5" />
                 </motion.button>
@@ -81,70 +192,131 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </GlassCard>
           )}
 
-          {/* STEP 5: TRAITS */}
-          {step === 'traits' && (
+          {/* STEP 2: OBSTACLES */}
+          {step === 'obstacles' && (
+            <GlassCard key="obstacles">
+              <div className="mb-6">
+                <h2 className="text-xs font-bold text-red-400 uppercase tracking-[0.2em] mb-2">{getStepTitle()}</h2>
+                <h1 className="text-2xl font-bold tracking-tight text-white mb-2">{getStepDescription()}</h1>
+              </div>
+
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pr-1">
+                {[
+                  { id: 'procrastination', label: 'Procrastination', sub: 'Lack of discipline' },
+                  { id: 'fear', label: 'Fear', sub: 'Fear of failure / Perfectionism' },
+                  { id: 'clarity', label: 'Confusion', sub: 'Lack of clarity / Direction' },
+                  { id: 'distractions', label: 'Distraction', sub: 'Social Media / Dopamine' },
+                  { id: 'burnout', label: 'Burnout', sub: 'Low energy / Exhaustion' },
+                  { id: 'doubt', label: 'Self-Doubt', sub: 'Imposter Syndrome' }
+                ].map((item) => (
+                    <SelectionButton 
+                        key={item.id}
+                        selected={obstacles.includes(item.id)} 
+                        onClick={() => toggleObstacle(item.id)}
+                        icon={<Lock className="w-6 h-6" />}
+                        subtitle={item.sub}
+                    >
+                        {item.label}
+                    </SelectionButton>
+                ))}
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: obstacles.length > 0 ? 1 : 0.5 }}
+                  disabled={obstacles.length === 0}
+                  onClick={handleNext}
+                  className="bg-white text-black px-6 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next <ArrowRight className="w-5 h-5" />
+                </motion.button>
+              </div>
+            </GlassCard>
+          )}
+
+          {/* STEP 3: TONE */}
+          {step === 'tone' && (
+            <GlassCard key="tone">
+              <div className="mb-6">
+                <h2 className="text-xs font-bold text-purple-400 uppercase tracking-[0.2em] mb-2">{getStepTitle()}</h2>
+                <h1 className="text-2xl font-bold tracking-tight text-white mb-2">{getStepDescription()}</h1>
+              </div>
+
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pr-1">
+                <SelectionButton 
+                  selected={tone === 'raw'} 
+                  onClick={() => setTone('raw')}
+                  icon={<AlertTriangle className="w-6 h-6" />}
+                  subtitle="Ruthless accountability. No excuses."
+                >
+                  Raw / David Goggins
+                </SelectionButton>
+                
+                <SelectionButton 
+                  selected={tone === 'empowered'} 
+                  onClick={() => setTone('empowered')}
+                  icon={<Battery className="w-6 h-6" />}
+                  subtitle="Gentle but firm growth. Balanced energy."
+                >
+                  Empowered / Pilates
+                </SelectionButton>
+                
+                <SelectionButton 
+                  selected={tone === 'analytical'} 
+                  onClick={() => setTone('analytical')}
+                  icon={<HelpCircle className="w-6 h-6" />}
+                  subtitle="Data-driven logic and strategy."
+                >
+                  Analytical / Professor
+                </SelectionButton>
+
+                <SelectionButton 
+                  selected={tone === 'stoic'} 
+                  onClick={() => setTone('stoic')}
+                  icon={<Target className="w-6 h-6" />}
+                  subtitle="Calm, rational discipline."
+                >
+                  Stoic / Emperor
+                </SelectionButton>
+
+                <SelectionButton 
+                  selected={tone === 'friend'} 
+                  onClick={() => setTone('friend')}
+                  icon={<MessageSquare className="w-6 h-6" />}
+                  subtitle="Supportive and encouraging sidekick."
+                >
+                  Best Friend
+                </SelectionButton>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: tone ? 1 : 0.5 }}
+                  disabled={!tone}
+                  onClick={handleNext}
+                  className="bg-white text-black px-6 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Finish <CheckCircle2 className="w-5 h-5" />
+                </motion.button>
+              </div>
+            </GlassCard>
+          )}
+
+          {/* LOADING STATE */}
+          {step === 'saving' && (
             <motion.div
-              key="traits"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="h-full flex flex-col justify-center"
+                key="saving"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center h-64"
             >
-              <TraitSelector 
-                onNext={(selected) => {
-                  setTraits(selected);
-                  nextStep('completion');
-                }} 
-              />
+                <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-6" />
+                <h2 className="text-xl font-bold text-white">Configuring Reality...</h2>
             </motion.div>
           )}
 
-          {/* STEP 6: COMPLETION */}
-          {step === 'completion' && (
-            <GlassCard key="completion" className="text-center py-12 flex flex-col items-center">
-               <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", duration: 1 }}
-                className="mb-8"
-              >
-                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(52,211,153,0.5)]">
-                   <Zap className="text-white w-12 h-12 fill-current" />
-                </div>
-              </motion.div>
-
-              <h1 className="text-4xl font-bold tracking-tight text-white mb-6">
-                Welcome, <span className="matrix-gradient-text">{codename}</span>.
-              </h1>
-              
-              <div className="space-y-4 mb-10 text-left w-full bg-white/5 p-6 rounded-2xl border border-white/10">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <span className="text-white/40 text-sm font-medium">PROTOCOL</span>
-                  <span className="text-white font-bold tracking-widest text-sm">MATRIX-V1</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/40 text-sm font-medium">MISSION</span>
-                  <span className="text-white font-bold capitalize">{ambition}</span>
-                </div>
-                <div className="pt-3 mt-3 border-t border-white/10 flex flex-wrap gap-2">
-                  {traits.map(trait => (
-                     <span key={trait} className="text-[10px] font-bold px-2 py-1 rounded-md bg-white/10 text-white/80 uppercase tracking-wider border border-white/5">
-                       {trait}
-                     </span>
-                  ))}
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onComplete}
-                className="w-full py-4 bg-white text-black font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.3)] matrix-border-glow"
-              >
-                Initialize Protocol
-              </motion.button>
-            </GlassCard>
-          )}
         </AnimatePresence>
       </div>
     </OnboardingLayout>

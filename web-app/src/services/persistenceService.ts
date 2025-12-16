@@ -3,14 +3,12 @@ import {
   doc, 
   getDocs, 
   setDoc, 
-  updateDoc, 
   deleteDoc,
-  Firestore,
-  query,
-  where
+  Firestore
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Quest, Habit, Note, JournalEntry, Attribute } from '../types';
+import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 // Generic helper for subcollection CRUD
 const createSubCollectionService = <T extends { id: string }>(collectionName: string) => ({
@@ -25,20 +23,24 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
     }
   },
   
+  // SAVE = UPSERT (Create or Merge)
   save: async (userId: string, item: T): Promise<void> => {
     try {
       const ref = doc(db as Firestore, 'users', userId, collectionName, item.id);
-      await setDoc(ref, item);
+      const cleanItem = sanitizeFirestoreData(item);
+      await setDoc(ref, cleanItem, { merge: true });
     } catch (error) {
       console.error(`Error saving ${collectionName}:`, error);
       throw error;
     }
   },
 
+  // UPDATE = UPSERT (Create or Merge)
   update: async (userId: string, itemId: string, data: Partial<T>): Promise<void> => {
     try {
       const ref = doc(db as Firestore, 'users', userId, collectionName, itemId);
-      await updateDoc(ref, data);
+      const cleanData = sanitizeFirestoreData(data);
+      await setDoc(ref, cleanData, { merge: true });
     } catch (error) {
       console.error(`Error updating ${collectionName}:`, error);
       throw error;
@@ -83,6 +85,8 @@ export const habitService = createSubCollectionService<Habit>('habits');
 export const noteService = createSubCollectionService<Note>('notes');
 export const journalService = createSubCollectionService<JournalEntry>('journal');
 export const attributeService = createSubCollectionService<Attribute>('attributes');
+// New: Smart Projects
+export const smartProjectService = createSubCollectionService<any>('smartProjects');
 
 export const persistenceService = {
   quests: questService,
@@ -90,5 +94,6 @@ export const persistenceService = {
   notes: noteService,
   journal: journalService,
   attributes: attributeService,
+  smartProjects: smartProjectService,
   settings: settingsService
 };

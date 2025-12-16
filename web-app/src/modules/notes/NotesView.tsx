@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock } from 'lucide-react';
 import { Note, JournalEntry, NoteBlock, Project } from '../../types';
 import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
@@ -42,6 +42,7 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [showStats, setShowStats] = useState(false);
     const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
+    const [moodSplash, setMoodSplash] = useState<string | null>(null);
     const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
 
     const openNote = useCallback((note: Note) => { 
@@ -128,10 +129,28 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
                                 const entry = journalEntries.find((e) => e.date === dateStr);
                                 const mood = MOODS.find(m => m.id === entry?.mood);
                                 const isToday = toLocalISOString(new Date()) === dateStr;
+                                
+                                const today = new Date();
+                                today.setHours(0,0,0,0);
+                                const checkDate = new Date(date);
+                                checkDate.setHours(0,0,0,0);
+                                const isFuture = checkDate > today;
+
                                 return (
-                                    <button key={day} onClick={() => openJournal(date)} className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-all active:scale-90 group overflow-hidden border ${isToday ? 'bg-white/10 border-white/20 shadow-lg ring-1 ring-white/20' : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'}`}>
+                                    <button 
+                                        key={day} 
+                                        onClick={() => !isFuture && openJournal(date)} 
+                                        disabled={isFuture}
+                                        className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-all active:scale-90 group overflow-hidden border ${isToday ? 'bg-white/10 border-white/20 shadow-lg ring-1 ring-white/20' : 'bg-black/20 border-white/5'} ${!isFuture ? 'hover:bg-white/5 hover:border-white/10' : 'opacity-30 cursor-not-allowed'}`}
+                                    >
                                         {mood && <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-transparent to-current transition-opacity" style={{ color: mood.color }} />}
-                                        <div className="flex-1 flex items-center justify-center z-10 w-full">{mood ? <span className="text-2xl filter drop-shadow-lg group-hover:scale-125 transition-transform duration-300">{mood.icon}</span> : null}</div>
+                                        <div className="flex-1 flex items-center justify-center z-10 w-full">
+                                            {mood ? (
+                                                <span className="text-2xl filter drop-shadow-lg group-hover:scale-125 transition-transform duration-300">{mood.icon}</span>
+                                            ) : isFuture ? (
+                                                <Lock size={16} className="text-white/20" />
+                                            ) : null}
+                                        </div>
                                         <div className="w-full flex justify-end z-10 absolute bottom-2 right-2"><span className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-white/30 group-hover:text-white/80'}`}>{day}</span></div>
                                     </button>
                                 )
@@ -177,7 +196,7 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
                                             <span className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">{draftDate.toLocaleDateString('en-US', { weekday: 'long' })}</span>
                                             <h2 className="text-5xl font-black text-white mt-1 tracking-tighter leading-none mb-4">{draftDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}</h2>
                                             <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
-                                                {MOODS.map(m => ( <button key={m.id} onClick={() => setDraftMood(m.id)} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-all ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-lg ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
+                                                {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-all ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-lg ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
                                             </div>
                                         </div>
                                         <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
@@ -190,6 +209,30 @@ export const NotesView = React.memo(({ notes, onUpdateNote, onDeleteNote, journa
                 )}
             </div>
             <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
+            
+            {/* Mood Splash Animation */}
+            {moodSplash && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+                     <span 
+                        className="text-[200px] select-none"
+                        style={{
+                            animation: 'mood-splash 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards'
+                        }}
+                        onAnimationEnd={() => setMoodSplash(null)}
+                     >
+                        {MOODS.find(m => m.id === moodSplash)?.icon}
+                     </span>
+                     <style>
+                        {`
+                            @keyframes mood-splash {
+                                0% { opacity: 0; transform: scale(0.5) translateY(20px); filter: blur(10px); }
+                                40% { opacity: 0.6; transform: scale(1.2); filter: blur(0px); }
+                                100% { opacity: 0; transform: scale(1.5); filter: blur(20px); }
+                            }
+                        `}
+                     </style>
+                </div>
+            )}
         </div>
     );
 });

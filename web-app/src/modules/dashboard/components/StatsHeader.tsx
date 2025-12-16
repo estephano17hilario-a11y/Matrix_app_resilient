@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import { Settings, ToggleLeft, ToggleRight, ShoppingBag, Palette, LogOut } from 'lucide-react';
-import { THEMES } from '../constants';
+import React from 'react';
+import { Settings, ShoppingBag, Crown } from 'lucide-react';
 import { AvatarWidget } from './AvatarWidget';
-import { useAuth } from '../../../context/AuthContext';
 
 interface StatsHeaderProps {
   level: number;
@@ -10,29 +8,19 @@ interface StatsHeaderProps {
   nextXp: number;
   health: number;
   streak: number;
-  theme: string;
-  onThemeToggle: (t: string) => void;
   isHidden: boolean;
   showProfile: boolean;
-  onToggleProfile: (v: boolean) => void;
   hideAvatar?: boolean;
   onShowStore: () => void;
+  onShowPro?: () => void;
+  onShowSettings?: () => void;
   displayName?: string | null;
   email?: string | null;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, theme, onThemeToggle, isHidden, showProfile, onToggleProfile, hideAvatar, onShowStore, displayName, email }: StatsHeaderProps) => {
-  const { logout } = useAuth();
-  const [isPickerOpen, setPickerOpen] = useState(false);
-  const [isSettingsOpen, setSettingsOpen] = useState(false);
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHidden, showProfile, hideAvatar, onShowStore, onShowPro, onShowSettings, displayName, email }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
-
-  const handleLogout = async () => {
-      // Optional: Add visual feedback here if needed (e.g. toast)
-      await logout();
-      setSettingsOpen(false);
-  };
 
   return (
     <header className={`flex justify-between items-center z-50 relative ${
@@ -49,50 +37,23 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, them
         
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-3 pointer-events-auto">
-             {/* Settings Button - MOVED HERE */}
+             {/* PRO Button */}
+             <button onClick={onShowPro} className="w-10 h-10 rounded-full border border-yellow-500/20 flex items-center justify-center transition-all bg-gradient-to-br from-yellow-500/10 to-amber-500/10 text-yellow-500 hover:text-yellow-400 hover:border-yellow-500/50 hover:shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] active:scale-95 group relative overflow-hidden">
+                <div className="absolute inset-0 bg-yellow-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <Crown size={18} className="group-hover:scale-110 transition-transform relative z-10" />
+            </button>
+
+             {/* Settings Button - Updated to trigger view */}
              <div className="relative">
-                <button onClick={() => setSettingsOpen(!isSettingsOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isSettingsOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}>
+                <button onClick={onShowSettings} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10`}>
                     <Settings size={18} />
                 </button>
-                {/* Settings Menu */}
-                {isSettingsOpen && (
-                    <div className="absolute right-0 top-12 p-3 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-2xl flex flex-col gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60] min-w-[200px]">
-                        <div className="flex items-center justify-between gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer" onClick={() => { onToggleProfile(!showProfile); }}>
-                            <span className="text-xs font-bold text-white uppercase tracking-wider">Show Profile</span>
-                            {showProfile ? <ToggleRight size={20} className="text-green-400" /> : <ToggleLeft size={20} className="text-slate-500" />}
-                        </div>
-                        
-                        <div className="h-px bg-white/10 my-1" />
-
-                        <button 
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 p-2 hover:bg-red-500/10 hover:text-red-400 rounded-xl cursor-pointer transition-colors w-full text-left group"
-                        >
-                            <LogOut size={16} className="text-slate-500 group-hover:text-red-400 transition-colors" />
-                            <span className="text-xs font-bold text-slate-400 group-hover:text-red-400 uppercase tracking-wider">Disconnect</span>
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Store Button */}
             <button onClick={onShowStore} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 group">
                 <ShoppingBag size={18} className="group-hover:text-yellow-400 transition-colors" />
             </button>
-
-            {/* Theme Picker */}
-            <div className="relative">
-                <button onClick={() => setPickerOpen(!isPickerOpen)} className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all ${isPickerOpen ? 'bg-white text-black scale-110' : 'bg-white/5 text-slate-400 hover:text-white'}`}><Palette size={18} /></button>
-                {isPickerOpen && (
-                    <div className="absolute right-0 top-12 p-2 bg-[#121216]/90 backdrop-blur-2xl border border-white/10 rounded-[1.5rem] flex gap-2 animate-in zoom-in-95 slide-in-from-top-2 shadow-2xl z-[60]">
-                        {Object.entries(THEMES).map(([key, t]) => (
-                            <button key={key} onClick={() => { onThemeToggle(key); setPickerOpen(false); }} className="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-all shadow-lg relative" style={{ background: t.accent, borderColor: theme === key ? 'white' : 'transparent' }}>
-                                {theme === key && <div className="absolute inset-0 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full" /></div>}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
         </div>
     </header>
   );

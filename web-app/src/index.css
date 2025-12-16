@@ -43,6 +43,102 @@
     --color-glass-tint: 200 200 200;
     --color-text-primary: 255 255 255;
   }
+
+  [data-theme='apple'] {
+    --color-bg-depth: 20 20 22;
+    --color-primary-glow: 255 255 255;
+    --color-secondary-glow: 0 122 255;
+    --color-glass-tint: 255 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='apple_intelligence'] {
+    --color-bg-depth: 10 10 20;
+    --color-primary-glow: 0 198 255;
+    --color-secondary-glow: 255 59 154;
+    --color-glass-tint: 200 200 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='revolut'] {
+    --color-bg-depth: 10 10 10;
+    --color-primary-glow: 255 255 255;
+    --color-secondary-glow: 64 120 240;
+    --color-glass-tint: 255 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='cupertino'] {
+    --color-bg-depth: 0 30 50;
+    --color-primary-glow: 0 200 255;
+    --color-secondary-glow: 255 0 100;
+    --color-glass-tint: 200 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='vision_pro'] {
+    --color-bg-depth: 10 10 15;
+    --color-primary-glow: 50 150 255;
+    --color-secondary-glow: 255 100 150;
+    --color-glass-tint: 255 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='glassmorphism_premium'] {
+    --color-bg-depth: 30 30 40;
+    --color-primary-glow: 255 255 255;
+    --color-secondary-glow: 200 200 255;
+    --color-glass-tint: 255 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='cristales'] {
+    --color-bg-depth: 20 20 30;
+    --color-primary-glow: 0 255 255;
+    --color-secondary-glow: 255 0 255;
+    --color-glass-tint: 200 255 255;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='liquid_glass'] {
+    --color-bg-depth: 15 20 25;
+    --color-primary-glow: 100 200 255;
+    --color-secondary-glow: 100 200 255;
+    --color-glass-tint: 200 240 255;
+    --color-text-primary: 240 250 255;
+  }
+
+  [data-theme='neon'] {
+    --color-bg-depth: 5 5 10;
+    --color-primary-glow: 255 0 100;
+    --color-secondary-glow: 0 255 200;
+    --color-glass-tint: 255 100 200;
+    --color-text-primary: 255 255 255;
+  }
+
+  [data-theme='enterprise'] {
+    --color-bg-depth: 10 15 30;
+    --color-primary-glow: 50 100 200;
+    --color-secondary-glow: 100 150 200;
+    --color-glass-tint: 200 220 255;
+    --color-text-primary: 240 245 255;
+  }
+
+  [data-theme='dorado'] {
+    --color-bg-depth: 20 15 5;
+    --color-primary-glow: 255 215 0;
+    --color-secondary-glow: 218 165 32;
+    --color-glass-tint: 255 230 150;
+    --color-text-primary: 255 240 200;
+  }
+
+  [data-theme='serio'] {
+    --color-bg-depth: 0 0 0;
+    --color-primary-glow: 128 128 128;
+    --color-secondary-glow: 64 64 64;
+    --color-glass-tint: 150 150 150;
+    --color-text-primary: 255 255 255;
+  }
   
   html, body {
     height: 100%;

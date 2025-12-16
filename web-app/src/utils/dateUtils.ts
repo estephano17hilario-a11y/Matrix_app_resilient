@@ -196,6 +196,10 @@ export const calculateStreak = (entries: { date: string }[]): number => {
     return streak;
 };
 
-export const getDaysInMonth = (date: Date): number => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+export const getDaysInMonth = (date: Date): { days: number, firstDay: number } => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    return { days, firstDay };
 };

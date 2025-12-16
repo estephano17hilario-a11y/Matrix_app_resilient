@@ -1,62 +1,118 @@
 import { getStartOfWeek } from './dateUtils';
+import { Project, Session } from '../types';
 
-const pseudoRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-export const generateFocusData = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR', contextId: string = 'global') => {
-  const contextSeed = contextId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseSeed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + contextSeed;
-  
+export const generateFocusData = (
+    projects: Project[],
+    date: Date, 
+    range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR', 
+    contextId: string = 'GLOBAL'
+) => {
   const data: number[] = [];
   const labels: string[] = [];
   let max = 0;
-  let totalHours = 0;
+  let totalMinutes = 0;
 
-  if (range === 'DAY') {
-    for (let i = 0; i <= 22; i += 2) { 
-        const seed = baseSeed + date.getDate() * 100 + i;
-        const timeBias = (i > 8 && i < 18) ? 1.5 : 0.5;
-        const val = Math.floor(pseudoRandom(seed) * 60 * timeBias); 
-        data.push(val);
-        labels.push(`${i}h`);
-        if(val > max) max = val;
-        totalHours += val;
-    }
-  } else if (range === 'WEEK') {
-    const start = getStartOfWeek(date);
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        const daySeed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() + contextSeed;
-        const val = Math.floor(pseudoRandom(daySeed) * 8 * 60); 
-        data.push(val);
-        labels.push(days[i]);
-        if(val > max) max = val;
-        totalHours += val;
-    }
-  } else if (range === 'MONTH') {
-    const month = date.getMonth();
-    for (let i = 1; i <= 4; i++) { 
-        const weekSeed = baseSeed + month * 100 + i;
-        const val = Math.floor(pseudoRandom(weekSeed) * 40 * 60);
-        data.push(val);
-        labels.push(`W${i}`);
-        if(val > max) max = val;
-        totalHours += val;
-    }
-  } else { 
-     const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
-     for(let i=0; i<12; i++){
-         const mSeed = baseSeed + (i + 1) * 50;
-         const val = Math.floor(pseudoRandom(mSeed) * 150 * 60); 
-         data.push(val);
-         labels.push(months[i]);
-         if(val > max) max = val;
-         totalHours += val;
+  // 1. Filter relevant sessions
+  const sessions: Session[] = [];
+  projects.forEach(p => {
+     if (contextId === 'GLOBAL' || p.id === contextId || p.attribute === contextId) {
+         if (p.sessions) {
+             sessions.push(...p.sessions);
+         }
      }
+  });
+
+  // 2. Aggregate based on range
+  if (range === 'DAY') {
+    // 0-23 hours, aggregated in 2-hour blocks to match original UI
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23,59,59,999);
+
+    const buckets = new Array(12).fill(0);
+    for (let i = 0; i <= 22; i += 2) {
+       labels.push(`${i}h`);
+    }
+
+    sessions.forEach(s => {
+        const sDate = new Date(s.date);
+        if (sDate >= startOfDay && sDate <= endOfDay) {
+            const hour = sDate.getHours();
+            // Map 0-1 -> index 0 (0h), 2-3 -> index 1 (2h)
+            const index = Math.floor(hour / 2);
+            if (index < 12) {
+                buckets[index] += Math.floor(s.duration / 60);
+            }
+        }
+    });
+    
+    data.push(...buckets);
+
+  } else if (range === 'WEEK') {
+      const start = getStartOfWeek(date);
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const buckets = new Array(7).fill(0);
+      labels.push(...days);
+      
+      // Calculate end of week (Start + 7 days)
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+
+      sessions.forEach(s => {
+          const sDate = new Date(s.date);
+          if (sDate >= start && sDate < end) {
+              const diffTime = sDate.getTime() - start.getTime();
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+              if (diffDays >= 0 && diffDays < 7) {
+                  buckets[diffDays] += Math.floor(s.duration / 60);
+              }
+          }
+      });
+      data.push(...buckets);
+
+  } else if (range === 'MONTH') {
+      const month = date.getMonth();
+      const year = date.getFullYear();
+      
+      // We'll use 5 weeks to cover all days
+      labels.push('W1', 'W2', 'W3', 'W4', 'W5');
+      const buckets = new Array(5).fill(0);
+
+      sessions.forEach(s => {
+          const sDate = new Date(s.date);
+          if (sDate.getMonth() === month && sDate.getFullYear() === year) {
+              const day = sDate.getDate();
+              // Simple week calc: 1-7 -> W1 (0), 8-14 -> W2 (1)...
+              const weekIndex = Math.floor((day - 1) / 7);
+              if (weekIndex < 5) buckets[weekIndex] += Math.floor(s.duration / 60);
+              else buckets[4] += Math.floor(s.duration / 60); 
+          }
+      });
+      data.push(...buckets);
+
+  } else if (range === 'YEAR') {
+      const year = date.getFullYear();
+      const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+      labels.push(...months);
+      const buckets = new Array(12).fill(0);
+      
+      sessions.forEach(s => {
+          const sDate = new Date(s.date);
+          if (sDate.getFullYear() === year) {
+              buckets[sDate.getMonth()] += Math.floor(s.duration / 60);
+          }
+      });
+      data.push(...buckets);
   }
-  return { data, labels, max: max || 1, totalHours: (totalHours / 60).toFixed(1) };
+
+  max = Math.max(...data, 1);
+  totalMinutes = data.reduce((a, b) => a + b, 0);
+
+  return { 
+      data, 
+      labels, 
+      max, 
+      totalHours: (totalMinutes / 60).toFixed(1) 
+  };
 };

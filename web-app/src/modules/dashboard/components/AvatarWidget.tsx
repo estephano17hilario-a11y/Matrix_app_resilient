@@ -50,7 +50,7 @@ const MiniLiquidBar = ({
   const theme = themes[color];
 
   return (
-    <div className="flex items-center gap-2 w-28">
+    <div className="flex items-center gap-2 w-40">
         <Icon size={10} className={theme.iconColor} />
         <div className={`h-1.5 flex-1 ${theme.bg} rounded-full overflow-hidden relative shadow-inner`}>
              <motion.div 
@@ -59,6 +59,7 @@ const MiniLiquidBar = ({
                 className={`h-full absolute left-0 top-0 rounded-full bg-gradient-to-r ${theme.gradient}`}
              />
         </div>
+        <span className="text-[9px] font-mono text-white/50 w-[45px] text-right tabular-nums">{safeValue}/{safeMax}</span>
     </div>
   );
 };

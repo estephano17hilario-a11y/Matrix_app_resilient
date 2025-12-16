@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useMatrix } from '../../context/MatrixContext';
 import { EconomyProvider, useEconomy } from '../../context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
 import { AdShard } from './components/AdShard';
-import { Coins, Zap, Sparkles, Ghost, ShoppingBag } from 'lucide-react';
+import { Coins, Zap, Palette, Sparkles, Ghost, ShoppingBag } from 'lucide-react';
 import clsx from 'clsx';
 
 // --- COMPONENTS ---
@@ -28,64 +28,67 @@ const GoldCounter = ({ value }: { value: number }) => {
 const StoreContent = () => {
   const { user } = useMatrix();
   const { purchase, watchAd, storeItems, isTransactionPending } = useEconomy();
-  const [activeTab, setActiveTab] = useState<'boost' | 'cosmetic' | 'black_market'>('boost');
+  const [activeTab, setActiveTab] = useState<'power_up' | 'theme' | 'cosmetic' | 'bad_habit'>('power_up');
 
   // Filter items
   const items = storeItems.filter(item => item.category === activeTab);
 
-  return (
-    <div className="min-h-screen bg-[#020204] text-white pb-20 relative overflow-hidden">
-       {/* Background Ambience (The Aurora System) */}
-       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[100px] animate-pulse-slow delay-1000" />
-      </div>
+  const tabs = [
+    { id: 'power_up', label: 'Power Up', icon: Zap },
+    { id: 'theme', label: 'Themes', icon: Palette },
+    { id: 'cosmetic', label: 'Cosmetics', icon: Sparkles },
+    { id: 'bad_habit', label: 'Bad Habits', icon: Ghost },
+  ] as const;
 
-      <div className="relative z-10 max-w-md mx-auto px-4 pt-6">
+  return (
+    <div className="min-h-screen bg-black text-white pb-32 relative overflow-hidden">
+       {/* Subtle Background - Apple Style (Very Dark Grey/Black) */}
+       <div className="fixed inset-0 bg-[#000000]" />
+       
+       {/* Minimal Ambient Glow (Very subtle) */}
+       <div className="fixed top-0 left-0 right-0 h-96 bg-indigo-500/5 blur-[100px] pointer-events-none" />
+
+      <div className="relative z-10 max-w-lg mx-auto px-4 pt-6">
         
-        {/* Sticky Header */}
+        {/* Header - Minimal & Clean */}
         <div className="sticky top-4 z-50 mb-8">
-            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-lg border border-white/5" />
-            <div className="relative flex justify-between items-center p-4">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-                        <ShoppingBag size={20} />
-                    </div>
-                    <span className="font-semibold text-lg tracking-tight">Matrix Armory</span>
+            <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
+            <div className="relative flex justify-between items-center px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-[22px] font-semibold tracking-tight text-white">Store</h1>
                 </div>
 
-                <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10">
-                    <Coins className="text-yellow-500" size={16} />
-                    <span className="font-mono font-bold text-yellow-400 text-lg">
+                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/5">
+                    <Coins className="text-yellow-400" size={16} fill="currentColor" />
+                    <span className="font-semibold text-white text-[15px]">
                         <GoldCounter value={user?.stats?.gold || 0} />
                     </span>
                 </div>
             </div>
         </div>
 
-        {/* Tabs (iOS Segmented Control) */}
-        <div className="flex bg-gray-800/50 p-1 rounded-xl mb-8 backdrop-blur-md border border-white/5 relative">
-          {(['boost', 'cosmetic', 'black_market'] as const).map((tab) => (
+        {/* Apple-style Segmented Control */}
+        <div className="flex bg-[#1c1c1e] p-1 rounded-xl mb-6 border border-white/5">
+          {tabs.map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className="flex-1 relative py-2 text-sm font-medium z-10 transition-colors duration-200"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex-1 relative py-2 text-[13px] font-medium z-10 transition-all duration-200"
             >
-              {activeTab === tab && (
+              {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-white/10 rounded-lg shadow-sm border border-white/10"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="absolute inset-0 bg-[#3a3a3c] rounded-[9px] shadow-sm"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
               <span className={clsx(
-                "flex items-center justify-center gap-2 relative",
-                activeTab === tab ? "text-white" : "text-white/40"
+                "flex items-center justify-center gap-1.5 relative transition-colors duration-200",
+                activeTab === tab.id ? "text-white" : "text-white/40 hover:text-white/60"
               )}>
-                {tab === 'boost' && <Zap size={14} />}
-                {tab === 'cosmetic' && <Sparkles size={14} />}
-                {tab === 'black_market' && <Ghost size={14} />}
-                <span className="capitalize">{tab.replace('_', ' ')}</span>
+                {/* Icons are optional in segmented controls, maybe just text is cleaner? Keeping small icons for now. */}
+                <tab.icon size={14} />
+                <span className="capitalize">{tab.label}</span>
               </span>
             </button>
           ))}
@@ -94,17 +97,17 @@ const StoreContent = () => {
         {/* Grid */}
         <motion.div 
             layout
-            className="grid grid-cols-1 gap-4"
+            className="grid grid-cols-1 gap-3"
         >
             <AnimatePresence mode='popLayout'>
-                {/* Ad Shard - Only in Boosts or always first? Let's put in Boosts */}
-                {activeTab === 'boost' && (
+                {/* Ad Shard - Only in Power Up */}
+                {activeTab === 'power_up' && (
                     <motion.div
                         layout
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
                     >
                         <AdShard onWatch={watchAd} />
                     </motion.div>
@@ -121,14 +124,14 @@ const StoreContent = () => {
                 ))}
             </AnimatePresence>
             
-            {items.length === 0 && activeTab !== 'boost' && (
+            {items.length === 0 && activeTab !== 'power_up' && (
                 <motion.div 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }}
-                    className="text-center py-20 text-white/30"
+                    className="text-center py-20 text-white/20"
                 >
-                    <Ghost className="mx-auto mb-4 opacity-50" size={40} />
-                    <p>No items available in this sector.</p>
+                    <ShoppingBag className="mx-auto mb-3 opacity-30" size={40} strokeWidth={1.5} />
+                    <p className="text-sm font-medium">Collection Empty</p>
                 </motion.div>
             )}
         </motion.div>
