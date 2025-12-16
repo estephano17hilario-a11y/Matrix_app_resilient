@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { StrategicNode, TimeFrame, SmartProject } from '../../../types/SmartGoal';
 import { getContextDates } from '../../../utils/dateUtils';
+import { generateTimeBlocks, TimeUnit } from '../../../utils/fractalTimeEngine';
 
 export const useSmartTaskLogic = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -11,23 +12,57 @@ export const useSmartTaskLogic = () => {
   
   const [projectMeta, setProjectMeta] = useState<{ traitId?: string; traitColor?: string }>({});
 
-  const timeframeHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
+  const [timeframeHierarchy, setTimeframeHierarchy] = useState<TimeFrame[]>([]);
+  const [drillDownPath, setDrillDownPath] = useState<TimeFrame[]>([]);
 
   const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
-    const index = timeframeHierarchy.indexOf(currentLevel);
-    if (index === -1 || index === timeframeHierarchy.length - 1) return null;
-    return timeframeHierarchy[index + 1];
+    // If we have a dynamic drillDownPath, use it
+    if (drillDownPath.length > 0) {
+        const index = drillDownPath.indexOf(currentLevel);
+        if (index === -1 || index === drillDownPath.length - 1) return null;
+        return drillDownPath[index + 1];
+    }
+
+    // Fallback to static hierarchy if path not set
+    const staticHierarchy: TimeFrame[] = ['YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
+    const index = staticHierarchy.indexOf(currentLevel);
+    if (index === -1 || index === staticHierarchy.length - 1) return null;
+    return staticHierarchy[index + 1];
   };
 
-  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string, customStartDate?: Date) => {
+  const startProcess = (mainGoal: string, traitId?: string, traitColor?: string, customStartDate?: Date, customEndDate?: Date) => {
     const now = customStartDate ? Timestamp.fromDate(customStartDate) : Timestamp.now();
+    const endDate = customEndDate ? Timestamp.fromDate(customEndDate) : Timestamp.fromMillis(now.toMillis() + (365 * 24 * 60 * 60 * 1000));
+    
     setProjectMeta({ traitId, traitColor });
+
+    // Calculate Fractal Structure
+    const { drillDownPath } = generateTimeBlocks(now.toDate(), endDate.toDate());
+    
+    // Cast TimeUnit to TimeFrame (assuming they match mostly)
+    // TimeUnit has '10_YEARS', '5_YEARS', '1_YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'
+    // TimeFrame has 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'
+    // We map 1_YEAR, 5_YEARS, 10_YEARS to 'YEAR' for simplicity in the UI type, 
+    // OR we update TimeFrame type. For now, map to 'YEAR'.
+    const mappedPath: TimeFrame[] = drillDownPath.map(u => {
+        if (u === '10_YEARS' || u === '5_YEARS' || u === '1_YEAR') return 'YEAR';
+        return u as TimeFrame;
+    });
+
+    // If path is empty (e.g. < 1 day), default to DAY
+    const finalPath = mappedPath.length > 0 ? mappedPath : ['DAY'];
+    
+    setDrillDownPath(finalPath);
+    setTimeframeHierarchy(finalPath); // Update the visual roadmap too
+
+    const startLevel = finalPath[0] as TimeFrame;
+
     const root: StrategicNode = {
       id: crypto.randomUUID(),
       title: mainGoal,
-      level: 'YEAR',
+      level: startLevel,
       startDate: now,
-      dueDate: Timestamp.fromMillis(now.toMillis() + (365 * 24 * 60 * 60 * 1000)), // Approx 1 year
+      dueDate: endDate,
       isCompleted: false,
       reward: { xp: 1000, coins: 500 },
       children: [],

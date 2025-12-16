@@ -30,6 +30,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
   const [mainGoalInput, setMainGoalInput] = useState('');
   const [selectedTraitId, setSelectedTraitId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(''); // New End Date state
   const [multiInputs, setMultiInputs] = useState<string[]>([]);
   const [dateOverrides, setDateOverrides] = useState<Record<number, { start?: string, end?: string }>>({});
   const [isStarting, setIsStarting] = useState(true);
@@ -66,7 +67,12 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
     e.preventDefault();
     if (mainGoalInput.trim() && selectedTraitId) {
       const start = startDate ? new Date(startDate) : new Date();
-      startProcess(mainGoalInput, selectedTraitId, activeColor, start);
+      // If end date is not set, default to 1 year later (or whatever default)
+      // But user said "I put a date less than 6 months". So we MUST respect it.
+      // If no end date, we assume 1 year.
+      const end = endDate ? new Date(endDate) : new Date(start.getTime() + 31536000000);
+      
+      startProcess(mainGoalInput, selectedTraitId, activeColor, start, end);
       setIsStarting(false);
       setShowTutorial(true);
     }
@@ -266,7 +272,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                       </div>
 
                       {/* Date Selector */}
-                      <div className="flex flex-col items-center gap-2 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                      <div className="flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                        <div className="flex flex-col items-center gap-2">
                           <label className="text-white/40 text-xs font-medium uppercase tracking-widest">Start Date</label>
                           <div className="relative group/date-picker w-full max-w-xs">
                               <div 
@@ -283,6 +290,26 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                                   />
                               </div>
                           </div>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-2">
+                          <label className="text-white/40 text-xs font-medium uppercase tracking-widest">End Date (Optional)</label>
+                          <div className="relative group/date-picker w-full max-w-xs">
+                              <div 
+                                  className="absolute -inset-0.5 rounded-xl opacity-0 group-hover/date-picker:opacity-100 blur transition duration-500"
+                                  style={{ backgroundColor: activeColor }}
+                              />
+                              <div className="relative flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl px-4 py-3 hover:bg-white/5 transition-colors">
+                                  <Calendar size={18} className="text-white/70" />
+                                  <input 
+                                      type="date" 
+                                      value={endDate}
+                                      onChange={(e) => setEndDate(e.target.value)}
+                                      className="bg-transparent text-white font-medium focus:outline-none w-full cursor-pointer [color-scheme:dark]"
+                                  />
+                              </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="relative group">
@@ -448,12 +475,12 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                     </div>
                 </div>
 
-                <form onSubmit={handleMultiSubmit}>
+                <form onSubmit={handleMultiSubmit} className="flex flex-col h-full overflow-hidden">
                     <motion.div 
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 gap-3 mb-8"
+                        className="grid grid-cols-1 gap-2 mb-4 overflow-y-auto pr-2 max-h-[50vh] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
                     >
                         {multiInputs.map((val, idx) => {
                             // Calculate default dates for placeholder
@@ -466,13 +493,13 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                             const currentEnd = dateOverrides[idx]?.end ? new Date(dateOverrides[idx].end!) : end;
                             
                             return (
-                                <motion.div key={idx} variants={itemVariants} className="relative group">
+                                <motion.div key={idx} variants={itemVariants} className="relative group shrink-0">
                                     <div 
                                         className="absolute -inset-0.5 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition duration-500" 
                                         style={{ background: `linear-gradient(to right, ${activeColor}50, ${activeColor}20)` }}
                                     />
                                     <div className="relative flex flex-col sm:flex-row sm:items-center bg-[#1c1c1e] rounded-xl border border-white/10 overflow-hidden group-focus-within:border-transparent transition-colors">
-                                        <div className="w-12 h-12 sm:h-auto flex items-center justify-center bg-white/5 border-r border-white/5 text-white/30 text-xs font-mono">
+                                        <div className="w-10 h-10 sm:h-auto flex items-center justify-center bg-white/5 border-r border-white/5 text-white/30 text-[10px] font-mono">
                                             {idx + 1}
                                         </div>
                                         <div className="flex-1 flex flex-col sm:flex-row">
@@ -481,33 +508,15 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                                                 value={val}
                                                 onChange={(e) => updateMultiInput(idx, e.target.value)}
                                                 placeholder={getPlaceholder(idx)}
-                                                className="flex-1 px-4 py-3 sm:py-4 bg-transparent text-white focus:outline-none placeholder:text-white/20"
+                                                className="flex-1 px-3 py-2 sm:py-3 bg-transparent text-white text-sm focus:outline-none placeholder:text-white/20"
                                                 autoFocus={idx === 0}
                                             />
                                             
-                                            {/* Date Picker Trigger */}
+                                            {/* Date Display (Read-Only) */}
                                             <div className="flex items-center border-t sm:border-t-0 sm:border-l border-white/5 bg-black/20 px-2">
-                                                <div className="relative group/date">
-                                                    <input 
-                                                        type="date" 
-                                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                                        onChange={(e) => updateDateOverride(idx, 'start', e.target.value)}
-                                                    />
-                                                    <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-white/50 hover:text-white transition-colors whitespace-nowrap">
-                                                        <Calendar size={12} />
-                                                        <span>{formatDate(currentStart)}</span>
-                                                    </div>
-                                                </div>
-                                                <span className="text-white/20">-</span>
-                                                <div className="relative group/date">
-                                                    <input 
-                                                        type="date" 
-                                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                                        onChange={(e) => updateDateOverride(idx, 'end', e.target.value)}
-                                                    />
-                                                    <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-white/50 hover:text-white transition-colors whitespace-nowrap">
-                                                        <span>{formatDate(currentEnd)}</span>
-                                                    </div>
+                                                <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-white/50 whitespace-nowrap">
+                                                    <Calendar size={12} />
+                                                    <span>{formatDate(currentStart)} - {formatDate(currentEnd)}</span>
                                                 </div>
                                             </div>
                                         </div>
