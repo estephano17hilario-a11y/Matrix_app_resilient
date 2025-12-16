@@ -8,6 +8,8 @@ import { SmartProject, TimeFrame } from '../../types/SmartGoal';
 import { SmartTaskTutorial } from './components/SmartTaskTutorial';
 import { getContextDates, formatDate } from '../../utils/dateUtils';
 import { TRAITS_LIST } from '../dashboard/constants';
+import { generateTimeBlocks, FractalStructure } from '../../utils/fractalTimeEngine';
+import { differenceInDays } from 'date-fns';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
@@ -29,25 +31,66 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
 
   const [mainGoalInput, setMainGoalInput] = useState('');
   const [selectedTraitId, setSelectedTraitId] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState<string>(''); // New End Date state
+  // Start Date is always NOW. We don't need a state for it to be edited by user, 
+  // but we keep the variable for logic.
+  const [startDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(''); 
   const [multiInputs, setMultiInputs] = useState<string[]>([]);
   const [dateOverrides, setDateOverrides] = useState<Record<number, { start?: string, end?: string }>>({});
   const [isStarting, setIsStarting] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  
+  // Fractal Preview State
+  const [fractalPreview, setFractalPreview] = useState<FractalStructure | null>(null);
 
   // Get active color based on trait
   const activeColor = selectedTraitId ? TRAITS_LIST.find(t => t.id === selectedTraitId)?.color : '#6366f1';
 
-  // Determine how many inputs we need based on current node level
+  // Calculate fractal preview when endDate changes
+  useEffect(() => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end > start) {
+        const preview = generateTimeBlocks(start, end);
+        setFractalPreview(preview);
+      } else {
+        setFractalPreview(null);
+      }
+    }
+  }, [startDate, endDate]);
+
+  // Determine how many inputs we need based on current node level (Dynamic/Greedy)
   const getRequiredInputs = () => {
       if (!currentNode) return 0;
-      switch (currentNode.level) {
-          case 'YEAR': return 2; // Needs 2 Semesters
-          case 'SEMESTER': return 2; // Needs 2 Quarters
-          case 'QUARTER': return 3; // Needs 3 Months
-          case 'MONTH': return 4; // Needs 4 Weeks
-          case 'WEEK': return 7; // Needs 7 Days
+      
+      const currentLevelIndex = timeframeHierarchy.indexOf(currentNode.level);
+      const nextLevel = timeframeHierarchy[currentLevelIndex + 1];
+      
+      if (!nextLevel) return 0;
+
+      const start = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
+      const end = currentNode.dueDate ? currentNode.dueDate.toDate() : new Date();
+      const days = differenceInDays(end, start); // inclusive? differenceInDays is exclusive of start usually. +1?
+      // differenceInDays(Jan 2, Jan 1) = 1.
+      // If duration is 1 day, we need 1 input.
+      // If duration is 30 days.
+      
+      switch (nextLevel) {
+          case 'SEMESTER': 
+              // ~182 days
+              return Math.ceil(days / 182) || 2; 
+          case 'QUARTER': 
+              // ~91 days
+              return Math.ceil(days / 91) || 2;
+          case 'MONTH': 
+              // ~30 days
+              return Math.ceil(days / 30) || 1;
+          case 'WEEK': 
+              // ~7 days
+              return Math.ceil(days / 7) || 1;
+          case 'DAY': 
+              return days || 1;
           default: return 0;
       }
   };
@@ -271,29 +314,12 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                           })}
                       </div>
 
-                      {/* Date Selector */}
-                      <div className="flex items-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                      {/* Date Selector & Fractal Preview */}
+                      <div className="flex flex-col gap-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                        
+                        {/* Single End Date Picker */}
                         <div className="flex flex-col items-center gap-2">
-                          <label className="text-white/40 text-xs font-medium uppercase tracking-widest">Start Date</label>
-                          <div className="relative group/date-picker w-full max-w-xs">
-                              <div 
-                                  className="absolute -inset-0.5 rounded-xl opacity-0 group-hover/date-picker:opacity-100 blur transition duration-500"
-                                  style={{ backgroundColor: activeColor }}
-                              />
-                              <div className="relative flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl px-4 py-3 hover:bg-white/5 transition-colors">
-                                  <Calendar size={18} className="text-white/70" />
-                                  <input 
-                                      type="date" 
-                                      value={startDate}
-                                      onChange={(e) => setStartDate(e.target.value)}
-                                      className="bg-transparent text-white font-medium focus:outline-none w-full cursor-pointer [color-scheme:dark]"
-                                  />
-                              </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-2">
-                          <label className="text-white/40 text-xs font-medium uppercase tracking-widest">End Date (Optional)</label>
+                          <label className="text-white/40 text-xs font-medium uppercase tracking-widest">Target Deadline</label>
                           <div className="relative group/date-picker w-full max-w-xs">
                               <div 
                                   className="absolute -inset-0.5 rounded-xl opacity-0 group-hover/date-picker:opacity-100 blur transition duration-500"
@@ -304,12 +330,42 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                                   <input 
                                       type="date" 
                                       value={endDate}
+                                      min={new Date().toISOString().split('T')[0]}
                                       onChange={(e) => setEndDate(e.target.value)}
                                       className="bg-transparent text-white font-medium focus:outline-none w-full cursor-pointer [color-scheme:dark]"
                                   />
                               </div>
                           </div>
                         </div>
+
+                        {/* Fractal Preview Panel */}
+                        {fractalPreview && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden"
+                            >
+                                <div className="flex items-center gap-2 mb-3 text-white/50 border-b border-white/5 pb-2">
+                                    <Sparkles size={14} style={{ color: activeColor }} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">Time Decomposition Engine</span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {fractalPreview.structure.map((block, idx) => (
+                                        <div key={idx} className="flex flex-col items-center justify-center p-2 bg-black/30 rounded-lg border border-white/5">
+                                            <span className="text-xl font-bold text-white">{block.durationLabel.split(' ')[0]}</span>
+                                            <span className="text-[10px] text-white/50 uppercase">{block.durationLabel.split(' ')[1]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div className="mt-3 text-center">
+                                    <p className="text-[10px] text-white/30 font-mono">
+                                        Optimization Path: {fractalPreview.drillDownPath.join(' → ')}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
                       </div>
 
                       <div className="relative group">
@@ -329,7 +385,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
                           />
                       </div>
 
-                      {mainGoalInput.trim() && selectedTraitId && (
+                      {mainGoalInput.trim() && selectedTraitId && endDate && (
                           <motion.button
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}

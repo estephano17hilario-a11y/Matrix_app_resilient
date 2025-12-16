@@ -39,8 +39,12 @@ export const getContextDates = (
             // Parent: Year. Child: Semester.
             // Logic: Add 6 months for each index.
             start.setMonth(start.getMonth() + (index * 6));
-            end = new Date(start);
-            end.setMonth(end.getMonth() + 6);
+            if (isLast) {
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setMonth(end.getMonth() + 6);
+            }
             label = index === 0 ? 'Primeros 6 Meses' : 'Segundos 6 Meses';
             break;
 
@@ -48,8 +52,12 @@ export const getContextDates = (
             // Parent: Semester (6mo). Child: Quarter.
             // Logic: Add 3 months.
             start.setMonth(start.getMonth() + (index * 3));
-            end = new Date(start);
-            end.setMonth(end.getMonth() + 3);
+            if (isLast) {
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setMonth(end.getMonth() + 3);
+            }
             label = `Trimestre ${index + 1}`;
             break;
 
@@ -57,8 +65,12 @@ export const getContextDates = (
             // Parent: Quarter (3mo). Child: Month.
             // Logic: Add 1 month.
             start.setMonth(start.getMonth() + index);
-            end = new Date(start);
-            end.setMonth(end.getMonth() + 1);
+            if (isLast) {
+                end = new Date(parentEnd);
+            } else {
+                end = new Date(start);
+                end.setMonth(end.getMonth() + 1);
+            }
             label = `Mes ${index + 1}`;
             break;
 
