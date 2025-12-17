@@ -45,16 +45,16 @@ export const AdShard: React.FC<AdShardProps> = ({ onWatch }) => {
       {/* Text Info */}
       <div className="flex-1 z-10">
         <h3 className="text-white font-bold text-lg tracking-tight flex items-center gap-2">
-          Watch Transmission <Sparkles size={14} className="text-yellow-400" />
+          Ver Transmisión <Sparkles size={14} className="text-yellow-400" />
         </h3>
         <p className="text-indigo-200/60 text-sm font-medium">
-          Receive a supply drop from the network.
+          Recibe un suministro de la red.
         </p>
       </div>
 
       {/* Reward Pill */}
       <div className="relative z-10 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-sm font-bold shadow-inner shadow-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
-        +50 GOLD
+        +50 ORO
       </div>
       
       {/* Interactive Shine */}

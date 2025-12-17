@@ -145,10 +145,18 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
     e.preventDefault();
     if (mainGoalInput.trim() && selectedTraitId) {
       const start = startDate ? new Date(startDate) : new Date();
-      // If end date is not set, default to 1 year later (or whatever default)
-      // But user said "I put a date less than 6 months". So we MUST respect it.
-      // If no end date, we assume 1 year.
-      const end = endDate ? new Date(endDate) : new Date(start.getTime() + 31536000000);
+      // If end date is not set, default to 1 year later
+      // If user provides endDate (e.g. "2024-01-07"), it means "Include Jan 7".
+      // So we set the internal end date to Jan 8 00:00:00 (Start of next day)
+      // to ensure strictly exclusive logic (Jan 1 00:00 to Jan 8 00:00 = 7 days).
+      let end: Date;
+      
+      if (endDate) {
+          end = new Date(endDate);
+          end.setDate(end.getDate() + 1); // Add 1 day for inclusive selection
+      } else {
+          end = new Date(start.getTime() + 31536000000);
+      }
       
       startProcess(mainGoalInput, selectedTraitId, activeColor, start, end);
       setIsStarting(false);

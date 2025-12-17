@@ -1,5 +1,5 @@
 import { Trophy, Flame, Zap, Brain, Target, Shield, Sword } from 'lucide-react';
-import { UserData } from '../hooks/useMatrixData';
+import { UserData } from '../types/User';
 
 export type AchievementCategory = 'XP' | 'STREAK' | 'COMBAT' | 'MASTERY';
 
@@ -32,7 +32,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Maintain a 7-day streak. Consistency is your weapon.',
     icon: Flame,
     category: 'STREAK',
-    condition: (user) => user.currentStreak >= 7,
+    condition: (user) => user.stats.streak >= 7,
     xpReward: 500,
     arc: 'The Initiate'
   },

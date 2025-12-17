@@ -88,7 +88,7 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
       {isUnlocked && (
         <div className="absolute top-4 right-4">
            <span className="text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm">
-             +{achievement.xpReward} XP
+             +{Math.floor(achievement.xpReward)} Matrix Coins
            </span>
         </div>
       )}
@@ -97,6 +97,14 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
 };
 
 // --- MAIN SCREEN ---
+
+const categoryLabels: Record<string, string> = {
+  ALL: 'All',
+  XP: 'Matrix Coins',
+  STREAK: 'Streak',
+  COMBAT: 'Combat',
+  MASTERY: 'Mastery'
+};
 
 export const AchievementsScreen: React.FC = () => {
   const { user } = useMatrix();
@@ -156,7 +164,7 @@ export const AchievementsScreen: React.FC = () => {
           {categories.map((cat) => (
             <CategoryTab 
               key={cat} 
-              label={cat} 
+              label={categoryLabels[cat] || cat} 
               isActive={selectedCategory === cat} 
               onClick={() => setSelectedCategory(cat)} 
             />

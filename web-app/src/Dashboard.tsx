@@ -162,6 +162,16 @@ export default function Dashboard() {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isProModalOpen, setIsProModalOpen] = useState(false);
     const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
+    const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string } | null>(null);
+
+    const handleOpenSmartTaskCreator = (date: Date) => {
+        if (!smartProject) return;
+        setSmartTaskProps({
+            lockedDate: date.toISOString().split('T')[0],
+            lockedAttributeId: smartProject.traitId
+        });
+        setActiveModal('QUEST');
+    };
 
     // Load Active Strategy
     useEffect(() => {
@@ -362,11 +372,11 @@ export default function Dashboard() {
                                     className="flex flex-col gap-6 h-full"
                                 >
                                     {/* VIEW TOGGLE */}
-                                    <div className="flex items-center justify-center gap-4 mb-2">
+                                    <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
                                          <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
                                              <button 
                                                  onClick={() => setTaskViewMode('LIST')}
-                                                 className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                 className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                              >
                                                  <ListTodo size={14} />
                                                  Tasks
@@ -374,7 +384,7 @@ export default function Dashboard() {
                                              <button 
                                                  onClick={() => setTaskViewMode('STRATEGY')}
                                                  data-tour="view-toggle-strategy"
-                                                 className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                 className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                              >
                                                  <Target size={14} />
                                                  Strategy
@@ -407,10 +417,15 @@ export default function Dashboard() {
                                              {smartProject ? (
                                                 <StrategicMapView 
                                                     project={smartProject} 
+                                                    quests={quests}
+                                                    attributes={attributes}
                                                     onUpdateProject={(updated) => setSmartProject(updated)}
                                                     onDeleteProject={handleDeleteSmartProject}
                                                     onDeleteNode={handleDeleteSmartTaskNode}
                                                     onCreateNew={() => setIsWizardOpen(true)}
+                                                    onAddSmartTask={handleOpenSmartTaskCreator}
+                                                    onCompleteQuest={completeQuest}
+                                                    onDeleteQuest={handleDeleteQuest}
                                                 />
                                             ) : (
                                                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -586,7 +601,15 @@ export default function Dashboard() {
                     </AnimatePresence>
 
                     {/* MODALS */}
-                    <QuestModal isOpen={activeModal === 'QUEST'} onClose={() => setActiveModal(null)} attributes={attributes} onConfirm={handleQuestConfirm} />
+                    <QuestModal 
+                        isOpen={activeModal === 'QUEST'} 
+                        onClose={() => { setActiveModal(null); setSmartTaskProps(null); }} 
+                        attributes={attributes} 
+                        onConfirm={handleQuestConfirm}
+                        lockedAttributeId={smartTaskProps?.lockedAttributeId}
+                        lockedDate={smartTaskProps?.lockedDate}
+                        isSmartTask={!!smartTaskProps}
+                    />
                     <HabitModal isOpen={activeModal === 'HABIT'} onClose={() => setActiveModal(null)} attributes={attributes} onConfirm={handleHabitConfirm} />
                     <ProjectModal isOpen={activeModal === 'PROJECT'} onClose={() => setActiveModal(null)} attributes={attributes} onConfirm={handleProjectConfirm} />
                     

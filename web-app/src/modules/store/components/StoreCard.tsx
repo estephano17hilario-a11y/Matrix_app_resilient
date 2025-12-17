@@ -62,7 +62,7 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
           )}>
             {item.price}
           </span>
-          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Gold</span>
+          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Oro</span>
         </div>
       </div>
 
@@ -88,10 +88,10 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
         )}
       >
         {canAfford ? (
-          "Purchase"
+          "Comprar"
         ) : (
           <div className="flex items-center justify-center gap-1.5">
-            <Lock size={12} /> <span>Locked</span>
+            <Lock size={12} /> <span>Bloqueado</span>
           </div>
         )}
       </button>

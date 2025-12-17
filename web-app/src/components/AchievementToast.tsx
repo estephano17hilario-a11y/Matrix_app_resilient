@@ -54,7 +54,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
                   {achievement.title}
                 </span>
                 <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  +{achievement.xpReward} XP
+                  +{Math.floor(achievement.xpReward)} Matrix Coins
                 </span>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { db, doc, updateDoc, setDoc, arrayUnion, increment } from '../firebase';
-import { UserData } from '../hooks/useMatrixData';
+import { UserData } from '../types/User';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
 
 /**

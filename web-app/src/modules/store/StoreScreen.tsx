@@ -34,16 +34,31 @@ const StoreContent = () => {
   const items = storeItems.filter(item => item.category === activeTab);
 
   const tabs = [
-    { id: 'power_up', label: 'Power Up', icon: Zap },
-    { id: 'theme', label: 'Themes', icon: Palette },
-    { id: 'cosmetic', label: 'Cosmetics', icon: Sparkles },
-    { id: 'bad_habit', label: 'Bad Habits', icon: Ghost },
+    { id: 'power_up', label: 'Mejoras', icon: Zap },
+    { id: 'theme', label: 'Temas', icon: Palette },
+    { id: 'cosmetic', label: 'Cosméticos', icon: Sparkles },
+    { id: 'bad_habit', label: 'Malos Hábitos', icon: Ghost },
   ] as const;
 
+  const subCategoryColors: Record<string, string> = {
+    'Adicción Digital': 'text-cyan-400 border-cyan-500/30 bg-cyan-900/10',
+    'Negligencia Física': 'text-rose-400 border-rose-500/30 bg-rose-900/10',
+    'Desorden Mental': 'text-purple-400 border-purple-500/30 bg-purple-900/10',
+    'Social/Comportamiento': 'text-emerald-400 border-emerald-500/30 bg-emerald-900/10',
+  };
+
+  const groupedItems = activeTab === 'bad_habit' 
+    ? items.reduce((acc, item) => {
+        const key = item.subCategory || 'Otros';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      }, {} as Record<string, typeof items>)
+    : null;
+
   return (
-    <div className="min-h-screen bg-black text-white pb-32 relative overflow-hidden">
-       {/* Subtle Background - Apple Style (Very Dark Grey/Black) */}
-       <div className="fixed inset-0 bg-[#000000]" />
+    <div className="min-h-screen bg-transparent text-white pb-32 relative overflow-hidden">
+       {/* Removed black background to allow global Aurora to show through */}
        
        {/* Minimal Ambient Glow (Very subtle) */}
        <div className="fixed top-0 left-0 right-0 h-96 bg-indigo-500/5 blur-[100px] pointer-events-none" />
@@ -55,7 +70,7 @@ const StoreContent = () => {
             <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
             <div className="relative flex justify-between items-center px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-[22px] font-semibold tracking-tight text-white">Store</h1>
+                    <h1 className="text-[22px] font-semibold tracking-tight text-white">Tienda</h1>
                 </div>
 
                 <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/5">
@@ -113,15 +128,42 @@ const StoreContent = () => {
                     </motion.div>
                 )}
 
-                {items.map((item) => (
-                    <StoreCard 
-                        key={item.id} 
-                        item={item} 
-                        userGold={user?.stats?.gold || 0}
-                        onPurchase={purchase}
-                        disabled={isTransactionPending}
-                    />
-                ))}
+                {activeTab === 'bad_habit' && groupedItems ? (
+                   Object.entries(groupedItems).map(([category, catItems]) => (
+                     <motion.div 
+                        key={category}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className={`mb-4 rounded-2xl border p-3 ${subCategoryColors[category]?.split(' ').slice(1).join(' ') || 'border-white/5 bg-white/5'}`}
+                     >
+                        <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 pl-1 ${subCategoryColors[category]?.split(' ')[0] || 'text-white/50'}`}>
+                            {category}
+                        </h3>
+                        <div className="space-y-3">
+                            {catItems.map((item) => (
+                                <StoreCard 
+                                    key={item.id} 
+                                    item={item} 
+                                    userGold={user?.stats?.gold || 0}
+                                    onPurchase={purchase}
+                                    disabled={isTransactionPending}
+                                />
+                            ))}
+                        </div>
+                     </motion.div>
+                   ))
+                ) : (
+                    items.map((item) => (
+                        <StoreCard 
+                            key={item.id} 
+                            item={item} 
+                            userGold={user?.stats?.gold || 0}
+                            onPurchase={purchase}
+                            disabled={isTransactionPending}
+                        />
+                    ))
+                )}
             </AnimatePresence>
             
             {items.length === 0 && activeTab !== 'power_up' && (
@@ -131,7 +173,7 @@ const StoreContent = () => {
                     className="text-center py-20 text-white/20"
                 >
                     <ShoppingBag className="mx-auto mb-3 opacity-30" size={40} strokeWidth={1.5} />
-                    <p className="text-sm font-medium">Collection Empty</p>
+                    <p className="text-sm font-medium">Colección Vacía</p>
                 </motion.div>
             )}
         </motion.div>

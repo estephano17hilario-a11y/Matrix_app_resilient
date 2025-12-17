@@ -18,6 +18,7 @@ export interface UserProfile {
   plan: UserPlan;
   archetype: UserArchetype;
   stats: UserStats;
+  unlockedAchievements?: string[];
   createdAt: number; // Timestamp
   lastLoginAt: number;
   // Configuración visual
@@ -31,6 +32,8 @@ export interface UserProfile {
     completedAt: number;
   };
 }
+
+export type UserData = UserProfile;
 
 export const DEFAULT_USER_STATS: UserStats = {
   hp: 100,

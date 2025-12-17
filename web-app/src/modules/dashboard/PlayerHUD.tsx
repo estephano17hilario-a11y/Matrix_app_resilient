@@ -78,10 +78,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   );
 
   return (
-    <GlassPanel className={cn("p-5 flex flex-col gap-6", className)}>
+    <GlassPanel className={cn("p-4 flex flex-col gap-4", className)}>
       {/* SYSTEM METRICS - TRAIT ANALYSIS */}
       {orderedAttributes.length > 0 && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
              <div className="flex items-center justify-between">
                  <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
                     <Sparkles size={12} className="text-indigo-400" /> System Metrics

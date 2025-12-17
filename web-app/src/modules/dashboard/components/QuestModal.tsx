@@ -1,11 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Lock, Sparkles } from 'lucide-react';
 import { Attribute, Quest } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { motion } from 'framer-motion';
 
-export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], onConfirm: (data: Partial<Quest>) => void }) => {
+export const QuestModal = React.memo(({ 
+    isOpen, 
+    onClose, 
+    attributes, 
+    onConfirm,
+    lockedAttributeId,
+    lockedDate,
+    isSmartTask
+}: { 
+    isOpen: boolean, 
+    onClose: () => void, 
+    attributes: Attribute[], 
+    onConfirm: (data: Partial<Quest>) => void,
+    lockedAttributeId?: string,
+    lockedDate?: string,
+    isSmartTask?: boolean
+}) => {
     // Common State
     const [title, setTitle] = useState(''); // Main Goal
     const [desc, setDesc] = useState('');
@@ -13,6 +29,14 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
     const [difficulty, setDifficulty] = useState<Difficulty>('D');
     const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
+
+    // Effect to apply locked props
+    React.useEffect(() => {
+        if (isOpen) {
+            if (lockedAttributeId) setAttrId(lockedAttributeId);
+            if (lockedDate) setDeadline(lockedDate);
+        }
+    }, [isOpen, lockedAttributeId, lockedDate]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#333333';
@@ -33,7 +57,8 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
             difficulty, 
             deadline,
             xpReward: prediction.xp,
-            gold: prediction.coins
+            gold: prediction.coins,
+            isSmartQuest: isSmartTask
         });
     };
 
@@ -62,9 +87,11 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                                 <Crosshair size={18} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white tracking-tight leading-none">
-                                    New Mission
+                                <h2 className="text-xl font-black text-white tracking-tight leading-none flex items-center gap-2">
+                                    {isSmartTask ? 'Smart Mission' : 'New Mission'}
+                                    {isSmartTask && <Sparkles size={14} className="text-yellow-400" />}
                                 </h2>
+                                {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Linked to Strategy</span>}
                             </div>
                         </div>
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors hover:bg-white/10">
@@ -85,9 +112,13 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                                     autoFocus 
                                 />
                              </div>
-                             <div onClick={() => setAttrPickerOpen(true)} className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative cursor-pointer ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} data-tour="modal-attributes">
+                             <div 
+                                onClick={() => !lockedAttributeId && setAttrPickerOpen(true)} 
+                                className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative ${lockedAttributeId ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} 
+                                data-tour="modal-attributes"
+                             >
                                  {attrId ? (<SelectedIcon size={22} style={{ color: activeColor }} />) : <Plus size={22} className="text-white/30" />}
-                                 {isAttrPickerOpen && (
+                                 {isAttrPickerOpen && !lockedAttributeId && (
                                      <>
                                          <div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
                                          <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-2xl border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -147,9 +178,18 @@ export const QuestModal = React.memo(({ isOpen, onClose, attributes, onConfirm }
                         </div>
 
                         {/* Date Picker */}
-                        <div className="rounded-[1.5rem] bg-white/5 border border-white/5 flex items-center justify-between px-5 py-3 relative overflow-hidden">
-                             <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="absolute inset-0 opacity-0 z-10 cursor-pointer" />
-                             <span className="text-[10px] font-black text-white/30 uppercase">Due Date</span>
+                        <div className={`rounded-[1.5rem] bg-white/5 border border-white/5 flex items-center justify-between px-5 py-3 relative overflow-hidden ${lockedDate ? 'opacity-80 cursor-not-allowed' : ''}`}>
+                             <input 
+                                type="date" 
+                                value={deadline} 
+                                onChange={(e) => setDeadline(e.target.value)} 
+                                className="absolute inset-0 opacity-0 z-10 cursor-pointer disabled:cursor-not-allowed" 
+                                disabled={!!lockedDate}
+                             />
+                             <span className="text-[10px] font-black text-white/30 uppercase flex items-center gap-2">
+                                Due Date
+                                {lockedDate && <Lock size={10} />}
+                             </span>
                              <div className="flex items-baseline gap-1 pointer-events-none">
                                  <span className="text-lg font-bold text-white">{new Date(deadline).getDate()}</span>
                                  <span className="text-xs font-bold text-white/50 uppercase">{new Date(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>

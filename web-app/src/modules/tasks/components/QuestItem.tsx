@@ -113,7 +113,7 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }:
                         animate={{ opacity: 1, x: 0 }}
                         className="flex items-center gap-2 text-[10px] font-medium"
                      >
-                        <span className="text-emerald-400">+{xp} XP</span>
+                        <span className="text-emerald-400">+{Math.floor(xp)} Matrix Coins</span>
                         {coins > 0 && <span className="text-yellow-400">+{coins} G</span>}
                      </motion.div>
                   )}

@@ -250,8 +250,8 @@ export const useDashboardLogic = () => {
     // --- UNIFIED REWARD SYSTEM ---
     const addPlayerReward = useCallback((reward: { xp: number; gold: number }) => {
         setPlayer(prev => {
-            let newXp = prev.xp + reward.xp;
-            let newGold = prev.gold + reward.gold;
+            let newXp = prev.xp + Math.floor(reward.xp);
+            let newGold = prev.gold + Math.floor(reward.gold);
             let newLevel = prev.level;
             let newNextXp = prev.nextXp;
             
@@ -289,7 +289,7 @@ export const useDashboardLogic = () => {
         setAttributes(prev => {
             const newAttributes = prev.map(attr => {
                 if (attr.id === attrId) {
-                    let newXp = attr.xp + amount;
+                    let newXp = attr.xp + Math.floor(amount);
                     let newLevel = attr.level;
                     let newMaxXp = attr.maxXp;
                     if (amount > 0) {
@@ -376,7 +376,7 @@ export const useDashboardLogic = () => {
         const attr = attributes.find(a => a.id === attrId);
         const AttrIcon = attr?.icon || Star;
         spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
-        addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' XP', icon: Clock, color: '#fbbf24' });
+        addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' Matrix Coins', icon: Clock, color: '#fbbf24' });
     }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user]);
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 

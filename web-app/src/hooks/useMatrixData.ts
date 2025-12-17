@@ -1,39 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, configStatus } from '../services/firebase';
+import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 
-export interface UserStats {
-  hp: number;
-  maxHp: number;
-  xp: number;
-  level: number;
-  gold: number;
-  streak: number;
-}
-
-export interface UserData {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL: string;
-  stats: UserStats;
-  archetype: string;
-}
+export { type UserData, type UserStats };
 
 export interface MatrixDataHook {
   user: UserData | null;
   loading: boolean;
   error: string | null;
 }
-
-const DEFAULT_STATS: UserStats = {
-    hp: 100,
-    maxHp: 100,
-    xp: 0,
-    level: 1,
-    gold: 0,
-    streak: 0
-};
 
 export const useMatrixData = (userId: string | null | undefined): MatrixDataHook => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -71,7 +47,7 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
                     if (snapshot.exists()) {
                         const data = snapshot.data();
-                        const safeStats = { ...DEFAULT_STATS, ...(data.stats || {}) };
+                        const safeStats = { ...DEFAULT_USER_STATS, ...(data.stats || {}) };
                         
                         setUser({ 
                             uid: snapshot.id, 

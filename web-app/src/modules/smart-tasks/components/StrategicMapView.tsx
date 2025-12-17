@@ -17,9 +17,12 @@ import {
     Sparkles,
     ChevronUp,
     ChevronDown,
-    LayoutList
+    LayoutList,
+    Plus
 } from 'lucide-react';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
+import { Attribute, Quest } from '../../../types'; // Import Quest
+import { QuestItem } from '../../tasks/components/QuestItem';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '../../../utils/cn';
 import { formatDate } from '../../../utils/dateUtils';
@@ -28,10 +31,15 @@ import { TRAITS_LIST } from '../../dashboard/constants';
 
 interface StrategicMapViewProps {
   project: SmartProject;
+  quests?: Quest[]; // Add quests prop
+  attributes?: Attribute[];
   onUpdateProject?: (project: SmartProject) => void;
   onDeleteProject?: () => void;
   onDeleteNode?: (nodeId: string) => void;
-  onCreateNew?: () => void; // New prop for creating new smart tasks
+  onCreateNew?: () => void;
+  onAddSmartTask?: (date: Date) => void;
+  onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
+  onDeleteQuest?: (id: string) => void;
 }
 
 const LevelLabels: Record<TimeFrame, string> = {
@@ -71,10 +79,13 @@ const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
             default: return 0;
         }
     }
-
-    const days = differenceInDays(end, start) + 1; // Inclusive
-
-    // Map NEXT level capacity
+ 
+     // We use differenceInDays without +1 because our internal logic (from SmartTaskWizard/dateUtils)
+     // now consistently uses EXCLUSIVE end dates (Start of Next Period).
+     // e.g. Jan 1 00:00 to Jan 8 00:00 = 7 days.
+     const days = differenceInDays(end, start);
+ 
+     // Map NEXT level capacity
     // If current is MONTH, next is WEEK. We want to know how many WEEKS fit in this MONTH.
     // This function receives the PARENT level, so we need to know the CHILD level logic.
     // Actually, it's better to pass the CHILD level or determine it here.
@@ -95,7 +106,7 @@ const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
         case 'QUARTER': return Math.ceil(days / 91) || 1;
         case 'MONTH': return Math.ceil(days / 30) || 1;
         case 'WEEK': return Math.ceil(days / 7) || 1;
-        case 'DAY': return days; // Exact days
+        case 'DAY': return Math.max(1, days); // Exact days (at least 1 if < 1 day but > 0)
         default: return 0;
     }
 };
@@ -129,7 +140,18 @@ const safeDate = (val: any): Date => {
     return new Date(val);
 };
 
-export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onUpdateProject, onDeleteProject, onDeleteNode, onCreateNew }) => {
+export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ 
+    project, 
+    quests = [], 
+    attributes = [], 
+    onUpdateProject, 
+    onDeleteProject, 
+    onDeleteNode, 
+    onCreateNew, 
+    onAddSmartTask,
+    onCompleteQuest,
+    onDeleteQuest
+}) => {
   // Navigation State
   const [path, setPath] = useState<StrategicNode[]>([project.rootNode]);
   const [isEditing, setIsEditing] = useState(false);
@@ -221,6 +243,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
   };
 
   const isLeafLevel = ['DAY'].includes(activeNode.level);
+
+  // Filter quests for the active leaf node
+  const activeDate = activeNode.dueDate ? safeDate(activeNode.dueDate).toISOString().split('T')[0] : null;
+  const dayTasks = React.useMemo(() => {
+      if (!isLeafLevel || !activeDate) return [];
+      return quests.filter(q => q.deadline === activeDate && q.attribute === project.traitId);
+  }, [quests, isLeafLevel, activeDate, project.traitId]);
 
   return (
     <div className="w-full h-full flex flex-col bg-black/20 font-sans">
@@ -407,68 +436,41 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ project, onU
                                         className="overflow-hidden"
                                     >
                                         {isLeafLevel ? (
-                                            <div className="bg-white/5 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl">
-                                                {activeNode.children && activeNode.children.length > 0 ? (
-                                                    activeNode.children.map((child) => (
-                                                        <div key={child.id} className={cn(
-                                                            "p-5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0 group relative overflow-hidden",
-                                                        )}>
-                                                            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none" style={{ backgroundColor: traitColor }} />
-                                                            <div 
-                                                                className="w-6 h-6 rounded-full border-2 border-white/20 flex-shrink-0 transition-colors"
-                                                                style={{ borderColor: 'var(--border-color)' }}
-                                                                // Use a ref or simple style injection for hover effect? 
-                                                                // Tailwind group-hover doesn't work easily with dynamic colors in style. 
-                                                                // We can use a CSS variable.
-                                                            >
-                                                                <style>{`
-                                                                    .group:hover .w-6.h-6.rounded-full {
-                                                                        border-color: ${traitColor} !important;
-                                                                    }
-                                                                `}</style>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 relative z-10">
-                                                                <div className="text-white/90 truncate font-medium text-lg">{child.title}</div>
-                                                                {child.reward && (
-                                                                    <div className="flex items-center gap-2 mt-1">
-                                                                        <span 
-                                                                            className="text-xs font-bold flex items-center gap-1 px-2 py-0.5 rounded-full"
-                                                                            style={{ 
-                                                                                color: traitColor,
-                                                                                backgroundColor: `${traitColor}20`
-                                                                            }}
-                                                                        >
-                                                                            <Trophy size={10} /> {child.reward.xp} XP
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            {onDeleteNode && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        if (window.confirm('¿Eliminar esta tarea?')) {
-                                                                            onDeleteNode(child.id);
-                                                                        }
-                                                                    }}
-                                                                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all relative z-20"
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                            <div className="space-y-4">
+                                                {dayTasks.length > 0 ? (
+                                                    dayTasks.map((quest) => (
+                                                        <QuestItem 
+                                                            key={quest.id} 
+                                                            quest={quest} 
+                                                            attribute={attributes.find(a => a.id === quest.attribute)}
+                                                            onComplete={onCompleteQuest || (() => {})}
+                                                            onDelete={onDeleteQuest}
+                                                        />
                                                     ))
                                                 ) : (
-                                                    <div className="p-12 text-center">
+                                                    <div className="p-12 text-center bg-white/5 border border-white/5 rounded-3xl backdrop-blur-sm">
                                                         <div className="w-20 h-20 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-6 text-white/20">
                                                             <CheckCircle2 size={40} />
                                                         </div>
                                                         <h3 className="text-white font-medium text-xl">Sin Tareas Aún</h3>
                                                         <p className="text-white/40 mt-2">Añade tareas para ejecutar el plan de este día.</p>
-                                                        <button className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-all shadow-lg shadow-white/10">
+                                                        <button 
+                                                            onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.dueDate))}
+                                                            className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-all shadow-lg shadow-white/10"
+                                                        >
                                                             Crear Tarea
                                                         </button>
                                                     </div>
+                                                )}
+                                                
+                                                {dayTasks.length > 0 && (
+                                                    <button 
+                                                        onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.dueDate))}
+                                                        className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center gap-2 text-white/40 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all group"
+                                                    >
+                                                        <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                                                        <span className="font-medium">Añade otra tarea</span>
+                                                    </button>
                                                 )}
                                             </div>
                                         ) : (
