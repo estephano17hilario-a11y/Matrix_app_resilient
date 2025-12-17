@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { purchaseItem, addGold, StoreItem } from '../services/economyService';
+import { purchaseItem, addGold, consumeItem, StoreItem } from '../services/economyService';
 import { useMatrix } from './MatrixContext';
 
 interface EconomyContextType {
   purchase: (item: StoreItem) => Promise<boolean>;
+  consume: (itemId: string) => Promise<boolean>;
   watchAd: () => Promise<void>;
   isTransactionPending: boolean;
   storeItems: StoreItem[];
@@ -19,7 +20,8 @@ const STORE_ITEMS: StoreItem[] = [
     description: 'Restaura 20 HP al instante. Esencial para el mantenimiento del sistema.',
     price: 150,
     category: 'power_up',
-    iconName: 'Zap'
+    iconName: 'Zap',
+    effect: { type: 'heal', value: 20 }
   },
   {
     id: 'potion_xp_restore',
@@ -27,7 +29,8 @@ const STORE_ITEMS: StoreItem[] = [
     description: 'Restaura XP perdida por inactividad o penalizaciones.',
     price: 400,
     category: 'power_up',
-    iconName: 'Brain'
+    iconName: 'Brain',
+    effect: { type: 'xp_boost', value: 100 }
   },
   {
     id: 'redemption_token',
@@ -35,7 +38,8 @@ const STORE_ITEMS: StoreItem[] = [
     description: 'Repara una racha rota. Una segunda oportunidad para la perfección.',
     price: 5000,
     category: 'power_up',
-    iconName: 'ShieldAlert'
+    iconName: 'ShieldAlert',
+    effect: { type: 'restore_streak', value: 1 }
   },
   {
     id: 'freeze_streak',
@@ -43,7 +47,8 @@ const STORE_ITEMS: StoreItem[] = [
     description: 'Congela tu racha por 24 horas. Úsalo antes de un día ocupado.',
     price: 1000,
     category: 'power_up',
-    iconName: 'Clock'
+    iconName: 'Clock',
+    effect: { type: 'freeze_streak', value: 1, duration: 24 }
   },
 
   // --- THEMES (TEMAS) ---
@@ -154,6 +159,23 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const consume = async (itemId: string): Promise<boolean> => {
+    if (!user?.uid) return false;
+    
+    const item = STORE_ITEMS.find(i => i.id === itemId);
+    if (!item) {
+        console.error("Item not found in store definitions:", itemId);
+        return false;
+    }
+
+    setIsTransactionPending(true);
+    
+    const result = await consumeItem(user.uid, item);
+    
+    setIsTransactionPending(false);
+    return result.success;
+  };
+
   const watchAd = async () => {
     if (!user?.uid) return;
     setIsTransactionPending(true);
@@ -168,7 +190,7 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   return (
-    <EconomyContext.Provider value={{ purchase, watchAd, isTransactionPending, storeItems: STORE_ITEMS }}>
+    <EconomyContext.Provider value={{ purchase, consume, watchAd, isTransactionPending, storeItems: STORE_ITEMS }}>
       {children}
     </EconomyContext.Provider>
   );

@@ -37,6 +37,7 @@ export interface Quest {
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
+  projectId?: string;
 }
 
 export interface Habit {
@@ -54,6 +55,7 @@ export interface Habit {
   unit?: string;
   checklist?: { id: string; text: string; completed: boolean }[];
   reminderTime?: string;
+  history?: string[]; // ISO date strings of completions
 }
 
 export interface Project {
@@ -68,7 +70,10 @@ export interface Project {
   impact: number;
   totalTime: number;
   reminder?: string;
+  workingDays?: number[]; // 0=Sun, 1=Mon, etc.
   sessions?: Session[];
+  archived?: boolean;
+  deleted?: boolean;
 }
 
 export interface Session {
@@ -132,4 +137,6 @@ export interface Particle {
   icon: any;
   color: string;
   type: string;
+  tx?: number;
+  ty?: number;
 }

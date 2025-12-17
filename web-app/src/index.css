@@ -432,8 +432,50 @@
 }
 
 /* Utility to force hardware acceleration */
-.gpu {
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
+  .gpu {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* PREMIUM FAB BUTTON - APPLE INTELLIGENCE STYLE */
+  .premium-fab {
+    @apply flex items-center justify-center rounded-full text-white font-medium shadow-2xl transition-all duration-300;
+    /* Glassy surface */
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden; /* Contain the inner glow */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  /* The moving gradient background */
+  .premium-fab::before {
+    content: "";
+    position: absolute;
+    inset: -50%; /* Make it larger to rotate smoothly */
+    z-index: -1;
+    background: conic-gradient(
+      from var(--angle),
+      #06b6d4, /* Cyan */
+      #3b82f6, /* Blue */
+      #8b5cf6, /* Purple */
+      #ec4899, /* Pink */
+      #06b6d4  /* Loop */
+    );
+    animation: border-rotate 5s linear infinite;
+    opacity: 0.85; 
+    filter: blur(15px); /* Stronger blur for the 'orb' feel */
+  }
+
+  /* A subtle inner shine */
+  .premium-fab::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at top left, rgba(255,255,255,0.4), transparent 70%);
+    z-index: 1;
+    pointer-events: none;
+  }

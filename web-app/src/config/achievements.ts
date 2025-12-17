@@ -1,4 +1,4 @@
-import { Trophy, Flame, Zap, Brain, Target, Shield, Sword } from 'lucide-react';
+import { Flame, Zap, Brain, Sword } from 'lucide-react';
 import { UserData } from '../types/User';
 
 export type AchievementCategory = 'XP' | 'STREAK' | 'COMBAT' | 'MASTERY';
@@ -52,7 +52,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Complete a "Hard" difficulty task.',
     icon: Sword,
     category: 'COMBAT',
-    condition: (user) => false, // This would require tracking completed task history specifically, handled via event check usually
+    condition: () => false, // This would require tracking completed task history specifically, handled via event check usually
     xpReward: 200,
     arc: 'The Initiate'
   }

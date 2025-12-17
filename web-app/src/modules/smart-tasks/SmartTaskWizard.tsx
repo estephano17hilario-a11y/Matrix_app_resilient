@@ -100,34 +100,37 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ onComplete, on
 
       const start = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
       const end = currentNode.dueDate ? currentNode.dueDate.toDate() : new Date();
-      const days = differenceInDays(end, start); // inclusive? differenceInDays is exclusive of start usually. +1?
-      // differenceInDays(Jan 2, Jan 1) = 1.
-      // If duration is 1 day, we need 1 input.
-      // If duration is 30 days.
+      const days = differenceInDays(end, start); 
       
-      switch (nextLevel) {
-          case '5_YEARS':
-              // ~1826 days
-              return Math.ceil(days / 1826) || 2;
-          case 'YEAR':
-              // ~365 days
-              return Math.ceil(days / 365) || 5;
-          case 'SEMESTER': 
-              // ~182 days
-              return Math.ceil(days / 182) || 2; 
-          case 'QUARTER': 
-              // ~91 days
-              return Math.ceil(days / 91) || 2;
-          case 'MONTH': 
-              // ~30 days
-              return Math.ceil(days / 30) || 1;
-          case 'WEEK': 
-              // ~7 days
-              return Math.ceil(days / 7) || 1;
-          case 'DAY': 
-              return days || 1;
-          default: return 0;
-      }
+      // Use fuzzy ceil to avoid off-by-one errors (e.g. 366 days -> 3 semesters) but ensure coverage
+            const fuzzyCeil = (val: number) => Math.ceil(val - 0.1);
+
+            switch (nextLevel) {
+                case '5_YEARS':
+                    // ~1826 days
+                    return fuzzyCeil(days / 1826) || 1;
+                case 'YEAR':
+                    // ~365 days
+                    return fuzzyCeil(days / 365) || 1;
+                case 'SEMESTER': 
+                    // ~182 days
+                    return fuzzyCeil(days / 182) || 2; 
+                case 'QUARTER': 
+                    // ~91 days
+                    // FIX: A Semester is strictly 2 Quarters. 
+                    // We force 2 to prevent overcounting if parent duration is skewed.
+                    if (currentNode.level === 'SEMESTER') return 2;
+                    return fuzzyCeil(days / 91) || 2;
+                case 'MONTH': 
+                    // ~30 days
+                    return fuzzyCeil(days / 30) || 1;
+                case 'WEEK': 
+                    // ~7 days
+                    return fuzzyCeil(days / 7) || 1;
+                case 'DAY': 
+                    return days || 1;
+                default: return 0;
+            }
   };
 
   const requiredCount = getRequiredInputs();

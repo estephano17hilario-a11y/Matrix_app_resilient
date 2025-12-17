@@ -37,16 +37,17 @@ if (isConfigValid) {
     auth = getAuth(app);
 
     // C. Initialize Firestore (STANDARD MODE)
-    // Reverting to standard persistent cache but with tab manager to handle multiple tabs.
+    // Using standard configuration with automatic fallback.
+    // We avoid 'experimentalForceLongPolling' as it can cause 'net::ERR_ABORTED' in modern environments.
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
+                // Tab manager can be unstable in some dev environments; defaulting to standard behavior is safer.
+                // If multi-tab sync is critical, we can re-enable it carefully.
                 tabManager: persistentMultipleTabManager()
-            }),
-            // Force long polling to avoid "Write/channel" stream aborts
-            experimentalForceLongPolling: true, 
+            })
         });
-        console.log("🔥 MATRIX CORE: Firestore connected with Persistence (LongPolling).");
+        console.log("🔥 MATRIX CORE: Firestore connected with Persistence.");
     } catch (e: any) {
         // Fallback for HMR or environments where persistence fails (e.g., Private Mode)
         if (e.code === 'failed-precondition' || e.code === 'unimplemented') {

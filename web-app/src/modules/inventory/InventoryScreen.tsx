@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatrix } from '../../context/MatrixContext';
-import { useEconomy } from '../../context/EconomyContext';
+import { EconomyProvider, useEconomy } from '../../context/EconomyContext';
 import { StoreItem } from '../../services/economyService';
 import { 
   Search, Package, Zap, Sparkles, Ghost, Filter, X, 
@@ -61,15 +61,15 @@ const InventoryItemCard = ({
                 onClick={() => onUse(item)}
                 className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 text-[12px] font-medium transition-colors border border-white/5"
             >
-                Use Item
+                {item.category === 'power_up' ? 'Usar' : 'Equipar/Ver'}
             </button>
         </motion.div>
     );
 };
 
-export const InventoryScreen = () => {
+const InventoryContent = () => {
     const { user } = useMatrix();
-    const { storeItems } = useEconomy();
+    const { storeItems, consume } = useEconomy();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<'all' | 'power_up' | 'cosmetic' | 'bad_habit'>('all');
 
@@ -85,8 +85,8 @@ export const InventoryScreen = () => {
             return itemDef ? { ...itemDef, count: inventory[id] } : null;
         }).filter((item): item is StoreItem & { count: number } => item !== null);
 
-        // Exclude Themes as requested
-        items = items.filter(item => item.category !== 'theme');
+        // Exclude Themes as requested (or maybe show them now?)
+        // items = items.filter(item => item.category !== 'theme');
 
         // Apply Category Filter
         if (activeFilter !== 'all') {
@@ -105,18 +105,28 @@ export const InventoryScreen = () => {
         return items;
     }, [inventory, storeItems, activeFilter, searchQuery]);
 
-    const handleUse = (item: StoreItem) => {
-        // Placeholder for use logic
-        console.log('Using item:', item.name);
-        // Maybe trigger a toast or modal
-        if (navigator.vibrate) navigator.vibrate(20);
+    const handleUse = async (item: StoreItem) => {
+        if (item.category === 'cosmetic' || item.category === 'theme') {
+            // Placeholder for cosmetic logic
+            console.log('Viewing cosmetic:', item.name);
+            if (navigator.vibrate) navigator.vibrate(20);
+            return;
+        }
+
+        // Consume Power Ups
+        if (window.confirm(`¿Quieres usar ${item.name}?`)) {
+            const success = await consume(item.id);
+            if (success) {
+                if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+            }
+        }
     };
 
     const filters = [
-        { id: 'all', label: 'All', icon: Box },
-        { id: 'power_up', label: 'Power Ups', icon: Zap },
-        { id: 'cosmetic', label: 'Cosmetics', icon: Sparkles },
-        { id: 'bad_habit', label: 'Bad Habits', icon: Ghost },
+        { id: 'all', label: 'Todo', icon: Box },
+        { id: 'power_up', label: 'Mejoras', icon: Zap },
+        { id: 'cosmetic', label: 'Cosméticos', icon: Sparkles },
+        { id: 'bad_habit', label: 'Malos Hábitos', icon: Ghost },
     ] as const;
 
     return (
@@ -132,7 +142,7 @@ export const InventoryScreen = () => {
                      <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
                      <div className="relative flex flex-col px-5 py-4 gap-4">
                         <div className="flex justify-between items-center">
-                            <h1 className="text-[22px] font-semibold tracking-tight text-white">Inventory</h1>
+                            <h1 className="text-[22px] font-semibold tracking-tight text-white">Inventario</h1>
                             <div className="bg-white/10 p-2 rounded-full">
                                 <Package size={18} className="text-white/80" />
                             </div>
@@ -145,7 +155,7 @@ export const InventoryScreen = () => {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search your items..."
+                                placeholder="Buscar tus objetos..."
                                 className="w-full bg-black/20 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:bg-black/40 focus:border-white/10 transition-all"
                             />
                             {searchQuery && (
@@ -199,11 +209,19 @@ export const InventoryScreen = () => {
                         <div className="w-16 h-16 bg-[#1c1c1e] rounded-full flex items-center justify-center mb-4 border border-white/5">
                             <Package size={24} className="text-white/20" />
                         </div>
-                        <h3 className="text-white/40 font-medium mb-1">No items found</h3>
-                        <p className="text-white/20 text-xs">Try adjusting your filters or visit the Store.</p>
+                        <h3 className="text-white/40 font-medium mb-1">Inventario Vacío</h3>
+                        <p className="text-white/20 text-xs">Visita la Tienda para conseguir objetos.</p>
                     </div>
                 )}
             </div>
         </div>
     );
+};
+
+export const InventoryScreen = () => {
+  return (
+    <EconomyProvider>
+      <InventoryContent />
+    </EconomyProvider>
+  );
 };

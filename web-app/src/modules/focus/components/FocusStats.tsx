@@ -157,7 +157,7 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
                                 </button>
                             )
                         })}
-                        {projects.map(proj => {
+                        {projects.filter(p => !p.deleted).map(proj => {
                             const isActive = filterMode === proj.id;
                             return (
                                 <button key={proj.id} onClick={() => setFilterMode(proj.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}>

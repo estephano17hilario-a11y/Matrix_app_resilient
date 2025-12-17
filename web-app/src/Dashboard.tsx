@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { ArrowUp, Target, ListTodo } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { toLocalISOString } from './utils/dateUtils';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { TaskList } from './modules/tasks/TaskList';
-import { HabitList } from './modules/dashboard/HabitList';
+import { HabitVisualView } from './modules/dashboard/HabitVisualView';
 import { FocusView } from './modules/focus/FocusView';
 import { NotesView } from './modules/notes/NotesView';
 import { AchievementsScreen } from './modules/achievements/AchievementsScreen';
@@ -163,14 +164,34 @@ export default function Dashboard() {
     const [isProModalOpen, setIsProModalOpen] = useState(false);
     const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
     const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string } | null>(null);
+    const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
+    const [focusTargetProjectId, setFocusTargetProjectId] = useState<string | null>(null);
+
+    const handleFocusProject = (projectId: string) => {
+        setFocusTargetProjectId(projectId);
+        setCurrentView('FOCUS');
+    };
 
     const handleOpenSmartTaskCreator = (date: Date) => {
         if (!smartProject) return;
+        setEditingQuest(null);
         setSmartTaskProps({
-            lockedDate: date.toISOString().split('T')[0],
+            lockedDate: toLocalISOString(date),
             lockedAttributeId: smartProject.traitId
         });
         setActiveModal('QUEST');
+    };
+
+    const handleEditQuest = (quest: Quest) => {
+        setSmartTaskProps(null);
+        setEditingQuest(quest);
+        setActiveModal('QUEST');
+    };
+
+    const handleQuestModalClose = () => {
+        setActiveModal(null);
+        setEditingQuest(null);
+        setSmartTaskProps(null);
     };
 
     // Load Active Strategy
@@ -309,10 +330,25 @@ export default function Dashboard() {
                 <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
                     {particles.map(p => {
                         const Icon = p.icon;
+                        const tx = p.tx !== undefined ? p.tx - p.x : 0;
+                        const ty = p.ty !== undefined ? p.ty - p.y : 0;
+                        const isTargeted = p.tx !== undefined;
+                        
                         return (
-                            <div key={p.id} className="absolute flex items-center justify-center will-change-transform" style={{ left: p.x, top: p.y, color: p.color, animation: `jumpAndFall 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards` }}>
+                            <div key={p.id} className="absolute flex items-center justify-center will-change-transform" style={{ left: p.x, top: p.y, color: p.color, animation: isTargeted ? `flyToProfile 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards` : `jumpAndFall 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards` }}>
                                 <Icon size={p.type === 'fire' ? 24 : 16} fill={p.type === 'fire' ? p.color : "currentColor"} className="drop-shadow-lg" />
-                                <style>{`@keyframes jumpAndFall { 0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 1; } 15% { transform: translate3d(${p.vx * 0.5}px, ${p.vy}px, 0) scale(1.2); opacity: 1; } 100% { transform: translate3d(${p.vx * 1.5}px, 100vh, 0) scale(0.8); opacity: 0; } }`}</style>
+                                <style>{`
+                                    @keyframes jumpAndFall { 
+                                        0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 1; } 
+                                        15% { transform: translate3d(${p.vx * 0.5}px, ${p.vy}px, 0) scale(1.2); opacity: 1; } 
+                                        100% { transform: translate3d(${p.vx * 1.5}px, 100vh, 0) scale(0.8); opacity: 0; } 
+                                    }
+                                    @keyframes flyToProfile {
+                                        0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 1; }
+                                        20% { transform: translate3d(0, -20px, 0) scale(1.5); opacity: 1; }
+                                        100% { transform: translate3d(${tx}px, ${ty}px, 0) scale(0.5); opacity: 0; }
+                                    }
+                                `}</style>
                             </div>
                         )
                     })}
@@ -354,16 +390,17 @@ export default function Dashboard() {
                         nextXp={player.nextXp} 
                         health={health}
                         streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                        isHidden={isFocusMode || isNoteTaking}
+                        isHidden={currentView === 'FOCUS'}
                         showProfile={showProfile}
-                        onShowStore={() => setCurrentView('STORE')}
+                        onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
                         onShowPro={() => setIsProModalOpen(true)}
-                        onShowSettings={() => setCurrentView('SETTINGS')}
+                        onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                        onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
                         displayName={user?.displayName}
                         email={user?.email}
                     />
 
-                    <div className="h-full flex-1 w-full relative">
+                    <div className="h-full flex-1 w-full relative z-0">
                         <AnimatePresence mode="wait">
                             {currentView === 'TASKS' && (
                                 <motion.div 
@@ -409,7 +446,11 @@ export default function Dashboard() {
                                                 quests={quests} 
                                                 attributes={attributes} 
                                                 onCompleteQuest={completeQuest} 
-                                                onDeleteQuest={handleDeleteQuest}
+                                                onDeleteQuest={handleDeleteQuest} 
+                                                onEditQuest={handleEditQuest}
+                                                onAddQuest={() => setActiveModal('QUEST')}
+                                                onFocusProject={handleFocusProject}
+                                                projects={projects}
                                             />
                                         </>
                                     ) : (
@@ -426,6 +467,7 @@ export default function Dashboard() {
                                                     onAddSmartTask={handleOpenSmartTaskCreator}
                                                     onCompleteQuest={completeQuest}
                                                     onDeleteQuest={handleDeleteQuest}
+                                                    onEditQuest={handleEditQuest}
                                                 />
                                             ) : (
                                                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -472,10 +514,11 @@ export default function Dashboard() {
                                     key="HABITS"
                                     {...pageTransition}
                                 >
-                                    <HabitList 
+                                    <HabitVisualView 
                                         habits={habits} 
                                         attributes={attributes} 
-                                        onCompleteHabit={handleHabitClick} 
+                                        onCompleteHabit={handleHabitClick}
+                                        onCreateHabit={() => setActiveModal('HABIT')}
                                     />
                                 </motion.div>
                             )}
@@ -484,7 +527,7 @@ export default function Dashboard() {
                                 <motion.div 
                                     key="FOCUS"
                                     {...pageTransition}
-                                    className="h-[calc(100vh-140px)] pt-4 relative flex-1"
+                                    className="h-full pt-0 relative flex-1"
                                 >
                                     <FocusView 
                                         projects={projects} 
@@ -494,6 +537,21 @@ export default function Dashboard() {
                                         setFocusMode={handleFocusModeChange} 
                                         onUpdateProject={handleUpdateProject}
                                         addNotification={addNotification}
+                                        initialProjectId={focusTargetProjectId}
+                                        onBack={() => {
+                                            setFocusTargetProjectId(null);
+                                            setCurrentView('TASKS');
+                                        }}
+                                        userStats={{
+                                            ...(user?.stats || {}),
+                                            streak: habits.reduce((acc, h) => acc + h.streak, 0),
+                                            displayName: user?.displayName,
+                                            email: user?.email
+                                        }}
+                                        onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                        onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                        onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+                                        onShowPro={() => setIsProModalOpen(true)}
                                     />
                                 </motion.div>
                             )}
@@ -536,7 +594,7 @@ export default function Dashboard() {
                                     {...pageTransition}
                                     className="h-full pt-0 relative flex-1"
                                 >
-                                    <StoreScreen />
+                                    <StoreScreen onNavigate={(view) => setCurrentView(view)} />
                                 </motion.div>
                             )}
 
@@ -603,12 +661,14 @@ export default function Dashboard() {
                     {/* MODALS */}
                     <QuestModal 
                         isOpen={activeModal === 'QUEST'} 
-                        onClose={() => { setActiveModal(null); setSmartTaskProps(null); }} 
+                        onClose={handleQuestModalClose} 
                         attributes={attributes} 
+                        projects={projects}
                         onConfirm={handleQuestConfirm}
                         lockedAttributeId={smartTaskProps?.lockedAttributeId}
                         lockedDate={smartTaskProps?.lockedDate}
                         isSmartTask={!!smartTaskProps}
+                        initialValues={editingQuest || undefined}
                     />
                     <HabitModal isOpen={activeModal === 'HABIT'} onClose={() => setActiveModal(null)} attributes={attributes} onConfirm={handleHabitConfirm} />
                     <ProjectModal isOpen={activeModal === 'PROJECT'} onClose={() => setActiveModal(null)} attributes={attributes} onConfirm={handleProjectConfirm} />

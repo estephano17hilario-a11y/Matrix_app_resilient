@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2 } from 'lucide-react';
-import { Quest, Attribute } from '../../../types';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target } from 'lucide-react';
+import { Quest, Attribute, Project } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
 
 interface QuestItemProps {
   quest: Quest;
   attribute?: Attribute;
+  project?: Project;
   onComplete: (e: React.MouseEvent, q: Quest) => void;
   onDelete?: (id: string) => void;
+  onEdit?: (quest: Quest) => void;
+  onFocusProject?: (projectId: string) => void;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const Icon = attribute?.icon;
 
@@ -113,7 +116,7 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }:
                         animate={{ opacity: 1, x: 0 }}
                         className="flex items-center gap-2 text-[10px] font-medium"
                      >
-                        <span className="text-emerald-400">+{Math.floor(xp)} Matrix Coins</span>
+                        <span className="text-emerald-400">+{Math.floor(xp)} XP</span>
                         {coins > 0 && <span className="text-yellow-400">+{coins} G</span>}
                      </motion.div>
                   )}
@@ -121,6 +124,19 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }:
               </div>
             </div>
             
+            {/* EDIT BUTTON (Visible on Expand or Hover) */}
+            {onEdit && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onEdit(quest); }}
+                    className={cn(
+                        "p-2 rounded-lg text-white/20 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors",
+                        expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
+                >
+                    <Edit2 size={16} />
+                </button>
+            )}
+
             {/* DELETE BUTTON (Visible on Expand or Hover) - Allowed for all tasks */}
             {onDelete && (
                 <button
@@ -153,6 +169,17 @@ export const QuestItem = React.memo(({ quest, attribute, onComplete, onDelete }:
               >
                 <div className="pt-4 pb-1">
                   <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-3" />
+                  
+                  {project && onFocusProject && (
+                      <button 
+                          onClick={(e) => { e.stopPropagation(); onFocusProject(project.id); }}
+                          className="w-full flex items-center justify-center gap-2 py-2 mb-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-xs uppercase tracking-widest hover:bg-indigo-500/20 transition-colors"
+                      >
+                          <Target size={14} />
+                          Focus Mode
+                      </button>
+                  )}
+
                   {quest.description && (
                     <div className="text-[13px] text-slate-400 leading-relaxed px-1 font-medium mb-3">
                       "{quest.description}"

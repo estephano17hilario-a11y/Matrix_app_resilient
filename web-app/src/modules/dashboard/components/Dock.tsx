@@ -67,10 +67,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                          <button onClick={() => handleView('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Zap size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} /></button>
                      </div>
                      <div className="flex items-center justify-center h-full -mt-1">
-                  <button onClick={() => onToggle(!isOpen)} data-tour="fab-add" className={`glass-button z-20 flex items-center justify-center transition-all duration-400 cubic-bezier(0.19, 1, 0.22, 1) transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
-                      {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300 relative z-10" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md relative z-10" />)}
-                  </button>
-              </div>
+                 <button onClick={() => onToggle(!isOpen)} data-tour="fab-add" className={`premium-fab z-20 flex items-center justify-center transition-all duration-400 cubic-bezier(0.19, 1, 0.22, 1) transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
+                     {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300 relative z-10" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md relative z-10" />)}
+                 </button>
+             </div>
                      <div className="flex gap-5">
                          <button onClick={() => handleView('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Target size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} /></button>
                          <button onClick={() => handleView('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Briefcase size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} /></button>

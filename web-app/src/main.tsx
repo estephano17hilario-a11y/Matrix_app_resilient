@@ -4,41 +4,13 @@ import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // 🛡️ CONSOLE SILENCER
-// Prevents specific Firestore spam from polluting the console
+// We keep this lightweight to avoid specific noise, but we should not suppress critical network errors 
+// unless we are sure they are harmless.
 const originalConsoleError = console.error;
 console.error = (...args) => {
-    const errorStr = args.map(a => a && a.toString ? a.toString() : String(a)).join(' ');
-    if (
-        errorStr.includes('net::ERR_ABORTED') || 
-        errorStr.includes('Firestore/Write/channel') ||
-        errorStr.includes('The user aborted a request')
-    ) {
-        // Shhh... 🤫
-        return;
-    }
+    // Pass through by default
     originalConsoleError(...args);
 };
-
-// 🛡️ GLOBAL ERROR TRAP
-// This swallows the annoying "net::ERR_ABORTED" which is harmless in dev
-// but terrifying to users.
-window.addEventListener('error', (event) => {
-    if (event.message?.includes('net::ERR_ABORTED') || 
-        event.message?.includes('Aborted') ||
-        event.message?.includes('The user aborted a request')) {
-        event.preventDefault();
-        // console.debug("🧹 Ignored harmless network abort.");
-    }
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-     if (event.reason?.code === 'aborted' || 
-         event.reason?.name === 'AbortError' ||
-         event.reason?.message?.includes('Aborted')) {
-         event.preventDefault();
-         // console.debug("🧹 Ignored harmless promise abort.");
-     }
-});
 
 console.log('MAIN: Mounting application...');
 

@@ -1,16 +1,20 @@
 import React from 'react';
-import { Flame } from 'lucide-react';
-import { Quest, Attribute } from '../../types';
+import { Flame, Plus } from 'lucide-react';
+import { Quest, Attribute, Project } from '../../types';
 import { QuestItem } from './components/QuestItem';
 
 interface TaskListProps {
   quests: Quest[];
   attributes: Attribute[];
+  projects?: Project[];
   onCompleteQuest: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
+  onEditQuest?: (quest: Quest) => void;
+  onAddQuest?: () => void;
+  onFocusProject?: (projectId: string) => void;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onCompleteQuest, onDeleteQuest }) => {
+export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject }) => {
   const activeQuests = quests.filter(q => !q.completed);
   const completedQuests = quests.filter(q => q.completed);
 
@@ -31,6 +35,15 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onComple
               {activeQuests.length} TARGETS
             </span>
           </div>
+          {onAddQuest && (
+            <button 
+              onClick={onAddQuest}
+              className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors"
+              data-tour="new-mission-btn"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
         
         <div className="flex flex-col pb-32 gap-3">
@@ -39,8 +52,11 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, onComple
               key={quest.id} 
               quest={quest} 
               attribute={attributes.find(a => a.id === quest.attribute)} 
+              project={projects?.find(p => p.id === quest.projectId)}
               onComplete={onCompleteQuest} 
               onDelete={onDeleteQuest}
+              onEdit={onEditQuest}
+              onFocusProject={onFocusProject}
             />
           ))}
           {sortedQuests.length === 0 && (

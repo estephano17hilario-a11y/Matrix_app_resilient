@@ -155,6 +155,7 @@ export const useDashboardLogic = () => {
         }))
     ); 
     const prevAttributes = useRef(attributes);
+    const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);
         
     const [quests, setQuests] = useState<Quest[]>([]);
     const [habits, setHabits] = useState<Habit[]>([]);
@@ -183,6 +184,7 @@ export const useDashboardLogic = () => {
                         });
                      });
                 }
+                setAreAttributesLoaded(true);
             });
         }
     }, [user?.uid]);
@@ -193,6 +195,83 @@ export const useDashboardLogic = () => {
              persistenceService.settings.save(user.uid, { theme: currentTheme, showProfile, defaultChartMode });
         }
     }, [currentTheme, showProfile, defaultChartMode, user?.uid]);
+
+    // --- DAILY RESET & STREAK LOGIC ---
+    useEffect(() => {
+        if (!habits.length || !user?.uid) return;
+
+        const checkDailyReset = async () => {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            let hasChanges = false;
+            
+            // Check if streak is frozen
+            const streakFrozenUntil = user.stats?.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
+            const isFrozen = streakFrozenUntil && streakFrozenUntil > today;
+
+            const updatedHabits = habits.map(habit => {
+                let newItem = { ...habit };
+                let changed = false;
+
+                // 1. Reset completedToday if it's a new day
+                // We check history to see if the last completion was actually today
+                const lastCompletion = habit.history && habit.history.length > 0 
+                    ? habit.history[habit.history.length - 1].split('T')[0] 
+                    : null;
+
+                const isCompletedTodayInHistory = lastCompletion === todayStr;
+
+                if (habit.completedToday && !isCompletedTodayInHistory) {
+                    newItem.completedToday = false;
+                    changed = true;
+                }
+
+                // 2. Check for broken streak
+                // If not completed today AND not completed yesterday AND not frozen -> Reset Streak
+                // We trust 'streak' value, but we must verify it matches history continuity?
+                // For simplicity: If we missed yesterday, streak breaks.
+                
+                // If last completion was BEFORE yesterday (e.g. 2 days ago), streak should be 0.
+                if (habit.streak > 0 && lastCompletion && lastCompletion < yesterdayStr) {
+                    if (!isFrozen) {
+                        newItem.streak = 0;
+                        changed = true;
+                        console.log(`[Streak] Broken for ${habit.title}. Last: ${lastCompletion}`);
+                    } else {
+                        console.log(`[Streak] Protected by Freeze for ${habit.title}`);
+                    }
+                }
+
+                if (changed) {
+                    hasChanges = true;
+                    // Persist individual updates
+                    persistenceService.habits.update(user.uid, habit.id, { 
+                        completedToday: newItem.completedToday,
+                        streak: newItem.streak
+                    });
+                }
+                return newItem;
+            });
+
+            if (hasChanges) {
+                setHabits(updatedHabits);
+            }
+        };
+
+        // Run check
+        checkDailyReset();
+        // We only want to run this when habits are first loaded or user changes (login)
+        // Adding habits to dependency array might cause loops if we update habits inside.
+        // So we need a ref or strict dependency management.
+        // Actually, if we update habits, 'habits' changes, effect runs again.
+        // But if 'hasChanges' is false, it won't loop.
+        // To be safe, let's use a flag or rely on the stability.
+    }, [habits.length, user?.uid, user?.stats?.streakFrozenUntil]); // Only run when count changes or user changes
+
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -221,12 +300,19 @@ export const useDashboardLogic = () => {
 
     // --- NOTIFICATION EFFECTS (Safe from Render Cycle) ---
     const isFirstLoad = useRef(true);
+    const isAttributesSync = useRef(true);
 
     useEffect(() => {
         // Skip notification on first load or if level hasn't increased
-        if (isFirstLoad.current) {
-            isFirstLoad.current = false;
-            prevPlayerLevel.current = player.level;
+        // We also wait for matrixLoading to be false to ensure we have the real level from DB
+        if (isFirstLoad.current || matrixLoading) {
+            if (!matrixLoading && user?.stats) {
+                // Ensure player state has synced with user state before enabling notifications
+                if (player.level === user.stats.level) {
+                    isFirstLoad.current = false;
+                    prevPlayerLevel.current = player.level;
+                }
+            }
             return;
         }
 
@@ -234,9 +320,17 @@ export const useDashboardLogic = () => {
             addNotification({ type: 'GLOBAL', label: 'HERO', fromLevel: prevPlayerLevel.current, toLevel: player.level, icon: Trophy, color: '#fbbf24' });
         }
         prevPlayerLevel.current = player.level;
-    }, [player.level, addNotification]);
+    }, [player.level, addNotification, matrixLoading, user]);
 
     useEffect(() => {
+        if (!areAttributesLoaded) return;
+
+        if (isAttributesSync.current) {
+            isAttributesSync.current = false;
+            prevAttributes.current = attributes;
+            return;
+        }
+
         attributes.forEach(attr => {
             const prev = prevAttributes.current.find(p => p.id === attr.id);
             if (prev && attr.level > prev.level) {
@@ -244,7 +338,7 @@ export const useDashboardLogic = () => {
             }
         });
         prevAttributes.current = attributes;
-    }, [attributes, addNotification]);
+    }, [attributes, addNotification, areAttributesLoaded]);
 
 
     // --- UNIFIED REWARD SYSTEM ---
@@ -339,11 +433,33 @@ export const useDashboardLogic = () => {
         });
     }, [user?.uid]);
 
-    const spawnParticles = useCallback((x: number, y: number, color: string, Icon: React.ElementType, type = 'icon') => {
-        const count = type === 'fire' ? 12 : 8; 
-        const newParticles = Array.from({ length: count }).map((_, i) => ({ id: Date.now() + i, x, y, vx: (Math.random() - 0.5) * 150, vy: -100 - Math.random() * 150, rotation: Math.random() * 360, icon: Icon, color: type === 'fire' ? (i % 2 === 0 ? '#f97316' : '#ef4444') : color, type }));
+    const spawnParticles = useCallback((x: number, y: number, color: string, Icon: React.ElementType, type = 'icon', targetId?: string) => {
+        let tx: number | undefined, ty: number | undefined;
+        if (targetId) {
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect();
+                tx = rect.left + rect.width / 2;
+                ty = rect.top + rect.height / 2;
+            }
+        }
+
+        const count = targetId ? 1 : (type === 'fire' ? 12 : 8); 
+        const newParticles = Array.from({ length: count }).map((_, i) => ({ 
+            id: Date.now() + i, 
+            x, 
+            y, 
+            vx: (Math.random() - 0.5) * 150, 
+            vy: -100 - Math.random() * 150, 
+            rotation: Math.random() * 360, 
+            icon: Icon, 
+            color: type === 'fire' ? (i % 2 === 0 ? '#f97316' : '#ef4444') : color, 
+            type,
+            tx,
+            ty
+        }));
         setParticles(prev => [...prev, ...newParticles]);
-        setTimeout(() => { setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))); }, 2000); 
+        setTimeout(() => { setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))); }, targetId ? 1000 : 2000); 
     }, []);
 
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
@@ -399,7 +515,7 @@ export const useDashboardLogic = () => {
             const attr = attributes.find(a => a.id === quest.attribute);
             const AttrIcon = attr?.icon || Star;
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            spawnParticles(rect.left + rect.width / 2, rect.top, attr?.color || '#fff', AttrIcon);
+            spawnParticles(rect.left + rect.width / 2, rect.top, attr?.color || '#fff', AttrIcon, 'icon', 'profile-avatar-target');
             if(navigator.vibrate) navigator.vibrate(10); 
             
             // Rewards
@@ -438,16 +554,33 @@ export const useDashboardLogic = () => {
             
             setHabits(prev => prev.map(h => { 
                 if (h.id === habit.id) { 
-                    return { ...h, completedToday: false, streak: Math.max(0, h.streak - 1), totalCompletions: Math.max(0, h.totalCompletions - 1) }; 
+                    // Remove today from history if exists
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const newHistory = (h.history || []).filter(d => !d.startsWith(todayStr));
+                    
+                    return { 
+                        ...h, 
+                        completedToday: false, 
+                        streak: Math.max(0, h.streak - 1), 
+                        totalCompletions: Math.max(0, h.totalCompletions - 1),
+                        history: newHistory
+                    }; 
                 } 
                 return h; 
             }));
             
             if (user?.uid) {
+                // We can't easily update array via partial update in this mock service structure 
+                // without sending the whole array, assuming .update handles merge.
+                // ideally we fetch the fresh history but here we just send the new state.
+                const todayStr = new Date().toISOString().split('T')[0];
+                const newHistory = (habit.history || []).filter(d => !d.startsWith(todayStr));
+
                 persistenceService.habits.update(user.uid, habit.id, { 
                     completedToday: false, 
                     streak: Math.max(0, habit.streak - 1), 
-                    totalCompletions: Math.max(0, habit.totalCompletions - 1) 
+                    totalCompletions: Math.max(0, habit.totalCompletions - 1),
+                    history: newHistory
                 });
             }
             return;
@@ -461,9 +594,17 @@ export const useDashboardLogic = () => {
             addPlayerReward({ xp: rewardXp, gold: 0 }); // Habits currently only give XP, maybe add gold later?
             updateAttributeXp(habit.attribute, rewardXp);
             
+            const todayISO = new Date().toISOString();
+
             setHabits(prev => prev.map(h => { 
                 if (h.id === habit.id) { 
-                    return { ...h, completedToday: true, streak: h.streak + 1, totalCompletions: h.totalCompletions + 1 }; 
+                    return { 
+                        ...h, 
+                        completedToday: true, 
+                        streak: h.streak + 1, 
+                        totalCompletions: h.totalCompletions + 1,
+                        history: [...(h.history || []), todayISO]
+                    }; 
                 } 
                 return h; 
             }));
@@ -472,7 +613,8 @@ export const useDashboardLogic = () => {
                 persistenceService.habits.update(user.uid, habit.id, { 
                     completedToday: true, 
                     streak: habit.streak + 1, 
-                    totalCompletions: habit.totalCompletions + 1 
+                    totalCompletions: habit.totalCompletions + 1,
+                    history: [...(habit.history || []), todayISO]
                 });
             }
         } else {
@@ -499,10 +641,19 @@ export const useDashboardLogic = () => {
             updateAttributeXp(validationHabit.attribute, rewardXp);
         }
 
+        const todayISO = new Date().toISOString();
+
         setHabits(prev => prev.map(h => {
             if (h.id === validationHabit.id) {
                 if (isComplete) {
-                    return { ...h, completedToday: true, streak: h.streak + 1, totalCompletions: h.totalCompletions + 1, currentValue: newCurrentValue };
+                    return { 
+                        ...h, 
+                        completedToday: true, 
+                        streak: h.streak + 1, 
+                        totalCompletions: h.totalCompletions + 1, 
+                        currentValue: newCurrentValue,
+                        history: [...(h.history || []), todayISO]
+                    };
                 }
                 return { ...h, currentValue: newCurrentValue }; 
             }
@@ -515,7 +666,8 @@ export const useDashboardLogic = () => {
                     completedToday: true, 
                     streak: validationHabit.streak + 1, 
                     totalCompletions: validationHabit.totalCompletions + 1, 
-                    currentValue: newCurrentValue 
+                    currentValue: newCurrentValue,
+                    history: [...(validationHabit.history || []), todayISO]
                 });
             } else {
                 persistenceService.habits.update(user.uid, validationHabit.id, { 

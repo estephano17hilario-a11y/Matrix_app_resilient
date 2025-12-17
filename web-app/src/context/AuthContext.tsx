@@ -10,6 +10,13 @@ import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
+const DEFAULT_ONBOARDING = {
+  successDefinition: "Becoming the One",
+  obstacles: [],
+  coachingTone: "Stoic",
+  completedAt: Date.now()
+};
+
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
@@ -82,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // HYDRATION CHECK: Ensure critical fields exist
           // (Fixes race condition where AuthView creates a partial doc with just name/email)
-          if (!existingProfile.stats || !existingProfile.archetype) {
+          if (!existingProfile.stats || !existingProfile.archetype || !existingProfile.onboarding) {
              console.log("⚠️ MATRIX: Hydrating skeleton user profile...");
              const completeProfile = {
                 ...existingProfile,
@@ -91,12 +98,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 plan: existingProfile.plan || 'FREE',
                 theme: existingProfile.theme || 'MATRIX',
                 createdAt: existingProfile.createdAt || Date.now(),
-                lastLoginAt: Date.now()
+                lastLoginAt: Date.now(),
+                onboarding: existingProfile.onboarding || DEFAULT_ONBOARDING
              };
              
              // Save the missing pieces
              await setDoc(userRef, completeProfile, { merge: true });
-             setProfile(completeProfile);
+             setProfile(completeProfile as UserProfile);
           } else {
              // NORMAL LOGIN: Just update timestamp
              await setDoc(userRef, {
@@ -123,7 +131,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             stats: DEFAULT_USER_STATS,
             createdAt: Date.now(),
             lastLoginAt: Date.now(),
-            theme: 'MATRIX'
+            theme: 'MATRIX',
+            onboarding: DEFAULT_ONBOARDING
           };
 
           // SANITIZE & SAVE

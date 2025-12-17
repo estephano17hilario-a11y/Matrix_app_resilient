@@ -8,6 +8,7 @@ export interface UserStats {
   level: number;    // Calculado (XP / 1000)
   gold: number;     // Moneda virtual
   streak: number;   // Días consecutivos
+  streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
 }
 
 export interface UserProfile {

@@ -4,7 +4,7 @@ import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
 import { TutorialProvider } from './context/TutorialContext';
 import { AuthScreen } from './modules/auth/AuthScreen';
-import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
+import { AuroraBackground } from './components/AuroraBackground';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import Dashboard from './Dashboard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,54 +14,55 @@ import { motion, AnimatePresence } from 'framer-motion';
  * LOGIC: Determines the reality the user experiences.
  */
 const AppRoutes = () => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   
-  // 1. INITIALIZATION STATE (The Loading Gate)
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
   return (
-    <AnimatePresence mode="wait">
-      {/* 2. AUTHENTICATION GATE */}
-      {!user ? (
-        <motion.div
-            key="auth"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+    <>
+      {/* PERSISTENT BACKGROUND LAYER */}
+      <div className="fixed inset-0 z-[-1]">
+        <AuroraBackground />
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* 1. INITIALIZATION STATE (The Loading Gate) */}
+        {isLoading ? (
+          <motion.div
+            key="loading"
             exit={{ opacity: 0 }}
-        >
-            <AuthScreen />
-        </motion.div>
-      ) : !profile?.onboarding ? (
-        // 3. ONBOARDING GATE (New "Apple Intelligence" Flow)
-        <motion.div
-            key="onboarding"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-        >
-            <OnboardingFlow />
-        </motion.div>
-      ) : (
-        // 4. REALITY FORK
-        <MatrixProvider key="matrix-provider" userId={user.uid}>
-          <EconomyProvider>
-            <TutorialProvider>
-              <motion.div 
-                key="dashboard"
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.5 }}
-              >
-                <Dashboard />
-              </motion.div>
-            </TutorialProvider>
-          </EconomyProvider>
-        </MatrixProvider>
-      )}
-    </AnimatePresence>
+            transition={{ duration: 1 }}
+          >
+            <LoadingScreen />
+          </motion.div>
+        ) : !user ? (
+          // 2. AUTHENTICATION GATE
+          <motion.div
+              key="auth"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+          >
+              <AuthScreen />
+          </motion.div>
+        ) : (
+          // 4. REALITY FORK
+          <MatrixProvider key="matrix-provider" userId={user.uid}>
+            <EconomyProvider>
+              <TutorialProvider>
+                <motion.div 
+                  key="dashboard"
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5 }}
+                >
+                  <Dashboard />
+                </motion.div>
+              </TutorialProvider>
+            </EconomyProvider>
+          </MatrixProvider>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

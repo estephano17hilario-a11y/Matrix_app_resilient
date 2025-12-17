@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Loader2, Tv, Sparkles } from 'lucide-react';
+import { Play, Loader2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 
 interface AdShardProps {

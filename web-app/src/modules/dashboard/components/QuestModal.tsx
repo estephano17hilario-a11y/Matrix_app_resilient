@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Lock, Sparkles } from 'lucide-react';
-import { Attribute, Quest } from '../../../types';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Lock, Sparkles, Target, ChevronDown } from 'lucide-react';
+import { Attribute, Quest, Project } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { motion } from 'framer-motion';
@@ -9,39 +9,65 @@ export const QuestModal = React.memo(({
     isOpen, 
     onClose, 
     attributes, 
+    projects = [],
     onConfirm,
     lockedAttributeId,
     lockedDate,
-    isSmartTask
+    isSmartTask,
+    initialValues
 }: { 
     isOpen: boolean, 
     onClose: () => void, 
     attributes: Attribute[], 
+    projects?: Project[],
     onConfirm: (data: Partial<Quest>) => void,
     lockedAttributeId?: string,
     lockedDate?: string,
-    isSmartTask?: boolean
+    isSmartTask?: boolean,
+    initialValues?: Partial<Quest> | null
 }) => {
     // Common State
     const [title, setTitle] = useState(''); // Main Goal
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('');
+    const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('D');
     const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
+    const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
 
-    // Effect to apply locked props
+    // Effect to apply locked props or initial values
     React.useEffect(() => {
         if (isOpen) {
+            if (initialValues) {
+                setTitle(initialValues.title || '');
+                setDesc(initialValues.description || '');
+                setAttrId(initialValues.attribute || '');
+                setProjectId(initialValues.projectId || '');
+                setDifficulty((initialValues.difficulty as Difficulty) || 'D');
+                setDeadline(initialValues.deadline || new Date().toISOString().split('T')[0]);
+            } else {
+                // Reset defaults for new quest
+                setTitle('');
+                setDesc('');
+                setAttrId('');
+                setProjectId('');
+                setDifficulty('D');
+                setDeadline(new Date().toISOString().split('T')[0]);
+            }
+
+            // Locks override initial values if present (though usually mutually exclusive)
             if (lockedAttributeId) setAttrId(lockedAttributeId);
             if (lockedDate) setDeadline(lockedDate);
         }
-    }, [isOpen, lockedAttributeId, lockedDate]);
+    }, [isOpen, lockedAttributeId, lockedDate, initialValues]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#333333';
     const SelectedIcon = selectedAttr?.icon || Star;
     const activeLabel = selectedAttr?.label || 'Trait';
+    
+    const selectedProject = projects.find(p => p.id === projectId);
 
     const prediction = useMemo(() => {
         return calculateTaskRewards(difficulty, deadline);
@@ -51,9 +77,11 @@ export const QuestModal = React.memo(({
 
     const handleConfirm = () => {
         onConfirm({ 
+            ...(initialValues?.id ? { id: initialValues.id } : {}),
             title, 
             description: desc, 
             attribute: attrId, 
+            projectId,
             difficulty, 
             deadline,
             xpReward: prediction.xp,
@@ -88,7 +116,7 @@ export const QuestModal = React.memo(({
                             </div>
                             <div>
                                 <h2 className="text-xl font-black text-white tracking-tight leading-none flex items-center gap-2">
-                                    {isSmartTask ? 'Smart Mission' : 'New Mission'}
+                                    {initialValues ? 'Edit Mission' : (isSmartTask ? 'Smart Mission' : 'New Mission')}
                                     {isSmartTask && <Sparkles size={14} className="text-yellow-400" />}
                                 </h2>
                                 {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Linked to Strategy</span>}
@@ -146,6 +174,59 @@ export const QuestModal = React.memo(({
                                 placeholder="Briefing (Optional)..." 
                                 className="w-full bg-transparent text-sm font-medium text-slate-300 placeholder:text-white/20 outline-none" 
                             />
+                        </div>
+
+                        {/* Project Selector */}
+                        <div className="relative">
+                            <button 
+                                onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
+                                className={`w-full bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between transition-colors ${projectId ? 'border-white/20' : ''}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${projectId ? '' : 'bg-white/5'}`} style={{ backgroundColor: projectId ? (attributes.find(a => a.id === selectedProject?.attribute)?.color || '#333') : undefined }}>
+                                        <Target size={16} className={projectId ? 'text-white' : 'text-white/30'} />
+                                    </div>
+                                    <span className={`text-sm font-bold ${projectId ? 'text-white' : 'text-white/30'}`}>
+                                        {projectId ? selectedProject?.title : 'Link to Project (Optional)'}
+                                    </span>
+                                </div>
+                                <ChevronDown size={16} className={`text-white/30 transition-transform ${isProjectPickerOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isProjectPickerOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setProjectPickerOpen(false)} />
+                                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-2xl border border-white/10 animate-in zoom-in-95 max-h-[200px] overflow-y-auto">
+                                        <button 
+                                            onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
+                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                                                <X size={14} className="text-white/50" />
+                                            </div>
+                                            <span className="text-xs font-bold text-white/50">No Project</span>
+                                        </button>
+                                        {projects.map(p => {
+                                            const attr = attributes.find(a => a.id === p.attribute);
+                                            return (
+                                                <button 
+                                                    key={p.id} 
+                                                    onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>
+                                                        <Target size={14} className="text-white" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-white">{p.title}</span>
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{attr?.label}</span>
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Difficulty Selector (Liquid UI) */}

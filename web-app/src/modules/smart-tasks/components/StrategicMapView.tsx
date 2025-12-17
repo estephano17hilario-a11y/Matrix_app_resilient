@@ -25,7 +25,7 @@ import { Attribute, Quest } from '../../../types'; // Import Quest
 import { QuestItem } from '../../tasks/components/QuestItem';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '../../../utils/cn';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDate, getContextDates, toLocalISOString } from '../../../utils/dateUtils';
 import { differenceInDays } from 'date-fns';
 import { TRAITS_LIST } from '../../dashboard/constants';
 
@@ -40,6 +40,7 @@ interface StrategicMapViewProps {
   onAddSmartTask?: (date: Date) => void;
   onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
+  onEditQuest?: (q: Quest) => void;
 }
 
 const LevelLabels: Record<TimeFrame, string> = {
@@ -64,6 +65,15 @@ const LevelIcons: Record<TimeFrame, React.ReactNode> = {
     DAY: <Circle size={16} />,
 };
 
+// Helper for next level
+const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
+    // Modified hierarchy to include QUARTER
+    const hierarchy: TimeFrame[] = ['10_YEARS', '5_YEARS', 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
+    const index = hierarchy.indexOf(currentLevel);
+    if (index === -1 || index === hierarchy.length - 1) return null;
+    return hierarchy[index + 1];
+};
+
 // Helper to get expected children count based on duration
 const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
     if (!start || !end) {
@@ -79,23 +89,9 @@ const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
             default: return 0;
         }
     }
- 
-     // We use differenceInDays without +1 because our internal logic (from SmartTaskWizard/dateUtils)
-     // now consistently uses EXCLUSIVE end dates (Start of Next Period).
-     // e.g. Jan 1 00:00 to Jan 8 00:00 = 7 days.
-     const days = differenceInDays(end, start);
- 
-     // Map NEXT level capacity
-    // If current is MONTH, next is WEEK. We want to know how many WEEKS fit in this MONTH.
-    // This function receives the PARENT level, so we need to know the CHILD level logic.
-    // Actually, it's better to pass the CHILD level or determine it here.
-    // Let's look at how it's used: getExpectedChildrenCount(activeNode.level)
-    // So 'level' is the PARENT level.
 
-    // We need to know what the next level is to calculate capacity.
-    // But getNextLevel is defined below. Let's move getNextLevel up or merge logic.
+    const days = differenceInDays(end, start);
     
-    // Simplification: We calculate based on the *next* level's approximate duration in days.
     const nextLevel = getNextLevel(level);
     if (!nextLevel) return 0;
 
@@ -106,18 +102,9 @@ const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
         case 'QUARTER': return Math.ceil(days / 91) || 1;
         case 'MONTH': return Math.ceil(days / 30) || 1;
         case 'WEEK': return Math.ceil(days / 7) || 1;
-        case 'DAY': return Math.max(1, days); // Exact days (at least 1 if < 1 day but > 0)
+        case 'DAY': return Math.max(1, days);
         default: return 0;
     }
-};
-
-// Helper for next level
-const getNextLevel = (currentLevel: TimeFrame): TimeFrame | null => {
-    // Modified hierarchy to include QUARTER
-    const hierarchy: TimeFrame[] = ['10_YEARS', '5_YEARS', 'YEAR', 'SEMESTER', 'QUARTER', 'MONTH', 'WEEK', 'DAY'];
-    const index = hierarchy.indexOf(currentLevel);
-    if (index === -1 || index === hierarchy.length - 1) return null;
-    return hierarchy[index + 1];
 };
 const getPlaceholderTitle = (level: TimeFrame, index: number): string => {
     switch (level) {
@@ -147,7 +134,6 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     onUpdateProject, 
     onDeleteProject, 
     onDeleteNode, 
-    onCreateNew, 
     onAddSmartTask,
     onCompleteQuest,
     onDeleteQuest
@@ -192,16 +178,28 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
       const existing = activeNode.children || [];
       const missingCount = Math.max(0, expectedCount - existing.length);
       
-      const placeholders: StrategicNode[] = Array.from({ length: missingCount }).map((_, i) => ({
-          id: `virtual-${activeNode.id}-${existing.length + i}`,
-          title: getPlaceholderTitle(nextLevel, existing.length + i),
-          level: nextLevel,
-          dueDate: Timestamp.now(),
-          isCompleted: false,
-          children: [],
-          reward: { xp: 0, coins: 0 },
-          placeholder: true
-      }));
+      const placeholders: StrategicNode[] = Array.from({ length: missingCount }).map((_, i) => {
+          const index = existing.length + i;
+          const { start, end, label } = getContextDates(
+              activeNode.startDate ? safeDate(activeNode.startDate) : new Date(),
+              activeNode.dueDate ? safeDate(activeNode.dueDate) : new Date(),
+              activeNode.level,
+              index,
+              expectedCount
+          );
+
+          return {
+              id: `virtual-${activeNode.id}-${index}`,
+              title: label || getPlaceholderTitle(nextLevel, index),
+              level: nextLevel,
+              startDate: Timestamp.fromDate(start),
+              dueDate: Timestamp.fromDate(end),
+              isCompleted: false,
+              children: [],
+              reward: { xp: 0, coins: 0 },
+              placeholder: true
+          };
+      });
       
       return [...existing, ...placeholders];
   }, [activeNode]);
@@ -245,7 +243,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
   const isLeafLevel = ['DAY'].includes(activeNode.level);
 
   // Filter quests for the active leaf node
-  const activeDate = activeNode.dueDate ? safeDate(activeNode.dueDate).toISOString().split('T')[0] : null;
+  const activeDate = activeNode.startDate ? toLocalISOString(safeDate(activeNode.startDate)) : null;
   const dayTasks = React.useMemo(() => {
       if (!isLeafLevel || !activeDate) return [];
       return quests.filter(q => q.deadline === activeDate && q.attribute === project.traitId);
@@ -256,7 +254,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
         
         {/* --- 1. NAVIGATION HEADER --- */}
         <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl z-10 flex items-center justify-between">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar mask-linear-fade">
+            <div className="flex items-center gap-1 flex-wrap gap-y-2">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;
                     return (
@@ -319,18 +317,6 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                     <Trash2 size={16} />
                 </button>
             )}
-
-            {onCreateNew && (
-                <button 
-                    onClick={onCreateNew}
-                    className="ml-6 px-4 py-2 rounded-full bg-black/40 border border-white/10 text-white font-medium text-xs shadow-lg hover:bg-white/5 transition-all flex items-center gap-2 backdrop-blur-md relative overflow-hidden group"
-                    title="Nueva Estrategia"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <Sparkles size={14} className="text-indigo-300 relative z-10" />
-                    <span className="relative z-10 tracking-wide text-indigo-100/90">New Smart Task</span>
-                </button>
-            )}
         </div>
 
         {/* --- 2. MAIN CONTENT AREA --- */}
@@ -364,7 +350,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                     {previousNode ? `Dentro de ${previousNode.title}` : 'Estrategia Maestra'}
                                 </div>
                                 
-                                <div className="flex flex-col items-center justify-center gap-4">
+                                <div className="flex flex-col items-center justify-center gap-2">
                                     {isEditing ? (
                                         <div className="flex items-center gap-2 w-full max-w-lg">
                                             <input 
@@ -389,22 +375,25 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                         </div>
                                     ) : (
                                         <div className="group relative">
-                                            <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/60 tracking-tighter leading-tight max-w-4xl mx-auto cursor-pointer"
+                                            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-t from-gray-900 via-white to-white tracking-tighter leading-tight max-w-5xl mx-auto cursor-pointer pb-4 select-none drop-shadow-sm"
                                                 onClick={() => setIsEditing(true)}
                                             >
                                                 {activeNode.title || (activeNode.placeholder ? "Definir Objetivo..." : "Sin Título")}
                                             </h1>
+                                            <h2 className="text-sm md:text-base font-bold text-white/40 tracking-[0.2em] uppercase mt-2">
+                                                {LevelLabels[activeNode.level] || activeNode.level}
+                                            </h2>
                                             <button 
                                                 onClick={() => setIsEditing(true)}
-                                                className="absolute -right-8 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white"
+                                                className="absolute -right-12 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white"
                                             >
-                                                <Edit2 size={16} />
+                                                <Edit2 size={20} />
                                             </button>
                                         </div>
                                     )}
                                 </div>
 
-                                <p className="text-lg text-white/40 max-w-xl mx-auto font-light leading-relaxed">
+                                <p className="text-lg text-white/60 max-w-xl mx-auto font-light leading-relaxed">
                                     {isLeafLevel 
                                         ? "Completa estas tareas para lograr el objetivo diario." 
                                         : `Selecciona un ${getNextLevel(activeNode.level) ? LevelLabels[getNextLevel(activeNode.level)!].toLowerCase() : 'segmento'} para profundizar.`}
@@ -454,109 +443,132 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                         </div>
                                                         <h3 className="text-white font-medium text-xl">Sin Tareas Aún</h3>
                                                         <p className="text-white/40 mt-2">Añade tareas para ejecutar el plan de este día.</p>
-                                                        <button 
-                                                            onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.dueDate))}
-                                                            className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-all shadow-lg shadow-white/10"
-                                                        >
-                                                            Crear Tarea
-                                                        </button>
                                                     </div>
                                                 )}
                                                 
-                                                {dayTasks.length > 0 && (
-                                                    <button 
-                                                        onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.dueDate))}
-                                                        className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center gap-2 text-white/40 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all group"
-                                                    >
-                                                        <Plus size={20} className="group-hover:scale-110 transition-transform" />
-                                                        <span className="font-medium">Añade otra tarea</span>
-                                                    </button>
-                                                )}
+                                                <button 
+                                                    onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.startDate))}
+                                                    className="w-full py-8 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-3 text-white/30 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all group mt-4 active:scale-95"
+                                                >
+                                                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                        <Plus size={24} className="group-hover:scale-110 transition-transform" />
+                                                    </div>
+                                                    <span className="font-bold tracking-wide uppercase text-xs">Añade otra tarea</span>
+                                                </button>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 gap-4">
-                                                {displayChildren.map((child) => (
-                                                    <div
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        key={child.id}
-                                                        onClick={() => handleNavigate(child)}
-                                                        className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
-                                                        style={{
-                                                            boxShadow: `0 0 0 1px ${traitColor}10, 0 10px 30px -10px ${traitColor}10`
-                                                        }}
-                                                    >
-                                                        {/* Subtle Trait Glow */}
-                                                        <div 
-                                                            className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
-                                                            style={{ background: `linear-gradient(to right, ${traitColor}20, transparent)` }}
-                                                        />
-
-                                                        <div className="flex items-center gap-5 relative z-10">
-                                                            <div 
-                                                                className={cn(
-                                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner",
-                                                                    child.placeholder 
-                                                                        ? "bg-white/5 text-white/20 group-hover:bg-white/10 group-hover:text-white/40" 
-                                                                        : "text-white"
-                                                                )}
-                                                                style={!child.placeholder ? {
-                                                                    background: `linear-gradient(135deg, ${traitColor}66, ${traitColor}22)`, // Stronger gradient
-                                                                    boxShadow: `0 0 15px ${traitColor}40`
-                                                                } : undefined}
+                                            <motion.div 
+                                                variants={{
+                                                    hidden: { opacity: 0 },
+                                                    show: {
+                                                        opacity: 1,
+                                                        transition: {
+                                                            staggerChildren: 0.1,
+                                                            delayChildren: 0.2
+                                                        }
+                                                    }
+                                                }}
+                                                initial="hidden"
+                                                animate="show"
+                                                className="grid grid-cols-1 gap-4"
+                                            >
+                                                {displayChildren.map((child) => {
+                                                    if (child.placeholder) {
+                                                        return (
+                                                            <motion.button
+                                                                variants={{
+                                                                    hidden: { opacity: 0, y: 20 },
+                                                                    show: { opacity: 1, y: 0 }
+                                                                }}
+                                                                key={child.id}
+                                                                onClick={() => handleNavigate(child)}
+                                                                className="group relative flex flex-col items-center justify-center p-8 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all duration-300 backdrop-blur-md cursor-pointer h-full min-h-[160px] active:scale-95"
                                                             >
-                                                                {LevelIcons[child.level] || <Circle size={18} />}
-                                                            </div>
-                                                            <div className="text-left">
-                                                                <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50 text-white flex items-center gap-2">
-                                                                    <span style={{ color: traitColor }}>{child.level}</span>
-                                                                    {child.startDate && child.dueDate && !child.placeholder && (
-                                                                        <span className="flex items-center gap-1 text-white/60 ml-2">
-                                                                            <Clock size={10} />
-                                                                            {formatDate(safeDate(child.startDate))} - {formatDate(safeDate(child.dueDate))}
-                                                                        </span>
+                                                                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-white/40 group-hover:text-white">
+                                                                    <Plus size={24} />
+                                                                </div>
+                                                                <span className="text-white/40 group-hover:text-white font-bold text-lg transition-colors">{child.title}</span>
+                                                                <span className="text-xs font-bold text-white/20 uppercase tracking-widest mt-1">Crear Nuevo Bloque</span>
+                                                            </motion.button>
+                                                        );
+                                                    }
+                                                    
+                                                    return (
+                                                        <motion.div
+                                                            variants={{
+                                                                hidden: { opacity: 0, y: 20 },
+                                                                show: { opacity: 1, y: 0 }
+                                                            }}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            key={child.id}
+                                                            onClick={() => handleNavigate(child)}
+                                                            className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
+                                                            style={{
+                                                                boxShadow: `0 0 0 1px ${traitColor}10, 0 10px 30px -10px ${traitColor}10`
+                                                            }}
+                                                        >
+                                                            {/* Subtle Trait Glow */}
+                                                            <div 
+                                                                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
+                                                                style={{ background: `linear-gradient(to right, ${traitColor}20, transparent)` }}
+                                                            />
+
+                                                            <div className="flex items-center gap-5 relative z-10">
+                                                                <div 
+                                                                    className={cn(
+                                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner text-white",
+                                                                    )}
+                                                                    style={{
+                                                                        background: `linear-gradient(135deg, ${traitColor}66, ${traitColor}22)`, // Stronger gradient
+                                                                        boxShadow: `0 0 15px ${traitColor}40`
+                                                                    }}
+                                                                >
+                                                                    {LevelIcons[child.level] || <Circle size={18} />}
+                                                                </div>
+                                                                <div className="text-left">
+                                                                    <div className="text-lg font-bold text-white/90 transition-colors tracking-tight leading-snug">
+                                                                        {child.title || "Espacio Vacío"}
+                                                                    </div>
+                                                                    <div className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50 text-white flex items-center gap-2">
+                                                                        <span style={{ color: traitColor }}>{child.level}</span>
+                                                                        {child.startDate && child.dueDate && (
+                                                                            <span className="flex items-center gap-1 text-white/60 ml-2">
+                                                                                <Clock size={10} />
+                                                                                {formatDate(safeDate(child.startDate))} - {formatDate(safeDate(child.dueDate))}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    
+                                                                    {/* Deadline specific for leaf nodes or just extra info */}
+                                                                    {child.dueDate && (
+                                                                        <div className="text-[10px] font-mono text-white/30 mt-0.5">
+                                                                            DEADLINE: {formatDate(safeDate(child.dueDate))}
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <div className={cn(
-                                                                    "text-lg font-medium transition-colors",
-                                                                    child.placeholder ? "text-white/30 italic" : "text-white/90"
-                                                                )}>
-                                                                    {child.title || "Espacio Vacío"}
-                                                                </div>
-                                                                
-                                                                {/* Deadline specific for leaf nodes or just extra info */}
-                                                                {child.dueDate && !child.placeholder && (
-                                                                    <div className="text-[10px] font-mono text-white/30 mt-1">
-                                                                        DEADLINE: {formatDate(safeDate(child.dueDate))}
-                                                                    </div>
-                                                                )}
                                                             </div>
-                                                        </div>
-                                                        
-                                                        <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors relative z-10">
-                                                            {onDeleteNode && !child.placeholder && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        if (window.confirm('¿Eliminar esta rama y todas sus subtareas?')) {
-                                                                            onDeleteNode(child.id);
-                                                                        }
-                                                                    }}
-                                                                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all z-20"
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                </button>
-                                                            )}
-                                                            {child.placeholder && (
-                                                                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/5 text-white/40 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-                                                                    Crear
-                                                                </span>
-                                                            )}
-                                                            <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                            
+                                                            <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors relative z-10">
+                                                                {onDeleteNode && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (window.confirm('¿Eliminar esta rama y todas sus subtareas?')) {
+                                                                                onDeleteNode(child.id);
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all z-20"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                )}
+                                                                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                            </motion.div>
                                         )}
                                     </motion.div>
                                 )}
