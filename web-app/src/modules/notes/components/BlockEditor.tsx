@@ -1,8 +1,10 @@
 import React from 'react';
 import { Trash2, Check, ImageIcon } from 'lucide-react';
 import { NoteBlock } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: { blocks: NoteBlock[], onChange: (blocks: NoteBlock[]) => void, readOnly?: boolean }) => {
+    const { t } = useTranslation();
     // Removed synchronous useEffect to prevent rendering loops.
     // Initialization of empty blocks should be handled by the parent component.
 
@@ -22,14 +24,14 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     if (blocks.length === 0 && !readOnly) {
         return (
              <div className="h-40 flex items-center justify-center text-white/20 italic cursor-text" onClick={() => onChange([{ id: Date.now().toString(), type: 'text', content: '' }])}>
-                 Tap to start writing...
+                 {t('components.blockEditor.tapToWrite')}
              </div>
         );
     }
 
     return (
         <div className="flex flex-col gap-3 w-full pb-20">
-            {blocks.map((block, index) => (
+            {blocks.map((block) => (
                 <div key={block.id} className="group relative flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300 editor-line">
                     {!readOnly && (
                         <div className="absolute -left-8 top-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
@@ -40,13 +42,12 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     {block.type === 'text' && (
                         <textarea 
                             ref={el => { if(el) adjustHeight(el) }} // Initial adjustment
-                            autoFocus={index === blocks.length - 1 && !block.content}
                             value={block.content} 
                             onChange={(e) => { 
                                 updateBlock(block.id, { content: e.target.value });
                                 adjustHeight(e.target);
-                            }} 
-                            placeholder="Type something..." 
+                            }}  
+                            placeholder={t('components.blockEditor.typeSomething')} 
                             className="w-full bg-transparent text-slate-100 placeholder:text-slate-600 resize-none outline-none leading-relaxed text-[17px] font-normal font-sans" 
                             style={{ minHeight: '1.5em', overflow: 'hidden' }}
                             readOnly={readOnly}
@@ -63,7 +64,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                                 value={block.content} 
                                 onChange={(e) => updateBlock(block.id, { content: e.target.value })} 
                                 className={`w-full bg-transparent outline-none text-[17px] transition-all ${block.checked ? 'text-slate-500 line-through' : 'text-slate-100'}`}
-                                placeholder="To-do item"
+                                placeholder={t('components.blockEditor.todoItem')}
                                 readOnly={readOnly}
                             />
                         </div>
@@ -76,7 +77,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                             ) : (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500/50">
                                     <ImageIcon size={32} className="mb-2" />
-                                    <span className="text-xs font-bold uppercase tracking-wider">Image Placeholder</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider">{t('components.blockEditor.imagePlaceholder')}</span>
                                 </div>
                             )}
                         </div>

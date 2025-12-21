@@ -4,10 +4,14 @@ import {
   getDocs, 
   setDoc, 
   deleteDoc,
-  Firestore
+  Firestore,
+  query,
+  QueryConstraint,
+  getDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Quest, Habit, Note, JournalEntry, Attribute } from '../types';
+import { Quest, Habit, Note, JournalEntry, Attribute, Project } from '../types';
+import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 // Generic helper for subcollection CRUD
@@ -20,6 +24,19 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
     } catch (error) {
       console.error(`Error fetching ${collectionName}:`, error);
       return [];
+    }
+  },
+
+  // Optimized Fetch with Query Constraints
+  getFiltered: async (userId: string, constraints: QueryConstraint[]): Promise<T[]> => {
+    try {
+        const ref = collection(db as Firestore, 'users', userId, collectionName);
+        const q = query(ref, ...constraints);
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+    } catch (error) {
+        console.error(`Error fetching filtered ${collectionName}:`, error);
+        return [];
     }
   },
   
@@ -63,7 +80,7 @@ const settingsService = {
     get: async (userId: string) => {
         try {
             const ref = doc(db as Firestore, 'users', userId, 'settings', 'config');
-            const snap = await import('firebase/firestore').then(mod => mod.getDoc(ref));
+            const snap = await getDoc(ref);
             return snap.exists() ? snap.data() : null;
         } catch (error) {
             console.error("Error fetching settings:", error);
@@ -85,8 +102,8 @@ export const habitService = createSubCollectionService<Habit>('habits');
 export const noteService = createSubCollectionService<Note>('notes');
 export const journalService = createSubCollectionService<JournalEntry>('journal');
 export const attributeService = createSubCollectionService<Attribute>('attributes');
-// New: Smart Projects
-export const smartProjectService = createSubCollectionService<any>('smartProjects');
+export const smartProjectService = createSubCollectionService<SmartProject>('smartProjects');
+export const projectService = createSubCollectionService<Project>('projects');
 
 export const persistenceService = {
   quests: questService,
@@ -95,5 +112,6 @@ export const persistenceService = {
   journal: journalService,
   attributes: attributeService,
   smartProjects: smartProjectService,
+  projects: projectService,
   settings: settingsService
 };

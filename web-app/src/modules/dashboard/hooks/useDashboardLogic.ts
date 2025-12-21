@@ -4,10 +4,12 @@ import { checkAchievements } from '../../../services/achievementListener';
 import { Achievement } from '../../../config/achievements';
 import { Trophy, Flame, Clock, Star } from 'lucide-react';
 import { 
-  Attribute, Quest, Habit, Project, Note, JournalEntry, 
+  Attribute, Quest, Habit, Project, 
   NotificationItem, Particle, Session 
 } from '../../../types';
-import { TRAITS_LIST } from '../constants';
+import { DailyLimits } from '../../../types/User';
+import { TRAITS_LIST, DAILY_LIMITS } from '../constants';
+import { FREE_LIMITS } from '../../../config/limits';
 import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
@@ -16,6 +18,8 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../../services/firebase';
 
 import { useTheme } from '../../../context/ThemeContext';
+
+import { SmartProject } from '../../../types/SmartGoal';
 
 export const useDashboardLogic = () => {
     const { user, loading: matrixLoading } = useMatrix();
@@ -29,10 +33,41 @@ export const useDashboardLogic = () => {
     const [overrideBgColor, setOverrideBgColor] = useState<string | undefined>(undefined);
     const [showProfile, setShowProfile] = useState(true);
     const [defaultChartMode, setDefaultChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
+    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID'>('BORDER');
+
+    const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID') => {
+        setDashboardStyle(style);
+        if (user?.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid), { dashboardStyle: style }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save dashboard style", e);
+            }
+        }
+    }, [user?.uid]);
+
+    // Sync Dashboard Style from User Profile
+    useEffect(() => {
+        if (user?.dashboardStyle) {
+            setDashboardStyle(user.dashboardStyle);
+        }
+    }, [user?.dashboardStyle]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0 });
     const prevPlayerLevel = useRef(player.level);
     const [health, setHealth] = useState(100);
+    const [dailyLimits, setDailyLimits] = useState<DailyLimits>({
+        date: new Date().toISOString().split('T')[0],
+        taskXp: 0,
+        taskGold: 0,
+        taskTraitPoints: 0
+    });
+    
+    // Data States
+    const [quests, setQuests] = useState<Quest[]>([]);
+    const [habits, setHabits] = useState<Habit[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [smartProjects, setSmartProjects] = useState<SmartProject[]>([]);
 
     // --- SYNC WITH MATRIX CORE (Optimized for Optimistic UI) ---
     // We track the last known server stats to distinguish between:
@@ -113,6 +148,22 @@ export const useDashboardLogic = () => {
                     setHealth(serverStats.hp);
                 }
 
+                // Sync Daily Limits
+                if (user.dailyLimits) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (user.dailyLimits.date === today) {
+                        setDailyLimits(user.dailyLimits);
+                    } else {
+                        // Reset if server date is old (or just keep default today if we already reset)
+                        // Actually, if server has old date, we should probably update server? 
+                        // But we do that lazily on first action.
+                        // Here we just ensure local state is correct for TODAY.
+                         setDailyLimits(prev => prev.date === today ? prev : { 
+                            date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0 
+                        });
+                    }
+                }
+
                 // Update last known server stats
                 lastServerStats.current = {
                     xp: serverStats.xp,
@@ -124,6 +175,18 @@ export const useDashboardLogic = () => {
         }
     }, [user, calculateNextXp]);
 
+
+
+
+    const [attributes, setAttributes] = useState<Attribute[]>(() => 
+        // Start with empty or loading state ideally, but for now defaults to prevent hydration mismatch if needed.
+        // Actually, let's start with defaults to be safe, but we will overwrite.
+        TRAITS_LIST.map(t => ({
+            id: t.id, label: t.label, level: 1, xp: 0, maxXp: 100, color: t.color, icon: t.icon
+        }))
+    ); 
+    const prevAttributes = useRef(attributes);
+    const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);
 
     // --- ACHIEVEMENT LISTENER ---
     useEffect(() => {
@@ -139,7 +202,7 @@ export const useDashboardLogic = () => {
                     } 
                 };
                 
-                const newAchievements = await checkAchievements(hybridUser);
+                const newAchievements = await checkAchievements(hybridUser, attributes);
                 if (newAchievements.length > 0) {
                     setLastAchievement(newAchievements[0]);
                 }
@@ -147,21 +210,7 @@ export const useDashboardLogic = () => {
         };
         
         verifyAchievements();
-    }, [player.xp, player.level, user, health]);
-
-    const [attributes, setAttributes] = useState<Attribute[]>(() => 
-        TRAITS_LIST.map(t => ({
-            id: t.id, label: t.label, level: 1, xp: 0, maxXp: 100, color: t.color, icon: t.icon
-        }))
-    ); 
-    const prevAttributes = useRef(attributes);
-    const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);
-        
-    const [quests, setQuests] = useState<Quest[]>([]);
-    const [habits, setHabits] = useState<Habit[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [notes, setNotes] = useState<Note[]>([]);
-    const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+    }, [player.xp, player.level, user, health, attributes]);
 
     // --- LOAD PROJECTS, QUESTS, HABITS, NOTES, JOURNAL ---
     useEffect(() => {
@@ -170,24 +219,118 @@ export const useDashboardLogic = () => {
             // Load other data
             persistenceService.quests.getAll(user.uid).then(setQuests);
             persistenceService.habits.getAll(user.uid).then(setHabits);
-            persistenceService.notes.getAll(user.uid).then(setNotes);
-            persistenceService.journal.getAll(user.uid).then(setJournalEntries);
+            persistenceService.smartProjects.getAll(user.uid).then(setSmartProjects);
             persistenceService.attributes.getAll(user.uid).then(fetchedAttrs => {
                 if (fetchedAttrs.length > 0) {
-                     setAttributes(prev => {
-                        // Merge fetched attributes with default icons/colors if needed, 
-                        // or just use fetched if they have everything.
-                        // Ideally we keep the static definition for icons/colors and merge stats.
-                        return prev.map(def => {
-                            const found = fetchedAttrs.find(fa => fa.id === def.id);
-                            return found ? { ...def, ...found, icon: def.icon, color: def.color } : def;
-                        });
+                     // If we have saved attributes, use ONLY those.
+                     const enriched = fetchedAttrs.map(attr => {
+                        const def = TRAITS_LIST.find(t => t.id === attr.id);
+                        return { ...attr, icon: def?.icon, color: def?.color || attr.color, label: def?.label || attr.label };
                      });
+                     setAttributes(enriched);
+                } else {
+                    // Fallback: If no attributes saved (legacy user), keep showing all defaults
+                    // This ensures we don't break existing users.
+                    // New users coming from Onboarding will have 5 saved, so they will hit the 'if' block.
+                    console.log("No attributes found in DB, using defaults.");
                 }
                 setAreAttributesLoaded(true);
             });
         }
     }, [user?.uid]);
+
+    const addAttribute = async (traitId: string) => {
+        // LIMIT CHECK: Active Traits
+        if (user?.plan !== 'PRO' && attributes.length >= FREE_LIMITS.ACTIVE_TRAITS) {
+             setActiveModal('PRO');
+             return;
+        }
+
+        // LIMIT CHECK: Rate Limit (Changes per week)
+        if (user?.plan !== 'PRO') {
+            const now = Date.now();
+            const oneWeek = 7 * 24 * 60 * 60 * 1000;
+            const changes = user?.traitChanges || { count: 0, weekStart: now };
+            
+            // Reset if week passed (logic handling)
+            let newCount = changes.count;
+            let newStart = changes.weekStart;
+
+            if (now - changes.weekStart > oneWeek) {
+                newCount = 0;
+                newStart = now;
+            }
+
+            if (newCount >= FREE_LIMITS.TRAIT_CHANGES_PER_WEEK) {
+                setActiveModal('PRO');
+                return;
+            }
+
+            // Update Counter
+            if (user?.uid) {
+                setDoc(doc(db, 'users', user.uid), {
+                    traitChanges: { count: newCount + 1, weekStart: newStart }
+                }, { merge: true });
+            }
+        }
+
+        if (!user?.uid) return;
+        const def = TRAITS_LIST.find(t => t.id === traitId);
+        if (!def) return;
+
+        const newAttr: Attribute = {
+            id: def.id,
+            label: def.label,
+            level: 1,
+            xp: 0,
+            maxXp: 100,
+            color: def.color,
+            icon: def.icon
+        };
+
+        // Optimistic update
+        setAttributes(prev => [...prev, newAttr]);
+
+        // Save to DB
+        await persistenceService.attributes.save(user.uid, newAttr);
+    };
+
+    const removeAttribute = async (traitId: string) => {
+        // LIMIT CHECK: Rate Limit (Changes per week)
+        if (user?.plan !== 'PRO') {
+            const now = Date.now();
+            const oneWeek = 7 * 24 * 60 * 60 * 1000;
+            const changes = user?.traitChanges || { count: 0, weekStart: now };
+            
+            let newCount = changes.count;
+            let newStart = changes.weekStart;
+
+            if (now - changes.weekStart > oneWeek) {
+                newCount = 0;
+                newStart = now;
+            }
+
+            if (newCount >= FREE_LIMITS.TRAIT_CHANGES_PER_WEEK) {
+                setActiveModal('PRO');
+                return;
+            }
+
+             // Update Counter
+            if (user?.uid) {
+                setDoc(doc(db, 'users', user.uid), {
+                    traitChanges: { count: newCount + 1, weekStart: newStart }
+                }, { merge: true });
+            }
+        }
+
+        if (!user?.uid) return;
+        
+        // Optimistic update
+        setAttributes(prev => prev.filter(a => a.id !== traitId));
+
+        // Delete from DB
+        await persistenceService.attributes.delete(user.uid, traitId);
+    };
 
     // --- AUTO-SAVE SETTINGS ---
     useEffect(() => {
@@ -503,7 +646,27 @@ export const useDashboardLogic = () => {
             // Reversal
             const xp = quest.xpReward;
             const coins = quest.gold || 0;
+            // Approximating Trait XP (needs to match calculation below)
+            const traitXp = Math.floor(xp * 0.4); 
             
+            // Update Daily Limits (Allow "Refund" of limit)
+            setDailyLimits(prev => {
+                const today = new Date().toISOString().split('T')[0];
+                if (prev.date !== today) return prev; // Don't mess with limits if dates mismatch
+
+                const newLimits = {
+                    ...prev,
+                    taskXp: Math.max(0, prev.taskXp - xp),
+                    taskGold: Math.max(0, prev.taskGold - coins),
+                    taskTraitPoints: Math.max(0, prev.taskTraitPoints - traitXp)
+                };
+                
+                if (user?.uid) {
+                    setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+                }
+                return newLimits;
+            });
+
             addPlayerReward({ xp: -xp, gold: -coins });
             updateAttributeXp(quest.attribute, -xp);
             
@@ -518,12 +681,42 @@ export const useDashboardLogic = () => {
             spawnParticles(rect.left + rect.width / 2, rect.top, attr?.color || '#fff', AttrIcon, 'icon', 'profile-avatar-target');
             if(navigator.vibrate) navigator.vibrate(10); 
             
-            // Rewards
-            const xp = quest.xpReward;
-            const coins = quest.gold || 0;
+            // Rewards Calculation
+            const rawXp = quest.xpReward;
+            const rawGold = quest.gold || 0;
+            const rawTraitXp = Math.floor(rawXp * 0.4);
 
-            addPlayerReward({ xp, gold: coins });
-            updateAttributeXp(quest.attribute, xp); 
+            // CHECK LIMITS
+            const today = new Date().toISOString().split('T')[0];
+            let currentLimits = dailyLimits;
+            
+            // Reset if needed (failsafe)
+            if (currentLimits.date !== today) {
+                currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0 };
+            }
+
+            const availableXp = Math.max(0, DAILY_LIMITS.TASKS.XP - currentLimits.taskXp);
+            const availableGold = Math.max(0, DAILY_LIMITS.TASKS.GOLD - currentLimits.taskGold);
+            const availableTraitXp = Math.max(0, DAILY_LIMITS.TASKS.TRAIT_POINTS - currentLimits.taskTraitPoints);
+
+            const xpToAward = Math.min(rawXp, availableXp);
+            const goldToAward = Math.min(rawGold, availableGold);
+            const traitXpToAward = Math.min(rawTraitXp, availableTraitXp);
+
+            // Update Limits State & Persistence
+            const newLimits = {
+                ...currentLimits,
+                taskXp: currentLimits.taskXp + xpToAward,
+                taskGold: currentLimits.taskGold + goldToAward,
+                taskTraitPoints: currentLimits.taskTraitPoints + traitXpToAward
+            };
+            setDailyLimits(newLimits);
+            if (user?.uid) {
+                 setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+            }
+
+            addPlayerReward({ xp: xpToAward, gold: goldToAward });
+            updateAttributeXp(quest.attribute, traitXpToAward); 
 
             setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: true } : q));
 
@@ -532,16 +725,16 @@ export const useDashboardLogic = () => {
 
                 // Normalize Reward Object for Transaction
                 const fullReward: RewardPrediction = { 
-                    xp, 
-                    coins, 
-                    traitXp: Math.floor(xp * 0.4), 
-                    baseXp: xp, // Approximation if missing
+                    xp: xpToAward, 
+                    coins: goldToAward, 
+                    traitXp: traitXpToAward, 
+                    baseXp: rawXp, 
                     bonusApplied: false 
                 };
                 completeTaskTransaction(user.uid, quest.id, fullReward, quest.attribute);
             }
         }
-    }, [attributes, spawnParticles, updateAttributeXp, addPlayerReward, user]);
+    }, [attributes, spawnParticles, updateAttributeXp, addPlayerReward, user, dailyLimits]);
 
     const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit) => {
         e.stopPropagation();
@@ -585,7 +778,7 @@ export const useDashboardLogic = () => {
             }
             return;
         }
-        if (habit.type === 'SIMPLE') {
+        if (habit.type === 'SIMPLE' || habit.type === 'BOOLEAN') {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#fff', Flame, 'fire');
             if(navigator.vibrate) navigator.vibrate([5, 20, 5]); 
@@ -618,7 +811,7 @@ export const useDashboardLogic = () => {
                 });
             }
         } else {
-            setValidationHabit(habit); setValTempValue('');
+            setValidationHabit(habit); setValTempValue('0');
         }
     }, [spawnParticles, updateAttributeXp, addPlayerReward, user]);
 
@@ -627,7 +820,7 @@ export const useDashboardLogic = () => {
         let isComplete = false; let newCurrentValue = validationHabit.currentValue || 0; 
         if (validationHabit.type === 'QUANTITY') {
             const added = parseFloat(valTempValue);
-            if (isNaN(added) || added <= 0) return;
+            if (isNaN(added) || added < 0) return;
             newCurrentValue += added;
             if (newCurrentValue >= (validationHabit.targetValue || 0)) isComplete = true;
         } else if (validationHabit.type === 'CHECKLIST') {
@@ -680,6 +873,15 @@ export const useDashboardLogic = () => {
     };
 
     const handleQuestConfirm = useCallback((questData: Partial<Quest>) => {
+        // LIMIT CHECK: Tasks
+        if (user?.plan !== 'PRO') {
+            const activeQuests = quests.filter(q => !q.completed);
+            if (!questData.id && activeQuests.length >= FREE_LIMITS.ACTIVE_TASKS) {
+                setActiveModal('PRO');
+                return;
+            }
+        }
+
         // If ID exists, it's an update. If not, it's a create.
         const quest: Quest = questData.id 
             ? questData as Quest 
@@ -687,7 +889,7 @@ export const useDashboardLogic = () => {
                 id: Date.now().toString(), 
                 completed: false, 
                 subtasks: [], 
-                difficulty: 'D',
+                difficulty: 'C',
                 xpReward: 10,
                 gold: 0,
                 attribute: 'DISCIPLINA',
@@ -704,7 +906,7 @@ export const useDashboardLogic = () => {
             persistenceService.quests.save(user.uid, quest);
         }
         setActiveModal(null);
-    }, [user]);
+    }, [user, quests]);
 
     const handleDeleteQuest = useCallback(async (questId: string) => {
         if (!user) return;
@@ -717,15 +919,63 @@ export const useDashboardLogic = () => {
     }, [user]);
 
     const handleHabitConfirm = useCallback((data: Partial<Habit>) => {
-        const newHabit: Habit = { id: Date.now().toString(), streak: 0, completedToday: false, totalCompletions: 0, checklist: data.checklist || [], ...data } as Habit; 
-        setHabits(prev => [newHabit, ...prev]);
-        if (user?.uid) {
-            persistenceService.habits.save(user.uid, newHabit);
+        // LIMIT CHECK: Habits
+        if (user?.plan !== 'PRO') {
+            if (!data.id && habits.length >= FREE_LIMITS.HABITS) {
+                setActiveModal('PRO');
+                return;
+            }
         }
+
+        setHabits(prev => {
+            if (data.id) {
+                // Edit mode
+                const exists = prev.find(h => h.id === data.id);
+                if (exists) {
+                    const updated = { ...exists, ...data } as Habit;
+                    if (user?.uid) persistenceService.habits.save(user.uid, updated);
+                    return prev.map(h => h.id === data.id ? updated : h);
+                }
+            }
+            
+            // Create mode
+            const newHabit: Habit = { 
+                id: Date.now().toString(), 
+                streak: 0, 
+                completedToday: false, 
+                totalCompletions: 0, 
+                checklist: data.checklist || [], 
+                ...data 
+            } as Habit;
+            
+            if (user?.uid) persistenceService.habits.save(user.uid, newHabit);
+            return [newHabit, ...prev];
+        });
+        
         setActiveModal(null);
+    }, [user, habits]);
+
+    const handleDeleteHabit = useCallback(async (habitId: string) => {
+        if (!user) return;
+        setHabits(prev => prev.filter(h => h.id !== habitId));
+        try {
+            await persistenceService.habits.delete(user.uid, habitId);
+        } catch (error) {
+            console.error("Error deleting habit:", error);
+        }
     }, [user]);
 
     const handleProjectConfirm = useCallback(async (projectData: Partial<Project>) => {
+        // LIMIT CHECK: Projects
+        if (user?.plan !== 'PRO') {
+            // Filter out deleted projects for the limit check
+            const activeProjects = projects.filter(p => !p.deleted);
+            if (!projectData.id && activeProjects.length >= FREE_LIMITS.PROJECTS) {
+                setActiveModal('PRO');
+                return;
+            }
+        }
+
         const project: Project = projectData.id
             ? projectData as Project
             : {
@@ -753,7 +1003,7 @@ export const useDashboardLogic = () => {
             await projectService.saveProject(user.uid, project);
         }
         setActiveModal(null);
-    }, [user]);
+    }, [user, projects]);
 
     const handleDeleteProject = useCallback(async (projectId: string) => {
         if (!user) return;
@@ -769,36 +1019,6 @@ export const useDashboardLogic = () => {
         setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
         if (user?.uid) {
             projectService.saveProject(user.uid, updatedProject);
-        }
-    }, [user]);
-
-    const handleUpdateNote = useCallback((note: Note) => {
-        setNotes(prev => {
-            const exists = prev.find(n => n.id === note.id);
-            if (exists) return prev.map(n => n.id === note.id ? note : n);
-            return [note, ...prev];
-        });
-        if (user?.uid) {
-            persistenceService.notes.save(user.uid, note);
-        }
-    }, [user]);
-
-    const handleDeleteNote = useCallback((id: string) => {
-        setNotes(prev => prev.filter(n => n.id !== id));
-        if (user?.uid) {
-            persistenceService.notes.delete(user.uid, id);
-        }
-        setActiveModal(null);
-    }, [user]);
-
-    const handleUpdateJournal = useCallback((entry: JournalEntry) => {
-        setJournalEntries(prev => {
-            const exists = prev.find(e => e.id === entry.id);
-            if (exists) return prev.map(e => e.id === entry.id ? entry : e);
-            return [...prev, entry];
-        });
-        if (user?.uid) {
-            persistenceService.journal.save(user.uid, entry);
         }
     }, [user]);
 
@@ -824,19 +1044,22 @@ export const useDashboardLogic = () => {
         defaultChartMode,
         setDefaultChartMode,
         player,
+        setPlayer,
         health,
+        setHealth,
+        dailyLimits,
+        setDailyLimits,
         attributes,
         setAttributes,
+        areAttributesLoaded,
         quests,
         setQuests,
         habits,
         setHabits,
         projects,
         setProjects,
-        notes,
-        setNotes,
-        journalEntries,
-        setJournalEntries,
+        smartProjects,
+        setSmartProjects,
         notifications,
         particles,
         activeModal,
@@ -859,12 +1082,14 @@ export const useDashboardLogic = () => {
         handleQuestConfirm,
         handleDeleteQuest,
         handleHabitConfirm,
+        handleDeleteHabit,
         handleProjectConfirm,
         handleDeleteProject,
         handleUpdateProject,
-        handleUpdateNote,
-        handleDeleteNote,
-        handleUpdateJournal,
-        updateAttributeMetadata
+        updateAttributeMetadata,
+        addAttribute,
+        removeAttribute,
+        dashboardStyle,
+        updateDashboardStyle
     };
 };

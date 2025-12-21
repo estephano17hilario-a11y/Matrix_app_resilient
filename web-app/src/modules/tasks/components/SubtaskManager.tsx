@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Plus, Trash2, Check } from 'lucide-react';
 import { Subtask } from '../../../types';
 import { useSubtasks } from '../hooks/useSubtasks';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 interface SubtaskManagerProps {
   taskId: string;
@@ -11,6 +12,7 @@ interface SubtaskManagerProps {
 }
 
 export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [] }) => {
+  const { t } = useTranslation();
   const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +116,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Añadir paso táctico... (+)"
+          placeholder={t('components.subtaskManager.addStepPlaceholder')}
           className="w-full bg-transparent border-b border-white/10 py-2 pl-0 pr-8 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-500/50 transition-colors"
         />
         <button 

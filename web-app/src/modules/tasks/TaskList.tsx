@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flame, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
 import { QuestItem } from './components/QuestItem';
 
@@ -15,6 +16,7 @@ interface TaskListProps {
 }
 
 export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject }) => {
+  const { t } = useTranslation();
   const activeQuests = quests.filter(q => !q.completed);
   const completedQuests = quests.filter(q => q.completed);
 
@@ -27,19 +29,18 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
       <div>
         <div className="flex items-center justify-between px-1 mb-3">
           <h2 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">
-            Active Missions
+            {t('dashboard.activeMissions')}
           </h2>
           <div className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <Flame size={10} className="text-orange-400 fill-orange-400" />
             <span className="text-[10px] font-black text-orange-400">
-              {activeQuests.length} TARGETS
+              {activeQuests.length} {t('dashboard.targets')}
             </span>
           </div>
           {onAddQuest && (
             <button 
               onClick={onAddQuest}
               className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors"
-              data-tour="new-mission-btn"
             >
               <Plus size={16} />
             </button>
@@ -61,7 +62,7 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
           ))}
           {sortedQuests.length === 0 && (
              <div className="py-10 text-center text-white/20 italic">
-                No active missions.
+                {t('tasks.empty')}
              </div>
           )}
         </div>

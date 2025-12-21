@@ -40,7 +40,7 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({
 
     return (
         <div className="flex flex-wrap gap-[3px] content-start">
-            {dates.map((date, i) => {
+            {dates.map((date: Date, i: number) => {
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const isCompleted = completedDates.has(dateStr);
                 const isToday = isSameDay(date, new Date());

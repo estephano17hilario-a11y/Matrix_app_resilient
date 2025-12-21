@@ -1,0 +1,670 @@
+{
+  "onboarding": {
+    "intro": {
+      "title": "Hola.",
+      "subtitle": "Calibremos tu experiencia.",
+      "button": "Comenzar"
+    },
+    "language": {
+      "title": "Elige tu idioma",
+      "subtitle": "Selecciona tu idioma principal",
+      "en": {
+          "name": "English",
+          "region": "Estados Unidos"
+      },
+      "es": {
+          "name": "Español",
+          "region": "España / Latinoamérica"
+      }
+    },
+    "traits": {
+      "title": "Selecciona tus Objetivos",
+      "subtitle": "Elige 5 áreas para mejorar ({{count}}/5)",
+      "button": "Inicializar Matrix"
+    },
+    "saving": {
+      "title": "Configurando Realidad..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de nuevo",
+      "subtitle": "Ingresa tus credenciales para acceder al sistema",
+      "button": "Entrar al Sistema",
+      "footer": "¿No tienes cuenta?",
+      "footerAction": "Registrarse"
+    },
+    "register": {
+      "title": "Únete a la Matrix",
+      "subtitle": "Inicializa tu enlace neural",
+      "button": "Crear Cuenta",
+      "footer": "¿Ya tienes cuenta?",
+      "footerAction": "Iniciar Sesión"
+    },
+    "fields": {
+      "name": "Nombre de Operador",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña"
+    },
+    "errors": {
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "passwordLength": "La contraseña debe tener al menos 6 caracteres",
+      "authDisabled": "El inicio de sesión con Email/Contraseña no está habilitado."
+    },
+    "orContinue": "O continúa con",
+    "google": "Google"
+  },
+  "modals": {
+    "habit": {
+      "title": "Protocolo Inteligente",
+      "subtitle": "Arquitecto del Sistema",
+      "namePlaceholder": "Nombre del Protocolo...",
+      "descPlaceholder": "Descripción (Opcional)...",
+      "frequency": "Frecuencia",
+      "alert": "Alerta",
+      "logic": "Lógica",
+      "target": "Objetivo",
+      "unit": "Unidad",
+      "impact": "Impacto",
+      "initiate": "Iniciar Protocolo",
+      "frequencies": {
+        "DAILY": "DIARIO",
+        "WEEKLY": "SEMANAL",
+        "MONTHLY": "MENSUAL"
+      },
+      "logics": {
+        "BOOLEAN": "Booleano",
+        "QUANTITY": "Cantidad",
+        "CHECKLIST": "Lista",
+        "SIMPLE": "Simple"
+      },
+      "noSteps": "Sin pasos definidos"
+    },
+    "project": {
+      "title": "Nuevo Proyecto",
+      "subtitle": "Motor de Enfoque",
+      "namePlaceholder": "Nombre del Proyecto...",
+      "descPlaceholder": "Descripción (Opcional)...",
+      "goalPlaceholder": "¿Cuál es el objetivo? (Opcional)",
+      "goalCalculation": "Cálculo de Objetivo",
+      "frequencies": {
+        "DAILY": "DIARIO",
+        "WEEKLY": "SEMANAL",
+        "MONTHLY": "MENSUAL"
+      },
+      "workingDays": "Días Laborables",
+      "dailyTarget": "Objetivo Diario",
+      "pomodoro": "Pomodoro",
+      "initialize": "Inicializar Proyecto",
+      "launch": "Lanzar Proyecto",
+      "hoursPer": "HRS /",
+      "hrs": "HRS",
+      "hours": "Horas",
+      "day": "DÍA",
+      "week": "SEM",
+      "month": "MES",
+      "custom": "Pers.",
+    "alert": "Alerta",
+    "off": "OFF",
+    "impact": "Impacto",
+    "daysInitials": ["D", "L", "M", "M", "J", "V", "S"],
+    "traitDefault": "Rasgo"
+  },
+    "quest": {
+      "titleNew": "Nueva Misión",
+      "titleEdit": "Editar Misión",
+      "titleSmart": "Misión Inteligente",
+      "linkedStrategy": "Vinculado a Estrategia",
+      "namePlaceholder": "Nombre del Objetivo...",
+      "briefingPlaceholder": "Informe (Opcional)...",
+      "linkProject": "Vincular a Proyecto (Opcional)",
+      "noProject": "Sin Proyecto",
+      "tacticalSteps": "Pasos Tácticos",
+      "addStepPlaceholder": "Añadir paso táctico...",
+      "difficulty": "Dificultad",
+      "difficulties": {
+        "Basic": "Básico",
+        "Medium": "Medio",
+        "Hard": "Difícil",
+        "Epic": "Épico"
+      },
+      "dueDate": "Fecha Límite",
+      "confirm": "Confirmar Misión"
+    },
+    "blueprint": {
+      "title": "Guardar como Plano",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Revisión Semanal",
+      "icon": "Icono",
+      "theme": "Tema",
+      "saving": "Guardando...",
+      "saveBtn": "Guardar Plano"
+    }
+  },
+  "store": {
+    "title": "Tienda",
+    "inventory": "Inventario",
+    "buy": "Comprar",
+    "locked": "Bloqueado",
+    "currency": "Oro",
+    "confirm": {
+      "title": "Confirmar Compra",
+      "desc": "¿Realmente deseas comprar este objeto por {{price}} Monedas?",
+      "yes": "Comprar",
+      "no": "Cancelar"
+    },
+    "filters": {
+      "all": "Todo",
+      "power_up": "Mejoras",
+      "theme": "Temas",
+      "digital_addiction": "Digital",
+      "physical_neglect": "Física",
+      "mental_clutter": "Mental",
+      "social_behavioral": "Social"
+    },
+    "others": "Otros",
+    "emptyCollection": "Colección Vacía",
+    "emptyCategory": "No hay items en esta categoría",
+    "items": {
+        "potion_hp_small": { "name": "Kit de Reparación Neural", "desc": "Restaura 20 HP al instante. Esencial para el mantenimiento del sistema." },
+        "potion_xp_restore": { "name": "Recuperación de Memoria", "desc": "Restaura XP perdida por inactividad o penalizaciones." },
+        "redemption_token": { "name": "Restauración de Racha", "desc": "Repara una racha rota. Una segunda oportunidad para la perfección." },
+        "freeze_streak": { "name": "Congelar Tiempo", "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado." },
+        "theme_neon_purple": { "name": "Protocolo Nébula", "desc": "Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk." },
+        "theme_matrix_green": { "name": "Código Fuente", "desc": "Verde Matrix Clásico. El flujo de datos crudo." },
+        "theme_apple_minimal": { "name": "Cristal Cupertino", "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad." },
+        "bad_habit_shorts": { "name": "Doomscrolling Shorts (30m)", "desc": "Comprar esto reconoce el hábito de ver videos cortos sin fin." },
+        "bad_habit_social": { "name": "Atracón de Redes Sociales", "desc": "Revisar feeds sin propósito." },
+        "bad_habit_notifications": { "name": "Esclavo de Notificaciones", "desc": "Reaccionar instantáneamente a cada pitido." },
+        "bad_habit_gaming": { "name": "Juego Excesivo", "desc": "Jugar cuando deberías estar trabajando." },
+        "bad_habit_news": { "name": "Sobrecarga de Noticias", "desc": "Consumir noticias negativas constantemente." },
+        "bad_habit_sugar": { "name": "Subidón de Azúcar", "desc": "Consumir bebidas/snacks azucarados en exceso." },
+        "bad_habit_sedentary": { "name": "Papa de Sofá", "desc": "Sentarse por >2 horas sin moverse." },
+        "bad_habit_sleep": { "name": "Venganza del Sueño", "desc": "Quedarse despierto tarde sin razón." },
+        "bad_habit_posture": { "name": "Encorvarse", "desc": "Mala postura al trabajar." },
+        "bad_habit_water": { "name": "Deshidratación", "desc": "Olvidar beber agua." },
+        "bad_habit_procrastinate": { "name": "Procrastinación", "desc": "Retrasar tareas hasta el último minuto." },
+        "bad_habit_multitask": { "name": "Ilusión de Multitarea", "desc": "Hacer todo, no lograr nada." },
+        "bad_habit_negative": { "name": "Autodiálogo Negativo", "desc": "Ser tu propio peor enemigo." },
+        "bad_habit_worry": { "name": "Preocupación Crónica", "desc": "Estresarse por cosas que no puedes controlar." },
+        "bad_habit_perfection": { "name": "Perfeccionismo Paralizante", "desc": "Esperar las condiciones \"perfectas\"." },
+        "bad_habit_interrupt": { "name": "Interrumpir a Otros", "desc": "Hablar antes de escuchar." },
+        "bad_habit_late": { "name": "Crónicamente Tarde", "desc": "Disrespecting others' time." },
+        "bad_habit_complain": { "name": "Quejarse", "desc": "Enfocarse en problemas, no soluciones." },
+        "bad_habit_impulse": { "name": "Gasto Impulsivo", "desc": "Comprar cosas que no necesitas." },
+        "bad_habit_clutter": { "name": "Desorden Físico", "desc": "Espacio desordenado, mente desordenada." }
+    }
+  },
+  "inventory": {
+    "title": "Inventario",
+    "use": "Usar",
+    "equip": "Equipar/Ver",
+    "confirmUse": "¿Quieres usar {{name}}?",
+    "searchPlaceholder": "Buscar tus objetos...",
+    "emptyTitle": "Inventario Vacío",
+    "emptyDesc": "Visita la Tienda para conseguir objetos.",
+    "filters": {
+      "all": "Todo",
+      "power_up": "Mejoras",
+      "cosmetic": "Cosméticos",
+      "bad_habit": "Malos Hábitos"
+    }
+  },
+  "achievements": {
+    "title": "Logros",
+    "subtitle": "Tu viaje hacia la maestría",
+    "loading": "Cargando matriz de logros...",
+    "sync": "Sincronización",
+    "currency": "XP",
+    "empty": "No hay logros en esta categoría.",
+    "categories": {
+      "all": "Todos",
+      "level": "Nivel",
+      "streak": "Racha",
+      "trait": "Rasgo",
+      "rank": "Rango"
+    },
+    "rewards": {
+      "neonKatana": "Katana Neón",
+      "godMode": "Modo Dios"
+    },
+    "arcs": {
+      "initiate": {
+        "title": "El Iniciado",
+        "desc": "Tus primeros pasos en la Matrix."
+      },
+      "theone": {
+        "title": "El Elegido",
+        "desc": "Comienza a ver el código."
+      }
+    },
+    "level": {
+        "001": { "title": "Despertar", "desc": "Alcanza el Nivel 1." },
+        "005": { "title": "Impulso", "desc": "Alcanza el Nivel 5." },
+        "010": { "title": "Dos Dígitos", "desc": "Alcanza el Nivel 10." },
+        "020": { "title": "Experimentado", "desc": "Alcanza el Nivel 20." },
+        "030": { "title": "Veterano", "desc": "Alcanza el Nivel 30." },
+        "050": { "title": "Maestro", "desc": "Alcanza el Nivel 50." },
+        "100": { "title": "Ascendido", "desc": "Alcanza el Nivel 100." }
+    },
+    "streak": {
+        "003": { "title": "Calentando", "desc": "Mantén una racha de 3 días." },
+        "007": { "title": "Inquebrantable", "desc": "Mantén una racha de 7 días." },
+        "014": { "title": "En Llamas", "desc": "Mantén una racha de 14 días." },
+        "030": { "title": "Consistente", "desc": "Mantén una racha de 30 días." },
+        "050": { "title": "Disciplinado", "desc": "Mantén una racha de 50 días." },
+        "075": { "title": "Implacable", "desc": "Mantén una racha de 75 días." },
+        "100": { "title": "Centenario", "desc": "Mantén una racha de 100 días." },
+        "200": { "title": "Llama Eterna", "desc": "Mantén una racha de 200 días." }
+    },
+    "trait": {
+        "disciplina": { "desc": "Alcanza el Nivel {{level}} en Disciplina." },
+        "fisico": { "desc": "Alcanza el Nivel {{level}} en Físico." },
+        "mental": { "desc": "Alcanza el Nivel {{level}} en Intelecto." },
+        "social": { "desc": "Alcanza el Nivel {{level}} en Carisma." },
+        "espiritu": { "desc": "Alcanza el Nivel {{level}} en Espíritu." },
+        "finanzas": { "desc": "Alcanza el Nivel {{level}} en Riqueza." },
+        "creatividad": { "desc": "Alcanza el Nivel {{level}} en Creatividad." },
+        "orden": { "desc": "Alcanza el Nivel {{level}} en Sistema." },
+        "liderazgo": { "desc": "Alcanza el Nivel {{level}} en Liderazgo." },
+        "resiliencia": { "desc": "Alcanza el Nivel {{level}} en Temple." },
+        "vitalidad": { "desc": "Alcanza el Nivel {{level}} en Energía." },
+        "estilo": { "desc": "Alcanza el Nivel {{level}} en Estética." }
+    }
+  },
+  "components": {
+    "blockEditor": {
+      "tapToWrite": "Toca para empezar a escribir...",
+      "typeSomething": "Escribe algo...",
+      "todoItem": "Elemento pendiente",
+      "imagePlaceholder": "Marcador de Imagen"
+    },
+    "subtaskManager": {
+      "addStepPlaceholder": "Añadir paso táctico... (+)"
+    }
+  },
+  "tasks": {
+    "activeMissions": "Misiones Activas",
+    "targets": "OBJETIVOS",
+    "empty": "No hay misiones activas."
+  },
+  "notes": {
+    "tabs": {
+      "notes": "Notas",
+      "journal": "Diario"
+    },
+    "moods": {
+      "rad": "Radiante",
+      "good": "Bien",
+      "meh": "Neutral",
+      "bad": "Bajo",
+      "awful": "Agotado"
+    },
+    "newNote": "Nueva Nota",
+    "untitled": "Sin Título",
+    "empty": "Vacío...",
+    "streak": "Días de Racha",
+    "yourStory": "Tu Historia",
+    "untitledPlaceholder": "Nota Sin Título",
+    "save": "Guardar"
+  },
+  "oracle": {
+    "title": "Oráculo",
+    "status": "EN LÍNEA // V.2.0.4",
+    "userLabel": "OPERADOR",
+    "systemLabel": "SISTEMA ORÁCULO",
+    "placeholder": "Pregunta al Oráculo...",
+    "welcome": "Soy el Oráculo. La Matrix está conectada. ¿Cómo puedo asistirte, Operador?",
+    "error": "Conexión con el Núcleo de Inteligencia interrumpida."
+  },
+  "strategicMap": {
+    "levels": {
+      "10_YEARS": "10 Años",
+      "5_YEARS": "5 Años",
+      "YEAR": "Año",
+      "SEMESTER": "Semestre",
+      "QUARTER": "Trimestre",
+      "MONTH": "Mes",
+      "WEEK": "Semana",
+      "DAY": "Día"
+    },
+    "placeholders": {
+      "10_YEARS": "Década {{index}}",
+      "5_YEARS": "Lustro {{index}}",
+      "YEAR": "Año {{index}}",
+      "SEMESTER": "Semestre {{index}}",
+      "QUARTER": "Trimestre {{index}}",
+      "MONTH": "Mes {{index}}",
+      "WEEK": "Semana {{index}}",
+      "DAY": "Día {{index}}",
+      "generic": "Nuevo Item"
+    },
+    "noData": "No hay datos de estrategia disponibles.",
+    "deleteProjectConfirm": "¿Estás seguro de que quieres eliminar este Plan Inteligente? Se borrarán todas las tareas asociadas.",
+    "deleteProject": "Eliminar Estrategia Completa",
+    "deleteNodeConfirm": "¿Eliminar esta sección completa y volver al nivel superior?",
+    "deleteNode": "Eliminar Sección Actual",
+    "inside": "Dentro de {{title}}",
+    "masterStrategy": "Estrategia Maestra",
+    "defineObjective": "Definir Objetivo...",
+    "untitled": "Sin Título",
+    "leafDescription": "Completa estas tareas para lograr el objetivo diario.",
+    "nodeDescription": "Selecciona un {{level}} para profundizar.",
+    "content": "Contenido",
+    "noTasks": "Sin Tareas Aún",
+    "noTasksDesc": "Añade tareas para ejecutar el plan de este día.",
+    "addAnotherTask": "Añade otra tarea",
+    "createNewBlock": "Crear Nuevo Bloque",
+    "emptySpace": "Espacio Vacío",
+    "deadline": "FECHA LÍMITE",
+    "deleteBranchConfirm": "¿Eliminar esta rama y todas sus subtareas?",
+    "new": "Nuevo",
+    "add": "Añadir",
+    "section": "Sección"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "archive": "Archivar",
+    "archived": "Archivado",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "complete": "Completar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "time": {
+        "years": "Años",
+        "months": "Meses",
+        "days": "Días"
+    }
+  },
+  "smartTask": {
+    "tutorial": {
+      "strategicVision": {
+        "title": "Visión Estratégica",
+        "content": "Comenzamos con la Meta de 1 Año. Tu Estrella del Norte.",
+        "detail": "1 AÑO"
+      },
+      "tacticalSplit": {
+        "title": "División Táctica",
+        "content": "El Año se divide en 2 Semestres. 6 Meses de dirección clara.",
+        "detail": "2 SEMESTRES"
+      },
+      "quarterlyFocus": {
+        "title": "Enfoque Trimestral",
+        "content": "Cada Semestre se divide en 2 Trimestres. 3 Meses de alto impacto.",
+        "detail": "4 TRIMESTRES"
+      },
+      "monthlyExecution": {
+        "title": "Ejecución Mensual",
+        "content": "Los Trimestres se desglosan en 3 Meses. Hitos accionables.",
+        "detail": "12 MESES"
+      },
+      "weeklySprints": {
+        "title": "Sprints Semanales",
+        "content": "Los Meses se convierten en Semanas. El ritmo del progreso.",
+        "detail": "52 SEMANAS"
+      },
+      "dailyImpact": {
+        "title": "Impacto Diario",
+        "content": "Las Semanas se convierten en Días. Donde ocurre el trabajo real.",
+        "detail": "365 DÍAS"
+      },
+      "exampleFlow": {
+        "title": "Flujo de Ejemplo",
+        "content": "Veamos cómo se desglosa una meta...",
+        "detail": "FRACTAL"
+      },
+      "ready": {
+        "title": "¿Listo para Empezar?",
+        "content": "Define tu Meta de 1 Año y deja que el Motor Fractal haga el resto.",
+        "detail": "EMPEZAR",
+        "button": "Crear Tarea Inteligente"
+      }
+    },
+    "wizard": {
+        "title": "Inteligencia Apple",
+        "subtitle": "Protocolo Neural v2.0",
+        "objective": {
+            "title": "¿Cuál es tu <span className=\"font-bold\">Objetivo Principal</span>?",
+            "subtitle": "Define la misión central claramente.",
+            "placeholder": "ej. Lanzar Startup, Correr Maratón..."
+        },
+        "trait": {
+            "title": "¿Qué <span className=\"font-bold\">Atributo</span> gobierna esto?",
+            "subtitle": "Selecciona el dominio de influencia."
+        },
+        "deadline": {
+            "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
+            "subtitle": "Establece el marco temporal para el éxito."
+        },
+        "inputType": {
+            "date": "Fecha",
+            "duration": "Duración"
+        },
+        "fractal": {
+            "title": "Motor de Descomposición Temporal",
+            "path": "Ruta:"
+        },
+        "summary": {
+            "deadline": "Fecha Objetivo",
+            "structure": "Estructura"
+        },
+        "stepDescription": {
+            "year": "Desglosa \"{{title}}\" en 2 Semestres Clave.",
+            "semester": "Desglosa \"{{title}}\" en 2 Trimestres.",
+            "generic": "Desglosa \"{{title}}\" en {{count}} pasos."
+        },
+        "stepTitle": {
+            "year": "Semestres Estratégicos",
+            "semester": "Trimestres Clave",
+            "quarter": "Tácticas Mensuales",
+            "month": "Ejecución Semanal",
+            "week": "Acciones Diarias"
+        },
+        "buttons": {
+            "nextPhase": "Siguiente Fase",
+            "initializeMap": "Inicializar Mapa",
+            "review": "Revisar",
+            "back": "Atrás",
+            "yesLetsGo": "SÍ, VAMOS",
+            "goBack": "Volver Atrás"
+        },
+        "confirmation": {
+            "title": "¿Empezamos con esta planeación?",
+            "subtitle": "Revisa tu estrategia antes de inicializar."
+        },
+        "completion": {
+            "title": "INTELIGENCIA APPLE",
+            "subtitle": "Optimización Estratégica Completa"
+        }
+    }
+  },
+  "focus": {
+    "title": "Modo Enfoque",
+    "appTitle": "FOCUS ESTUDIO",
+    "start": "Iniciar Enfoque",
+    "startFlow": "Iniciar Flow",
+    "newFlow": "Nuevo Flow",
+    "stop": "Detener",
+    "archived": {
+        "subtitle": "Proyectos Restaurables",
+        "restore": "Restaurar",
+        "empty": "No hay proyectos archivados"
+    },
+    "timer": {
+        "pomo": "Pomo",
+        "stopwatch": "Cronómetro",
+        "freeFlow": "Flujo Libre",
+        "focus": "Enfoque"
+    },
+    "notifications": {
+        "projectArchived": "PROYECTO ARCHIVADO",
+        "projectRestored": "PROYECTO RESTAURADO",
+        "projectDeleted": "PROYECTO ELIMINADO",
+        "activeSession": "SESIÓN ACTIVA"
+    },
+    "deleteModal": {
+        "title": "¿Eliminar Proyecto?",
+        "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"?",
+        "warning": "Las estadísticas se conservarán en la vista general, pero ya no podrás filtrar por este proyecto."
+    }
+  },
+  "settings": {
+    "title": "Configuración del Sistema",
+    "subtitle": "Preferencias del Entorno Matrix",
+    "tabs": {
+      "design": "Diseño",
+      "controls": "Controles",
+      "account": "Cuenta"
+    },
+    "profileHud": "HUD de Perfil",
+    "profileHudDesc": "Alternar la visibilidad de tu panel de atributos",
+    "language": "Idioma / Language",
+    "languageDesc": "Seleccionar idioma del sistema / Select system language",
+    "visualTheme": "Tema Visual",
+    "visualThemeDesc": "Selecciona tu estética de realidad preferida",
+    "dashboardStyle": "Estilo de Dashboard",
+    "dashboardStyleDesc": "Selecciona la apariencia del selector de secciones",
+    "styleBorder": "Con Borde",
+    "styleLiquid": "Cristal Líquido",
+    "startupChart": "Gráfico de Inicio",
+    "startupChartDesc": "Visualización predeterminada para métricas del sistema",
+    "chartRadar": "Radar / Araña",
+    "chartBar": "Barra / Lista",
+    "attributeEditor": "Editor de Atributos",
+    "attributeEditorDesc": "Personaliza tus definiciones del sistema (Mín. 3)",
+    "availableTraits": "Atributos Disponibles",
+    "userId": "ID de Usuario",
+    "accountType": "Tipo de Cuenta",
+    "accountStandard": "Estándar",
+    "version": "Versión",
+    "developer": "Desarrollador",
+    "logout": "Cerrar Sesión"
+  },
+  "dashboard": {
+      "systemMetrics": "Métricas del Sistema",
+    "activeMissions": "Misiones Activas",
+    "radarAnalysis": "Análisis de Radar",
+    "listView": "Vista de Lista",
+    "level": "Nvl",
+    "tasks": "Tareas",
+    "strategy": "Estrategia",
+    "noStrategy": "Sin Estrategia Activa",
+    "noStrategyDesc": "Aún no has definido tu Gran Estrategia. Divide tu objetivo final en pasos accionables.",
+    "initProtocol": "Inicializar Protocolo"
+  },
+  "habits": {
+    "title": "Hábitos",
+    "subtitle": "Diseña tu vida, un día a la vez.",
+    "newHabit": "Nuevo Hábito",
+    "empty": "No hay hábitos aún. Comienza creando uno."
+  },
+  "loading": {
+    "quotes": [
+        { "text": "La mente es su propio lugar, y en sí misma puede hacer un cielo del infierno, un infierno del cielo.", "author": "JOHN MILTON" },
+        { "text": "No vemos las cosas como son, las vemos como somos.", "author": "ANAÏS NIN" },
+        { "text": "Quien tiene un porqué para vivir puede soportar casi cualquier cómo.", "author": "FRIEDRICH NIETZSCHE" },
+        { "text": "La única manera de lidiar con un mundo libre es volverse tan absolutamente libre que tu mera existencia sea un acto de rebelión.", "author": "ALBERT CAMUS" }
+    ]
+  },
+  "traits": {
+      "disciplina": { 
+          "label": "Disciplina", 
+          "desc": "Voluntad inquebrantable.",
+          "achievements": {
+              "0": "Comienzo Forjado", "1": "Dificultades Iniciales", "2": "Pacto", "3": "Cambios de Mentalidad", "4": "Indicio de Detox", "5": "Detox", "6": "Fuerza Mental", "7": "David Goggins"
+          }
+      },
+      "fisico": { 
+          "label": "Físico", 
+          "desc": "Poder y resistencia.",
+          "achievements": {
+              "0": "Despertar", "1": "Agujetas", "2": "Constancia", "3": "Atleta Amateur", "4": "Cuerpo Esculpido", "5": "Máquina", "6": "Bestia", "7": "Semidiós"
+          }
+      },
+      "mental": { 
+          "label": "Intelecto", 
+          "desc": "Agudeza y aprendizaje.",
+          "achievements": {
+              "0": "Estudiante", "1": "Curioso", "2": "Lector Voraz", "3": "Intelectual", "4": "Erudito", "5": "Sabio", "6": "Mente Maestra", "7": "Omnisciente"
+          }
+      },
+      "social": { 
+          "label": "Carisma", 
+          "desc": "Influencia y conexión.",
+          "achievements": {
+              "0": "Tímido", "1": "Saludo", "2": "Conversador", "3": "Amigo", "4": "Alma de la Fiesta", "5": "Conector", "6": "Líder de Tribu", "7": "Influencia Global"
+          }
+      },
+      "espiritu": { 
+          "label": "Espíritu", 
+          "desc": "Calma y consciencia.",
+          "achievements": {
+              "0": "Silencio", "1": "Respiración", "2": "Meditación", "3": "Mindfulness", "4": "Despertar Espiritual", "5": "Iluminación", "6": "Trascendencia", "7": "Nirvana"
+          }
+      },
+      "finanzas": { 
+          "label": "Riqueza", 
+          "desc": "Libertad de recursos.",
+          "achievements": {
+              "0": "Ahorro", "1": "Primer Ingreso", "2": "Estabilidad", "3": "Inversor", "4": "Libertad Financiera", "5": "Magnate", "6": "Imperio", "7": "Dueño del Banco"
+          }
+      },
+      "creatividad": { 
+          "label": "Creatividad", 
+          "desc": "Visión e innovación.",
+          "achievements": {
+              "0": "Doodle", "1": "Idea", "2": "Sketch", "3": "Artist", "4": "Innovator", "5": "Visionary", "6": "World Creator", "7": "Demiurge"
+          }
+      },
+      "orden": { 
+          "label": "Sistema", 
+          "desc": "Control y estructura.",
+          "achievements": {
+              "0": "Cama Hecha", "1": "Rutina", "2": "Agenda", "3": "Sistema", "4": "Eficiencia", "5": "Automatización", "6": "Reloj Suizo", "7": "Entropía Cero"
+          }
+      },
+      "liderazgo": { 
+          "label": "Liderazgo", 
+          "desc": "Guiar a otros.",
+          "achievements": {
+              "0": "Iniciativa", "1": "Voz", "2": "Guía", "3": "Capitán", "4": "Comandante", "5": "General", "6": "Rey", "7": "Emperador"
+          }
+      },
+      "resiliencia": { 
+          "label": "Temple", 
+          "desc": "Invencibilidad.",
+          "achievements": {
+              "0": "Aguante", "1": "Dureza", "2": "Escudo", "3": "Rebote", "4": "Antifrágil", "5": "Inmortal", "6": "Fénix", "7": "Indestructible"
+          }
+      },
+      "vitalidad": { 
+          "label": "Energía", 
+          "desc": "Motor de vida.",
+          "achievements": {
+              "0": "Chispa", "1": "Batería", "2": "Energía", "3": "Vigor", "4": "Alto Voltaje", "5": "Reactor", "6": "Sol", "7": "Supernova"
+          }
+      },
+      "estilo": { 
+           "label": "Estética", 
+           "desc": "Arte de vivir.",
+           "achievements": {
+               "0": "Básico", "1": "Combinado", "2": "Buen Gusto", "3": "Elegante", "4": "Trendsetter", "5": "Icono", "6": "Vanguardia", "7": "Perfección Áurea"
+           }
+       }
+  },
+  "dock": {
+      "newMission": "Nueva Misión",
+      "singleTask": "Tarea Única",
+      "habit": "Hábito",
+      "focus": "Enfoque",
+      "strategy": "Estrategia",
+      "fame": "Fama",
+      "inventory": "Inventario",
+      "store": "Tienda"
+  }
+}

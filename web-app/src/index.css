@@ -18,6 +18,8 @@
     touch-action: manipulation;
     /* Prevent iOS rubber banding/overscroll */
     overscroll-behavior-y: none;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
   }
 
   [data-theme='matrix'] {

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 
@@ -9,11 +10,30 @@ interface TraitRadarChartProps {
 }
 
 export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, className }) => {
+    const { t } = useTranslation();
     // 1. CONFIGURATION
-    const CONTAINER_SIZE = 340; // REDUCED: Was 420. Fits better in mobile/card layouts.
+    const CONTAINER_SIZE = 300; // REDUCED: Compact Box
+    const [scale, setScale] = useState(1);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+            const availableWidth = width - 24; // Tighter padding
+            if (availableWidth < CONTAINER_SIZE) {
+                setScale(availableWidth / CONTAINER_SIZE);
+            } else {
+                setScale(1);
+            }
+        };
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const CENTER = CONTAINER_SIZE / 2;
-    const GRID_RADIUS = 85; // Scaled down (was 100)
-    const ICON_DISTANCE = 115; // Scaled down (was 135)
+    const GRID_RADIUS = 95; // ENLARGED: Bigger Graph relative to box
+    const ICON_DISTANCE = 110; // Adjusted for tightness
 
     // Helper: Map Trait IDs to Hex Colors (Backup/Override)
     const TRAIT_COLORS: Record<string, string> = {
@@ -111,7 +131,22 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
     return (
         // Removed left-1/2 -translate-x-1/2. Rely on parent Flexbox for true centering.
         // Added mx-auto for safety.
-        <div className={cn("relative flex items-center justify-center select-none mx-auto", className)} style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE }}>
+        // WRAPPER: Handles the scaled size footprint
+        <div 
+            className={cn("relative flex items-center justify-center select-none mx-auto", className)} 
+            style={{ 
+                width: CONTAINER_SIZE * scale, 
+                height: CONTAINER_SIZE * scale 
+            }}
+        >
+            {/* INNER: The actual chart, scaled */}
+            <div style={{
+                width: CONTAINER_SIZE,
+                height: CONTAINER_SIZE,
+                transform: `scale(${scale})`,
+                transformOrigin: 'center center',
+                position: 'relative' // Keeps it centered in the flex parent
+            }}>
             
             {/* SVG LAYER */}
             <svg 
@@ -152,21 +187,6 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     />
                 ))}
 
-                {/* Spokes - COLORED ZONES (Guiding the eye) */}
-                {chartData.map((p, i) => (
-                    <line
-                        key={`spoke-${i}`}
-                        x1={CENTER}
-                        y1={CENTER}
-                        x2={p.gridPoint.x}
-                        y2={p.gridPoint.y}
-                        stroke={p.color}
-                        strokeOpacity="0.3" // Increased opacity
-                        strokeWidth="0.6" // Increased visibility
-                        strokeDasharray="4 4" // Dotted to distinguish from value lines
-                    />
-                ))}
-
                 {/* Connector to Icon - SUBTLE */}
                 {chartData.map((p, i) => (
                     <line
@@ -181,31 +201,13 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     />
                 ))}
 
-                {/* Active Value Lines (Center to Point) - STRONGER COLOR */}
-                {chartData.map((p, i) => (
-                    <motion.line
-                        key={`active-${i}`}
-                        x1={CENTER}
-                        y1={CENTER}
-                        x2={p.valuePoint.x}
-                        y2={p.valuePoint.y}
-                        stroke={p.color}
-                        strokeWidth="1.5" // Increased thickness for vividness
-                        strokeOpacity="1" // FULL VISIBILITY (VIVID)
-                        strokeLinecap="round"
-                        initial={{ x2: CENTER, y2: CENTER }}
-                        animate={{ x2: p.valuePoint.x, y2: p.valuePoint.y }}
-                        transition={{ type: "spring", stiffness: 40, damping: 10 }}
-                    />
-                ))}
-
                 {/* Data Fill (Background) */}
                 <motion.path
                     initial={{ d: chartData.map((_, i) => `${i === 0 ? 'M' : 'L'} ${CENTER} ${CENTER}`).join(" ") + " Z", opacity: 0 }}
                     animate={{ d: polygonPath, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 40, damping: 10 }}
-                    fill="url(#radarGradient)" // Use the gradient fill again for depth
-                    fillOpacity="0.2" // Reduced opacity
+                    fill="#ffffff" 
+                    fillOpacity="0.2" // 20% Opacity (Ghost Glass)
                     stroke="none"
                     filter="url(#glow)"
                 />
@@ -231,20 +233,6 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     );
                 })}
 
-                {/* Data Points - JEWELS */}
-                {chartData.map((p, i) => (
-                    <motion.circle
-                        key={`pt-${i}`}
-                        cx={p.valuePoint.x}
-                        cy={p.valuePoint.y}
-                        r={3.25} // Balanced size (between 2.5 and 4)
-                        fill={p.color} // Trait color
-                        stroke="none" // REMOVED WHITE STROKE COMPLETELY
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        transition={{ delay: i * 0.05, type: "spring" }}
-                    />
-                ))}
             </svg>
 
             {/* HTML LABELS LAYER */}
@@ -301,13 +289,13 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                                 item.alignment === 'left' && "items-end"
                             )}>
                                 <span 
-                                    className="text-[10px] font-bold uppercase tracking-widest drop-shadow-md leading-none mb-0.5"
+                                    className="text-[9px] font-bold uppercase tracking-widest drop-shadow-md leading-none mb-0.5"
                                     style={{ color: item.color }}
                                 >
-                                    {item.label}
+                                    {t(item.label)}
                                 </span>
-                                <span className="text-[9px] font-mono text-white/40 leading-none">
-                                    LVL {item.level}
+                                <span className="text-[8px] font-mono text-white/40 leading-none">
+                                    {t('dashboard.level')} {item.level}
                                 </span>
                             </div>
                         </div>
@@ -316,8 +304,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 );
             })}
             
-            {/* Center Core */}
-            <div className="absolute w-2 h-2 bg-white rounded-full shadow-[0_0_15px_white] z-20 animate-pulse" />
+            </div>
         </div>
     );
 };

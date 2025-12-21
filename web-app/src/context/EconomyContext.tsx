@@ -16,8 +16,8 @@ const STORE_ITEMS: StoreItem[] = [
   // --- POWER UPS (MEJORAS) ---
   {
     id: 'potion_hp_small',
-    name: 'Kit de Reparación Neural',
-    description: 'Restaura 20 HP al instante. Esencial para el mantenimiento del sistema.',
+    name: 'store.items.potion_hp_small.name',
+    description: 'store.items.potion_hp_small.desc',
     price: 150,
     category: 'power_up',
     iconName: 'Zap',
@@ -25,8 +25,8 @@ const STORE_ITEMS: StoreItem[] = [
   },
   {
     id: 'potion_xp_restore',
-    name: 'Recuperación de Memoria',
-    description: 'Restaura XP perdida por inactividad o penalizaciones.',
+    name: 'store.items.potion_xp_restore.name',
+    description: 'store.items.potion_xp_restore.desc',
     price: 400,
     category: 'power_up',
     iconName: 'Brain',
@@ -34,8 +34,8 @@ const STORE_ITEMS: StoreItem[] = [
   },
   {
     id: 'redemption_token',
-    name: 'Restauración de Racha',
-    description: 'Repara una racha rota. Una segunda oportunidad para la perfección.',
+    name: 'store.items.redemption_token.name',
+    description: 'store.items.redemption_token.desc',
     price: 5000,
     category: 'power_up',
     iconName: 'ShieldAlert',
@@ -43,8 +43,8 @@ const STORE_ITEMS: StoreItem[] = [
   },
   {
     id: 'freeze_streak',
-    name: 'Congelar Tiempo',
-    description: 'Congela tu racha por 24 horas. Úsalo antes de un día ocupado.',
+    name: 'store.items.freeze_streak.name',
+    description: 'store.items.freeze_streak.desc',
     price: 1000,
     category: 'power_up',
     iconName: 'Clock',
@@ -54,83 +54,60 @@ const STORE_ITEMS: StoreItem[] = [
   // --- THEMES (TEMAS) ---
   {
     id: 'theme_neon_purple',
-    name: 'Protocolo Nébula',
-    description: 'Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk.',
+    name: 'store.items.theme_neon_purple.name',
+    description: 'store.items.theme_neon_purple.desc',
     price: 1000,
     category: 'theme',
     iconName: 'Palette'
   },
   {
     id: 'theme_matrix_green',
-    name: 'Código Fuente',
-    description: 'Verde Matrix Clásico. El flujo de datos crudo.',
+    name: 'store.items.theme_matrix_green.name',
+    description: 'store.items.theme_matrix_green.desc',
     price: 1500,
     category: 'theme',
     iconName: 'Code'
   },
   {
     id: 'theme_apple_minimal',
-    name: 'Cristal Cupertino',
-    description: 'Estética de cristal esmerilado ultra-limpia. Máxima claridad.',
+    name: 'store.items.theme_apple_minimal.name',
+    description: 'store.items.theme_apple_minimal.desc',
     price: 2000,
     category: 'theme',
     iconName: 'Smartphone'
   },
 
-  // --- COSMETICS (COSMÉTICOS) ---
-  {
-    id: 'avatar_cypher',
-    name: 'Avatar Cypher',
-    description: 'Avatar raro. "La ignorancia es felicidad".',
-    price: 2500,
-    category: 'cosmetic',
-    iconName: 'User'
-  },
-  {
-    id: 'frame_gold',
-    name: 'Marco Dorado',
-    description: 'Un borde prestigioso para tu avatar.',
-    price: 5000,
-    category: 'cosmetic',
-    iconName: 'Square'
-  },
-  {
-    id: 'banner_cyber_city',
-    name: 'Banner Cyber City',
-    description: 'Fondo de perfil con un horizonte futurista.',
-    price: 1500,
-    category: 'cosmetic',
-    iconName: 'Image'
-  },
+  // --- COSMETICS REMOVED AS PER REQUEST ---
+
 
   // --- MALOS HÁBITOS (BAD HABITS) ---
-  // Category 1: Digital Addiction -> Adicción Digital
-  { id: 'bad_habit_shorts', name: 'Doomscrolling Shorts (30m)', description: 'Comprar esto reconoce el hábito de ver videos cortos sin fin.', price: 500, category: 'bad_habit', subCategory: 'Adicción Digital', iconName: 'Smartphone' },
-  { id: 'bad_habit_social', name: 'Atracón de Redes Sociales', description: 'Revisar feeds sin propósito.', price: 500, category: 'bad_habit', subCategory: 'Adicción Digital', iconName: 'Share2' },
-  { id: 'bad_habit_notifications', name: 'Esclavo de Notificaciones', description: 'Reaccionar instantáneamente a cada pitido.', price: 500, category: 'bad_habit', subCategory: 'Adicción Digital', iconName: 'Bell' },
-  { id: 'bad_habit_gaming', name: 'Juego Excesivo', description: 'Jugar cuando deberías estar trabajando.', price: 500, category: 'bad_habit', subCategory: 'Adicción Digital', iconName: 'Gamepad' },
-  { id: 'bad_habit_news', name: 'Sobrecarga de Noticias', description: 'Consumir noticias negativas constantemente.', price: 500, category: 'bad_habit', subCategory: 'Adicción Digital', iconName: 'Newspaper' },
+  // Category 1: Digital Addiction -> digital_addiction
+  { id: 'bad_habit_shorts', name: 'store.items.bad_habit_shorts.name', description: 'store.items.bad_habit_shorts.desc', price: 500, category: 'bad_habit', subCategory: 'digital_addiction', iconName: 'Smartphone' },
+  { id: 'bad_habit_social', name: 'store.items.bad_habit_social.name', description: 'store.items.bad_habit_social.desc', price: 500, category: 'bad_habit', subCategory: 'digital_addiction', iconName: 'Share2' },
+  { id: 'bad_habit_notifications', name: 'store.items.bad_habit_notifications.name', description: 'store.items.bad_habit_notifications.desc', price: 500, category: 'bad_habit', subCategory: 'digital_addiction', iconName: 'Bell' },
+  { id: 'bad_habit_gaming', name: 'store.items.bad_habit_gaming.name', description: 'store.items.bad_habit_gaming.desc', price: 500, category: 'bad_habit', subCategory: 'digital_addiction', iconName: 'Gamepad' },
+  { id: 'bad_habit_news', name: 'store.items.bad_habit_news.name', description: 'store.items.bad_habit_news.desc', price: 500, category: 'bad_habit', subCategory: 'digital_addiction', iconName: 'Newspaper' },
 
-  // Category 2: Physical Neglect -> Negligencia Física
-  { id: 'bad_habit_sugar', name: 'Subidón de Azúcar', description: 'Consumir bebidas/snacks azucarados en exceso.', price: 500, category: 'bad_habit', subCategory: 'Negligencia Física', iconName: 'Coffee' },
-  { id: 'bad_habit_sedentary', name: 'Papa de Sofá', description: 'Sentarse por >2 horas sin moverse.', price: 500, category: 'bad_habit', subCategory: 'Negligencia Física', iconName: 'Armchair' },
-  { id: 'bad_habit_sleep', name: 'Venganza del Sueño', description: 'Quedarse despierto tarde sin razón.', price: 500, category: 'bad_habit', subCategory: 'Negligencia Física', iconName: 'Moon' },
-  { id: 'bad_habit_posture', name: 'Encorvarse', description: 'Mala postura al trabajar.', price: 500, category: 'bad_habit', subCategory: 'Negligencia Física', iconName: 'UserX' },
-  { id: 'bad_habit_water', name: 'Deshidratación', description: 'Olvidar beber agua.', price: 500, category: 'bad_habit', subCategory: 'Negligencia Física', iconName: 'Droplet' },
+  // Category 2: Physical Neglect -> physical_neglect
+  { id: 'bad_habit_sugar', name: 'store.items.bad_habit_sugar.name', description: 'store.items.bad_habit_sugar.desc', price: 500, category: 'bad_habit', subCategory: 'physical_neglect', iconName: 'Coffee' },
+  { id: 'bad_habit_sedentary', name: 'store.items.bad_habit_sedentary.name', description: 'store.items.bad_habit_sedentary.desc', price: 500, category: 'bad_habit', subCategory: 'physical_neglect', iconName: 'Armchair' },
+  { id: 'bad_habit_sleep', name: 'store.items.bad_habit_sleep.name', description: 'store.items.bad_habit_sleep.desc', price: 500, category: 'bad_habit', subCategory: 'physical_neglect', iconName: 'Moon' },
+  { id: 'bad_habit_posture', name: 'store.items.bad_habit_posture.name', description: 'store.items.bad_habit_posture.desc', price: 500, category: 'bad_habit', subCategory: 'physical_neglect', iconName: 'UserX' },
+  { id: 'bad_habit_water', name: 'store.items.bad_habit_water.name', description: 'store.items.bad_habit_water.desc', price: 500, category: 'bad_habit', subCategory: 'physical_neglect', iconName: 'Droplet' },
 
-  // Category 3: Mental Clutter -> Desorden Mental
-  { id: 'bad_habit_procrastinate', name: 'Procrastinación', description: 'Retrasar tareas hasta el último minuto.', price: 500, category: 'bad_habit', subCategory: 'Desorden Mental', iconName: 'Clock' },
-  { id: 'bad_habit_multitask', name: 'Ilusión de Multitarea', description: 'Hacer todo, no lograr nada.', price: 500, category: 'bad_habit', subCategory: 'Desorden Mental', iconName: 'Layers' },
-  { id: 'bad_habit_negative', name: 'Autodiálogo Negativo', description: 'Ser tu propio peor enemigo.', price: 500, category: 'bad_habit', subCategory: 'Desorden Mental', iconName: 'Frown' },
-  { id: 'bad_habit_worry', name: 'Preocupación Crónica', description: 'Estresarse por cosas que no puedes controlar.', price: 500, category: 'bad_habit', subCategory: 'Desorden Mental', iconName: 'CloudRain' },
-  { id: 'bad_habit_perfection', name: 'Perfeccionismo Paralizante', description: 'Esperar las condiciones "perfectas".', price: 500, category: 'bad_habit', subCategory: 'Desorden Mental', iconName: 'Target' },
+  // Category 3: Mental Clutter -> mental_clutter
+  { id: 'bad_habit_procrastinate', name: 'store.items.bad_habit_procrastinate.name', description: 'store.items.bad_habit_procrastinate.desc', price: 500, category: 'bad_habit', subCategory: 'mental_clutter', iconName: 'Clock' },
+  { id: 'bad_habit_multitask', name: 'store.items.bad_habit_multitask.name', description: 'store.items.bad_habit_multitask.desc', price: 500, category: 'bad_habit', subCategory: 'mental_clutter', iconName: 'Layers' },
+  { id: 'bad_habit_negative', name: 'store.items.bad_habit_negative.name', description: 'store.items.bad_habit_negative.desc', price: 500, category: 'bad_habit', subCategory: 'mental_clutter', iconName: 'Frown' },
+  { id: 'bad_habit_worry', name: 'store.items.bad_habit_worry.name', description: 'store.items.bad_habit_worry.desc', price: 500, category: 'bad_habit', subCategory: 'mental_clutter', iconName: 'CloudRain' },
+  { id: 'bad_habit_perfection', name: 'store.items.bad_habit_perfection.name', description: 'store.items.bad_habit_perfection.desc', price: 500, category: 'bad_habit', subCategory: 'mental_clutter', iconName: 'Target' },
 
-  // Category 4: Social/Behavioral -> Social/Comportamiento
-  { id: 'bad_habit_interrupt', name: 'Interrumpir a Otros', description: 'Hablar antes de escuchar.', price: 500, category: 'bad_habit', subCategory: 'Social/Comportamiento', iconName: 'MicOff' },
-  { id: 'bad_habit_late', name: 'Crónicamente Tarde', description: 'Faltar al respeto al tiempo de los demás.', price: 500, category: 'bad_habit', subCategory: 'Social/Comportamiento', iconName: 'Watch' },
-  { id: 'bad_habit_complain', name: 'Quejarse', description: 'Enfocarse en problemas, no soluciones.', price: 500, category: 'bad_habit', subCategory: 'Social/Comportamiento', iconName: 'MessageSquare' },
-  { id: 'bad_habit_impulse', name: 'Gasto Impulsivo', description: 'Comprar cosas que no necesitas.', price: 500, category: 'bad_habit', subCategory: 'Social/Comportamiento', iconName: 'CreditCard' },
-  { id: 'bad_habit_clutter', name: 'Desorden Físico', description: 'Espacio desordenado, mente desordenada.', price: 500, category: 'bad_habit', subCategory: 'Social/Comportamiento', iconName: 'Trash' },
+  // Category 4: Social/Behavioral -> social_behavioral
+  { id: 'bad_habit_interrupt', name: 'store.items.bad_habit_interrupt.name', description: 'store.items.bad_habit_interrupt.desc', price: 500, category: 'bad_habit', subCategory: 'social_behavioral', iconName: 'MicOff' },
+  { id: 'bad_habit_late', name: 'store.items.bad_habit_late.name', description: 'store.items.bad_habit_late.desc', price: 500, category: 'bad_habit', subCategory: 'social_behavioral', iconName: 'Watch' },
+  { id: 'bad_habit_complain', name: 'store.items.bad_habit_complain.name', description: 'store.items.bad_habit_complain.desc', price: 500, category: 'bad_habit', subCategory: 'social_behavioral', iconName: 'MessageSquare' },
+  { id: 'bad_habit_impulse', name: 'store.items.bad_habit_impulse.name', description: 'store.items.bad_habit_impulse.desc', price: 500, category: 'bad_habit', subCategory: 'social_behavioral', iconName: 'CreditCard' },
+  { id: 'bad_habit_clutter', name: 'store.items.bad_habit_clutter.name', description: 'store.items.bad_habit_clutter.desc', price: 500, category: 'bad_habit', subCategory: 'social_behavioral', iconName: 'Trash' },
 ];
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

@@ -1,4 +1,4 @@
-export type Difficulty = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+export type Difficulty = 'S' | 'A' | 'B' | 'C';
 
 export interface RewardPrediction {
   xp: number;
@@ -9,19 +9,18 @@ export interface RewardPrediction {
 }
 
 const BASE_REWARDS: Record<Difficulty, { xp: number; coins: number }> = {
-  S: { xp: 500, coins: 250 },
-  A: { xp: 200, coins: 100 },
-  B: { xp: 100, coins: 50 },
-  C: { xp: 50, coins: 25 },
-  D: { xp: 25, coins: 10 },
-  E: { xp: 10, coins: 5 },
+  S: { xp: 80, coins: 50 },  // Epic / High Impact
+  A: { xp: 55, coins: 35 },  // Hard
+  B: { xp: 35, coins: 20 },  // Medium
+  C: { xp: 20, coins: 10 },  // Easy / Low Impact
 };
 
 export const calculateTaskRewards = (
   difficulty: Difficulty,
   dueDate?: string | Date | null
 ): RewardPrediction => {
-  const base = BASE_REWARDS[difficulty];
+  // Default to C if invalid difficulty provided
+  const base = BASE_REWARDS[difficulty] || BASE_REWARDS['C'];
   let xp = base.xp;
   let coins = base.coins;
   let bonusApplied = false;

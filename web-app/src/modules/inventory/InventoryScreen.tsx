@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useMatrix } from '../../context/MatrixContext';
 import { EconomyProvider, useEconomy } from '../../context/EconomyContext';
 import { StoreItem } from '../../services/economyService';
 import { 
-  Search, Package, Zap, Sparkles, Ghost, Filter, X, 
-  ShoppingBag, ArrowUpRight, Box
+  Search, Package, X, 
+  Box, Zap, Ghost, Sparkles
 } from 'lucide-react';
 import clsx from 'clsx';
 import { 
-    Zap as IconZap, Brain, Palette, User, ShieldAlert, ShoppingBag as IconShoppingBag, Lock, Clock, Code, Smartphone, 
+    Zap as IconZap, Brain, Palette, User, ShieldAlert, ShoppingBag as IconShoppingBag, Clock, Code, Smartphone, 
     Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX, 
     Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash 
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const InventoryItemCard = ({
     count: number, 
     onUse: (item: StoreItem) => void 
 }) => {
+    const { t } = useTranslation();
     const Icon = IconMap[item.iconName || 'ShoppingBag'] || IconShoppingBag;
 
     return (
@@ -50,10 +52,10 @@ const InventoryItemCard = ({
 
             <div className="flex-1 mb-3">
                 <h3 className="text-[15px] font-semibold text-white mb-1 leading-snug tracking-tight">
-                    {item.name}
+                    {t(item.name)}
                 </h3>
                 <p className="text-[12px] text-white/40 leading-relaxed line-clamp-2">
-                    {item.description}
+                    {t(item.description)}
                 </p>
             </div>
 
@@ -61,7 +63,7 @@ const InventoryItemCard = ({
                 onClick={() => onUse(item)}
                 className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 text-[12px] font-medium transition-colors border border-white/5"
             >
-                {item.category === 'power_up' ? 'Usar' : 'Equipar/Ver'}
+                {item.category === 'power_up' ? t('inventory.use') : t('inventory.equip')}
             </button>
         </motion.div>
     );
@@ -69,6 +71,7 @@ const InventoryItemCard = ({
 
 const InventoryContent = () => {
     const { user } = useMatrix();
+    const { t } = useTranslation();
     const { storeItems, consume } = useEconomy();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<'all' | 'power_up' | 'cosmetic' | 'bad_habit'>('all');
@@ -106,7 +109,7 @@ const InventoryContent = () => {
     }, [inventory, storeItems, activeFilter, searchQuery]);
 
     const handleUse = async (item: StoreItem) => {
-        if (item.category === 'cosmetic' || item.category === 'theme') {
+        if (item.category === 'theme') {
             // Placeholder for cosmetic logic
             console.log('Viewing cosmetic:', item.name);
             if (navigator.vibrate) navigator.vibrate(20);
@@ -114,7 +117,7 @@ const InventoryContent = () => {
         }
 
         // Consume Power Ups
-        if (window.confirm(`¿Quieres usar ${item.name}?`)) {
+        if (window.confirm(t('inventory.confirmUse', { item: t(item.name) }))) {
             const success = await consume(item.id);
             if (success) {
                 if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
@@ -123,10 +126,10 @@ const InventoryContent = () => {
     };
 
     const filters = [
-        { id: 'all', label: 'Todo', icon: Box },
-        { id: 'power_up', label: 'Mejoras', icon: Zap },
-        { id: 'cosmetic', label: 'Cosméticos', icon: Sparkles },
-        { id: 'bad_habit', label: 'Malos Hábitos', icon: Ghost },
+        { id: 'all', label: 'inventory.filters.all', icon: Box },
+        { id: 'power_up', label: 'inventory.filters.power_up', icon: Zap },
+        { id: 'cosmetic', label: 'inventory.filters.cosmetic', icon: Sparkles },
+        { id: 'bad_habit', label: 'inventory.filters.bad_habit', icon: Ghost },
     ] as const;
 
     return (
@@ -142,7 +145,7 @@ const InventoryContent = () => {
                      <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
                      <div className="relative flex flex-col px-5 py-4 gap-4">
                         <div className="flex justify-between items-center">
-                            <h1 className="text-[22px] font-semibold tracking-tight text-white">Inventario</h1>
+                            <h1 className="text-[22px] font-semibold tracking-tight text-white">{t('inventory.title')}</h1>
                             <div className="bg-white/10 p-2 rounded-full">
                                 <Package size={18} className="text-white/80" />
                             </div>
@@ -155,7 +158,7 @@ const InventoryContent = () => {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Buscar tus objetos..."
+                                placeholder={t('inventory.searchPlaceholder')}
                                 className="w-full bg-black/20 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:bg-black/40 focus:border-white/10 transition-all"
                             />
                             {searchQuery && (
@@ -184,7 +187,7 @@ const InventoryContent = () => {
                             )}
                         >
                             <filter.icon size={14} />
-                            {filter.label}
+                            {t(filter.label)}
                         </button>
                     ))}
                 </div>
@@ -209,8 +212,8 @@ const InventoryContent = () => {
                         <div className="w-16 h-16 bg-[#1c1c1e] rounded-full flex items-center justify-center mb-4 border border-white/5">
                             <Package size={24} className="text-white/20" />
                         </div>
-                        <h3 className="text-white/40 font-medium mb-1">Inventario Vacío</h3>
-                        <p className="text-white/20 text-xs">Visita la Tienda para conseguir objetos.</p>
+                        <h3 className="text-white/40 font-medium mb-1">{t('inventory.emptyTitle')}</h3>
+                        <p className="text-white/20 text-xs">{t('inventory.emptyDesc')}</p>
                     </div>
                 )}
             </div>

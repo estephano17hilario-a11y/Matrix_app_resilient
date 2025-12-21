@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { StoreItem } from '../../../services/economyService';
 import { 
   Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Lock, Clock, Code, Smartphone, 
@@ -22,6 +23,7 @@ const IconMap: Record<string, React.ElementType> = {
 };
 
 export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ item, userGold, onPurchase, disabled }, ref) => {
+  const { t } = useTranslation();
   const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
   const canAfford = userGold >= item.price;
   const isAffordable = canAfford && !disabled;
@@ -62,17 +64,17 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
           )}>
             {item.price}
           </span>
-          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Oro</span>
+          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('store.currency')}</span>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 mb-4">
         <h3 className="text-[17px] font-semibold text-white mb-1 leading-snug tracking-tight">
-          {item.name}
+          {t(item.name)}
         </h3>
         <p className="text-[13px] text-white/50 leading-relaxed font-medium">
-          {item.description}
+          {t(item.description)}
         </p>
       </div>
 
@@ -88,10 +90,10 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
         )}
       >
         {canAfford ? (
-          "Comprar"
+          t('store.buy')
         ) : (
           <div className="flex items-center justify-center gap-1.5">
-            <Lock size={12} /> <span>Bloqueado</span>
+            <Lock size={12} /> <span>{t('store.locked')}</span>
           </div>
         )}
       </button>

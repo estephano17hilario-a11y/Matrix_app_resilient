@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
-  Brain, 
   Infinity, 
   Palette, 
-  BarChart, 
-  Check, 
+  BarChart3, 
   Sparkles,
-  Loader2
+  Loader2,
+  Zap,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -19,192 +19,189 @@ interface ProUpgradeModalProps {
   onClose: () => void;
 }
 
-const FeatureItem = ({ icon: Icon, title, description }: { icon: any, title: string, description: string }) => (
-  <div className="flex items-center p-3 rounded-xl bg-white/5 border border-white/5 group hover:border-yellow-500/20 transition-all duration-300">
-    <div className="p-2 rounded-lg bg-gradient-to-br from-gray-800 to-black border border-white/10 text-yellow-500 mr-4 group-hover:scale-110 transition-transform">
-      <Icon size={20} />
-    </div>
-    <div className="flex-1">
-      <h3 className="text-white font-medium text-sm">{title}</h3>
-      <p className="text-gray-400 text-xs">{description}</p>
-    </div>
-    <div className="h-6 w-6 rounded-full bg-yellow-500/20 flex items-center justify-center border border-yellow-500/50">
-      <Check size={12} className="text-yellow-500" />
-    </div>
+const RGBCheck = () => (
+  <div className="relative flex items-center justify-center w-6 h-6">
+    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-40 animate-pulse-slow" />
+    <svg 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      className="w-4 h-4 relative z-10 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]"
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        <linearGradient id="rgb-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="50%" stopColor="#c084fc" />
+          <stop offset="100%" stopColor="#f472b6" />
+        </linearGradient>
+      </defs>
+      <motion.path 
+        initial={{ pathLength: 0, opacity: 0 }} 
+        animate={{ pathLength: 1, opacity: 1 }} 
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        d="M20 6L9 17l-5-5" 
+        stroke="url(#rgb-gradient)" 
+        strokeWidth="3" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      />
+    </svg>
   </div>
 );
 
+const BenefitCard = ({ icon: Icon, text, delay }: { icon: any, text: string, delay: number }) => (
+  <motion.div 
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, duration: 0.4, type: "spring" }}
+    className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group backdrop-blur-sm"
+  >
+    <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5 group-hover:scale-110 transition-transform duration-300">
+      <Icon size={16} className="text-white/70 group-hover:text-white transition-colors" strokeWidth={1.5} />
+    </div>
+    <span className="text-white/80 font-medium text-[13px] leading-tight flex-1 group-hover:text-white transition-colors">
+      {text}
+    </span>
+    <RGBCheck />
+  </motion.div>
+);
+
 export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleUpgrade = async () => {
+    if (!user) return;
     setIsProcessing(true);
-
-    // 1. Simular latencia de red (La tensión de la espera)
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    try {
-      // 2. Actualizar Firebase (Magia Real)
-      if (!user) return;
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        plan: 'PRO',
-        updatedAt: Date.now()
-      });
-
-      // 3. Feedback de Éxito (Dopamina)
-      setSuccess(true);
-      
-      // 4. Cierre automático
-      setTimeout(() => {
+    
+    setTimeout(async () => {
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          plan: 'PRO',
+          'stats.gold': (profile?.stats?.gold || 0) + 1000
+        });
         onClose();
-        setSuccess(false); // Reset state for next time
+      } catch (error) {
+        console.error('Error upgrading:', error);
+      } finally {
         setIsProcessing(false);
-      }, 1500);
-      
-    } catch (error) {
-      console.error("Purchase failed", error);
-      setIsProcessing(false);
-    }
+      }
+    }, 2000);
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          {/* Backdrop */}
-          <motion.div
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Background Backdrop - Glassmorphism Total */}
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-
-          {/* Modal Container */}
-          <motion.div
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-md bg-gradient-to-b from-gray-900 to-black rounded-t-3xl sm:rounded-3xl border border-yellow-500/20 overflow-hidden shadow-2xl shadow-yellow-900/20"
+            className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
           >
-            {/* Success Overlay */}
-            <AnimatePresence>
-              {success && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="absolute inset-0 z-20 bg-black/90 flex flex-col items-center justify-center text-center p-8"
-                >
-                  <motion.div
-                    initial={{ scale: 0.5, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring" }}
-                    className="w-24 h-24 rounded-full bg-gradient-to-tr from-yellow-400 to-amber-600 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30"
-                  >
-                    <Check size={48} className="text-white" strokeWidth={3} />
-                  </motion.div>
-                  <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500 mb-2">
-                    Welcome to PRO
-                  </h2>
-                  <p className="text-gray-400">Your potential is now unlocked.</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+             {/* Subtle Ambient Light */}
+             <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-30 pointer-events-none">
+                <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[120px] animate-float" />
+                <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] bg-fuchsia-600/30 rounded-full blur-[120px] animate-float" style={{ animationDelay: '-2s' }} />
+             </div>
+          </motion.div>
 
-            {/* Early Access Badge */}
-            <div className="absolute top-0 inset-x-0 flex justify-center -mt-3">
-              <div className="bg-gradient-to-r from-amber-600 to-yellow-600 px-4 py-1 rounded-full shadow-lg border border-yellow-400/30 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-white animate-pulse" />
-                <span className="text-[10px] font-bold tracking-widest text-white uppercase">Early Access</span>
-              </div>
-            </div>
+          {/* The Crystal Monolith */}
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="relative w-full max-w-[500px] overflow-hidden rounded-[32px] border border-white/10 shadow-2xl"
+          >
+            {/* Glass Material Layer */}
+            <div className="absolute inset-0 bg-[#121214]/60 backdrop-blur-3xl" />
+            
+            {/* Noise Texture for Realism */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
 
-            {/* Close Button */}
-            <button 
-              onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
+            {/* Content Container */}
+            <div className="relative p-6 md:p-8 flex flex-col h-full">
+              
+              {/* Close Button */}
+              <button 
+                onClick={onClose}
+                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all z-20 group"
+              >
+                <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+              </button>
 
-            <div className="p-6 sm:p-8 pt-10">
               {/* Header */}
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-1">Unlock your full potential</h2>
-                <p className="text-gray-400 text-sm">Join the elite circle of founders and creators.</p>
-              </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-4"
+                >
+                  <Sparkles size={12} className="text-indigo-400" />
+                  <span className="text-[10px] font-bold tracking-widest text-indigo-300 uppercase">
+                    Matrix Intelligence
+                  </span>
+                </motion.div>
 
-              {/* Pricing Anchor */}
-              <div className="flex justify-center items-baseline gap-3 mb-8">
-                <span className="text-gray-500 line-through text-lg decoration-red-500/50">$9.90</span>
-                <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500">
-                  $4.90
-                </span>
-                <span className="text-gray-500 text-sm font-medium">/ mo</span>
-              </div>
-
-              {/* Feature Stack */}
-              <div className="space-y-3 mb-8">
-                <FeatureItem 
-                  icon={Brain} 
-                  title="IA Architect" 
-                  description="Advanced Neural Guidance" 
-                />
-                <FeatureItem 
-                  icon={Infinity} 
-                  title="Unlimited Flow" 
-                  description="Infinite Habits & Projects" 
-                />
-                <FeatureItem 
-                  icon={Palette} 
-                  title="Ether Themes" 
-                  description="Exclusive Visual Environments" 
-                />
-                <FeatureItem 
-                  icon={BarChart} 
-                  title="Data Vault" 
-                  description="Deep Analytics & Trends" 
-                />
-              </div>
-
-              {/* FOMO Text */}
-              <div className="text-center mb-4">
-                <p className="text-amber-500/80 text-xs font-medium tracking-wide">
-                  FOUNDER OFFER • ENDS JAN 30
+                <h2 className="text-4xl font-bold text-white mb-2 tracking-tight">
+                  Premium
+                </h2>
+                <p className="text-white/40 text-sm">
+                  Desbloquea el potencial infinito.
                 </p>
               </div>
 
-              {/* Trigger Button */}
-              <button
-                onClick={handleUpgrade}
-                disabled={isProcessing}
-                className="w-full relative overflow-hidden group bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg shadow-amber-900/20 transform transition-all active:scale-[0.98]"
-              >
-                <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-colors" />
-                <div className="flex items-center justify-center gap-2">
-                  {isProcessing ? (
-                    <>
-                      <Loader2 size={20} className="animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Upgrade Now</span>
-                      <span className="bg-black/10 px-2 py-0.5 rounded text-xs opacity-70">
-                        $4.90 / mo
-                      </span>
-                    </>
-                  )}
+              {/* Benefits Grid - Compact & Elegant */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                <BenefitCard icon={Infinity} text="Proyectos Ilimitados" delay={0.1} />
+                <BenefitCard icon={Infinity} text="Tareas Inteligentes" delay={0.2} />
+                <BenefitCard icon={Infinity} text="Hábitos Ilimitados" delay={0.3} />
+                <BenefitCard icon={Infinity} text="Notas Infinitas" delay={0.4} />
+                <BenefitCard icon={Crown} text="Rasgos Desbloqueados" delay={0.5} />
+                <BenefitCard icon={BarChart3} text="Análisis Avanzado" delay={0.6} />
+                <BenefitCard icon={Palette} text="Temas Exclusivos" delay={0.7} />
+              </div>
+
+              {/* Footer Actions */}
+              <div className="mt-auto pt-6 border-t border-white/5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold text-white">$4.99</span>
+                    <span className="text-[10px] text-white/40 font-medium uppercase tracking-wider">/ Mes</span>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleUpgrade}
+                    disabled={isProcessing}
+                    className="flex-1 relative overflow-hidden rounded-2xl group focus:outline-none"
+                  >
+                    <div className="absolute inset-0 bg-white" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
+                    
+                    <div className="relative px-6 py-3.5 flex items-center justify-center gap-2">
+                      {isProcessing ? (
+                        <Loader2 size={18} className="text-black animate-spin" />
+                      ) : (
+                        <>
+                          <span className="font-semibold text-black text-sm tracking-wide">Comprar Ahora</span>
+                          <Zap size={16} className="text-indigo-600" fill="currentColor" />
+                        </>
+                      )}
+                    </div>
+                  </motion.button>
                 </div>
-              </button>
-              
-              <p className="text-center text-[10px] text-gray-600 mt-4">
-                Cancel anytime. Secure payment processing.
-              </p>
+                
+                <p className="text-center text-[10px] text-white/20 mt-4">
+                  Pago seguro via Stripe • Cancela cuando quieras
+                </p>
+              </div>
+
             </div>
           </motion.div>
         </div>

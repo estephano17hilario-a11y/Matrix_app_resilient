@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
@@ -7,21 +8,27 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
   hoverEffect?: boolean;
 }
 
-export function GlassCard({ children, className, hoverEffect = false, ...props }: GlassCardProps) {
+export const GlassCard: React.FC<GlassCardProps> = ({ 
+  children, 
+  className, 
+  hoverEffect = false, 
+  ...props 
+}) => {
   return (
     <motion.div
       className={cn(
-        // Base structure & Glass effect
-        "relative overflow-hidden rounded-3xl",
-        "bg-white/5 backdrop-blur-3xl", // Transparencia lechosa (deep frosted glass)
-        "border border-white/10", // Borde sutil
-        "shadow-2xl shadow-black/50", // Sombra difusa grande
+        // THE HYPER-GLASS FORMULA
+        // Base Semitransparente & Blur Extremo
+        "bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150",
+        // Borde de Luz (Rim Light)
+        "border border-white/10",
+        // Reflejo Superior & Sombra de Elevación (Combined to avoid override)
+        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(79,70,229,0.15)]",
+        // Rounded
+        "rounded-2xl",
         
-        // Inner glow / highlight for "grabbing light"
-        "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none",
-        
-        // Optional Hover Effect
-        hoverEffect && "hover:bg-white/10 hover:border-white/20 hover:shadow-indigo-500/10 transition-all duration-300",
+        // Interactive states
+        hoverEffect && "transition-all duration-300 hover:bg-gray-800/50 hover:border-white/20 hover:shadow-indigo-500/20",
         
         className
       )}
@@ -30,4 +37,4 @@ export function GlassCard({ children, className, hoverEffect = false, ...props }
       {children}
     </motion.div>
   );
-}
+};

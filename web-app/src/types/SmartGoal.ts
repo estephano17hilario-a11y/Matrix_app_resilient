@@ -5,6 +5,7 @@ export type TimeFrame = '10_YEARS' | '5_YEARS' | 'YEAR' | 'SEMESTER' | 'QUARTER'
 export interface StrategicNode {
   id: string;
   title: string;
+  description?: string;
   level: TimeFrame;
   startDate?: Timestamp;
   dueDate: Timestamp;

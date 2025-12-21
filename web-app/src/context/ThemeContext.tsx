@@ -35,6 +35,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
+
+    // Inject CSS variables dynamically from config
+    const themeConfig = THEMES[theme];
+    if (themeConfig) {
+      root.style.setProperty('--color-bg-depth', themeConfig.colors.bgDepth);
+      root.style.setProperty('--color-primary-glow', themeConfig.colors.primaryGlow);
+      root.style.setProperty('--color-secondary-glow', themeConfig.colors.secondaryGlow);
+      root.style.setProperty('--color-glass-tint', themeConfig.colors.glassTint);
+      root.style.setProperty('--color-text-primary', themeConfig.colors.textPrimary);
+    }
+
     try {
       localStorage.setItem('matrix-theme', theme);
     } catch (e) {

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Target, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Target, Calendar, Lock as LockIcon } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
 import { formatDateRange } from '../../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const FocusStats = React.memo(({ projects, attributes }: { projects: Project[], attributes: Attribute[] }) => {
+export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }: { projects: Project[], attributes: Attribute[], isPro?: boolean, onShowPro?: () => void }) => {
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
@@ -68,7 +68,7 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
     }, [currentDate]);
 
     return (
-        <div className="relative transition-all duration-300 ease-in-out mb-4 flex-shrink-0">
+        <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
             <div className="glass-panel rounded-[2rem] p-4 flex flex-col gap-3 relative overflow-hidden">
                  {/* Background Glow */}
                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
@@ -86,22 +86,32 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
                     </div>
 
                     <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/5 shadow-inner">
-                        {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => (
-                            <button 
-                                key={range} 
-                                onClick={() => { setTimeRange(range as 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'); }} 
-                                className={`relative px-3 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 z-10 ${timeRange === range ? 'text-white' : 'text-slate-500 hover:text-white'}`}
-                            >
-                                {timeRange === range && (
-                                    <motion.div 
-                                        layoutId="activeRange"
-                                        className="absolute inset-0 bg-white/10 rounded-lg shadow-sm border border-white/10"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
-                                )}
-                                {range}
-                            </button>
-                        ))}
+                        {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => {
+                            const isLocked = !isPro && (range === 'MONTH' || range === 'YEAR');
+                            return (
+                                <button 
+                                    key={range} 
+                                    onClick={() => { 
+                                        if (isLocked) {
+                                            if (onShowPro) onShowPro();
+                                            return;
+                                        }
+                                        setTimeRange(range as 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'); 
+                                    }} 
+                                    className={`relative px-3 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 z-10 flex items-center gap-1 ${timeRange === range ? 'text-white' : 'text-slate-500 hover:text-white'} ${isLocked ? 'opacity-50' : ''}`}
+                                >
+                                    {timeRange === range && (
+                                        <motion.div 
+                                            layoutId="activeRange"
+                                            className="absolute inset-0 bg-white/10 rounded-lg shadow-sm border border-white/10"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    {range}
+                                    {isLocked && <LockIcon size={8} className="text-amber-400" />}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

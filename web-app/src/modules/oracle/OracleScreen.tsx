@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, Brain } from 'lucide-react';
 import { sendMessage, AIMessage } from '../../services/aiService';
+import { useTranslation } from 'react-i18next';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -48,6 +49,7 @@ const TheVoid = () => (
 
 // 2. Chat Bubble (Hyper-Glass)
 const ChatBubble = ({ message }: { message: AIMessage }) => {
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
   
   return (
@@ -75,7 +77,7 @@ const ChatBubble = ({ message }: { message: AIMessage }) => {
         </p>
         
         <span className="text-[10px] text-white/40 mt-2 block font-mono uppercase tracking-widest">
-          {isUser ? 'OPERATOR' : 'ORACLE SYSTEM'}
+          {isUser ? t('oracle.userLabel') : t('oracle.systemLabel')}
         </span>
       </div>
     </motion.div>
@@ -84,6 +86,7 @@ const ChatBubble = ({ message }: { message: AIMessage }) => {
 
 // 3. Input Field (Liquid Bar)
 const InputField = ({ onSend, isLoading }: { onSend: (text: string) => void, isLoading: boolean }) => {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -107,7 +110,7 @@ const InputField = ({ onSend, isLoading }: { onSend: (text: string) => void, isL
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Ask the Oracle..."
+            placeholder={t('oracle.placeholder')}
             className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/30 font-light px-4 py-2"
             disabled={isLoading}
           />

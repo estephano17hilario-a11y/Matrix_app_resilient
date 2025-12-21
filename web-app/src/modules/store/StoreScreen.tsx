@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useMatrix } from '../../context/MatrixContext';
 import { EconomyProvider, useEconomy } from '../../context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
@@ -50,6 +51,7 @@ const ConfirmationModal = ({
     onCancel: () => void,
     isOpen: boolean
 }) => {
+    const { t } = useTranslation();
     if (!item) return null;
     const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
 
@@ -78,9 +80,9 @@ const ConfirmationModal = ({
                                 <Icon size={40} className="text-white" strokeWidth={1.5} />
                             </div>
                             
-                            <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
+                            <h3 className="text-xl font-bold text-white mb-2">{t(item.name)}</h3>
                             <p className="text-white/50 text-sm mb-6 leading-relaxed px-4">
-                                ¿Realmente deseas comprar este objeto por <span className="text-yellow-400 font-bold">{item.price} Monedas</span>?
+                                {t('store.confirm.desc', { price: item.price })}
                             </p>
 
                             <div className="flex gap-3 w-full">
@@ -88,14 +90,14 @@ const ConfirmationModal = ({
                                     onClick={onCancel}
                                     className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors border border-white/5"
                                 >
-                                    Cancelar
+                                    {t('store.confirm.no')}
                                 </button>
                                 <button 
                                     onClick={onConfirm}
                                     className="flex-1 py-3.5 rounded-xl bg-white text-black font-bold hover:bg-white/90 transition-colors shadow-lg shadow-white/10 flex items-center justify-center gap-2"
                                 >
                                     <Check size={18} />
-                                    Comprar
+                                    {t('store.confirm.yes')}
                                 </button>
                             </div>
                         </div>
@@ -152,6 +154,7 @@ interface StoreScreenProps {
 
 const StoreContent = ({ onNavigate }: StoreScreenProps) => {
   const { user } = useMatrix();
+  const { t } = useTranslation();
   const { purchase, watchAd, storeItems, isTransactionPending } = useEconomy();
   const [activeFilter, setActiveFilter] = useState<string>('all');
   
@@ -166,15 +169,15 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
   // Generate Filters based on items
   // We want: All, Power Ups, Themes, Cosmetics, and then subcategories of Bad Habits
   const filters = [
-      { id: 'all', label: 'Todo' },
-      { id: 'power_up', label: 'Mejoras' },
-      { id: 'cosmetic', label: 'Cosméticos' },
-      { id: 'theme', label: 'Temas' },
+      { id: 'all', label: 'store.filters.all' },
+      { id: 'power_up', label: 'store.filters.power_up' },
+      { id: 'theme', label: 'store.filters.theme' },
+      { id: 'cosmetic', label: 'store.filters.cosmetic' },
       // Dynamically add categories? For now, let's hardcode the ones we know are important
-      { id: 'Adicción Digital', label: 'Digital' },
-      { id: 'Negligencia Física', label: 'Física' },
-      { id: 'Desorden Mental', label: 'Mental' },
-      { id: 'Social/Comportamiento', label: 'Social' }
+      { id: 'digital_addiction', label: 'store.filters.digital_addiction' },
+      { id: 'physical_neglect', label: 'store.filters.physical_neglect' },
+      { id: 'mental_clutter', label: 'store.filters.mental_clutter' },
+      { id: 'social_behavioral', label: 'store.filters.social_behavioral' }
   ];
 
   const filteredItems = storeItems.filter(item => {
@@ -251,7 +254,7 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
             <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
             <div className="relative flex justify-between items-center px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-[22px] font-semibold tracking-tight text-white">Tienda</h1>
+                    <h1 className="text-[22px] font-semibold tracking-tight text-white">{t('store.title')}</h1>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -271,7 +274,7 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
                         <Package size={20} />
                         {/* Tooltip hint */}
                         <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] bg-black px-2 py-1 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Inventario
+                            {t('store.inventory')}
                         </span>
                     </button>
                 </div>
@@ -291,7 +294,7 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
                             : "bg-[#1c1c1e] text-white/60 border-white/5 hover:bg-[#2c2c2e] hover:text-white"
                     )}
                 >
-                    {filter.label}
+                    {t(filter.label)}
                 </button>
             ))}
         </div>
@@ -334,7 +337,7 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
                     className="text-center py-20 text-white/20"
                 >
                     <ShoppingBag className="mx-auto mb-3 opacity-30" size={40} strokeWidth={1.5} />
-                    <p className="text-sm font-medium">No hay items en esta categoría</p>
+                    <p className="text-sm font-medium">{t('store.emptyCategory')}</p>
                 </motion.div>
             )}
         </motion.div>

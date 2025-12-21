@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Flame } from 'lucide-react';
+import { Check, Flame, Trash2, Edit2 } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { HabitHeatmap } from './HabitHeatmap';
@@ -9,9 +9,11 @@ interface HabitVisualCardProps {
     habit: Habit;
     attribute?: Attribute;
     onComplete: (e: React.MouseEvent, h: Habit) => void;
+    onDelete?: (id: string) => void;
+    onEdit?: (habit: Habit) => void;
 }
 
-export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribute, onComplete }) => {
+export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribute, onComplete, onDelete, onEdit }) => {
     const isCompleted = habit.completedToday;
     
     // Apple/HabitKit Neon Palette - Refined for "Glass" look
@@ -38,6 +40,36 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribu
                 className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none transition-colors duration-500"
                 style={{ backgroundColor: color }} 
             />
+
+            {/* Action Buttons (Visible on Hover) */}
+            <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                {onEdit && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(habit);
+                        }}
+                        className="p-2 rounded-full bg-black/20 text-white/20 hover:text-white hover:bg-black/40 transition-all duration-200"
+                        title="Edit Habit"
+                    >
+                        <Edit2 size={16} />
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Are you sure you want to delete this habit?')) {
+                                onDelete(habit.id);
+                            }
+                        }}
+                        className="p-2 rounded-full bg-black/20 text-white/20 hover:text-red-400 hover:bg-black/40 transition-all duration-200"
+                        title="Delete Habit"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
 
             <div className="relative p-6 flex flex-col gap-6">
                 

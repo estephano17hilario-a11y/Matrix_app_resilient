@@ -10,10 +10,10 @@ interface AvatarWidgetProps {
   streak: number;
   displayName?: string | null;
   email?: string | null;
+  isPro?: boolean;
 }
 
-const MiniLiquidBar = ({ 
-  value, 
+const MiniLiquidBar = ({  value, 
   max, 
   color, 
   icon: Icon 
@@ -50,7 +50,7 @@ const MiniLiquidBar = ({
   const theme = themes[color];
 
   return (
-    <div className="flex items-center gap-2 w-40">
+    <div className="flex items-center gap-2 w-20 sm:w-28 md:w-40 transition-all">
         <Icon size={10} className={theme.iconColor} />
         <div className={`h-1.5 flex-1 ${theme.bg} rounded-full overflow-hidden relative shadow-inner`}>
              <motion.div 
@@ -59,22 +59,28 @@ const MiniLiquidBar = ({
                 className={`h-full absolute left-0 top-0 rounded-full bg-gradient-to-r ${theme.gradient}`}
              />
         </div>
-        <span className="text-[9px] font-mono text-white/50 w-[45px] text-right tabular-nums">{safeValue}/{safeMax}</span>
+        <span className="hidden sm:inline-block text-[9px] font-mono text-white/50 w-[45px] text-right tabular-nums">{safeValue}/{safeMax}</span>
     </div>
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, displayName, email }: AvatarWidgetProps) => (
-    <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1" data-tour="player-hud">
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, displayName, email, isPro }: AvatarWidgetProps) => (
+    <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-800 to-slate-900 p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)]">
+            <div className={`w-12 h-12 rounded-full p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)] ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}>
                 <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Avatar" className="w-full h-full rounded-full object-cover opacity-90" />
             </div>
             {/* Level Badge */}
-            <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center">
+            <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10">
                  <span className="text-[10px] font-bold text-white">{level}</span>
             </div>
+            {/* PRO Badge */}
+            {isPro && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 px-2 py-0.5 rounded-full border border-white/20 shadow-[0_0_10px_rgba(129,140,248,0.5)] z-20">
+                    <span className="text-[8px] font-black text-white tracking-widest leading-none block">PRO</span>
+                </div>
+            )}
         </div>
 
         {/* STATS COLUMN */}
@@ -82,11 +88,11 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, dis
             {/* HEADER: NAME + STREAK */}
             <div className="flex items-center gap-3">
                 <div className="flex flex-col leading-none">
-                    <span className="text-sm font-bold text-white tracking-tight">
+                    <span className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[80px] sm:max-w-none">
                         {displayName || 'Neo'}
                     </span>
                     {email && (
-                        <span className="text-[10px] text-slate-400 font-mono tracking-tight truncate max-w-[120px]">
+                        <span className="hidden sm:inline-block text-[10px] text-slate-400 font-mono tracking-tight truncate max-w-[120px]">
                             {email}
                         </span>
                     )}

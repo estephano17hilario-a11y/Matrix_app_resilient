@@ -4,6 +4,7 @@ import { useMatrix } from '../../context/MatrixContext';
 import { ACHIEVEMENTS, AchievementCategory, Achievement } from '../../config/achievements';
 import { Lock, Trophy } from 'lucide-react';
 import { AuroraBackground } from '../../components/AuroraBackground';
+import { useTranslation } from 'react-i18next';
 
 // --- COMPONENTS ---
 
@@ -38,6 +39,7 @@ const CategoryTab = ({
 );
 
 const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean }> = ({ achievement, isUnlocked }) => {
+  const { t } = useTranslation();
   return (
     <motion.div
       layout
@@ -77,10 +79,10 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
       {/* Text Content */}
       <div className="relative z-10">
         <h3 className={`text-sm font-semibold tracking-tight mb-1 ${isUnlocked ? 'text-white' : 'text-white/30'}`}>
-          {achievement.title}
+          {t(achievement.title)}
         </h3>
         <p className={`text-[11px] leading-relaxed font-medium ${isUnlocked ? 'text-white/60' : 'text-white/20'}`}>
-          {achievement.description}
+          {t(achievement.description, { level: achievement.level })}
         </p>
       </div>
 
@@ -88,7 +90,7 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
       {isUnlocked && (
         <div className="absolute top-4 right-4">
            <span className="text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm">
-             +{Math.floor(achievement.xpReward)} Matrix Coins
+             +{Math.floor(achievement.xpReward)} {t('achievements.currency')}
            </span>
         </div>
       )}
@@ -99,21 +101,22 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
 // --- MAIN SCREEN ---
 
 const categoryLabels: Record<string, string> = {
-  ALL: 'All',
-  XP: 'Matrix Coins',
-  STREAK: 'Streak',
-  COMBAT: 'Combat',
-  MASTERY: 'Mastery'
+  ALL: 'achievements.categories.all',
+  LEVEL: 'achievements.categories.level',
+  STREAK: 'achievements.categories.streak',
+  TRAIT: 'achievements.categories.trait',
+  RANK: 'achievements.categories.rank'
 };
 
 export const AchievementsScreen: React.FC = () => {
   const { user } = useMatrix();
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'ALL'>('ALL');
 
-  if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">Initializing Matrix...</div>;
+  if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">{t('achievements.loading')}</div>;
 
   const unlockedSet = new Set(user.unlockedAchievements || []);
-  const categories: (AchievementCategory | 'ALL')[] = ['ALL', 'XP', 'STREAK', 'COMBAT', 'MASTERY'];
+  const categories: (AchievementCategory | 'ALL')[] = ['ALL', 'LEVEL', 'STREAK', 'TRAIT'];
 
   const filteredAchievements = ACHIEVEMENTS.filter(ach => 
     selectedCategory === 'ALL' || ach.category === selectedCategory
@@ -136,10 +139,10 @@ export const AchievementsScreen: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
           >
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 text-white drop-shadow-lg">
-              Hall of Fame
+              {t('achievements.title')}
             </h1>
             <p className="text-white/60 text-sm md:text-base font-medium max-w-md">
-              Your legacy in the Matrix. Every breakthrough is recorded here in the eternal archive.
+              {t('achievements.subtitle')}
             </p>
           </motion.div>
           
@@ -150,7 +153,7 @@ export const AchievementsScreen: React.FC = () => {
             className="flex items-center gap-4 bg-gray-900/40 backdrop-blur-xl border border-white/10 px-5 py-3 rounded-2xl shadow-lg"
           >
             <div className="text-right">
-              <span className="block text-xs font-bold text-white/40 uppercase tracking-widest">Protocol Sync</span>
+              <span className="block text-xs font-bold text-white/40 uppercase tracking-widest">{t('achievements.sync')}</span>
               <span className="block text-xl font-mono font-bold text-white">{completionPercentage}%</span>
             </div>
             <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center relative">
@@ -164,7 +167,7 @@ export const AchievementsScreen: React.FC = () => {
           {categories.map((cat) => (
             <CategoryTab 
               key={cat} 
-              label={categoryLabels[cat] || cat} 
+              label={t(categoryLabels[cat] || cat)} 
               isActive={selectedCategory === cat} 
               onClick={() => setSelectedCategory(cat)} 
             />
@@ -199,7 +202,7 @@ export const AchievementsScreen: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
               <Lock className="text-white/20" />
             </div>
-            <p className="text-white/30 font-medium">No classified records found.</p>
+            <p className="text-white/30 font-medium">{t('achievements.empty')}</p>
           </motion.div>
         )}
       </div>

@@ -20,6 +20,7 @@ import {
     LayoutList,
     Plus
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
 import { Attribute, Quest } from '../../../types'; // Import Quest
 import { QuestItem } from '../../tasks/components/QuestItem';
@@ -42,17 +43,6 @@ interface StrategicMapViewProps {
   onDeleteQuest?: (id: string) => void;
   onEditQuest?: (q: Quest) => void;
 }
-
-const LevelLabels: Record<TimeFrame, string> = {
-    '10_YEARS': '10 Años',
-    '5_YEARS': '5 Años',
-    YEAR: 'Año',
-    SEMESTER: 'Semestre',
-    QUARTER: 'Trimestre',
-    MONTH: 'Mes',
-    WEEK: 'Semana',
-    DAY: 'Día',
-};
 
 const LevelIcons: Record<TimeFrame, React.ReactNode> = {
     '10_YEARS': <Trophy size={22} />,
@@ -106,18 +96,6 @@ const getCapacity = (level: TimeFrame, start?: Date, end?: Date): number => {
         default: return 0;
     }
 };
-const getPlaceholderTitle = (level: TimeFrame, index: number): string => {
-    switch (level) {
-      case '5_YEARS': return `Lustro ${index + 1}`;
-      case 'YEAR': return `Año ${index + 1}`;
-      case 'SEMESTER': return `Semestre ${index + 1}`;
-      case 'QUARTER': return `Trimestre ${index + 1}`;
-      case 'MONTH': return `Mes ${index + 1}`;
-      case 'WEEK': return `Semana ${index + 1}`;
-      case 'DAY': return `Día ${index + 1}`;
-      default: return 'Nuevo Item';
-    }
-};
 
 const safeDate = (val: any): Date => {
     if (!val) return new Date();
@@ -138,6 +116,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     onCompleteQuest,
     onDeleteQuest
 }) => {
+  const { t } = useTranslation();
   // Navigation State
   const [path, setPath] = useState<StrategicNode[]>([project.rootNode]);
   const [isEditing, setIsEditing] = useState(false);
@@ -149,12 +128,83 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
 
   // Safety check
   if (!project || !project.rootNode) {
-      return <div className="p-8 text-white/50">No hay datos de estrategia disponibles.</div>;
+      return <div className="p-8 text-white/50">{t('strategicMap.noData')}</div>;
   }
 
   // Current Active Context
   const activeNode = path[path.length - 1];
   const previousNode = path.length > 1 ? path[path.length - 2] : null;
+
+  // Create New Node State
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  const handleCreateNode = () => {
+      if (!newTitle.trim()) return;
+      
+      const nextLevel = getNextLevel(activeNode.level);
+      if (!nextLevel) return;
+
+      const existingChildren = activeNode.children || [];
+      const lastChild = existingChildren.length > 0 ? existingChildren[existingChildren.length - 1] : null;
+
+      // Calculate Start Date
+      let start = lastChild && lastChild.dueDate 
+          ? safeDate(lastChild.dueDate) 
+          : (activeNode.startDate ? safeDate(activeNode.startDate) : new Date());
+
+      // If start is invalid, fallback to now
+      if (isNaN(start.getTime())) start = new Date();
+
+      let end = new Date(start);
+      switch (nextLevel) {
+          case '5_YEARS': end.setFullYear(end.getFullYear() + 5); break;
+          case 'YEAR': end.setFullYear(end.getFullYear() + 1); break;
+          case 'SEMESTER': end.setMonth(end.getMonth() + 6); break;
+          case 'QUARTER': end.setMonth(end.getMonth() + 3); break;
+          case 'MONTH': end.setMonth(end.getMonth() + 1); break;
+          case 'WEEK': end.setDate(end.getDate() + 7); break;
+          case 'DAY': end.setDate(end.getDate() + 1); break;
+      }
+
+      const newNode: StrategicNode = {
+          id: crypto.randomUUID(),
+          title: newTitle,
+          level: nextLevel,
+          startDate: Timestamp.fromDate(start),
+          dueDate: Timestamp.fromDate(end),
+          isCompleted: false,
+          reward: { xp: 500, coins: 100 },
+          children: [],
+          placeholder: false
+      };
+
+      // Helper to update the tree recursively
+      const updateNodeInTree = (node: StrategicNode): StrategicNode => {
+          if (node.id === activeNode.id) {
+              return {
+                  ...node,
+                  children: [...(node.children || []), newNode]
+              };
+          }
+          if (node.children) {
+              return { ...node, children: node.children.map(updateNodeInTree) };
+          }
+          return node;
+      };
+
+      if (onUpdateProject) {
+          const newRoot = updateNodeInTree(project.rootNode);
+          onUpdateProject({ ...project, rootNode: newRoot });
+          
+          // Update local path state to reflect the new child immediately
+          // We need to find the active node in the path and update its children
+          setPath(prev => prev.map(p => p.id === activeNode.id ? { ...p, children: [...(p.children || []), newNode] } : p));
+      }
+
+      setNewTitle('');
+      setIsCreating(false);
+  };
 
   useEffect(() => {
       setEditTitle(activeNode.title);
@@ -190,7 +240,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
 
           return {
               id: `virtual-${activeNode.id}-${index}`,
-              title: label || getPlaceholderTitle(nextLevel, index),
+              title: label || t(`strategicMap.placeholders.${nextLevel}`, { index: index + 1, defaultValue: t('strategicMap.placeholders.generic') }),
               level: nextLevel,
               startDate: Timestamp.fromDate(start),
               dueDate: Timestamp.fromDate(end),
@@ -275,7 +325,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                     {LevelIcons[node.level] || <Circle size={14}/>}
                                 </span>
                                 <span className={cn(isLast && "font-bold")}>
-                                    {LevelLabels[node.level]}
+                                    {t(`strategicMap.levels.${node.level}`)}
                                 </span>
                             </button>
                             {!isLast && (
@@ -347,7 +397,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                         color: traitColor 
                                     }}
                                 >
-                                    {previousNode ? `Dentro de ${previousNode.title}` : 'Estrategia Maestra'}
+                                    {previousNode ? t('strategicMap.inside', { title: previousNode.title }) : t('strategicMap.masterStrategy')}
                                 </div>
                                 
                                 <div className="flex flex-col items-center justify-center gap-2">
@@ -378,10 +428,10 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                             <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-t from-gray-900 via-white to-white tracking-tighter leading-tight max-w-5xl mx-auto cursor-pointer pb-4 select-none drop-shadow-sm"
                                                 onClick={() => setIsEditing(true)}
                                             >
-                                                {activeNode.title || (activeNode.placeholder ? "Definir Objetivo..." : "Sin Título")}
+                                                {activeNode.title || (activeNode.placeholder ? t('strategicMap.defineObjective') : t('strategicMap.untitled'))}
                                             </h1>
                                             <h2 className="text-sm md:text-base font-bold text-white/40 tracking-[0.2em] uppercase mt-2">
-                                                {LevelLabels[activeNode.level] || activeNode.level}
+                                                {t(`strategicMap.levels.${activeNode.level}`) || activeNode.level}
                                             </h2>
                                             <button 
                                                 onClick={() => setIsEditing(true)}
@@ -395,8 +445,8 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
 
                                 <p className="text-lg text-white/60 max-w-xl mx-auto font-light leading-relaxed">
                                     {isLeafLevel 
-                                        ? "Completa estas tareas para lograr el objetivo diario." 
-                                        : `Selecciona un ${getNextLevel(activeNode.level) ? LevelLabels[getNextLevel(activeNode.level)!].toLowerCase() : 'segmento'} para profundizar.`}
+                                        ? t('strategicMap.leafDescription')
+                                        : t('strategicMap.nodeDescription', { level: getNextLevel(activeNode.level) ? t(`strategicMap.levels.${getNextLevel(activeNode.level)!}`).toLowerCase() : t('strategicMap.section').toLowerCase() })}
                                 </p>
                             </div>
                         </div>
@@ -406,7 +456,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                             <div className="flex items-center justify-between mb-4 px-2">
                                 <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-widest">
                                     <LayoutList size={14} />
-                                    <span>Contenido</span>
+                                    <span>{t('strategicMap.content')}</span>
                                 </div>
                                 <button 
                                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -441,8 +491,8 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                         <div className="w-20 h-20 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-6 text-white/20">
                                                             <CheckCircle2 size={40} />
                                                         </div>
-                                                        <h3 className="text-white font-medium text-xl">Sin Tareas Aún</h3>
-                                                        <p className="text-white/40 mt-2">Añade tareas para ejecutar el plan de este día.</p>
+                                                        <h3 className="text-white font-medium text-xl">{t('strategicMap.leaf.emptyTitle')}</h3>
+                                                        <p className="text-white/40 mt-2">{t('strategicMap.leaf.emptyDesc')}</p>
                                                     </div>
                                                 )}
                                                 
@@ -568,6 +618,48 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                         </motion.div>
                                                     );
                                                 })}
+                                                
+                                                {/* CREATE NEW NODE SECTION */}
+                                                <div className="mt-2">
+                                                    {isCreating ? (
+                                                        <div className="flex items-center gap-2 p-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={newTitle}
+                                                                onChange={(e) => setNewTitle(e.target.value)}
+                                                                placeholder={`Nuevo ${getNextLevel(activeNode.level) ? t(`strategicMap.levels.${getNextLevel(activeNode.level)!}`) : 'Item'}...`}
+                                                                className="flex-1 bg-transparent text-white placeholder:text-white/20 outline-none font-bold text-lg px-2"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') handleCreateNode();
+                                                                    if (e.key === 'Escape') setIsCreating(false);
+                                                                }}
+                                                            />
+                                                            <button 
+                                                                onClick={handleCreateNode}
+                                                                disabled={!newTitle.trim()}
+                                                                className="p-3 rounded-xl bg-indigo-500 text-white disabled:opacity-50 hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/20"
+                                                            >
+                                                                <Plus size={20} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setIsCreating(false)}
+                                                                className="p-3 rounded-xl bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+                                                            >
+                                                                <X size={20} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setIsCreating(true)}
+                                                            className="w-full py-4 flex items-center justify-center gap-2 text-white/20 hover:text-white hover:bg-white/5 border border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all group"
+                                                        >
+                                                            <Plus size={18} className="group-hover:scale-110 transition-transform" />
+                                                            <span className="font-bold uppercase tracking-widest text-xs">Añadir {getNextLevel(activeNode.level) ? t(`strategicMap.levels.${getNextLevel(activeNode.level)!}`) : 'Sección'}</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+
                                             </motion.div>
                                         )}
                                     </motion.div>

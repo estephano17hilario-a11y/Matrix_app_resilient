@@ -1,20 +1,23 @@
+import { Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
 import { EconomyProvider } from './context/EconomyContext';
-import { TutorialProvider } from './context/TutorialContext';
-import { AuthScreen } from './modules/auth/AuthScreen';
 import { AuroraBackground } from './components/AuroraBackground';
 import { LoadingScreen } from './components/ui/LoadingScreen';
-import Dashboard from './Dashboard';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Lazy load components for performance
+const AuthScreen = lazy(() => import('./modules/auth/AuthScreen').then(module => ({ default: module.AuthScreen })));
+const OnboardingFlow = lazy(() => import('./modules/onboarding/OnboardingFlow').then(module => ({ default: module.OnboardingFlow })));
+const Dashboard = lazy(() => import('./Dashboard'));
 
 /**
  * COMPONENT: APP ROUTER
  * LOGIC: Determines the reality the user experiences.
  */
 const AppRoutes = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   
   return (
     <>
@@ -41,13 +44,26 @@ const AppRoutes = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
           >
+            <Suspense fallback={<LoadingScreen />}>
               <AuthScreen />
+            </Suspense>
           </motion.div>
+        ) : !profile?.onboarding?.completedAt ? (
+            // 3. CALIBRATION GATE (Onboarding)
+            <motion.div
+                key="onboarding"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+            >
+              <Suspense fallback={<LoadingScreen />}>
+                <OnboardingFlow />
+              </Suspense>
+            </motion.div>
         ) : (
           // 4. REALITY FORK
           <MatrixProvider key="matrix-provider" userId={user.uid}>
             <EconomyProvider>
-              <TutorialProvider>
                 <motion.div 
                   key="dashboard"
                   initial={{ opacity: 0 }} 
@@ -55,9 +71,10 @@ const AppRoutes = () => {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1.5 }}
                 >
-                  <Dashboard />
+                  <Suspense fallback={<LoadingScreen />}>
+                    <Dashboard />
+                  </Suspense>
                 </motion.div>
-              </TutorialProvider>
             </EconomyProvider>
           </MatrixProvider>
         )}

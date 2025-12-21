@@ -6,7 +6,7 @@ export interface StoreItem {
   name: string;
   description: string;
   price: number;
-  category: 'power_up' | 'theme' | 'cosmetic' | 'bad_habit';
+  category: 'power_up' | 'theme' | 'bad_habit';
   subCategory?: string; // For grouping bad habits or other items
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { FirestoreError } from 'firebase/firestore';
+import { doc, onSnapshot } from '../firebase';
 import { db, configStatus } from '../services/firebase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
+import { ENABLE_GLOBAL_PRO } from '../config/limits';
 
 export { type UserData, type UserStats };
 
@@ -9,12 +11,14 @@ export interface MatrixDataHook {
   user: UserData | null;
   loading: boolean;
   error: string | null;
+  isSyncing: boolean;
 }
 
 export const useMatrixData = (userId: string | null | undefined): MatrixDataHook => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const isMounted = useRef(true);
   const unsubscribeRef = useRef<() => void>();
@@ -42,13 +46,23 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
             unsubscribeRef.current = onSnapshot(
                 userRef, 
-                (snapshot) => {
+                { includeMetadataChanges: true },
+                (snapshot: any) => {
                     if (!isMounted.current) return;
+
+                    // Sync Status Check
+                    const pending = snapshot.metadata?.hasPendingWrites || false;
+                    setIsSyncing(pending);
 
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         const safeStats = { ...DEFAULT_USER_STATS, ...(data.stats || {}) };
                         
+                        // ⚡ OVERRIDE: Global PRO
+                        if (ENABLE_GLOBAL_PRO) {
+                            data.plan = 'PRO';
+                        }
+
                         setUser({ 
                             uid: snapshot.id, 
                             ...data,
@@ -60,7 +74,7 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
                     }
                     setLoading(false);
                 },
-                (err) => {
+                (err: FirestoreError) => {
                     if (!isMounted.current) return;
                     console.error("❌ MATRIX UPLINK ERROR:", err);
                     // Silently handle abortions to keep UI clean
@@ -94,5 +108,5 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
   }, [userId]);
 
-  return { user, loading, error };
+  return { user, loading, error, isSyncing };
 };

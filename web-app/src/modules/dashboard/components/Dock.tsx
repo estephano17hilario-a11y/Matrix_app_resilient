@@ -1,10 +1,24 @@
 import React from 'react';
 import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon, Package, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
-export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean }) => {
+export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' }) => {
+    const { t } = useTranslation();
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };
     const handleModal = (m: string) => { onOpenModal(m); onToggle(false); };
+
+    const isLiquid = dashboardStyle === 'LIQUID';
+    
+    // Shared base classes: Glass effect, positioning, sizing
+    const baseClass = "pointer-events-auto relative box-border mx-auto !bg-transparent !backdrop-blur-[8px]";
+    
+    // Style-specific classes
+    const styleClass = isLiquid
+        ? "border !border-black/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]" // Elegant dark border + Deep Drop Shadow
+        : `glass-panel !shadow-none ${isOpen ? 'rgb-border-container rgb-border-active' : ''}`; // Standard RGB Border
+
+    const containerClass = `${baseClass} ${styleClass}`;
 
     return (
         <motion.div 
@@ -19,7 +33,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 animate={{ 
                     height: isOpen ? 410 : 70, // Increased height for new row
                     borderRadius: isOpen ? 32 : 34,
-                    width: '88vw',
+                    width: '85vw', // Reduced from 88vw for better mobile safety
                     maxWidth: 330
                 }}
                 transition={{ 
@@ -28,36 +42,39 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     damping: 28,
                     mass: 0.8
                 }}
-                className={`pointer-events-auto relative box-border glass-panel ${isOpen ? 'rgb-border-container rgb-border-active' : ''} !bg-transparent !backdrop-blur-[8px] !shadow-none`}
+                className={containerClass}
                 style={{ overflow: 'visible' }}
              >
              <div className="absolute inset-0 overflow-hidden rounded-[inherit] z-10">
                 <div className="relative w-full h-full">
                 <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     
-                    <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} data-tour="new-mission-btn" className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
-                       <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">New Mission</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">Single Task</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                    <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+                       <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
                     </button>
-                    <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} data-tour="habit-modal-trigger" className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Habit</span>
+                    <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.habit')}</span>
                     </button>
                     <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Focus</span>
+                       <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.focus')}</span>
                     </button>
                     
                     <button onClick={() => { handleView('STRATEGY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.1)]"><MapIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Strategy</span>
+                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.1)]"><MapIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.strategy')}</span>
+                    </button>
+                    <button onClick={() => { handleView('NEXUS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><Zap size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">DEPLOY</span>
                     </button>
                     <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Fame</span>
+                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.fame')}</span>
                     </button>
 
                     {/* NEW ROW */}
                     <button onClick={() => { handleView('INVENTORY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.1)]"><Package size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Inventory</span>
+                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.1)]"><Package size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.inventory')}</span>
                     </button>
                     <button onClick={() => { handleView('STORE'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">Store</span>
+                       <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.store')}</span>
                     </button>
 
                 </div>
@@ -67,7 +84,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                          <button onClick={() => handleView('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}><Zap size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} /></button>
                      </div>
                      <div className="flex items-center justify-center h-full -mt-1">
-                 <button onClick={() => onToggle(!isOpen)} data-tour="fab-add" className={`premium-fab z-20 flex items-center justify-center transition-all duration-400 cubic-bezier(0.19, 1, 0.22, 1) transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
+                 <button onClick={() => onToggle(!isOpen)} className={`premium-fab z-20 flex items-center justify-center transition-all duration-400 cubic-bezier(0.19, 1, 0.22, 1) transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
                      {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300 relative z-10" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md relative z-10" />)}
                  </button>
              </div>

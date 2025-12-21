@@ -1,5 +1,6 @@
 import { db, doc, setDoc, arrayUnion, increment } from '../firebase';
 import { UserData } from '../types/User';
+import { Attribute } from '../types';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
 
 /**
@@ -8,6 +9,7 @@ import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achiev
  */
 export const checkAchievements = async (
   user: UserData,
+  attributes?: Attribute[],
   triggerCategory?: AchievementCategory
 ): Promise<Achievement[]> => {
   if (!user || !user.uid) return [];
@@ -21,13 +23,13 @@ export const checkAchievements = async (
   // If we just did a task, maybe check COMBAT or STREAK.
   const candidates = ACHIEVEMENTS.filter(ach => 
     !unlockedIds.has(ach.id) && 
-    (!triggerCategory || ach.category === triggerCategory || ach.category === 'MASTERY')
+    (!triggerCategory || ach.category === triggerCategory || ach.category === 'RANK' || ach.category === 'TRAIT')
   );
 
   // 3. Evaluate Conditions
   for (const ach of candidates) {
     try {
-      if (ach.condition(user)) {
+      if (ach.condition(user, attributes)) {
         newAchievements.push(ach);
       }
     } catch (e) {

@@ -22,6 +22,9 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: false,
     target: 'esnext', // Use modern JS for smaller bundles
     minify: 'esbuild', // Faster minification
     cssMinify: true,

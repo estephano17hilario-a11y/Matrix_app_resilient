@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Diamond, Lock, Sparkles, Target, ChevronDown } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Sparkles, Target, ChevronDown } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
-import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export const QuestModal = React.memo(({ 
     isOpen, 
@@ -26,13 +26,16 @@ export const QuestModal = React.memo(({
     isSmartTask?: boolean,
     initialValues?: Partial<Quest> | null
 }) => {
+    const { t } = useTranslation();
     // Common State
     const [title, setTitle] = useState(''); // Main Goal
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('');
     const [projectId, setProjectId] = useState('');
-    const [difficulty, setDifficulty] = useState<Difficulty>('D');
+    const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
+    const [subtasks, setSubtasks] = useState<{ id: string, title: string, isCompleted: boolean, createdAt: number }[]>([]);
+    const [newSubtask, setNewSubtask] = useState('');
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
 
@@ -44,16 +47,18 @@ export const QuestModal = React.memo(({
                 setDesc(initialValues.description || '');
                 setAttrId(initialValues.attribute || '');
                 setProjectId(initialValues.projectId || '');
-                setDifficulty((initialValues.difficulty as Difficulty) || 'D');
+                setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || new Date().toISOString().split('T')[0]);
+                setSubtasks(initialValues.subtasks || []);
             } else {
                 // Reset defaults for new quest
                 setTitle('');
                 setDesc('');
                 setAttrId('');
                 setProjectId('');
-                setDifficulty('D');
+                setDifficulty('C');
                 setDeadline(new Date().toISOString().split('T')[0]);
+                setSubtasks([]);
             }
 
             // Locks override initial values if present (though usually mutually exclusive)
@@ -73,6 +78,21 @@ export const QuestModal = React.memo(({
         return calculateTaskRewards(difficulty, deadline);
     }, [difficulty, deadline]);
 
+    const handleAddSubtask = () => {
+        if (!newSubtask.trim()) return;
+        setSubtasks(prev => [...prev, {
+            id: crypto.randomUUID(),
+            title: newSubtask.trim(),
+            isCompleted: false,
+            createdAt: Date.now()
+        }]);
+        setNewSubtask('');
+    };
+
+    const handleRemoveSubtask = (id: string) => {
+        setSubtasks(prev => prev.filter(t => t.id !== id));
+    };
+
     if (!isOpen) return null;
 
     const handleConfirm = () => {
@@ -84,6 +104,7 @@ export const QuestModal = React.memo(({
             projectId,
             difficulty, 
             deadline,
+            subtasks,
             xpReward: prediction.xp,
             gold: prediction.coins,
             isSmartQuest: isSmartTask
@@ -91,23 +112,26 @@ export const QuestModal = React.memo(({
     };
 
     const difficulties: { id: Difficulty, label: string, icon: React.ElementType, color: string }[] = [
-        { id: 'E', label: 'E', icon: Circle, color: 'text-slate-400' },
-        { id: 'D', label: 'D', icon: Square, color: 'text-emerald-400' },
-        { id: 'C', label: 'C', icon: Triangle, color: 'text-cyan-400' },
-        { id: 'B', label: 'B', icon: Diamond, color: 'text-yellow-400' },
-        { id: 'A', label: 'A', icon: Star, color: 'text-rose-500' },
-        { id: 'S', label: 'S', icon: Crosshair, color: 'text-purple-500' },
+        { id: 'C', label: t('modals.quest.difficulties.Basic'), icon: Circle, color: 'text-cyan-400' },
+        { id: 'B', label: t('modals.quest.difficulties.Medium'), icon: Square, color: 'text-emerald-400' },
+        { id: 'A', label: t('modals.quest.difficulties.Hard'), icon: Triangle, color: 'text-orange-400' },
+        { id: 'S', label: t('modals.quest.difficulties.Epic'), icon: Star, color: 'text-purple-500' },
     ];
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-[360px] animate-modal-enter">
-                <div className="glass-panel rounded-[2.5rem] p-5 overflow-visible relative transition-all duration-500" style={{
-                    background: 'rgba(20, 20, 25, 0.6)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
+            <div className="absolute inset-0 bg-black/95" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-[360px]">
+                <div 
+                    className="rounded-[2.5rem] p-5 overflow-visible relative" 
+                    style={{
+                        background: '#0a0a0a',
+                        border: `2px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
+                        boxShadow: attrId 
+                            ? `0 0 0 1px ${activeColor}20, 0 10px 40px -10px ${activeColor}40`
+                            : '0 10px 30px -10px rgba(0,0,0,0.8)'
+                    }}
+                >
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6 px-1">
                         <div className="flex items-center gap-3">
@@ -116,10 +140,10 @@ export const QuestModal = React.memo(({
                             </div>
                             <div>
                                 <h2 className="text-xl font-black text-white tracking-tight leading-none flex items-center gap-2">
-                                    {initialValues ? 'Edit Mission' : (isSmartTask ? 'Smart Mission' : 'New Mission')}
+                                    {initialValues ? t('modals.quest.titleEdit') : (isSmartTask ? t('modals.quest.titleSmart') : t('modals.quest.titleNew'))}
                                     {isSmartTask && <Sparkles size={14} className="text-yellow-400" />}
                                 </h2>
-                                {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Linked to Strategy</span>}
+                                {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t('modals.quest.linkedStrategy')}</span>}
                             </div>
                         </div>
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors hover:bg-white/10">
@@ -130,20 +154,18 @@ export const QuestModal = React.memo(({
                     <div className="space-y-4">
                         {/* Title & Attribute */}
                         <div className="flex gap-2">
-                             <div className="flex-1 bg-white/5 rounded-[1.5rem] border border-white/5 p-1 focus-within:border-white/20 transition-colors" data-tour="modal-title-input">
+                             <div className="flex-1 bg-white/5 rounded-[1.5rem] border border-white/5 p-1 focus-within:border-white/20 transition-colors">
                                  <input 
                                     type="text" 
                                     value={title} 
                                     onChange={(e) => setTitle(e.target.value)} 
-                                    placeholder="Objective Name..." 
+                                    placeholder={t('modals.quest.namePlaceholder')} 
                                     className="w-full bg-transparent px-5 py-4 text-[17px] font-bold text-white placeholder:text-white/20 outline-none" 
-                                    autoFocus 
                                 />
                              </div>
                              <div 
                                 onClick={() => !lockedAttributeId && setAttrPickerOpen(true)} 
-                                className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative ${lockedAttributeId ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} 
-                                data-tour="modal-attributes"
+                                className={`w-16 rounded-[1.5rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative ${isAttrPickerOpen ? 'z-50' : ''} ${lockedAttributeId ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`} 
                              >
                                  {attrId ? (<SelectedIcon size={22} style={{ color: activeColor }} />) : <Plus size={22} className="text-white/30" />}
                                  {isAttrPickerOpen && !lockedAttributeId && (
@@ -171,13 +193,13 @@ export const QuestModal = React.memo(({
                                 type="text" 
                                 value={desc} 
                                 onChange={(e) => setDesc(e.target.value)} 
-                                placeholder="Briefing (Optional)..." 
+                                placeholder={t('modals.quest.briefingPlaceholder')} 
                                 className="w-full bg-transparent text-sm font-medium text-slate-300 placeholder:text-white/20 outline-none" 
                             />
                         </div>
 
                         {/* Project Selector */}
-                        <div className="relative">
+                        <div className={`relative ${isProjectPickerOpen ? 'z-40' : ''}`}>
                             <button 
                                 onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
                                 className={`w-full bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between transition-colors ${projectId ? 'border-white/20' : ''}`}
@@ -187,7 +209,7 @@ export const QuestModal = React.memo(({
                                         <Target size={16} className={projectId ? 'text-white' : 'text-white/30'} />
                                     </div>
                                     <span className={`text-sm font-bold ${projectId ? 'text-white' : 'text-white/30'}`}>
-                                        {projectId ? selectedProject?.title : 'Link to Project (Optional)'}
+                                        {projectId ? selectedProject?.title : t('modals.quest.linkProject')}
                                     </span>
                                 </div>
                                 <ChevronDown size={16} className={`text-white/30 transition-transform ${isProjectPickerOpen ? 'rotate-180' : ''}`} />
@@ -204,7 +226,7 @@ export const QuestModal = React.memo(({
                                             <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
                                                 <X size={14} className="text-white/50" />
                                             </div>
-                                            <span className="text-xs font-bold text-white/50">No Project</span>
+                                            <span className="text-xs font-bold text-white/50">{t('modals.quest.noProject')}</span>
                                         </button>
                                         {projects.map(p => {
                                             const attr = attributes.find(a => a.id === p.attribute);
@@ -229,8 +251,41 @@ export const QuestModal = React.memo(({
                             )}
                         </div>
 
+                        {/* Subtasks Section */}
+                        <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-4 space-y-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Target size={14} className="text-cyan-400" />
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.quest.tacticalSteps')}</span>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                {subtasks.map(task => (
+                                    <div key={task.id} className="flex items-center justify-between group bg-black/20 p-2 rounded-lg">
+                                        <span className="text-xs font-medium text-white/80 pl-1">{task.title}</span>
+                                        <button onClick={() => handleRemoveSubtask(task.id)} className="p-1 hover:bg-white/10 rounded-md text-white/30 hover:text-red-400 transition-colors">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center gap-2 bg-black/20 rounded-xl p-1 pr-2 border border-white/5 focus-within:border-white/20 transition-colors">
+                                <input 
+                                    type="text" 
+                                    value={newSubtask}
+                                    onChange={(e) => setNewSubtask(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                                    placeholder={t('modals.quest.addStepPlaceholder')}
+                                    className="flex-1 bg-transparent border-none text-xs text-white placeholder:text-white/20 px-3 py-2 outline-none"
+                                />
+                                <button onClick={handleAddSubtask} className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center hover:bg-cyan-500/20 hover:text-cyan-400 transition-all">
+                                    <Plus size={12} />
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Difficulty Selector (Liquid UI) */}
-                        <div className="bg-black/20 rounded-[1.5rem] p-1 flex justify-between relative" data-tour="modal-difficulty">
+                        <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-1 flex justify-between relative">
                             {difficulties.map((diff) => {
                                 const isSelected = difficulty === diff.id;
                                 const DiffIcon = diff.icon;
@@ -241,13 +296,11 @@ export const QuestModal = React.memo(({
                                         className="relative flex-1 h-10 flex items-center justify-center rounded-[1.2rem] transition-all duration-300 z-10"
                                     >
                                         {isSelected && (
-                                            <motion.div
-                                                layoutId="activeDiff"
+                                            <div
                                                 className="absolute inset-0 bg-white/10 shadow-lg rounded-[1.2rem] border border-white/5"
-                                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                             />
                                         )}
-                                        <div className={`flex items-center gap-1.5 ${isSelected ? 'scale-105' : 'opacity-50 grayscale scale-95'} transition-all duration-300`}>
+                                        <div className={`flex items-center gap-1.5 ${isSelected ? 'scale-105' : 'opacity-50 scale-95'} transition-all duration-300`}>
                                             <DiffIcon size={12} className={diff.color} fill={isSelected ? "currentColor" : "none"} />
                                             <span className={`text-[10px] font-bold uppercase tracking-wide ${diff.color}`}>
                                                 {diff.label}
@@ -268,7 +321,7 @@ export const QuestModal = React.memo(({
                                 disabled={!!lockedDate}
                              />
                              <span className="text-[10px] font-black text-white/30 uppercase flex items-center gap-2">
-                                Due Date
+                                {t('modals.quest.dueDate')}
                                 {lockedDate && <Lock size={10} />}
                              </span>
                              <div className="flex items-baseline gap-1 pointer-events-none">
@@ -290,7 +343,7 @@ export const QuestModal = React.memo(({
                             disabled={!title || !attrId} 
                             className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all ${(!title || !attrId) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-xl hover:border-white/20'}`}
                         >
-                            Confirm Mission
+                            {t('modals.quest.confirm')}
                         </button>
                     </div>
                 </div>

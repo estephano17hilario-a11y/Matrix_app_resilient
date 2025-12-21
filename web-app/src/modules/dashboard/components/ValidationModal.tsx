@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Check, ArrowUp } from 'lucide-react';
+import { Star, Check, ArrowUp, Minus, Plus } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 
 interface ValidationModalProps {
@@ -18,7 +18,19 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm glass-panel rounded-[2rem] p-6 animate-modal-enter flex flex-col items-center">
+            <div 
+                className="relative z-10 w-full max-w-sm glass-panel rounded-[2rem] p-6 animate-modal-enter flex flex-col items-center transition-all duration-500"
+                style={{
+                    background: habit?.attribute 
+                        ? `linear-gradient(165deg, ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}20 0%, rgba(20,20,25,0.6) 100%)`
+                        : 'rgba(20, 20, 25, 0.6)',
+                    borderColor: habit?.attribute ? `${(attributes.find(a => a.id === habit.attribute)?.color || '#fff')}30` : 'rgba(255, 255, 255, 0.1)',
+                    boxShadow: habit?.attribute 
+                        ? `0 20px 50px -12px ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}30, inset 0 1px 0 0 rgba(255,255,255,0.1)` 
+                        : '0 20px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(40px) saturate(150%)'
+                }}
+            >
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-white/10 shadow-lg" style={{ backgroundColor: (attributes.find(a => a.id === habit.attribute)?.color || '#fff') + '20' }}>
                     {React.createElement(attributes.find(a => a.id === habit.attribute)?.icon || Star, { size: 24, color: attributes.find(a => a.id === habit.attribute)?.color })}
                 </div>
@@ -27,7 +39,43 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                 {habit.type === 'QUANTITY' && (
                     <div className="w-full space-y-4">
                         <div className="flex justify-between text-sm font-medium text-slate-400 px-2"><span>Current: <strong className="text-white">{habit.currentValue || 0}</strong></span><span>Target: <strong className="text-white">{habit.targetValue}</strong> {habit.unit}</span></div>
-                        <div className="flex gap-2"><input type="number" autoFocus placeholder="Amount added..." value={valTempValue} onChange={(e) => setValTempValue(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-white/30 transition-all font-mono text-lg" /></div>
+                        
+                        <div className="flex items-center justify-center gap-6 py-6">
+                            <button 
+                                onClick={() => {
+                                    const val = parseFloat(valTempValue) || 0;
+                                    setValTempValue(Math.max(0, val - 1).toString());
+                                }}
+                                className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all"
+                            >
+                                <Minus size={24} />
+                            </button>
+                            
+                            <div className="flex flex-col items-center">
+                                <input 
+                                    type="number" 
+                                    autoFocus 
+                                    value={valTempValue} 
+                                    onChange={(e) => setValTempValue(e.target.value)} 
+                                    className="w-32 bg-transparent text-5xl font-light text-white text-center outline-none p-0 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder-white/20"
+                                    placeholder="0"
+                                />
+                                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
+                                    {habit.unit || 'Units'}
+                                </span>
+                            </div>
+
+                            <button 
+                                onClick={() => {
+                                    const val = parseFloat(valTempValue) || 0;
+                                    setValTempValue((val + 1).toString());
+                                }}
+                                className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all"
+                            >
+                                <Plus size={24} />
+                            </button>
+                        </div>
+
                         <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, ((habit.currentValue || 0) / (habit.targetValue || 1)) * 100)}%` }} /></div>
                     </div>
                 )}

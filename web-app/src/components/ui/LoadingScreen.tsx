@@ -1,25 +1,35 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
-const QUOTES = [
-  { text: "The mind is its own place, and in itself can make a heaven of hell, a hell of heaven.", author: "JOHN MILTON" },
-  { text: "We do not see things as they are, we see them as we are.", author: "ANAÏS NIN" },
-  { text: "He who has a why to live for can bear almost any how.", author: "FRIEDRICH NIETZSCHE" },
-  { text: "The only way to deal with an unfree world is to become so absolutely free that your very existence is an act of rebellion.", author: "ALBERT CAMUS" }
-];
+interface Quote {
+  text: string;
+  author: string;
+}
 
 export const LoadingScreen = () => {
-  const [quote, setQuote] = useState(QUOTES[0]);
+  const { t } = useTranslation();
+  // Get quotes from translation files, ensure it's an array
+  const quotes = t('loading.quotes', { returnObjects: true }) as Quote[];
+  
+  // Fallback if translation fails or returns string
+  const validQuotes = Array.isArray(quotes) ? quotes : [
+    { text: "Loading Matrix...", author: "SYSTEM" }
+  ];
+
+  const [quote, setQuote] = useState<Quote>(validQuotes[0]);
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-    setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+    // Pick random quote
+    setQuote(validQuotes[Math.floor(Math.random() * validQuotes.length)]);
+    
     // Small delay to ensure smooth entry
     const timer = setTimeout(() => {
       setShowContent(true);
     }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, []); // Run once on mount
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">

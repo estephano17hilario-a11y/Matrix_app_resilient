@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Globe } from 'lucide-react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../services/firebase';
 import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
 
 export const AuthView = () => {
+  const { t, i18n } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +49,10 @@ export const AuthView = () => {
       } else {
         // REGISTER
         if (password !== confirmPassword) {
-          throw new Error("Passwords do not match");
+          throw new Error(t('auth.errors.passwordMismatch'));
         }
         if (password.length < 6) {
-          throw new Error("Password must be at least 6 characters");
+          throw new Error(t('auth.errors.passwordLength'));
         }
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -79,7 +81,7 @@ export const AuthView = () => {
       
       let errorMessage = err.message.replace('Firebase: ', '');
       if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = "Email/Password login is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.";
+        errorMessage = t('auth.errors.authDisabled');
       }
       
       setError(errorMessage);
@@ -95,29 +97,65 @@ export const AuthView = () => {
     setShake(0);
   };
 
+  const changeLanguage = (lang: string) => {
+    console.log("Changing language to:", lang);
+    i18n.changeLanguage(lang);
+    localStorage.setItem('i18nextLng', lang);
+  };
+
   return (
     <AuthLayout>
       <motion.div
         animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
         transition={{ duration: 0.4 }}
       >
-        <GlassCard className="p-8 backdrop-blur-3xl bg-black/40 border-white/10">
-          <div className="flex flex-col items-center mb-8">
+        <GlassCard className="p-8 backdrop-blur-3xl bg-black/40 border-white/10 relative overflow-hidden">
+          
+          {/* Language Selector */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <Globe className="w-3 h-3 text-white/40" />
+            <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
+              <button
+                type="button"
+                onClick={() => changeLanguage('es')}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${
+                  i18n.language.startsWith('es') 
+                    ? 'bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/20' 
+                    : 'text-white/40 hover:text-white/80'
+                }`}
+              >
+                ES
+              </button>
+              <button
+                type="button"
+                onClick={() => changeLanguage('en')}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${
+                  i18n.language.startsWith('en') 
+                    ? 'bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/20' 
+                    : 'text-white/40 hover:text-white/80'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center mb-8 pt-4">
             <motion.h1 
               key={isLogin ? "login-title" : "register-title"}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight"
+              className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight text-center"
             >
-              {isLogin ? "Welcome Back" : "Join the Matrix"}
+              {isLogin ? t('auth.login.title') : t('auth.register.title')}
             </motion.h1>
             <motion.p 
-              className="text-white/40 text-sm mt-2 font-medium tracking-wide"
+              className="text-white/40 text-sm mt-2 font-medium tracking-wide text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              {isLogin ? "Enter your credentials to access the system" : "Initialize your neural link"}
+              {isLogin ? t('auth.login.subtitle') : t('auth.register.subtitle')}
             </motion.p>
           </div>
 
@@ -134,7 +172,7 @@ export const AuthView = () => {
                   <AuthInput 
                     icon={User} 
                     type="text" 
-                    placeholder="Operator Name" 
+                    placeholder={t('auth.fields.name')} 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required={!isLogin}
@@ -146,7 +184,7 @@ export const AuthView = () => {
                 <AuthInput 
                   icon={Mail} 
                   type="email" 
-                  placeholder="Email Address" 
+                  placeholder={t('auth.fields.email')} 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -157,7 +195,7 @@ export const AuthView = () => {
                 <AuthInput 
                   icon={Lock} 
                   type="password" 
-                  placeholder="Password" 
+                  placeholder={t('auth.fields.password')} 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -175,7 +213,7 @@ export const AuthView = () => {
                   <AuthInput 
                     icon={Lock} 
                     type="password" 
-                    placeholder="Confirm Password" 
+                    placeholder={t('auth.fields.confirmPassword')} 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required={!isLogin}
@@ -212,7 +250,7 @@ export const AuthView = () => {
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Enter System" : "Create Account"}
+                    {isLogin ? t('auth.login.button') : t('auth.register.button')}
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -226,7 +264,7 @@ export const AuthView = () => {
                <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
             <div className="relative bg-black/40 px-4 text-sm text-gray-400">
-              Or continue with
+              {t('auth.orContinue')}
             </div>
           </div>
 
@@ -254,7 +292,7 @@ export const AuthView = () => {
                     fill="#EA4335"
                 />
             </svg>
-            <span className="text-white font-medium">Google</span>
+            <span className="text-white font-medium">{t('auth.google')}</span>
           </motion.button>
 
           <div className="mt-6 text-center">
@@ -263,9 +301,9 @@ export const AuthView = () => {
               className="text-sm text-white/60 hover:text-white transition-colors duration-300 font-medium"
             >
               {isLogin ? (
-                <span>Don't have an account? <span className="text-indigo-400 hover:underline">Register</span></span>
+                <span>{t('auth.login.footer')} <span className="text-indigo-400 hover:underline">{t('auth.login.footerAction')}</span></span>
               ) : (
-                <span>Already have an account? <span className="text-indigo-400 hover:underline">Log in</span></span>
+                <span>{t('auth.register.footer')} <span className="text-indigo-400 hover:underline">{t('auth.register.footerAction')}</span></span>
               )}
             </button>
           </div>

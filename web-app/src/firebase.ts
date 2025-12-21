@@ -88,13 +88,19 @@ export const getDocs = (query: any) => {
     return realFirestore.getDocs(query);
 };
 
-export const onSnapshot = (query: any, observer: any) => {
+export const onSnapshot = (query: any, ...args: any[]) => {
     if (isMock(query.firestore)) {
          console.log("👻 PHANTOM: onSnapshot (No-op)");
          // Return unsubscribe function
          return () => {};
     }
-    return realFirestore.onSnapshot(query, observer);
+    // @ts-ignore
+    return realFirestore.onSnapshot(query, ...args);
+};
+
+export const waitForPendingWrites = (firestore: any) => {
+    if (isMock(firestore)) return Promise.resolve();
+    return realFirestore.waitForPendingWrites(firestore);
 };
 
 // Passthrough for query builders (they just build objects, safe to pass through or mock if needed)

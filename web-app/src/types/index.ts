@@ -5,6 +5,10 @@ export interface ThemeConfig {
   bg: string;
   accent: string;
   blobs?: { x: string; y: string; size: string }[];
+  id?: string;
+  name?: string;
+  description?: string;
+  gradient?: string;
 }
 
 export interface Attribute {
@@ -28,7 +32,7 @@ export interface Quest {
   id: string;
   title: string;
   description?: string;
-  difficulty: 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+  difficulty: 'S' | 'A' | 'B' | 'C';
   xpReward: number;
   gold: number;
   attribute: string;
@@ -56,6 +60,7 @@ export interface Habit {
   checklist?: { id: string; text: string; completed: boolean }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
+  projectId?: string;
 }
 
 export interface Project {
@@ -74,6 +79,7 @@ export interface Project {
   sessions?: Session[];
   archived?: boolean;
   deleted?: boolean;
+  smartProjectId?: string;
 }
 
 export interface Session {
@@ -139,4 +145,23 @@ export interface Particle {
   type: string;
   tx?: number;
   ty?: number;
+}
+
+export interface UserStats {
+  hp: number;
+  xp: number;
+  level: number;
+  gold: number;
+  streak: number;
+  nextXp?: number;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  stats: UserStats;
+  inventory?: Record<string, number>;
+  createdAt?: number;
 }

@@ -6,8 +6,9 @@ import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { StatsHeader } from '../dashboard/components/StatsHeader';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
+import { useTranslation, Trans } from 'react-i18next';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onBack, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onBack, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
@@ -21,8 +22,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     onToggleProfile?: () => void,
     onShowSettings?: () => void,
     onShowStore?: () => void,
-    onShowPro?: () => void
+    onShowPro?: () => void,
+    isPro?: boolean
 }) => {
+    const { t } = useTranslation();
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
@@ -51,12 +54,12 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         e.stopPropagation();
         onUpdateProject({ ...project, archived: true });
         setActiveMenuId(null);
-        addNotification({ type: 'SYSTEM', label: 'PROJECT ARCHIVED', icon: Archive, color: '#f59e0b' });
+        addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
     };
 
     const handleUnarchive = (project: Project) => {
         onUpdateProject({ ...project, archived: false });
-        addNotification({ type: 'SYSTEM', label: 'PROJECT RESTORED', icon: RotateCcw, color: '#10b981' });
+        addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectRestored'), icon: RotateCcw, color: '#10b981' });
     };
 
     const confirmDelete = (e: React.MouseEvent, project: Project) => {
@@ -69,7 +72,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         if (projectToDelete) {
             onUpdateProject({ ...projectToDelete, deleted: true });
             setProjectToDelete(null);
-            addNotification({ type: 'SYSTEM', label: 'PROJECT DELETED', icon: Trash2, color: '#ef4444' });
+            addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectDeleted'), icon: Trash2, color: '#ef4444' });
         }
     };
 
@@ -162,7 +165,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             if (navigator.vibrate) navigator.vibrate(50);
             setShakeMode(true);
             setTimeout(() => setShakeMode(false), 500);
-            addNotification({ type: 'SYSTEM', label: 'ACTIVE SESSION', fromLevel: 'Finish', toLevel: 'First', icon: Lock, color: '#ef4444' });
+            addNotification({ type: 'SYSTEM', label: t('focus.notifications.activeSession'), fromLevel: 'Finish', toLevel: 'First', icon: Lock, color: '#ef4444' });
             return;
         }
         if (newMode === mode) return;
@@ -223,6 +226,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             <style>{`
                 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
                 .animate-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+                @keyframes shimmer { 
+                    0% { transform: translateX(-100%); } 
+                    100% { transform: translateX(100%); } 
+                }
             `}</style>
             
             {/* Ambient Noise */}
@@ -264,16 +271,16 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                 <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
                                     <AlertTriangle size={32} className="text-red-500" />
                                 </div>
-                                <h3 className="text-xl font-bold text-white">Delete Project?</h3>
+                                <h3 className="text-xl font-bold text-white">{t('focus.deleteModal.title')}</h3>
                                 <p className="text-slate-400 text-sm leading-relaxed">
-                                    Are you sure you want to delete <span className="text-white font-bold">"{projectToDelete.title}"</span>? 
+                                    <Trans i18nKey="focus.deleteModal.description" values={{ title: projectToDelete.title }} components={{ span: <span className="text-white font-bold" /> }} />
                                     <br/><br/>
-                                    <span className="text-xs text-slate-500">Stats will be preserved in general view, but you won't be able to filter by this project anymore.</span>
+                                    <span className="text-xs text-slate-500">{t('focus.deleteModal.warning')}</span>
                                 </p>
                                 
                                 <div className="flex gap-3 w-full mt-2">
-                                    <button onClick={() => setProjectToDelete(null)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wider transition-colors">Cancel</button>
-                                    <button onClick={handleDeleteProject} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-lg shadow-red-500/20">Delete</button>
+                                    <button onClick={() => setProjectToDelete(null)} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-wider transition-colors">{t('common.cancel')}</button>
+                                    <button onClick={handleDeleteProject} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-lg shadow-red-500/20">{t('common.delete')}</button>
                                 </div>
                             </div>
                         </motion.div>
@@ -298,8 +305,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                             <Archive size={20} />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-white tracking-wide uppercase">Archived</h2>
-                                            <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Restorable Projects</p>
+                                            <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('common.archived')}</h2>
+                                            <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">{t('focus.archived.subtitle')}</p>
                                         </div>
                                     </div>
                                     <button 
@@ -337,7 +344,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                                     onClick={() => handleUnarchive(p)} 
                                                     className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-xl text-xs font-bold text-emerald-400 transition-all active:scale-95 flex items-center gap-2 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
                                                 >
-                                                    <RotateCcw size={14} /> Restore
+                                                    <RotateCcw size={14} /> {t('focus.archived.restore')}
                                                 </button>
                                             </motion.div>
                                         )
@@ -347,7 +354,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
                                                 <Archive size={40} strokeWidth={1.5} />
                                             </div>
-                                            <p className="text-sm font-medium uppercase tracking-widest">No archived projects</p>
+                                            <p className="text-sm font-medium uppercase tracking-widest">{t('focus.archived.empty')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -363,10 +370,24 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 
                 {/* Scrollable Content */}
                 <div className="w-full flex-1 overflow-y-auto pb-32">
+
+                    {/* Header - Now Scrollable */}
+                    <div className="flex justify-between items-center pt-2 pb-1 px-6 flex-shrink-0 z-20">
+                        <button 
+                            onClick={onBack} 
+                            className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors active:scale-95"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
+                        <button onClick={() => setShowArchived(true)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/5">
+                            <Archive size={16} />
+                        </button>
+                    </div>
                     
                     {/* Integrated Stats Header that scrolls with content */}
                     {userStats && (
-                        <div className="mb-4">
+                        <div className="mb-1 px-4">
                              <StatsHeader 
                                 level={userStats.level}
                                 xp={userStats.xp}
@@ -385,23 +406,9 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         </div>
                     )}
 
-                    {/* Header - Now Scrollable */}
-                    <div className="flex justify-between items-center pt-2 pb-6 flex-shrink-0 z-20">
-                        <button 
-                            onClick={onBack} 
-                            className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors active:scale-95"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">FOCUS ESTUDIO</h2>
-                        <button onClick={() => setShowArchived(true)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/5">
-                            <Archive size={16} />
-                        </button>
-                    </div>
-
                     {/* Stats */}
-                    <div className="relative z-10 mb-4">
-                        <FocusStats projects={projects} attributes={attributes} />
+                    <div className="relative z-10 mb-1 px-4">
+                        <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 px-4 content-start relative z-10">
@@ -421,63 +428,125 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             }).reduce((acc, s) => acc + s.duration, 0);
                         }
                         
-                        const progressVal = Math.min(100, (relevantTime / (project.goalTarget * 60)) * 100);
+                        // Calculate Progress (Goal Target is in Minutes)
+                        const goalMinutes = project.goalTarget || 60; // Default to 60m if not set
+                        const goalSeconds = goalMinutes * 60;
+                        const progressVal = Math.min(100, (relevantTime / goalSeconds) * 100);
+                        const progressPercentage = (relevantTime / goalSeconds) * 100;
+                        
                         const Icon = attr?.icon || Star;
+                        const activeColor = attr?.color || '#6366f1';
+
                         return (
-                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0 }} className="relative group rounded-[2rem] p-5 bg-[#121212]/60 backdrop-blur-md border border-white/5 overflow-visible transition-all duration-300 hover:scale-[1.02] active:scale-95 flex flex-col justify-between h-52 shadow-2xl hover:shadow-white/5" onClick={() => setActiveMenuId(null)}>
+                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0 }} className="relative group rounded-[2rem] p-6 bg-[#121212]/40 backdrop-blur-2xl border border-white/5 overflow-visible transition-all duration-500 hover:scale-[1.01] hover:bg-[#121212]/60 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between h-auto min-h-[220px]">
+                                
+                                {/* --- Sentient Glass Effects --- */}
                                 <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
+                                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 </div>
-                                <div className="z-10 flex justify-between items-start relative">
-                                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner bg-black/20"><Icon size={18} style={{ color: attr?.color }} /></div>
-                                    <div className="flex items-center gap-1">
-                                        <div className="bg-black/40 px-2 py-1 rounded-full border border-white/5 backdrop-blur-md"><span className="text-[10px] font-mono text-slate-300 font-bold">{project.pomoDuration}m</span></div>
-                                        <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }} className="w-8 h-8 rounded-full bg-black/20 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/5 cursor-pointer z-50"><MoreVertical size={14} /></button>
-                                    </div>
-                                    
-                                    <AnimatePresence>
-                                        {activeMenuId === project.id && (
-                                            <motion.div 
-                                                initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
-                                                className="absolute top-10 right-0 z-[100] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl overflow-hidden min-w-[120px]"
-                                                onClick={e => e.stopPropagation()}
-                                            >
-                                                <button onClick={(e) => handleArchiveProject(e, project)} className="w-full text-left px-4 py-3 hover:bg-white/5 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 transition-colors cursor-pointer relative z-[101]">
-                                                    <Archive size={14} /> Archive
-                                                </button>
-                                                <button onClick={(e) => confirmDelete(e, project)} className="w-full text-left px-4 py-3 hover:bg-red-500/10 text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-2 transition-colors border-t border-white/5 cursor-pointer relative z-[101]">
-                                                    <Trash2 size={14} /> Delete
-                                                </button>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                                <div className="z-10 mt-2">
-                                    <h3 className="text-white font-bold text-lg leading-tight mb-3 tracking-tight line-clamp-2">{project.title}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
-                                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progressVal}%`, backgroundColor: attr?.color, boxShadow: `0 0 10px ${attr?.color}40` }} />
+
+                                {/* --- Header --- */}
+                                <div className="z-10 flex justify-between items-start relative mb-4">
+                                    <div className="flex items-start gap-4">
+                                        <div 
+                                            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden transition-transform duration-500 group-hover:scale-105"
+                                            style={{ background: `linear-gradient(135deg, ${activeColor}20, ${activeColor}05)` }}
+                                        >
+                                            <div className="absolute inset-0 opacity-20" style={{ background: activeColor, filter: 'blur(10px)' }} />
+                                            <Icon size={24} style={{ color: activeColor }} className="relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white tracking-tight leading-none mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+                                                {project.title}
+                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] font-medium text-white/40 tracking-wider uppercase">{attr?.label || 'General'}</span>
+                                                {project.goalTarget > 0 && (
+                                                    <span className="text-[11px] font-mono text-white/30">• Goal: {Math.floor(project.goalTarget / 60)}h {project.goalTarget % 60 > 0 ? `${project.goalTarget % 60}m` : ''}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                    
+                                    <div className="relative">
+                                        <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }} className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
+                                            <MoreVertical size={16} />
+                                        </button>
+                                        <AnimatePresence>
+                                            {activeMenuId === project.id && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                    className="absolute right-0 top-10 bg-[#1c1c1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1 backdrop-blur-3xl"
+                                                >
+                                                    <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-medium text-white hover:bg-white/5 flex items-center gap-2 transition-colors"><Target size={14} /> Edit Target</button>
+                                                    <button onClick={(e) => handleArchiveProject(e, project)} className="w-full px-4 py-3 text-left text-xs font-medium text-amber-400 hover:bg-amber-500/10 flex items-center gap-2 transition-colors"><Archive size={14} /> Archive</button>
+                                                    <div className="h-[1px] bg-white/5 my-1" />
+                                                    <button onClick={(e) => confirmDelete(e, project)} className="w-full px-4 py-3 text-left text-xs font-medium text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors"><Trash2 size={14} /> Delete</button>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
-                                <button 
-                                    onClick={() => startSession(project.id)} 
-                                    className="z-10 w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all mt-auto flex items-center justify-center gap-2 shadow-lg active:scale-95 transform backdrop-blur-md border border-white/10 hover:border-white/30"
-                                    style={{ 
-                                        backgroundColor: `${attr?.color}20`, 
-                                        color: 'white',
-                                        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                                        boxShadow: `0 4px 15px ${attr?.color}20`
-                                    }}
-                                >
-                                    Start Flow
-                                </button>
+
+                                {/* --- Daily Progress Section (Apple Intelligence Style) --- */}
+                                <div className="z-10 mt-auto space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-1">Daily Progress</span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-2xl font-mono font-light text-white tracking-tighter">
+                                                    {Math.floor(relevantTime / 3600)}<span className="text-sm text-white/40">h</span> {Math.floor((relevantTime % 3600) / 60)}<span className="text-sm text-white/40">m</span>
+                                                </span>
+                                                <span className="text-xs text-white/30 font-medium">
+                                                    / {Math.floor(goalMinutes / 60)}h {goalMinutes % 60 > 0 ? `${goalMinutes % 60}m` : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={`text-xl font-bold tracking-tight ${progressPercentage >= 100 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'text-white/80'}`}>
+                                                {Math.round(progressPercentage)}%
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Liquid Bar */}
+                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative shadow-inner">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progressVal}%` }}
+                                            transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                                            className="absolute top-0 bottom-0 left-0 rounded-full"
+                                            style={{ 
+                                                background: `linear-gradient(90deg, ${activeColor}, ${activeColor}dd)`,
+                                                boxShadow: `0 0 15px ${activeColor}60`
+                                            }}
+                                        >
+                                            {/* Shimmer Effect */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]" />
+                                            
+                                            {/* Tip Glow */}
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_10px_white]" />
+                                        </motion.div>
+                                    </div>
+                                </div>
+
+                                {/* --- Action Button --- */}
+                                <div className="mt-5 z-10">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); startSession(project.id); }}
+                                        className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white text-xs font-bold uppercase tracking-widest transition-all duration-300 active:scale-[0.98] group-hover:border-white/20 flex items-center justify-center gap-2 shadow-lg"
+                                    >
+                                        <Play size={12} className="fill-current" />
+                                        Enter Focus
+                                    </button>
+                                </div>
                             </div>
                         )
                     })}
                     <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
                         <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">New Flow</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{t('focus.newFlow')}</span>
                     </button>
                 </div>
             </div>
@@ -496,8 +565,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             {/* Blocker */}
                             {isActive && <div className="absolute inset-0 z-50 cursor-not-allowed" onClick={() => { if(navigator.vibrate) navigator.vibrate(50); setShakeMode(true); setTimeout(()=>setShakeMode(false), 500); }} />}
                             
-                            <button onClick={() => handleModeSwitch('POMO')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Pomo</button>
-                            <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Stopwatch</button>
+                            <button onClick={() => handleModeSwitch('POMO')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'POMO' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>{t('focus.timer.pomo')}</button>
+                            <button onClick={() => handleModeSwitch('STOPWATCH')} className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${mode === 'STOPWATCH' ? 'bg-white text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>{t('focus.timer.stopwatch')}</button>
                         </div>
                     </div>
                     
@@ -538,7 +607,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             </span>
                             <button onClick={() => selectedProject && setShowHistory(true)} className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 active:scale-95 transition-all">
                                 <ActiveIcon size={12} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
-                                <span className="text-[10px] font-bold text-white tracking-widest uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? 'Free Flow' : 'Focus')}</span>
+                                <span className="text-[10px] font-bold text-white tracking-widest uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? t('focus.timer.freeFlow') : t('focus.timer.focus'))}</span>
                                 {selectedProject && selectedProject.sessions && selectedProject.sessions.length > 0 && (
                                     <div className="ml-2 flex items-center gap-1 animate-in fade-in zoom-in">
                                         <div className="w-[1px] h-3 bg-white/20" />

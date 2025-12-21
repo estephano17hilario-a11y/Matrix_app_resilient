@@ -4,17 +4,19 @@ import {
   onAuthStateChanged,
   doc, 
   getDoc, 
-  setDoc 
+  setDoc,
+  waitForPendingWrites
 } from '../firebase';
 import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
+import { ENABLE_GLOBAL_PRO } from '../config/limits';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
   obstacles: [],
   coachingTone: "Stoic",
-  completedAt: Date.now()
+  completedAt: 0 // Default to 0 so we know to show the Onboarding Flow
 };
 
 interface AuthContextType {
@@ -40,7 +42,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-         setProfile(userSnap.data() as UserProfile);
+         const data = userSnap.data() as UserProfile;
+         // ⚡ OVERRIDE: Global PRO
+         if (ENABLE_GLOBAL_PRO) {
+             data.plan = 'PRO';
+         }
+         setProfile(data);
       }
     } catch (e) {
       console.error("Error refreshing profile:", e);
@@ -49,6 +56,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
+      try {
+          // Attempt to flush pending writes
+          await Promise.race([
+              waitForPendingWrites(db),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 3000))
+          ]);
+          console.log("✅ MATRIX: Data synchronized.");
+      } catch (e) {
+          console.warn("⚠️ MATRIX: Could not verify full sync (likely offline). Logout proceeding.");
+      }
+
       await auth.signOut();
       setUser(null);
       setProfile(null);
@@ -104,6 +123,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              
              // Save the missing pieces
              await setDoc(userRef, completeProfile, { merge: true });
+             
+             // ⚡ OVERRIDE: Global PRO
+             if (ENABLE_GLOBAL_PRO) completeProfile.plan = 'PRO';
+             
              setProfile(completeProfile as UserProfile);
           } else {
              // NORMAL LOGIN: Just update timestamp
@@ -111,6 +134,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                lastLoginAt: Date.now()
              }, { merge: true });
   
+             // ⚡ OVERRIDE: Global PRO
+             if (ENABLE_GLOBAL_PRO) existingProfile.plan = 'PRO';
+
              setProfile({
                ...existingProfile,
                lastLoginAt: Date.now()
@@ -126,7 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: currentUser.email,
             displayName: fallbackName,
             photoURL: currentUser.photoURL,
-            plan: 'FREE',
+            plan: 'FREE', // Saved as FREE in DB for future compatibility
             archetype: 'NEO', // Default archetype
             stats: DEFAULT_USER_STATS,
             createdAt: Date.now(),
@@ -139,6 +165,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Use merge: true to be robust against race conditions
           const cleanProfile = sanitizeFirestoreData(newUserProfile);
           await setDoc(userRef, cleanProfile, { merge: true });
+          
+          // ⚡ OVERRIDE: Global PRO
+          if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
+          
           setProfile(newUserProfile);
         }
       } catch (err: any) {

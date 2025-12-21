@@ -1,4 +1,4 @@
-export type ThemeId = 'ether' | 'matrix' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio';
+export type ThemeId = 'ether' | 'matrix' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' | 'spotlight' | 'nebula' | 'aurora';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -104,12 +104,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '255 255 255',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #000000 0%, #ffffff 100%)',
+    gradient: 'linear-gradient(135deg, #ffffff 0%, #4078f0 100%)',
   },
   cupertino: {
     id: 'cupertino',
     name: 'Cupertino',
-    description: 'Big Sur Vibes',
+    description: 'California Dream',
     colors: {
       bgDepth: '0 30 50',
       primaryGlow: '0 200 255',
@@ -117,11 +117,11 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '200 255 255',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #3b82f6 0%, #ef4444 100%)',
+    gradient: 'linear-gradient(135deg, #00c8ff 0%, #ff0064 100%)',
   },
   vision_pro: {
     id: 'vision_pro',
-    name: 'Vision Pro',
+    name: 'Vision',
     description: 'Spatial Computing',
     colors: {
       bgDepth: '10 10 15',
@@ -130,12 +130,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '255 255 255',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)',
+    gradient: 'linear-gradient(135deg, #3296ff 0%, #ff6496 100%)',
   },
   glassmorphism_premium: {
     id: 'glassmorphism_premium',
     name: 'Glass Premium',
-    description: 'Frosted Elegance',
+    description: 'Crystal Clear',
     colors: {
       bgDepth: '30 30 40',
       primaryGlow: '255 255 255',
@@ -143,12 +143,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '255 255 255',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)',
+    gradient: 'linear-gradient(135deg, #ffffff 0%, #c8c8ff 100%)',
   },
   cristales: {
     id: 'cristales',
-    name: 'Cristales',
-    description: 'Light Prism',
+    name: 'Crystals',
+    description: 'Prismatic Light',
     colors: {
       bgDepth: '20 20 30',
       primaryGlow: '0 255 255',
@@ -156,12 +156,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '200 255 255',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #22d3ee 0%, #e879f9 100%)',
+    gradient: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 100%)',
   },
   liquid_glass: {
     id: 'liquid_glass',
-    name: 'Liquid Glass',
-    description: 'Molten Flow',
+    name: 'Liquid',
+    description: 'Flowing State',
     colors: {
       bgDepth: '15 20 25',
       primaryGlow: '100 200 255',
@@ -169,7 +169,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '200 240 255',
       textPrimary: '240 250 255',
     },
-    gradient: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%)',
+    gradient: 'linear-gradient(135deg, #64c8ff 0%, #3296ff 100%)',
   },
   neon: {
     id: 'neon',
@@ -182,12 +182,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '255 100 200',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #f0abfc 0%, #2dd4bf 100%)',
+    gradient: 'linear-gradient(135deg, #ff0064 0%, #00ffc8 100%)',
   },
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    description: 'Professional Blue',
+    description: 'Corporate Blue',
     colors: {
       bgDepth: '10 15 30',
       primaryGlow: '50 100 200',
@@ -195,12 +195,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '200 220 255',
       textPrimary: '240 245 255',
     },
-    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+    gradient: 'linear-gradient(135deg, #3264c8 0%, #6496c8 100%)',
   },
   dorado: {
     id: 'dorado',
     name: 'Dorado',
-    description: 'Luxury Gold',
+    description: 'Golden Hour',
     colors: {
       bgDepth: '20 15 5',
       primaryGlow: '255 215 0',
@@ -208,12 +208,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '255 230 150',
       textPrimary: '255 240 200',
     },
-    gradient: 'linear-gradient(135deg, #fcd34d 0%, #d97706 100%)',
+    gradient: 'linear-gradient(135deg, #ffd700 0%, #daa520 100%)',
   },
   serio: {
     id: 'serio',
     name: 'Serio',
-    description: 'Absolute Monochrome',
+    description: 'Minimal Dark',
     colors: {
       bgDepth: '0 0 0',
       primaryGlow: '128 128 128',
@@ -221,6 +221,58 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       glassTint: '150 150 150',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #000000 0%, #737373 100%)',
+    gradient: 'linear-gradient(135deg, #808080 0%, #404040 100%)',
+  },
+  oled: {
+    id: 'oled',
+    name: 'OLED Deep',
+    description: 'Pure Black Contrast',
+    colors: {
+      bgDepth: '0 0 0',
+      primaryGlow: '255 255 255',
+      secondaryGlow: '100 100 100',
+      glassTint: '255 255 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
+  },
+  spotlight: {
+    id: 'spotlight',
+    name: 'Spotlight',
+    description: 'Focus Blue',
+    colors: {
+      bgDepth: '0 0 0',
+      primaryGlow: '56 189 248',
+      secondaryGlow: '0 0 0',
+      glassTint: '200 240 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #38bdf8 0%, #000000 100%)',
+  },
+  nebula: {
+    id: 'nebula',
+    name: 'Nebula',
+    description: 'Cosmic Purple',
+    colors: {
+      bgDepth: '10 5 20',
+      primaryGlow: '139 92 246',
+      secondaryGlow: '50 0 100',
+      glassTint: '200 200 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+  },
+  aurora: {
+    id: 'aurora',
+    name: 'Aurora',
+    description: 'Northern Lights',
+    colors: {
+      bgDepth: '0 10 10',
+      primaryGlow: '20 184 166',
+      secondaryGlow: '0 50 50',
+      glassTint: '200 255 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
   },
 };

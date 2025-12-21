@@ -1,0 +1,670 @@
+{
+  "onboarding": {
+    "intro": {
+      "title": "Hello.",
+      "subtitle": "Let's calibrate your experience.",
+      "button": "Get Started"
+    },
+    "language": {
+      "title": "Choose your language",
+      "subtitle": "Select your primary language",
+      "en": {
+          "name": "English",
+          "region": "United States"
+      },
+      "es": {
+          "name": "Español",
+          "region": "Spain / Latin America"
+      }
+    },
+    "traits": {
+      "title": "Select your Focus",
+      "subtitle": "Choose 5 areas to improve ({{count}}/5)",
+      "button": "Initialize Matrix"
+    },
+    "saving": {
+      "title": "Configuring Reality..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Enter your credentials to access the system",
+      "button": "Enter System",
+      "footer": "Don't have an account?",
+      "footerAction": "Register"
+    },
+    "register": {
+      "title": "Join the Matrix",
+      "subtitle": "Initialize your neural link",
+      "button": "Create Account",
+      "footer": "Already have an account?",
+      "footerAction": "Log in"
+    },
+    "fields": {
+      "name": "Operator Name",
+      "email": "Email Address",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "errors": {
+      "passwordMismatch": "Passwords do not match",
+      "passwordLength": "Password must be at least 6 characters",
+      "authDisabled": "Email/Password login is not enabled in Firebase Console."
+    },
+    "orContinue": "Or continue with",
+    "google": "Google"
+  },
+  "modals": {
+    "habit": {
+      "title": "Smart Protocol",
+      "subtitle": "System Architect",
+      "namePlaceholder": "Protocol Name...",
+      "descPlaceholder": "Description (Optional)...",
+      "frequency": "Frequency",
+      "alert": "Alert",
+      "logic": "Logic",
+      "target": "Target",
+      "unit": "Unit",
+      "impact": "Impact",
+      "initiate": "Initiate Protocol",
+      "frequencies": {
+        "DAILY": "DAILY",
+        "WEEKLY": "WEEKLY",
+        "MONTHLY": "MONTHLY"
+      },
+      "logics": {
+        "BOOLEAN": "Boolean",
+        "QUANTITY": "Quantity",
+        "CHECKLIST": "Checklist",
+        "SIMPLE": "Simple"
+      },
+      "noSteps": "No steps defined"
+    },
+    "project": {
+      "title": "New Project",
+      "subtitle": "Focus Engine",
+      "namePlaceholder": "Project Name...",
+      "descPlaceholder": "Description (Optional)...",
+      "goalPlaceholder": "What is the goal? (Optional)",
+      "goalCalculation": "Goal Calculation",
+      "frequencies": {
+        "DAILY": "DAILY",
+        "WEEKLY": "WEEKLY",
+        "MONTHLY": "MONTHLY"
+      },
+      "workingDays": "Working Days",
+      "dailyTarget": "Daily Target",
+      "pomodoro": "Pomodoro",
+      "initialize": "Initialize Project",
+      "launch": "Launch Project",
+      "hoursPer": "HRS /",
+      "hrs": "HRS",
+      "hours": "Hours",
+      "day": "DAY",
+      "week": "WEEK",
+      "month": "MONTH",
+      "custom": "Cust.",
+    "alert": "Alert",
+    "off": "OFF",
+    "impact": "Impact",
+    "daysInitials": ["S", "M", "T", "W", "T", "F", "S"],
+    "traitDefault": "Trait"
+  },
+    "quest": {
+      "titleNew": "New Mission",
+      "titleEdit": "Edit Mission",
+      "titleSmart": "Smart Mission",
+      "linkedStrategy": "Linked to Strategy",
+      "namePlaceholder": "Objective Name...",
+      "briefingPlaceholder": "Briefing (Optional)...",
+      "linkProject": "Link to Project (Optional)",
+      "noProject": "No Project",
+      "tacticalSteps": "Tactical Steps",
+      "addStepPlaceholder": "Add tactical step...",
+      "difficulty": "Difficulty",
+      "difficulties": {
+        "Basic": "Basic",
+        "Medium": "Medium",
+        "Hard": "Hard",
+        "Epic": "Epic"
+      },
+      "dueDate": "Due Date",
+      "confirm": "Confirm Mission"
+    },
+    "blueprint": {
+      "title": "Save as Blueprint",
+      "name": "Name",
+      "namePlaceholder": "e.g., Weekly Review",
+      "icon": "Icon",
+      "saveBtn": "Save Blueprint"
+    }
+  },
+  "store": {
+    "title": "Store",
+    "inventory": "Inventory",
+    "buy": "Buy",
+    "locked": "Locked",
+    "currency": "Gold",
+    "confirm": {
+      "title": "Confirm Purchase",
+      "desc": "Buy for {{price}} gold?",
+      "yes": "Buy",
+      "no": "Cancel"
+    },
+    "filters": {
+      "all": "All",
+      "power_up": "Power Ups",
+      "theme": "Themes",
+      "cosmetic": "Cosmetics",
+      "bad_habit": "Bad Habits",
+      "digital_addiction": "Digital Addiction",
+      "physical_neglect": "Physical Neglect",
+      "mental_clutter": "Mental Clutter",
+      "social_behavioral": "Social/Behavioral"
+    },
+    "others": "Others",
+    "emptyCollection": "Empty Collection",
+    "emptyCategory": "No items in this category",
+    "items": {
+        "potion_hp_small": { "name": "Neural Repair Kit", "desc": "Restores 20 HP instantly. Essential for system maintenance." },
+        "potion_xp_restore": { "name": "Memory Recovery", "desc": "Restores XP lost from inactivity or penalties." },
+        "redemption_token": { "name": "Streak Restoration", "desc": "Repairs a broken streak. A second chance for perfection." },
+        "freeze_streak": { "name": "Time Freeze", "desc": "Freezes your streak for 24 hours. Use before a busy day." },
+        "theme_neon_purple": { "name": "Nebula Protocol", "desc": "Deep Purple and Pink UI Theme. Cyberpunk aesthetic." },
+        "theme_matrix_green": { "name": "Source Code", "desc": "Classic Matrix Green. The raw data stream." },
+        "theme_apple_minimal": { "name": "Cupertino Glass", "desc": "Ultra-clean frosted glass aesthetic. Maximum clarity." },
+        "bad_habit_shorts": { "name": "Doomscrolling Shorts (30m)", "desc": "Buying this acknowledges the habit of watching endless short videos." },
+        "bad_habit_social": { "name": "Social Media Binge", "desc": "Checking feeds without purpose." },
+        "bad_habit_notifications": { "name": "Notification Slave", "desc": "Reacting instantly to every beep." },
+        "bad_habit_gaming": { "name": "Excessive Gaming", "desc": "Gaming when you should be working." },
+        "bad_habit_news": { "name": "News Overload", "desc": "Consuming negative news constantly." },
+        "bad_habit_sugar": { "name": "Sugar Rush", "desc": "Consuming sugary drinks/snacks in excess." },
+        "bad_habit_sedentary": { "name": "Couch Potato", "desc": "Sitting for >2 hours without moving." },
+        "bad_habit_sleep": { "name": "Sleep Revenge", "desc": "Staying up late for no reason." },
+        "bad_habit_posture": { "name": "Slouching", "desc": "Poor posture while working." },
+        "bad_habit_water": { "name": "Dehydration", "desc": "Forgetting to drink water." },
+        "bad_habit_procrastinate": { "name": "Procrastination", "desc": "Delaying tasks until the last minute." },
+        "bad_habit_multitask": { "name": "Multitasking Illusion", "desc": "Doing everything, achieving nothing." },
+        "bad_habit_negative": { "name": "Negative Self-Talk", "desc": "Being your own worst enemy." },
+        "bad_habit_worry": { "name": "Chronic Worry", "desc": "Stressing over things you can't control." },
+        "bad_habit_perfection": { "name": "Paralyzing Perfectionism", "desc": "Waiting for \"perfect\" conditions." },
+        "bad_habit_interrupt": { "name": "Interrupting Others", "desc": "Speaking before listening." },
+        "bad_habit_late": { "name": "Chronically Late", "desc": "Disrespecting others' time." },
+        "bad_habit_complain": { "name": "Complaining", "desc": "Focusing on problems, not solutions." },
+        "bad_habit_impulse": { "name": "Impulse Spending", "desc": "Buying things you don't need." },
+        "bad_habit_clutter": { "name": "Physical Clutter", "desc": "Messy space, messy mind." }
+    }
+  },
+  "inventory": {
+    "title": "Inventory",
+    "use": "Use",
+    "equip": "Equip/View",
+    "confirmUse": "Do you want to use {{name}}?",
+    "searchPlaceholder": "Search your items...",
+    "emptyTitle": "Empty Inventory",
+    "emptyDesc": "Visit the Store to get items.",
+    "filters": {
+      "all": "All",
+      "power_up": "Power Ups",
+      "cosmetic": "Cosmetics",
+      "bad_habit": "Bad Habits"
+    }
+  },
+  "achievements": {
+    "title": "Achievements",
+    "subtitle": "Your journey to mastery",
+    "loading": "Loading achievement matrix...",
+    "sync": "Sync",
+    "currency": "XP",
+    "empty": "No achievements in this category.",
+    "categories": {
+      "all": "All",
+      "level": "Level",
+      "streak": "Streak",
+      "trait": "Trait",
+      "rank": "Rank"
+    },
+    "rewards": {
+      "neonKatana": "Neon Katana",
+      "godMode": "God Mode"
+    },
+    "arcs": {
+      "initiate": {
+        "title": "The Initiate",
+        "desc": "Your first steps in the Matrix."
+      },
+      "theone": {
+        "title": "The One",
+        "desc": "Begin to see the code."
+      }
+    },
+    "level": {
+        "001": { "title": "Awakening", "desc": "Reach Level 1." },
+        "005": { "title": "Momentum", "desc": "Reach Level 5." },
+        "010": { "title": "Double Digits", "desc": "Reach Level 10." },
+        "020": { "title": "Experienced", "desc": "Reach Level 20." },
+        "030": { "title": "Veteran", "desc": "Reach Level 30." },
+        "050": { "title": "Master", "desc": "Reach Level 50." },
+        "100": { "title": "Ascended", "desc": "Reach Level 100." }
+    },
+    "streak": {
+        "003": { "title": "Warming Up", "desc": "Maintain a 3-day streak." },
+        "007": { "title": "Unbreakable", "desc": "Maintain a 7-day streak." },
+        "014": { "title": "On Fire", "desc": "Maintain a 14-day streak." },
+        "030": { "title": "Consistent", "desc": "Maintain a 30-day streak." },
+        "050": { "title": "Disciplined", "desc": "Maintain a 50-day streak." },
+        "075": { "title": "Relentless", "desc": "Maintain a 75-day streak." },
+        "100": { "title": "Century", "desc": "Maintain a 100-day streak." },
+        "200": { "title": "Eternal Flame", "desc": "Maintain a 200-day streak." }
+    },
+    "trait": {
+        "disciplina": { "desc": "Reach Level {{level}} in Discipline." },
+        "fisico": { "desc": "Reach Level {{level}} in Physique." },
+        "mental": { "desc": "Reach Level {{level}} in Intellect." },
+        "social": { "desc": "Reach Level {{level}} in Charisma." },
+        "espiritu": { "desc": "Reach Level {{level}} in Spirit." },
+        "finanzas": { "desc": "Reach Level {{level}} in Wealth." },
+        "creatividad": { "desc": "Reach Level {{level}} in Creativity." },
+        "orden": { "desc": "Reach Level {{level}} in System." },
+        "liderazgo": { "desc": "Reach Level {{level}} in Leadership." },
+        "resiliencia": { "desc": "Reach Level {{level}} in Resilience." },
+        "vitalidad": { "desc": "Reach Level {{level}} in Vitality." },
+        "estilo": { "desc": "Reach Level {{level}} in Aesthetics." }
+    }
+  },
+  "components": {
+    "blockEditor": {
+      "tapToWrite": "Tap to start writing...",
+      "typeSomething": "Type something...",
+      "todoItem": "To-do item",
+      "imagePlaceholder": "Image Placeholder"
+    },
+    "subtaskManager": {
+      "addStepPlaceholder": "Add tactical step... (+)"
+    }
+  },
+  "tasks": {
+    "activeMissions": "Active Missions",
+    "targets": "TARGETS",
+    "empty": "No active missions."
+  },
+  "notes": {
+    "tabs": {
+      "notes": "Notes",
+      "journal": "Journal"
+    },
+    "moods": {
+      "rad": "Radiant",
+      "good": "Good",
+      "meh": "Neutral",
+      "bad": "Low",
+      "awful": "Drained"
+    },
+    "newNote": "New Note",
+    "untitled": "Untitled",
+    "empty": "Empty...",
+    "streak": "Day Streak",
+    "yourStory": "Your Story",
+    "untitledPlaceholder": "Untitled Note",
+    "save": "Save"
+  },
+  "oracle": {
+    "title": "Oracle",
+    "status": "ONLINE // V.2.0.4",
+    "userLabel": "OPERATOR",
+    "systemLabel": "ORACLE SYSTEM",
+    "placeholder": "Ask the Oracle...",
+    "welcome": "I am the Oracle. The Matrix is connected. How may I assist you, Operator?",
+    "error": "Connection to the Intelligence Core interrupted."
+  },
+  "strategicMap": {
+    "levels": {
+      "10_YEARS": "10 Years",
+      "5_YEARS": "5 Years",
+      "YEAR": "Year",
+      "SEMESTER": "Semester",
+      "QUARTER": "Quarter",
+      "MONTH": "Month",
+      "WEEK": "Week",
+      "DAY": "Day"
+    },
+    "placeholders": {
+      "10_YEARS": "Decade {{index}}",
+      "5_YEARS": "Lustrum {{index}}",
+      "YEAR": "Year {{index}}",
+      "SEMESTER": "Semester {{index}}",
+      "QUARTER": "Quarter {{index}}",
+      "MONTH": "Month {{index}}",
+      "WEEK": "Week {{index}}",
+      "DAY": "Day {{index}}",
+      "generic": "New Item"
+    },
+    "noData": "No strategy data available.",
+    "deleteProjectConfirm": "Are you sure you want to delete this Smart Plan? All associated tasks will be deleted.",
+    "deleteProject": "Delete Complete Strategy",
+    "deleteNodeConfirm": "Delete this entire section and go back to upper level?",
+    "deleteNode": "Delete Current Section",
+    "inside": "Inside {{title}}",
+    "masterStrategy": "Master Strategy",
+    "defineObjective": "Define Objective...",
+    "untitled": "Untitled",
+    "leafDescription": "Complete these tasks to achieve the daily objective.",
+    "nodeDescription": "Select a {{level}} to drill down.",
+    "content": "Content",
+    "noTasks": "No Tasks Yet",
+    "noTasksDesc": "Add tasks to execute today's plan.",
+    "addAnotherTask": "Add another task",
+    "createNewBlock": "Create New Block",
+    "emptySpace": "Empty Space",
+    "deadline": "DEADLINE",
+    "deleteBranchConfirm": "Delete this branch and all subtasks?",
+    "new": "New",
+    "add": "Add",
+    "section": "Section"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "archive": "Archive",
+    "archived": "Archived",
+    "back": "Back",
+    "next": "Next",
+    "complete": "Complete",
+    "loading": "Loading...",
+    "error": "Error",
+    "time": {
+        "years": "Years",
+        "months": "Months",
+        "days": "Days"
+    }
+  },
+  "smartTask": {
+    "tutorial": {
+      "strategicVision": {
+        "title": "Strategic Vision",
+        "content": "We start with the 1-Year Goal. The North Star.",
+        "detail": "1 YEAR"
+      },
+      "tacticalSplit": {
+        "title": "Tactical Split",
+        "content": "The Year divides into 2 Semesters. 6 Months of clear direction.",
+        "detail": "2 SEMESTERS"
+      },
+      "quarterlyFocus": {
+        "title": "Quarterly Focus",
+        "content": "Each Semester divides into 2 Quarters. 3 Months of high-impact focus.",
+        "detail": "4 QUARTERS"
+      },
+      "monthlyExecution": {
+        "title": "Monthly Execution",
+        "content": "Quarters break down into 3 Months. Actionable milestones.",
+        "detail": "12 MONTHS"
+      },
+      "weeklySprints": {
+        "title": "Weekly Sprints",
+        "content": "Months become Weeks. The rhythm of progress.",
+        "detail": "52 WEEKS"
+      },
+      "dailyImpact": {
+        "title": "Daily Impact",
+        "content": "Weeks become Days. Where the work actually happens.",
+        "detail": "365 DAYS"
+      },
+      "exampleFlow": {
+        "title": "Example Flow",
+        "content": "Let's see how a goal breaks down...",
+        "detail": "FRACTAL"
+      },
+      "ready": {
+        "title": "Ready to Start?",
+        "content": "Define your 1-Year Goal and let the Fractal Engine handle the rest.",
+        "detail": "START",
+        "button": "Create Smart Task"
+      }
+    },
+    "wizard": {
+        "title": "Apple Intelligence",
+        "subtitle": "Neural Engine Protocol v2.0",
+        "objective": {
+            "title": "What is your <span className=\"font-bold\">Main Objective</span>?",
+            "subtitle": "Define the core mission clearly.",
+            "placeholder": "e.g. Launch Startup, Run Marathon..."
+        },
+        "trait": {
+            "title": "Which <span className=\"font-bold\">Attribute</span> governs this?",
+            "subtitle": "Select the domain of influence."
+        },
+        "deadline": {
+            "title": "When is the <span className=\"font-bold\">Deadline</span>?",
+            "subtitle": "Set the timeframe for success."
+        },
+        "inputType": {
+            "date": "Date",
+            "duration": "Duration"
+        },
+        "fractal": {
+            "title": "Time Decomposition Engine",
+            "path": "Path:"
+        },
+        "summary": {
+            "deadline": "Target Deadline",
+            "structure": "Structure"
+        },
+        "stepDescription": {
+            "year": "Break down \"{{title}}\" into 2 Key Semesters.",
+            "semester": "Break down \"{{title}}\" into 2 Quarters.",
+            "generic": "Break down \"{{title}}\" into {{count}} steps."
+        },
+        "stepTitle": {
+            "year": "Strategic Semesters",
+            "semester": "Key Quarters",
+            "quarter": "Monthly Tactics",
+            "month": "Weekly Execution",
+            "week": "Daily Actions"
+        },
+        "buttons": {
+            "nextPhase": "Next Phase",
+            "initializeMap": "Initialize Map",
+            "review": "Review",
+            "back": "Back",
+            "yesLetsGo": "YES, LET'S GO",
+            "goBack": "Go Back"
+        },
+        "confirmation": {
+            "title": "Shall we start with this plan?",
+            "subtitle": "Review your strategy before initializing."
+        },
+        "completion": {
+            "title": "APPLE INTELLIGENCE",
+            "subtitle": "Strategic Optimization Complete"
+        }
+    }
+  },
+  "focus": {
+    "title": "Focus Mode",
+    "appTitle": "FOCUS STUDIO",
+    "start": "Start Focus",
+    "startFlow": "Start Flow",
+    "newFlow": "New Flow",
+    "stop": "Stop",
+    "archived": {
+        "subtitle": "Restorable Projects",
+        "restore": "Restore",
+        "empty": "No archived projects"
+    },
+    "timer": {
+        "pomo": "Pomo",
+        "stopwatch": "Stopwatch",
+        "freeFlow": "Free Flow",
+        "focus": "Focus"
+    },
+    "notifications": {
+        "projectArchived": "PROJECT ARCHIVED",
+        "projectRestored": "PROJECT RESTORED",
+        "projectDeleted": "PROJECT DELETED",
+        "activeSession": "ACTIVE SESSION"
+    },
+    "deleteModal": {
+        "title": "Delete Project?",
+        "description": "Are you sure you want to delete \"{{title}}\"?",
+        "warning": "Stats will be preserved in general view, but you won't be able to filter by this project anymore."
+    }
+  },
+  "settings": {
+    "title": "System Config",
+    "subtitle": "Matrix Environment Preferences",
+    "tabs": {
+      "design": "Design",
+      "controls": "Controls",
+      "account": "Account"
+    },
+    "profileHud": "Profile HUD",
+    "profileHudDesc": "Toggle the visibility of your attributes panel",
+    "language": "Language / Idioma",
+    "languageDesc": "Select system language / Seleccionar idioma del sistema",
+    "visualTheme": "Visual Theme",
+    "visualThemeDesc": "Select your preferred reality aesthetic",
+    "dashboardStyle": "Dashboard Style",
+    "dashboardStyleDesc": "Select the appearance of the section selector",
+    "styleBorder": "Bordered",
+    "styleLiquid": "Liquid Glass",
+    "startupChart": "Startup Chart",
+    "startupChartDesc": "Default visualization for system metrics",
+    "chartRadar": "Radar / Spider",
+    "chartBar": "Bar / List",
+    "attributeEditor": "Attribute Editor",
+    "attributeEditorDesc": "Customize your system definitions (Min 3)",
+    "availableTraits": "Available Traits",
+    "userId": "User ID",
+    "accountType": "Account Type",
+    "accountStandard": "Standard",
+    "version": "Version",
+    "developer": "Developer",
+    "logout": "Terminate Session"
+  },
+  "dashboard": {
+      "systemMetrics": "System Metrics",
+    "activeMissions": "Active Missions",
+    "radarAnalysis": "Radar Analysis",
+    "listView": "List View",
+    "level": "Lvl",
+    "tasks": "Tasks",
+    "strategy": "Strategy",
+    "noStrategy": "No Active Strategy",
+    "noStrategyDesc": "You haven't defined your Grand Strategy yet. Break down your ultimate goal into actionable steps.",
+    "initProtocol": "Initialize Protocol"
+  },
+  "habits": {
+    "title": "Habits",
+    "subtitle": "Design your life, one day at a time.",
+    "newHabit": "New Habit",
+    "empty": "No habits yet. Start by creating one."
+  },
+  "loading": {
+    "quotes": [
+        { "text": "The mind is its own place, and in itself can make a heaven of hell, a hell of heaven.", "author": "JOHN MILTON" },
+        { "text": "We do not see things as they are, we see them as we are.", "author": "ANAÏS NIN" },
+        { "text": "He who has a why to live for can bear almost any how.", "author": "FRIEDRICH NIETZSCHE" },
+        { "text": "The only way to deal with an unfree world is to become so absolutely free that your very existence is an act of rebellion.", "author": "ALBERT CAMUS" }
+    ]
+  },
+  "traits": {
+      "disciplina": { 
+          "label": "Discipline", 
+          "desc": "Unbreakable will.",
+          "achievements": {
+              "0": "Forged Beginning", "1": "Initial Difficulties", "2": "Pact", "3": "Mindset Shifts", "4": "Detox Hint", "5": "Detox", "6": "Mental Strength", "7": "David Goggins"
+          }
+      },
+      "fisico": { 
+          "label": "Physique", 
+          "desc": "Power and endurance.",
+          "achievements": {
+              "0": "Awakening", "1": "Soreness", "2": "Constancy", "3": "Amateur Athlete", "4": "Sculpted Body", "5": "Machine", "6": "Beast", "7": "Demigod"
+          }
+      },
+      "mental": { 
+          "label": "Intellect", 
+          "desc": "Sharpness and learning.",
+          "achievements": {
+              "0": "Student", "1": "Curious", "2": "Voracious Reader", "3": "Intellectual", "4": "Scholar", "5": "Sage", "6": "Mastermind", "7": "Omniscient"
+          }
+      },
+      "social": { 
+          "label": "Charisma", 
+          "desc": "Influence and connection.",
+          "achievements": {
+              "0": "Shy", "1": "Greeting", "2": "Conversationalist", "3": "Friend", "4": "Life of the Party", "5": "Connector", "6": "Tribe Leader", "7": "Global Influence"
+          }
+      },
+      "espiritu": { 
+          "label": "Spirit", 
+          "desc": "Calm and awareness.",
+          "achievements": {
+              "0": "Silence", "1": "Breathing", "2": "Meditation", "3": "Mindfulness", "4": "Spiritual Awakening", "5": "Enlightenment", "6": "Transcendence", "7": "Nirvana"
+          }
+      },
+      "finanzas": { 
+          "label": "Wealth", 
+          "desc": "Resource freedom.",
+          "achievements": {
+              "0": "Saving", "1": "First Income", "2": "Stability", "3": "Investor", "4": "Financial Freedom", "5": "Magnate", "6": "Empire", "7": "Bank Owner"
+          }
+      },
+      "creatividad": { 
+          "label": "Creativity", 
+          "desc": "Vision and innovation.",
+          "achievements": {
+              "0": "Doodle", "1": "Idea", "2": "Sketch", "3": "Artist", "4": "Innovator", "5": "Visionary", "6": "World Creator", "7": "Demiurge"
+          }
+      },
+      "orden": { 
+          "label": "System", 
+          "desc": "Control and structure.",
+          "achievements": {
+              "0": "Made Bed", "1": "Routine", "2": "Agenda", "3": "System", "4": "Efficiency", "5": "Automation", "6": "Swiss Watch", "7": "Zero Entropy"
+          }
+      },
+      "liderazgo": { 
+          "label": "Leadership", 
+          "desc": "Guiding others.",
+          "achievements": {
+              "0": "Initiative", "1": "Voice", "2": "Guide", "3": "Captain", "4": "Commander", "5": "General", "6": "King", "7": "Emperor"
+          }
+      },
+      "resiliencia": { 
+          "label": "Resilience", 
+          "desc": "Invincibility.",
+          "achievements": {
+              "0": "Endurance", "1": "Toughness", "2": "Shield", "3": "Rebound", "4": "Antifragile", "5": "Immortal", "6": "Phoenix", "7": "Indestructible"
+          }
+      },
+      "vitalidad": { 
+          "label": "Vitality", 
+          "desc": "Engine of life.",
+          "achievements": {
+              "0": "Spark", "1": "Battery", "2": "Energy", "3": "Vigor", "4": "High Voltage", "5": "Reactor", "6": "Sun", "7": "Supernova"
+          }
+      },
+      "estilo": { 
+           "label": "Aesthetics", 
+           "desc": "Art of living.",
+           "achievements": {
+               "0": "Basic", "1": "Combined", "2": "Good Taste", "3": "Elegant", "4": "Trendsetter", "5": "Icon", "6": "Avant-garde", "7": "Golden Ratio"
+           }
+       }
+  },
+  "dock": {
+      "newMission": "New Mission",
+      "singleTask": "Single Task",
+      "habit": "Habit",
+      "focus": "Focus",
+      "strategy": "Strategy",
+      "fame": "Fame",
+      "inventory": "Inventory",
+      "store": "Store"
+  }
+}

@@ -204,6 +204,7 @@ export const useSmartTaskLogic = () => {
     jumpToLevel,
     generateProject,
     history,
-    timeframeHierarchy
+    timeframeHierarchy,
+    projectMeta
   };
 };

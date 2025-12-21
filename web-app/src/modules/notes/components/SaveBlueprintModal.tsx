@@ -4,6 +4,7 @@ import { Save, X } from 'lucide-react';
 import { NoteBlock, NoteBlueprint } from '../../../types';
 import { saveBlueprint } from '../../../services/blueprintService';
 import { useAuth } from '../../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface SaveBlueprintModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const COLORS = [
 const EMOJIS = ['📝', '🧠', '🏛️', '🏃', '💡', '✅', '📊', '📅', '🚀', '🧘'];
 
 export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, onClose, currentBlocks }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📝');
@@ -72,7 +74,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
                 className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl p-6"
             >
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-medium text-white">Save as Blueprint</h2>
+                    <h2 className="text-xl font-medium text-white">{t('modals.blueprint.title')}</h2>
                     <button onClick={onClose} className="text-white/50 hover:text-white">
                         <X size={20} />
                     </button>
@@ -81,19 +83,19 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
                 <div className="space-y-6">
                     {/* Name Input */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2">Name</label>
+                        <label className="block text-sm text-slate-400 mb-2">{t('modals.blueprint.name')}</label>
                         <input 
                             type="text" 
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g., Weekly Review"
+                            placeholder={t('modals.blueprint.namePlaceholder')}
                             className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
                         />
                     </div>
 
                     {/* Icon Selector */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2">Icon</label>
+                        <label className="block text-sm text-slate-400 mb-2">{t('modals.blueprint.icon')}</label>
                         <div className="flex gap-2 flex-wrap">
                             {EMOJIS.map(e => (
                                 <button
@@ -116,7 +118,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
 
                     {/* Color Selector */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2">Theme</label>
+                        <label className="block text-sm text-slate-400 mb-2">{t('modals.blueprint.theme')}</label>
                         <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
                             {COLORS.map(c => (
                                 <button
@@ -139,7 +141,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
                         disabled={!name.trim() || loading}
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Saving...' : <><Save size={18} /> Save Blueprint</>}
+                        {loading ? t('modals.blueprint.saving') : <><Save size={18} /> {t('modals.blueprint.saveBtn')}</>}
                     </button>
                 </div>
             </motion.div>

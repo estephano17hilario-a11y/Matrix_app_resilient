@@ -1,8 +1,5 @@
 import React from 'react';
 
-// Import NOISE_SVG or define it locally if reused across styles
-const NOISE_SVG = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E`;
-
 export const GlobalStyles = React.memo(() => (
   <style>{`
     :root {
@@ -29,14 +26,14 @@ export const GlobalStyles = React.memo(() => (
     .accordion-inner { overflow: hidden; transform: translateZ(0); }
 
     .glass-panel {
-      background: rgba(22, 22, 24, 0.7); 
-      backdrop-filter: blur(50px) saturate(180%);
-      -webkit-backdrop-filter: blur(50px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+      background: rgba(17, 24, 39, 0.4); 
+      backdrop-filter: blur(64px) saturate(150%);
+      -webkit-backdrop-filter: blur(64px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);
       will-change: transform;
+      border-radius: 1rem;
     }
 
     .apple-btn {

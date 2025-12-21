@@ -21,6 +21,12 @@ export default {
       transitionTimingFunction: {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
+      boxShadow: {
+        'glass-inset': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.15)',
+        'glass-sm': '0 20px 50px -12px rgba(79, 70, 229, 0.15)',
+        'neon-emerald': '0 0 20px -5px rgba(16, 185, 129, 0.5)',
+        'neon-rose': '0 0 20px -5px rgba(244, 63, 94, 0.5)',
+      },
       colors: {
         theme: {
           bg: 'rgb(var(--color-bg-depth) / <alpha-value>)',
@@ -46,6 +52,7 @@ export default {
         'float': 'float 10s ease-in-out infinite',
         'shimmer-slow': 'shimmer 5s linear infinite',
         'gradient-x': 'gradient-x 3s ease infinite',
+        'spin-slow': 'spin 8s linear infinite',
       },
       keyframes: {
         float: {

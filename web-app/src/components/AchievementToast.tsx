@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Achievement } from '../config/achievements';
 
 interface AchievementToastProps {
@@ -8,6 +9,7 @@ interface AchievementToastProps {
 }
 
 export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement, onClose }) => {
+  const { t } = useTranslation();
   useEffect(() => {
     if (achievement) {
       const timer = setTimeout(onClose, 4000);
@@ -47,14 +49,14 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
             {/* Text Content */}
             <div className="flex flex-col min-w-[160px]">
               <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase mb-0.5">
-                Achievement Unlocked
+                {t('achievements.unlocked')}
               </span>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm font-bold text-white leading-none">
-                  {achievement.title}
+                  {t(achievement.title)}
                 </span>
                 <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  +{Math.floor(achievement.xpReward)} Matrix Coins
+                  +{Math.floor(achievement.xpReward)} {t('achievements.currency')}
                 </span>
               </div>
             </div>

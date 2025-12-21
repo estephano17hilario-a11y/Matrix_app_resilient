@@ -11,6 +11,13 @@ export interface UserStats {
   streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
 }
 
+export interface DailyLimits {
+  date: string; // "YYYY-MM-DD"
+  taskXp: number;
+  taskGold: number;
+  taskTraitPoints: number;
+}
+
 export interface UserProfile {
   uid: string;
   email: string | null;
@@ -19,12 +26,21 @@ export interface UserProfile {
   plan: UserPlan;
   archetype: UserArchetype;
   stats: UserStats;
+  dailyLimits?: DailyLimits;
+  inventory?: Record<string, number>;
   unlockedAchievements?: string[];
   createdAt: number; // Timestamp
   lastLoginAt: number;
   // Configuración visual
   theme: 'ETHER' | 'MATRIX' | 'SUNSET';
+  dashboardStyle?: 'BORDER' | 'LIQUID';
   
+  // Rate Limiting
+  traitChanges?: {
+    count: number;
+    weekStart: number;
+  };
+
   // Onboarding Data
   onboarding?: {
     successDefinition: string;
