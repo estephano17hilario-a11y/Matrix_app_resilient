@@ -7,23 +7,42 @@ import {
   createUserWithEmailAndPassword as firebaseCreate,
   signOut as firebaseSignOut,
   updateProfile as firebaseUpdateProfile,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  onAuthStateChanged as firebaseOnAuthStateChanged
 } from 'firebase/auth';
 import { 
-  getFirestore, 
-  Firestore, 
-  initializeFirestore, 
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  doc as firestoreDoc,
-  setDoc as firestoreSetDoc,
-  getDoc as firestoreGetDoc,
-  updateDoc as firestoreUpdateDoc,
-  collection as firestoreCollection,
-  getDocs as firestoreGetDocs,
-  query as firestoreQuery,
-  deleteDoc as firestoreDeleteDoc,
-  waitForPendingWrites as firestoreWait
+    getFirestore, 
+    Firestore, 
+    initializeFirestore, 
+    persistentLocalCache,
+    persistentMultipleTabManager,
+    doc as firestoreDoc,
+    setDoc as firestoreSetDoc,
+    getDoc as firestoreGetDoc,
+    updateDoc as firestoreUpdateDoc,
+    collection as firestoreCollection,
+    getDocs as firestoreGetDocs,
+    query as firestoreQuery,
+    deleteDoc as firestoreDeleteDoc,
+    onSnapshot as firestoreSnapshot,
+    waitForPendingWrites as firestoreWait,
+    runTransaction as firestoreRunTransaction,
+    addDoc as firestoreAddDoc,
+    Timestamp,
+    serverTimestamp,
+    increment,
+    arrayUnion,
+    arrayRemove,
+    where,
+    orderBy,
+    limit,
+    DocumentSnapshot,
+    QuerySnapshot,
+    DocumentReference, 
+    CollectionReference,
+    FirestoreError,
+    Transaction,
+    QueryConstraint
 } from 'firebase/firestore';
 
 // --- 1. CONFIGURATION ---
@@ -42,7 +61,6 @@ const isConfigValid =
   !firebaseConfig.apiKey.includes('your_api_key');
 
 // --- 1.5 FORCE OFFLINE OVERRIDE ---
-// Allows the app to function even if the network is dead by forcing Phantom Mode.
 const forceOffline = localStorage.getItem('MATRIX_FORCE_OFFLINE') === 'true';
 
 // --- 2. SINGLETON INSTANCES ---
@@ -52,42 +70,29 @@ let db: Firestore;
 
 if (isConfigValid && !forceOffline) {
   try {
-    // A. Initialize App
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-    // B. Initialize Auth
     auth = getAuth(app);
-
-    // C. Initialize Firestore (STANDARD MODE)
-    // Using standard configuration with automatic fallback.
-    // We avoid 'experimentalForceLongPolling' as it can cause 'net::ERR_ABORTED' in modern environments.
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
-                // Tab manager can be unstable in some dev environments; defaulting to standard behavior is safer.
-                // If multi-tab sync is critical, we can re-enable it carefully.
                 tabManager: persistentMultipleTabManager()
             })
         });
         console.log("🔥 MATRIX CORE: Firestore connected with Persistence.");
     } catch (e: any) {
-        // Fallback for HMR or environments where persistence fails (e.g., Private Mode)
         if (e.code === 'failed-precondition' || e.code === 'unimplemented') {
             console.warn("⚠️ MATRIX CORE: Persistence unavailable, falling back to memory cache.");
             try {
-                // Try getting existing instance first
                 db = getFirestore(app);
             } catch {
-                // If that fails, initialize without persistence
                 db = initializeFirestore(app, {
-                    localCache: persistentLocalCache({}) // Try minimal cache or let it default
+                    localCache: persistentLocalCache({})
                 });
             }
         } else if (e.message && e.message.includes('already exists')) {
              db = getFirestore(app);
         } else {
             console.error("🔥 MATRIX CORE: Firestore Init Failed", e);
-            // Last resort fallback to keep app alive
             try {
                  db = getFirestore(app);
             } catch (finalErr) {
@@ -96,7 +101,6 @@ if (isConfigValid && !forceOffline) {
             }
         }
     }
-
   } catch (error) {
     console.error("❌ CRITICAL: Firebase failed to load.", error);
     app = { _isMock: true } as any;
@@ -122,16 +126,39 @@ import {
     phantomDoc, 
     phantomGetDoc, 
     phantomSetDoc, 
-    phantomUpdateDoc 
+    phantomUpdateDoc,
+    phantomOnAuthStateChanged,
+    phantomRunTransaction
 } from './phantom';
 
 // --- AUTH PHANTOM PROXIES ---
+
+export const onAuthStateChanged = (authInstance: any, observer: any) => {
+    if (authInstance?._isMock) {
+        return phantomOnAuthStateChanged(authInstance, observer);
+    }
+    return firebaseOnAuthStateChanged(authInstance, observer);
+};
+
 export const signInWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
     if (authInstance?._isMock) {
         console.warn("🛡️ PHANTOM AUTH: Simulating Login...");
-        await new Promise(r => setTimeout(r, 800)); // Simulate network
+        await new Promise(r => setTimeout(r, 800));
         
-        const user = { ...PHANTOM_USER, email, displayName: email.split('@')[0] };
+        const user = { 
+            ...PHANTOM_USER, 
+            email, 
+            displayName: email.split('@')[0],
+            uid: `phantom-${email.replace(/[^a-zA-Z0-9]/g, '-')}` 
+        };
+
+        localStorage.setItem('MATRIX_PHANTOM_SESSION', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+        }));
+
         if (authInstance._notifyAuthState) {
             authInstance._notifyAuthState(user);
         }
@@ -145,6 +172,13 @@ export const signInWithPopup = async (authInstance: any, provider: any) => {
         console.warn("🛡️ PHANTOM AUTH: Simulating Google Login...");
         await new Promise(r => setTimeout(r, 1000));
         
+        localStorage.setItem('MATRIX_PHANTOM_SESSION', JSON.stringify({
+            uid: PHANTOM_USER.uid,
+            email: PHANTOM_USER.email,
+            displayName: PHANTOM_USER.displayName,
+            photoURL: PHANTOM_USER.photoURL
+        }));
+
         if (authInstance._notifyAuthState) {
             authInstance._notifyAuthState(PHANTOM_USER);
         }
@@ -158,7 +192,20 @@ export const createUserWithEmailAndPassword = async (authInstance: any, email: s
         console.warn("🛡️ PHANTOM AUTH: Simulating Registration...");
         await new Promise(r => setTimeout(r, 1200));
         
-        const user = { ...PHANTOM_USER, email, displayName: 'New Operator' };
+        const user = { 
+            ...PHANTOM_USER, 
+            email, 
+            displayName: email.split('@')[0],
+            uid: `phantom-${email.replace(/[^a-zA-Z0-9]/g, '-')}`
+        };
+
+        localStorage.setItem('MATRIX_PHANTOM_SESSION', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+        }));
+
         if (authInstance._notifyAuthState) {
             authInstance._notifyAuthState(user);
         }
@@ -170,7 +217,8 @@ export const createUserWithEmailAndPassword = async (authInstance: any, email: s
 export const signOut = async (authInstance: any) => {
     if (authInstance?._isMock) {
         console.warn("🛡️ PHANTOM AUTH: Simulating Logout...");
-        localStorage.removeItem('MATRIX_FORCE_OFFLINE'); // Reset on logout
+        localStorage.removeItem('MATRIX_PHANTOM_SESSION');
+        localStorage.removeItem('MATRIX_FORCE_OFFLINE');
         window.location.reload();
         return;
     }
@@ -238,10 +286,59 @@ export const deleteDoc = async (docRef: any) => {
     return firestoreDeleteDoc(docRef);
 };
 
+export const onSnapshot = (ref: any, ...args: any[]) => {
+    if (ref?.firestore?._isMock || ref?._isMock) {
+        console.log("👻 PHANTOM: onSnapshot (No-op/Static)");
+        return () => {};
+    }
+    // @ts-ignore
+    return firestoreSnapshot(ref, ...args);
+};
+
+export const runTransaction = async (firestore: any, updateFunction: any, options?: any) => {
+    if ((firestore as any)?._isMock) {
+        return phantomRunTransaction(firestore, updateFunction);
+    }
+    return firestoreRunTransaction(firestore, updateFunction, options);
+};
+
+export const addDoc = async (collectionRef: any, data: any) => {
+    if (collectionRef?.firestore?._isMock || collectionRef?._isMock) {
+         const id = 'phantom-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+         const path = collectionRef.path + '/' + id;
+         const docRef = { type: 'document', path, firestore: collectionRef.firestore, id };
+         await phantomSetDoc(docRef, data);
+         return docRef;
+    }
+    return firestoreAddDoc(collectionRef, data);
+};
+
 export const waitForPendingWrites = async (firestore: any) => {
     if ((firestore as any)?._isMock) return Promise.resolve();
     return firestoreWait(firestore);
 };
 
-export { GoogleAuthProvider };
-export type { Firestore, Auth };
+// Re-export common types and SDK features
+export { 
+    GoogleAuthProvider,
+    Timestamp,
+    serverTimestamp,
+    increment,
+    arrayUnion,
+    arrayRemove,
+    where,
+    orderBy,
+    limit,
+    DocumentSnapshot, 
+    QuerySnapshot, 
+    DocumentReference, 
+    CollectionReference
+};
+export type { User } from 'firebase/auth';
+export type { 
+    Firestore,
+    Auth,
+    Transaction,
+    QueryConstraint,
+    FirestoreError
+};

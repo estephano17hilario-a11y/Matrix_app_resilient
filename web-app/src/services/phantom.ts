@@ -1,5 +1,36 @@
 import { User } from 'firebase/auth';
 
+// --- PERSISTENCE HELPERS ---
+const PHANTOM_SESSION_KEY = 'MATRIX_PHANTOM_SESSION';
+const PHANTOM_DB_KEY = 'MATRIX_PHANTOM_DB';
+
+const saveSession = (user: User | null) => {
+    if (user) {
+        localStorage.setItem(PHANTOM_SESSION_KEY, JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+        }));
+    } else {
+        localStorage.removeItem(PHANTOM_SESSION_KEY);
+    }
+};
+
+const getSavedSession = (): Partial<User> | null => {
+    const saved = localStorage.getItem(PHANTOM_SESSION_KEY);
+    return saved ? JSON.parse(saved) : null;
+};
+
+const getSavedDB = () => {
+    const saved = localStorage.getItem(PHANTOM_DB_KEY);
+    return saved ? JSON.parse(saved) : {};
+};
+
+const saveDB = (db: any) => {
+    localStorage.setItem(PHANTOM_DB_KEY, JSON.stringify(db));
+};
+
 // --- PHANTOM TYPES ---
 export const PHANTOM_USER: User = {
     uid: 'phantom-neo-v1',
@@ -24,7 +55,7 @@ export const PHANTOM_USER: User = {
         authTime: new Date().toISOString(),
         issuedAtTime: new Date().toISOString(),
         expirationTime: new Date().toISOString(),
-        signInSecondFactor: null, // Fixed missing property
+        signInSecondFactor: null,
     }),
     reload: async () => {},
     toJSON: () => ({}),
@@ -36,15 +67,17 @@ export const PHANTOM_USER: User = {
 
 export const phantomSignInWithPopup = async (auth: any, _provider: any) => {
     console.log("👻 PHANTOM: Signing in...");
-    await new Promise(resolve => setTimeout(resolve, 800)); // Fake network delay
+    await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Trigger the auth state listener
+    const user = { ...PHANTOM_USER };
+    saveSession(user);
+    
     if (auth._notifyAuthState) {
-        auth._notifyAuthState(PHANTOM_USER);
+        auth._notifyAuthState(user);
     }
     
     return {
-        user: PHANTOM_USER,
+        user,
         providerId: 'google.com',
         operationType: 'signIn'
     };
@@ -52,41 +85,53 @@ export const phantomSignInWithPopup = async (auth: any, _provider: any) => {
 
 export const phantomSignOut = async (auth: any) => {
     console.log("👻 PHANTOM: Signing out...");
+    saveSession(null);
     if (auth._notifyAuthState) {
         auth._notifyAuthState(null);
     }
 };
 
 export const phantomOnAuthStateChanged = (auth: any, observer: (user: User | null) => void) => {
-    // Store the observer so we can trigger it later
     auth._notifyAuthState = observer;
     
-    // Immediately trigger with null (initially) or simulated persistence
+    const savedUser = getSavedSession();
+    
     setTimeout(() => {
-        // By default start logged out in phantom mode unless we want to simulate persistence
-        observer(null); 
+        if (savedUser) {
+            console.log("🛡️ PHANTOM: Recovering session for", savedUser.email);
+            observer({ ...PHANTOM_USER, ...savedUser } as User);
+        } else {
+            observer(null); 
+        }
     }, 100);
     
-    return () => { auth._notifyAuthState = null; }; // Unsubscribe
+    return () => { auth._notifyAuthState = null; };
 };
 
 
 // --- FIRESTORE MOCKS ---
 
-const PHANTOM_DB: Record<string, any> = {
-    'users/phantom-neo-v1': {
-        uid: 'phantom-neo-v1',
-        email: 'neo@matrix.os',
-        displayName: 'Neo (Simulation)',
-        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Neo',
-        plan: 'PRO',
-        archetype: 'NEO',
-        stats: { hp: 100, maxHp: 100, xp: 5000, level: 5, gold: 1337, streak: 99 },
-        createdAt: Date.now(),
-        lastLoginAt: Date.now(),
-        theme: 'MATRIX'
-    }
+const getInitialDB = () => {
+    const local = getSavedDB();
+    if (Object.keys(local).length > 0) return local;
+
+    return {
+        'users/phantom-neo-v1': {
+            uid: 'phantom-neo-v1',
+            email: 'neo@matrix.os',
+            displayName: 'Neo (Simulation)',
+            photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Neo',
+            plan: 'PRO',
+            archetype: 'NEO',
+            stats: { hp: 100, maxHp: 100, xp: 5000, level: 5, gold: 1337, streak: 99 },
+            createdAt: Date.now(),
+            lastLoginAt: Date.now(),
+            theme: 'MATRIX'
+        }
+    };
 };
+
+let PHANTOM_DB = getInitialDB();
 
 export const phantomDoc = (_db: any, path: string, ...pathSegments: string[]) => {
     const fullPath = [path, ...pathSegments].join('/');
@@ -111,12 +156,18 @@ export const phantomSetDoc = async (ref: any, data: any, _options?: any) => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
+    saveDB(PHANTOM_DB);
 };
 
 export const phantomUpdateDoc = async (ref: any, data: any) => {
     console.log(`👻 PHANTOM: updateDoc(${ref.path})`, data);
-    if (!PHANTOM_DB[ref.path]) throw new Error("Document not found");
-    PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
+    if (!PHANTOM_DB[ref.path]) {
+        // Create if doesn't exist to be more resilient in onboarding
+        PHANTOM_DB[ref.path] = data;
+    } else {
+        PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
+    }
+    saveDB(PHANTOM_DB);
 };
 
 export const phantomRunTransaction = async (_db: any, updateFunction: (transaction: any) => Promise<any>) => {

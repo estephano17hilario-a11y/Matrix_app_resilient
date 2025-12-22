@@ -2,11 +2,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { 
   User, 
   onAuthStateChanged,
+  signOut,
   doc, 
   getDoc, 
   setDoc,
   waitForPendingWrites
-} from '../firebase';
+} from '../services/firebase';
 import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.warn("⚠️ MATRIX: Could not verify full sync (likely offline). Logout proceeding.");
       }
 
-      await auth.signOut();
+      await signOut(auth);
       setUser(null);
       setProfile(null);
     } catch (error) {

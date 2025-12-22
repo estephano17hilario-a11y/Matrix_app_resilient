@@ -7,7 +7,7 @@ import {
   User,
   doc, 
   getDoc 
-} from '../firebase';
+} from './firebase';
 
 /**
  * SERVICE: Firebase Authentication & User Data

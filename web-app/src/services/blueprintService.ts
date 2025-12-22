@@ -1,4 +1,4 @@
-import { db, collection, getDocs, doc, setDoc, deleteDoc } from '../firebase';
+import { db, collection, getDocs, doc, setDoc, deleteDoc } from './firebase';
 import { NoteBlueprint } from '../types';
 import { defaultBlueprints } from '../config/defaultBlueprints';
 

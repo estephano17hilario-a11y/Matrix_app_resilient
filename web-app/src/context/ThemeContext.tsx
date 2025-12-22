@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { doc, getDoc, setDoc, db } from '../firebase';
+import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
 
 interface ThemeContextType {

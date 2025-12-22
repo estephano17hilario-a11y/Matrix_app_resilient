@@ -6,7 +6,7 @@ import { calculateTaskRewards, Difficulty } from '../../../utils/rewardCalculato
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 
-export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Habit>) => void }) => {
+export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Habit>) => void, initialData?: Habit }) => {
     const { t } = useTranslation();
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
@@ -23,6 +23,41 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
     const [reminder, setReminder] = useState('');
     const [impact, setImpact] = useState(1);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
+
+    // Reset or Populate form on open
+    React.useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setTitle(initialData.title || '');
+                setDesc(initialData.description || '');
+                setAttrId(initialData.attribute || '');
+                setSmartProjectId(initialData.projectId || '');
+                setFreq(initialData.frequency || 'DAILY');
+                setLogic(initialData.type || 'BOOLEAN');
+                setTarget(initialData.targetValue?.toString() || '');
+                setUnit(initialData.unit || '');
+                setSubtasks(initialData.checklist?.map(c => c.text) || []);
+                setReminder(initialData.reminderTime || '');
+                // WeekDays/MonthCount not standard in basic Habit interface shown but if they exist in custom fields:
+                // Assuming defaults for now as they weren't in the partial type clearly.
+            } else {
+                // Reset
+                setTitle('');
+                setDesc('');
+                setAttrId('');
+                setSmartProjectId('');
+                setFreq('DAILY');
+                setWeekDays([]);
+                setMonthCount(1);
+                setLogic('BOOLEAN');
+                setTarget('');
+                setUnit('');
+                setSubtasks([]);
+                setReminder('');
+                setImpact(1);
+            }
+        }
+    }, [isOpen, initialData]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';

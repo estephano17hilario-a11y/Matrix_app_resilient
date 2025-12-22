@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FirestoreError } from 'firebase/firestore';
-import { doc, onSnapshot } from '../firebase';
+import { doc, onSnapshot, FirestoreError } from '../services/firebase';
 import { db, configStatus } from '../services/firebase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';

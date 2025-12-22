@@ -7,8 +7,7 @@ import { persistenceService } from '../../services/persistenceService';
 import { MissionCard } from './components/MissionCard';
 import { MissionHUD } from './components/MissionHUD';
 import { Loader2 } from 'lucide-react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { db, addDoc, collection } from '../../services/firebase';
 
 export const NexusView: React.FC = () => {
   const { user } = useMatrix();

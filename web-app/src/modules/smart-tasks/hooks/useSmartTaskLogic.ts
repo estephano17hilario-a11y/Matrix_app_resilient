@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '../../../services/firebase';
 import { StrategicNode, TimeFrame, SmartProject } from '../../../types/SmartGoal';
 import { getContextDates } from '../../../utils/dateUtils';
 import { generateTimeBlocks } from '../../../utils/fractalTimeEngine';

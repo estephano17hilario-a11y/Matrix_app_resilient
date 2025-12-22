@@ -11,8 +11,7 @@ import {
   Crown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { db, doc, updateDoc } from '../../services/firebase';
 
 interface ProUpgradeModalProps {
   isOpen: boolean;

@@ -14,8 +14,7 @@ import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../../services/firebase';
+import { doc, setDoc, db } from '../../../services/firebase';
 
 import { useTheme } from '../../../context/ThemeContext';
 

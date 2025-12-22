@@ -5,7 +5,7 @@ import {
   setDoc, 
   deleteDoc,
   Firestore
-} from 'firebase/firestore';
+} from '../services/firebase';
 import { db } from '../services/firebase';
 import { Project } from '../types';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
@@ -18,7 +18,7 @@ export const projectService = {
     try {
       const projectsRef = collection(db as Firestore, 'users', userId, 'projects');
       const snapshot = await getDocs(projectsRef);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as object } as Project));
     } catch (error) {
       console.error('Error fetching projects:', error);
       return [];

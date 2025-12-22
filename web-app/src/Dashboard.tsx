@@ -11,7 +11,7 @@ import { AuroraBackground } from './components/AuroraBackground';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
 import { Dock } from './modules/dashboard/components/Dock';
 import { QuestModal } from './modules/dashboard/components/QuestModal';
-import { HabitWizard } from './modules/dashboard/components/HabitWizard';
+import { HabitModal } from './modules/dashboard/components/HabitModal';
 import { ProjectModal } from './modules/dashboard/components/ProjectModal';
 import { ValidationModal } from './modules/dashboard/components/ValidationModal';
 import { GlobalStyles } from './styles/GlobalStyles';
@@ -779,7 +779,7 @@ export default function Dashboard() {
                         isSmartTask={!!smartTaskProps}
                         initialValues={editingQuest || undefined}
                     />
-                    <HabitWizard 
+                    <HabitModal 
                         isOpen={activeModal === 'HABIT'} 
                         onClose={() => { setActiveModal(null); setEditingHabit(null); }} 
                         attributes={attributes} 

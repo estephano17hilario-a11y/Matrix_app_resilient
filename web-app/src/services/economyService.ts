@@ -1,5 +1,4 @@
-import { db } from "./firebase";
-import { doc, runTransaction, Transaction } from "firebase/firestore";
+import { db, doc, runTransaction, Transaction } from "./firebase";
 
 export interface StoreItem {
   id: string;
@@ -26,12 +25,12 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
 
   try {
     await runTransaction(db, async (transaction: Transaction) => {
-      const userDoc = await transaction.get(userRef);
+      const userDoc = await transaction.get(userRef as any);
       if (!userDoc.exists()) {
         throw new Error("User does not exist!");
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any;
       const currentGold = userData.stats?.gold || 0;
       const currentInventory = userData.inventory || {};
 
@@ -47,7 +46,7 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
       };
 
       // Commit updates
-      transaction.update(userRef, {
+      transaction.update(userRef as any, {
         "stats.gold": newGold,
         inventory: newInventory
       });
@@ -68,15 +67,15 @@ export const addGold = async (userId: string, amount: number) => {
 
   try {
     await runTransaction(db, async (transaction: Transaction) => {
-        const userDoc = await transaction.get(userRef);
+        const userDoc = await transaction.get(userRef as any);
         if (!userDoc.exists()) {
             throw new Error("User does not exist!");
         }
         
-        const userData = userDoc.data();
+        const userData = userDoc.data() as any;
         const currentGold = userData.stats?.gold || 0;
         
-        transaction.update(userRef, {
+        transaction.update(userRef as any, {
             "stats.gold": currentGold + amount
         });
     });
@@ -95,12 +94,12 @@ export const consumeItem = async (userId: string, item: StoreItem) => {
 
   try {
     await runTransaction(db, async (transaction: Transaction) => {
-      const userDoc = await transaction.get(userRef);
+      const userDoc = await transaction.get(userRef as any);
       if (!userDoc.exists()) {
         throw new Error("User does not exist!");
       }
 
-      const userData = userDoc.data();
+      const userData = userDoc.data() as any;
       const currentInventory = userData.inventory || {};
       const itemCount = currentInventory[item.id] || 0;
 
@@ -152,7 +151,7 @@ export const consumeItem = async (userId: string, item: StoreItem) => {
           }
       }
 
-      transaction.update(userRef, updates);
+      transaction.update(userRef as any, updates);
     });
 
     return { success: true };

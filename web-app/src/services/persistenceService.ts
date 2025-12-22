@@ -7,9 +7,9 @@ import {
   deleteDoc,
   query,
   getDoc,
-  Firestore
+  Firestore,
+  QueryConstraint
 } from './firebase';
-import { QueryConstraint } from 'firebase/firestore';
 import { Quest, Habit, Note, JournalEntry, Attribute, Project } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
@@ -20,7 +20,7 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
     try {
       const ref = collection(db as Firestore, 'users', userId, collectionName);
       const snapshot = await getDocs(ref);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as object } as T));
     } catch (error) {
       console.error(`Error fetching ${collectionName}:`, error);
       return [];
@@ -33,7 +33,7 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
         const ref = collection(db as Firestore, 'users', userId, collectionName);
         const q = query(ref, ...constraints);
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as object } as T));
     } catch (error) {
         console.error(`Error fetching filtered ${collectionName}:`, error);
         return [];

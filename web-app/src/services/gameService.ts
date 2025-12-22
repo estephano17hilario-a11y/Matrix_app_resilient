@@ -1,4 +1,4 @@
-import { doc, runTransaction, db } from "../firebase";
+import { doc, runTransaction, db } from "./firebase";
 import { RewardPrediction } from "../utils/rewardCalculator";
 
 /**
@@ -19,7 +19,7 @@ export const completeTaskTransaction = async (
   // const taskRef = doc(db, "users", userId, "tasks", taskId);
 
   try {
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(db, async (transaction: any) => {
       const userDoc = await transaction.get(userRef);
       if (!userDoc.exists()) throw new Error("User does not exist!");
 
