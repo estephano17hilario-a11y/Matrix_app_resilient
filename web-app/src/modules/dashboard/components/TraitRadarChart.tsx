@@ -233,6 +233,24 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     );
                 })}
 
+                {/* Data Points - JEWELS (Subtle Gradient Tips) */}
+                {chartData.map((p, i) => (
+                    <motion.circle
+                        key={`pt-${i}`}
+                        cx={p.valuePoint.x}
+                        cy={p.valuePoint.y}
+                        r={2.5} // Tiny tip
+                        fill={p.color} // Trait color
+                        fillOpacity="0.9"
+                        stroke={p.color}
+                        strokeWidth="2"
+                        strokeOpacity="0.3" // Gradient glow effect via stroke
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
+                        transition={{ delay: i * 0.05, type: "spring" }}
+                    />
+                ))}
+
             </svg>
 
             {/* HTML LABELS LAYER */}

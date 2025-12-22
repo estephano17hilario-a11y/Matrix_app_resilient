@@ -79,7 +79,8 @@
         "CHECKLIST": "Checklist",
         "SIMPLE": "Simple"
       },
-      "noSteps": "No steps defined"
+      "noSteps": "No steps defined",
+      "linkToProject": "Link to Project (Optional)"
     },
     "project": {
       "title": "New Project",
@@ -364,6 +365,7 @@
     "section": "Section"
   },
   "common": {
+    "endDate": "End Date",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -441,6 +443,17 @@
             "title": "When is the <span className=\"font-bold\">Deadline</span>?",
             "subtitle": "Set the timeframe for success."
         },
+        "date": {
+            "title": "When is the <span className=\"font-bold\">Deadline</span>?",
+            "subtitle": "Set the timeframe for success.",
+            "mode": {
+                "calendar": "Calendar",
+                "duration": "Duration"
+            }
+        },
+        "action": {
+            "startJourney": "Start Journey"
+        },
         "inputType": {
             "date": "Date",
             "duration": "Duration"
@@ -458,6 +471,7 @@
             "semester": "Break down \"{{title}}\" into 2 Quarters.",
             "generic": "Break down \"{{title}}\" into {{count}} steps."
         },
+        "stepPlaceholder": "Define {{label}} ({{dateRange}})",
         "stepTitle": {
             "year": "Strategic Semesters",
             "semester": "Key Quarters",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSpring, useTransform } from 'framer-motion';
 
 export const GoldCounter = ({ value }: { value: number }) => {

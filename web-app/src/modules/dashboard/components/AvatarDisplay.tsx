@@ -34,24 +34,24 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
   const heartbeatTransition = {
     scale: {
       repeat: Infinity,
-      repeatType: "reverse",
+      repeatType: "reverse" as const,
       duration: 0.6, // Fast heartbeat
-      ease: "easeInOut"
+      ease: "easeInOut" as const
     },
     opacity: {
       repeat: Infinity,
-      repeatType: "reverse",
+      repeatType: "reverse" as const,
       duration: 0.6,
-      ease: "easeInOut"
+      ease: "easeInOut" as const
     }
   };
 
   const breatheTransition = {
     scale: {
       repeat: Infinity,
-      repeatType: "reverse",
-      duration: 3, // Slow breathing
-      ease: "easeInOut"
+      repeatType: "reverse" as const,
+      duration: 3, // Slow breath
+      ease: "easeInOut" as const
     }
   };
 

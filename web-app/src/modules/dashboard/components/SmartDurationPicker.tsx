@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ArrowRight } from 'lucide-react';
-import { generateTimeBlocks, FractalStructure, TimeUnit } from '../../../utils/fractalTimeEngine';
+import React, { useState } from 'react';
+import { Calendar, Clock } from 'lucide-react';
+import { generateTimeBlocks, FractalStructure } from '../../../utils/fractalTimeEngine';
 import { addMonths } from '../../../utils/dateUtils';
 
 interface SmartDurationPickerProps {
@@ -32,20 +32,6 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
         const res = generateTimeBlocks(startDate, end);
         setStructure(res);
         onStructureChange(res, end);
-    };
-
-    const getUnitLabel = (type: TimeUnit) => {
-        switch (type) {
-            case '10_YEARS': return 'Década';
-            case '5_YEARS': return 'Lustro';
-            case '1_YEAR': return 'Año';
-            case 'SEMESTER': return 'Semestre';
-            case 'QUARTER': return 'Trimestre';
-            case 'MONTH': return 'Mes';
-            case 'WEEK': return 'Semana';
-            case 'DAY': return 'Día';
-            default: return type;
-        }
     };
 
     return (
@@ -93,7 +79,7 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
                         {structure.structure.map((block, idx) => (
                             <React.Fragment key={idx}>
                                 <div className="bg-indigo-500/20 px-2 py-1 rounded-md text-xs font-medium text-indigo-200 border border-indigo-500/30">
-                                    {block.duration}
+                                    {block.durationLabel}
                                 </div>
                                 {idx < structure.structure.length - 1 && (
                                     <span className="text-white/20">+</span>

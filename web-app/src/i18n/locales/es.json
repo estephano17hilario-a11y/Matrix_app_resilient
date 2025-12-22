@@ -79,7 +79,8 @@
         "CHECKLIST": "Lista",
         "SIMPLE": "Simple"
       },
-      "noSteps": "Sin pasos definidos"
+      "noSteps": "Sin pasos definidos",
+      "linkToProject": "Vincular a Proyecto (Opcional)"
     },
     "project": {
       "title": "Nuevo Proyecto",
@@ -364,6 +365,7 @@
     "section": "Sección"
   },
   "common": {
+    "endDate": "Fecha de Finalización",
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
@@ -441,6 +443,17 @@
             "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
             "subtitle": "Establece el marco temporal para el éxito."
         },
+        "date": {
+            "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
+            "subtitle": "Establece el marco temporal para el éxito.",
+            "mode": {
+                "calendar": "Calendario",
+                "duration": "Duración"
+            }
+        },
+        "action": {
+            "startJourney": "Iniciar Viaje"
+        },
         "inputType": {
             "date": "Fecha",
             "duration": "Duración"
@@ -458,6 +471,7 @@
             "semester": "Desglosa \"{{title}}\" en 2 Trimestres.",
             "generic": "Desglosa \"{{title}}\" en {{count}} pasos."
         },
+        "stepPlaceholder": "Define {{label}} ({{dateRange}})",
         "stepTitle": {
             "year": "Semestres Estratégicos",
             "semester": "Trimestres Clave",

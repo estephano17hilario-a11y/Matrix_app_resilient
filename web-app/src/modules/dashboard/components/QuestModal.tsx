@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Sparkles, Target, ChevronDown } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Sparkles, Target, Clock } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
@@ -34,10 +34,10 @@ export const QuestModal = React.memo(({
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
-    const [subtasks, setSubtasks] = useState<{ id: string, title: string, isCompleted: boolean, createdAt: number }[]>([]);
-    const [newSubtask, setNewSubtask] = useState('');
+    // Subtasks removed as per tactical steps removal request
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
+    const [estimatedTime, setEstimatedTime] = useState(0);
 
     // Effect to apply locked props or initial values
     React.useEffect(() => {
@@ -49,7 +49,7 @@ export const QuestModal = React.memo(({
                 setProjectId(initialValues.projectId || '');
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || new Date().toISOString().split('T')[0]);
-                setSubtasks(initialValues.subtasks || []);
+                setEstimatedTime(initialValues.estimatedTime || 0);
             } else {
                 // Reset defaults for new quest
                 setTitle('');
@@ -58,7 +58,7 @@ export const QuestModal = React.memo(({
                 setProjectId('');
                 setDifficulty('C');
                 setDeadline(new Date().toISOString().split('T')[0]);
-                setSubtasks([]);
+                setEstimatedTime(0);
             }
 
             // Locks override initial values if present (though usually mutually exclusive)
@@ -75,23 +75,8 @@ export const QuestModal = React.memo(({
     const selectedProject = projects.find(p => p.id === projectId);
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(difficulty, deadline);
-    }, [difficulty, deadline]);
-
-    const handleAddSubtask = () => {
-        if (!newSubtask.trim()) return;
-        setSubtasks(prev => [...prev, {
-            id: crypto.randomUUID(),
-            title: newSubtask.trim(),
-            isCompleted: false,
-            createdAt: Date.now()
-        }]);
-        setNewSubtask('');
-    };
-
-    const handleRemoveSubtask = (id: string) => {
-        setSubtasks(prev => prev.filter(t => t.id !== id));
-    };
+        return calculateTaskRewards(difficulty, deadline, estimatedTime);
+    }, [difficulty, deadline, estimatedTime]);
 
     if (!isOpen) return null;
 
@@ -104,7 +89,8 @@ export const QuestModal = React.memo(({
             projectId,
             difficulty, 
             deadline,
-            subtasks,
+            estimatedTime,
+            subtasks: [], // Empty as tactical steps are removed
             xpReward: prediction.xp,
             gold: prediction.coins,
             isSmartQuest: isSmartTask
@@ -146,9 +132,66 @@ export const QuestModal = React.memo(({
                                 {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t('modals.quest.linkedStrategy')}</span>}
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors hover:bg-white/10">
-                            <X size={16} className="text-white/70" />
-                        </button>
+                        <div className="flex items-center gap-2 relative">
+                            {/* Project Link Button */}
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${projectId ? 'bg-white text-black' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                                    title={projectId ? selectedProject?.title : t('modals.quest.linkProject')}
+                                >
+                                    <Target size={16} />
+                                </button>
+                                {isProjectPickerOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setProjectPickerOpen(false)} />
+                                        <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-2xl border border-white/10 animate-in zoom-in-95 w-[200px] max-h-[300px] overflow-y-auto">
+                                            <button 
+                                                onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
+                                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                                                    <X size={14} className="text-white/50" />
+                                                </div>
+                                                <span className="text-xs font-bold text-white/50">{t('modals.quest.noProject')}</span>
+                                            </button>
+                                            {projects.map(p => {
+                                                const attr = attributes.find(a => a.id === p.attribute);
+                                                return (
+                                                    <button 
+                                                        key={p.id} 
+                                                        onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>
+                                                            <Target size={14} className="text-white" />
+                                                        </div>
+                                                        <div className="flex flex-col overflow-hidden">
+                                                            <span className="text-xs font-bold text-white truncate w-full">{p.title}</span>
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">{attr?.label}</span>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors hover:bg-white/10">
+                                <X size={16} className="text-white/70" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Reward Prediction - Top Location */}
+                    <div className="mb-6">
+                        <RewardPredictionPill 
+                            prediction={prediction} 
+                            attributeColor={activeColor} 
+                            AttributeIcon={SelectedIcon}
+                            attributeLabel={activeLabel}
+                        />
                     </div>
 
                     <div className="space-y-4">
@@ -198,89 +241,22 @@ export const QuestModal = React.memo(({
                             />
                         </div>
 
-                        {/* Project Selector */}
-                        <div className={`relative ${isProjectPickerOpen ? 'z-40' : ''}`}>
-                            <button 
-                                onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
-                                className={`w-full bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between transition-colors ${projectId ? 'border-white/20' : ''}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${projectId ? '' : 'bg-white/5'}`} style={{ backgroundColor: projectId ? (attributes.find(a => a.id === selectedProject?.attribute)?.color || '#333') : undefined }}>
-                                        <Target size={16} className={projectId ? 'text-white' : 'text-white/30'} />
-                                    </div>
-                                    <span className={`text-sm font-bold ${projectId ? 'text-white' : 'text-white/30'}`}>
-                                        {projectId ? selectedProject?.title : t('modals.quest.linkProject')}
-                                    </span>
-                                </div>
-                                <ChevronDown size={16} className={`text-white/30 transition-transform ${isProjectPickerOpen ? 'rotate-180' : ''}`} />
-                            </button>
 
-                            {isProjectPickerOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setProjectPickerOpen(false)} />
-                                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-2xl border border-white/10 animate-in zoom-in-95 max-h-[200px] overflow-y-auto">
-                                        <button 
-                                            onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
-                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                        >
-                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                                                <X size={14} className="text-white/50" />
-                                            </div>
-                                            <span className="text-xs font-bold text-white/50">{t('modals.quest.noProject')}</span>
-                                        </button>
-                                        {projects.map(p => {
-                                            const attr = attributes.find(a => a.id === p.attribute);
-                                            return (
-                                                <button 
-                                                    key={p.id} 
-                                                    onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
-                                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>
-                                                        <Target size={14} className="text-white" />
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-white">{p.title}</span>
-                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{attr?.label}</span>
-                                                    </div>
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Subtasks Section */}
-                        <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-4 space-y-3">
-                            <div className="flex items-center gap-2 mb-1">
-                                <Target size={14} className="text-cyan-400" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.quest.tacticalSteps')}</span>
+                        {/* Estimated Time */}
+                        <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Clock size={16} className="text-cyan-400" />
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.quest.estimatedTime') || "Est. Time (min)"}</span>
                             </div>
-                            
-                            <div className="space-y-2">
-                                {subtasks.map(task => (
-                                    <div key={task.id} className="flex items-center justify-between group bg-black/20 p-2 rounded-lg">
-                                        <span className="text-xs font-medium text-white/80 pl-1">{task.title}</span>
-                                        <button onClick={() => handleRemoveSubtask(task.id)} className="p-1 hover:bg-white/10 rounded-md text-white/30 hover:text-red-400 transition-colors">
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="flex items-center gap-2 bg-black/20 rounded-xl p-1 pr-2 border border-white/5 focus-within:border-white/20 transition-colors">
+                            <div className="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 border border-white/5 focus-within:border-white/20 transition-colors w-32">
                                 <input 
-                                    type="text" 
-                                    value={newSubtask}
-                                    onChange={(e) => setNewSubtask(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-                                    placeholder={t('modals.quest.addStepPlaceholder')}
-                                    className="flex-1 bg-transparent border-none text-xs text-white placeholder:text-white/20 px-3 py-2 outline-none"
+                                    type="number" 
+                                    value={estimatedTime === 0 ? '' : estimatedTime} 
+                                    onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)} 
+                                    placeholder="30"
+                                    className="w-full bg-transparent text-right text-sm font-bold text-white placeholder:text-white/20 outline-none"
                                 />
-                                <button onClick={handleAddSubtask} className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center hover:bg-cyan-500/20 hover:text-cyan-400 transition-all">
-                                    <Plus size={12} />
-                                </button>
+                                <span className="text-[10px] font-bold text-white/30">min</span>
                             </div>
                         </div>
 
@@ -329,14 +305,6 @@ export const QuestModal = React.memo(({
                                  <span className="text-xs font-bold text-white/50 uppercase">{new Date(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
                              </div>
                         </div>
-
-                        {/* Reward Prediction Pill */}
-                        <RewardPredictionPill 
-                            prediction={prediction} 
-                            attributeColor={activeColor} 
-                            AttributeIcon={SelectedIcon}
-                            attributeLabel={activeLabel}
-                        />
 
                         <button 
                             onClick={handleConfirm} 

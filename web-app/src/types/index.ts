@@ -42,6 +42,7 @@ export interface Quest {
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
   projectId?: string;
+  estimatedTime?: number; // Minutes
 }
 
 export interface Habit {
@@ -61,6 +62,7 @@ export interface Habit {
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
   projectId?: string;
+  estimatedTime?: number; // Minutes
 }
 
 export interface Project {

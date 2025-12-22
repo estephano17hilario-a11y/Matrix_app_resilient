@@ -784,6 +784,7 @@ export default function Dashboard() {
                         onClose={() => { setActiveModal(null); setEditingHabit(null); }} 
                         attributes={attributes} 
                         smartProjects={smartProjects}
+                        projects={projects}
                         onConfirm={handleHabitConfirm}
                         initialData={editingHabit || undefined}
                     />

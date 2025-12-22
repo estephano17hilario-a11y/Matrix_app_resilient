@@ -191,6 +191,49 @@ export const phantomRunTransaction = async (_db: any, updateFunction: (transacti
     return await updateFunction(transactionMock);
 };
 
+export const phantomWriteBatch = (_db: any) => {
+    const operations: (() => void)[] = [];
+    
+    const batch = {
+        set: (ref: any, data: any, _options?: any) => {
+             operations.push(() => {
+                 console.log(`👻 PHANTOM: batch.set(${ref.path})`, data);
+                 PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...data };
+             });
+             return batch;
+        },
+        update: (ref: any, data: any) => {
+             operations.push(() => {
+                 console.log(`👻 PHANTOM: batch.update(${ref.path})`, data);
+                 // Handle dot notation for nested fields like 'stats.hp'
+                 const updateData = { ...data };
+                 
+                 // Simple merge for now, but should handle dot notation if possible or assume flat for mock
+                 // If data has keys with dots, we might want to handle them.
+                 // For now, let's just do a shallow merge which is what the previous code did
+                 if (PHANTOM_DB[ref.path]) {
+                     PHANTOM_DB[ref.path] = { ...PHANTOM_DB[ref.path], ...updateData };
+                 }
+             });
+             return batch;
+        },
+        delete: (ref: any) => {
+             operations.push(() => {
+                 console.log(`👻 PHANTOM: batch.delete(${ref.path})`);
+                 delete PHANTOM_DB[ref.path];
+             });
+             return batch;
+        },
+        commit: async () => {
+             console.log(`👻 PHANTOM: batch.commit() - Executing ${operations.length} operations`);
+             await new Promise(resolve => setTimeout(resolve, 500));
+             operations.forEach(op => op());
+             saveDB(PHANTOM_DB);
+        }
+    };
+    return batch;
+};
+
 export const phantomOnSnapshot = (ref: any, onNext: (doc: any) => void, _onError?: (error: Error) => void) => {
     console.log(`👻 PHANTOM: onSnapshot(${ref.path})`);
     

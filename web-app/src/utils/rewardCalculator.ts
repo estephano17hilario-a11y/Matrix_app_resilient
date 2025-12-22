@@ -17,13 +17,22 @@ const BASE_REWARDS: Record<Difficulty, { xp: number; coins: number }> = {
 
 export const calculateTaskRewards = (
   difficulty: Difficulty,
-  dueDate?: string | Date | null
+  dueDate?: string | Date | null,
+  estimatedTime?: number // Minutes
 ): RewardPrediction => {
   // Default to C if invalid difficulty provided
   const base = BASE_REWARDS[difficulty] || BASE_REWARDS['C'];
   let xp = base.xp;
   let coins = base.coins;
   let bonusApplied = false;
+
+  // Time Estimation Bonus
+  // Logic: +10% XP/Coins for every 30 minutes, up to +50% (2.5 hours)
+  if (estimatedTime && estimatedTime > 0) {
+    const timeMultiplier = Math.min(0.5, (estimatedTime / 30) * 0.1);
+    xp = Math.floor(xp * (1 + timeMultiplier));
+    coins = Math.floor(coins * (1 + timeMultiplier));
+  }
 
   // Early Bird Bonus Logic
   if (dueDate) {

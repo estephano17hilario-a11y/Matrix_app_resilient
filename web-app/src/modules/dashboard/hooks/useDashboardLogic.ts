@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMatrix } from '../../../context/MatrixContext';
 import { checkAchievements } from '../../../services/achievementListener';
 import { Achievement } from '../../../config/achievements';
-import { Trophy, Flame, Clock, Star } from 'lucide-react';
+import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon } from 'lucide-react';
 import { 
   Attribute, Quest, Habit, Project, 
   NotificationItem, Particle, Session 
@@ -14,7 +14,7 @@ import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
-import { doc, setDoc, db } from '../../../services/firebase';
+import { doc, setDoc, db, writeBatch } from '../../../services/firebase';
 
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -59,12 +59,16 @@ export const useDashboardLogic = () => {
         date: new Date().toISOString().split('T')[0],
         taskXp: 0,
         taskGold: 0,
-        taskTraitPoints: 0
+        taskTraitPoints: 0,
+        habitsCompleted: 0,
+        focusSeconds: 0
     });
     
     // Data States
     const [quests, setQuests] = useState<Quest[]>([]);
     const [habits, setHabits] = useState<Habit[]>([]);
+    const [areHabitsLoaded, setAreHabitsLoaded] = useState(false);
+    const [isDailyCheckDone, setIsDailyCheckDone] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [smartProjects, setSmartProjects] = useState<SmartProject[]>([]);
 
@@ -158,7 +162,7 @@ export const useDashboardLogic = () => {
                         // But we do that lazily on first action.
                         // Here we just ensure local state is correct for TODAY.
                          setDailyLimits(prev => prev.date === today ? prev : { 
-                            date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0 
+                            date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0
                         });
                     }
                 }
@@ -176,6 +180,89 @@ export const useDashboardLogic = () => {
 
 
 
+
+    // --- DAILY RESET & PENALTY LOGIC ---
+    useEffect(() => {
+        if (!user?.uid || !areHabitsLoaded || isDailyCheckDone) return;
+
+        const processDailyReset = async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const lastDate = dailyLimits.date || today;
+
+            if (lastDate !== today) {
+                console.log(`[DAILY RESET] Processing transition from ${lastDate} to ${today}`);
+                
+                // 1. Calculate Penalty based on CURRENT habits (previous day's state)
+                const totalHabits = habits.length;
+                let damage = 0;
+                
+                if (totalHabits > 0) {
+                     const target = Math.ceil(totalHabits * 0.8);
+                     const completed = habits.filter(h => h.completedToday).length;
+                     
+                     if (completed < target) {
+                         // Formula: (Target - Completed) * 3
+                         const deficit = target - completed;
+                         damage = deficit * 3;
+                     }
+                }
+
+                // 2. Prepare Batch
+                const batch = writeBatch(db);
+                const userRef = doc(db, 'users', user.uid);
+
+                // 3. Apply Damage
+                let newHealth = health;
+                if (damage > 0) {
+                    console.log(`[DAILY RESET] Applying ${damage} damage.`);
+                    newHealth = Math.max(0, health - damage);
+                    batch.update(userRef, { 
+                        'stats.hp': newHealth 
+                    });
+                }
+
+                // 4. Reset Habits
+                const resetHabits = habits.map(h => {
+                    if (!h.completedToday) return h; 
+                    return { ...h, completedToday: false };
+                });
+                
+                habits.forEach(h => {
+                    if (h.completedToday) {
+                         const habitRef = doc(db, 'users', user.uid, 'habits', h.id);
+                         batch.update(habitRef, { completedToday: false });
+                    }
+                });
+
+                // 5. Update Daily Limits Date
+                const newLimits: DailyLimits = {
+                    date: today,
+                    taskXp: 0,
+                    taskGold: 0,
+                    taskTraitPoints: 0,
+                    habitsCompleted: 0,
+                    focusSeconds: 0
+                };
+                batch.update(userRef, { dailyLimits: newLimits });
+
+                try {
+                    await batch.commit();
+                    console.log("[DAILY RESET] Batch committed successfully.");
+                    
+                    if (damage > 0) setHealth(newHealth);
+                    setHabits(resetHabits);
+                    setDailyLimits(newLimits);
+                    
+                } catch (e) {
+                    console.error("[DAILY RESET] Failed:", e);
+                }
+            }
+            
+            setIsDailyCheckDone(true);
+        };
+
+        processDailyReset();
+    }, [user?.uid, areHabitsLoaded, isDailyCheckDone, dailyLimits.date]);
 
     const [attributes, setAttributes] = useState<Attribute[]>(() => 
         // Start with empty or loading state ideally, but for now defaults to prevent hydration mismatch if needed.
@@ -217,7 +304,10 @@ export const useDashboardLogic = () => {
             projectService.getUserProjects(user.uid).then(setProjects);
             // Load other data
             persistenceService.quests.getAll(user.uid).then(setQuests);
-            persistenceService.habits.getAll(user.uid).then(setHabits);
+            persistenceService.habits.getAll(user.uid).then(h => {
+                setHabits(h);
+                setAreHabitsLoaded(true);
+            });
             persistenceService.smartProjects.getAll(user.uid).then(setSmartProjects);
             persistenceService.attributes.getAll(user.uid).then(fetchedAttrs => {
                 if (fetchedAttrs.length > 0) {
@@ -605,7 +695,19 @@ export const useDashboardLogic = () => {
     }, []);
 
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
-        const baseReward = Math.floor(durationSeconds / 60);
+        // LIMIT CHECK
+        const today = new Date().toISOString().split('T')[0];
+        let currentLimits = dailyLimits;
+        if (currentLimits.date !== today) {
+             currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+        }
+
+        const availableSeconds = Math.max(0, DAILY_LIMITS.FOCUS.MAX_SECONDS - currentLimits.focusSeconds);
+        const rewardableSeconds = Math.min(durationSeconds, availableSeconds);
+        
+        // Only give rewards for rewardable seconds
+        const baseReward = Math.floor(rewardableSeconds / 60);
+
         let attrId = 'MENTAL';
         let multiplier = 1;
         if (projectId) {
@@ -629,13 +731,31 @@ export const useDashboardLogic = () => {
             }
         }
         const totalReward = Math.floor(baseReward * multiplier);
+        
+        // Update Limits
+        const newLimits = {
+            ...currentLimits,
+            focusSeconds: currentLimits.focusSeconds + rewardableSeconds // Only track rewardable? Or total? Requirement: "solo las primeras 12 horas al dia se veran recompensados" -> imply we track total to know when we pass 12h.
+            // Wait, if I track total, I should add durationSeconds.
+            // If I have 11 hours, and do 2 hours. Available = 1 hour. Rewardable = 1 hour.
+            // New Total should be 13 hours.
+            // Next time available = 0.
+        };
+        // Correcting logic:
+        newLimits.focusSeconds = currentLimits.focusSeconds + durationSeconds; // Track ACTUAL time spent
+
+        setDailyLimits(newLimits);
+        if (user?.uid) {
+            setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+        }
+
         addPlayerReward({ xp: totalReward, gold: 0 });
         updateAttributeXp(attrId, totalReward);
         const attr = attributes.find(a => a.id === attrId);
         const AttrIcon = attr?.icon || Star;
         spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
         addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' Matrix Coins', icon: Clock, color: '#fbbf24' });
-    }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user]);
+    }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user, dailyLimits]);
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
@@ -691,7 +811,14 @@ export const useDashboardLogic = () => {
             
             // Reset if needed (failsafe)
             if (currentLimits.date !== today) {
-                currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0 };
+                currentLimits = { 
+                    date: today, 
+                    taskXp: 0, 
+                    taskGold: 0, 
+                    taskTraitPoints: 0,
+                    habitsCompleted: 0,
+                    focusSeconds: 0 
+                };
             }
 
             const availableXp = Math.max(0, DAILY_LIMITS.TASKS.XP - currentLimits.taskXp);
@@ -782,9 +909,37 @@ export const useDashboardLogic = () => {
             spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#fff', Flame, 'fire');
             if(navigator.vibrate) navigator.vibrate([5, 20, 5]); 
             
-            const rewardXp = 20 + (habit.streak * 2); 
-            addPlayerReward({ xp: rewardXp, gold: 0 }); // Habits currently only give XP, maybe add gold later?
-            updateAttributeXp(habit.attribute, rewardXp);
+            // CHECK LIMITS
+            const today = new Date().toISOString().split('T')[0];
+            let currentLimits = dailyLimits;
+            if (currentLimits.date !== today) {
+                currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+            }
+
+            const habitsDone = currentLimits.habitsCompleted || 0;
+            const isRewardable = habitsDone < DAILY_LIMITS.HABITS.MAX_COUNT;
+            
+            let rewardXp = 20 + (habit.streak * 2);
+            if (habit.estimatedTime && habit.estimatedTime > 0) {
+                const timeMultiplier = Math.min(0.5, (habit.estimatedTime / 30) * 0.1);
+                rewardXp = Math.floor(rewardXp * (1 + timeMultiplier));
+            }
+            
+            if (!isRewardable) rewardXp = 0;
+
+            if (isRewardable) {
+                addPlayerReward({ xp: rewardXp, gold: 0 }); 
+                updateAttributeXp(habit.attribute, rewardXp);
+                
+                // Update Limits
+                const newLimits = { ...currentLimits, habitsCompleted: habitsDone + 1 };
+                setDailyLimits(newLimits);
+                if (user?.uid) {
+                    setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+                }
+            } else {
+                addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
+            }
             
             const todayISO = new Date().toISOString();
 
@@ -812,7 +967,7 @@ export const useDashboardLogic = () => {
         } else {
             setValidationHabit(habit); setValTempValue('0');
         }
-    }, [spawnParticles, updateAttributeXp, addPlayerReward, user]);
+    }, [spawnParticles, updateAttributeXp, addPlayerReward, user, dailyLimits]);
 
     const validateHabitProgress = () => {
         if (!validationHabit) return;
@@ -827,10 +982,39 @@ export const useDashboardLogic = () => {
         }
 
         if (isComplete) {
-            spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#fff', Trophy, 'fire');
-            const rewardXp = 20 + (validationHabit.streak * 2); 
-            addPlayerReward({ xp: rewardXp, gold: 0 });
-            updateAttributeXp(validationHabit.attribute, rewardXp);
+            // CHECK LIMITS
+            const today = new Date().toISOString().split('T')[0];
+            let currentLimits = dailyLimits;
+            if (currentLimits.date !== today) {
+                currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+            }
+
+            const habitsDone = currentLimits.habitsCompleted || 0;
+            const isRewardable = habitsDone < DAILY_LIMITS.HABITS.MAX_COUNT;
+
+            let rewardXp = 20 + (validationHabit.streak * 2);
+            // Time Multiplier
+            if (validationHabit.estimatedTime && validationHabit.estimatedTime > 0) {
+                const timeMultiplier = Math.min(0.5, (validationHabit.estimatedTime / 30) * 0.1);
+                rewardXp = Math.floor(rewardXp * (1 + timeMultiplier));
+            }
+
+            if (!isRewardable) rewardXp = 0;
+
+            if (isRewardable) {
+                spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#fff', Trophy, 'fire');
+                addPlayerReward({ xp: rewardXp, gold: 0 });
+                updateAttributeXp(validationHabit.attribute, rewardXp);
+
+                 // Update Limits
+                const newLimits = { ...currentLimits, habitsCompleted: habitsDone + 1 };
+                setDailyLimits(newLimits);
+                if (user?.uid) {
+                    setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+                }
+            } else {
+                 addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
+            }
         }
 
         const todayISO = new Date().toISOString();

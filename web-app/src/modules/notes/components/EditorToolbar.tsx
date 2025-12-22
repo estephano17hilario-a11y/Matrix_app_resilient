@@ -1,4 +1,3 @@
-import React from 'react';
 import { ListTodo, ImageIcon, PenTool } from 'lucide-react';
 
 export const EditorToolbar = ({ onAdd }: { onAdd: (type: 'text' | 'check' | 'image') => void }) => (

@@ -20,5 +20,11 @@ export const DAILY_LIMITS = {
     XP: 1500,
     TRAIT_POINTS: 600,
     GOLD: 300
+  },
+  HABITS: {
+    MAX_COUNT: 10 // Only first 10 habits give rewards
+  },
+  FOCUS: {
+    MAX_SECONDS: 28800 // 8 hours
   }
 };

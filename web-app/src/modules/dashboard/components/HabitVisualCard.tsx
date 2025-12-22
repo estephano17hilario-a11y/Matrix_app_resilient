@@ -41,18 +41,18 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribu
                 style={{ backgroundColor: color }} 
             />
 
-            {/* Action Buttons (Visible on Hover) */}
-            <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+            {/* Action Buttons (Visible on Hover) - Shifted to not overlap Check button */}
+            <div className="absolute top-4 right-16 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                 {onEdit && (
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onEdit(habit);
                         }}
-                        className="p-2 rounded-full bg-black/20 text-white/20 hover:text-white hover:bg-black/40 transition-all duration-200"
+                        className="p-1.5 rounded-full bg-black/40 text-white/50 hover:text-white hover:bg-black/60 transition-all duration-200 backdrop-blur-md"
                         title="Edit Habit"
                     >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                     </button>
                 )}
                 {onDelete && (
@@ -63,45 +63,50 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribu
                                 onDelete(habit.id);
                             }
                         }}
-                        className="p-2 rounded-full bg-black/20 text-white/20 hover:text-red-400 hover:bg-black/40 transition-all duration-200"
+                        className="p-1.5 rounded-full bg-black/40 text-white/50 hover:text-red-400 hover:bg-black/60 transition-all duration-200 backdrop-blur-md"
                         title="Delete Habit"
                     >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                     </button>
                 )}
             </div>
 
-            <div className="relative p-6 flex flex-col gap-6">
+            <div className="relative p-4 flex flex-col gap-3">
                 
-                {/* Header: Icon, Title, Check */}
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
+                {/* Header: Compact */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                         <div 
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/5 text-white/90 shadow-inner"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/5 text-white/90 shadow-inner shrink-0"
                         >
-                            {attribute?.icon ? <attribute.icon size={20} /> : <Flame size={20} />}
+                            {attribute?.icon ? <attribute.icon size={14} /> : <Flame size={14} />}
                         </div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-white tracking-tight leading-snug">
+                        <div className="flex flex-col min-w-0">
+                            <h3 className="text-sm font-semibold text-white tracking-tight leading-none truncate">
                                 {habit.title}
                             </h3>
-                            <div className="text-sm text-slate-400 font-medium">
-                                {habit.description || habit.frequency}
+                            <div className="flex items-center gap-2 mt-1.5">
+                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                    <Flame size={10} className={cn("transition-colors", habit.streak > 0 ? "text-orange-400" : "text-slate-600")} />
+                                    <span className={habit.streak > 0 ? "text-slate-300" : ""}>{habit.streak} streak</span>
+                                </div>
+                                <div className="w-0.5 h-2 rounded-full bg-white/10" />
+                                <span className="text-[10px] text-slate-500 whitespace-nowrap">{habit.totalCompletions} done</span>
                             </div>
                         </div>
                     </div>
                     
-                    {/* Check Button - iOS Style Toggle */}
+                    {/* Check Button - Compact */}
                     <button
                         onClick={(e) => onComplete(e, habit)}
                         className={cn(
-                            "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border relative overflow-hidden",
+                            "w-9 h-9 rounded-full flex items-center justify-center transition-all duration-500 border relative overflow-hidden shrink-0",
                             isCompleted 
                                 ? "bg-white border-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]" 
                                 : "bg-white/5 border-white/10 text-white/20 hover:bg-white/10 hover:border-white/20"
                         )}
                     >
-                        <Check size={20} strokeWidth={4} className={cn("relative z-10 transition-transform duration-300", isCompleted ? "scale-100" : "scale-75 opacity-50")} />
+                        <Check size={16} strokeWidth={4} className={cn("relative z-10 transition-transform duration-300", isCompleted ? "scale-100" : "scale-75 opacity-50")} />
                         {isCompleted && (
                             <motion.div 
                                 layoutId={`glow-${habit.id}`}
@@ -111,23 +116,13 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, attribu
                     </button>
                 </div>
 
-                {/* Heatmap Grid - Cleaner container */}
-                <div className="w-full">
+                {/* Heatmap Grid - Full Width, reduced dead space */}
+                <div className="w-full mt-1">
                     <HabitHeatmap 
                         history={habit.history || []} 
                         days={105} 
                         color={color} 
                     />
-                </div>
-                
-                {/* Footer Stats - Minimalist */}
-                <div className="flex items-center gap-4 text-xs font-medium text-slate-500/80 px-1 pt-2 border-t border-white/5">
-                    <div className="flex items-center gap-1.5">
-                        <Flame size={12} className={cn("transition-colors", habit.streak > 0 ? "text-orange-400" : "text-slate-600")} />
-                        <span className={habit.streak > 0 ? "text-slate-300" : ""}>{habit.streak} day streak</span>
-                    </div>
-                    <div className="w-0.5 h-3 rounded-full bg-white/10" />
-                    <div>{habit.totalCompletions} completions</div>
                 </div>
             </div>
         </motion.div>

@@ -42,7 +42,8 @@ import {
     CollectionReference,
     FirestoreError,
     Transaction,
-    QueryConstraint
+    QueryConstraint,
+    writeBatch as firestoreWriteBatch
 } from 'firebase/firestore';
 
 // --- 1. CONFIGURATION ---
@@ -116,6 +117,9 @@ if (isConfigValid && !forceOffline) {
 
 // --- 3. EXPORTS & PHANTOM PROXIES ---
 export { app, auth, db };
+
+
+
 export const configStatus = {
     isValid: !!isConfigValid,
     hasKeys: Object.keys(firebaseConfig).length > 0
@@ -128,7 +132,8 @@ import {
     phantomSetDoc, 
     phantomUpdateDoc,
     phantomOnAuthStateChanged,
-    phantomRunTransaction
+    phantomRunTransaction,
+    phantomWriteBatch
 } from './phantom';
 
 // --- AUTH PHANTOM PROXIES ---
@@ -300,6 +305,13 @@ export const runTransaction = async (firestore: any, updateFunction: any, option
         return phantomRunTransaction(firestore, updateFunction);
     }
     return firestoreRunTransaction(firestore, updateFunction, options);
+};
+
+export const writeBatch = (firestore: any) => {
+    if ((firestore as any)?._isMock) {
+        return phantomWriteBatch(firestore);
+    }
+    return firestoreWriteBatch(firestore);
 };
 
 export const addDoc = async (collectionRef: any, data: any) => {
