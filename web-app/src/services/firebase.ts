@@ -18,7 +18,12 @@ import {
   doc as firestoreDoc,
   setDoc as firestoreSetDoc,
   getDoc as firestoreGetDoc,
-  updateDoc as firestoreUpdateDoc
+  updateDoc as firestoreUpdateDoc,
+  collection as firestoreCollection,
+  getDocs as firestoreGetDocs,
+  query as firestoreQuery,
+  deleteDoc as firestoreDeleteDoc,
+  waitForPendingWrites as firestoreWait
 } from 'firebase/firestore';
 
 // --- 1. CONFIGURATION ---
@@ -112,7 +117,13 @@ export const configStatus = {
     hasKeys: Object.keys(firebaseConfig).length > 0
 };
 
-import { PHANTOM_USER } from './phantom';
+import { 
+    PHANTOM_USER, 
+    phantomDoc, 
+    phantomGetDoc, 
+    phantomSetDoc, 
+    phantomUpdateDoc 
+} from './phantom';
 
 // --- AUTH PHANTOM PROXIES ---
 export const signInWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
@@ -175,33 +186,62 @@ export const updateProfile = async (user: any, profile: any) => {
 };
 
 // --- FIRESTORE PHANTOM PROXIES ---
-export const doc = (...args: any[]) => {
-    if ((db as any)?._isMock) return { _isMock: true } as any;
-    return (firestoreDoc as any)(...args);
+export const doc = (firestore: any, path: string, ...segments: string[]) => {
+    if ((firestore as any)?._isMock) return phantomDoc(firestore, path, ...segments);
+    return firestoreDoc(firestore, path, ...segments);
 };
 
 export const setDoc = async (docRef: any, data: any, options?: any) => {
-    if (docRef?._isMock) {
-        console.warn("🛡️ PHANTOM DB: Simulating Save...");
-        return;
+    if (docRef?.firestore?._isMock || docRef?._isMock) {
+        return phantomSetDoc(docRef, data, options);
     }
     return firestoreSetDoc(docRef, data, options);
 };
 
 export const getDoc = async (docRef: any) => {
-    if (docRef?._isMock) {
-        console.warn("🛡️ PHANTOM DB: Simulating Load...");
-        return { exists: () => false, data: () => null };
+    if (docRef?.firestore?._isMock || docRef?._isMock) {
+        return phantomGetDoc(docRef);
     }
     return firestoreGetDoc(docRef);
 };
 
 export const updateDoc = async (docRef: any, data: any) => {
-    if (docRef?._isMock) {
-        console.warn("🛡️ PHANTOM DB: Simulating Update...");
-        return;
+    if (docRef?.firestore?._isMock || docRef?._isMock) {
+        return phantomUpdateDoc(docRef, data);
     }
     return firestoreUpdateDoc(docRef, data);
 };
 
+export const collection = (firestore: any, path: string, ...segments: string[]) => {
+    if ((firestore as any)?._isMock) return { _isMock: true, firestore, path: [path, ...segments].join('/') } as any;
+    return firestoreCollection(firestore, path, ...segments);
+};
+
+export const getDocs = async (queryRef: any) => {
+    if (queryRef?.firestore?._isMock || queryRef?._isMock) {
+        console.warn("🛡️ PHANTOM DB: Simulating getDocs...");
+        return { docs: [] };
+    }
+    return firestoreGetDocs(queryRef);
+};
+
+export const query = (ref: any, ...constraints: any[]) => {
+    if (ref?.firestore?._isMock || ref?._isMock) return ref;
+    return firestoreQuery(ref, ...constraints);
+};
+
+export const deleteDoc = async (docRef: any) => {
+    if (docRef?.firestore?._isMock || docRef?._isMock) {
+        console.warn("🛡️ PHANTOM DB: Simulating Delete...");
+        return;
+    }
+    return firestoreDeleteDoc(docRef);
+};
+
+export const waitForPendingWrites = async (firestore: any) => {
+    if ((firestore as any)?._isMock) return Promise.resolve();
+    return firestoreWait(firestore);
+};
+
 export { GoogleAuthProvider };
+export type { Firestore, Auth };

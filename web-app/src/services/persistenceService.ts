@@ -1,15 +1,15 @@
 import { 
-  collection, 
-  doc, 
-  getDocs, 
-  setDoc, 
+  db,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
   deleteDoc,
-  Firestore,
   query,
-  QueryConstraint,
-  getDoc
-} from 'firebase/firestore';
-import { db } from './firebase';
+  getDoc,
+  Firestore
+} from './firebase';
+import { QueryConstraint } from 'firebase/firestore';
 import { Quest, Habit, Note, JournalEntry, Attribute, Project } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';

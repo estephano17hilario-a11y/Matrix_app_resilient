@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Globe, Sparkles, CheckCircle2 } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { doc, updateDoc, db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { GlassCard } from './components/GlassCard';
@@ -86,7 +85,14 @@ export function OnboardingFlow() {
       
     } catch (error) {
       console.error("Error saving onboarding:", error);
-      // Handle error UI if needed
+      // Fail-safe: Even if it fails, try to refresh profile and hope for the best, 
+      // or at least let the user know.
+      try {
+        await refreshProfile();
+      } catch (e) {
+        setStep('traits'); // Go back so they can try again
+        alert("Error saving data. Please check your connection.");
+      }
     }
   };
 
