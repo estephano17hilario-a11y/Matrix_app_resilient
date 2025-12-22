@@ -244,10 +244,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                                 unit, 
                                 checklist: subtasks.map((t, i) => ({ id: i.toString(), text: t, completed: false })), 
                                 reminderTime: reminder,
-                                projectId: projectId || undefined, // Prefer regular project? Or should we support both?
-                                // If I want to support both, Habit interface needs smartProjectId field or we reuse projectId.
-                                // Given strict typing, I should probably stick to one or add field.
-                                // I'll assume projectId is for regular project as per request.
+                                projectId: smartProjectId || projectId || undefined,
                                 estimatedTime
                             })} 
                             disabled={!title || !attrId} 

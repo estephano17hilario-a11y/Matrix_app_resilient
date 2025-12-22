@@ -750,7 +750,7 @@ export default function Dashboard() {
                         onOpenModal={setActiveModal} 
                         isOpen={isDockOpen} 
                         onToggle={setIsDockOpen} 
-                        isHidden={isFocusMode || isNoteTaking || isWizardOpen}
+                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || currentView === 'NEXUS'}
                         dashboardStyle={dashboardStyle}
                     />
                     
@@ -772,7 +772,8 @@ export default function Dashboard() {
                         isOpen={activeModal === 'QUEST'} 
                         onClose={handleQuestModalClose} 
                         attributes={attributes} 
-                        projects={projects}
+                        projects={projects} 
+                        smartProjects={smartProjects}
                         onConfirm={handleQuestConfirm}
                         lockedAttributeId={smartTaskProps?.lockedAttributeId}
                         lockedDate={smartTaskProps?.lockedDate}

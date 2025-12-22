@@ -5,6 +5,16 @@ import { Habit, Note, Project } from '../../../types';
 import { SmartProject, StrategicNode } from '../../../types/SmartGoal';
 import { cn } from '../../../utils/cn';
 
+// Helper to safely get Date object from various formats
+const getDate = (date: any): Date | null => {
+  if (!date) return null;
+  if (date instanceof Date) return date;
+  if (typeof date.toDate === 'function') return date.toDate();
+  if (date.seconds) return new Date(date.seconds * 1000);
+  if (typeof date === 'string') return new Date(date);
+  return null;
+};
+
 interface MissionHUDProps {
   project: SmartProject;
   onClose: () => void;
@@ -244,7 +254,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
                                               {node.dueDate && (
                                                   <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md">
                                                       <Calendar size={10} className="text-cyan-400" />
-                                                      {node.dueDate.toDate().toLocaleDateString()}
+                                                      {getDate(node.dueDate)?.toLocaleDateString()}
                                                   </div>
                                               )}
                                               <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md">

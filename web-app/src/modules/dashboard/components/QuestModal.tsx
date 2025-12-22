@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Sparkles, Target, Clock } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
+import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ export const QuestModal = React.memo(({
     onClose, 
     attributes, 
     projects = [],
+    smartProjects = [],
     onConfirm,
     lockedAttributeId,
     lockedDate,
@@ -20,6 +22,7 @@ export const QuestModal = React.memo(({
     onClose: () => void, 
     attributes: Attribute[], 
     projects?: Project[],
+    smartProjects?: SmartProject[],
     onConfirm: (data: Partial<Quest>) => void,
     lockedAttributeId?: string,
     lockedDate?: string,
@@ -155,6 +158,38 @@ export const QuestModal = React.memo(({
                                                 </div>
                                                 <span className="text-xs font-bold text-white/50">{t('modals.quest.noProject')}</span>
                                             </button>
+                                            
+                                            {/* Smart Projects Section */}
+                                            {smartProjects && smartProjects.length > 0 && (
+                                                <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                                                    Strategic
+                                                </div>
+                                            )}
+                                            {smartProjects?.map(p => {
+                                                const attr = attributes.find(a => a.id === p.traitId);
+                                                return (
+                                                    <button 
+                                                        key={p.id} 
+                                                        onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.traitColor || attr?.color || '#333' }}>
+                                                            <Target size={14} className="text-white" />
+                                                        </div>
+                                                        <div className="flex flex-col overflow-hidden">
+                                                            <span className="text-xs font-bold text-white truncate w-full">{p.mainGoal}</span>
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Strategy</span>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
+
+                                            {/* Regular Projects Section */}
+                                            {projects && projects.length > 0 && (
+                                                <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest mt-2">
+                                                    Protocols
+                                                </div>
+                                            )}
                                             {projects.map(p => {
                                                 const attr = attributes.find(a => a.id === p.attribute);
                                                 return (
