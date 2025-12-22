@@ -7,9 +7,11 @@ import { AuroraBackground } from './components/AuroraBackground';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Lazy load components for performance
-const AuthScreen = lazy(() => import('./modules/auth/AuthScreen').then(module => ({ default: module.AuthScreen })));
-const OnboardingFlow = lazy(() => import('./modules/onboarding/OnboardingFlow').then(module => ({ default: module.OnboardingFlow })));
+// CRITICAL MODULES (Eager Load to prevent loading loops)
+import { AuthScreen } from './modules/auth/AuthScreen';
+import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
+
+// Lazy load heavy dashboard
 const Dashboard = lazy(() => import('./Dashboard'));
 
 /**

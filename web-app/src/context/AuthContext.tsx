@@ -78,6 +78,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // MATRIX LINK INITIALIZATION
+
+    // SAFETY NET: Force stop loading after 2 seconds if nothing happens (prevents infinite loading screen)
+    const safetyTimer = setTimeout(() => {
+        setIsLoading(prev => {
+            if (prev) {
+                console.warn("⚠️ MATRIX CORE: Auth timeout triggered (2000ms). Forcing entry.");
+                setError("Connection timeout. Entering Offline Mode.");
+                return false;
+            }
+            return prev;
+        });
+    }, 2000);
     
     // SAFEGUARD: If Config is invalid, we proceed in PHANTOM MODE (Mock)
     if (!configStatus.isValid) {
@@ -179,7 +191,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
   return (

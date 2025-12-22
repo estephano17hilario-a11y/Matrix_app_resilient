@@ -227,7 +227,7 @@ export const SettingsView = ({
                     >
                         <div className="relative z-10 flex flex-col gap-1">
                             <span className={cn("text-sm font-medium", currentTheme === theme.id ? "text-white" : "text-white/60")}>
-                                {theme.label}
+                                {theme.name}
                             </span>
                             {currentTheme === theme.id && (
                                 <motion.div layoutId="activeTheme" className="absolute right-0 top-0 text-emerald-400">

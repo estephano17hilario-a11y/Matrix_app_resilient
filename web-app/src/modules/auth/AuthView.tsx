@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Globe } from 'lucide-react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
-import { auth, db } from '../../services/firebase';
+import { 
+  auth, 
+  db, 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile,
+  doc,
+  setDoc,
+  GoogleAuthProvider
+} from '../../services/firebase';
 import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
@@ -82,6 +90,14 @@ export const AuthView = () => {
       let errorMessage = err.message.replace('Firebase: ', '');
       if (err.code === 'auth/operation-not-allowed') {
         errorMessage = t('auth.errors.authDisabled');
+      } else if (err.code === 'auth/network-request-failed') {
+         // AUTOMATIC RECOVERY PROTOCOL
+         // If network fails, we assume the user wants to enter anyway.
+         // We force Offline Mode and reload to initialize the Phantom (Mock) Backend.
+         console.warn("⚠️ NETWORK FAILURE DETECTED. ENGAGING PHANTOM PROTOCOL.");
+         localStorage.setItem('MATRIX_FORCE_OFFLINE', 'true');
+         window.location.reload();
+         return;
       }
       
       setError(errorMessage);

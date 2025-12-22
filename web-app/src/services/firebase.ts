@@ -1,11 +1,24 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { 
+  getAuth, 
+  Auth, 
+  signInWithEmailAndPassword as firebaseSignIn,
+  signInWithPopup as firebasePopup,
+  createUserWithEmailAndPassword as firebaseCreate,
+  signOut as firebaseSignOut,
+  updateProfile as firebaseUpdateProfile,
+  GoogleAuthProvider
+} from 'firebase/auth';
 import { 
   getFirestore, 
   Firestore, 
   initializeFirestore, 
   persistentLocalCache,
-  persistentMultipleTabManager
+  persistentMultipleTabManager,
+  doc as firestoreDoc,
+  setDoc as firestoreSetDoc,
+  getDoc as firestoreGetDoc,
+  updateDoc as firestoreUpdateDoc
 } from 'firebase/firestore';
 
 // --- 1. CONFIGURATION ---
@@ -23,12 +36,16 @@ const isConfigValid =
   firebaseConfig.apiKey.length > 20 &&
   !firebaseConfig.apiKey.includes('your_api_key');
 
+// --- 1.5 FORCE OFFLINE OVERRIDE ---
+// Allows the app to function even if the network is dead by forcing Phantom Mode.
+const forceOffline = localStorage.getItem('MATRIX_FORCE_OFFLINE') === 'true';
+
 // --- 2. SINGLETON INSTANCES ---
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (isConfigValid) {
+if (isConfigValid && !forceOffline) {
   try {
     // A. Initialize App
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -77,20 +94,114 @@ if (isConfigValid) {
 
   } catch (error) {
     console.error("❌ CRITICAL: Firebase failed to load.", error);
-    app = {} as any;
-    auth = {} as any;
-    db = {} as any;
+    app = { _isMock: true } as any;
+    auth = { _isMock: true } as any;
+    db = { _isMock: true } as any;
   }
 } else {
   console.warn("⚠️ MATRIX CORE: Running in Config-Less Mode.");
-  app = {} as any;
-  auth = {} as any;
-  db = {} as any;
+  app = { _isMock: true } as any;
+  auth = { _isMock: true } as any;
+  db = { _isMock: true } as any;
 }
 
-// --- 3. EXPORTS ---
+// --- 3. EXPORTS & PHANTOM PROXIES ---
 export { app, auth, db };
 export const configStatus = {
     isValid: !!isConfigValid,
     hasKeys: Object.keys(firebaseConfig).length > 0
 };
+
+import { PHANTOM_USER } from './phantom';
+
+// --- AUTH PHANTOM PROXIES ---
+export const signInWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
+    if (authInstance?._isMock) {
+        console.warn("🛡️ PHANTOM AUTH: Simulating Login...");
+        await new Promise(r => setTimeout(r, 800)); // Simulate network
+        
+        const user = { ...PHANTOM_USER, email, displayName: email.split('@')[0] };
+        if (authInstance._notifyAuthState) {
+            authInstance._notifyAuthState(user);
+        }
+        return { user };
+    }
+    return firebaseSignIn(authInstance, email, pass);
+};
+
+export const signInWithPopup = async (authInstance: any, provider: any) => {
+    if (authInstance?._isMock) {
+        console.warn("🛡️ PHANTOM AUTH: Simulating Google Login...");
+        await new Promise(r => setTimeout(r, 1000));
+        
+        if (authInstance._notifyAuthState) {
+            authInstance._notifyAuthState(PHANTOM_USER);
+        }
+        return { user: PHANTOM_USER };
+    }
+    return firebasePopup(authInstance, provider);
+};
+
+export const createUserWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
+    if (authInstance?._isMock) {
+        console.warn("🛡️ PHANTOM AUTH: Simulating Registration...");
+        await new Promise(r => setTimeout(r, 1200));
+        
+        const user = { ...PHANTOM_USER, email, displayName: 'New Operator' };
+        if (authInstance._notifyAuthState) {
+            authInstance._notifyAuthState(user);
+        }
+        return { user };
+    }
+    return firebaseCreate(authInstance, email, pass);
+};
+
+export const signOut = async (authInstance: any) => {
+    if (authInstance?._isMock) {
+        console.warn("🛡️ PHANTOM AUTH: Simulating Logout...");
+        localStorage.removeItem('MATRIX_FORCE_OFFLINE'); // Reset on logout
+        window.location.reload();
+        return;
+    }
+    return firebaseSignOut(authInstance);
+};
+
+export const updateProfile = async (user: any, profile: any) => {
+    if ((auth as any)?._isMock) {
+        console.warn("🛡️ PHANTOM AUTH: Simulating Profile Update...");
+        return;
+    }
+    return firebaseUpdateProfile(user, profile);
+};
+
+// --- FIRESTORE PHANTOM PROXIES ---
+export const doc = (...args: any[]) => {
+    if ((db as any)?._isMock) return { _isMock: true } as any;
+    return (firestoreDoc as any)(...args);
+};
+
+export const setDoc = async (docRef: any, data: any, options?: any) => {
+    if (docRef?._isMock) {
+        console.warn("🛡️ PHANTOM DB: Simulating Save...");
+        return;
+    }
+    return firestoreSetDoc(docRef, data, options);
+};
+
+export const getDoc = async (docRef: any) => {
+    if (docRef?._isMock) {
+        console.warn("🛡️ PHANTOM DB: Simulating Load...");
+        return { exists: () => false, data: () => null };
+    }
+    return firestoreGetDoc(docRef);
+};
+
+export const updateDoc = async (docRef: any, data: any) => {
+    if (docRef?._isMock) {
+        console.warn("🛡️ PHANTOM DB: Simulating Update...");
+        return;
+    }
+    return firestoreUpdateDoc(docRef, data);
+};
+
+export { GoogleAuthProvider };

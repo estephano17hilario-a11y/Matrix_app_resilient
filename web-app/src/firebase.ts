@@ -19,11 +19,20 @@ export const signInWithPopup = (authInstance: any, provider: any) => {
 };
 
 export const signInWithEmailAndPassword = (authInstance: any, e: string, p: string) => {
-     // Not implementing phantom for email/pass yet, fallback to real (will fail) or just throw
-     return realAuth.signInWithEmailAndPassword(authInstance, e, p);
+    if (isMock(authInstance)) {
+        console.warn("🛡️ PHANTOM: Simulating Email Login...");
+        return phantom.phantomSignInWithPopup(authInstance, null); // Re-use phantom logic
+    }
+    return realAuth.signInWithEmailAndPassword(authInstance, e, p);
 };
 
-export const createUserWithEmailAndPassword = realAuth.createUserWithEmailAndPassword;
+export const createUserWithEmailAndPassword = (authInstance: any, e: string, p: string) => {
+    if (isMock(authInstance)) {
+        console.warn("🛡️ PHANTOM: Simulating Registration...");
+        return phantom.phantomSignInWithPopup(authInstance, null); // Re-use phantom logic
+    }
+    return realAuth.createUserWithEmailAndPassword(authInstance, e, p);
+};
 
 export const signOut = (authInstance: any) => {
     if (isMock(authInstance)) return phantom.phantomSignOut(authInstance);
@@ -73,6 +82,11 @@ export const runTransaction = (firestore: any, updateFunction: any) => {
     return realFirestore.runTransaction(firestore, updateFunction);
 };
 
+export const waitForPendingWrites = (firestore: any) => {
+    if (isMock(firestore)) return Promise.resolve();
+    return realFirestore.waitForPendingWrites(firestore);
+};
+
 // --- QUERY / COLLECTION WRAPPERS (Basic Mock Support) ---
 
 export const collection = (firestore: any, path: string, ...segments: string[]) => {
@@ -96,11 +110,6 @@ export const onSnapshot = (query: any, ...args: any[]) => {
     }
     // @ts-ignore
     return realFirestore.onSnapshot(query, ...args);
-};
-
-export const waitForPendingWrites = (firestore: any) => {
-    if (isMock(firestore)) return Promise.resolve();
-    return realFirestore.waitForPendingWrites(firestore);
 };
 
 // Passthrough for query builders (they just build objects, safe to pass through or mock if needed)
