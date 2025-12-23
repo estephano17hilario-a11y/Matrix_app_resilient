@@ -6,7 +6,7 @@ import { calculateTaskRewards, Difficulty } from '../../../utils/rewardCalculato
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 
-export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => void }) => {
+export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
@@ -20,6 +20,32 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Reset or Populate form on open
+    React.useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setTitle(initialData.title || '');
+                setDesc(initialData.description || '');
+                setAttrId(initialData.attribute || '');
+                setSmartProjectId(initialData.smartProjectId || '');
+                // goalTarget logic is complex due to calculation, for now we skip complex reverse-calc or assume simpler default if not fully provided
+                // setGoalTarget(...); 
+                setPomoDuration(initialData.pomoDuration || 25);
+                setReminder(initialData.reminder || '');
+                setImpact(initialData.impact || 1);
+            } else {
+                setTitle('');
+                setDesc('');
+                setAttrId('');
+                setSmartProjectId('');
+                setGoalTarget(10);
+                setPomoDuration(25);
+                setReminder('');
+                setImpact(1);
+            }
+        }
+    }, [isOpen, initialData]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';

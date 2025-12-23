@@ -12,6 +12,7 @@ interface HabitItemProps {
 
 export const HabitItem = React.memo(({ habit, attribute, onComplete }: HabitItemProps) => {
   const Icon = attribute?.icon;
+  const activeColor = habit.customColor || attribute?.color;
 
   return (
     <motion.div
@@ -22,10 +23,10 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete }: HabitItem
       <div className="relative flex items-center p-3 gap-4">
         <div 
           className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-105"
-          style={{ backgroundColor: attribute?.color ? `${attribute.color}15` : 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: activeColor ? `${activeColor}15` : 'rgba(255,255,255,0.05)' }}
         >
           {attribute && Icon && (
-            <Icon size={22} style={{ color: attribute.color }} strokeWidth={2} />
+            <Icon size={22} style={{ color: activeColor }} strokeWidth={2} />
           )}
         </div>
         
@@ -56,9 +57,13 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete }: HabitItem
           className={cn(
             "w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 relative overflow-hidden active:scale-90",
             habit.completedToday 
-              ? "bg-gradient-to-br from-emerald-500 to-green-600 border-transparent shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
+              ? (activeColor ? "text-white border-transparent" : "bg-gradient-to-br from-emerald-500 to-green-600 border-transparent shadow-[0_0_20px_rgba(16,185,129,0.4)]")
               : "bg-[#0a0a0c] border-white/10 hover:border-white/30"
           )}
+          style={habit.completedToday && activeColor ? {
+              background: `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
+              boxShadow: `0 0 20px ${activeColor}60`
+          } : undefined}
         >
           {habit.completedToday ? (
             <Check size={24} className="text-white drop-shadow-md" strokeWidth={3.5} />

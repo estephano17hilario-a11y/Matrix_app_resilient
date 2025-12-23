@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MatrixProvider } from './context/MatrixContext';
@@ -7,81 +7,145 @@ import { AuroraBackground } from './components/AuroraBackground';
 import { LoadingScreen } from './components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// CRITICAL MODULES (Eager Load to prevent loading loops)
+// CRITICAL MODULES
 import { AuthScreen } from './modules/auth/AuthScreen';
 import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
 
-// Lazy load heavy dashboard
+// Lazy load Dashboard
 const Dashboard = lazy(() => import('./Dashboard'));
 
-/**
- * COMPONENT: APP ROUTER
- * LOGIC: Determines the reality the user experiences.
- */
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
   
+  // A profile is considered "loading" if we have a user but no profile data yet
+  const isSyncingProfile = user && !profile;
+  const isActuallyLoading = (isLoading || isSyncingProfile) && !hasTimedOut;
+
+  useEffect(() => {
+    // MATRIX STATS LOGGING
+    console.log("MATRIX STATE:", { 
+      isLoading, 
+      hasUser: !!user, 
+      hasProfile: !!profile, 
+      isSyncingProfile,
+      isActuallyLoading,
+      hasTimedOut
+    });
+    
+    // Safety timeout: If loading takes more than 8 seconds, force show whatever we have
+    const safetyTimer = setTimeout(() => {
+      if (isActuallyLoading) {
+        console.warn("MATRIX: Loading took too long. Forcing entry...");
+        setHasTimedOut(true);
+      }
+    }, 8000);
+
+    if (!isActuallyLoading) {
+      // Small delay to ensure the app content has started mounting
+      const timer = setTimeout(() => {
+        setShowOverlay(false);
+      }, 800);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(safetyTimer);
+      };
+    } else {
+      setShowOverlay(true);
+    }
+
+    return () => clearTimeout(safetyTimer);
+  }, [isActuallyLoading, isLoading, user, profile, hasTimedOut]);
+
+  // Determine what to show in the content layer
+  // If we are loading, we don't render anything in Layer 1 to avoid partial mounts
+  const renderContent = () => {
+    if (isActuallyLoading && !hasTimedOut) return null;
+
+    if (!user) {
+      return (
+        <motion.div 
+          key="auth" 
+          initial={{ opacity: 0, scale: 0.98 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          exit={{ opacity: 0, scale: 1.02 }} 
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full h-full"
+        >
+          <AuthScreen />
+        </motion.div>
+      );
+    }
+
+    if (!profile?.onboarding?.completedAt) {
+      return (
+        <motion.div 
+          key="onboarding" 
+          initial={{ opacity: 0, scale: 0.98 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          exit={{ opacity: 0, scale: 1.02 }} 
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full h-full"
+        >
+          <OnboardingFlow />
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div 
+        key="main" 
+        initial={{ opacity: 0, scale: 0.98 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        exit={{ opacity: 0, scale: 1.02 }} 
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full h-full"
+      >
+        <MatrixProvider userId={user.uid}>
+          <EconomyProvider>
+            <Suspense fallback={null}>
+              <Dashboard />
+            </Suspense>
+          </EconomyProvider>
+        </MatrixProvider>
+      </motion.div>
+    );
+  };
+
   return (
-    <>
-      {/* PERSISTENT BACKGROUND LAYER */}
-      <div className="fixed inset-0 z-[-1]">
+    <div className="relative w-full h-full overflow-hidden bg-[#020204]">
+      {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
+      <div className="fixed inset-0 z-0">
         <AuroraBackground />
       </div>
 
-      <AnimatePresence mode="wait">
-        {/* 1. INITIALIZATION STATE (The Loading Gate) */}
-        {isLoading ? (
+      {/* 2. LAYER 1: APP CONTENT */}
+      <div className="relative z-10 w-full h-full">
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
+      </div>
+
+      {/* 3. LAYER 2: GLOBAL LOADING OVERLAY (The Gate) */}
+      <AnimatePresence>
+        {showOverlay && (
           <motion.div
-            key="loading"
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
+            key="global-loading"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020204]"
+            initial={{ opacity: 1 }}
+            exit={{ 
+              opacity: 0,
+              scale: 1.05,
+              filter: 'blur(20px)',
+              transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] }
+            }}
           >
             <LoadingScreen />
           </motion.div>
-        ) : !user ? (
-          // 2. AUTHENTICATION GATE
-          <motion.div
-              key="auth"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-          >
-            <Suspense fallback={<LoadingScreen />}>
-              <AuthScreen />
-            </Suspense>
-          </motion.div>
-        ) : !profile?.onboarding?.completedAt ? (
-            // 3. CALIBRATION GATE (Onboarding)
-            <motion.div
-                key="onboarding"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-            >
-              <Suspense fallback={<LoadingScreen />}>
-                <OnboardingFlow />
-              </Suspense>
-            </motion.div>
-        ) : (
-          // 4. REALITY FORK
-          <MatrixProvider key="matrix-provider" userId={user.uid}>
-            <EconomyProvider>
-                <motion.div 
-                  key="dashboard"
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.5 }}
-                >
-                  <Suspense fallback={<LoadingScreen />}>
-                    <Dashboard />
-                  </Suspense>
-                </motion.div>
-            </EconomyProvider>
-          </MatrixProvider>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 

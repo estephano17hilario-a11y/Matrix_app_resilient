@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronLeft, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, RotateCcw } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
@@ -8,7 +7,7 @@ import { StatsHeader } from '../dashboard/components/StatsHeader';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
 import { useTranslation, Trans } from 'react-i18next';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onBack, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
@@ -17,7 +16,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     onUpdateProject: (p: Project) => void,
     addNotification: (n: any) => void,
     initialProjectId?: string | null,
-    onBack?: () => void,
+    
     userStats?: any,
     onToggleProfile?: () => void,
     onShowSettings?: () => void,
@@ -38,7 +37,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isCompleting, setIsCompleting] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-    const [showArchived, setShowArchived] = useState(false);
     
     // Robust Timer Ref
     const lastTickRef = React.useRef<number>(Date.now());
@@ -55,11 +53,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         onUpdateProject({ ...project, archived: true });
         setActiveMenuId(null);
         addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
-    };
-
-    const handleUnarchive = (project: Project) => {
-        onUpdateProject({ ...project, archived: false });
-        addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectRestored'), icon: RotateCcw, color: '#10b981' });
     };
 
     const confirmDelete = (e: React.MouseEvent, project: Project) => {
@@ -132,8 +125,12 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         // Only save if meaningful duration (> 10 seconds? or just save all as requested)
         // User asked for "exact progress", so we save it.
         onCompleteSession(selectedProjectId, finalDuration, mode);
+        
+        // Wait for animation to play a bit more before closing overlay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         setIsCompleting(false);
-        setShowHistory(true);
+        // setShowHistory(true); // User requested NOT to show history automatically
         
         // Reset Timer
         const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
@@ -241,17 +238,40 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-xl"
                     >
-                        <motion.div
-                            initial={{ scale: 0.5, opacity: 0, y: 50 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.8, opacity: 0 }}
-                            transition={{ type: "spring", damping: 15, stiffness: 400 }}
-                            className="relative flex flex-col items-center gap-4"
-                        >
-                            <ActiveIcon size={50} style={{ color: themeColor }} className="filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" />
-                        </motion.div>
+                        <div className="relative flex items-center justify-center w-32 h-32">
+                            {/* Ripple Effect - Soft Water Wave */}
+                            {[0, 1, 2].map((i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scale: 0.8, opacity: 0.6 }}
+                                    animate={{ scale: 2.5, opacity: 0 }}
+                                    transition={{ 
+                                        duration: 2.5, 
+                                        repeat: Infinity, 
+                                        delay: i * 0.8,
+                                        ease: "easeOut"
+                                    }}
+                                    className="absolute inset-0 rounded-full border border-white/20"
+                                    style={{ 
+                                        borderColor: themeColor,
+                                        boxShadow: `0 0 30px ${themeColor}40`,
+                                        background: `radial-gradient(circle, ${themeColor}10 0%, transparent 70%)`
+                                    }}
+                                />
+                            ))}
+
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                                className="relative z-10 flex flex-col items-center gap-4"
+                            >
+                                <ActiveIcon size={64} style={{ color: themeColor, filter: `drop-shadow(0 0 20px ${themeColor})` }} />
+                            </motion.div>
+                        </div>
                     </motion.div>
                 )}
                 {projectToDelete && (
@@ -286,108 +306,33 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         </motion.div>
                     </motion.div>
                 )}
-                
-                {/* Archived Projects Modal - Portal to escape parent transforms */}
-                {createPortal(
-                    <AnimatePresence>
-                        {showArchived && (
-                            <motion.div
-                                initial={{ opacity: 0, y: '100%' }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: '100%' }}
-                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className="fixed inset-0 z-[9999] bg-[#050505] flex flex-col font-sans"
-                            >
-                                {/* Header */}
-                                <div className="flex items-center justify-between px-6 pt-16 pb-6 border-b border-white/5 bg-[#050505]/80 backdrop-blur-2xl z-20 shadow-2xl">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                                            <Archive size={20} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-white tracking-wide uppercase">{t('common.archived')}</h2>
-                                            <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">{t('focus.archived.subtitle')}</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowArchived(false)} 
-                                        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 border border-white/5"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                {/* List */}
-                                <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 gap-3 content-start pb-32 bg-gradient-to-b from-[#050505] to-[#0a0a0a]">
-                                    {projects.filter(p => p.archived && !p.deleted).map(p => {
-                                        const attr = attributes.find(a => a.id === p.attribute);
-                                        const Icon = attr?.icon || Target;
-                                        return (
-                                            <motion.div 
-                                                layoutId={p.id}
-                                                key={p.id} 
-                                                className="bg-[#121212]/80 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:border-white/10 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center text-slate-400 border border-white/5 group-hover:text-white transition-colors">
-                                                        <Icon size={20} style={{ color: attr?.color }} />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-white font-bold text-lg leading-tight">{p.title}</h3>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400 border border-white/5 uppercase tracking-wider">{attr?.label || 'General'}</span>
-                                                            <span className="text-slate-500 text-xs font-mono">{Math.floor(p.totalTime / 60)}h {p.totalTime % 60}m</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleUnarchive(p)} 
-                                                    className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-xl text-xs font-bold text-emerald-400 transition-all active:scale-95 flex items-center gap-2 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
-                                                >
-                                                    <RotateCcw size={14} /> {t('focus.archived.restore')}
-                                                </button>
-                                            </motion.div>
-                                        )
-                                    })}
-                                    {projects.filter(p => p.archived && !p.deleted).length === 0 && (
-                                        <div className="flex flex-col items-center justify-center pt-32 text-slate-500 gap-4 opacity-50">
-                                            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-                                                <Archive size={40} strokeWidth={1.5} />
-                                            </div>
-                                            <p className="text-sm font-medium uppercase tracking-widest">{t('focus.archived.empty')}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>,
-                    document.body
-                )}
             </AnimatePresence>
 
             {/* --- LIST VIEW --- */}
             <div className={`flex flex-col w-full h-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
-                {/* Scrollable Content */}
-                <div className="w-full flex-1 overflow-y-auto pb-32">
+                {/* Header - Title + Archive (Moved Outside Scroll for better accessibility) */}
+                <div className="flex justify-between items-center pt-6 pb-2 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/50 backdrop-blur-md pointer-events-auto">
+                    <div className="w-8" /> {/* Spacer for balance */}
+                    <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowArchived(true);
+                        }} 
+                        className="w-12 h-12 rounded-full bg-indigo-500/20 hover:bg-indigo-500/40 flex items-center justify-center text-white transition-all border border-indigo-500/30 active:scale-90 cursor-pointer relative z-[160] shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                        aria-label="View Archived Projects"
+                    >
+                        <Archive size={22} />
+                    </button>
+                </div>
 
-                    {/* Header - Now Scrollable */}
-                    <div className="flex justify-between items-center pt-2 pb-1 px-6 flex-shrink-0 z-20">
-                        <button 
-                            onClick={onBack} 
-                            className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors active:scale-95"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
-                        <button onClick={() => setShowArchived(true)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/5">
-                            <Archive size={16} />
-                        </button>
-                    </div>
-                    
-                    {/* Integrated Stats Header that scrolls with content */}
+                {/* Scrollable Content */}
+                <div className="w-full flex-1 overflow-y-auto pb-32 scrollbar-hide">
+
+                    {/* Integrated Stats Header - Moved to Top */}
                     {userStats && (
-                        <div className="mb-1 px-4">
+                        <div className="mb-1 px-4 mt-2">
                              <StatsHeader 
                                 level={userStats.level}
                                 xp={userStats.xp}
@@ -411,7 +356,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 px-4 content-start relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 content-start relative z-10 pb-40">
                     {projects.filter(p => !p.deleted && !p.archived).map((project) => {
                         const attr = attributes.find((a) => a.id === project.attribute);
                         
@@ -433,113 +378,108 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         const goalSeconds = goalMinutes * 60;
                         const progressVal = Math.min(100, (relevantTime / goalSeconds) * 100);
                         const progressPercentage = (relevantTime / goalSeconds) * 100;
+                        const remainingPercentage = Math.max(0, 100 - progressPercentage);
                         
                         const Icon = attr?.icon || Star;
                         const activeColor = attr?.color || '#6366f1';
 
                         return (
-                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0 }} className="relative group rounded-[2rem] p-6 bg-[#121212]/40 backdrop-blur-2xl border border-white/5 overflow-visible transition-all duration-500 hover:scale-[1.01] hover:bg-[#121212]/60 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between h-auto min-h-[220px]">
+                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 backdrop-blur-3xl border overflow-visible transition-all duration-500 hover:bg-[#121212] flex flex-col gap-3 shadow-xl">
                                 
                                 {/* --- Sentient Glass Effects --- */}
                                 <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
-                                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 </div>
 
-                                {/* --- Header --- */}
-                                <div className="z-10 flex justify-between items-start relative mb-4">
-                                    <div className="flex items-start gap-4">
+                                {/* --- Header: Icon + Title + Menu --- */}
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
                                         <div 
-                                            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden transition-transform duration-500 group-hover:scale-105"
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg relative overflow-hidden shrink-0"
                                             style={{ background: `linear-gradient(135deg, ${activeColor}20, ${activeColor}05)` }}
                                         >
-                                            <div className="absolute inset-0 opacity-20" style={{ background: activeColor, filter: 'blur(10px)' }} />
-                                            <Icon size={24} style={{ color: activeColor }} className="relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+                                            <div className="absolute inset-0 opacity-20" style={{ background: activeColor, filter: 'blur(5px)' }} />
+                                            <Icon size={14} style={{ color: activeColor }} className="relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white tracking-tight leading-none mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+                                        <div className="min-w-0 flex flex-col justify-center">
+                                            <h3 className="text-sm font-bold text-white tracking-tight leading-none truncate pr-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
                                                 {project.title}
                                             </h3>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[11px] font-medium text-white/40 tracking-wider uppercase">{attr?.label || 'General'}</span>
-                                                {project.goalTarget > 0 && (
-                                                    <span className="text-[11px] font-mono text-white/30">• Goal: {Math.floor(project.goalTarget / 60)}h {project.goalTarget % 60 > 0 ? `${project.goalTarget % 60}m` : ''}</span>
-                                                )}
-                                            </div>
+                                            <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase mt-0.5">{attr?.label || 'General'}</span>
                                         </div>
                                     </div>
-                                    
-                                    <div className="relative">
-                                        <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }} className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
-                                            <MoreVertical size={16} />
+
+                                    {/* Menu */}
+                                    <div className="relative shrink-0 -mt-1 -mr-1">
+                                        <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }} className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
+                                            <MoreVertical size={14} />
                                         </button>
                                         <AnimatePresence>
                                             {activeMenuId === project.id && (
                                                 <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                                    className="absolute right-0 top-10 bg-[#1c1c1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1 backdrop-blur-3xl"
+                                                    initial={{ opacity: 0, scale: 0.9, y: 10, x: -10 }} animate={{ opacity: 1, scale: 1, y: 0, x: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10, x: -10 }}
+                                                    className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1 backdrop-blur-3xl"
                                                 >
-                                                    <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-medium text-white hover:bg-white/5 flex items-center gap-2 transition-colors"><Target size={14} /> Edit Target</button>
-                                                    <button onClick={(e) => handleArchiveProject(e, project)} className="w-full px-4 py-3 text-left text-xs font-medium text-amber-400 hover:bg-amber-500/10 flex items-center gap-2 transition-colors"><Archive size={14} /> Archive</button>
+                                                    <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
+                                                    <button onClick={(e) => handleArchiveProject(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 flex items-center gap-3 transition-colors"><Archive size={14} /> Archive</button>
                                                     <div className="h-[1px] bg-white/5 my-1" />
-                                                    <button onClick={(e) => confirmDelete(e, project)} className="w-full px-4 py-3 text-left text-xs font-medium text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors"><Trash2 size={14} /> Delete</button>
+                                                    <button onClick={(e) => confirmDelete(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"><Trash2 size={14} /> Delete</button>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
                                     </div>
                                 </div>
 
-                                {/* --- Daily Progress Section (Apple Intelligence Style) --- */}
-                                <div className="z-10 mt-auto space-y-3">
-                                    <div className="flex justify-between items-end">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-1">Daily Progress</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl font-mono font-light text-white tracking-tighter">
-                                                    {Math.floor(relevantTime / 3600)}<span className="text-sm text-white/40">h</span> {Math.floor((relevantTime % 3600) / 60)}<span className="text-sm text-white/40">m</span>
-                                                </span>
-                                                <span className="text-xs text-white/30 font-medium">
-                                                    / {Math.floor(goalMinutes / 60)}h {goalMinutes % 60 > 0 ? `${goalMinutes % 60}m` : ''}
-                                                </span>
-                                            </div>
+                                {/* --- Body: Action + Progress --- */}
+                                <div className="flex items-center gap-3">
+                                    {/* Focus Button (Left) */}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); startSession(project.id); }}
+                                        style={{ 
+                                            backgroundColor: `${activeColor}15`, // Very light tint
+                                            borderColor: `${activeColor}30`,
+                                            boxShadow: `0 0 20px -5px ${activeColor}20`
+                                        }}
+                                        className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 group/btn"
+                                    >
+                                        <Play size={18} style={{ fill: activeColor, color: activeColor }} className="ml-1" />
+                                    </button>
+
+                                    {/* Progress Info (Right) */}
+                                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                        {/* Top: Time / Goal */}
+                                        <div className="flex justify-between items-end">
+                                             <div className="flex items-baseline gap-1 text-xs font-mono text-white/50">
+                                                <span className="text-white font-bold text-sm">{Math.floor(relevantTime / 3600)}h {Math.floor((relevantTime % 3600) / 60)}m</span>
+                                                <span className="text-[10px] opacity-60">/</span>
+                                                <span className="text-[10px] opacity-60">{Math.floor(goalMinutes / 60)}h {goalMinutes % 60 > 0 ? `${goalMinutes % 60}m` : ''}</span>
+                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className={`text-xl font-bold tracking-tight ${progressPercentage >= 100 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'text-white/80'}`}>
-                                                {Math.round(progressPercentage)}%
+
+                                        {/* Middle: Bar */}
+                                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${progressVal}%` }}
+                                                transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                                                style={{ backgroundColor: activeColor }}
+                                                className="h-full rounded-full relative overflow-hidden shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]" />
+                                            </motion.div>
+                                        </div>
+
+                                        {/* Bottom: % Remaining */}
+                                        <div className="flex justify-end">
+                                            <span className="text-[9px] font-bold tracking-wider text-white/40">
+                                                {progressPercentage >= 100 ? (
+                                                    <span style={{ color: activeColor }}>COMPLETED</span>
+                                                ) : (
+                                                    <span>{Math.round(remainingPercentage)}% LEFT</span>
+                                                )}
                                             </span>
                                         </div>
                                     </div>
-
-                                    {/* Liquid Bar */}
-                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative shadow-inner">
-                                        <motion.div 
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${progressVal}%` }}
-                                            transition={{ type: "spring", stiffness: 50, damping: 20 }}
-                                            className="absolute top-0 bottom-0 left-0 rounded-full"
-                                            style={{ 
-                                                background: `linear-gradient(90deg, ${activeColor}, ${activeColor}dd)`,
-                                                boxShadow: `0 0 15px ${activeColor}60`
-                                            }}
-                                        >
-                                            {/* Shimmer Effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]" />
-                                            
-                                            {/* Tip Glow */}
-                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_10px_white]" />
-                                        </motion.div>
-                                    </div>
-                                </div>
-
-                                {/* --- Action Button --- */}
-                                <div className="mt-5 z-10">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); startSession(project.id); }}
-                                        className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white text-xs font-bold uppercase tracking-widest transition-all duration-300 active:scale-[0.98] group-hover:border-white/20 flex items-center justify-center gap-2 shadow-lg"
-                                    >
-                                        <Play size={12} className="fill-current" />
-                                        Enter Focus
-                                    </button>
                                 </div>
                             </div>
                         )
@@ -556,7 +496,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100 ${isActive ? 'bg-[#0a0a0a]' : 'bg-[#0a0a0a]/20 backdrop-blur-xl'}` : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
                 {/* Header Actions (Minimize/Close) */}
-                <div className="w-full flex justify-between items-center px-6 pt-12 z-30">
+                <div className="w-full flex justify-between items-center px-6 pt-12 z-30 flex-none">
                     <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
                     
                     {/* Mode Switcher (Timer) */}
@@ -573,9 +513,11 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     <div className="w-11" /> {/* Spacer */}
                 </div>
 
-                {/* Timer Display */}
-                <div className="flex-1 flex items-center justify-center w-full relative -mt-10">
-                     <div className="relative w-[320px] h-[320px] flex items-center justify-center">
+                {/* Main Content Wrapper - Centered Vertically */}
+                <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 pb-12">
+                    
+                    {/* Timer Display */}
+                    <div className="relative w-[320px] h-[320px] flex items-center justify-center">
                         {/* Ambient Glow */}
                         <div className={`absolute inset-0 rounded-full blur-[90px] transition-opacity duration-1000 ${isActive ? 'opacity-30' : 'opacity-0'}`} style={{ backgroundColor: themeColor }} />
                         
@@ -617,21 +559,28 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             </button>
                         </div>
                     </div>
-                </div>
 
-                {/* Timer Controls */}
-                <div className="flex items-center gap-8 pb-32">
-                    <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md group shadow-lg">
-                        <StopCircle size={24} className="group-hover:text-red-400 transition-colors" />
-                    </button>
-                    
-                    <button onClick={toggleTimer} className="w-24 h-24 rounded-[3rem] bg-white text-black flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.15)] hover:scale-105 active:scale-95 transition-all z-20">
-                        {isActive && !isPaused ? <Pause size={38} fill="currentColor" /> : <Play size={38} fill="currentColor" className="ml-2" />}
-                    </button>
-                    
-                    <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg">
-                        <Volume2 size={24} />
-                    </button>
+                    {/* Timer Controls */}
+                    <div className="flex items-center gap-8">
+                        <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md group shadow-lg">
+                            <StopCircle size={24} className="group-hover:text-red-400 transition-colors" />
+                        </button>
+                        
+                        <button onClick={toggleTimer} 
+                            className="w-24 h-24 rounded-[3rem] flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+                            style={{ 
+                                backgroundColor: themeColor, 
+                                color: '#ffffff',
+                                boxShadow: `0 0 60px ${themeColor}60`
+                            }}
+                        >
+                            {isActive && !isPaused ? <Pause size={38} fill="currentColor" /> : <Play size={38} fill="currentColor" className="ml-2" />}
+                        </button>
+                        
+                        <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg">
+                            <Volume2 size={24} />
+                        </button>
+                    </div>
                 </div>
             </div>
 

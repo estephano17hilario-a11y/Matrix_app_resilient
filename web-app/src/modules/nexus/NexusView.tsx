@@ -1,115 +1,110 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatrix } from '../../context/MatrixContext';
-import { Habit, Note, Project } from '../../types';
+import { Habit, Note, Project, Quest } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
-import { persistenceService } from '../../services/persistenceService';
 import { MissionCard } from './components/MissionCard';
 import { MissionHUD } from './components/MissionHUD';
-import { Loader2 } from 'lucide-react';
-import { db, addDoc, collection } from '../../services/firebase';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-export const NexusView: React.FC = () => {
+export const NexusView: React.FC<{ 
+  onToggleImmersive?: (immersive: boolean) => void;
+  onOpenProjectModal?: (smartProjectId: string) => void;
+  onOpenHabitModal?: (smartProjectId: string) => void;
+  smartProjects: SmartProject[];
+  habits: Habit[];
+  notes: Note[];
+  projects: Project[];
+  quests: Quest[];
+  onToggleHabit: (e: React.MouseEvent, habit: Habit) => void;
+  onUpdateSmartProject: (updatedProject: SmartProject) => void;
+  onCompleteQuest: (e: React.MouseEvent, quest: Quest) => void;
+  onAddNote: (content: string, projectId: string) => void;
+  loading?: boolean;
+  targetSmartProjectId?: string | null;
+  onOpenWizard?: () => void;
+  onDeleteSmartProject?: (id: string) => void;
+  onAddQuest?: (date: Date, smartProjectId?: string) => void;
+  onClose?: () => void;
+  onSelectProject?: (projectId: string | null) => void;
+}> = ({ 
+  onToggleImmersive, 
+  onOpenProjectModal, 
+  onOpenHabitModal,
+  smartProjects,
+  habits,
+  notes,
+  projects,
+  quests,
+  onToggleHabit,
+  onUpdateSmartProject,
+  onCompleteQuest,
+  onAddNote,
+  loading = false,
+  targetSmartProjectId,
+  onOpenWizard,
+  onDeleteSmartProject,
+  onAddQuest,
+  onClose,
+  onSelectProject
+}) => {
   const { user } = useMatrix();
-  const [smartProjects, setSmartProjects] = useState<SmartProject[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<SmartProject | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(targetSmartProjectId || null);
 
-  // Load Data
   useEffect(() => {
-    if (!user?.uid) return;
+    if (targetSmartProjectId) {
+      setSelectedProjectId(targetSmartProjectId);
+    }
+  }, [targetSmartProjectId]);
 
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [fetchedProjects, fetchedHabits, fetchedNotes, fetchedFocusProjects] = await Promise.all([
-          persistenceService.smartProjects.getAll(user.uid),
-          persistenceService.habits.getAll(user.uid),
-          persistenceService.notes.getAll(user.uid),
-          persistenceService.projects.getAll(user.uid)
-        ]);
+  const handleSelectProject = (projectId: string | null) => {
+    setSelectedProjectId(projectId);
+    if (onSelectProject) {
+        onSelectProject(projectId);
+    }
+  };
 
-        // Cast fetched projects to SmartProject[]
-        setSmartProjects(fetchedProjects as SmartProject[]);
-        setHabits(fetchedHabits);
-        setNotes(fetchedNotes);
-        setProjects(fetchedFocusProjects);
-      } catch (error) {
-        console.error("Failed to initialize Nexus:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const selectedProject = smartProjects.find(p => p.id === selectedProjectId) || null;
 
-    loadData();
-  }, [user?.uid]);
+  // Sync Immersive Mode
+  useEffect(() => {
+    if (onToggleImmersive) {
+      onToggleImmersive(!!selectedProject);
+    }
+  }, [selectedProject, onToggleImmersive]);
 
   // Actions
-  const handleToggleHabit = async (habitId: string) => {
-    if (!user?.uid) return;
-    
-    // Optimistic Update
-    setHabits(prev => prev.map(h => 
-      h.id === habitId ? { ...h, completedToday: !h.completedToday } : h
-    ));
-
-    // Persist
-    const habit = habits.find(h => h.id === habitId);
-    if (habit) {
-        await persistenceService.habits.save(user.uid, {
-            ...habit,
-            completedToday: !habit.completedToday
-        });
-    }
-  };
-
   const handleUpdateProject = async (updatedProject: SmartProject) => {
     if (!user?.uid) return;
-
-    // Optimistic Update
-    setSmartProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-    if (selectedProject?.id === updatedProject.id) {
-        setSelectedProject(updatedProject);
-    }
-
-    // Persist
-    await persistenceService.smartProjects.save(user.uid, updatedProject);
+    // Call global handler directly
+    onUpdateSmartProject(updatedProject);
   };
 
-  const handleAddNote = async (content: string) => {
-    if (!user?.uid || !selectedProject) return;
-    
-    const tempId = Date.now().toString();
-    const newNote: Note = {
-        id: tempId,
-        title: `Mission Log: ${selectedProject.mainGoal}`,
-        blocks: [{ id: '1', type: 'text', content }],
-        updatedAt: new Date().toISOString(),
-        projectId: selectedProject.id
-    };
+  const handleToggleHabit = (habitId: string) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (habit) {
+        // Create a synthetic event with necessary properties for handleHabitClick
+        const syntheticEvent = { 
+            stopPropagation: () => {}, 
+            currentTarget: document.createElement('div') 
+        } as unknown as React.MouseEvent;
+        onToggleHabit(syntheticEvent, habit);
+    }
+  };
 
-    // Optimistic Update
-    setNotes(prev => [newNote, ...prev]);
-    
-    // Add to Notes collection
-    try {
-        const docRef = await addDoc(collection(db, `users/${user.uid}/notes`), {
-            title: newNote.title,
-            blocks: newNote.blocks,
-            projectId: newNote.projectId,
-            createdAt: new Date().toISOString(),
-            updatedAt: newNote.updatedAt
-        });
+  const handleCompleteQuest = (questId: string) => {
+    const quest = quests.find((q: Quest) => q.id === questId);
+    if (quest) {
+        const syntheticEvent = { stopPropagation: () => {}, currentTarget: document.createElement('div') } as unknown as React.MouseEvent;
+        onCompleteQuest(syntheticEvent, quest);
+    }
+  };
 
-        // Update with real ID
-        setNotes(prev => prev.map(n => n.id === tempId ? { ...n, id: docRef.id } : n));
-    } catch (e) {
-        console.error("Failed to log note", e);
-        // Revert
-        setNotes(prev => prev.filter(n => n.id !== tempId));
+  const handleAddNote = (content: string) => {
+    if (selectedProject) {
+        onAddNote(content, selectedProject.id);
     }
   };
 
@@ -125,13 +120,34 @@ export const NexusView: React.FC = () => {
     <div className="relative min-h-screen p-6 overflow-y-auto pb-24">
       
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white tracking-tighter">
-          DEPLOYMENT NEXUS
-        </h1>
-        <p className="text-white/40 font-mono text-sm mt-2">
-          SELECT ACTIVE MISSION PARAMETERS
-        </p>
+      <div className="mb-8 flex items-end justify-between">
+        <div className="flex flex-col gap-4">
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group w-fit"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="font-mono text-xs uppercase tracking-widest">{t('nexus.backToStrategy') || 'VOLVER A ESTRATEGIA'}</span>
+            </button>
+          )}
+          <div>
+            <h1 className="text-4xl font-bold text-white tracking-tighter">
+              DEPLOYMENT NEXUS
+            </h1>
+            <p className="text-white/40 font-mono text-sm mt-2">
+              SELECT ACTIVE MISSION PARAMETERS
+            </p>
+          </div>
+        </div>
+        {onOpenWizard && (
+            <button 
+                onClick={onOpenWizard}
+                className="px-6 py-3 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400 font-bold tracking-wider rounded-xl transition-all uppercase text-xs flex items-center gap-2"
+            >
+                <span>+ NEW PROTOCOL</span>
+            </button>
+        )}
       </div>
 
       {/* Grid */}
@@ -140,13 +156,14 @@ export const NexusView: React.FC = () => {
           <MissionCard
             key={project.id}
             project={project}
-            onClick={() => setSelectedProject(project)}
+            onClick={() => handleSelectProject(project.id)}
             isActive={false}
           />
         ))}
         
         {/* Add New Mission Placeholder */}
         <motion.div 
+            onClick={onOpenWizard}
             className="rounded-3xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center h-[280px] hover:bg-white/10 transition-colors cursor-pointer group"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -163,13 +180,30 @@ export const NexusView: React.FC = () => {
         {selectedProject && (
           <MissionHUD 
             project={selectedProject} 
-            onClose={() => setSelectedProject(null)} 
+            onClose={() => {
+                if (onClose) {
+                    onClose();
+                } else {
+                    handleSelectProject(null);
+                }
+            }} 
             habits={habits.filter(h => h.projectId === selectedProject.id)}
             notes={notes.filter(n => n.projectId === selectedProject.id)}
             projects={projects.filter(p => p.smartProjectId === selectedProject.id)}
+            quests={quests.filter(q => q.smartProjectId === selectedProject.id)}
             onToggleHabit={handleToggleHabit}
+            onCompleteQuest={handleCompleteQuest}
             onUpdateProject={handleUpdateProject}
             onAddNote={handleAddNote}
+            onAddProject={() => onOpenProjectModal?.(selectedProject.id)}
+            onAddHabit={() => onOpenHabitModal?.(selectedProject.id)}
+            onDeleteProject={() => {
+                if (onDeleteSmartProject) {
+                    onDeleteSmartProject(selectedProject.id);
+                    setSelectedProjectId(null);
+                }
+            }}
+            onAddQuest={() => onAddQuest?.(new Date(), selectedProject.id)}
           />
         )}
       </AnimatePresence>

@@ -24,8 +24,21 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
     const [newSubtask, setNewSubtask] = useState('');
     const [reminder, setReminder] = useState('');
     const [impact, setImpact] = useState(1);
+    const [customColor, setCustomColor] = useState<string | undefined>(undefined);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
+
+    const NEON_COLORS = [
+        '#ef4444', // Red
+        '#f97316', // Orange
+        '#eab308', // Yellow
+        '#22c55e', // Green
+        '#06b6d4', // Cyan
+        '#3b82f6', // Blue
+        '#8b5cf6', // Violet
+        '#d946ef', // Fuchsia
+        '#f43f5e', // Rose
+    ];
 
     // Reset or Populate form on open
     React.useEffect(() => {
@@ -42,6 +55,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                 setSubtasks(initialData.checklist?.map(c => c.text) || []);
                 setReminder(initialData.reminderTime || '');
                 setEstimatedTime(initialData.estimatedTime || 0);
+                setCustomColor(initialData.customColor);
                 // WeekDays/MonthCount not standard in basic Habit interface shown but if they exist in custom fields:
                 // Assuming defaults for now as they weren't in the partial type clearly.
             } else {
@@ -61,12 +75,13 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                 setSubtasks([]);
                 setReminder('');
                 setImpact(1);
+                setCustomColor(undefined);
             }
         }
     }, [isOpen, initialData]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
-    const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';
+    const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const SelectedIcon = selectedAttr?.icon || Star;
     const activeLabel = selectedAttr?.label || 'Trait';
 
@@ -180,6 +195,28 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                                  })}</div></>)}
                              </div>
                         </div>
+
+                        {/* Color Picker */}
+                        <div className="flex gap-2 items-center overflow-x-auto no-scrollbar py-2 px-1">
+                            {NEON_COLORS.map(color => (
+                                <button
+                                    key={color}
+                                    onClick={() => setCustomColor(color)}
+                                    className={`w-6 h-6 rounded-full shrink-0 transition-all duration-300 ${customColor === color ? 'scale-125 ring-2 ring-white z-10' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
+                                    style={{ 
+                                        background: color,
+                                        boxShadow: customColor === color ? `0 0 15px ${color}` : 'none'
+                                    }}
+                                />
+                            ))}
+                            <button 
+                                onClick={() => setCustomColor(undefined)}
+                                className={`w-6 h-6 rounded-full shrink-0 transition-all flex items-center justify-center border ${!customColor ? 'border-white bg-white/10' : 'border-white/10 opacity-30 hover:opacity-100'}`}
+                                title="Reset Color"
+                            >
+                                <X size={10} className="text-white" />
+                            </button>
+                        </div>
                         
                         {smartProjects && smartProjects.length > 0 && (
                             <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-2 px-4 flex items-center gap-3">
@@ -243,19 +280,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                                 targetValue: parseFloat(target), 
                                 unit, 
                                 checklist: subtasks.map((t, i) => ({ id: i.toString(), text: t, completed: false })), 
-                                reminderTime: reminder,
-                                projectId: smartProjectId || projectId || undefined,
-                                estimatedTime
-                            })} 
-                            disabled={!title || !attrId} 
-                            className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                                reminderTime: reminder, 
+                                projectId: smartProjectId || projectId || undefined, 
+                                estimatedTime,
+                                customColor
+                            })}
+                            disabled={!title}
+                            className="w-full py-4 rounded-[1.5rem] font-black text-black text-lg tracking-tight hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none shadow-xl relative overflow-hidden group"
                             style={{
-                                background: (!title || !attrId) 
-                                    ? undefined 
-                                    : `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
-                                boxShadow: (!title || !attrId) 
-                                    ? undefined 
-                                    : `0 8px 20px -4px ${activeColor}60, inset 0 1px 0 0 rgba(255,255,255,0.3)`
+                                background: attrId ? activeColor : 'white'
                             }}
                         >
                             {t('modals.habit.initiate')} <ArrowUp size={16} />

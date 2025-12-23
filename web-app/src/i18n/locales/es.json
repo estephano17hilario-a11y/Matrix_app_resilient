@@ -290,6 +290,9 @@
     "targets": "OBJETIVOS",
     "empty": "No hay misiones activas."
   },
+  "nexus": {
+    "backToStrategy": "Volver a Estrategia"
+  },
   "notes": {
     "tabs": {
       "notes": "Notas",

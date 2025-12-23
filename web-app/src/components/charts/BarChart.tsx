@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 export const BarChart = React.memo(({ 
     datasets, 
@@ -19,9 +20,36 @@ export const BarChart = React.memo(({
     barClassName?: string;
 }) => {
     const maxValue = useMemo(() => max || Math.max(...datasets.flatMap(d => d.data), 1), [datasets, max]);
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    const [tooltipPos, setTooltipPos] = useState<{top: number, left: number} | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Close tooltip when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setActiveIndex(null);
+            }
+        };
+        if (activeIndex !== null) {
+            document.addEventListener('click', handleClickOutside);
+        }
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [activeIndex]);
+
+    const handleBarClick = (i: number, e: React.MouseEvent) => {
+        e.stopPropagation(); // Stop propagation to prevent document listener from closing immediately if attached
+        const rect = e.currentTarget.getBoundingClientRect();
+        // Calculate position: Center of the bar, slightly above the top
+        const top = rect.top + window.scrollY - 10;
+        const left = rect.left + window.scrollX + (rect.width / 2);
+        
+        setActiveIndex(i);
+        setTooltipPos({ top, left });
+    };
     
     return (
-        <div className={`w-full relative select-none ${className}`} style={{ height }}>
+        <div ref={containerRef} className={`w-full relative select-none ${className}`} style={{ height }}>
              {/* Apple Intelligence Aura Background */}
              <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
@@ -34,20 +62,37 @@ export const BarChart = React.memo(({
                 </div>
              )}
 
+            {/* Portal Tooltip */}
+            {activeIndex !== null && tooltipPos && createPortal(
+                <div 
+                    className="absolute z-[9999] bg-[#1c1c1e] border px-3 py-2 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 min-w-[80px] pointer-events-none"
+                    style={{ 
+                        top: tooltipPos.top, 
+                        left: tooltipPos.left, 
+                        transform: 'translate(-50%, -100%)',
+                        borderColor: datasets[0]?.color || '#3b82f6'
+                    }}
+                >
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{labels[activeIndex]}</span>
+                    {datasets.map((ds, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
+                            {ds.data[activeIndex]} <span className="text-[9px] text-white/40 font-bold ml-auto">{ds.label}</span>
+                        </div>
+                    ))}
+                    {/* Tiny Triangle Arrow */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]" style={{ borderTopColor: datasets[0]?.color || '#3b82f6' }} />
+                </div>,
+                document.body
+            )}
+
             <div className="absolute inset-0 flex items-end gap-2 pt-4">
                 {labels.map((label, i) => (
-                    <div key={i} className="flex-1 h-full flex flex-col justify-end gap-1 group relative z-10">
-                        {/* Tooltip */}
-                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-[#1c1c1e]/90 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-[0_0_30px_rgba(0,0,0,0.5)] flex flex-col items-center gap-1 min-w-[80px] scale-95 group-hover:scale-100 origin-bottom duration-200">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-                            {datasets.map((ds, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap">
-                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
-                                    {ds.data[i]} <span className="text-[9px] text-white/40 font-bold ml-auto">{ds.label}</span>
-                                </div>
-                            ))}
-                        </div>
-
+                    <div 
+                        key={i} 
+                        onClick={(e) => handleBarClick(i, e)}
+                        className="flex-1 h-full flex flex-col justify-end gap-1 group relative z-10 cursor-pointer"
+                    >
                         {/* Bars Container */}
                         <div className="w-full flex items-end justify-center gap-1 flex-1 relative px-0.5">
                             {datasets.map((ds, idx) => {
@@ -60,9 +105,9 @@ export const BarChart = React.memo(({
                                             animate={{ height: `${h * 100}%`, opacity: 1 }}
                                             transition={{ 
                                                 type: "spring", 
-                                                stiffness: 200, 
-                                                damping: 20, 
-                                                delay: i * 0.03 
+                                                stiffness: 300, 
+                                                damping: 25, 
+                                                delay: i * 0.005 
                                             }}
                                             className={`w-full min-h-[4px] rounded-t-lg relative overflow-hidden ${barClassName}`}
                                             style={{ 
@@ -82,7 +127,7 @@ export const BarChart = React.memo(({
                         </div>
 
                         {/* Label */}
-                        <span className="text-[9px] font-bold text-slate-500 text-center mt-2 group-hover:text-white transition-colors duration-300">{label}</span>
+                        <span className={`text-[9px] font-bold text-center mt-2 transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
                     </div>
                 ))}
                 </div>

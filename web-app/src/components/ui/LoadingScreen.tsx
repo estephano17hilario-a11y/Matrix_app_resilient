@@ -32,37 +32,81 @@ export const LoadingScreen = () => {
   }, []); // Run once on mount
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent">
       {/* 
         NOTE: Background is handled in App.tsx to ensure persistence.
         This component only handles the text overlay.
       */}
       
-      <div className="relative z-10 flex flex-col items-center justify-between h-full py-20">
-        <div className="flex-1 flex items-center justify-center">
+      <div className="relative z-10 flex flex-col items-center justify-between h-full py-20 w-full">
+        <div className="flex-1 flex items-center justify-center w-full">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-            animate={{ opacity: showContent ? 1 : 0, scale: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-            className="text-center"
+            initial={{ opacity: 0, scale: 0.9, filter: 'blur(20px)' }}
+            animate={{ 
+              opacity: showContent ? 1 : 0, 
+              scale: showContent ? 1 : 0.9, 
+              filter: showContent ? 'blur(0px)' : 'blur(20px)',
+            }}
+            transition={{ 
+              duration: 1.5, 
+              ease: [0.22, 1, 0.36, 1],
+              delay: 0.2
+            }}
+            className="text-center relative"
           >
-            <h1 className="text-4xl md:text-6xl font-sans font-light tracking-[0.5em] text-white/90 select-none">
-              MATRIX
-            </h1>
+            <motion.h1 
+              animate={{ 
+                textShadow: [
+                  "0 0 20px rgba(79,70,229,0)", 
+                  "0 0 30px rgba(79,70,229,0.4)", 
+                  "0 0 20px rgba(79,70,229,0)"
+                ],
+                letterSpacing: ["0.4em", "0.6em", "0.4em"]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="text-4xl md:text-6xl font-sans font-extralight tracking-[0.5em] text-white/90 select-none uppercase"
+            >
+              Matrix
+            </motion.h1>
+            
+            <div className="absolute -bottom-12 left-0 right-0 flex justify-center">
+                <motion.div 
+                    className="h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent w-48 rounded-full"
+                    animate={{ 
+                      width: ["20%", "60%", "20%"], 
+                      opacity: [0.2, 0.5, 0.2],
+                      filter: ["blur(1px)", "blur(3px)", "blur(1px)"]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
+            </div>
           </motion.div>
         </div>
+        
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: showContent ? 1 : 0, y: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
-          className="text-center max-w-md px-6"
+          initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+          animate={{ 
+            opacity: showContent ? 1 : 0, 
+            y: showContent ? 0 : 20,
+            filter: showContent ? 'blur(0px)' : 'blur(10px)'
+          }}
+          transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center max-w-md px-8"
         >
-          <p className="text-white/60 text-sm font-medium italic mb-3 font-serif tracking-wide">
+          <p className="text-white/50 text-sm font-light italic mb-4 font-serif tracking-wider leading-relaxed">
             "{quote.text}"
           </p>
-          <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em]">
-            {quote.author}
-          </p>
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-[1px] w-4 bg-white/10" />
+            <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.3em]">
+              {quote.author}
+            </p>
+            <div className="h-[1px] w-4 bg-white/10" />
+          </div>
         </motion.div>
       </div>
     </div>

@@ -142,7 +142,7 @@
     --color-text-primary: 255 255 255;
   }
   
-  html, body {
+  html, body, #root {
     height: 100%;
     width: 100%;
     overflow: hidden; /* App-like behavior, no scroll on body */

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2, Edit2, Target } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Layout } from 'lucide-react';
 import { Quest, Attribute, Project } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
@@ -13,9 +13,11 @@ interface QuestItemProps {
   onDelete?: (id: string) => void;
   onEdit?: (quest: Quest) => void;
   onFocusProject?: (projectId: string) => void;
+  onOpenNexus?: (smartProjectId: string) => void;
+  compact?: boolean;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject, onOpenNexus, compact }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const Icon = attribute?.icon;
 
@@ -39,6 +41,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
         "relative rounded-[1.25rem] transition-all duration-300 mb-3 group",
+        compact ? "mb-2" : "mb-3",
         expanded ? "z-10 ring-1 ring-white/10" : "hover:bg-white/5",
         isSmart && "ring-1 ring-indigo-500/30 shadow-[0_0_15px_-5px_rgba(99,102,241,0.2)]"
       )}
@@ -98,6 +101,17 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                 </div>
               </div>
               
+              {/* NEXUS CONNECTION */}
+              {isSmart && onOpenNexus && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onOpenNexus(quest.smartProjectId || ''); }}
+                    className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40 transition-colors text-[10px] font-bold text-indigo-300 uppercase tracking-wider w-fit group/nexus"
+                  >
+                    <Layout size={12} className="group-hover/nexus:text-indigo-200 transition-colors" />
+                    Open Nexus
+                  </button>
+              )}
+
               <div className="flex items-center gap-3">
                 {attribute && Icon && (
                   <div className="flex items-center gap-1.5">

@@ -94,7 +94,8 @@ export const SettingsView = ({
   const availableTraits = TRAITS_LIST.filter(t => !attributes.find(a => a.id === t.id));
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#020204]">
+    // TRANSPARENT BACKGROUND as requested
+    <div className="w-full h-full flex flex-col bg-transparent">
       {/* HEADER */}
       <div className="flex items-center gap-4 p-6 pb-4">
         <button 
@@ -111,7 +112,7 @@ export const SettingsView = ({
 
       {/* TABS (Segmented Control) */}
       <div className="px-6 pb-6">
-        <div className="flex p-1 bg-white/5 rounded-full border border-white/5">
+        <div className="flex p-1 bg-white/5 rounded-full border border-white/5 backdrop-blur-md">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -213,36 +214,73 @@ export const SettingsView = ({
                     <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">{t('settings.themes')}</h3>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.values(THEMES).map((theme) => (
-                    <button
-                      key={theme.id}
-                      onClick={() => onThemeToggle(theme.id)}
-                      className={cn(
-                        "relative p-3 rounded-xl border text-left transition-all duration-300 overflow-hidden group",
-                        currentTheme === theme.id 
-                            ? "bg-white/10 border-white/30 shadow-lg" 
-                            : "bg-white/5 border-white/5 hover:bg-white/10"
-                      )}
-                    >
-                        <div className="relative z-10 flex flex-col gap-1">
-                            <span className={cn("text-sm font-medium", currentTheme === theme.id ? "text-white" : "text-white/60")}>
+                {/* THEME GRID - VISUAL PREVIEWS */}
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.values(THEMES).map((theme) => {
+                     const isActive = currentTheme === theme.id;
+                     return (
+                        <button
+                          key={theme.id}
+                          onClick={() => onThemeToggle(theme.id)}
+                          className={cn(
+                            "relative flex flex-col items-center text-left transition-all duration-300 group",
+                            isActive ? "scale-[1.02]" : "hover:scale-[1.02] opacity-80 hover:opacity-100"
+                          )}
+                        >
+                            {/* MINI THEME PREVIEW CARD */}
+                            <div className={cn(
+                                "w-full aspect-[16/10] rounded-xl overflow-hidden relative border transition-all mb-3 shadow-lg",
+                                isActive 
+                                    ? "border-white/40 ring-2 ring-white/10 ring-offset-2 ring-offset-black/20" 
+                                    : "border-white/10 group-hover:border-white/20"
+                            )}>
+                                {/* Theme Background Gradient */}
+                                <div className="absolute inset-0" style={{ background: theme.gradient }} />
+                                
+                                {/* Overlay for Depth */}
+                                <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]" />
+
+                                {/* Active Checkmark Overlay */}
+                                {isActive && (
+                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-20">
+                                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-100 animate-in zoom-in duration-300">
+                                            <Check size={16} strokeWidth={3} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* MINI UI SIMULATION */}
+                                <div className="absolute inset-2 flex flex-col gap-2 z-10 opacity-90">
+                                    {/* Mini Header */}
+                                    <div className="flex justify-between items-center">
+                                        <div className="h-1.5 w-10 rounded-full bg-white/40 backdrop-blur-sm" />
+                                        <div className="h-2 w-2 rounded-full border border-white/40" />
+                                    </div>
+                                    
+                                    {/* Mini Content Card */}
+                                    <div className="flex-1 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm p-1.5 flex flex-col gap-1.5">
+                                        <div className="h-1.5 w-16 rounded-full bg-white/30" />
+                                        <div className="h-1 w-full rounded-full bg-white/10" />
+                                        <div className="mt-auto flex gap-1">
+                                            <div className="h-3 w-3 rounded bg-white/20" />
+                                            <div className="h-3 w-3 rounded bg-white/20" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Theme Name Label */}
+                            <div className={cn(
+                                "text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border transition-all",
+                                isActive 
+                                    ? "bg-white text-black border-white" 
+                                    : "bg-white/5 text-white/60 border-white/5 group-hover:border-white/20 group-hover:text-white"
+                            )}>
                                 {theme.name}
-                            </span>
-                            {currentTheme === theme.id && (
-                                <motion.div layoutId="activeTheme" className="absolute right-0 top-0 text-emerald-400">
-                                    <Check size={14} />
-                                </motion.div>
-                            )}
-                        </div>
-                        {/* Preview Gradient */}
-                         <div className={cn(
-                             "absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity bg-gradient-to-br",
-                             theme.id === 'matrix' ? "from-green-900 to-black" :
-                             "from-indigo-900 to-black"
-                         )} />
-                    </button>
-                  ))}
+                            </div>
+                        </button>
+                      );
+                  })}
                 </div>
               </GlassPanel>
             </motion.div>
@@ -397,31 +435,23 @@ export const SettingsView = ({
                                   <div className="text-xs text-white/50">Upgrade to unlock full potential</div>
                               </div>
                           </div>
-                          {onShowPro && (
-                              <button 
-                                onClick={onShowPro}
-                                className="px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-white/90 transition-colors"
-                              >
-                                  UPGRADE
-                              </button>
-                          )}
+                          <button 
+                             onClick={onShowPro}
+                             className="px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:scale-105 transition-transform"
+                          >
+                              UPGRADE
+                          </button>
                       </div>
                   )}
-              </GlassPanel>
 
-              <GlassPanel className="p-1">
                   <button 
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 p-4 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors font-medium"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors"
                   >
-                      <LogOut size={18} />
-                      {t('settings.logout')}
+                    <LogOut size={16} />
+                    <span>{t('auth.signOut')}</span>
                   </button>
               </GlassPanel>
-              
-              <div className="text-center text-xs text-white/20 font-mono pt-4">
-                  MATRIX OS v1.2.0 • LIQUID BUILD
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

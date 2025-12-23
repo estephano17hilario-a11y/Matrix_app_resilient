@@ -60,13 +60,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </button>
                     
                     <button onClick={() => { handleView('STRATEGY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.1)]"><MapIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.strategy')}</span>
-                    </button>
-                    <button onClick={() => { handleView('NEXUS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><Zap size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">DEPLOY</span>
+                       <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(99,102,241,0.1)]"><MapIcon size={18} /></div><span className="text-white/90 font-bold text-[10px] tracking-wide">STRATEGY</span>
                     </button>
                     <button onClick={() => { handleView('ACHIEVEMENTS'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.fame')}</span>
+                       <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)]"><Trophy size={18} /></div><span className="text-white/90 font-bold text-[10px] tracking-wide">LEGACY</span>
                     </button>
 
                     {/* NEW ROW */}

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Heart, Zap, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { DailyLimitsHUD } from './DailyLimitsHUD';
+import { DailyLimits } from '../../../types/User';
 
 interface AvatarWidgetProps {
   level: number;
@@ -8,6 +10,7 @@ interface AvatarWidgetProps {
   nextXp: number;
   health: number;
   streak: number;
+  dailyLimits?: DailyLimits;
   displayName?: string | null;
   email?: string | null;
   isPro?: boolean;
@@ -64,10 +67,17 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, displayName, email, isPro }: AvatarWidgetProps) => (
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, dailyLimits, displayName, email, isPro }: AvatarWidgetProps) => (
     <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
+            {/* DAILY LIMITS HUD - MOVED ABOVE STREAK */}
+            {dailyLimits && (
+                <div className="absolute -top-24 left-0 w-32 z-30">
+                    <DailyLimitsHUD limits={dailyLimits} />
+                </div>
+            )}
+            
             <div className={`w-12 h-12 rounded-full p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)] ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}>
                 <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Avatar" className="w-full h-full rounded-full object-cover opacity-90" />
             </div>

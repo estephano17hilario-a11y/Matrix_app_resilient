@@ -18,11 +18,12 @@ import {
     ChevronUp,
     ChevronDown,
     LayoutList,
-    Plus
+    Plus,
+    Layout
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
-import { Attribute, Quest } from '../../../types'; // Import Quest
+import { Attribute, Quest } from '../../../types'; 
 import { QuestItem } from '../../tasks/components/QuestItem';
 import { Timestamp } from '../../../services/firebase';
 import { cn } from '../../../utils/cn';
@@ -32,16 +33,17 @@ import { TRAITS_LIST } from '../../dashboard/constants';
 
 interface StrategicMapViewProps {
   project: SmartProject;
-  quests?: Quest[]; // Add quests prop
+  quests?: Quest[]; 
   attributes?: Attribute[];
+  
   onUpdateProject?: (project: SmartProject) => void;
   onDeleteProject?: () => void;
   onDeleteNode?: (nodeId: string) => void;
-  onCreateNew?: () => void;
   onAddSmartTask?: (date: Date) => void;
   onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
   onEditQuest?: (q: Quest) => void;
+  onOpenNexus?: (smartProjectId: string) => void;
 }
 
 const LevelIcons: Record<TimeFrame, React.ReactNode> = {
@@ -111,10 +113,10 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     attributes = [], 
     onUpdateProject, 
     onDeleteProject, 
-    onDeleteNode, 
-    onAddSmartTask,
-    onCompleteQuest,
-    onDeleteQuest
+    onAddSmartTask, 
+    onCompleteQuest, 
+    onDeleteQuest,
+    onOpenNexus
 }) => {
   const { t } = useTranslation();
   // Navigation State
@@ -149,9 +151,37 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
       const lastChild = existingChildren.length > 0 ? existingChildren[existingChildren.length - 1] : null;
 
       // Calculate Start Date
-      let start = lastChild && lastChild.dueDate 
-          ? safeDate(lastChild.dueDate) 
-          : (activeNode.startDate ? safeDate(activeNode.startDate) : new Date());
+      const now = new Date();
+      const contextStart = activeNode.startDate ? safeDate(activeNode.startDate) : new Date();
+
+      // Start is max(now, contextStart)
+      // This ensures if we are in the context, we start today.
+      // If we are planning a future context, we start at the beginning of that context.
+      
+      // FIX: If we are deep in the tree (Day level), contextStart IS the day.
+      // If the day is Jan 3, and now is Dec 22. 
+      // We WANT start to be Jan 3, not Dec 22.
+      // But if context is "Week", and we create a Day, we might want it to be sequential.
+      
+      // Reverting logic to trust contextStart if it's explicitly set for future planning
+      let start = contextStart;
+      
+      // Only default to NOW if context is in the past or invalid
+      if (start < now && activeNode.level !== 'DAY') {
+          start = now;
+      }
+      
+      // If creating a specific day task/node, stick to the context date!
+      if (activeNode.level === 'DAY' || nextLevel === 'DAY') {
+         // Keep start as is (from lastChild or activeNode)
+         // But ensure it's not weirdly in the past if we are planning future
+         if (activeNode.startDate && safeDate(activeNode.startDate) > now) {
+             start = safeDate(activeNode.startDate);
+             if (lastChild && lastChild.dueDate) {
+                 start = safeDate(lastChild.dueDate);
+             }
+         }
+      }
 
       // If start is invalid, fallback to now
       if (isNaN(start.getTime())) start = new Date();
@@ -206,6 +236,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
       setIsCreating(false);
   };
 
+  // Sync title when node changes
   useEffect(() => {
       setEditTitle(activeNode.title);
   }, [activeNode]);
@@ -290,6 +321,29 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
       setIsEditing(false);
   };
 
+  const toggleNodeCompletion = (nodeId: string) => {
+      if (!onUpdateProject) return;
+
+      const updateNodeInTree = (node: StrategicNode): StrategicNode => {
+          if (node.id === nodeId) {
+              return { ...node, isCompleted: !node.isCompleted };
+          }
+          if (node.children) {
+              return { ...node, children: node.children.map(updateNodeInTree) };
+          }
+          return node;
+      };
+
+      const newRoot = updateNodeInTree(project.rootNode);
+      const newProject = { ...project, rootNode: newRoot };
+      
+      onUpdateProject(newProject);
+      
+      // Update local path state if the active node is the one being toggled
+      const newPath = path.map(p => p.id === nodeId ? { ...p, isCompleted: !p.isCompleted } : p);
+      setPath(newPath);
+  };
+
   const isLeafLevel = ['DAY'].includes(activeNode.level);
 
   // Filter quests for the active leaf node
@@ -336,41 +390,52 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                 })}
             </div>
             
-            {onDeleteProject && activeNode.level === 'YEAR' && (
-                <button 
-                    onClick={() => {
-                        if (window.confirm('¿Estás seguro de que quieres eliminar este Plan Inteligente? Se borrarán todas las tareas asociadas.')) {
-                            onDeleteProject();
-                        }
-                    }}
-                    className="ml-4 p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
-                    title="Eliminar Estrategia Completa"
-                >
-                    <Trash2 size={16} />
-                </button>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                {onCreateNew && (
+                    <button 
+                        onClick={onCreateNew}
+                        className="px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                    >
+                        <Plus size={12} />
+                        <span>Smart Goal</span>
+                    </button>
+                )}
 
-            {onDeleteNode && activeNode.level !== 'YEAR' && (
-                <button 
-                    onClick={() => {
-                        if (window.confirm('¿Eliminar esta sección completa y volver al nivel superior?')) {
-                            onDeleteNode(activeNode.id);
-                            // Navigate up automatically handled by parent update or we can manually go back
-                            if (path.length > 1) {
-                                setPath(path.slice(0, path.length - 1));
+                {onDeleteProject && activeNode.level === 'YEAR' && (
+                    <button 
+                        onClick={() => {
+                            if (window.confirm('¿Estás seguro de que quieres eliminar este Plan Inteligente? Se borrarán todas las tareas asociadas.')) {
+                                onDeleteProject();
                             }
-                        }
-                    }}
-                    className="ml-4 p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
-                    title="Eliminar Sección Actual"
-                >
-                    <Trash2 size={16} />
-                </button>
-            )}
+                        }}
+                        className="p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
+                        title="Eliminar Estrategia Completa"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+
+                {/* SECTIONS CANNOT BE DELETED - ONLY LEAF TASKS */}
+                {activeNode.level !== 'YEAR' && (
+                    <button 
+                        onClick={() => toggleNodeCompletion(activeNode.id)}
+                        className={cn(
+                            "p-2.5 rounded-full transition-all flex-shrink-0 border",
+                            activeNode.isCompleted 
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20" 
+                                : "bg-white/5 text-white/40 border-white/5 hover:text-white hover:border-white/20"
+                        )}
+                        title={activeNode.isCompleted ? "Marcar como incompleto" : "Completar Sección"}
+                    >
+                        <CheckCircle2 size={16} className={cn(activeNode.isCompleted && "fill-emerald-500/20")} />
+                    </button>
+                )}
+            </div>
         </div>
 
         {/* --- 2. MAIN CONTENT AREA --- */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar relative">
+            
             <div className="max-w-3xl mx-auto space-y-12">
                 
                 <AnimatePresence mode="wait">
@@ -453,6 +518,18 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
 
                         {/* CONTENT LIST */}
                         <div className="relative">
+                            
+                            {/* MISSIONS BUTTON (MOVED HERE) */}
+                            <div className="flex justify-center mb-6">
+                                <button
+                                    onClick={() => onOpenNexus && onOpenNexus(project.id)}
+                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200 hover:border-indigo-500/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-indigo-500/5 group"
+                                >
+                                    <Layout size={16} className="group-hover:scale-110 transition-transform" />
+                                    <span>MISSIONS PROTOCOL</span>
+                                </button>
+                            </div>
+
                             <div className="flex items-center justify-between mb-4 px-2">
                                 <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-widest">
                                     <LayoutList size={14} />
@@ -600,19 +677,20 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             </div>
                                                             
                                                             <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors relative z-10">
-                                                                {onDeleteNode && (
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (window.confirm('¿Eliminar esta rama y todas sus subtareas?')) {
-                                                                                onDeleteNode(child.id);
-                                                                            }
-                                                                        }}
-                                                                        className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all z-20"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                )}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleNodeCompletion(child.id);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "p-2 rounded-full transition-all z-20 border",
+                                                                        child.isCompleted
+                                                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                                                                            : "text-white/20 hover:text-white border-transparent hover:border-white/20 hover:bg-white/5"
+                                                                    )}
+                                                                >
+                                                                    <CheckCircle2 size={16} className={cn(child.isCompleted && "fill-emerald-500/20")} />
+                                                                </button>
                                                                 <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                                             </div>
                                                         </motion.div>
@@ -671,6 +749,6 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
             </div>
         </div>
     </div>
-  );
+    );
 };
 

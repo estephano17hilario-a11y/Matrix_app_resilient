@@ -41,8 +41,10 @@ export interface Quest {
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
+  smartProjectId?: string;
   projectId?: string;
   estimatedTime?: number; // Minutes
+  customColor?: string;
 }
 
 export interface Habit {
@@ -63,6 +65,7 @@ export interface Habit {
   history?: string[]; // ISO date strings of completions
   projectId?: string;
   estimatedTime?: number; // Minutes
+  customColor?: string;
 }
 
 export interface Project {

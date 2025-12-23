@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Sparkles, Target, Clock } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Target, Clock } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
+import { toLocalISOString } from '../../../utils/dateUtils';
 
 export const QuestModal = React.memo(({ 
     isOpen, 
@@ -15,6 +16,7 @@ export const QuestModal = React.memo(({
     onConfirm,
     lockedAttributeId,
     lockedDate,
+    lockedSmartProjectId,
     isSmartTask,
     initialValues
 }: { 
@@ -26,6 +28,7 @@ export const QuestModal = React.memo(({
     onConfirm: (data: Partial<Quest>) => void,
     lockedAttributeId?: string,
     lockedDate?: string,
+    lockedSmartProjectId?: string,
     isSmartTask?: boolean,
     initialValues?: Partial<Quest> | null
 }) => {
@@ -36,7 +39,7 @@ export const QuestModal = React.memo(({
     const [attrId, setAttrId] = useState('');
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
-    const [deadline, setDeadline] = useState(new Date().toISOString().split('T')[0]);
+    const [deadline, setDeadline] = useState(toLocalISOString(new Date()));
     // Subtasks removed as per tactical steps removal request
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -49,9 +52,9 @@ export const QuestModal = React.memo(({
                 setTitle(initialValues.title || '');
                 setDesc(initialValues.description || '');
                 setAttrId(initialValues.attribute || '');
-                setProjectId(initialValues.projectId || '');
+                setProjectId(initialValues.projectId || initialValues.smartProjectId || '');
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
-                setDeadline(initialValues.deadline || new Date().toISOString().split('T')[0]);
+                setDeadline(initialValues.deadline || toLocalISOString(new Date()));
                 setEstimatedTime(initialValues.estimatedTime || 0);
             } else {
                 // Reset defaults for new quest
@@ -60,7 +63,7 @@ export const QuestModal = React.memo(({
                 setAttrId('');
                 setProjectId('');
                 setDifficulty('C');
-                setDeadline(new Date().toISOString().split('T')[0]);
+                setDeadline(toLocalISOString(new Date()));
                 setEstimatedTime(0);
             }
 
@@ -76,6 +79,7 @@ export const QuestModal = React.memo(({
     const activeLabel = selectedAttr?.label || 'Trait';
     
     const selectedProject = projects.find(p => p.id === projectId);
+    const selectedSmartProject = smartProjects.find(p => p.id === (lockedSmartProjectId || initialValues?.smartProjectId));
 
     const prediction = useMemo(() => {
         return calculateTaskRewards(difficulty, deadline, estimatedTime);
@@ -84,19 +88,27 @@ export const QuestModal = React.memo(({
     if (!isOpen) return null;
 
     const handleConfirm = () => {
+        // If the selected projectId is actually a smart project, move it to smartProjectId
+        const finalSmartProjectId = lockedSmartProjectId || 
+                                   smartProjects.find(p => p.id === projectId)?.id || 
+                                   initialValues?.smartProjectId;
+        
+        const finalProjectId = smartProjects.find(p => p.id === projectId) ? '' : projectId;
+
         onConfirm({ 
             ...(initialValues?.id ? { id: initialValues.id } : {}),
             title, 
             description: desc, 
             attribute: attrId, 
-            projectId,
+            projectId: finalProjectId,
+            smartProjectId: finalSmartProjectId,
             difficulty, 
             deadline,
             estimatedTime,
             subtasks: [], // Empty as tactical steps are removed
             xpReward: prediction.xp,
             gold: prediction.coins,
-            isSmartQuest: isSmartTask
+            isSmartQuest: isSmartTask || !!finalSmartProjectId
         });
     };
 
@@ -108,7 +120,7 @@ export const QuestModal = React.memo(({
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/95" onClick={onClose} />
             <div className="relative z-10 w-full max-w-[360px]">
                 <div 
@@ -127,12 +139,18 @@ export const QuestModal = React.memo(({
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: attrId ? activeColor : '#333' }}>
                                 <Crosshair size={18} className="text-white" />
                             </div>
-                            <div>
-                                <h2 className="text-xl font-black text-white tracking-tight leading-none flex items-center gap-2">
+                            <div className="flex-1">
+                                <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                                     {initialValues ? t('modals.quest.titleEdit') : (isSmartTask ? t('modals.quest.titleSmart') : t('modals.quest.titleNew'))}
-                                    {isSmartTask && <Sparkles size={14} className="text-yellow-400" />}
+                                    {lockedSmartProjectId && (
+                                        <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full uppercase tracking-widest border border-cyan-500/20">
+                                            Mission: {selectedSmartProject?.mainGoal || 'Active'}
+                                        </span>
+                                    )}
                                 </h2>
-                                {isSmartTask && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t('modals.quest.linkedStrategy')}</span>}
+                                <p className="text-xs text-white/40 font-medium">
+                                    {lockedDate ? `Linked to ${lockedDate}` : (isSmartTask ? t('modals.quest.linkedStrategy') : '')}
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 relative">

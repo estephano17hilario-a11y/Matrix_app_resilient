@@ -24,7 +24,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       <motion.div 
         animate={{ 
           scale: [1, 1.2, 1],
-          opacity: [0.2, 0.3, 0.2],
+          opacity: [0.2, 0.3, 0.2], // Slightly reduced for "respiro"
           rotate: [0, 45, 0]
         }}
         transition={{ 
@@ -32,7 +32,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute top-[-10%] right-[-5%] w-[85vw] h-[85vw] max-w-[700px] max-h-[700px] rounded-full blur-[130px]" 
+        className="absolute top-[-25%] right-[-25%] w-[110vw] h-[110vw] md:top-[-10%] md:right-[-5%] md:w-[85vw] md:h-[85vw] max-w-[700px] max-h-[700px] rounded-full blur-[80px] md:blur-[130px]" 
         style={{ backgroundColor: overrideColor || 'rgb(var(--color-primary-glow))' }} 
       />
 
@@ -40,7 +40,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       <motion.div 
         animate={{ 
           scale: [1.2, 1, 1.2],
-          opacity: [0.15, 0.25, 0.15],
+          opacity: [0.15, 0.25, 0.15], // Reduced opacity
           x: [0, 50, 0]
         }}
         transition={{ 
@@ -48,7 +48,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute bottom-[-10%] left-[-10%] w-[75vw] h-[75vw] max-w-[600px] max-h-[600px] rounded-full blur-[110px]" 
+        className="absolute bottom-[-15%] left-[-25%] w-[90vw] h-[90vw] md:bottom-[-10%] md:left-[-10%] md:w-[75vw] md:h-[75vw] max-w-[600px] max-h-[600px] rounded-full blur-[70px] md:blur-[110px]" 
         style={{ backgroundColor: overrideColor ? 'rgb(var(--color-secondary-glow))' : 'rgb(var(--color-secondary-glow))' }}
       />
 
@@ -56,14 +56,14 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       <motion.div 
         animate={{ 
           y: [0, -40, 0],
-          opacity: [0.05, 0.15, 0.05]
+          opacity: [0.1, 0.2, 0.1] // Reduced opacity
         }}
         transition={{ 
           duration: 18, 
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute top-[30%] left-[20%] w-[50vw] h-[50vw] max-w-[500px] max-h-[500px] rounded-full blur-[100px]"
+        className="absolute top-[25%] left-[-25%] w-[80vw] h-[80vw] md:top-[30%] md:left-[20%] md:w-[50vw] md:h-[50vw] max-w-[500px] max-h-[500px] rounded-full blur-[60px] md:blur-[100px]"
         style={{ backgroundColor: 'rgb(var(--color-secondary-glow))' }}
       />
       
@@ -71,14 +71,14 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       <motion.div 
         animate={{ 
           y: [0, 40, 0],
-          opacity: [0.1, 0.2, 0.1]
+          opacity: [0.15, 0.25, 0.15] // Reduced opacity
         }}
         transition={{ 
           duration: 22, 
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute bottom-[20%] right-[10%] w-[40vw] h-[40vw] max-w-[400px] max-h-[400px] rounded-full blur-[120px]"
+        className="absolute bottom-[15%] right-[-15%] w-[70vw] h-[70vw] md:bottom-[20%] md:right-[10%] md:w-[40vw] md:h-[40vw] max-w-[400px] max-h-[400px] rounded-full blur-[70px] md:blur-[120px]"
         style={{ backgroundColor: 'rgb(var(--color-primary-glow))' }}
       />
 

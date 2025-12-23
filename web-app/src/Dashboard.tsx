@@ -55,7 +55,7 @@ const ViewContainer = ({ isActive, children, className = "" }: { isActive: boole
     );
 };
 
-const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
+const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectId: string): Quest[] => {
     const quests: Quest[] = [];
     
     const now = new Date();
@@ -75,10 +75,11 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
     // Filter Logic:
     // 1. Always include Root (YEAR) - The Main Goal
     // 2. Include DAY nodes only if within current week
-    // 3. Skip intermediate levels for the daily task list to avoid clutter
+    // 3. Include intermediate levels (SEMESTER, QUARTER, MONTH, WEEK) to ensure visibility
     
     const isRoot = node.level === 'YEAR';
     const isDay = node.level === 'DAY';
+    // const isIntermediate = ['SEMESTER', 'QUARTER', 'MONTH', 'WEEK'].includes(node.level);
     
     let shouldInclude = false;
     
@@ -87,11 +88,17 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
     } else if (isDay) {
         if (node.dueDate) {
             const date = node.dueDate.toDate();
-            // Check if it's in the current week
+            // Check if it's in the current week OR if it's today/overdue (if we want to show past due)
+            // User requirement: "tareas pasadas que aun se ven" -> Maybe they WANT to see them if not done?
+            // "quiero que este todo actualizado... coherencia de datos"
+            // Let's stick to current week window for now, but maybe expand if not completed?
             if (isWithinInterval(date, { start: weekStart, end: weekEnd })) {
                 shouldInclude = true;
             }
         }
+    } else {
+        // Intermediate nodes: Always include them if they have a title, so we can see the hierarchy/progress
+        shouldInclude = true;
     }
 
     // Create quest for current node (skip if it's a placeholder)
@@ -107,7 +114,8 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
             gold: node.reward?.coins || 0,
             deadline: node.dueDate ? node.dueDate.toDate().toISOString().split('T')[0] : undefined,
             subtasks: [],
-            isSmartQuest: true
+            isSmartQuest: true,
+            smartProjectId: smartProjectId
         };
         quests.push(quest);
     }
@@ -115,7 +123,7 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
     // Recursively process children
     if (node.children && node.children.length > 0) {
         node.children.forEach(child => {
-            quests.push(...convertNodeToQuests(child, traitId));
+            quests.push(...convertNodeToQuests(child, traitId, smartProjectId));
         });
     }
 
@@ -123,6 +131,10 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string): Quest[] => {
 };
 
 export default function Dashboard() {
+    useEffect(() => {
+        console.log("💎 MATRIX: Dashboard Mounted Successfully");
+    }, []);
+
     const { t, i18n } = useTranslation();
     // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
     const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS']));
@@ -168,6 +180,7 @@ export default function Dashboard() {
 
     const {
         user,
+        matrixLoading,
         lastAchievement,
         setLastAchievement,
         currentTheme,
@@ -191,6 +204,7 @@ export default function Dashboard() {
         projects,
         smartProjects,
         setSmartProjects,
+        notes,
         notifications,
         particles,
         activeModal,
@@ -204,6 +218,7 @@ export default function Dashboard() {
         handleCompleteSession,
         completeQuest,
         handleHabitClick,
+        handleToggleHabitDay,
         validateHabitProgress,
         handleQuestConfirm,
         handleDeleteQuest,
@@ -211,14 +226,35 @@ export default function Dashboard() {
         handleHabitConfirm,
         handleProjectConfirm,
         handleUpdateProject,
+        handleUpdateSmartProject,
+        handleAddNote,
         defaultChartMode,
         setDefaultChartMode,
         updateAttributeMetadata,
         addAttribute,
         removeAttribute,
         dashboardStyle,
-        updateDashboardStyle
+        updateDashboardStyle,
+        dailyLimits
     } = useDashboardLogic();
+
+    const [isNexusImmersive, setIsNexusImmersive] = useState(false);
+    const [modalInitialContext, setModalInitialContext] = useState<any>(null);
+    const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
+
+    const handleToggleImmersive = (immersive: boolean) => {
+        setIsNexusImmersive(immersive);
+    };
+
+    const handleOpenProjectModalFromNexus = (smartProjectId: string) => {
+        setModalInitialContext({ smartProjectId });
+        setActiveModal('PROJECT');
+    };
+
+    const handleOpenHabitModalFromNexus = (smartProjectId: string) => {
+        setModalInitialContext({ projectId: smartProjectId });
+        setActiveModal('HABIT');
+    };
 
     // ⚡ PERFORMANCE: Add current view to loaded set
     useEffect(() => {
@@ -231,12 +267,12 @@ export default function Dashboard() {
         }
     }, [currentView]);
 
-    const smartProject = smartProjects.length > 0 ? smartProjects[0] : null;
+    const smartProject = smartProjects.find(p => p.id === activeSmartProjectId) || (smartProjects.length > 0 ? smartProjects[0] : null);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const isProModalOpen = activeModal === 'PRO';
     const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);
     const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
-    const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string } | null>(null);
+    const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string, lockedSmartProjectId?: string } | null>(null);
     const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [focusTargetProjectId, setFocusTargetProjectId] = useState<string | null>(null);
@@ -246,12 +282,19 @@ export default function Dashboard() {
         setCurrentView('FOCUS');
     };
 
-    const handleOpenSmartTaskCreator = (date: Date) => {
-        if (!smartProject) return;
+    const handleOpenNexus = (smartProjectId: string) => {
+        setActiveSmartProjectId(smartProjectId);
+        setCurrentView('NEXUS');
+    };
+
+    const handleOpenSmartTaskCreator = (date: Date, smartProjectId?: string) => {
+        const targetProject = smartProjectId ? smartProjects.find(p => p.id === smartProjectId) : smartProject;
+        if (!targetProject) return;
         setEditingQuest(null);
         setSmartTaskProps({
             lockedDate: toLocalISOString(date),
-            lockedAttributeId: smartProject.traitId
+            lockedAttributeId: targetProject.traitId,
+            lockedSmartProjectId: targetProject.id
         });
         setActiveModal('QUEST');
     };
@@ -273,14 +316,18 @@ export default function Dashboard() {
         setSmartTaskProps(null);
     };
 
-    const handleDeleteSmartProject = async () => {
-        if (!smartProject || !user?.uid) return;
+    const handleDeleteSmartProject = async (projectId?: string) => {
+        const targetId = projectId || smartProject?.id;
+        const targetProject = projectId ? smartProjects.find(p => p.id === projectId) : smartProject;
+
+        if (!targetId || !targetProject || !user?.uid) return;
+
         try {
             // 1. Delete the Project itself
-            await persistenceService.smartProjects.delete(user.uid, smartProject.id);
+            await persistenceService.smartProjects.delete(user.uid, targetId);
             
             // Update Local State
-            setSmartProjects(prev => prev.filter(p => p.id !== smartProject.id));
+            setSmartProjects(prev => prev.filter(p => p.id !== targetId));
             
             // 2. Collect all Node IDs to delete associated Quests
             const idsToDelete: string[] = [];
@@ -290,17 +337,19 @@ export default function Dashboard() {
                     node.children.forEach(collectIds);
                 }
             };
-            collectIds(smartProject.rootNode);
+            collectIds(targetProject.rootNode);
 
             // 3. Delete all associated quests from Persistence
             // We run these in parallel for speed, but catching errors individually to ensure best effort
             await Promise.all(idsToDelete.map(id => 
-        persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
-      ));
+                persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
+            ));
 
-      // 4. Update State
-      setSmartProjects([]);
-      setQuests(prev => prev.filter(q => !idsToDelete.includes(q.id)));
+            // 4. Update State
+            if (activeSmartProjectId === targetId) {
+                setActiveSmartProjectId(null);
+            }
+            setQuests(prev => prev.filter(q => !idsToDelete.includes(q.id)));
             
         } catch (error) {
             console.error("Failed to delete smart project:", error);
@@ -379,6 +428,7 @@ export default function Dashboard() {
     };
 
     const handleDockViewChange = (view: string) => {
+        setIsNexusImmersive(false);
         if (view === 'STRATEGY') {
             setCurrentView('TASKS');
             setTaskViewMode('STRATEGY');
@@ -459,61 +509,88 @@ export default function Dashboard() {
                     </AnimatePresence>
                 </div>
 
-                <main className={`relative z-10 max-w-md mx-auto min-h-screen pt-safe pb-40 flex flex-col ${currentView === 'FOCUS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
-                    {currentView !== 'FOCUS' && !isWizardOpen && (
-                        <StatsHeader 
-                            level={player.level} 
-                            xp={player.xp} 
-                            nextXp={player.nextXp} 
-                            health={health}
-                            streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                            isHidden={false}
-                            showProfile={showProfile}
-                            onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
-                            onShowPro={() => setIsProModalOpen(true)}
-                            onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                            onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                            displayName={user?.displayName}
-                            email={user?.email}
-                        />
-                    )}
+                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-safe ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col transition-all duration-500 ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
+                    <AnimatePresence>
+                        {currentView !== 'FOCUS' && !isNexusImmersive && !isWizardOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            >
+                                <StatsHeader 
+                                    level={player.level} 
+                                    xp={player.xp} 
+                                    nextXp={player.nextXp} 
+                                    health={health}
+                                    streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                                    dailyLimits={dailyLimits}
+                                    isHidden={false}
+                                    showProfile={showProfile}
+                                    onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+                                    onShowPro={() => setIsProModalOpen(true)}
+                                    onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                    onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                    displayName={user?.displayName}
+                                    email={user?.email}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    <div className="h-full flex-1 w-full relative z-0">
+                    <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
                             <div className="flex flex-col gap-6 h-full">
                                 {/* VIEW TOGGLE */}
-                                <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
-                                     <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
-                                         <button 
-                                            onClick={() => setTaskViewMode('LIST')}
-                                            className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                <AnimatePresence>
+                                    {!isNexusImmersive && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            className="flex items-center justify-center gap-4 mb-1 -mt-2"
                                         >
-                                            <ListTodo size={14} />
-                                            {t('dashboard.tasks')}
-                                        </button>
-                                        <button 
-                                            onClick={() => setTaskViewMode('STRATEGY')}
-                                            className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                            <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
+                                                <button 
+                                                    onClick={() => setTaskViewMode('LIST')}
+                                                    className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                >
+                                                    <ListTodo size={14} />
+                                                    {t('dashboard.tasks')}
+                                                </button>
+                                                <button 
+                                                    onClick={() => setTaskViewMode('STRATEGY')}
+                                                    className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                >
+                                                    <Target size={14} />
+                                                    {t('dashboard.strategy')}
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* 💎 STATUS HUD - THE MIRROR */}
+                                <AnimatePresence>
+                                    {showProfile && !isNexusImmersive && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -20 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                            className="relative z-20 -mx-2"
                                         >
-                                            <Target size={14} />
-                                            {t('dashboard.strategy')}
-                                        </button>
-                                     </div>
-                                </div>
+                                            <PlayerHUD 
+                                                attributes={attributes}
+                                                defaultChartMode={defaultChartMode}
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {taskViewMode === 'LIST' ? (
                                     <>
-                                        {/* 💎 STATUS HUD - THE MIRROR */}
-                                        {showProfile && (
-                                            <div className="relative z-20 -mx-2">
-                                                <PlayerHUD 
-                                                    attributes={attributes}
-                                                    defaultChartMode={defaultChartMode}
-                                                />
-                                            </div>
-                                        )}
-
                                         {/* ACTIVE MISSIONS */}
                                         <TaskList 
                                             quests={quests} 
@@ -524,6 +601,8 @@ export default function Dashboard() {
                                             onAddQuest={() => setActiveModal('QUEST')}
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
+                                            onOpenNexus={handleOpenNexus}
+                                            onOpenWizard={() => setIsWizardOpen(true)}
                                         />
                                     </>
                                 ) : (
@@ -535,13 +614,23 @@ export default function Dashboard() {
                                                     quests={quests}
                                                     attributes={attributes}
                                                     onUpdateProject={(updated) => setSmartProjects([updated])}
-                                            onDeleteProject={handleDeleteSmartProject}
+                                                    onDeleteProject={handleDeleteSmartProject}
                                                     onDeleteNode={handleDeleteSmartTaskNode}
                                                     onCreateNew={() => setIsWizardOpen(true)}
                                                     onAddSmartTask={handleOpenSmartTaskCreator}
                                                     onCompleteQuest={completeQuest}
                                                     onDeleteQuest={handleDeleteQuest}
                                                     onEditQuest={handleEditQuest}
+                                                    onOpenNexus={handleOpenNexus}
+                                                    // Nexus Integration Props
+                                                    smartProjects={smartProjects}
+                                                    habits={habits}
+                                                    notes={notes}
+                                                    projects={projects}
+                                                    onToggleHabit={handleHabitClick}
+                                                    onAddNote={handleAddNote}
+                                                    onUpdateSmartProject={handleUpdateSmartProject}
+                                                    onToggleImmersive={handleToggleImmersive}
                                                 />
                                             </Suspense>
                                         ) : (
@@ -604,6 +693,7 @@ export default function Dashboard() {
                             habits={habits} 
                             attributes={attributes} 
                             onCompleteHabit={handleHabitClick}
+                            onToggleHabitDay={handleToggleHabitDay}
                             onCreateHabit={() => setActiveModal('HABIT')}
                             onDeleteHabit={handleDeleteHabit}
                             onEditHabit={handleEditHabit}
@@ -625,10 +715,6 @@ export default function Dashboard() {
                                         onUpdateProject={handleUpdateProject}
                                         addNotification={addNotification}
                                         initialProjectId={focusTargetProjectId}
-                                        onBack={() => {
-                                            setFocusTargetProjectId(null);
-                                            setCurrentView('TASKS');
-                                        }}
                                         userStats={{
                                             ...(user?.stats || {}),
                                             streak: habits.reduce((acc, h) => acc + h.streak, 0),
@@ -690,7 +776,31 @@ export default function Dashboard() {
                         {(loadedViews.has('NEXUS') || currentView === 'NEXUS') && (
                             <ViewContainer isActive={currentView === 'NEXUS'} className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
-                                    <NexusView />
+                                    <NexusView 
+                                        onToggleImmersive={handleToggleImmersive}
+                                        onOpenProjectModal={handleOpenProjectModalFromNexus}
+                                        onOpenHabitModal={handleOpenHabitModalFromNexus}
+                                        smartProjects={smartProjects}
+                                        habits={habits}
+                                        notes={notes}
+                                        projects={projects}
+                                        quests={quests}
+                                        onToggleHabit={handleHabitClick}
+                                        onCompleteQuest={completeQuest}
+                                        onUpdateSmartProject={handleUpdateSmartProject}
+                                        onAddNote={handleAddNote}
+                                        loading={matrixLoading}
+                                        targetSmartProjectId={activeSmartProjectId}
+                                        onOpenWizard={() => setIsWizardOpen(true)}
+                                        onDeleteSmartProject={handleDeleteSmartProject}
+                                        onClose={() => {
+                                            setTaskViewMode('STRATEGY');
+                                            setCurrentView('TASKS');
+                                            setIsNexusImmersive(false);
+                                        }}
+                                        onSelectProject={(id) => setActiveSmartProjectId(id)}
+                                        onAddQuest={handleOpenSmartTaskCreator}
+                                    />
                                 </Suspense>
                             </ViewContainer>
                         )}
@@ -704,7 +814,7 @@ export default function Dashboard() {
                                         activeSmartTasksCount={quests.filter(q => !q.completed).length}
                                         isPro={user?.plan === 'PRO'}
                                         onComplete={(project) => {
-                                            let newQuests = convertNodeToQuests(project.rootNode, project.traitId || '');
+                                            let newQuests = convertNodeToQuests(project.rootNode, project.traitId || '', project.id);
                                             
                                             // LIMIT CHECK: Enforce max active tasks
                                             if (user?.plan !== 'PRO') {
@@ -717,7 +827,9 @@ export default function Dashboard() {
                                             }
                                         }
 
-                                        setSmartProjects([project]);
+                                        setSmartProjects(prev => [...prev, project]);
+                                        setActiveSmartProjectId(project.id);
+                                        setTaskViewMode('STRATEGY');
                                         setQuests(prev => [...newQuests, ...prev]);
                                         
                                         // Save to Reality (Persistence)
@@ -750,7 +862,7 @@ export default function Dashboard() {
                         onOpenModal={setActiveModal} 
                         isOpen={isDockOpen} 
                         onToggle={setIsDockOpen} 
-                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || currentView === 'NEXUS'}
+                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive}
                         dashboardStyle={dashboardStyle}
                     />
                     
@@ -762,7 +874,7 @@ export default function Dashboard() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 className="fixed inset-0 z-40 bg-black/60 backdrop-blur-2xl saturate-150"
-                                onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); }} 
+                                onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
                             />
                         )}
                     </AnimatePresence>
@@ -777,24 +889,26 @@ export default function Dashboard() {
                         onConfirm={handleQuestConfirm}
                         lockedAttributeId={smartTaskProps?.lockedAttributeId}
                         lockedDate={smartTaskProps?.lockedDate}
+                        lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
                         isSmartTask={!!smartTaskProps}
                         initialValues={editingQuest || undefined}
                     />
                     <HabitModal 
                         isOpen={activeModal === 'HABIT'} 
-                        onClose={() => { setActiveModal(null); setEditingHabit(null); }} 
+                        onClose={() => { setActiveModal(null); setEditingHabit(null); setModalInitialContext(null); }} 
                         attributes={attributes} 
                         smartProjects={smartProjects}
                         projects={projects}
                         onConfirm={handleHabitConfirm}
-                        initialData={editingHabit || undefined}
+                        initialData={editingHabit || modalInitialContext || undefined}
                     />
                     <ProjectModal 
                         isOpen={activeModal === 'PROJECT'} 
-                        onClose={() => setActiveModal(null)} 
+                        onClose={() => { setActiveModal(null); setModalInitialContext(null); }} 
                         attributes={attributes} 
                         smartProjects={smartProjects}
                         onConfirm={handleProjectConfirm} 
+                        initialData={modalInitialContext || undefined}
                     />
                     
                     {/* Validation Modal */}

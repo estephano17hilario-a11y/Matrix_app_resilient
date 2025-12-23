@@ -63,7 +63,11 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
     // 2. DATA PREPARATION
     const maxLevel = useMemo(() => {
         if (!attributes.length) return 10;
-        const max = Math.max(...attributes.map(a => a.level), 1);
+        // Safety check for NaN or infinite levels
+        const validAttributes = attributes.filter(a => !isNaN(a.level) && isFinite(a.level));
+        if (!validAttributes.length) return 10;
+        
+        const max = Math.max(...validAttributes.map(a => a.level || 1), 1);
         return Math.max(max, 5);
     }, [attributes]);
 
@@ -82,8 +86,22 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 y: CENTER + r * Math.sin(angleRad)
             });
 
-            const rawScore = attr.level + (attr.xp / attr.maxXp);
-            const normalizedScore = Math.min(rawScore / maxLevel, 1);
+            // Safety checks for NaN
+            const lvl = isNaN(attr.level) ? 1 : (attr.level || 1);
+            const xp = isNaN(attr.xp) ? 0 : (attr.xp || 0);
+            const maxXp = (isNaN(attr.maxXp) || attr.maxXp === 0) ? 100 : (attr.maxXp || 100);
+            
+            const rawScore = lvl + (xp / maxXp);
+            // Clamp score between 0 and 1.2 (allow slight overflow for visual pop but prevent infinite)
+            let normalizedScore = rawScore / maxLevel;
+            
+            if (isNaN(normalizedScore) || !isFinite(normalizedScore)) {
+                normalizedScore = 0.1;
+            }
+            
+            // Cap at 1.0 for the graph boundary, or 1.1 for "breaking limits" effect?
+            // User complained about "sale completamente", so cap strictly at 1.0
+            const validScore = Math.min(Math.max(normalizedScore, 0.05), 1.0);
 
             // Determine Label Alignment based on Angle
             let alignment: 'top' | 'right' | 'bottom' | 'left' = 'right';
@@ -109,7 +127,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 color, // OVERRIDE the gradient string with Hex
                 angleRad,
                 gridPoint: getPoint(GRID_RADIUS),
-                valuePoint: getPoint(GRID_RADIUS * normalizedScore),
+                valuePoint: getPoint(GRID_RADIUS * validScore),
                 iconPoint: getPoint(ICON_DISTANCE),
                 alignment
             };

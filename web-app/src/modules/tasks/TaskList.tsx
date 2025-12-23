@@ -13,9 +13,10 @@ interface TaskListProps {
   onEditQuest?: (quest: Quest) => void;
   onAddQuest?: () => void;
   onFocusProject?: (projectId: string) => void;
+  onOpenNexus?: (smartProjectId: string) => void;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject }) => {
+export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus }) => {
   const { t } = useTranslation();
   const activeQuests = quests.filter(q => !q.completed);
   const completedQuests = quests.filter(q => q.completed);
@@ -34,17 +35,20 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
           <div className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
             <Flame size={10} className="text-orange-400 fill-orange-400" />
             <span className="text-[10px] font-black text-orange-400">
-              {activeQuests.length} {t('dashboard.targets')}
+              {activeQuests.length} {t('tasks.targets')}
             </span>
           </div>
-          {onAddQuest && (
-            <button 
-              onClick={onAddQuest}
-              className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors"
-            >
-              <Plus size={16} />
-            </button>
-          )}
+          
+          <div className="ml-auto flex items-center gap-2">
+            {onAddQuest && (
+                <button 
+                onClick={onAddQuest}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors"
+                >
+                <Plus size={16} />
+                </button>
+            )}
+          </div>
         </div>
         
         <div className="flex flex-col pb-32 gap-3">
@@ -58,6 +62,7 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
               onDelete={onDeleteQuest}
               onEdit={onEditQuest}
               onFocusProject={onFocusProject}
+              onOpenNexus={onOpenNexus}
             />
           ))}
           {sortedQuests.length === 0 && (

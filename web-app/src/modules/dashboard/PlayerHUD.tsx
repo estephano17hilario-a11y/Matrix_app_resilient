@@ -44,19 +44,19 @@ const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: bo
     
     return (
         <div className={cn("flex flex-col gap-1", mini ? "w-full" : "w-full")}>
-            <div className="flex items-center justify-between text-xs mb-1">
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between text-[10px] mb-0.5">
+                <div className="flex items-center gap-1.5 overflow-hidden">
                     <div className={cn(
-                      "w-5 h-5 rounded-md flex items-center justify-center bg-white/5",
+                      "w-4 h-4 rounded-md flex items-center justify-center bg-white/5 shrink-0",
                       `text-${barColor}-400`
                     )}>
-                        <Icon size={12} />
+                        <Icon size={10} />
                     </div>
-                    {!mini && <span className="font-medium text-white/80">{t(attribute.label)}</span>}
+                    {!mini && <span className="font-medium text-white/80 truncate">{t(attribute.label)}</span>}
                 </div>
-                <div className="flex flex-col items-end leading-none gap-0.5">
-                    <span className="font-mono text-[9px] text-white/50">{safeXp}/{safeMax}</span>
-                    <span className="font-mono text-[10px] opacity-60 font-bold">{t('dashboard.level')} {attribute.level}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-[8px] text-white/30">{safeXp}/{safeMax}</span>
+                    <span className="font-mono text-[9px] opacity-60 font-bold text-white/70">Lvl {attribute.level}</span>
                 </div>
             </div>
             {!mini && (
@@ -83,10 +83,21 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   }, [defaultChartMode]);
 
   const orderedAttributes = useMemo(() => {
-    const orderMap = new Map(TRAITS_LIST.map((t, index) => [t.id, index] as const));
     return [...attributes].sort((a, b) => {
-      const ai = orderMap.get(a.id) ?? 0;
-      const bi = orderMap.get(b.id) ?? 0;
+      // Primary sort: Level (Highest first)
+      if (b.level !== a.level) {
+        return b.level - a.level;
+      }
+      // Secondary sort: XP percentage (Highest first)
+      const aXpPct = a.maxXp > 0 ? a.xp / a.maxXp : 0;
+      const bXpPct = b.maxXp > 0 ? b.xp / b.maxXp : 0;
+      if (bXpPct !== aXpPct) {
+        return bXpPct - aXpPct;
+      }
+      // Tertiary sort: Original order from TRAITS_LIST
+      const orderMap = new Map(TRAITS_LIST.map((t, index) => [t.id, index] as const));
+      const ai = orderMap.get(a.id) ?? 999;
+      const bi = orderMap.get(b.id) ?? 999;
       return ai - bi;
     });
   }, [attributes]);
@@ -124,7 +135,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 </div>
              </div>
 
-             <div className="mt-2 relative min-h-[180px] flex items-center justify-center">
+             <div className={cn(
+                "mt-2 relative flex items-center justify-center transition-all duration-500",
+                chartMode === 'RADAR' ? "min-h-[180px]" : "min-h-0"
+             )}>
                  <AnimatePresence mode="wait">
                     {chartMode === 'RADAR' ? (
                         <motion.div 
@@ -144,7 +158,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
-                            className="w-full flex flex-col gap-3 px-1 py-2 overflow-y-auto max-h-[200px] scrollbar-hide"
+                            className={cn(
+                                "w-full grid gap-x-4 gap-y-3 px-1 py-1",
+                                orderedAttributes.length > 5 ? "grid-cols-2" : "grid-cols-1"
+                            )}
                         >
                             {orderedAttributes.map(attr => (
                                 <TraitBar key={attr.id} attribute={attr} />
