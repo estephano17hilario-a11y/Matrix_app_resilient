@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Target, Calendar, Lock as LockIcon } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Target, Calendar, Lock as LockIcon, Filter, X } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
@@ -11,18 +11,28 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
     
+    // Reset date when range changes
+    useEffect(() => {
+        setCurrentDate(new Date());
+    }, [timeRange]);
+
     const activeFilterColor = useMemo(() => {
-        if (filterMode === 'GLOBAL') return 'indigo';
+        if (filterMode === 'GLOBAL') return '#6366f1'; // Indigo
         const activeAttr = attributes.find(a => a.id === filterMode);
         if (activeAttr) return activeAttr.color;
-        return 'indigo'; 
-    }, [filterMode, attributes]);
+        const activeProj = projects.find(p => p.id === filterMode);
+        if (activeProj) {
+            const attr = attributes.find(a => a.id === activeProj.attribute);
+            return attr ? attr.color : '#6366f1';
+        }
+        return '#6366f1'; 
+    }, [filterMode, attributes, projects]);
 
     // Helper to extract color name from hex if possible, or default to indigo
     const liquidColor = useMemo(() => {
-        if (filterMode === 'GLOBAL') return 'indigo';
-        // specific mapping or default
+        // Simplified mapping for liquid bar
         return 'indigo';
     }, [filterMode]);
 
@@ -44,7 +54,6 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
 
     const progressPercentage = dailyGoalMinutes > 0 ? Math.min(100, (currentMinutes / dailyGoalMinutes) * 100) : 0;
 
-    
     const prevDate = useMemo(() => {
         const d = new Date(currentDate);
         if (timeRange === 'DAY') d.setDate(d.getDate() - 1);
@@ -92,12 +101,16 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
 
     return (
         <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
-            <div className="glass-panel rounded-[2rem] p-4 flex flex-col gap-3 relative overflow-hidden">
-                 {/* Background Glow - Replaced Blur with Gradient for Performance */}
-                 <div className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)' }} />
+            {/* Main Panel - Solid Background for Android Stability (No Blur) */}
+            <div className="bg-[#121212] rounded-[2rem] p-4 flex flex-col gap-3 relative overflow-visible border border-white/5 shadow-2xl">
+                 {/* Background Glow - Optimized */}
+                 <div 
+                    className="absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none opacity-20" 
+                    style={{ background: activeFilterColor, transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
+                 />
                  
                 {/* HEADER ROW: Stats & Time Range */}
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start z-10">
                     <div className="flex flex-col">
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter">{stats.totalHours}</span>
@@ -113,7 +126,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/5 shadow-inner">
+                    <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
                         {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => {
                             const isLocked = !isPro && (range === 'MONTH' || range === 'YEAR');
                             return (
@@ -143,15 +156,15 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     </div>
                 </div>
 
-                {/* CONTROLS ROW: Date Nav & Filters */}
-                <div className="flex items-center gap-3 overflow-hidden">
+                {/* CONTROLS ROW: Date Nav & Filter Trigger */}
+                <div className="flex items-center justify-between gap-2 z-10">
                     {/* Date Navigation */}
-                    <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 backdrop-blur-md flex-shrink-0">
+                    <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 flex-shrink-0">
                         <button onClick={() => navigateDate(-1)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
                             <ChevronLeft size={14} />
                         </button>
                         
-                        <div className="w-32 h-8 flex items-center justify-center relative overflow-hidden">
+                        <div className="min-w-[100px] h-8 flex items-center justify-center relative overflow-hidden px-2">
                             <AnimatePresence mode="wait">
                                 <motion.span 
                                     key={currentDate.toString() + timeRange}
@@ -171,40 +184,87 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                         </button>
                     </div>
 
-                    {/* Reset Today */}
-                    {!isToday && (
-                        <button onClick={() => setCurrentDate(new Date())} className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 flex items-center justify-center transition-colors border border-blue-500/30">
-                            <Calendar size={14} />
+                    <div className="flex items-center gap-2">
+                        {/* Reset Today */}
+                        {!isToday && (
+                            <button onClick={() => setCurrentDate(new Date())} className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 flex items-center justify-center transition-colors border border-blue-500/30">
+                                <Calendar size={14} />
+                            </button>
+                        )}
+                        
+                        {/* Advanced Filter Trigger */}
+                        <button 
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all ${isFilterOpen || filterMode !== 'GLOBAL' ? 'bg-white text-black border-white shadow-lg' : 'bg-white/5 text-slate-400 border-white/5 hover:text-white'}`}
+                        >
+                            <Filter size={12} />
+                            {filterMode === 'GLOBAL' ? 'Filter' : 'Filtered'}
                         </button>
-                    )}
-
-                    {/* Divider */}
-                    <div className="w-[1px] h-8 bg-white/5 flex-shrink-0" />
-
-                    {/* CONTEXT FILTER SCROLL */}
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar mask-gradient-x items-center">
-                        <button onClick={() => setFilterMode('GLOBAL')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all duration-300 ${filterMode === 'GLOBAL' ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}>
-                            <LayoutGrid size={10} /> GLOBAL
-                        </button>
-                        {attributes.map(attr => {
-                            const Icon = attr.icon;
-                            const isActive = filterMode === attr.id;
-                            return (
-                                <button key={attr.id} onClick={() => setFilterMode(attr.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}>
-                                    <Icon size={10} style={{ color: isActive ? 'black' : attr.color }} /> {attr.label.toUpperCase()}
-                                </button>
-                            )
-                        })}
-                        {projects.filter(p => !p.deleted).map(proj => {
-                            const isActive = filterMode === proj.id;
-                            return (
-                                <button key={proj.id} onClick={() => setFilterMode(proj.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}>
-                                    <Target size={10} /> {proj.title.toUpperCase()}
-                                </button>
-                            )
-                        })}
                     </div>
                 </div>
+
+                {/* ADVANCED FILTER SELECTOR (Expandable) - Replaces simple scroll */}
+                <AnimatePresence>
+                    {isFilterOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="overflow-hidden z-10"
+                        >
+                            <div className="bg-black/40 rounded-xl p-3 border border-white/5 mb-2 flex flex-col gap-3 mt-2">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Context Filter</span>
+                                    <button onClick={() => { setFilterMode('GLOBAL'); setIsFilterOpen(false); }} className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${filterMode === 'GLOBAL' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
+                                        Reset Global
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-3 max-h-[200px] overflow-y-auto scrollbar-hide">
+                                    {/* Attributes Group */}
+                                    <div>
+                                        <div className="text-[9px] font-bold text-slate-600 uppercase mb-2 pl-1">Attributes</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {attributes.map(attr => {
+                                                const Icon = attr.icon;
+                                                const isActive = filterMode === attr.id;
+                                                return (
+                                                    <button 
+                                                        key={attr.id} 
+                                                        onClick={() => setFilterMode(attr.id)} 
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}
+                                                    >
+                                                        <Icon size={10} style={{ color: isActive ? 'black' : attr.color }} /> {attr.label.toUpperCase()}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Projects Group */}
+                                    <div>
+                                        <div className="text-[9px] font-bold text-slate-600 uppercase mb-2 pl-1">Projects</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {projects.filter(p => !p.deleted).map(proj => {
+                                                const isActive = filterMode === proj.id;
+                                                return (
+                                                    <button 
+                                                        key={proj.id} 
+                                                        onClick={() => setFilterMode(proj.id)} 
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}
+                                                    >
+                                                        <Target size={10} /> {proj.title.toUpperCase()}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* CHART AREA */}
                 <BarChart 
@@ -216,7 +276,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     labels={stats.labels}
                     height={160}
                     max={Math.max(...stats.data, 60)}
-                    className="mt-0"
+                    className="mt-2"
                     barClassName="!rounded-t-md"
                 />
             </div>
