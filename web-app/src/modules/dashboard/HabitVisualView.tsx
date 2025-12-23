@@ -74,7 +74,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
 
                 {/* Section Toggle */}
                 <div className="flex items-center justify-center mb-2">
-                    <div className="flex p-1 rounded-full bg-black/95 border border-white/10 shadow-lg relative">
+                    <div className="flex p-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10 shadow-lg relative">
                          <button 
                             onClick={() => setSection('PROTOCOLS')}
                             className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${

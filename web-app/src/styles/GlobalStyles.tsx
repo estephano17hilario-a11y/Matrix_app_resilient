@@ -26,12 +26,13 @@ export const GlobalStyles = React.memo(() => (
     .accordion-inner { overflow: hidden; transform: translateZ(0); }
 
     .glass-panel {
-      background: #111111; 
-      /* REMOVED BACKDROP BLUR FOR ANDROID STABILITY */
+      background: rgba(17, 17, 17, 0.6); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);
-      /* removed will-change to reduce memory pressure */
+      will-change: transform;
       border-radius: 1rem;
     }
 
@@ -45,23 +46,25 @@ export const GlobalStyles = React.memo(() => (
     .apple-btn:active { transform: scale(0.96); opacity: 0.8; }
     
     .apple-input {
-        background: #1a1a1a;
+        background: rgba(26, 26, 26, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 18px;
-        /* REMOVED BLUR */
         transition: all 0.3s ease;
     }
     .apple-input:focus-within {
-        background: #222222;
+        background: rgba(34, 34, 34, 0.8);
         border-color: rgba(255,255,255,0.3);
         box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
         transform: scale(1.01);
     }
 
     .trait-card {
-        background: #1a1a1a;
+        background: rgba(26, 26, 26, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255,255,255,0.05);
-        /* REMOVED BLUR */
         transition: all 0.4s var(--spring-easing);
     }
     .trait-card.selected {

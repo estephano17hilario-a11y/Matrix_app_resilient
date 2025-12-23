@@ -17,9 +17,9 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   return (
     <motion.div
       className={cn(
-        // THE HYPER-GLASS FORMULA (OPTIMIZED FOR ANDROID - NO BLUR)
-        // Base Semitransparente & Opacidad Alta (Replaces Blur)
-        "bg-[#111]/90", 
+        // THE HYPER-GLASS FORMULA (RESTORED TRANSLUCENCY)
+        // Base Semitransparente
+        "bg-[#111]/40 backdrop-blur-lg", 
         // Borde de Luz (Rim Light)
         "border border-white/10",
         // Reflejo Superior & Sombra de Elevación (Combined to avoid override)
