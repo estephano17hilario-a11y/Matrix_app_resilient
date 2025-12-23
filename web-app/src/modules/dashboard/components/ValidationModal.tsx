@@ -28,7 +28,7 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                     boxShadow: habit?.attribute 
                         ? `0 20px 50px -12px ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}30, inset 0 1px 0 0 rgba(255,255,255,0.1)` 
                         : '0 20px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(40px) saturate(150%)'
+                    backdropFilter: 'blur(16px) saturate(150%)'
                 }}
             >
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-white/10 shadow-lg" style={{ backgroundColor: (attributes.find(a => a.id === habit.attribute)?.color || '#fff') + '20' }}>

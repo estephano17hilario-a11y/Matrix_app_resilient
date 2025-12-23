@@ -116,8 +116,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="relative w-full max-w-[500px] overflow-hidden rounded-[32px] border border-white/10 shadow-2xl"
           >
-            {/* Glass Material Layer */}
-            <div className="absolute inset-0 bg-[#121214]/60 backdrop-blur-3xl" />
+            {/* Glass Material Layer{/* Background Image/Effect - Optimized */}
+            <div className="absolute inset-0 bg-[#121214]/80 backdrop-blur-md" />
             
             {/* Noise Texture for Realism */}
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />

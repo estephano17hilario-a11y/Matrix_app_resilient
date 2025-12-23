@@ -523,8 +523,14 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     
                     {/* Timer Display */}
                     <div className="relative w-[320px] h-[320px] flex items-center justify-center">
-                        {/* Ambient Glow */}
-                        <div className={`absolute inset-0 rounded-full blur-[90px] transition-opacity duration-1000 ${isActive ? 'opacity-30' : 'opacity-0'}`} style={{ backgroundColor: themeColor }} />
+                        {/* Ambient Glow - Optimized */}
+                        <div 
+                            className={`absolute inset-0 rounded-full transition-opacity duration-1000 ${isActive ? 'opacity-30' : 'opacity-0'}`} 
+                            style={{ 
+                                background: `radial-gradient(circle, ${themeColor} 0%, transparent 70%)`,
+                                transform: 'translateZ(0)'
+                            }} 
+                        />
                         
                         <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible">
                             <defs>

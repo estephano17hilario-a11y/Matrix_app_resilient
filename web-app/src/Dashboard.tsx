@@ -854,7 +854,7 @@ export default function Dashboard() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-2xl saturate-150"
+                                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md saturate-150"
                                 onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
                             />
                         )}

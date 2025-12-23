@@ -40,30 +40,34 @@ export const ThemeSelector: React.FC = () => {
                     className="absolute -inset-1 rounded-[2.2rem] opacity-100"
                     style={{
                       background: `linear-gradient(135deg, rgb(${themeOption.colors.primaryGlow}), rgb(${themeOption.colors.secondaryGlow}))`,
-                      filter: 'blur(10px)',
+                      opacity: 0.5,
                     }}
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.7 }}
+                    animate={{ opacity: 0.5 }}
                     exit={{ opacity: 0 }}
                   />
                 )}
               </AnimatePresence>
 
-              {/* Card Container */}
+              {/* Card Container - Optimized Blur */}
               <div 
-                className="w-full h-full rounded-[2rem] overflow-hidden relative border border-white/10 flex flex-col shadow-2xl backdrop-blur-xl transition-colors duration-500"
+                className="w-full h-full rounded-[2rem] overflow-hidden relative border border-white/10 flex flex-col shadow-2xl backdrop-blur-md transition-colors duration-500"
                 style={{ 
                   background: `linear-gradient(to bottom, rgba(${themeOption.colors.bgDepth}, 0.9), rgba(${themeOption.colors.bgDepth}, 0.95))`,
                 }}
               >
-                 {/* Internal Glow (Ambient) - BOOSTED */}
+                 {/* Internal Glow (Ambient) - Optimized (No blur, use radial gradient) */}
                  <div 
-                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-[50px] opacity-50 mix-blend-screen transition-colors duration-500"
-                    style={{ backgroundColor: `rgb(${themeOption.colors.primaryGlow})` }}
+                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30 mix-blend-screen transition-colors duration-500"
+                    style={{ 
+                        background: `radial-gradient(circle, rgb(${themeOption.colors.primaryGlow}) 0%, transparent 70%)` 
+                    }}
                  />
                  <div 
-                    className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-[50px] opacity-40 mix-blend-screen transition-colors duration-500"
-                    style={{ backgroundColor: `rgb(${themeOption.colors.secondaryGlow})` }}
+                    className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full opacity-30 mix-blend-screen transition-colors duration-500"
+                    style={{ 
+                        background: `radial-gradient(circle, rgb(${themeOption.colors.secondaryGlow}) 0%, transparent 70%)` 
+                    }}
                  />
 
                  {/* Noise Texture Overlay */}

@@ -13,41 +13,53 @@ function cn(...inputs: ClassValue[]) {
 
 // --- COMPONENTS ---
 
-// 1. The Void Background (Aurora System)
+// 1. The Void Background (Aurora System - Optimized for Mobile)
 const TheVoid = () => (
   <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#020204]">
-    {/* Orbs */}
+    {/* Orbs - Replaced heavy blur with radial gradients */}
     <motion.div 
       animate={{ 
         scale: [1, 1.2, 1],
         rotate: [0, 90, 0],
-        opacity: [0.2, 0.3, 0.2]
+        opacity: [0.3, 0.4, 0.3]
       }}
       transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-[#4f46e5] rounded-full blur-[120px] opacity-20"
+      className="absolute top-[-20%] left-[-10%] w-[100vw] h-[100vw] rounded-full"
+      style={{ 
+        background: 'radial-gradient(circle, #4f46e5 0%, transparent 70%)',
+        transform: 'translateZ(0)'
+      }}
     />
     <motion.div 
       animate={{ 
         scale: [1, 1.1, 1],
         x: [0, 100, 0],
-        opacity: [0.15, 0.25, 0.15]
+        opacity: [0.2, 0.3, 0.2]
       }}
       transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-      className="absolute bottom-[-10%] right-[-20%] w-[600px] h-[600px] bg-[#06b6d4] rounded-full blur-[120px] opacity-15"
+      className="absolute bottom-[-10%] right-[-20%] w-[80vw] h-[80vw] rounded-full"
+      style={{ 
+        background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
+        transform: 'translateZ(0)'
+      }}
     />
     <motion.div 
       animate={{ 
         scale: [1, 1.3, 1],
         y: [0, -50, 0],
-        opacity: [0.1, 0.2, 0.1]
+        opacity: [0.15, 0.25, 0.15]
       }}
       transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-[#ec4899] rounded-full blur-[100px] opacity-10"
+      className="absolute top-[40%] left-[30%] w-[60vw] h-[60vw] rounded-full"
+      style={{ 
+        background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)',
+        transform: 'translateZ(0)'
+      }}
     />
   </div>
 );
 
-// 2. Chat Bubble (Hyper-Glass)
+// 2. Chat Bubble (Hyper-Glass - Optimized)
 const ChatBubble = ({ message }: { message: AIMessage }) => {
   const { t } = useTranslation();
   const isUser = message.role === 'user';
@@ -62,14 +74,14 @@ const ChatBubble = ({ message }: { message: AIMessage }) => {
       )}
     >
       <div className={cn(
-        "relative max-w-[80%] p-4 rounded-2xl backdrop-blur-xl border",
+        "relative max-w-[80%] p-4 rounded-2xl backdrop-blur-md border", // Reduced blur from xl to md
         isUser 
           ? "bg-indigo-500/20 border-indigo-500/30 text-white rounded-br-sm" 
-          : "bg-gray-900/40 border-white/10 text-white/90 rounded-bl-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+          : "bg-gray-900/60 border-white/10 text-white/90 rounded-bl-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
       )}>
-        {/* Glow Shadow for Assistant */}
+        {/* Glow Shadow for Assistant - Reduced opacity */}
         {!isUser && (
-          <div className="absolute inset-0 rounded-2xl shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)] pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl shadow-[0_20px_50px_-12px_rgba(79,70,229,0.1)] pointer-events-none" />
         )}
         
         <p className="relative z-10 text-base leading-relaxed font-light tracking-wide whitespace-pre-wrap">
