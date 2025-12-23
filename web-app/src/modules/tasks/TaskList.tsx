@@ -14,6 +14,7 @@ interface TaskListProps {
   onAddQuest?: () => void;
   onFocusProject?: (projectId: string) => void;
   onOpenNexus?: (smartProjectId: string) => void;
+  onOpenWizard?: () => void;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus }) => {

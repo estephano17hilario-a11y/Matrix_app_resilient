@@ -41,18 +41,18 @@ const SuspenseFallback = () => (
 );
 
 // Helper to convert SmartProject nodes to Real Quests
-const ViewContainer = ({ isActive, children, className = "" }: { isActive: boolean, children: React.ReactNode, className?: string }) => {
-    return (
-        <div 
-            className={`${className} ${isActive ? 'z-10 relative opacity-100' : 'z-0 absolute inset-0 opacity-0 pointer-events-none overflow-hidden'}`}
-            style={{ 
-                visibility: isActive ? 'visible' : 'hidden',
-                display: isActive ? 'block' : 'none' // Use display:none to completely remove from layout calculation when hidden, for perf
-            }}
+const ViewContainer = ({ isActive, children, className = "", id }: { isActive: boolean, children: React.ReactNode, className?: string, id?: string }) => {
+    return isActive ? (
+        <motion.div 
+            id={id} 
+            className={`${className} w-full h-full`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30, mass: 1 }}
         >
             {children}
-        </div>
-    );
+        </motion.div>
+    ) : null;
 };
 
 const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectId: string): Quest[] => {
@@ -509,85 +509,62 @@ export default function Dashboard() {
                     </AnimatePresence>
                 </div>
 
-                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-safe ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col transition-all duration-500 ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
-                    <AnimatePresence>
-                        {currentView !== 'FOCUS' && !isNexusImmersive && !isWizardOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            >
-                                <StatsHeader 
-                                    level={player.level} 
-                                    xp={player.xp} 
-                                    nextXp={player.nextXp} 
-                                    health={health}
-                                    streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                                    dailyLimits={dailyLimits}
-                                    isHidden={false}
-                                    showProfile={showProfile}
-                                    onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
-                                    onShowPro={() => setIsProModalOpen(true)}
-                                    onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                    onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                    displayName={user?.displayName}
-                                    email={user?.email}
-                                />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-safe ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
+                    {currentView !== 'FOCUS' && !isNexusImmersive && !isWizardOpen && (
+                        <StatsHeader 
+                            level={player.level} 
+                            xp={player.xp} 
+                            gold={player.gold}
+                            nextXp={player.nextXp} 
+                            health={health}
+                            streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                            dailyLimits={dailyLimits}
+                            isHidden={false}
+                            showProfile={showProfile}
+                            onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+                            onShowPro={() => setIsProModalOpen(true)}
+                            onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                            onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                            displayName={user?.displayName}
+                            email={user?.email}
+                        />
+                    )}
 
                     <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
                             <div className="flex flex-col gap-6 h-full">
                                 {/* VIEW TOGGLE */}
-                                <AnimatePresence>
-                                    {!isNexusImmersive && (
-                                        <motion.div 
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.9 }}
-                                            className="flex items-center justify-center gap-4 mb-1 -mt-2"
-                                        >
-                                            <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
-                                                <button 
-                                                    onClick={() => setTaskViewMode('LIST')}
-                                                    className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                                >
-                                                    <ListTodo size={14} />
-                                                    {t('dashboard.tasks')}
-                                                </button>
-                                                <button 
-                                                    onClick={() => setTaskViewMode('STRATEGY')}
-                                                    className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                                >
-                                                    <Target size={14} />
-                                                    {t('dashboard.strategy')}
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                {!isNexusImmersive && (
+                                    <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
+                                        <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
+                                            <button 
+                                                onClick={() => setTaskViewMode('LIST')}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                <ListTodo size={14} />
+                                                {t('dashboard.tasks')}
+                                            </button>
+                                            <button 
+                                                onClick={() => setTaskViewMode('STRATEGY')}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                <Target size={14} />
+                                                {t('dashboard.strategy')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* 💎 STATUS HUD - THE MIRROR */}
-                                <AnimatePresence>
-                                    {showProfile && !isNexusImmersive && (
-                                        <motion.div 
-                                            initial={{ opacity: 0, y: -20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -20 }}
-                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                            className="relative z-20 -mx-2"
-                                        >
-                                            <PlayerHUD 
-                                                attributes={attributes}
-                                                defaultChartMode={defaultChartMode}
-                                            />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                {showProfile && !isNexusImmersive && (
+                                    <div className="relative z-20 -mx-2">
+                                        <PlayerHUD 
+                                            attributes={attributes}
+                                            defaultChartMode={defaultChartMode}
+                                        />
+                                    </div>
+                                )}
 
                                 {taskViewMode === 'LIST' ? (
                                     <>
@@ -622,15 +599,6 @@ export default function Dashboard() {
                                                     onDeleteQuest={handleDeleteQuest}
                                                     onEditQuest={handleEditQuest}
                                                     onOpenNexus={handleOpenNexus}
-                                                    // Nexus Integration Props
-                                                    smartProjects={smartProjects}
-                                                    habits={habits}
-                                                    notes={notes}
-                                                    projects={projects}
-                                                    onToggleHabit={handleHabitClick}
-                                                    onAddNote={handleAddNote}
-                                                    onUpdateSmartProject={handleUpdateSmartProject}
-                                                    onToggleImmersive={handleToggleImmersive}
                                                 />
                                             </Suspense>
                                         ) : (
@@ -733,7 +701,7 @@ export default function Dashboard() {
 
                         {/* NOTES */}
                         {(loadedViews.has('NOTES') || currentView === 'NOTES') && (
-                            <ViewContainer isActive={currentView === 'NOTES'} className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <NotesView 
                                         onInteractionStart={() => setIsNoteTaking(true)}
@@ -747,7 +715,7 @@ export default function Dashboard() {
 
                         {/* ACHIEVEMENTS */}
                         {(loadedViews.has('ACHIEVEMENTS') || currentView === 'ACHIEVEMENTS') && (
-                            <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} id="ACHIEVEMENTS" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <AchievementsScreen />
                                 </Suspense>
@@ -756,7 +724,7 @@ export default function Dashboard() {
 
                         {/* STORE */}
                         {(loadedViews.has('STORE') || currentView === 'STORE') && (
-                            <ViewContainer isActive={currentView === 'STORE'} className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <StoreScreen onNavigate={(view) => setCurrentView(view)} />
                                 </Suspense>
@@ -765,7 +733,7 @@ export default function Dashboard() {
 
                         {/* INVENTORY */}
                         {(loadedViews.has('INVENTORY') || currentView === 'INVENTORY') && (
-                            <ViewContainer isActive={currentView === 'INVENTORY'} className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'INVENTORY'} id="INVENTORY" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <InventoryScreen />
                                 </Suspense>
@@ -774,7 +742,7 @@ export default function Dashboard() {
 
                         {/* NEXUS */}
                         {(loadedViews.has('NEXUS') || currentView === 'NEXUS') && (
-                            <ViewContainer isActive={currentView === 'NEXUS'} className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'NEXUS'} id="NEXUS" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <NexusView 
                                         onToggleImmersive={handleToggleImmersive}

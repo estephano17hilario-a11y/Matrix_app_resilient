@@ -148,7 +148,7 @@ export const onAuthStateChanged = (authInstance: any, observer: any) => {
 export const signInWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
     if (authInstance?._isMock) {
         console.warn("🛡️ PHANTOM AUTH: Simulating Login...");
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 200));
         
         const user = { 
             ...PHANTOM_USER, 
@@ -175,7 +175,7 @@ export const signInWithEmailAndPassword = async (authInstance: any, email: strin
 export const signInWithPopup = async (authInstance: any, provider: any) => {
     if (authInstance?._isMock) {
         console.warn("🛡️ PHANTOM AUTH: Simulating Google Login...");
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 300));
         
         localStorage.setItem('MATRIX_PHANTOM_SESSION', JSON.stringify({
             uid: PHANTOM_USER.uid,
@@ -195,7 +195,7 @@ export const signInWithPopup = async (authInstance: any, provider: any) => {
 export const createUserWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
     if (authInstance?._isMock) {
         console.warn("🛡️ PHANTOM AUTH: Simulating Registration...");
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 400));
         
         const user = { 
             ...PHANTOM_USER, 

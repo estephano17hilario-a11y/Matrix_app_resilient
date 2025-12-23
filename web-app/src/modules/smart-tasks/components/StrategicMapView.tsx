@@ -39,6 +39,7 @@ interface StrategicMapViewProps {
   onUpdateProject?: (project: SmartProject) => void;
   onDeleteProject?: () => void;
   onDeleteNode?: (nodeId: string) => void;
+  onCreateNew?: () => void;
   onAddSmartTask?: (date: Date) => void;
   onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
@@ -113,6 +114,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     attributes = [], 
     onUpdateProject, 
     onDeleteProject, 
+    onCreateNew,
     onAddSmartTask, 
     onCompleteQuest, 
     onDeleteQuest,

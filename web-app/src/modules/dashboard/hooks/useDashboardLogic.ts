@@ -53,7 +53,7 @@ export const useDashboardLogic = () => {
         }
     }, [user?.dashboardStyle]);
 
-    const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0 });
+    const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0, availableTraitPoints: 0 });
     const prevPlayerLevel = useRef(player.level);
     const [health, setHealth] = useState(100);
     const [dailyLimits, setDailyLimits] = useState<DailyLimits>({
@@ -100,35 +100,6 @@ export const useDashboardLogic = () => {
                 serverStats.hp !== currentLast.hp;
 
             if (hasServerChanged) {
-                // Server has updated. We should trust it, UNLESS we have very recent local changes?
-                // Actually, if Server updates, it usually means a write confirmed.
-                // If we have pending local changes, they might be overwritten.
-                // But with Firestore latency, usually:
-                // 1. Local Update -> 2. Firestore Write -> 3. Listener fires (Server Update).
-                // The Server Update matches Local Update.
-                // So syncing to Server Update is safe (it's the same value).
-                
-                // The DANGER is:
-                // 1. Local Update (XP 100->150).
-                // 2. Other unrelated Server Update (e.g. Theme change) arrives BEFORE XP write confirms.
-                // Server says XP=100. Local says XP=150.
-                // In this case, Server Stats (XP=100) is SAME as currentLast (XP=100).
-                // So hasServerChanged is FALSE (for XP).
-                // But wait, if Theme changed, `user` object changed.
-                // But `serverStats` object might be new ref, but values same.
-                // We check VALUES above.
-                
-                // So if XP didn't change on server, we don't sync XP.
-                // But we might need to sync Gold if that changed?
-                
-                // We should sync fields individually or just check if ANY changed?
-                // If ANY changed, we might overwrite others?
-                // No. If XP didn't change on Server, but Local is ahead...
-                // If we setPlayer({ xp: serverStats.xp ... }), we revert Local.
-                
-                // SOLUTION: Only update Local fields if the Server field differs from LAST KNOWN Server field.
-                // i.e. "Server has moved forward".
-                
                 setPlayer(prev => {
                     const newPlayer = { ...prev };
                     let changed = false;
@@ -144,6 +115,12 @@ export const useDashboardLogic = () => {
                     // Sync Gold if Server moved
                     if (!currentLast || serverStats.gold !== currentLast.gold) {
                         newPlayer.gold = serverStats.gold;
+                        changed = true;
+                    }
+
+                    // Sync Trait Points
+                    if (!currentLast || (serverStats as any).availableTraitPoints !== (currentLast as any).availableTraitPoints) {
+                        newPlayer.availableTraitPoints = (serverStats as any).availableTraitPoints || 0;
                         changed = true;
                     }
 
@@ -579,10 +556,12 @@ export const useDashboardLogic = () => {
 
 
     // --- UNIFIED REWARD SYSTEM ---
-    const addPlayerReward = useCallback((reward: { xp: number; gold: number }) => {
+    const addPlayerReward = useCallback((reward: { xp: number; gold: number; traitPoints?: number; attributeId?: string }) => {
+        // 1. Account XP & Gold
         setPlayer(prev => {
             let newXp = prev.xp + Math.floor(reward.xp);
             let newGold = prev.gold + Math.floor(reward.gold);
+            
             let newLevel = prev.level;
             let newNextXp = prev.nextXp;
             
@@ -597,7 +576,13 @@ export const useDashboardLogic = () => {
                 newXp = Math.max(0, newXp + reward.xp); 
             }
             
-            const newStats = { level: newLevel, xp: newXp, nextXp: newNextXp, gold: newGold };
+            const newStats = { 
+                level: newLevel, 
+                xp: newXp, 
+                nextXp: newNextXp, 
+                gold: newGold,
+                availableTraitPoints: prev.availableTraitPoints
+            };
 
             // PERSISTENCE: Save new stats to Firestore immediately
             if (user?.uid) {
@@ -612,47 +597,72 @@ export const useDashboardLogic = () => {
 
             return newStats;
         });
-    }, [calculateNextXp, user]);
+
+        // 2. Trait XP (Direct to Attribute)
+        if (reward.attributeId && reward.traitPoints && reward.traitPoints > 0) {
+            setAttributes(prevAttrs => {
+                const updatedAttrs = prevAttrs.map(attr => {
+                    if (attr.id === reward.attributeId) {
+                        let newXp = attr.xp + (reward.traitPoints || 0);
+                        let newLevel = attr.level;
+                        let maxXp = attr.maxXp;
+
+                        // Level Up Logic for Trait
+                        // Formula: 100 * (1.2 ^ (level - 1))
+                        while (newXp >= maxXp) {
+                            newXp -= maxXp;
+                            newLevel += 1;
+                            maxXp = Math.floor(100 * Math.pow(1.2, newLevel - 1));
+                            addNotification({ 
+                                type: 'ATTRIBUTE', 
+                                label: attr.label, 
+                                fromLevel: newLevel - 1, 
+                                toLevel: newLevel, 
+                                icon: attr.icon, 
+                                color: attr.color 
+                            });
+                        }
+
+                        // Persist Attribute Change
+                        if (user?.uid) {
+                             persistenceService.attributes.save(user.uid, {
+                                ...attr, level: newLevel, xp: newXp, maxXp 
+                             }).catch(console.error);
+                        }
+                        
+                        return { ...attr, level: newLevel, xp: newXp, maxXp };
+                    }
+                    return attr;
+                });
+                return updatedAttrs;
+            });
+        }
+    }, [calculateNextXp, user, addNotification]);
 
     const addPlayerXp = useCallback((amount: number) => addPlayerReward({ xp: amount, gold: 0 }), [addPlayerReward]);
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
 
-    const updateAttributeXp = useCallback((attrId: string, amount: number) => {
-        setAttributes(prev => {
-            const newAttributes = prev.map(attr => {
-                if (attr.id === attrId) {
-                    let newXp = attr.xp + Math.floor(amount);
-                    let newLevel = attr.level;
-                    let newMaxXp = attr.maxXp;
-                    if (amount > 0) {
-                        while (newXp >= newMaxXp) {
-                            newXp -= newMaxXp;
-                            newLevel += 1;
-                            newMaxXp = Math.floor(1500 + (newLevel * 100) + (Math.pow(newLevel, 2) * 2.8));
-                        }
-                    } else if (amount < 0) {
-                        while (newXp < 0 && newLevel > 1) {
-                            newLevel -= 1;
-                            newMaxXp = Math.floor(1500 + (newLevel * 100) + (Math.pow(newLevel, 2) * 2.8));
-                            newXp += newMaxXp;
-                        }
-                        if (newLevel === 1 && newXp < 0) newXp = 0;
-                    }
-                    
-                    const updatedAttr = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
-                    
-                    // SAVE TO FIRESTORE
-                    if (user?.uid) {
-                        persistenceService.attributes.save(user.uid, updatedAttr);
-                    }
+    const spendTraitPoints = useCallback((attrId: string, amount: number) => {
+        if (player.availableTraitPoints < amount) return;
 
-                    return updatedAttr;
-                }
-                return attr;
-            });
-            return newAttributes;
+        // 1. Deduct Point
+        setPlayer(prev => {
+             const newStats = { ...prev, availableTraitPoints: prev.availableTraitPoints - amount };
+             // Persist
+             if (user?.uid && user.stats) {
+                setDoc(doc(db, 'users', user.uid), {
+                    stats: {
+                        ...user.stats, // Merge with existing stats
+                        availableTraitPoints: newStats.availableTraitPoints
+                    }
+                }, { merge: true });
+             }
+             return newStats;
         });
-    }, [user?.uid]);
+
+        // 2. Add Attribute XP (e.g. 500 XP per point)
+        addPlayerReward({ xp: 0, gold: 0, traitPoints: 500 * amount, attributeId: attrId });
+    }, [player.availableTraitPoints, user, addPlayerReward]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
         setAttributes(prev => {
@@ -756,13 +766,13 @@ export const useDashboardLogic = () => {
         }
 
         const totalGold = Math.floor(totalReward / 5);
-        addPlayerReward({ xp: totalReward, gold: totalGold });
-        updateAttributeXp(attrId, totalReward);
+        addPlayerReward({ xp: totalReward, gold: totalGold, traitPoints: totalReward, attributeId: attrId });
+        
         const attr = attributes.find(a => a.id === attrId);
         const AttrIcon = attr?.icon || Star;
         spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
         addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' Matrix Coins', icon: Clock, color: '#fbbf24' });
-    }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user, dailyLimits]);
+    }, [projects, attributes, addNotification, spawnParticles, addPlayerReward, user, dailyLimits]);
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
@@ -844,8 +854,7 @@ export const useDashboardLogic = () => {
                 return newLimits;
             });
 
-            addPlayerReward({ xp: -xp, gold: -coins });
-            updateAttributeXp(quest.attribute, -xp);
+            addPlayerReward({ xp: -xp, gold: -coins, traitPoints: -traitXp, attributeId: quest.attribute });
             
             if (!quest.isSmartQuest) {
                 setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: false } : q));
@@ -901,9 +910,8 @@ export const useDashboardLogic = () => {
                  setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
             }
 
-            addPlayerReward({ xp: xpToAward, gold: goldToAward });
-            updateAttributeXp(quest.attribute, traitXpToAward); 
-
+            addPlayerReward({ xp: xpToAward, gold: goldToAward, traitPoints: traitXpToAward, attributeId: quest.attribute });
+            
             // ONLY update quests state and persistence for NON-SMART quests
             if (!quest.isSmartQuest) {
                 setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: true } : q));
@@ -923,7 +931,7 @@ export const useDashboardLogic = () => {
                 }
             }
         }
-    }, [attributes, spawnParticles, updateAttributeXp, addPlayerReward, user, dailyLimits]);
+    }, [attributes, spawnParticles, addPlayerReward, user, dailyLimits]);
 
     const handleToggleHabitDay = useCallback(async (habit: Habit, dateStr: string) => {
         if (!user?.uid) return;
@@ -989,8 +997,7 @@ export const useDashboardLogic = () => {
             const rewardGold = Math.floor(rewardXp / 4);
             
             if (shouldRemoveReward) {
-                addPlayerReward({ xp: -rewardXp, gold: -rewardGold });
-                updateAttributeXp(habit.attribute, -rewardXp);
+                addPlayerReward({ xp: -rewardXp, gold: -rewardGold, traitPoints: -rewardXp, attributeId: habit.attribute });
             }
             
             // Update Limits (Decrement count)
@@ -1061,8 +1068,7 @@ export const useDashboardLogic = () => {
             const rewardGold = Math.floor(rewardXp / 4);
             
             if (isRewardable) {
-                addPlayerReward({ xp: rewardXp, gold: rewardGold }); 
-                updateAttributeXp(habit.attribute, traitXpReward);
+                addPlayerReward({ xp: rewardXp, gold: rewardGold, traitPoints: traitXpReward, attributeId: habit.attribute }); 
             } else {
                 addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
             }
@@ -1100,7 +1106,7 @@ export const useDashboardLogic = () => {
         } else {
             setValidationHabit(habit); setValTempValue('0');
         }
-    }, [spawnParticles, updateAttributeXp, addPlayerReward, user, dailyLimits]);
+    }, [spawnParticles, addPlayerReward, user, dailyLimits]);
 
     const validateHabitProgress = () => {
         if (!validationHabit) return;
@@ -1136,8 +1142,7 @@ export const useDashboardLogic = () => {
 
             if (isRewardable) {
                 spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#fff', Trophy, 'fire');
-                addPlayerReward({ xp: rewardXp, gold: rewardGold });
-                updateAttributeXp(validationHabit.attribute, rewardXp);
+                addPlayerReward({ xp: rewardXp, gold: rewardGold, traitPoints: rewardXp, attributeId: validationHabit.attribute });
             } else {
                  addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
             }
@@ -1452,7 +1457,7 @@ export const useDashboardLogic = () => {
         addPlayerXp,
         addPlayerGold,
         addPlayerReward,
-        updateAttributeXp,
+        spendTraitPoints,
         spawnParticles,
         handleCompleteSession,
         completeQuest,

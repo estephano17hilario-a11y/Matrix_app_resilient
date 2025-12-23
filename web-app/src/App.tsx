@@ -43,10 +43,10 @@ const AppRoutes = () => {
     }, 8000);
 
     if (!isActuallyLoading) {
-      // Small delay to ensure the app content has started mounting
+      // FLASH PATH: Hide overlay immediately for better response
       const timer = setTimeout(() => {
         setShowOverlay(false);
-      }, 800);
+      }, 50); // Reduced from 100ms
       return () => {
         clearTimeout(timer);
         clearTimeout(safetyTimer);
@@ -63,14 +63,17 @@ const AppRoutes = () => {
   const renderContent = () => {
     if (isActuallyLoading && !hasTimedOut) return null;
 
+    // Snappier transition for FLASH speed
+    const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
+
     if (!user) {
       return (
         <motion.div 
           key="auth" 
-          initial={{ opacity: 0, scale: 0.98 }} 
+          initial={{ opacity: 0, scale: 0.99 }} 
           animate={{ opacity: 1, scale: 1 }} 
-          exit={{ opacity: 0, scale: 1.02 }} 
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          exit={{ opacity: 0, scale: 1.01 }} 
+          transition={transition}
           className="w-full h-full"
         >
           <AuthScreen />
@@ -82,10 +85,10 @@ const AppRoutes = () => {
       return (
         <motion.div 
           key="onboarding" 
-          initial={{ opacity: 0, scale: 0.98 }} 
+          initial={{ opacity: 0, scale: 0.99 }} 
           animate={{ opacity: 1, scale: 1 }} 
-          exit={{ opacity: 0, scale: 1.02 }} 
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          exit={{ opacity: 0, scale: 1.01 }} 
+          transition={transition}
           className="w-full h-full"
         >
           <OnboardingFlow />
@@ -96,10 +99,10 @@ const AppRoutes = () => {
     return (
       <motion.div 
         key="main" 
-        initial={{ opacity: 0, scale: 0.98 }} 
+        initial={{ opacity: 0, scale: 0.99 }} 
         animate={{ opacity: 1, scale: 1 }} 
-        exit={{ opacity: 0, scale: 1.02 }} 
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        exit={{ opacity: 0, scale: 1.01 }} 
+        transition={transition}
         className="w-full h-full"
       >
         <MatrixProvider userId={user.uid}>
@@ -136,9 +139,9 @@ const AppRoutes = () => {
             initial={{ opacity: 1 }}
             exit={{ 
               opacity: 0,
-              scale: 1.05,
-              filter: 'blur(20px)',
-              transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] }
+              scale: 1.02,
+              filter: 'blur(10px)',
+              transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] }
             }}
           >
             <LoadingScreen />

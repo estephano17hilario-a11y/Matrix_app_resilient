@@ -33,9 +33,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    // OPTIMISTIC CACHE: Try to load from localStorage for instant UI
+    try {
+      const cached = localStorage.getItem('MATRIX_CACHED_PROFILE');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const saveProfileToCache = (p: UserProfile) => {
+    try {
+      localStorage.setItem('MATRIX_CACHED_PROFILE', JSON.stringify(p));
+    } catch (e) {
+      console.warn("Cache failed", e);
+    }
+  };
 
   const refreshProfile = async () => {
     if (!user) return;
@@ -49,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              data.plan = 'PRO';
          }
          setProfile(data);
+         saveProfileToCache(data);
       }
     } catch (e) {
       console.error("Error refreshing profile:", e);
@@ -58,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
+      localStorage.removeItem('MATRIX_CACHED_PROFILE');
       try {
           // Attempt to flush pending writes
           await Promise.race([
@@ -111,21 +129,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        // LOGIN DETECTED
+        // LOGIN DETECTED - SET USER IMMEDIATELY
         setUser(currentUser);
         
-        // REFERENCE TO FIRESTORE DOC
+        // OPTIMISTIC: If we don't have a profile yet, create a skeleton so the UI doesn't hang
+        if (!profile || profile.uid !== currentUser.uid) {
+            const skeletonProfile: UserProfile = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
+                photoURL: currentUser.photoURL,
+                plan: 'FREE',
+                archetype: 'NEO',
+                stats: DEFAULT_USER_STATS,
+                createdAt: Date.now(),
+                lastLoginAt: Date.now(),
+                theme: 'MATRIX',
+                onboarding: DEFAULT_ONBOARDING
+            };
+            setProfile(skeletonProfile);
+        }
+
+        // FAST PATH: Stop loading now if we have a basic profile (even if skeleton/cached)
+        setIsLoading(false);
+        
+        // BACKGROUND HYDRATION: Fetch real data without blocking the UI
         const userRef = doc(db, "users", currentUser.uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-          // CASE B: EXISTING USER (OR SKELETON FROM REGISTRATION)
           const existingProfile = userSnap.data() as UserProfile;
           
-          // HYDRATION CHECK: Ensure critical fields exist
-          // (Fixes race condition where AuthView creates a partial doc with just name/email)
+          // Check for missing critical fields
           if (!existingProfile.stats || !existingProfile.archetype || !existingProfile.onboarding) {
-             console.log("⚠️ MATRIX: Hydrating skeleton user profile...");
+             console.log("⚠️ MATRIX: Background Hydrating skeleton profile...");
              const completeProfile = {
                 ...existingProfile,
                 stats: existingProfile.stats || DEFAULT_USER_STATS,
@@ -137,39 +174,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 onboarding: existingProfile.onboarding || DEFAULT_ONBOARDING
              };
              
-             // Save the missing pieces
-             await setDoc(userRef, completeProfile, { merge: true });
+             // Async write, don't await
+             setDoc(userRef, completeProfile, { merge: true });
              
-             // ⚡ OVERRIDE: Global PRO
              if (ENABLE_GLOBAL_PRO) completeProfile.plan = 'PRO';
-             
              setProfile(completeProfile as UserProfile);
+             saveProfileToCache(completeProfile as UserProfile);
           } else {
-             // NORMAL LOGIN: Just update timestamp
-             await setDoc(userRef, {
-               lastLoginAt: Date.now()
-             }, { merge: true });
+             // Normal update
+             setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
   
-             // ⚡ OVERRIDE: Global PRO
              if (ENABLE_GLOBAL_PRO) existingProfile.plan = 'PRO';
-
-             setProfile({
-               ...existingProfile,
-               lastLoginAt: Date.now()
-             });
+             const finalProfile = { ...existingProfile, lastLoginAt: Date.now() };
+             setProfile(finalProfile);
+             saveProfileToCache(finalProfile);
           }
         } else {
-          // CASE A: NEW USER
-          // Fallback for name if null (common in Email/Pass flow before profile update)
-          const fallbackName = currentUser.displayName || currentUser.email?.split('@')[0] || "Operator";
-          
+          // NEW USER CASE
           const newUserProfile: UserProfile = {
             uid: currentUser.uid,
             email: currentUser.email,
-            displayName: fallbackName,
+            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
             photoURL: currentUser.photoURL,
-            plan: 'FREE', // Saved as FREE in DB for future compatibility
-            archetype: 'NEO', // Default archetype
+            plan: 'FREE',
+            archetype: 'NEO',
             stats: DEFAULT_USER_STATS,
             createdAt: Date.now(),
             lastLoginAt: Date.now(),
@@ -177,15 +205,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             onboarding: DEFAULT_ONBOARDING
           };
 
-          // SANITIZE & SAVE
-          // Use merge: true to be robust against race conditions
           const cleanProfile = sanitizeFirestoreData(newUserProfile);
           await setDoc(userRef, cleanProfile, { merge: true });
           
-          // ⚡ OVERRIDE: Global PRO
           if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
-          
           setProfile(newUserProfile);
+          saveProfileToCache(newUserProfile);
         }
       } catch (err: any) {
         console.error("CRITICAL AUTH ERROR:", err);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -17,12 +17,15 @@ import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
 
+const googleProvider = new GoogleAuthProvider();
+
 export const AuthView = () => {
   const { t, i18n } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
+  const emailRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [email, setEmail] = useState('');
@@ -30,12 +33,18 @@ export const AuthView = () => {
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // AUTO-FOCUS
+  useEffect(() => {
+    if (emailRef.current) {
+      emailRef.current.focus();
+    }
+  }, [isLogin]);
+
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
       console.error("Google Login Failed:", err);
       setError(err.message.replace('Firebase: ', ''));
@@ -47,6 +56,17 @@ export const AuthView = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // FAST VALIDATION
+    if (!email || !password) return;
+    if (!isLogin && (!name || password !== confirmPassword)) {
+      if (password !== confirmPassword) {
+        setError(t('auth.errors.passwordMismatch'));
+        setShake(s => s + 1);
+        return;
+      }
+    }
+
     setError(null);
     setIsLoading(true);
 
@@ -56,9 +76,6 @@ export const AuthView = () => {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         // REGISTER
-        if (password !== confirmPassword) {
-          throw new Error(t('auth.errors.passwordMismatch'));
-        }
         if (password.length < 6) {
           throw new Error(t('auth.errors.passwordLength'));
         }
@@ -67,21 +84,12 @@ export const AuthView = () => {
         
         // Update Profile with Name
         if (name) {
-          await updateProfile(userCredential.user, {
-            displayName: name
-          });
-          
-          // FORCE SYNC: Ensure the name is saved to Firestore immediately
-          // This covers the gap where AuthContext might have initialized with 'null' or 'Operator'
-          try {
-            await setDoc(doc(db, 'users', userCredential.user.uid), {
-              displayName: name,
-              email: email // Redundant but safe
-            }, { merge: true });
-          } catch (docErr) {
-            console.warn("Name sync warning:", docErr);
-            // Non-fatal, AuthContext will handle the rest
-          }
+          // Fire and forget name updates to keep UI moving
+          updateProfile(userCredential.user, { displayName: name });
+          setDoc(doc(db, 'users', userCredential.user.uid), {
+            displayName: name,
+            email: email
+          }, { merge: true }).catch(e => console.warn("Background sync failed", e));
         }
       }
     } catch (err: any) {
@@ -91,9 +99,6 @@ export const AuthView = () => {
       if (err.code === 'auth/operation-not-allowed') {
         errorMessage = t('auth.errors.authDisabled');
       } else if (err.code === 'auth/network-request-failed') {
-         // AUTOMATIC RECOVERY PROTOCOL
-         // If network fails, we assume the user wants to enter anyway.
-         // We force Offline Mode and reload to initialize the Phantom (Mock) Backend.
          console.warn("⚠️ NETWORK FAILURE DETECTED. ENGAGING PHANTOM PROTOCOL.");
          localStorage.setItem('MATRIX_FORCE_OFFLINE', 'true');
          window.location.reload();
@@ -101,11 +106,14 @@ export const AuthView = () => {
       }
       
       setError(errorMessage);
-      setShake(prev => prev + 1); // Trigger shake animation
+      setShake(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // ULTRA-FAST SPRING PHYSICS
+  const springConfig = { type: "spring" as const, stiffness: 500, damping: 40, mass: 0.5 };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
@@ -123,7 +131,7 @@ export const AuthView = () => {
     <AuthLayout>
       <motion.div
         animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
       >
         <GlassCard className="p-8 backdrop-blur-3xl bg-black/40 border-white/10 relative overflow-hidden">
           
@@ -161,6 +169,7 @@ export const AuthView = () => {
               key={isLogin ? "login-title" : "register-title"}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={springConfig}
               className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight text-center"
             >
               {isLogin ? t('auth.login.title') : t('auth.register.title')}
@@ -169,7 +178,7 @@ export const AuthView = () => {
               className="text-white/40 text-sm mt-2 font-medium tracking-wide text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
             >
               {isLogin ? t('auth.login.subtitle') : t('auth.register.subtitle')}
             </motion.p>
@@ -180,10 +189,10 @@ export const AuthView = () => {
               {!isLogin && (
                 <motion.div
                   key="name-field"
-                  initial={{ opacity: 0, height: 0, y: -20 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, height: "auto", scale: 1 }}
+                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                  transition={springConfig}
                 >
                   <AuthInput 
                     icon={User} 
@@ -196,8 +205,9 @@ export const AuthView = () => {
                 </motion.div>
               )}
 
-              <motion.div layout key="email-field">
+              <motion.div layout key="email-field" transition={springConfig}>
                 <AuthInput 
+                  ref={emailRef}
                   icon={Mail} 
                   type="email" 
                   placeholder={t('auth.fields.email')} 
@@ -207,7 +217,7 @@ export const AuthView = () => {
                 />
               </motion.div>
 
-              <motion.div layout key="password-field">
+              <motion.div layout key="password-field" transition={springConfig}>
                 <AuthInput 
                   icon={Lock} 
                   type="password" 
@@ -221,10 +231,10 @@ export const AuthView = () => {
               {!isLogin && (
                 <motion.div
                   key="confirm-password-field"
-                  initial={{ opacity: 0, height: 0, y: -20 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, height: "auto", scale: 1 }}
+                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                  transition={springConfig}
                 >
                   <AuthInput 
                     icon={Lock} 
@@ -239,12 +249,13 @@ export const AuthView = () => {
             </AnimatePresence>
 
             {/* Error Message */}
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {error && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={springConfig}
                   className="text-red-400 text-xs text-center font-mono bg-red-950/30 p-2 rounded-lg border border-red-500/20"
                 >
                   {error}
@@ -256,14 +267,16 @@ export const AuthView = () => {
             <motion.button
               type="submit"
               disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
+              layout
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
+              transition={springConfig}
               className="w-full relative group overflow-hidden rounded-xl bg-white text-black font-bold py-4 text-lg shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transition-all duration-300"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <span className="flex items-center justify-center gap-2">
                 {isLoading ? (
-                  <Loader2 className="animate-spin" />
+                  <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
                   <>
                     {isLogin ? t('auth.login.button') : t('auth.register.button')}
@@ -275,19 +288,21 @@ export const AuthView = () => {
           </form>
 
           {/* Toggle Mode */}
-          <div className="mt-8 relative flex items-center justify-center mb-6">
+          <motion.div layout className="mt-8 relative flex items-center justify-center mb-6" transition={springConfig}>
             <div className="absolute inset-0 flex items-center">
                <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
             <div className="relative bg-black/40 px-4 text-sm text-gray-400">
               {t('auth.orContinue')}
             </div>
-          </div>
+          </motion.div>
 
           <motion.button
+            layout
             onClick={handleGoogleLogin}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
+            transition={springConfig}
             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-300"
           >
              <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -311,7 +326,7 @@ export const AuthView = () => {
             <span className="text-white font-medium">{t('auth.google')}</span>
           </motion.button>
 
-          <div className="mt-6 text-center">
+          <motion.div layout className="mt-6 text-center" transition={springConfig}>
             <button 
               onClick={toggleMode}
               className="text-sm text-white/60 hover:text-white transition-colors duration-300 font-medium"
@@ -322,7 +337,7 @@ export const AuthView = () => {
                 <span>{t('auth.register.footer')} <span className="text-indigo-400 hover:underline">{t('auth.register.footerAction')}</span></span>
               )}
             </button>
-          </div>
+          </motion.div>
 
         </GlassCard>
       </motion.div>

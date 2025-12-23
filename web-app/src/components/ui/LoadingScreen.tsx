@@ -27,7 +27,7 @@ export const LoadingScreen = () => {
     // Small delay to ensure smooth entry
     const timer = setTimeout(() => {
       setShowContent(true);
-    }, 100);
+    }, 50); // Reduced from 100ms
     return () => clearTimeout(timer);
   }, []); // Run once on mount
 
@@ -41,16 +41,16 @@ export const LoadingScreen = () => {
       <div className="relative z-10 flex flex-col items-center justify-between h-full py-20 w-full">
         <div className="flex-1 flex items-center justify-center w-full">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, filter: 'blur(20px)' }}
+            initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
             animate={{ 
               opacity: showContent ? 1 : 0, 
-              scale: showContent ? 1 : 0.9, 
-              filter: showContent ? 'blur(0px)' : 'blur(20px)',
+              scale: showContent ? 1 : 0.95, 
+              filter: showContent ? 'blur(0px)' : 'blur(10px)',
             }}
             transition={{ 
-              duration: 1.5, 
+              duration: 0.6, // Reduced from 1.5
               ease: [0.22, 1, 0.36, 1],
-              delay: 0.2
+              delay: 0.1 // Reduced from 0.2
             }}
             className="text-center relative"
           >
@@ -61,10 +61,10 @@ export const LoadingScreen = () => {
                   "0 0 30px rgba(79,70,229,0.4)", 
                   "0 0 20px rgba(79,70,229,0)"
                 ],
-                letterSpacing: ["0.4em", "0.6em", "0.4em"]
+                letterSpacing: ["0.4em", "0.5em", "0.4em"]
               }}
               transition={{ 
-                duration: 4, 
+                duration: 2, // Faster pulse
                 repeat: Infinity, 
                 ease: "easeInOut" 
               }}
@@ -81,20 +81,20 @@ export const LoadingScreen = () => {
                       opacity: [0.2, 0.5, 0.2],
                       filter: ["blur(1px)", "blur(3px)", "blur(1px)"]
                     }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
             </div>
           </motion.div>
         </div>
         
         <motion.div 
-          initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+          initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
           animate={{ 
             opacity: showContent ? 1 : 0, 
-            y: showContent ? 0 : 20,
-            filter: showContent ? 'blur(0px)' : 'blur(10px)'
+            y: showContent ? 0 : 10,
+            filter: showContent ? 'blur(0px)' : 'blur(5px)'
           }}
-          transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} // Reduced from 1.2 and 0.8
           className="text-center max-w-md px-8"
         >
           <p className="text-white/50 text-sm font-light italic mb-4 font-serif tracking-wider leading-relaxed">

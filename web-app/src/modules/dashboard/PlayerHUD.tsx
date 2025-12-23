@@ -33,42 +33,48 @@ const getTraitColor = (traitId: string): 'indigo' | 'cyan' | 'emerald' | 'rose' 
   return map[traitId] || 'indigo';
 };
 
-const TraitBar = ({ attribute, mini = false }: { attribute: Attribute, mini?: boolean }) => {
-    const { t } = useTranslation();
-    // 🛡️ SAFE CALCULATION
-    const safeXp = Number.isFinite(attribute.xp) ? Math.round(attribute.xp) : 0;
-    const safeMax = (Number.isFinite(attribute.maxXp) && attribute.maxXp > 0) ? Math.round(attribute.maxXp) : 1;
-    
-    const Icon = attribute.icon || HelpCircle;
-    const barColor = getTraitColor(attribute.id);
-    
-    return (
-        <div className={cn("flex flex-col gap-1", mini ? "w-full" : "w-full")}>
-            <div className="flex items-center justify-between text-[10px] mb-0.5">
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                    <div className={cn(
-                      "w-4 h-4 rounded-md flex items-center justify-center bg-white/5 shrink-0",
-                      `text-${barColor}-400`
-                    )}>
-                        <Icon size={10} />
-                    </div>
-                    {!mini && <span className="font-medium text-white/80 truncate">{t(attribute.label)}</span>}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-mono text-[8px] text-white/30">{safeXp}/{safeMax}</span>
-                    <span className="font-mono text-[9px] opacity-60 font-bold text-white/70">Lvl {attribute.level}</span>
-                </div>
-            </div>
-            {!mini && (
-                <LiquidProgressBar 
-                  value={safeXp} 
-                  max={safeMax} 
-                  color={barColor}
-                  size="sm"
-                />
-            )}
-        </div>
-    );
+const TraitBar = ({ 
+  attribute, 
+  mini = false 
+}: { 
+  attribute: Attribute, 
+  mini?: boolean
+}) => {
+  const { t } = useTranslation();
+  // 🛡️ SAFE CALCULATION
+  const safeXp = Number.isFinite(attribute.xp) ? Math.round(attribute.xp) : 0;
+  const safeMax = (Number.isFinite(attribute.maxXp) && attribute.maxXp > 0) ? Math.round(attribute.maxXp) : 1;
+  
+  const Icon = attribute.icon || HelpCircle;
+  const barColor = getTraitColor(attribute.id);
+  
+  return (
+      <div className={cn("flex flex-col gap-1", mini ? "w-full" : "w-full")}>
+          <div className="flex items-center justify-between text-[10px] mb-0.5">
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                  <div className={cn(
+                    "w-4 h-4 rounded-md flex items-center justify-center bg-white/5 shrink-0",
+                    `text-${barColor}-400`
+                  )}>
+                      <Icon size={10} />
+                  </div>
+                  {!mini && <span className="font-medium text-white/80 truncate">{t(attribute.label)}</span>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[8px] text-white/30">{safeXp}/{safeMax}</span>
+                  <span className="font-mono text-[9px] opacity-60 font-bold text-white/70">Lvl {attribute.level}</span>
+              </div>
+          </div>
+          {!mini && (
+              <LiquidProgressBar 
+                value={safeXp} 
+                max={safeMax} 
+                color={barColor}
+                size="sm"
+              />
+          )}
+      </div>
+  );
 };
 
 export const PlayerHUD: React.FC<PlayerHUDProps> = ({
@@ -103,75 +109,78 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   }, [attributes]);
 
   return (
-    <GlassPanel className={cn("p-2 flex flex-col gap-1", className)}>
+    <GlassPanel className={cn("p-3 flex flex-col gap-2", className)}>
       {/* SYSTEM METRICS - TRAIT ANALYSIS */}
-      {orderedAttributes.length > 0 && (
-          <div className="flex flex-col gap-0">
-             <div className="flex items-center justify-between px-1">
-                 <h3 className="text-[9px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+      <div className="flex flex-col gap-0">
+         <div className="flex items-center justify-between px-1">
+             <div className="flex flex-col">
+                <h3 className="text-[9px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
                     <Sparkles size={10} className="text-indigo-400" /> System Metrics
                 </h3>
-                
-                {/* CHART TOGGLE */}
-                <div className="flex bg-white/5 p-0.5 rounded-md border border-white/5 scale-75 origin-right">
-                    <button 
-                        onClick={() => setChartMode('RADAR')}
-                        className={cn(
-                            "p-1.5 rounded-md transition-all", 
-                            chartMode === 'RADAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                        )}
-                    >
-                        <Hexagon size={12} />
-                    </button>
-                    <button 
-                        onClick={() => setChartMode('BAR')}
-                        className={cn(
-                            "p-1.5 rounded-md transition-all", 
-                            chartMode === 'BAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                        )}
-                    >
-                        <BarChart3 size={12} />
-                    </button>
-                </div>
              </div>
-
-             <div className={cn(
-                "mt-2 relative flex items-center justify-center transition-all duration-500",
-                chartMode === 'RADAR' ? "min-h-[180px]" : "min-h-0"
-             )}>
-                 <AnimatePresence mode="wait">
-                    {chartMode === 'RADAR' ? (
-                        <motion.div 
-                            key="radar"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
-                            className="w-full h-full flex items-center justify-center"
-                        >
-                            <TraitRadarChart attributes={orderedAttributes} />
-                        </motion.div>
-                    ) : (
-                        <motion.div 
-                            key="bar"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className={cn(
-                                "w-full grid gap-x-4 gap-y-3 px-1 py-1",
-                                orderedAttributes.length > 5 ? "grid-cols-2" : "grid-cols-1"
-                            )}
-                        >
-                            {orderedAttributes.map(attr => (
-                                <TraitBar key={attr.id} attribute={attr} />
-                            ))}
-                        </motion.div>
+            
+            {/* CHART TOGGLE */}
+            <div className="flex bg-white/5 p-0.5 rounded-md border border-white/5 scale-75 origin-right">
+                <button 
+                    onClick={() => setChartMode('RADAR')}
+                    className={cn(
+                        "p-1.5 rounded-md transition-all", 
+                        chartMode === 'RADAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
                     )}
-                 </AnimatePresence>
-             </div>
-          </div>
-      )}
+                >
+                    <Hexagon size={12} />
+                </button>
+                <button 
+                    onClick={() => setChartMode('BAR')}
+                    className={cn(
+                        "p-1.5 rounded-md transition-all", 
+                        chartMode === 'BAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
+                    )}
+                >
+                    <BarChart3 size={12} />
+                </button>
+            </div>
+         </div>
+
+         <div className={cn(
+            "mt-2 relative flex items-center justify-center transition-all duration-500",
+            chartMode === 'RADAR' ? "min-h-[180px]" : "min-h-0"
+         )}>
+             <AnimatePresence mode="wait">
+                {chartMode === 'RADAR' ? (
+                    <motion.div 
+                        key="radar"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.3 }}
+                        className="w-full h-full flex items-center justify-center"
+                    >
+                        <TraitRadarChart attributes={orderedAttributes} />
+                    </motion.div>
+                ) : (
+                    <motion.div 
+                        key="bar"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className={cn(
+                            "w-full grid gap-x-4 gap-y-3 px-1 py-1",
+                            orderedAttributes.length > 5 ? "grid-cols-2" : "grid-cols-1"
+                        )}
+                    >
+                        {orderedAttributes.map(attr => (
+                            <TraitBar 
+                                key={attr.id} 
+                                attribute={attr} 
+                            />
+                        ))}
+                    </motion.div>
+                )}
+             </AnimatePresence>
+         </div>
+      </div>
       
       {orderedAttributes.length === 0 && (
           <div className="h-40 flex items-center justify-center text-white/20 text-xs">

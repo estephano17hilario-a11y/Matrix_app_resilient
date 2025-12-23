@@ -1,8 +1,9 @@
 import React from 'react';
-import { Heart, Zap, Flame } from 'lucide-react';
+import { Heart, Zap, Flame, Coins } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DailyLimitsHUD } from './DailyLimitsHUD';
 import { DailyLimits } from '../../../types/User';
+import { GoldCounter } from '../../store/components/GoldCounter';
 
 interface AvatarWidgetProps {
   level: number;
@@ -10,6 +11,7 @@ interface AvatarWidgetProps {
   nextXp: number;
   health: number;
   streak: number;
+  gold?: number;
   dailyLimits?: DailyLimits;
   displayName?: string | null;
   email?: string | null;
@@ -67,17 +69,10 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, dailyLimits, displayName, email, isPro }: AvatarWidgetProps) => (
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, gold = 0, dailyLimits, displayName, email, isPro }: AvatarWidgetProps) => (
     <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
-            {/* DAILY LIMITS HUD - MOVED ABOVE STREAK */}
-            {dailyLimits && (
-                <div className="absolute -top-24 left-0 w-32 z-30">
-                    <DailyLimitsHUD limits={dailyLimits} />
-                </div>
-            )}
-            
             <div className={`w-12 h-12 rounded-full p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)] ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}>
                 <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Avatar" className="w-full h-full rounded-full object-cover opacity-90" />
             </div>
@@ -95,7 +90,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, dai
 
         {/* STATS COLUMN */}
         <div className="flex flex-col gap-1">
-            {/* HEADER: NAME + STREAK */}
+            {/* HEADER: NAME + STREAK + GOLD */}
             <div className="flex items-center gap-3">
                 <div className="flex flex-col leading-none">
                     <span className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[80px] sm:max-w-none">
@@ -107,12 +102,31 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, dai
                         </span>
                     )}
                 </div>
-                {streak > 0 && (
-                     <div className="flex items-center gap-1 bg-orange-500/10 px-1.5 py-0.5 rounded-full border border-orange-500/20">
-                        <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />
-                        <span className="text-[10px] font-mono font-bold text-orange-400">{streak}</span>
-                     </div>
-                )}
+                
+                <div className="flex flex-col gap-1 items-end relative">
+                    {/* DAILY LIMITS HUD - POSITIONED ABOVE STREAK/GOLD */}
+                    {dailyLimits && (
+                        <div className="absolute -top-32 -right-4 w-40 z-30">
+                            <DailyLimitsHUD limits={dailyLimits} />
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5">
+                        {streak > 0 && (
+                            <div className="flex items-center gap-1 bg-orange-500/10 px-1.5 py-0.5 rounded-full border border-orange-500/20">
+                                <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />
+                                <span className="text-[10px] font-mono font-bold text-orange-400">{streak}</span>
+                            </div>
+                        )}
+                        
+                        <div className="flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                            <Coins size={10} className="text-amber-400" />
+                            <span className="text-[10px] font-mono font-bold text-amber-400">
+                                <GoldCounter value={gold} />
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* BARS */}

@@ -7,6 +7,7 @@ export interface UserStats {
   xp: number;       // Acumulado
   level: number;    // Calculado (XP / 1000)
   gold: number;     // Moneda virtual
+  availableTraitPoints?: number; // Puntos para mejorar atributos
   streak: number;   // Días consecutivos
   streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
 }
