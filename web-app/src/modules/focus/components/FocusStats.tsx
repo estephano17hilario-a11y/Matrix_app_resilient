@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Target, Calendar, Lock as LockIcon, Filter, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Target, Lock as LockIcon, Layers } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
@@ -11,7 +11,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | null>(null);
     
     // Reset date when range changes
     useEffect(() => {
@@ -29,6 +29,9 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
         }
         return '#6366f1'; 
     }, [filterMode, attributes, projects]);
+
+    const activeAttribute = useMemo(() => attributes.find(a => a.id === filterMode), [filterMode, attributes]);
+    const activeProject = useMemo(() => projects.find(p => p.id === filterMode), [filterMode, projects]);
 
     // Helper to extract color name from hex if possible, or default to indigo
     const liquidColor = useMemo(() => {
@@ -92,13 +95,6 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
         setCurrentDate(newDate);
     };
 
-    const isToday = useMemo(() => {
-        const today = new Date();
-        return currentDate.getDate() === today.getDate() && 
-               currentDate.getMonth() === today.getMonth() && 
-               currentDate.getFullYear() === today.getFullYear();
-    }, [currentDate]);
-
     return (
         <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
             {/* Main Panel - Solid Background for Android Stability (No Blur) */}
@@ -156,115 +152,111 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     </div>
                 </div>
 
-                {/* CONTROLS ROW: Date Nav & Filter Trigger */}
-                <div className="flex items-center justify-between gap-2 z-10">
-                    {/* Date Navigation */}
-                    <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 flex-shrink-0">
-                        <button onClick={() => navigateDate(-1)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
-                            <ChevronLeft size={14} />
-                        </button>
-                        
-                        <div className="min-w-[100px] h-8 flex items-center justify-center relative overflow-hidden px-2">
-                            <AnimatePresence mode="wait">
-                                <motion.span 
-                                    key={currentDate.toString() + timeRange}
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    exit={{ y: -20, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="text-[10px] font-bold text-white text-center absolute whitespace-nowrap"
-                                >
-                                    {formatDateRange(currentDate, timeRange)}
-                                </motion.span>
-                            </AnimatePresence>
+                {/* NEW FILTER CONTROLS ROW */}
+                <div className="flex flex-col gap-2 z-20">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full">
+                        {/* 1. Date Navigation */}
+                        <div className="flex items-center justify-between gap-1 bg-black/20 p-1 rounded-xl border border-white/5 w-full sm:w-auto flex-shrink-0">
+                            <button onClick={() => navigateDate(-1)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
+                                <ChevronLeft size={14} />
+                            </button>
+                            
+                            <div className="flex-1 sm:w-[100px] h-8 flex items-center justify-center relative overflow-hidden px-2">
+                                <AnimatePresence mode="wait">
+                                    <motion.span 
+                                        key={currentDate.toString() + timeRange}
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: -20, opacity: 0 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="text-[10px] font-bold text-white text-center absolute whitespace-nowrap"
+                                    >
+                                        {formatDateRange(currentDate, timeRange)}
+                                    </motion.span>
+                                </AnimatePresence>
+                            </div>
+
+                            <button onClick={() => navigateDate(1)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
+                                <ChevronRight size={14} />
+                            </button>
                         </div>
 
-                        <button onClick={() => navigateDate(1)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
-                            <ChevronRight size={14} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {/* Reset Today */}
-                        {!isToday && (
-                            <button onClick={() => setCurrentDate(new Date())} className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 flex items-center justify-center transition-colors border border-blue-500/30">
-                                <Calendar size={14} />
+                        {/* Filter Buttons Group */}
+                        <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:flex-1">
+                            {/* 2. Global Filter Box */}
+                            <button 
+                                onClick={() => { setFilterMode('GLOBAL'); setActiveDropdown(null); }}
+                                className={`h-10 px-2 sm:px-4 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center ${filterMode === 'GLOBAL' ? 'bg-white text-black border-white shadow-lg shadow-white/10' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
+                            >
+                                GLOBAL
                             </button>
-                        )}
-                        
-                        {/* Advanced Filter Trigger */}
-                        <button 
-                            onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all ${isFilterOpen || filterMode !== 'GLOBAL' ? 'bg-white text-black border-white shadow-lg' : 'bg-white/5 text-slate-400 border-white/5 hover:text-white'}`}
-                        >
-                            <Filter size={12} />
-                            {filterMode === 'GLOBAL' ? 'Filter' : 'Filtered'}
-                        </button>
+
+                            {/* 3. Trait Filter Box */}
+                            <button 
+                                onClick={() => setActiveDropdown(activeDropdown === 'TRAITS' ? null : 'TRAITS')}
+                                className={`h-10 px-2 sm:px-4 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5 sm:gap-2 ${activeAttribute ? '' : (activeDropdown === 'TRAITS' ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white')}`}
+                                style={activeAttribute ? { backgroundColor: activeAttribute.color, borderColor: activeAttribute.color, color: 'white', boxShadow: `0 0 15px -5px ${activeAttribute.color}` } : {}}
+                            >
+                                {activeAttribute ? <activeAttribute.icon size={12} className="sm:w-3.5 sm:h-3.5" /> : <Layers size={12} className="sm:w-3.5 sm:h-3.5" />}
+                                <span className="truncate max-w-[60px] sm:max-w-none">{activeAttribute ? activeAttribute.label.toUpperCase() : 'TRAITS'}</span>
+                            </button>
+
+                            {/* 4. Project Filter Box */}
+                            <button 
+                                onClick={() => setActiveDropdown(activeDropdown === 'PROJECTS' ? null : 'PROJECTS')}
+                                className={`h-10 px-2 sm:px-4 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1.5 sm:gap-2 ${activeProject ? '' : (activeDropdown === 'PROJECTS' ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white')}`}
+                                style={activeProject ? { backgroundColor: '#6366f1', borderColor: '#6366f1', color: 'white', boxShadow: '0 0 15px -5px #6366f1' } : {}}
+                            >
+                                <Target size={12} className="sm:w-3.5 sm:h-3.5" />
+                                <span className="truncate max-w-[60px] sm:max-w-none">{activeProject ? activeProject.title.toUpperCase() : 'PROJECTS'}</span>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Expandable Dropdown Panel */}
+                    <AnimatePresence>
+                        {activeDropdown && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="bg-black/40 rounded-xl p-3 border border-white/5 backdrop-blur-sm grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto">
+                                    {activeDropdown === 'TRAITS' && attributes.map(attr => {
+                                        const Icon = attr.icon;
+                                        const isActive = filterMode === attr.id;
+                                        return (
+                                            <button 
+                                                key={attr.id} 
+                                                onClick={() => { setFilterMode(attr.id); setActiveDropdown(null); }}
+                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
+                                            >
+                                                <Icon size={14} style={{ color: isActive ? 'black' : attr.color }} /> 
+                                                <span className="truncate">{attr.label.toUpperCase()}</span>
+                                            </button>
+                                        );
+                                    })}
+
+                                    {activeDropdown === 'PROJECTS' && projects.filter(p => !p.deleted).map(proj => {
+                                        const isActive = filterMode === proj.id;
+                                        return (
+                                            <button 
+                                                key={proj.id} 
+                                                onClick={() => { setFilterMode(proj.id); setActiveDropdown(null); }}
+                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
+                                            >
+                                                <Target size={14} className={isActive ? 'text-black' : 'text-indigo-400'} />
+                                                <span className="truncate">{proj.title.toUpperCase()}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-
-                {/* ADVANCED FILTER SELECTOR (Expandable) - Replaces simple scroll */}
-                <AnimatePresence>
-                    {isFilterOpen && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="overflow-hidden z-10"
-                        >
-                            <div className="bg-black/40 rounded-xl p-3 border border-white/5 mb-2 flex flex-col gap-3 mt-2">
-                                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Context Filter</span>
-                                    <button onClick={() => { setFilterMode('GLOBAL'); setIsFilterOpen(false); }} className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${filterMode === 'GLOBAL' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
-                                        Reset Global
-                                    </button>
-                                </div>
-                                
-                                <div className="space-y-3 max-h-[200px] overflow-y-auto scrollbar-hide">
-                                    {/* Attributes Group */}
-                                    <div>
-                                        <div className="text-[9px] font-bold text-slate-600 uppercase mb-2 pl-1">Attributes</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {attributes.map(attr => {
-                                                const Icon = attr.icon;
-                                                const isActive = filterMode === attr.id;
-                                                return (
-                                                    <button 
-                                                        key={attr.id} 
-                                                        onClick={() => setFilterMode(attr.id)} 
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}
-                                                    >
-                                                        <Icon size={10} style={{ color: isActive ? 'black' : attr.color }} /> {attr.label.toUpperCase()}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Projects Group */}
-                                    <div>
-                                        <div className="text-[9px] font-bold text-slate-600 uppercase mb-2 pl-1">Projects</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {projects.filter(p => !p.deleted).map(proj => {
-                                                const isActive = filterMode === proj.id;
-                                                return (
-                                                    <button 
-                                                        key={proj.id} 
-                                                        onClick={() => setFilterMode(proj.id)} 
-                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold whitespace-nowrap transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'}`}
-                                                    >
-                                                        <Target size={10} /> {proj.title.toUpperCase()}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 {/* CHART AREA */}
                 <BarChart 

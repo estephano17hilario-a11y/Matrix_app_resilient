@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Scissors, AlertTriangle, Skull } from 'lucide-react';
+import { Scissors, Skull } from 'lucide-react';
 import { BadHabit, Attribute } from '../../../types';
 
 interface BadHabitItemProps {

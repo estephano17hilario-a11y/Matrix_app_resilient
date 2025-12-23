@@ -899,7 +899,6 @@ export default function Dashboard() {
                             onClose={() => setActiveModal(null)}
                             onConfirm={handleBadHabitConfirm}
                             attributes={attributes}
-                            existingBadHabitsCount={badHabits.length}
                         />
                     )}
 
@@ -914,7 +913,6 @@ export default function Dashboard() {
                                 setRelapsingHabit(null);
                             }}
                             userGold={player.gold}
-                            userHp={health}
                         />
                     )}
                     

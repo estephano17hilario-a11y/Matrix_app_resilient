@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute, NotificationItem, UserStats } from '../../types';
 import { FocusStats } from './components/FocusStats';
@@ -36,6 +36,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [totalDuration, setTotalDuration] = useState(25 * 60);
     const [shakeMode, setShakeMode] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -51,13 +52,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const activeAttr = useMemo(() => attributes.find((a) => a.id === selectedProject?.attribute), [selectedProject, attributes]);
     const themeColor = activeAttr?.color || '#3b82f6';
     const ActiveIcon = activeAttr?.icon || Target;
-
-    const handleArchiveProject = (e: React.MouseEvent, project: Project) => {
-        e.stopPropagation();
-        onUpdateProject({ ...project, archived: true });
-        setActiveMenuId(null);
-        addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
-    };
 
     const confirmDelete = (e: React.MouseEvent, project: Project) => {
         e.stopPropagation();
@@ -315,54 +309,62 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             {/* --- LIST VIEW --- */}
             <div className={`flex flex-col w-full h-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
-                {/* Header - Title + Archive (Moved Outside Scroll for better accessibility) */}
-                <div className="flex justify-between items-center pt-6 pb-2 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/95 pointer-events-auto border-b border-white/5">
+                {/* 1. HUD Section (Fixed Top) */}
+                {userStats && (
+                    <div className="flex-shrink-0 pt-safe-top bg-[#020204]/95 border-b border-white/5 pb-2 px-4 z-[160]">
+                        <StatsHeader 
+                            level={userStats.level}
+                            xp={userStats.xp}
+                            nextXp={Math.floor(500 * Math.pow(1.2, userStats.level - 1))}
+                            health={userStats.hp}
+                            streak={userStats.streak}
+                            gold={userStats.gold || 0}
+                            isHidden={false}
+                            showProfile={true}
+                            onShowStore={onShowStore || (() => {})}
+                            onShowPro={onShowPro}
+                            onShowSettings={onShowSettings}
+                            onToggleProfile={onToggleProfile}
+                            displayName={displayName}
+                            email={email}
+                        />
+                    </div>
+                )}
+
+                {/* 2. Header - Title + Archive (Fixed below HUD) */}
+                <div className="flex justify-between items-center py-4 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/95 pointer-events-auto border-b border-white/5">
                     <div className="w-8" /> {/* Spacer for balance */}
-                    <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
+                    <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">
+                        {showArchived ? t('focus.archivedTitle', 'ARCHIVED') : t('focus.appTitle', 'FOCUS STUDIO')}
+                    </h2>
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
-                            // setShowArchived(true); // TODO: Implement archive view
+                            setShowArchived(!showArchived);
                         }} 
-                        className="w-12 h-12 rounded-full bg-indigo-500/20 hover:bg-indigo-500/40 flex items-center justify-center text-white transition-all border border-indigo-500/30 active:scale-90 cursor-pointer relative z-[160] shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                        aria-label="View Archived Projects"
+                        className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all border active:scale-90 cursor-pointer relative z-[160] ${
+                            showArchived 
+                            ? 'bg-white/10 hover:bg-white/20 border-white/30' 
+                            : 'bg-indigo-500/20 hover:bg-indigo-500/40 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
+                        }`}
+                        aria-label={showArchived ? "Back to Projects" : "View Archived Projects"}
                     >
-                        <Archive size={22} />
+                        {showArchived ? <ChevronLeft size={22} /> : <Archive size={22} />}
                     </button>
                 </div>
 
                 {/* Scrollable Content */}
                 <div className="w-full flex-1 overflow-y-auto pb-32 scrollbar-hide">
 
-                    {/* Integrated Stats Header - Moved to Top */}
-                    {userStats && (
-                        <div className="mb-1 px-4 mt-2">
-                            <StatsHeader 
-                                level={userStats.level}
-                                xp={userStats.xp}
-                                nextXp={Math.floor(500 * Math.pow(1.2, userStats.level - 1))}
-                                health={userStats.hp}
-                                streak={userStats.streak}
-                                gold={userStats.gold || 0}
-                                isHidden={false}
-                                showProfile={true}
-                                onShowStore={onShowStore || (() => {})}
-                                onShowPro={onShowPro}
-                                onShowSettings={onShowSettings}
-                                onToggleProfile={onToggleProfile}
-                                displayName={displayName}
-                                email={email}
-                            />
+                    {/* Stats - Only in Active View */}
+                    {!showArchived && (
+                        <div className="relative z-10 mb-1 px-4 mt-4">
+                            <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
                         </div>
                     )}
 
-                    {/* Stats */}
-                    <div className="relative z-10 mb-1 px-4">
-                        <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 content-start relative z-10 pb-40">
-                    {projects.filter(p => !p.deleted && !p.archived).map((project) => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 content-start relative z-10 pb-40 mt-4">
+                    {projects.filter(p => !p.deleted && (showArchived ? p.archived : !p.archived)).map((project) => {
                         const attr = attributes.find((a) => a.id === project.attribute);
                         
                         // Calculate Progress (Daily vs Lifetime)
@@ -426,7 +428,20 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                                     className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1"
                                                 >
                                                     <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
-                                                    <button onClick={(e) => handleArchiveProject(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 flex items-center gap-3 transition-colors"><Archive size={14} /> Archive</button>
+                                                    
+                                                    {/* Toggle Archive/Unarchive Label */}
+                                                    <button 
+                                                        onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             onUpdateProject({ ...project, archived: !project.archived });
+                                                             setActiveMenuId(null);
+                                                             addNotification({ type: 'SYSTEM', label: project.archived ? 'Project Unarchived' : t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
+                                                        }} 
+                                                        className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 flex items-center gap-3 transition-colors"
+                                                    >
+                                                        <Archive size={14} /> {project.archived ? 'Unarchive' : 'Archive'}
+                                                    </button>
+                                                    
                                                     <div className="h-[1px] bg-white/5 my-1" />
                                                     <button onClick={(e) => confirmDelete(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"><Trash2 size={14} /> Delete</button>
                                                 </motion.div>
@@ -489,10 +504,12 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             </div>
                         )
                     })}
-                    <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
+                    {!showArchived && (
+                        <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
                         <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div>
                         <span className="text-[10px] font-bold uppercase tracking-widest">{t('focus.newFlow')}</span>
                     </button>
+                    )}
                 </div>
             </div>
             </div>
