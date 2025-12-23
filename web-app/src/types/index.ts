@@ -41,10 +41,9 @@ export interface Quest {
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
-  smartProjectId?: string;
   projectId?: string;
+  smartProjectId?: string;
   estimatedTime?: number; // Minutes
-  customColor?: string;
 }
 
 export interface Habit {
@@ -66,6 +65,24 @@ export interface Habit {
   projectId?: string;
   estimatedTime?: number; // Minutes
   customColor?: string;
+}
+
+export interface BadHabit {
+  id: string;
+  title: string;
+  attribute: string; // The affected trait
+  reason: string;
+  negativeImpact: string;
+  timeConsumed: number; // in minutes
+  streak: number;
+  relapsedToday: boolean;
+  history: string[]; // Dates when relapse happened
+  penalties: {
+    hp: number;
+    xp: number;
+    gold: number; // Cost to pay off
+  };
+  createdAt: number;
 }
 
 export interface Project {
@@ -129,11 +146,11 @@ export interface NoteBlueprint {
 }
 
 export interface NotificationItem {
-  id: number;
+  id?: number;
   type: string;
   label: string;
-  fromLevel: string | number;
-  toLevel: string | number;
+  fromLevel?: string | number;
+  toLevel?: string | number;
   icon: any;
   color: string;
 }

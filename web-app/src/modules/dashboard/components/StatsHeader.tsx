@@ -1,16 +1,14 @@
 import React from 'react';
 import { Settings, ShoppingBag, Crown, RefreshCw } from 'lucide-react';
 import { AvatarWidget } from './AvatarWidget';
-import { DailyLimits } from '../../../types/User';
 
 interface StatsHeaderProps {
   level: number;
   xp: number;
-  gold: number;
   nextXp: number;
   health: number;
   streak: number;
-  dailyLimits?: DailyLimits;
+  gold: number;
   isHidden: boolean;
   showProfile: boolean;
   hideAvatar?: boolean;
@@ -25,7 +23,7 @@ interface StatsHeaderProps {
   isPro?: boolean;
 }
 
-export const StatsHeader = React.memo(({ level, xp, gold, nextXp, health, streak, dailyLimits, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -42,7 +40,7 @@ export const StatsHeader = React.memo(({ level, xp, gold, nextXp, health, streak
                 onClick={onToggleProfile}
                 className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
             >
-                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} gold={gold} nextXp={nextXp} health={health} streak={streak} dailyLimits={dailyLimits} displayName={displayName} email={email} isPro={isPro} />}
+                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} displayName={displayName} email={email} isPro={isPro} />}
             </div>
         </div>
         

@@ -14,9 +14,11 @@ import { QuestModal } from './modules/dashboard/components/QuestModal';
 import { HabitModal } from './modules/dashboard/components/HabitModal';
 import { ProjectModal } from './modules/dashboard/components/ProjectModal';
 import { ValidationModal } from './modules/dashboard/components/ValidationModal';
+import { BadHabitWizard } from './modules/dashboard/components/BadHabitWizard';
+import { RelapseModal } from './modules/dashboard/components/RelapseModal';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
-import { Quest, Habit } from './types';
+import { Quest, Habit, BadHabit } from './types';
 import { persistenceService } from './services/persistenceService';
 import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
@@ -235,12 +237,15 @@ export default function Dashboard() {
         removeAttribute,
         dashboardStyle,
         updateDashboardStyle,
-        dailyLimits
+        badHabits,
+        handleBadHabitConfirm,
+        handleBadHabitRelapse
     } = useDashboardLogic();
 
     const [isNexusImmersive, setIsNexusImmersive] = useState(false);
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
+    const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
 
     const handleToggleImmersive = (immersive: boolean) => {
         setIsNexusImmersive(immersive);
@@ -518,7 +523,6 @@ export default function Dashboard() {
                             nextXp={player.nextXp} 
                             health={health}
                             streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                            dailyLimits={dailyLimits}
                             isHidden={false}
                             showProfile={showProfile}
                             onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
@@ -659,12 +663,18 @@ export default function Dashboard() {
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <HabitVisualView 
                             habits={habits} 
+                            badHabits={badHabits}
                             attributes={attributes} 
                             onCompleteHabit={handleHabitClick}
-                            onToggleHabitDay={handleToggleHabitDay}
+                            onToggleHabitDay={handleToggleHabitDay as any}
                             onCreateHabit={() => setActiveModal('HABIT')}
+                            onCreateBadHabit={() => setActiveModal('BAD_HABIT')}
                             onDeleteHabit={handleDeleteHabit}
                             onEditHabit={handleEditHabit}
+                            onRelapseBadHabit={(habit) => {
+                                setRelapsingHabit(habit);
+                                setActiveModal('RELAPSE');
+                            }}
                         />
                                 </Suspense>
                             </ViewContainer>
@@ -684,11 +694,14 @@ export default function Dashboard() {
                                         addNotification={addNotification}
                                         initialProjectId={focusTargetProjectId}
                                         userStats={{
-                                            ...(user?.stats || {}),
-                                            streak: habits.reduce((acc, h) => acc + h.streak, 0),
-                                            displayName: user?.displayName,
-                                            email: user?.email
+                                            hp: user?.stats?.hp ?? 100,
+                                            xp: user?.stats?.xp ?? 0,
+                                            level: user?.stats?.level ?? 1,
+                                            gold: user?.stats?.gold ?? 0,
+                                            streak: habits.reduce((acc, h) => acc + h.streak, 0)
                                         }}
+                                        displayName={user?.displayName}
+                                        email={user?.email}
                                         onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
                                         onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
                                         onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
@@ -874,10 +887,35 @@ export default function Dashboard() {
                         isOpen={activeModal === 'PROJECT'} 
                         onClose={() => { setActiveModal(null); setModalInitialContext(null); }} 
                         attributes={attributes} 
-                        smartProjects={smartProjects}
+                        smartProjects={smartProjects} 
                         onConfirm={handleProjectConfirm} 
                         initialData={modalInitialContext || undefined}
                     />
+
+                    {activeModal === 'BAD_HABIT' && (
+                        <BadHabitWizard 
+                            isOpen={true}
+                            onClose={() => setActiveModal(null)}
+                            onConfirm={handleBadHabitConfirm}
+                            attributes={attributes}
+                            existingBadHabitsCount={badHabits.length}
+                        />
+                    )}
+
+                    {activeModal === 'RELAPSE' && relapsingHabit && (
+                        <RelapseModal 
+                            isOpen={true}
+                            onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
+                            habit={relapsingHabit}
+                            onConfirm={(method) => {
+                                handleBadHabitRelapse(relapsingHabit, method);
+                                setActiveModal(null);
+                                setRelapsingHabit(null);
+                            }}
+                            userGold={player.gold}
+                            userHp={health}
+                        />
+                    )}
                     
                     {/* Validation Modal */}
                     <ValidationModal 

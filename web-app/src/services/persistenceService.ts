@@ -10,7 +10,7 @@ import {
   Firestore,
   QueryConstraint
 } from './firebase';
-import { Quest, Habit, Note, JournalEntry, Attribute, Project } from '../types';
+import { Quest, Habit, Note, JournalEntry, Attribute, Project, BadHabit } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
@@ -104,10 +104,12 @@ export const journalService = createSubCollectionService<JournalEntry>('journal'
 export const attributeService = createSubCollectionService<Attribute>('attributes');
 export const smartProjectService = createSubCollectionService<SmartProject>('smartProjects');
 export const projectService = createSubCollectionService<Project>('projects');
+export const badHabitService = createSubCollectionService<BadHabit>('badHabits');
 
 export const persistenceService = {
   quests: questService,
   habits: habitService,
+  badHabits: badHabitService,
   notes: noteService,
   journal: journalService,
   attributes: attributeService,

@@ -1,29 +1,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, ChevronLeft, RotateCcw } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Project, Attribute } from '../../types';
+import { Project, Attribute, NotificationItem, UserStats } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { StatsHeader } from '../dashboard/components/StatsHeader';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
 import { useTranslation, Trans } from 'react-i18next';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro, displayName, email }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
     onOpenProjectModal: () => void, 
     setFocusMode: (attrId: string | null) => void, 
     onUpdateProject: (p: Project) => void,
-    addNotification: (n: any) => void,
+    addNotification: (n: NotificationItem) => void,
     initialProjectId?: string | null,
     
-    userStats?: any,
+    userStats?: UserStats,
     onToggleProfile?: () => void,
     onShowSettings?: () => void,
     onShowStore?: () => void,
     onShowPro?: () => void,
-    isPro?: boolean
+    isPro?: boolean,
+    displayName?: string | null,
+    email?: string | null
 }) => {
     const { t } = useTranslation();
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
@@ -38,10 +39,11 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isCompleting, setIsCompleting] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-    const [showArchived, setShowArchived] = useState(false);
     
     // Robust Timer Ref
-    const lastTickRef = React.useRef<number>(Date.now());
+    const lastTickRef = React.useRef<number>(0);
+    // Initialize ref on mount
+    useEffect(() => { lastTickRef.current = Date.now(); }, []);
 
     const selectedProject = useMemo(() => 
         projects.find(p => p.id === selectedProjectId), 
@@ -55,11 +57,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         onUpdateProject({ ...project, archived: true });
         setActiveMenuId(null);
         addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
-    };
-
-    const handleUnarchive = (project: Project) => {
-        onUpdateProject({ ...project, archived: false });
-        addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectRestored'), icon: RotateCcw, color: '#10b981' });
     };
 
     const confirmDelete = (e: React.MouseEvent, project: Project) => {
@@ -213,7 +210,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isActive, isPaused, mode, selectedProjectId, totalDuration, onCompleteSession, isCompleting]);
+    }, [isActive, isPaused, mode, selectedProjectId, totalDuration, onCompleteSession, isCompleting, handleFinishSession]);
 
     const toggleTimer = () => {
         if (!isActive) { setIsActive(true); setIsPaused(false); if(navigator.vibrate) navigator.vibrate(20); }
@@ -313,90 +310,38 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         </motion.div>
                     </motion.div>
                 )}
-                
-                {/* Archived Projects Modal - Portal to escape parent transforms */}
-                {createPortal(
-                    <AnimatePresence>
-                        {showArchived && (
-                            <motion.div
-                                initial={{ opacity: 0, y: '100%' }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: '100%' }}
-                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className="fixed inset-0 z-[9999] bg-[#050505] flex flex-col font-sans"
-                            >
-                                {/* Header */}
-                                <div className="flex justify-between items-center p-6 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl">
-                                    <button 
-                                        onClick={() => setShowArchived(false)}
-                                        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-90"
-                                    >
-                                        <ChevronLeft size={24} />
-                                    </button>
-                                    <h3 className="text-lg font-black text-white uppercase tracking-widest">{t('focus.archived.title')}</h3>
-                                    <div className="w-10" />
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-32">
-                                    {projects.filter(p => p.archived && !p.deleted).map((project) => {
-                                        const attr = attributes.find(a => a.id === project.attribute);
-                                        const Icon = attr?.icon || Target;
-                                        return (
-                                            <motion.div
-                                                layout
-                                                key={project.id}
-                                                className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/10 transition-all"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/10" style={{ color: attr?.color }}>
-                                                        <Icon size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-white font-bold">{project.title}</h4>
-                                                        <p className="text-xs text-slate-500">{t(`attributes.${attr?.id || 'intelligence'}`)}</p>
-                                                    </div>
-                                                </div>
-                                                
-                                                <button 
-                                                    onClick={() => handleUnarchive(project)}
-                                                    className="px-4 py-2 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-500/20 transition-all active:scale-95 flex items-center gap-2"
-                                                >
-                                                    <RotateCcw size={14} />
-                                                    {t('common.restore')}
-                                                </button>
-                                            </motion.div>
-                                        )
-                                    })}
-                                    {projects.filter(p => p.archived && !p.deleted).length === 0 && (
-                                        <div className="flex flex-col items-center justify-center pt-32 text-slate-500 gap-4 opacity-50">
-                                            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-                                                <Archive size={40} strokeWidth={1.5} />
-                                            </div>
-                                            <p className="text-sm font-medium uppercase tracking-widest">{t('focus.archived.empty')}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>,
-                    document.body
-                )}
             </AnimatePresence>
 
             {/* --- LIST VIEW --- */}
             <div className={`flex flex-col w-full h-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
+                {/* Header - Title + Archive (Moved Outside Scroll for better accessibility) */}
+                <div className="flex justify-between items-center pt-6 pb-2 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/50 backdrop-blur-md pointer-events-auto">
+                    <div className="w-8" /> {/* Spacer for balance */}
+                    <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            // setShowArchived(true); // TODO: Implement archive view
+                        }} 
+                        className="w-12 h-12 rounded-full bg-indigo-500/20 hover:bg-indigo-500/40 flex items-center justify-center text-white transition-all border border-indigo-500/30 active:scale-90 cursor-pointer relative z-[160] shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                        aria-label="View Archived Projects"
+                    >
+                        <Archive size={22} />
+                    </button>
+                </div>
+
                 {/* Scrollable Content */}
                 <div className="w-full flex-1 overflow-y-auto pb-32 scrollbar-hide">
 
                     {/* Integrated Stats Header - Moved to Top */}
                     {userStats && (
                         <div className="mb-1 px-4 mt-2">
-                             <StatsHeader 
+                            <StatsHeader 
                                 level={userStats.level}
                                 xp={userStats.xp}
-                                nextXp={userStats.nextXp}
-                                health={userStats.health}
+                                nextXp={Math.floor(500 * Math.pow(1.2, userStats.level - 1))}
+                                health={userStats.hp}
                                 streak={userStats.streak}
                                 gold={userStats.gold || 0}
                                 isHidden={false}
@@ -405,27 +350,11 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                 onShowPro={onShowPro}
                                 onShowSettings={onShowSettings}
                                 onToggleProfile={onToggleProfile}
-                                displayName={userStats.displayName}
-                                email={userStats.email}
+                                displayName={displayName}
+                                email={email}
                             />
                         </div>
                     )}
-
-                    {/* Header - Title + Archive (Moved Inside Scroll) */}
-                    <div className="flex justify-between items-center py-4 px-6 relative z-10">
-                        <div className="w-8" /> {/* Spacer for balance */}
-                        <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowArchived(true);
-                            }} 
-                            className="w-12 h-12 rounded-full bg-indigo-500/20 hover:bg-indigo-500/40 flex items-center justify-center text-white transition-all border border-indigo-500/30 active:scale-90 cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                            aria-label="View Archived Projects"
-                        >
-                            <Archive size={22} />
-                        </button>
-                    </div>
 
                     {/* Stats */}
                     <div className="relative z-10 mb-1 px-4">

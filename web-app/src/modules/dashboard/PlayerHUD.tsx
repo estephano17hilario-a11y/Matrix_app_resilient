@@ -70,7 +70,7 @@ const TraitBar = ({
                 value={safeXp} 
                 max={safeMax} 
                 color={barColor}
-                size="sm"
+                height={6}
               />
           )}
       </div>

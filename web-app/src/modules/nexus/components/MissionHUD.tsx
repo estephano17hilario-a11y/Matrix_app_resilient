@@ -157,7 +157,6 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
                         key={quest.id}
                         quest={quest}
                         onComplete={(_e, q) => onCompleteQuest(q.id)}
-                        compact
                       />
                   ))}
                   
