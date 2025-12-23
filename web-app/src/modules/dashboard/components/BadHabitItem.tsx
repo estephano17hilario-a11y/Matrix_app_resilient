@@ -19,10 +19,10 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     return (
         <motion.div
             layout
-            className={`group relative backdrop-blur-2xl border shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 ${
+            className={`group relative backdrop-blur-md border shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 ${
                 isRelapsed 
-                ? 'bg-rose-950/20 border-rose-500/20 opacity-60' 
-                : 'bg-white/5 border-white/10 hover:bg-[#1a1a20]/80'
+                ? 'bg-rose-950/40 border-rose-500/20 opacity-60' 
+                : 'bg-[#111]/40 border-white/10 hover:bg-[#1a1a20]/60'
             }`}
         >
             <div className="relative flex items-center p-3 gap-4">

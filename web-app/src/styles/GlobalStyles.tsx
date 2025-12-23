@@ -27,12 +27,12 @@ export const GlobalStyles = React.memo(() => (
 
     .glass-panel {
       background: rgba(17, 24, 39, 0.4); 
-      backdrop-filter: blur(64px) saturate(150%);
-      -webkit-backdrop-filter: blur(64px) saturate(150%);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);
-      will-change: transform;
+      /* removed will-change to reduce memory pressure */
       border-radius: 1rem;
     }
 
