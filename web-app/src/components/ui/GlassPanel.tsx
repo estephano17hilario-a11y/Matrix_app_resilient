@@ -21,8 +21,8 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 30, mass: 1 }}
       className={cn(
-        // Base Semitransparente & Blur Extremo
-        "bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150",
+        // Base Semitransparente & Blur Extremo -> OPTIMIZED FOR ANDROID (NO BLUR)
+        "bg-gray-900/90", // Replaced blur-3xl with high opacity solid color
         // Borde de Luz (Rim Light)
         "border border-white/10",
         // Reflejo Superior (Specular Highlight) & Sombra de Elevación (Glow Shadow)

@@ -442,9 +442,8 @@
   /* PREMIUM FAB BUTTON - APPLE INTELLIGENCE STYLE */
   .premium-fab {
     @apply flex items-center justify-center rounded-full text-white font-medium shadow-2xl transition-all duration-300;
-    /* Glassy surface */
-    background: rgba(255, 255, 255, 0.1); 
-    backdrop-filter: blur(10px);
+    /* Glassy surface - OPTIMIZED: NO BLUR */
+    background: rgba(30, 30, 35, 0.9); 
     position: relative;
     overflow: hidden; /* Contain the inner glow */
     border: 1px solid rgba(255, 255, 255, 0.2);

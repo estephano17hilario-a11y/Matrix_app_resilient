@@ -11,7 +11,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     const isLiquid = dashboardStyle === 'LIQUID';
     
     // Shared base classes: Glass effect, positioning, sizing
-    const baseClass = "pointer-events-auto relative box-border mx-auto !bg-transparent !backdrop-blur-[8px]";
+    // REMOVED BACKDROP BLUR for stability
+    const baseClass = "pointer-events-auto relative box-border mx-auto !bg-transparent";
     
     // Style-specific classes
     const styleClass = isLiquid

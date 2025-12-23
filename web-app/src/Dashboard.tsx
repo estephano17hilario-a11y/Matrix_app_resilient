@@ -854,7 +854,8 @@ export default function Dashboard() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-md saturate-150"
+                                // REMOVED BLUR: Critical for Android stability. Using solid dark overlay.
+                                className="fixed inset-0 z-40 bg-black/90"
                                 onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
                             />
                         )}

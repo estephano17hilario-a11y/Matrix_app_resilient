@@ -49,11 +49,11 @@ export const ThemeSelector: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* Card Container - Optimized Blur */}
+              {/* Card Container - Optimized Blur - REMOVED FOR STABILITY */}
               <div 
-                className="w-full h-full rounded-[2rem] overflow-hidden relative border border-white/10 flex flex-col shadow-2xl backdrop-blur-md transition-colors duration-500"
+                className="w-full h-full rounded-[2rem] overflow-hidden relative border border-white/10 flex flex-col shadow-2xl bg-[#111]/90 transition-colors duration-500"
                 style={{ 
-                  background: `linear-gradient(to bottom, rgba(${themeOption.colors.bgDepth}, 0.9), rgba(${themeOption.colors.bgDepth}, 0.95))`,
+                  background: `linear-gradient(to bottom, rgba(${themeOption.colors.bgDepth}, 0.95), rgba(${themeOption.colors.bgDepth}, 0.98))`,
                 }}
               >
                  {/* Internal Glow (Ambient) - Optimized (No blur, use radial gradient) */}
