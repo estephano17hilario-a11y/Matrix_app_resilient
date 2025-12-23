@@ -467,7 +467,7 @@
     );
     animation: border-rotate 5s linear infinite;
     opacity: 0.85; 
-    filter: blur(15px); /* Stronger blur for the 'orb' feel */
+    /* Removed filter: blur(15px) for performance */
   }
 
   /* A subtle inner shine */

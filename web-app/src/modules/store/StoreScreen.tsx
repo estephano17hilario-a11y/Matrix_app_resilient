@@ -64,7 +64,7 @@ const ConfirmationModal = ({
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
                         onClick={onCancel}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
                     />
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -72,8 +72,11 @@ const ConfirmationModal = ({
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
                         className="relative w-full max-w-sm bg-[#1c1c1e] border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden"
                     >
-                        {/* Background Glow */}
-                        <div className="absolute top-0 left-0 right-0 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
+                        {/* Background Glow - Optimized */}
+                        <div 
+                            className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none" 
+                            style={{ background: 'radial-gradient(circle at 50% 0%, #6366f1 0%, transparent 70%)' }}
+                        />
 
                         <div className="relative flex flex-col items-center text-center">
                             <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
@@ -226,8 +229,11 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
 
   return (
     <div className="min-h-screen bg-transparent text-white pb-32 relative overflow-hidden">
-       {/* Minimal Ambient Glow */}
-       <div className="fixed top-0 left-0 right-0 h-96 bg-indigo-500/5 blur-[100px] pointer-events-none" />
+       {/* Minimal Ambient Glow - Optimized */}
+       <div 
+            className="fixed top-0 left-0 right-0 h-96 opacity-10 pointer-events-none" 
+            style={{ background: 'radial-gradient(circle at 50% 0%, #6366f1 0%, transparent 70%)' }}
+       />
 
        {/* Confirmation Modal */}
        <ConfirmationModal 
@@ -251,7 +257,7 @@ const StoreContent = ({ onNavigate }: StoreScreenProps) => {
         
         {/* Header - Refined */}
         <div className="sticky top-4 z-50 mb-6">
-            <div className="absolute inset-0 bg-[#1c1c1e]/80 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/5" />
+            <div className="absolute inset-0 bg-[#1c1c1e]/90 backdrop-blur-md rounded-[24px] shadow-sm border border-white/5" />
             <div className="relative flex justify-between items-center px-5 py-3.5">
                 <div className="flex items-center gap-3">
                     <h1 className="text-[22px] font-semibold tracking-tight text-white">{t('store.title')}</h1>

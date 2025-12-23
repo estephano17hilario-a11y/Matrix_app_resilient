@@ -104,7 +104,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             <div className={`transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-0 scale-95 pointer-events-none blur-sm' : 'opacity-100 scale-100'}`}>
                 <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
                     <div className="w-8" />
-                    <div className="bg-black/30 p-1 rounded-full border border-white/10 flex relative backdrop-blur-xl shadow-2xl w-full max-w-[200px]">
+                    <div className="bg-black/40 p-1 rounded-full border border-white/10 flex relative backdrop-blur-md shadow-2xl w-full max-w-[200px]">
                         <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
                             subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
                         }`} />

@@ -50,7 +50,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
     scale: {
       repeat: Infinity,
       repeatType: "reverse" as const,
-      duration: 3, // Slow breath
+      duration: 3, // Slow breathing
       ease: "easeInOut" as const
     }
   };
@@ -59,7 +59,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
     <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       {/* 1. Liquid Glass Container (Background) */}
       <motion.div
-        className="absolute inset-0 rounded-full bg-gray-900/40 backdrop-blur-3xl border border-white/10"
+        className="absolute inset-0 rounded-full bg-gray-900/60 backdrop-blur-md border border-white/10"
         variants={containerVariants}
         initial="initial"
         animate="animate"
@@ -115,7 +115,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
             exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
             transition={{
               default: { type: "spring", stiffness: 200, damping: 20 },
-              scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : {})
+              scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : { type: "spring", stiffness: 200, damping: 20 })
             }}
           >
             <Icon 
@@ -129,12 +129,23 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
 
       {/* 4. Glitch/Static Effect Overlay for DECAYED */}
       {mode === 'DECAYED' && (
-        <motion.div
-          className="absolute inset-0 rounded-full bg-red-500/10 pointer-events-none mix-blend-overlay"
-          animate={{ opacity: [0, 0.2, 0] }}
-          transition={{ duration: 0.2, repeat: Infinity, repeatDelay: Math.random() }}
-        />
+        <GlitchOverlay />
       )}
     </div>
   );
 };
+
+const GlitchOverlay = React.memo(() => {
+    // Stable random delay using memo, but for glitches we might want variation.
+    // However, for animation definition in render, we should use a constant or pre-defined random.
+    // Let's use a fixed random value seeded by something or just a set of random constants.
+    // Better yet, let framer handle the randomness via keyframes or just use a fixed fast repeat.
+    
+    return (
+        <motion.div
+          className="absolute inset-0 rounded-full bg-red-500/10 pointer-events-none mix-blend-overlay"
+          animate={{ opacity: [0, 0.2, 0] }}
+          transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.1 }}
+        />
+    );
+});

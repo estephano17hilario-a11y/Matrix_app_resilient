@@ -79,7 +79,7 @@ export const LoadingScreen = () => {
                     animate={{ 
                       width: ["20%", "60%", "20%"], 
                       opacity: [0.2, 0.5, 0.2],
-                      filter: ["blur(1px)", "blur(3px)", "blur(1px)"]
+                      // REMOVED BLUR ANIMATION for Android stability
                     }}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
