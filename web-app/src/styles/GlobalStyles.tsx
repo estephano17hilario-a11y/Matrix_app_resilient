@@ -26,9 +26,8 @@ export const GlobalStyles = React.memo(() => (
     .accordion-inner { overflow: hidden; transform: translateZ(0); }
 
     .glass-panel {
-      background: rgba(17, 24, 39, 0.4); 
-      backdrop-filter: blur(24px) saturate(150%);
-      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      background: #111111; 
+      /* REMOVED BACKDROP BLUR FOR ANDROID STABILITY */
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);
@@ -46,23 +45,23 @@ export const GlobalStyles = React.memo(() => (
     .apple-btn:active { transform: scale(0.96); opacity: 0.8; }
     
     .apple-input {
-        background: rgba(20,20,20,0.6);
+        background: #1a1a1a;
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 18px;
-        backdrop-filter: blur(20px);
+        /* REMOVED BLUR */
         transition: all 0.3s ease;
     }
     .apple-input:focus-within {
-        background: rgba(30,30,30,0.8);
+        background: #222222;
         border-color: rgba(255,255,255,0.3);
         box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
         transform: scale(1.01);
     }
 
     .trait-card {
-        background: rgba(15,15,15,0.6);
+        background: #1a1a1a;
         border: 1px solid rgba(255,255,255,0.05);
-        backdrop-filter: blur(20px);
+        /* REMOVED BLUR */
         transition: all 0.4s var(--spring-easing);
     }
     .trait-card.selected {

@@ -17,18 +17,18 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/95 animate-in fade-in" onClick={onClose} />
             <div 
                 className="relative z-10 w-full max-w-sm glass-panel rounded-[2rem] p-6 animate-modal-enter flex flex-col items-center transition-all duration-500"
                 style={{
                     background: habit?.attribute 
-                        ? `linear-gradient(165deg, ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}20 0%, rgba(20,20,25,0.6) 100%)`
-                        : 'rgba(20, 20, 25, 0.6)',
+                        ? `linear-gradient(165deg, ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}20 0%, #141419 100%)`
+                        : '#141419',
                     borderColor: habit?.attribute ? `${(attributes.find(a => a.id === habit.attribute)?.color || '#fff')}30` : 'rgba(255, 255, 255, 0.1)',
                     boxShadow: habit?.attribute 
                         ? `0 20px 50px -12px ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}30, inset 0 1px 0 0 rgba(255,255,255,0.1)` 
                         : '0 20px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(16px) saturate(150%)'
+                    /* REMOVED BACKDROP FILTER FOR ANDROID STABILITY */
                 }}
             >
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-white/10 shadow-lg" style={{ backgroundColor: (attributes.find(a => a.id === habit.attribute)?.color || '#fff') + '20' }}>

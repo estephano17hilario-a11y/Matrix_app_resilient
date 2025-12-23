@@ -14,89 +14,67 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
       {children}
       
       {/* 
-         OPTIMIZED AURORA SYSTEM (MOBILE SAFE)
-         Replaced heavy blur filters with radial gradients to prevent GPU crashes on Android.
+         ULTRA-OPTIMIZED AURORA SYSTEM (ANDROID STABLE)
+         - No Scale Animation (Expensive re-rasterization)
+         - No Translate Animation (Expensive composite)
+         - Opacity Only (Cheap)
+         - Reduced Layer Count (3 Orbs)
       */}
 
-      {/* Orb 1: Indigo Deep */}
+      {/* Orb 1: Primary (Top Right) */}
       <motion.div 
         animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.4, 0.3], // Higher opacity because no blur filter dilutes it
-          rotate: [0, 45, 0],
+          opacity: [0.3, 0.5, 0.3],
         }}
         transition={{ 
-          duration: 15, 
+          duration: 8, 
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-        className="absolute top-[-20%] right-[-20%] w-[120vw] h-[120vw] rounded-full"
+        className="absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full will-change-[opacity]"
         style={{ 
             background: `radial-gradient(circle, ${overrideColor || '#4f46e5'} 0%, transparent 70%)`,
-            transform: 'translateZ(0)' // Force hardware acceleration without flicker
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden'
         }} 
       />
 
-      {/* Orb 2: Electric Cyan */}
+      {/* Orb 2: Secondary (Bottom Left) */}
       <motion.div 
         animate={{ 
-          scale: [1.2, 1, 1.2],
-          opacity: [0.2, 0.3, 0.2],
+          opacity: [0.2, 0.4, 0.2],
         }}
         transition={{ 
-          duration: 18, 
+          duration: 10, 
           repeat: Infinity, 
           ease: "easeInOut",
           delay: 1
         }}
-        className="absolute bottom-[-20%] left-[-20%] w-[100vw] h-[100vw] rounded-full"
+        className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full will-change-[opacity]"
         style={{ 
             background: `radial-gradient(circle, ${overrideColor || '#06b6d4'} 0%, transparent 70%)`,
-            transform: 'translateZ(0)'
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden'
         }}
       />
 
-      {/* Orb 3: Nebula Pink */}
+      {/* Orb 3: Accent (Center/Floating) - Static position, pulsing opacity */}
       <motion.div 
         animate={{ 
-          scale: [1, 1.3, 1],
-          opacity: [0.15, 0.25, 0.15],
+          opacity: [0.1, 0.2, 0.1],
         }}
         transition={{ 
-          duration: 22, 
+          duration: 12, 
           repeat: Infinity, 
           ease: "easeInOut",
           delay: 2
         }}
-        className="absolute top-[10%] left-[-10%] w-[80vw] h-[80vw] rounded-full"
+        className="absolute top-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full will-change-[opacity]"
         style={{ 
-            background: `radial-gradient(circle, ${overrideColor || '#ec4899'} 0%, transparent 70%)`,
-            transform: 'translateZ(0)'
+            background: `radial-gradient(circle, ${overrideColor || '#ec4899'} 0%, transparent 60%)`,
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden'
         }}
-      />
-      
-      {/* Orb 4: Violet Mist */}
-      <motion.div 
-        animate={{ 
-          scale: [1.1, 1, 1.1],
-          opacity: [0.2, 0.3, 0.2],
-        }}
-        transition={{ 
-          duration: 20, 
-          repeat: Infinity, 
-          ease: "easeInOut",
-          delay: 3
-        }}
-        className="absolute bottom-[10%] right-[-10%] w-[90vw] h-[90vw] rounded-full"
-        style={{ 
-            background: `radial-gradient(circle, ${overrideColor || '#8b5cf6'} 0%, transparent 70%)`,
-            transform: 'translateZ(0)'
-        }}
-      />
-
-      {/* Static Noise Texture (PNG or simple opacity) - Disabled SVG filter for performance */}
-      <div className="absolute inset-0 opacity-[0.03] bg-repeat pointer-events-none mix-blend-overlay"
-           style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }}
       />
     </div>
   );

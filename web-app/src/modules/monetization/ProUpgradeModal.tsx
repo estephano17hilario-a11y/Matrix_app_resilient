@@ -53,7 +53,7 @@ const BenefitCard = ({ icon: Icon, text, delay }: { icon: any, text: string, del
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ delay, duration: 0.4, type: "spring" }}
-    className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group backdrop-blur-sm"
+    className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group"
   >
     <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5 group-hover:scale-110 transition-transform duration-300">
       <Icon size={16} className="text-white/70 group-hover:text-white transition-colors" strokeWidth={1.5} />
@@ -93,18 +93,18 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Background Backdrop - Glassmorphism Total */}
+          {/* Background Backdrop - Solid for Stability */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-[20px]"
+            className="absolute inset-0 bg-black/95"
           >
-             {/* Subtle Ambient Light */}
+             {/* Subtle Ambient Light - Optimized Gradients */}
              <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-30 pointer-events-none">
-                <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[120px] animate-float" />
-                <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] bg-fuchsia-600/30 rounded-full blur-[120px] animate-float" style={{ animationDelay: '-2s' }} />
+                <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, transparent 70%)' }} />
+                <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(192, 38, 211, 0.3) 0%, transparent 70%)' }} />
              </div>
           </motion.div>
 
@@ -116,12 +116,9 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="relative w-full max-w-[500px] overflow-hidden rounded-[32px] border border-white/10 shadow-2xl"
           >
-            {/* Glass Material Layer{/* Background Image/Effect - Optimized */}
-            <div className="absolute inset-0 bg-[#121214]/80 backdrop-blur-md" />
+            {/* Glass Material Layer - Solid for Performance */}
+            <div className="absolute inset-0 bg-[#121214]" />
             
-            {/* Noise Texture for Realism */}
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
-
             {/* Content Container */}
             <div className="relative p-6 md:p-8 flex flex-col h-full">
               

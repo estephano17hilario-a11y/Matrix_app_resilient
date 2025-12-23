@@ -50,7 +50,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/95 animate-in fade-in duration-300" onClick={onClose} />
             <div className="relative z-10 w-full max-w-sm bg-[#1c1c1e] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300">
                 <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <div>

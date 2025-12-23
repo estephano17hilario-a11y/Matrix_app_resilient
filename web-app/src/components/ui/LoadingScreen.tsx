@@ -41,11 +41,10 @@ export const LoadingScreen = () => {
       <div className="relative z-10 flex flex-col items-center justify-between h-full py-20 w-full">
         <div className="flex-1 flex items-center justify-center w-full">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ 
               opacity: showContent ? 1 : 0, 
               scale: showContent ? 1 : 0.95, 
-              filter: showContent ? 'blur(0px)' : 'blur(10px)',
             }}
             transition={{ 
               duration: 0.6, // Reduced from 1.5
@@ -88,11 +87,10 @@ export const LoadingScreen = () => {
         </div>
         
         <motion.div 
-          initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ 
             opacity: showContent ? 1 : 0, 
             y: showContent ? 0 : 10,
-            filter: showContent ? 'blur(0px)' : 'blur(5px)'
           }}
           transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} // Reduced from 1.2 and 0.8
           className="text-center max-w-md px-8"

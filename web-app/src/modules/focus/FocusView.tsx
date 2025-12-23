@@ -281,7 +281,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 {projectToDelete && (
                     <motion.div 
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-4"
                         onClick={() => setProjectToDelete(null)}
                     >
                         <motion.div 
@@ -316,7 +316,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             <div className={`flex flex-col w-full h-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
                 
                 {/* Header - Title + Archive (Moved Outside Scroll for better accessibility) */}
-                <div className="flex justify-between items-center pt-6 pb-2 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/50 backdrop-blur-md pointer-events-auto">
+                <div className="flex justify-between items-center pt-6 pb-2 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/95 pointer-events-auto border-b border-white/5">
                     <div className="w-8" /> {/* Spacer for balance */}
                     <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">{t('focus.appTitle')}</h2>
                     <button 
@@ -389,7 +389,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         const activeColor = attr?.color || '#6366f1';
 
                         return (
-                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 backdrop-blur-3xl border overflow-visible transition-all duration-500 hover:bg-[#121212] flex flex-col gap-3 shadow-xl">
+                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 bg-[#121212]/95 border overflow-visible transition-all duration-500 hover:bg-[#181818] flex flex-col gap-3 shadow-xl">
                                 
                                 {/* --- Sentient Glass Effects --- */}
                                 <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
@@ -423,7 +423,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                             {activeMenuId === project.id && (
                                                 <motion.div 
                                                     initial={{ opacity: 0, scale: 0.9, y: 10, x: -10 }} animate={{ opacity: 1, scale: 1, y: 0, x: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10, x: -10 }}
-                                                    className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1 backdrop-blur-3xl"
+                                                    className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1"
                                                 >
                                                     <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
                                                     <button onClick={(e) => handleArchiveProject(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 flex items-center gap-3 transition-colors"><Archive size={14} /> Archive</button>
@@ -498,15 +498,15 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             </div>
 
             {/* --- TIMER VIEW --- */}
-            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100 ${isActive ? 'bg-[#0a0a0a]' : 'bg-[#0a0a0a]/20 backdrop-blur-xl'}` : 'opacity-0 scale-110 pointer-events-none'}`}>
+            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100 ${isActive ? 'bg-[#0a0a0a]' : 'bg-[#0a0a0a]'}` : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
                 {/* Header Actions (Minimize/Close) */}
                 <div className="w-full flex justify-between items-center px-6 pt-12 z-30 flex-none">
-                    <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
+                    <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
                     
                     {/* Mode Switcher (Timer) */}
                     <div className={`flex flex-col items-center gap-2 ${shakeMode ? 'animate-shake' : ''}`}>
-                        <div className="bg-black/30 backdrop-blur-2xl p-1 rounded-full border border-white/10 flex gap-1 shadow-2xl relative">
+                        <div className="bg-black/90 p-1 rounded-full border border-white/10 flex gap-1 shadow-2xl relative">
                             {/* Blocker */}
                             {isActive && <div className="absolute inset-0 z-50 cursor-not-allowed" onClick={() => { if(navigator.vibrate) navigator.vibrate(50); setShakeMode(true); setTimeout(()=>setShakeMode(false), 500); }} />}
                             

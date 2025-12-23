@@ -54,7 +54,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHi
              {/* PRO Button - Only show if NOT Pro */}
              {!isPro && (
              <button onClick={onShowPro} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-yellow-500/20 flex items-center justify-center transition-all bg-gradient-to-br from-yellow-500/10 to-amber-500/10 text-yellow-500 hover:text-yellow-400 hover:border-yellow-500/50 hover:shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] active:scale-95 group relative overflow-hidden">
-                <div className="absolute inset-0 bg-yellow-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <Crown size={18} className="group-hover:scale-110 transition-transform relative z-10" />
             </button>
             )}

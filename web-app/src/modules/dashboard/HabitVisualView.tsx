@@ -61,10 +61,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
 
                     <button 
                         onClick={section === 'PROTOCOLS' ? onCreateHabit : onCreateBadHabit}
-                        className={`group flex items-center gap-2 px-4 py-2 text-white rounded-full font-medium text-xs transition-all backdrop-blur-md border ${
+                        className={`group flex items-center gap-2 px-4 py-2 text-white rounded-full font-medium text-xs transition-all border ${
                             section === 'PROTOCOLS' 
-                            ? 'bg-white/10 hover:bg-white/20 border-white/10' 
-                            : 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/30'
+                            ? 'bg-[#1a1a1a]/95 hover:bg-[#252525] border-white/10' 
+                            : 'bg-rose-950/80 hover:bg-rose-900 border-rose-500/30'
                         }`}
                     >
                         <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -74,7 +74,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
 
                 {/* Section Toggle */}
                 <div className="flex items-center justify-center mb-2">
-                    <div className="flex p-1 rounded-full backdrop-blur-2xl bg-black/40 border border-white/10 shadow-lg relative">
+                    <div className="flex p-1 rounded-full bg-black/95 border border-white/10 shadow-lg relative">
                          <button 
                             onClick={() => setSection('PROTOCOLS')}
                             className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${

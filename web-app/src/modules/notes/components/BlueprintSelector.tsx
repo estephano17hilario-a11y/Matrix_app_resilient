@@ -71,7 +71,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                    className="absolute inset-0 bg-black/95"
                     onClick={() => setIsOpen(false)}
                 />
                 <motion.div 
@@ -95,7 +95,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                                 key={bp.id}
                                 whileHover={{ y: -5, scale: 1.02 }}
                                 onClick={() => handleSelect(bp)}
-                                className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-4 cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-white/20`}
+                                className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-white/20`}
                             >
                                 {/* Hover Glow Effect using accentColor */}
                                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${bp.accentColor}`} />

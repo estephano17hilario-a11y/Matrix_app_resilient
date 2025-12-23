@@ -17,9 +17,9 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   return (
     <motion.div
       className={cn(
-        // THE HYPER-GLASS FORMULA
-        // Base Semitransparente & Blur Extremo
-        "bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150",
+        // THE HYPER-GLASS FORMULA (OPTIMIZED FOR ANDROID - NO BLUR)
+        // Base Semitransparente & Opacidad Alta (Replaces Blur)
+        "bg-[#111]/90", 
         // Borde de Luz (Rim Light)
         "border border-white/10",
         // Reflejo Superior & Sombra de Elevación (Combined to avoid override)
@@ -28,7 +28,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         "rounded-2xl",
         
         // Interactive states
-        hoverEffect && "transition-all duration-300 hover:bg-gray-800/50 hover:border-white/20 hover:shadow-indigo-500/20",
+        hoverEffect && "transition-all duration-300 hover:bg-[#1a1a1a]/95 hover:border-white/20 hover:shadow-indigo-500/20",
         
         className
       )}
