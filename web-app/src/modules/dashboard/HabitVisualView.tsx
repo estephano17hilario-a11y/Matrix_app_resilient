@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, LayoutGrid, Calendar, Skull, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
-import { HabitVisualCard } from './components/HabitVisualCard';
+import { RelapseChart } from '@/modules/dashboard/components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
+import { HabitVisualCard } from './components/HabitVisualCard';
 
 interface HabitVisualViewProps {
     habits: Habit[];
@@ -17,9 +19,10 @@ interface HabitVisualViewProps {
     onDeleteHabit?: (id: string) => void;
     onEditHabit?: (habit: Habit) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
+    isActive?: boolean;
 }
 
-export const HabitVisualView: React.FC<HabitVisualViewProps> = ({ 
+export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({ 
     habits, 
     badHabits,
     attributes, 
@@ -29,11 +32,27 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
     onCreateBadHabit,
     onDeleteHabit,
     onEditHabit,
-    onRelapseBadHabit
+    onRelapseBadHabit,
+    isActive = true
 }) => {
     const { t } = useTranslation();
+    const { setVicesMode } = useTheme();
     const [viewMode, setViewMode] = useState<'GRID' | 'WEEK'>('GRID');
     const [section, setSection] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
+
+    // Sync Vices Mode with visibility and section
+    useEffect(() => {
+        if (!isActive) {
+            setVicesMode(false);
+        } else {
+            setVicesMode(section === 'VICES');
+        }
+    }, [isActive, section, setVicesMode]);
+
+    // Ensure we reset the background when leaving this component entirely (unmount)
+    useEffect(() => {
+        return () => setVicesMode(false);
+    }, []);
 
     const container = {
         hidden: { opacity: 0 },
@@ -53,30 +72,55 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
             className="min-h-screen pb-32"
         >
             {/* Header Section */}
-            <div className="flex flex-col gap-4 mb-6 px-2 pt-2">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-white tracking-tight">
-                        {section === 'PROTOCOLS' ? t('habits.title') : 'Vices & Bad Habits'}
-                    </h1>
+            <div className="flex flex-col gap-4 mb-1 px-2 pt-2">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold text-white tracking-tight">
+                            {section === 'PROTOCOLS' ? t('habits.title') : 'Vices & Bad Habits'}
+                        </h1>
+
+                        {/* View Mode Toggle (Only for Protocols for now) */}
+                        {section === 'PROTOCOLS' && (
+                            <div className="flex p-0.5 rounded-lg bg-white/5 border border-white/10">
+                                <button 
+                                    onClick={() => setViewMode('GRID')}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'GRID' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <LayoutGrid size={10} />
+                                    {t('habits.viewGrid') || 'Grilla'}
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('WEEK')}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'WEEK' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <Calendar size={10} />
+                                    {t('habits.viewWeek') || 'Semana'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <button 
                         onClick={section === 'PROTOCOLS' ? onCreateHabit : onCreateBadHabit}
-                        className={`group flex items-center gap-2 px-4 py-2 text-white rounded-full font-medium text-xs transition-all border ${
+                        className={`group flex items-center gap-2 px-3 py-1.5 text-white rounded-lg font-medium text-[10px] uppercase tracking-wider transition-all border ${
                             section === 'PROTOCOLS' 
                             ? 'bg-[#1a1a1a]/95 hover:bg-[#252525] border-white/10' 
                             : 'bg-rose-950/80 hover:bg-rose-900 border-rose-500/30'
                         }`}
                     >
-                        <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" />
+                        <Plus size={12} className="group-hover:rotate-90 transition-transform duration-300" />
                         {section === 'PROTOCOLS' ? t('habits.newHabit') : 'New Vice'}
                     </button>
                 </div>
 
                 {/* Section Toggle */}
-                <div className="flex items-center justify-center mb-2">
-                    <div className="flex p-1 rounded-full bg-black/5 backdrop-blur-[2px] border border-white/10 shadow-lg relative transform-gpu">
+                <div className="flex items-center justify-center mb-0">
+                    <div className="flex p-1 rounded-full bg-black/5 backdrop-blur-[1px] border border-white/10 shadow-lg relative transform-gpu">
                          <button 
-                            onClick={() => setSection('PROTOCOLS')}
+                            onClick={() => {
+                                setSection('PROTOCOLS');
+                                setVicesMode(false);
+                            }}
                             className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${
                                 section === 'PROTOCOLS' 
                                 ? 'text-emerald-950 bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' 
@@ -87,7 +131,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
                             Protocols
                         </button>
                         <button 
-                            onClick={() => setSection('VICES')}
+                            onClick={() => {
+                                setSection('VICES');
+                                setVicesMode(true);
+                            }}
                             className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${
                                 section === 'VICES' 
                                 ? 'text-white bg-gradient-to-r from-rose-600 to-red-600 shadow-[0_0_20px_rgba(225,29,72,0.4)]' 
@@ -99,28 +146,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
                         </button>
                     </div>
                 </div>
-
-                {/* View Mode Toggle (Only for Protocols for now) */}
-                {section === 'PROTOCOLS' && (
-                    <div className="flex items-center justify-center">
-                        <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
-                            <button 
-                                onClick={() => setViewMode('GRID')}
-                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'GRID' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                            >
-                                <LayoutGrid size={12} />
-                                {t('habits.viewGrid') || 'Grilla'}
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('WEEK')}
-                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'WEEK' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                            >
-                                <Calendar size={12} />
-                                {t('habits.viewWeek') || 'Semana'}
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Content */}
@@ -147,6 +172,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
                     </>
                 ) : (
                     <>
+                        {/* Relapse History Chart */}
+                        <div className="col-span-full">
+                            <RelapseChart badHabits={badHabits} />
+                        </div>
+
                         {badHabits.map(habit => (
                             <BadHabitItem
                                 key={habit.id}
@@ -174,4 +204,4 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = ({
             </div>
         </motion.div>
     );
-};
+});

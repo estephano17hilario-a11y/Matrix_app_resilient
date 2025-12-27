@@ -7,6 +7,8 @@ interface ThemeContextType {
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
   availableThemes: typeof THEMES;
+  vicesMode: boolean;
+  setVicesMode: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -16,6 +18,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Ideally ThemeProvider is inside AuthProvider to access user
   const auth = useAuth(); // This might throw if ThemeProvider is outside AuthProvider
   const user = auth?.user;
+  const [vicesMode, setVicesMode] = useState(false);
   
   // Initialize from localStorage or default
   const [theme, setThemeState] = useState<ThemeId>(() => {
@@ -96,7 +99,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, availableThemes: THEMES }}>
+    <ThemeContext.Provider value={{ theme, setTheme, availableThemes: THEMES, vicesMode, setVicesMode }}>
       {children}
     </ThemeContext.Provider>
   );

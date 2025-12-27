@@ -61,7 +61,10 @@ export const useDashboardLogic = () => {
         taskGold: 0,
         taskTraitPoints: 0,
         habitsCompleted: 0,
-        focusSeconds: 0
+        focusSeconds: 0,
+        totalXp: 0,
+        totalGold: 0,
+        totalTraitPoints: 0
     });
     
     // Data States
@@ -163,7 +166,7 @@ export const useDashboardLogic = () => {
                         // But we do that lazily on first action.
                         // Here we just ensure local state is correct for TODAY.
                          setDailyLimits(prev => prev.date === today ? prev : { 
-                            date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0
+                            date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, totalXp: 0, totalGold: 0, totalTraitPoints: 0
                         });
                     }
                 }
@@ -242,7 +245,10 @@ export const useDashboardLogic = () => {
                     taskGold: 0,
                     taskTraitPoints: 0,
                     habitsCompleted: 0,
-                    focusSeconds: 0
+                    focusSeconds: 0,
+                    totalXp: 0,
+                    totalGold: 0,
+                    totalTraitPoints: 0
                 };
                 batch.update(userRef as any, { dailyLimits: newLimits });
 

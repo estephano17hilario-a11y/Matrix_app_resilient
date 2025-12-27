@@ -54,3 +54,9 @@ export const completeTaskTransaction = async (
     return { success: false, error };
   }
 };
+
+export const revertTaskTransaction = async (userId: string, taskId: string, reward: RewardPrediction) => {
+    // Placeholder for revert logic
+    console.log("Reverting task transaction...", userId, taskId, reward);
+    return { success: true };
+};

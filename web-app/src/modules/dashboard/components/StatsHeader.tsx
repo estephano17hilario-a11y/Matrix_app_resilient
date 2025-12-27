@@ -7,6 +7,7 @@ interface StatsHeaderProps {
   xp: number;
   nextXp: number;
   health: number;
+  maxHealth?: number;
   streak: number;
   gold: number;
   isHidden: boolean;
@@ -21,9 +22,10 @@ interface StatsHeaderProps {
   email?: string | null;
   currentView?: string;
   isPro?: boolean;
+  onShowStreak?: () => void;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -40,7 +42,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, isHi
                 onClick={onToggleProfile}
                 className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
             >
-                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} displayName={displayName} email={email} isPro={isPro} />}
+                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} gold={gold} displayName={displayName} email={email} isPro={isPro} />}
             </div>
         </div>
         

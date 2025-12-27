@@ -19,6 +19,17 @@ export interface DailyLimits {
   taskTraitPoints: number;
   habitsCompleted: number; // Count of habits completed
   focusSeconds: number; // Total seconds focused
+  totalXp?: number;
+  totalGold?: number;
+  totalTraitPoints?: number;
+  focusXp?: number;
+  focusGold?: number;
+  focusTraitPoints?: number;
+  habitXp?: number;
+  habitGold?: number;
+  habitTraitPoints?: number;
+  tasksCompleted?: number;
+  focusMinutes?: number;
 }
 
 export interface UserProfile {

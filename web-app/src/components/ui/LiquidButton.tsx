@@ -5,6 +5,7 @@ import { cn } from '../../utils/cn';
 interface LiquidButtonProps extends HTMLMotionProps<"button"> {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
 
@@ -12,11 +13,18 @@ export const LiquidButton: React.FC<LiquidButtonProps> = ({
   children,
   className,
   variant = 'primary',
+  size = 'md',
   isLoading,
   ...props
 }) => {
-  const baseStyles = "relative overflow-hidden rounded-full px-8 py-3 font-medium text-white transition-all duration-300 ring-1 ring-white/20 hover:ring-white/40";
+  const baseStyles = "relative overflow-hidden rounded-full font-medium text-white transition-all duration-300 ring-1 ring-white/20 hover:ring-white/40";
   
+  const sizeStyles = {
+    sm: "px-4 py-1.5 text-xs",
+    md: "px-8 py-3 text-sm",
+    lg: "px-10 py-4 text-base"
+  };
+
   const variants = {
     primary: "bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
     secondary: "bg-white/10 backdrop-blur-md hover:bg-white/15",
@@ -27,7 +35,7 @@ export const LiquidButton: React.FC<LiquidButtonProps> = ({
     <motion.button
       whileTap={{ scale: 0.95 }}
       whileHover={{ scale: 1.02 }}
-      className={cn(baseStyles, variants[variant], className)}
+      className={cn(baseStyles, sizeStyles[size], variants[variant], className)}
       {...props}
     >
       {/* Mesh Gradient Internal Overlay */}

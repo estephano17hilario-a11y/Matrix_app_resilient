@@ -1,70 +1,60 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { eachDayOfInterval, subDays, format, isSameDay } from 'date-fns';
-import { cn } from '../../../utils/cn';
+import { Habit } from '../../../types';
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, subMonths } from 'date-fns';
 
 interface HabitHeatmapProps {
-    history: string[]; // ISO date strings
-    days?: number;
+    habit: Habit;
     color?: string;
 }
 
-export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ 
-    history, 
-    days = 105, // Default to ~15 weeks
-    color = '#3b82f6'
-}) => {
-    // Generate dates for the heatmap (End date is today)
-    const dates = useMemo(() => {
+export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b981' }) => {
+    // Generate last 3 months + current
+    const months = useMemo(() => {
+        const result = [];
         const today = new Date();
-        const start = subDays(today, days - 1);
-        return eachDayOfInterval({ start, end: today });
-    }, [days]);
+        for (let i = 2; i >= 0; i--) {
+            result.push(subMonths(today, i));
+        }
+        return result;
+    }, []);
 
-    // Normalize history to local YYYY-MM-DD for accurate comparison
-    const completedDates = useMemo(() => {
-        const set = new Set<string>();
-        history.forEach(h => {
-            try {
-                // Handle both full ISO strings and YYYY-MM-DD strings
-                const date = new Date(h);
-                if (!isNaN(date.getTime())) {
-                    set.add(format(date, 'yyyy-MM-dd'));
-                }
-            } catch (e) {
-                console.warn("Invalid date in history:", h);
-            }
-        });
-        return set;
-    }, [history]);
+    const historySet = useMemo(() => new Set(habit.history || []), [habit.history]);
 
     return (
-        <div className="flex flex-wrap gap-[3px] content-start">
-            {dates.map((date: Date, i: number) => {
-                const dateStr = format(date, 'yyyy-MM-dd');
-                const isCompleted = completedDates.has(dateStr);
-                const isToday = isSameDay(date, new Date());
-                
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide mask-linear-fade">
+            {months.map((monthDate, mIndex) => {
+                const days = eachDayOfInterval({
+                    start: startOfMonth(monthDate),
+                    end: endOfMonth(monthDate)
+                });
+
                 return (
-                    <motion.div
-                        key={dateStr}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.005, duration: 0.2 }}
-                        className={cn(
-                            "rounded-[2px] transition-all duration-500",
-                            isToday && !isCompleted ? "ring-1 ring-white/30 animate-pulse" : "",
-                            isCompleted ? "scale-110 z-10" : "scale-100"
-                        )}
-                        style={{
-                            width: '12px',
-                            height: '12px',
-                            backgroundColor: isCompleted ? color : 'rgba(255,255,255,0.06)',
-                            opacity: isCompleted ? 1 : 1, 
-                            boxShadow: isCompleted ? `0 0 8px ${color}, 0 0 12px ${color}` : 'none'
-                        }}
-                        title={`${dateStr}: ${isCompleted ? 'Done' : 'Missed'}`}
-                    />
+                    <div key={mIndex} className="flex flex-col gap-1 min-w-[100px]">
+                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">
+                            {format(monthDate, 'MMMM')}
+                        </div>
+                        <div className="grid grid-rows-7 grid-flow-col gap-1">
+                            {days.map((day, dIndex) => {
+                                const dateStr = day.toISOString();
+                                const isCompleted = historySet.has(dateStr) || Array.from(historySet).some(h => h.startsWith(format(day, 'yyyy-MM-dd')));
+                                
+                                return (
+                                    <div
+                                        key={dIndex}
+                                        className={`w-2 h-2 rounded-sm transition-all duration-300 ${
+                                            isCompleted 
+                                            ? 'opacity-100 shadow-[0_0_8px_-2px_currentColor]' 
+                                            : 'bg-white/5 opacity-100'
+                                        }`}
+                                        style={{ 
+                                            backgroundColor: isCompleted ? color : undefined 
+                                        }}
+                                        title={format(day, 'yyyy-MM-dd')}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
                 );
             })}
         </div>

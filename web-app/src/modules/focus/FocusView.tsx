@@ -5,6 +5,7 @@ import { Project, Attribute, NotificationItem, UserStats } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { StatsHeader } from '../dashboard/components/StatsHeader';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
+import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
 
 export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro, displayName, email }: { 
@@ -40,6 +41,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [isCompleting, setIsCompleting] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+    const [showRewardModal, setShowRewardModal] = useState(false);
+    const [sessionStats, setSessionStats] = useState<{ duration: number, xpEarned: number, goldEarned: number, streakBonus: number } | null>(null);
     
     // Robust Timer Ref
     const lastTickRef = React.useRef<number>(0);
@@ -123,11 +126,22 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         // Only save if meaningful duration (> 10 seconds? or just save all as requested)
         // User asked for "exact progress", so we save it.
         onCompleteSession(selectedProjectId, finalDuration, mode);
+
+        // Calculate Rewards (Simulation for Modal)
+        const xp = Math.floor(finalDuration / 60 * 10);
+        const gold = Math.floor(finalDuration / 60 * 2);
+        setSessionStats({
+            duration: finalDuration,
+            xpEarned: xp,
+            goldEarned: gold,
+            streakBonus: 10 // Mock bonus
+        });
         
         // Wait for animation to play a bit more before closing overlay
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         setIsCompleting(false);
+        setShowRewardModal(true);
         // setShowHistory(true); // User requested NOT to show history automatically
         
         // Reset Timer
@@ -231,6 +245,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             {/* <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} /> */}
 
             <AnimatePresence>
+                {showRewardModal && sessionStats && (
+                    <SessionRewardModal 
+                        isOpen={showRewardModal} 
+                        onClose={() => setShowRewardModal(false)} 
+                        stats={sessionStats} 
+                    />
+                )}
                 {isCompleting && (
                     <motion.div 
                         initial={{ opacity: 0 }}
@@ -621,6 +642,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     onUpdateProject={onUpdateProject} 
                 />
             )}
+
+            {/* Session Reward Modal */}
+            <SessionRewardModal 
+                isOpen={showRewardModal} 
+                onClose={() => setShowRewardModal(false)} 
+                stats={sessionStats || { duration: 0, xpEarned: 0, goldEarned: 0, streakBonus: 0 }} 
+            />
         </div>
     );
 });

@@ -32,7 +32,7 @@ const TRAIT_NAMES: Record<string, string[]> = {
   ESTILO: ["traits.estilo.achievements.0", "traits.estilo.achievements.1", "traits.estilo.achievements.2", "traits.estilo.achievements.3", "traits.estilo.achievements.4", "traits.estilo.achievements.5", "traits.estilo.achievements.6", "traits.estilo.achievements.7"]
 };
 
-const TRAIT_ICONS: Record<string, any> = {
+export const TRAIT_ICONS: Record<string, any> = {
   DISCIPLINA: Target, FISICO: Dumbbell, MENTAL: Brain, SOCIAL: Users, 
   ESPIRITU: Ghost, FINANZAS: Wallet, CREATIVIDAD: Palette, ORDEN: Anchor, 
   LIDERAZGO: Crown, RESILIENCIA: Shield, VITALIDAD: Zap, ESTILO: Feather
