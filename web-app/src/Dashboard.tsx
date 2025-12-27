@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ArrowUp, Target, ListTodo } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -44,17 +44,24 @@ const SuspenseFallback = () => (
 
 // Helper to convert SmartProject nodes to Real Quests
 const ViewContainer = ({ isActive, children, className = "", id }: { isActive: boolean, children: React.ReactNode, className?: string, id?: string }) => {
-    return isActive ? (
-        <motion.div 
+    return (
+        <div 
             id={id} 
             className={`${className} w-full h-full`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30, mass: 1 }}
+            style={{ 
+                display: isActive ? 'block' : 'none',
+            }}
         >
-            {children}
-        </motion.div>
-    ) : null;
+            <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25, mass: 1 }}
+                className="w-full h-full"
+            >
+                {children}
+            </motion.div>
+        </div>
+    );
 };
 
 const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectId: string): Quest[] => {
@@ -446,6 +453,14 @@ export default function Dashboard() {
         }
     };
 
+    // Scroll Reset on View Change
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [currentView, taskViewMode]);
+
     return (
         <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
             <GlobalStyles />
@@ -459,7 +474,7 @@ export default function Dashboard() {
             </Suspense>
 
             {/* SCROLLABLE CONTENT LAYER */}
-            <div className="absolute inset-0 z-10 w-full h-full overflow-y-auto overflow-x-hidden scroll-smooth">
+            <div ref={scrollContainerRef} className="absolute inset-0 z-10 w-full h-full overflow-y-auto overflow-x-hidden scroll-smooth">
                 <AchievementToast 
                     achievement={lastAchievement} 
                     onClose={() => setLastAchievement(null)} 
@@ -514,25 +529,33 @@ export default function Dashboard() {
                     </AnimatePresence>
                 </div>
 
-                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-safe ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
-                    {currentView !== 'FOCUS' && !isNexusImmersive && !isWizardOpen && (
-                        <StatsHeader 
-                            level={player.level} 
-                            xp={player.xp} 
-                            gold={player.gold}
-                            nextXp={player.nextXp} 
-                            health={health}
-                            streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                            isHidden={false}
-                            showProfile={showProfile}
-                            onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
-                            onShowPro={() => setIsProModalOpen(true)}
-                            onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                            onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                            displayName={user?.displayName}
-                            email={user?.email}
-                        />
-                    )}
+                {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
+                {!isNexusImmersive && !isWizardOpen && (
+                    <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
+                        <div className="max-w-md mx-auto px-4 sm:px-6">
+                            <StatsHeader 
+                                level={player.level} 
+                                xp={player.xp} 
+                                gold={player.gold}
+                                nextXp={player.nextXp} 
+                                health={health}
+                                streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                                isHidden={false}
+                                showProfile={showProfile}
+                                onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+                                onShowPro={() => setIsProModalOpen(true)}
+                                onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                displayName={user?.displayName}
+                                email={user?.email}
+                                currentView={currentView}
+                                isPro={user?.plan === 'PRO'}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-4 ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
 
                     <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
@@ -541,7 +564,7 @@ export default function Dashboard() {
                                 {/* VIEW TOGGLE */}
                                 {!isNexusImmersive && (
                                     <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
-                                        <div className="flex p-1 rounded-full backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg">
+                                        <div className="flex p-1 rounded-full backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
                                             <button 
                                                 onClick={() => setTaskViewMode('LIST')}
                                                 className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
@@ -693,18 +716,6 @@ export default function Dashboard() {
                                         onUpdateProject={handleUpdateProject}
                                         addNotification={addNotification}
                                         initialProjectId={focusTargetProjectId}
-                                        userStats={{
-                                            hp: user?.stats?.hp ?? 100,
-                                            xp: user?.stats?.xp ?? 0,
-                                            level: user?.stats?.level ?? 1,
-                                            gold: user?.stats?.gold ?? 0,
-                                            streak: habits.reduce((acc, h) => acc + h.streak, 0)
-                                        }}
-                                        displayName={user?.displayName}
-                                        email={user?.email}
-                                        onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                        onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                        onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
                                         onShowPro={() => setActiveModal('PRO')}
                                         isPro={user?.plan === 'PRO'}
                                     />

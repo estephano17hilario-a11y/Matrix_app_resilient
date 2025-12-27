@@ -30,7 +30,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           {/* Glass Capsule */}
           <div className="
             flex items-center gap-4 px-6 py-3
-            bg-gray-950/80 backdrop-blur-2xl backdrop-saturate-150
+            bg-gray-950/80 backdrop-blur-lg
             border border-white/10 rounded-full
             shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]
             pointer-events-auto

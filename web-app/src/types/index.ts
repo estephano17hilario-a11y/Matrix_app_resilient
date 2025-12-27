@@ -44,6 +44,8 @@ export interface Quest {
   projectId?: string;
   smartProjectId?: string;
   estimatedTime?: number; // Minutes
+  rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
+  rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
 }
 
 export interface Habit {

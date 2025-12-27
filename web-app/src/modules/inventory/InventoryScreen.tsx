@@ -39,7 +39,7 @@ const InventoryItemCard = ({
             layout
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="group relative flex flex-col p-4 rounded-[20px] bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/5 overflow-hidden active:scale-[0.98] transition-all"
+            className="group relative flex flex-col p-4 rounded-[20px] bg-[#1c1c1e]/80 backdrop-blur-md border border-white/5 overflow-hidden active:scale-[0.98] transition-all"
         >
             <div className="flex justify-between items-start mb-3">
                 <div className="p-2.5 rounded-xl bg-white/10 text-white">

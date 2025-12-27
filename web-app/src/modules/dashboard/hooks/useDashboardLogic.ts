@@ -10,10 +10,8 @@ import {
 import { DailyLimits } from '../../../types/User';
 import { TRAITS_LIST, DAILY_LIMITS } from '../constants';
 import { FREE_LIMITS } from '../../../config/limits';
-import { completeTaskTransaction } from '../../../services/gameService';
 import { projectService } from '../../../services/projectService';
 import { persistenceService } from '../../../services/persistenceService';
-import { RewardPrediction } from '../../../utils/rewardCalculator';
 import { doc, setDoc, db, writeBatch } from '../../../services/firebase';
 
 import { useTheme } from '../../../context/ThemeContext';
@@ -541,6 +539,7 @@ export const useDashboardLogic = () => {
     // --- NOTIFICATION EFFECTS (Safe from Render Cycle) ---
     const isFirstLoad = useRef(true);
     const isAttributesSync = useRef(true);
+    const processingQuests = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         // Skip notification on first load or if level hasn't increased
@@ -767,14 +766,26 @@ export const useDashboardLogic = () => {
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
+        
+        // LOCKING: Prevent double-execution from rapid clicks (Race Condition Fix)
+        if (processingQuests.current.has(quest.id)) return;
+        processingQuests.current.add(quest.id);
+        setTimeout(() => {
+            processingQuests.current.delete(quest.id);
+        }, 500);
+
         if (quest.completed) {
             if(navigator.vibrate) navigator.vibrate(5);
             
-            // Reversal
-            const xp = quest.xpReward;
-            const coins = quest.gold || 0;
-            // Approximating Trait XP (needs to match calculation below)
-            const traitXp = Math.floor(xp * 0.4); 
+            // Reversal: Use stored rewarded values if available, else fallback to potential reward (legacy)
+            // INTEGRITY FIX: Always subtract what was actually given.
+            const xpToRevert = quest.rewardedXp !== undefined ? quest.rewardedXp : quest.xpReward;
+            const goldToRevert = quest.rewardedGold !== undefined ? quest.rewardedGold : (quest.gold || 0);
+            
+            // For Trait XP, we don't store it explicitly in Quest yet, but it's derived from XP. 
+            // If rewardedXp was 0, traitXp should be 0.
+            // Assumption: Trait XP is proportional to XP awarded.
+            const traitXpToRevert = Math.floor(xpToRevert * 0.4); 
             
             // Update Daily Limits (Allow "Refund" of limit)
             setDailyLimits(prev => {
@@ -783,9 +794,9 @@ export const useDashboardLogic = () => {
 
                 const newLimits = {
                     ...prev,
-                    taskXp: Math.max(0, prev.taskXp - xp),
-                    taskGold: Math.max(0, prev.taskGold - coins),
-                    taskTraitPoints: Math.max(0, prev.taskTraitPoints - traitXp)
+                    taskXp: Math.max(0, prev.taskXp - xpToRevert),
+                    taskGold: Math.max(0, prev.taskGold - goldToRevert),
+                    taskTraitPoints: Math.max(0, prev.taskTraitPoints - traitXpToRevert)
                 };
                 
                 if (user?.uid) {
@@ -794,12 +805,21 @@ export const useDashboardLogic = () => {
                 return newLimits;
             });
 
-            addPlayerReward({ xp: -xp, gold: -coins });
-            updateAttributeXp(quest.attribute, -xp);
+            addPlayerReward({ xp: -xpToRevert, gold: -goldToRevert });
+            updateAttributeXp(quest.attribute, -traitXpToRevert);
             
-            setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: false } : q));
+            // Clear rewarded fields on uncomplete
+            const updatedQuest = { 
+                ...quest, 
+                completed: false, 
+                rewardedXp: undefined, // undefined to remove field locally
+                rewardedGold: undefined 
+            };
+
+            setQuests(prev => prev.map(q => q.id === quest.id ? updatedQuest : q));
             if (user?.uid) {
-                persistenceService.quests.update(user.uid, quest.id, { completed: false });
+                // We set to 0 in DB to ensure we don't use old values if something goes wrong
+                persistenceService.quests.update(user.uid, quest.id, { completed: false, rewardedXp: 0, rewardedGold: 0 });
             }
         } else {
             const attr = attributes.find(a => a.id === quest.attribute);
@@ -852,20 +872,22 @@ export const useDashboardLogic = () => {
             addPlayerReward({ xp: xpToAward, gold: goldToAward });
             updateAttributeXp(quest.attribute, traitXpToAward); 
 
-            setQuests(prev => prev.map(q => q.id === quest.id ? { ...q, completed: true } : q));
+            // INTEGRITY: Store what was actually awarded
+            const updatedQuest = { 
+                ...quest, 
+                completed: true,
+                rewardedXp: xpToAward,
+                rewardedGold: goldToAward
+            };
+
+            setQuests(prev => prev.map(q => q.id === quest.id ? updatedQuest : q));
 
             if (user?.uid) {
-                persistenceService.quests.update(user.uid, quest.id, { completed: true });
-
-                // Normalize Reward Object for Transaction
-                const fullReward: RewardPrediction = { 
-                    xp: xpToAward, 
-                    coins: goldToAward, 
-                    traitXp: traitXpToAward, 
-                    baseXp: rawXp, 
-                    bonusApplied: false 
-                };
-                completeTaskTransaction(user.uid, quest.id, fullReward, quest.attribute);
+                persistenceService.quests.update(user.uid, quest.id, { 
+                    completed: true,
+                    rewardedXp: xpToAward,
+                    rewardedGold: goldToAward
+                });
             }
         }
     }, [attributes, spawnParticles, updateAttributeXp, addPlayerReward, user, dailyLimits]);

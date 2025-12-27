@@ -80,12 +80,6 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, gol
             <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10">
                  <span className="text-[10px] font-bold text-white">{level}</span>
             </div>
-            {/* PRO Badge */}
-            {isPro && (
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 px-2 py-0.5 rounded-full border border-white/20 shadow-[0_0_10px_rgba(129,140,248,0.5)] z-20">
-                    <span className="text-[8px] font-black text-white tracking-widest leading-none block">PRO</span>
-                </div>
-            )}
         </div>
 
         {/* STATS COLUMN */}

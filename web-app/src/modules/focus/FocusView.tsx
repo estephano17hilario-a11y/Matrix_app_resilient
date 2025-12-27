@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Project, Attribute, NotificationItem, UserStats } from '../../types';
+import { Project, Attribute, NotificationItem } from '../../types';
 import { FocusStats } from './components/FocusStats';
-import { StatsHeader } from '../dashboard/components/StatsHeader';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
 import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, userStats, onToggleProfile, onShowSettings, onShowStore, onShowPro, isPro, displayName, email }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
@@ -17,15 +16,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     onUpdateProject: (p: Project) => void,
     addNotification: (n: NotificationItem) => void,
     initialProjectId?: string | null,
-    
-    userStats?: UserStats,
-    onToggleProfile?: () => void,
-    onShowSettings?: () => void,
-    onShowStore?: () => void,
     onShowPro?: () => void,
     isPro?: boolean,
-    displayName?: string | null,
-    email?: string | null
 }) => {
     const { t } = useTranslation();
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
@@ -257,7 +249,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md"
                     >
                         <div className="relative flex items-center justify-center w-32 h-32">
                             {/* Ripple Effect - Soft Water Wave */}
@@ -328,29 +320,9 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             </AnimatePresence>
 
             {/* --- LIST VIEW --- */}
-            <div className={`flex flex-col w-full h-full transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4'}`}>
+            <div className={`flex flex-col w-full h-full transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4 absolute inset-0'}`}>
                 
-                {/* 1. HUD Section (Fixed Top) */}
-                {userStats && (
-                    <div className="flex-shrink-0 pt-safe-top bg-[#020204]/95 border-b border-white/5 pb-2 px-4 z-[160]">
-                        <StatsHeader 
-                            level={userStats.level}
-                            xp={userStats.xp}
-                            nextXp={Math.floor(500 * Math.pow(1.2, userStats.level - 1))}
-                            health={userStats.hp}
-                            streak={userStats.streak}
-                            gold={userStats.gold || 0}
-                            isHidden={false}
-                            showProfile={true}
-                            onShowStore={onShowStore || (() => {})}
-                            onShowPro={onShowPro}
-                            onShowSettings={onShowSettings}
-                            onToggleProfile={onToggleProfile}
-                            displayName={displayName}
-                            email={email}
-                        />
-                    </div>
-                )}
+                {/* 1. HUD Section REMOVED (Global HUD is now persistent) */}
 
                 {/* 2. Header - Title + Archive (Fixed below HUD) */}
                 <div className="flex justify-between items-center py-4 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/95 pointer-events-auto border-b border-white/5">
@@ -363,7 +335,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             e.stopPropagation();
                             setShowArchived(!showArchived);
                         }} 
-                        className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all border active:scale-90 cursor-pointer relative z-[160] ${
+                        className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer relative z-[160] ${
                             showArchived 
                             ? 'bg-white/10 hover:bg-white/20 border-white/30' 
                             : 'bg-indigo-500/20 hover:bg-indigo-500/40 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
@@ -374,8 +346,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     </button>
                 </div>
 
-                {/* Scrollable Content */}
-                <div className="w-full flex-1 overflow-y-auto pb-32 scrollbar-hide">
+                {/* Scrollable Content - Let Dashboard handle scroll, just expand */}
+                <div className="w-full flex-1 pb-32">
 
                     {/* Stats - Only in Active View */}
                     {!showArchived && (
@@ -596,7 +568,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             <span className="text-[86px] font-black text-white tabular-nums tracking-[-0.05em] leading-none filter drop-shadow-2xl select-none font-sf-display scale-y-105">
                                 {formatTime(timeLeft)}
                             </span>
-                            <button onClick={() => selectedProject && setShowHistory(true)} className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 active:scale-95 transition-all">
+                            <button onClick={() => selectedProject && setShowHistory(true)} className="flex items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 active:scale-95 transition-all">
                                 <ActiveIcon size={12} style={{ color: themeColor }} className={isActive ? "animate-pulse" : ""} />
                                 <span className="text-[10px] font-bold text-white tracking-widest uppercase">{selectedProject?.title || (mode === 'STOPWATCH' ? t('focus.timer.freeFlow') : t('focus.timer.focus'))}</span>
                                 {selectedProject && selectedProject.sessions && selectedProject.sessions.length > 0 && (

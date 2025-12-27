@@ -47,7 +47,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-rose-500/20 shadow-[0_20px_50px_-12px_rgba(225,29,72,0.3)]"
             >
                 {/* Glass Layer */}
-                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150" />
+                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-lg" />
                 <AuroraBackground />
 
                 <div className="relative p-8 text-center space-y-6">

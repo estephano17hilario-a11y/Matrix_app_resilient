@@ -78,8 +78,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     
     loadUserTheme();
-    // We only run this on user change, not theme change to avoid loop
-  }, [user]);
+    // We only run this on user change (login), not on every user object update to avoid race conditions
+  }, [user?.uid]);
 
   // 2. Save to Firestore on change
   const setTheme = async (newTheme: ThemeId) => {

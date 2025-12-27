@@ -10,7 +10,10 @@ interface AuroraBackgroundProps {
 
 export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColor, className, children }) => {
   return (
-    <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020204] transition-colors duration-700 ease-in-out ${className || ''}`}>
+    <div 
+      className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-700 ease-in-out ${className || ''}`}
+      style={{ backgroundColor: 'rgb(var(--color-bg-depth))' }}
+    >
       {children}
       
       {/* 
@@ -33,7 +36,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
         }}
         className="absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full will-change-[opacity]"
         style={{ 
-            background: `radial-gradient(circle, ${overrideColor || '#4f46e5'} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${overrideColor || 'rgb(var(--color-primary-glow))'} 0%, transparent 70%)`,
             transform: 'translateZ(0)',
             backfaceVisibility: 'hidden'
         }} 
@@ -52,13 +55,13 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
         }}
         className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full will-change-[opacity]"
         style={{ 
-            background: `radial-gradient(circle, ${overrideColor || '#06b6d4'} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${overrideColor || 'rgb(var(--color-secondary-glow))'} 0%, transparent 70%)`,
             transform: 'translateZ(0)',
             backfaceVisibility: 'hidden'
         }}
       />
 
-      {/* Orb 3: Accent (Center/Floating) - Static position, pulsing opacity */}
+      {/* Orb 3: Accent (Center/Floating) - Uses Primary for cohesion */}
       <motion.div 
         animate={{ 
           opacity: [0.1, 0.2, 0.1],
@@ -71,7 +74,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
         }}
         className="absolute top-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full will-change-[opacity]"
         style={{ 
-            background: `radial-gradient(circle, ${overrideColor || '#ec4899'} 0%, transparent 60%)`,
+            background: `radial-gradient(circle, ${overrideColor || 'rgb(var(--color-primary-glow))'} 0%, transparent 60%)`,
             transform: 'translateZ(0)',
             backfaceVisibility: 'hidden'
         }}

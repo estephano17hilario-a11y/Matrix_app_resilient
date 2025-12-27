@@ -104,7 +104,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 className="relative w-full max-w-2xl overflow-hidden rounded-[32px] border border-white/10 shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)]"
             >
                 {/* Glass Layer */}
-                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-3xl backdrop-saturate-150" />
+                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-lg" />
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
                 
                 <AuroraBackground />

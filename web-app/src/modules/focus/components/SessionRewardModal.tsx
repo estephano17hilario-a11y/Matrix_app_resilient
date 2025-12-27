@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, ArrowRight, Zap } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trophy, ArrowRight } from 'lucide-react';
 
 interface SessionRewardModalProps {
     isOpen: boolean;

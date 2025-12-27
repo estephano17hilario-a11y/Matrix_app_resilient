@@ -17,14 +17,14 @@ export const TRAITS_LIST = [
 
 export const DAILY_LIMITS = {
   TASKS: {
-    XP: 1500,
-    TRAIT_POINTS: 600, // XP de Rasgos diaria
-    GOLD: 300
+    XP: 999999,
+    TRAIT_POINTS: 999999, // XP de Rasgos diaria
+    GOLD: 999999
   },
   HABITS: {
-    MAX_COUNT: 10 // Only first 10 habits give rewards
+    MAX_COUNT: 999 // Only first 10 habits give rewards
   },
   FOCUS: {
-    MAX_SECONDS: 43200 // 12 hours (12 * 3600)
+    MAX_SECONDS: 86400 // 24 hours (24 * 3600)
   }
 };

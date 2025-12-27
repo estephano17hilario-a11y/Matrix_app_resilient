@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatrix } from '../../context/MatrixContext';
-import { ACHIEVEMENTS, AchievementCategory, Achievement } from '../../config/achievements';
+import { ACHIEVEMENTS, AchievementCategory, Achievement, TRAIT_ICONS } from '../../config/achievements';
 import { Lock, Trophy } from 'lucide-react';
 import { AuroraBackground } from '../../components/AuroraBackground';
 import { useTranslation } from 'react-i18next';
@@ -20,83 +20,123 @@ const CategoryTab = ({
   <button
     onClick={onClick}
     className={`
-      relative px-4 py-2 rounded-full text-xs font-medium tracking-wide transition-all duration-300
+      relative px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-500
       ${isActive 
-        ? 'text-white shadow-[0_0_20px_rgba(255,255,255,0.1)]' 
-        : 'text-white/40 hover:text-white/80'}
+        ? 'text-white shadow-[0_0_20px_rgba(255,255,255,0.2)] scale-105' 
+        : 'text-white/40 hover:text-white/80 hover:bg-white/5'}
     `}
   >
     {/* Active Background Pill */}
     {isActive && (
       <motion.div
         layoutId="activeTab"
-        className="absolute inset-0 bg-white/10 border border-white/10 rounded-full backdrop-blur-md"
+        className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-md"
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       />
     )}
-    <span className="relative z-10">{label}</span>
+    <span className="relative z-10 flex items-center gap-2">
+      {label}
+    </span>
   </button>
 );
 
-const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean }> = ({ achievement, isUnlocked }) => {
+const TraitFilterPill = ({
+  traitId,
+  isActive,
+  onClick
+}: {
+  traitId: string;
+  isActive: boolean;
+  onClick: () => void;
+}) => {
+  const Icon = TRAIT_ICONS[traitId];
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border
+        ${isActive 
+          ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-105' 
+          : 'bg-black/40 text-white/50 border-white/10 hover:border-white/30 hover:text-white'}
+      `}
+    >
+      {Icon && <Icon size={12} className={isActive ? "text-black" : "text-white/50"} />}
+      <span>{traitId}</span>
+    </button>
+  );
+};
+
+const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean }> = React.memo(({ achievement, isUnlocked }) => {
   const { t } = useTranslation();
+  
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ 
-        opacity: isUnlocked ? 1 : 0.5, 
-        scale: 1,
-        filter: isUnlocked ? 'grayscale(0%)' : 'grayscale(100%)'
+        opacity: isUnlocked ? 1 : 0.6, 
+        scale: 1, 
+        y: 0,
+        filter: isUnlocked ? 'grayscale(0%)' : 'grayscale(100%) blur(0px)'
+      }}
+      whileHover={{ 
+        scale: 1.02, 
+        y: -5,
+        backgroundColor: isUnlocked ? 'rgba(17, 24, 39, 0.7)' : 'rgba(0, 0, 0, 0.3)'
       }}
       whileTap={{ scale: 0.98 }}
       className={`
-        relative group flex flex-col items-center p-6 text-center
-        rounded-[32px] border transition-all duration-500 overflow-hidden
+        relative group flex flex-col p-5 text-left h-full
+        rounded-[24px] border transition-all duration-500 overflow-hidden
         ${isUnlocked 
-          ? 'bg-gray-900/60 backdrop-blur-md backdrop-saturate-150 border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(79,70,229,0.15)]' 
-          : 'bg-black/20 backdrop-blur-sm border-white/5'}
+          ? 'bg-gray-900/40 backdrop-blur-lg border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] hover:shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]' 
+          : 'bg-black/20 backdrop-blur-sm border-white/5 opacity-70'}
       `}
     >
-      {/* Glow Effect for Unlocked */}
-      {isUnlocked && (
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-      )}
+      {/* Shine Effect */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-      {/* Icon Container */}
-      <div className={`
-        relative z-10 mb-4 p-4 rounded-full transition-all duration-700
-        ${isUnlocked 
-          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-[0_0_40px_rgba(99,102,241,0.2)] ring-1 ring-white/20' 
-          : 'bg-white/5 ring-1 ring-white/5'}
-      `}>
-        {isUnlocked 
-          ? <achievement.icon className="w-8 h-8 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" strokeWidth={1.5} />
-          : <Lock className="w-8 h-8 text-white/20" strokeWidth={1.5} />
-        }
+      {/* Top Section: Icon & Reward */}
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div className={`
+          p-3 rounded-2xl transition-all duration-500
+          ${isUnlocked 
+            ? 'bg-gradient-to-br from-white/10 to-white/5 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
+            : 'bg-white/5 border border-white/5'}
+        `}>
+          {isUnlocked 
+            ? <achievement.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
+            : <Lock className="w-6 h-6 text-white/20" strokeWidth={1.5} />
+          }
+        </div>
+
+        {isUnlocked && (
+           <span className="px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm">
+             +{Math.floor(achievement.xpReward)} XP
+           </span>
+        )}
       </div>
 
       {/* Text Content */}
-      <div className="relative z-10">
-        <h3 className={`text-sm font-semibold tracking-tight mb-1 ${isUnlocked ? 'text-white' : 'text-white/30'}`}>
+      <div className="relative z-10 mt-auto">
+        <h3 className={`text-sm font-bold tracking-tight mb-1.5 leading-tight ${isUnlocked ? 'text-white' : 'text-white/30'}`}>
           {t(achievement.title)}
         </h3>
-        <p className={`text-[11px] leading-relaxed font-medium ${isUnlocked ? 'text-white/60' : 'text-white/20'}`}>
+        <p className={`text-[11px] leading-relaxed font-medium line-clamp-2 ${isUnlocked ? 'text-white/60' : 'text-white/20'}`}>
           {t(achievement.description, { level: achievement.level })}
         </p>
       </div>
-
-      {/* XP Reward Badge */}
-      {isUnlocked && (
-        <div className="absolute top-4 right-4">
-           <span className="text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm">
-             +{Math.floor(achievement.xpReward)} {t('achievements.currency')}
-           </span>
+      
+      {/* Level Indicator for Traits */}
+      {achievement.category === 'TRAIT' && achievement.level && (
+        <div className="absolute bottom-4 right-4 text-[9px] font-bold text-white/10 uppercase tracking-widest pointer-events-none">
+          LVL {achievement.level}
         </div>
       )}
     </motion.div>
   );
-};
+});
 
 // --- MAIN SCREEN ---
 
@@ -112,72 +152,131 @@ export const AchievementsScreen: React.FC = () => {
   const { user } = useMatrix();
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'ALL'>('ALL');
+  const [selectedTrait, setSelectedTrait] = useState<string | null>(null);
+
+  // Memoize filters for performance
+  const { unlockedSet, completionPercentage } = useMemo(() => {
+    if (!user) return { unlockedSet: new Set(), completionPercentage: 0 };
+    const set = new Set(user.unlockedAchievements || []);
+    const pct = Math.floor((set.size / ACHIEVEMENTS.length) * 100);
+    return { unlockedSet: set, completionPercentage: pct };
+  }, [user]);
+
+  const filteredAchievements = useMemo(() => {
+    return ACHIEVEMENTS.filter(ach => {
+      // 1. Filter by Category
+      if (selectedCategory !== 'ALL' && ach.category !== selectedCategory) return false;
+      
+      // 2. Filter by Specific Trait (if Trait category is selected and a trait filter is active)
+      if (selectedCategory === 'TRAIT' && selectedTrait) {
+        return ach.id.includes(`_${selectedTrait}_`);
+      }
+      
+      return true;
+    });
+  }, [selectedCategory, selectedTrait]);
+
+  const categories: (AchievementCategory | 'ALL')[] = ['ALL', 'LEVEL', 'STREAK', 'TRAIT'];
+  const traitKeys = useMemo(() => Object.keys(TRAIT_ICONS), []);
 
   if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">{t('achievements.loading')}</div>;
 
-  const unlockedSet = new Set(user.unlockedAchievements || []);
-  const categories: (AchievementCategory | 'ALL')[] = ['ALL', 'LEVEL', 'STREAK', 'TRAIT'];
-
-  const filteredAchievements = ACHIEVEMENTS.filter(ach => 
-    selectedCategory === 'ALL' || ach.category === selectedCategory
-  );
-
-  const completionPercentage = Math.floor((unlockedSet.size / ACHIEVEMENTS.length) * 100);
-
   return (
-    <div className="min-h-screen text-white p-6 pb-32 overflow-y-auto overflow-x-hidden relative">
+    <div className="min-h-screen text-white p-4 md:p-8 pb-32 overflow-y-auto overflow-x-hidden relative font-sans">
       
       <AuroraBackground />
 
       {/* Content Container */}
-      <div className="relative z-10 max-w-6xl mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <div className="mb-10 mt-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="mb-8 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
+            className="flex-1"
           >
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 text-white drop-shadow-lg">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/50 drop-shadow-sm">
               {t('achievements.title')}
             </h1>
-            <p className="text-white/60 text-sm md:text-base font-medium max-w-md">
+            <p className="text-white/60 text-sm md:text-lg font-medium max-w-md leading-relaxed">
               {t('achievements.subtitle')}
             </p>
           </motion.div>
           
-          {/* Progress Pill */}
+          {/* Progress Card */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-4 bg-gray-900/40 backdrop-blur-xl border border-white/10 px-5 py-3 rounded-2xl shadow-lg"
+            className="flex items-center gap-5 bg-black/40 backdrop-blur-lg border border-white/10 px-6 py-4 rounded-[24px] shadow-2xl"
           >
             <div className="text-right">
-              <span className="block text-xs font-bold text-white/40 uppercase tracking-widest">{t('achievements.sync')}</span>
-              <span className="block text-xl font-mono font-bold text-white">{completionPercentage}%</span>
+              <span className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('achievements.sync')}</span>
+              <span className="block text-3xl font-mono font-bold text-white tracking-tighter">{completionPercentage}%</span>
             </div>
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center relative">
-               <Trophy className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" size={24} />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400/20 to-orange-500/20 border border-yellow-400/30 flex items-center justify-center relative shadow-[0_0_30px_rgba(250,204,21,0.2)]">
+               <Trophy className="text-yellow-400 drop-shadow-sm" size={24} strokeWidth={2} />
             </div>
           </motion.div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar mask-linear-fade">
-          {categories.map((cat) => (
-            <CategoryTab 
-              key={cat} 
-              label={t(categoryLabels[cat] || cat)} 
-              isActive={selectedCategory === cat} 
-              onClick={() => setSelectedCategory(cat)} 
-            />
-          ))}
+        {/* Primary Filter Tabs */}
+        <div className="sticky top-0 z-50 py-4 -mx-4 px-4 bg-gradient-to-b from-black/0 via-black/0 to-transparent backdrop-blur-none">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade p-1">
+            {categories.map((cat) => (
+                <CategoryTab 
+                key={cat} 
+                label={t(categoryLabels[cat] || cat)} 
+                isActive={selectedCategory === cat} 
+                onClick={() => {
+                    setSelectedCategory(cat);
+                    // Reset sub-filter when changing main category, unless it's TRAIT
+                    if (cat !== 'TRAIT') setSelectedTrait(null);
+                }} 
+                />
+            ))}
+            </div>
         </div>
+
+        {/* Secondary Trait Filter (Only visible when TRAIT is selected) */}
+        <AnimatePresence>
+          {selectedCategory === 'TRAIT' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -10 }}
+              className="mb-8 overflow-hidden"
+            >
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">
+                 <button
+                    onClick={() => setSelectedTrait(null)}
+                    className={`
+                        px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border
+                        ${!selectedTrait 
+                        ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                        : 'bg-black/40 text-white/50 border-white/10 hover:border-white/30 hover:text-white'}
+                    `}
+                 >
+                    ALL
+                 </button>
+                 <div className="w-px h-6 bg-white/10 mx-1" />
+                 {traitKeys.map(trait => (
+                    <TraitFilterPill
+                        key={trait}
+                        traitId={trait}
+                        isActive={selectedTrait === trait}
+                        onClick={() => setSelectedTrait(trait === selectedTrait ? null : trait)}
+                    />
+                 ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Masonry Grid */}
         <motion.div 
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"
         >
           <AnimatePresence mode='popLayout'>
             {filteredAchievements.map((ach) => {
@@ -197,12 +296,12 @@ export const AchievementsScreen: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }}
-            className="text-center py-20"
+            className="text-center py-32"
           >
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-              <Lock className="text-white/20" />
+            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6 border border-white/5">
+              <Lock className="text-white/20 w-8 h-8" />
             </div>
-            <p className="text-white/30 font-medium">{t('achievements.empty')}</p>
+            <p className="text-white/30 font-medium text-lg">{t('achievements.empty')}</p>
           </motion.div>
         )}
       </div>

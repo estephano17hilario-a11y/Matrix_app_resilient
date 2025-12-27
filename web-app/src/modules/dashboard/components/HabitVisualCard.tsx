@@ -155,8 +155,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                             {/* Heatmap Grid - Full Width, reduced dead space */}
                             <div className="w-full">
                                 <HabitHeatmap 
-                                    history={habit.history || []} 
-                                    days={105} 
+                                    habit={habit}
                                     color={color} 
                                 />
                             </div>

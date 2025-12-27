@@ -1,7 +1,7 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { BadHabit } from '../../../types';
-import { format, subDays, startOfDay, isSameDay } from 'date-fns';
+import { format, subDays, isSameDay } from 'date-fns';
 
 interface RelapseChartProps {
     badHabits: BadHabit[];
