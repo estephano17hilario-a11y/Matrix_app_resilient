@@ -172,8 +172,16 @@ export const useDashboardLogic = () => {
                 if (user.dailyLimits) {
                     const today = new Date().toISOString().split('T')[0];
                     if (user.dailyLimits.date === today) {
-                        setDailyLimits(user.dailyLimits);
-                    } else {
+                    // Sanitize to ensure all fields exist AND are numbers (prevent string concatenation bugs)
+                    setDailyLimits({
+                        ...user.dailyLimits,
+                        focusSeconds: Number(user.dailyLimits.focusSeconds || 0),
+                        habitsCompleted: Number(user.dailyLimits.habitsCompleted || 0),
+                        taskXp: Number(user.dailyLimits.taskXp || 0),
+                        taskGold: Number(user.dailyLimits.taskGold || 0),
+                        taskTraitPoints: Number(user.dailyLimits.taskTraitPoints || 0)
+                    });
+                } else {
                         // Reset if server date is old (or just keep default today if we already reset)
                         // Actually, if server has old date, we should probably update server? 
                         // But we do that lazily on first action.
@@ -716,6 +724,35 @@ export const useDashboardLogic = () => {
         setTimeout(() => { setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))); }, targetId ? 1000 : 2000); 
     }, []);
 
+    const updatePlayerLevel = useCallback(async (newLevel: number) => {
+        setPlayer(prev => {
+            const newStats = { ...prev, level: newLevel, nextXp: calculateNextXp(newLevel) };
+            if (user?.uid) {
+                setDoc(doc(db, 'users', user.uid), {
+                    'stats.level': newLevel,
+                    'stats.nextXp': newStats.nextXp
+                }, { merge: true }).catch(console.error);
+            }
+            return newStats;
+        });
+    }, [user?.uid, calculateNextXp]);
+
+    const updateAttributeLevel = useCallback(async (attrId: string, newLevel: number) => {
+        setAttributes(prev => {
+            const newAttributes = prev.map(attr => {
+                if (attr.id === attrId) {
+                    const updatedAttr = { ...attr, level: newLevel, maxXp: Math.floor(100 * Math.pow(1.2, newLevel - 1)) };
+                    if (user?.uid) {
+                        persistenceService.attributes.save(user.uid, updatedAttr);
+                    }
+                    return updatedAttr;
+                }
+                return attr;
+            });
+            return newAttributes;
+        });
+    }, [user?.uid]);
+
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
         // LIMIT CHECK
         const today = new Date().toISOString().split('T')[0];
@@ -724,11 +761,26 @@ export const useDashboardLogic = () => {
              currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
         }
 
-        const availableSeconds = Math.max(0, DAILY_LIMITS.FOCUS.MAX_SECONDS - currentLimits.focusSeconds);
-        const rewardableSeconds = Math.min(durationSeconds, availableSeconds);
+        // REWARD CALCULATION FIX
+        // Base: 10 XP per minute, 2 Gold per minute (Matches FocusView simulation)
         
-        // Only give rewards for rewardable seconds
-        const baseReward = Math.floor(rewardableSeconds / 60);
+        // Apply Limits (Max 12 hours per day)
+        // We track total focus time, but we don't strictly cap rewards if the user is being productive, 
+        // OR we enforce the 12h limit as requested.
+        // User said: "solo las primeras 12 horas al dia se veran recompensados" (from context or previous knowledge, implicit in code)
+        // existing code had: Math.max(0, DAILY_LIMITS.FOCUS.MAX_SECONDS - currentLimits.focusSeconds);
+        
+        const availableSeconds = Math.max(0, DAILY_LIMITS.FOCUS.MAX_SECONDS - currentLimits.focusSeconds);
+        
+        // If we want to be precise, we only reward the overlapping part.
+        // But for simplicity, if they start within limit, we reward? 
+        // Or we cap the reward to availableSeconds.
+        const rewardableSeconds = Math.min(durationSeconds, availableSeconds);
+        const rewardableMinutes = rewardableSeconds / 60;
+        
+        // Use Math.round to be more generous with short sessions/testing
+        const xpReward = Math.round(rewardableMinutes * 10); 
+        const goldReward = Math.round(rewardableMinutes * 2);
 
         let attrId = 'MENTAL';
         let multiplier = 1;
@@ -752,31 +804,32 @@ export const useDashboardLogic = () => {
                 }
             }
         }
-        const totalReward = Math.floor(baseReward * multiplier);
+        
+        const finalXp = Math.floor(xpReward * multiplier);
+        const finalGold = Math.floor(goldReward * multiplier); // Multiplier usually applies to XP? Let's apply to both or just XP. 
+        // Usually impact is for XP. Gold might be constant. Let's keep gold constant to avoid inflation?
+        // Code had: const totalReward = Math.floor(baseReward * multiplier);
+        // Let's apply to XP.
         
         // Update Limits
         const newLimits = {
             ...currentLimits,
-            focusSeconds: currentLimits.focusSeconds + rewardableSeconds // Only track rewardable? Or total? Requirement: "solo las primeras 12 horas al dia se veran recompensados" -> imply we track total to know when we pass 12h.
-            // Wait, if I track total, I should add durationSeconds.
-            // If I have 11 hours, and do 2 hours. Available = 1 hour. Rewardable = 1 hour.
-            // New Total should be 13 hours.
-            // Next time available = 0.
+            focusSeconds: Number(currentLimits.focusSeconds || 0) + durationSeconds
         };
-        // Correcting logic:
-        newLimits.focusSeconds = currentLimits.focusSeconds + durationSeconds; // Track ACTUAL time spent
 
         setDailyLimits(newLimits);
         if (user?.uid) {
             setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
         }
 
-        addPlayerReward({ xp: totalReward, gold: 0 });
-        updateAttributeXp(attrId, totalReward);
-        const attr = attributes.find(a => a.id === attrId);
-        const AttrIcon = attr?.icon || Star;
-        spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
-        addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: '+' + totalReward + ' Matrix Coins', icon: Clock, color: '#fbbf24' });
+        if (finalXp > 0 || finalGold > 0) {
+            addPlayerReward({ xp: finalXp, gold: finalGold });
+            updateAttributeXp(attrId, finalXp);
+            const attr = attributes.find(a => a.id === attrId);
+            const AttrIcon = attr?.icon || Star;
+            spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
+            addNotification({ type: 'SESSION', label: 'FOCUS COMPLETE', fromLevel: Math.floor(durationSeconds / 60) + 'm', toLevel: '+' + finalXp + ' XP', icon: Clock, color: '#fbbf24' });
+        }
     }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user, dailyLimits]);
 
     const completeQuest = useCallback((e: React.MouseEvent, quest: Quest) => { 
@@ -1444,6 +1497,8 @@ export const useDashboardLogic = () => {
         handleBadHabitRelapse,
         handleDeleteBadHabit,
         vividMode,
-        setVividMode
+        setVividMode,
+        updatePlayerLevel,
+        updateAttributeLevel
     };
 };

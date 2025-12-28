@@ -248,7 +248,9 @@ export default function Dashboard() {
         handleBadHabitConfirm,
         handleBadHabitRelapse,
         vividMode,
-        setVividMode
+        setVividMode,
+        updatePlayerLevel,
+        updateAttributeLevel
     } = useDashboardLogic();
 
     // 🛡️ RECOVERED LOGIC: Calculate Max Health locally to avoid hook return type issues
@@ -560,6 +562,7 @@ export default function Dashboard() {
                                 isPro={user?.plan === 'PRO'}
                                 avatarId={user?.avatarId}
                                 avatarShape={avatarShape}
+                                onUpdateLevel={updatePlayerLevel}
                             />
                         </div>
                     </div>
@@ -595,11 +598,12 @@ export default function Dashboard() {
                                 )}
 
                                 {/* 💎 STATUS HUD - THE MIRROR */}
-                                {showProfile && !isNexusImmersive && (
+                                {showProfile && !isNexusImmersive && taskViewMode !== 'STRATEGY' && (
                                     <div className="relative z-20 -mx-2">
                                         <PlayerHUD 
                                             attributes={attributes}
                                             defaultChartMode={defaultChartMode}
+                                            onUpdateAttributeLevel={updateAttributeLevel}
                                         />
                                     </div>
                                 )}

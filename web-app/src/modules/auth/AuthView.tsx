@@ -21,11 +21,18 @@ const googleProvider = new GoogleAuthProvider();
 
 export const AuthView = () => {
   const { t, i18n } = useTranslation();
+  // FORCE DEFAULT TO LOGIN (true)
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  // RESET TO LOGIN ON MOUNT
+  // Whenever this component is remounted (e.g. after logout), it will start at Login
+  useEffect(() => {
+      setIsLogin(true);
+  }, []);
 
   // Form State
   const [email, setEmail] = useState('');

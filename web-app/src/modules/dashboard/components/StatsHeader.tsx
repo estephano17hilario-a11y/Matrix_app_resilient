@@ -25,9 +25,10 @@ interface StatsHeaderProps {
   onShowStreak?: () => void;
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
+  onUpdateLevel?: (newLevel: number) => void;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -41,10 +42,33 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
              {/* Avatar Widget - MOVED FIRST */}
             <div 
                 id="profile-avatar-target"
-                onClick={onToggleProfile}
                 className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
             >
-                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} maxHealth={maxHealth} streak={streak} gold={gold} displayName={displayName} email={email} isPro={isPro} avatarId={avatarId} avatarShape={avatarShape} />}
+                {shouldShowAvatar && (
+                  <div onClick={() => {
+                     // If clicking on level badge (propagated), stop it?
+                     // Actually, let AvatarWidget handle its internal clicks.
+                     // The parent onClick toggles profile.
+                     // If we click level, we don't want to toggle profile.
+                     onToggleProfile && onToggleProfile();
+                  }}>
+                    <AvatarWidget 
+                      level={level} 
+                      xp={xp} 
+                      nextXp={nextXp} 
+                      health={health} 
+                      maxHealth={maxHealth} 
+                      streak={streak} 
+                      gold={gold} 
+                      displayName={displayName} 
+                      email={email} 
+                      isPro={isPro} 
+                      avatarId={avatarId} 
+                      avatarShape={avatarShape}
+                      onUpdateLevel={onUpdateLevel} 
+                    />
+                  </div>
+                )}
             </div>
         </div>
         

@@ -20,6 +20,7 @@ interface AvatarWidgetProps {
   isPro?: boolean;
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
+  onUpdateLevel?: (newLevel: number) => void;
 }
 
 const MiniLiquidBar = ({  value, 
@@ -73,7 +74,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE' }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', onUpdateLevel }: AvatarWidgetProps) => {
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;
@@ -98,7 +99,21 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 <img src={avatarPath || defaultAvatar} alt="Avatar" className={`w-full h-full ${shapeClass} object-cover object-[50%_20%] opacity-90`} />
             </div>
             {/* Level Badge */}
-            <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10">
+            <div 
+                className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-colors"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (onUpdateLevel) {
+                        const input = prompt("Enter new level:", level.toString());
+                        if (input !== null) {
+                            const newLevel = parseInt(input, 10);
+                            if (!isNaN(newLevel) && newLevel > 0) {
+                                onUpdateLevel(newLevel);
+                            }
+                        }
+                    }
+                }}
+            >
                  <span className="text-[10px] font-bold text-white">{level}</span>
             </div>
         </div>

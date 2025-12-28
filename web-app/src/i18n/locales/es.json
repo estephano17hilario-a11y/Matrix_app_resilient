@@ -1,9 +1,9 @@
 {
   "onboarding": {
     "intro": {
-      "title": "Hola.",
-      "subtitle": "Calibremos tu experiencia.",
-      "button": "Comenzar"
+      "title": "Sistema En Línea",
+      "subtitle": "Calibrando Enlace Neural...",
+      "button": "Inicializar"
     },
     "language": {
       "title": "Elige tu idioma",
@@ -646,5 +646,25 @@
       "strategy": "Estrategia",
       "fame": "Fama",
       "store": "Tienda"
-  }
+  },
+  "habits": {
+    "title": "Hábitos",
+    "viewGrid": "Grilla",
+    "viewWeek": "Semana",
+    "newHabit": "Nuevo Hábito",
+    "protocols": "Protocolos",
+    "vices": "Vicios",
+    "vicesTitle": "Vicios y Malos Hábitos",
+    "newVice": "Nuevo Vicio",
+    "empty": "No hay protocolos activos.",
+    "emptyVices": "No hay vicios registrados. Mantente limpio.",
+    "identifyEnemy": "Identificar Enemigo",
+     "streak": "Racha",
+     "dailyProtocol": "Protocolo Diario",
+     "completed": "completado",
+     "target": "Objetivo",
+     "hpRisk": "Riesgo de HP",
+     "protocolSafe": "Protocolo Seguro",
+     "dailyProtocols": "Protocolos Diarios"
+   }
 }

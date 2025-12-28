@@ -120,8 +120,9 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         onCompleteSession(selectedProjectId, finalDuration, mode);
 
         // Calculate Rewards (Simulation for Modal)
-        const xp = Math.floor(finalDuration / 60 * 10);
-        const gold = Math.floor(finalDuration / 60 * 2);
+        // Use Math.round to match backend logic and be generous with short sessions
+        const xp = Math.round(finalDuration / 60 * 10);
+        const gold = Math.round(finalDuration / 60 * 2);
         setSessionStats({
             duration: finalDuration,
             xpEarned: xp,
@@ -335,7 +336,32 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         </div>
                     )}
 
-                    <div className="flex justify-end px-6 mt-2 relative z-10">
+                    <div className="flex justify-between px-6 mt-2 relative z-10 items-center">
+                        <button 
+                            onClick={() => {
+                                const minutesStr = prompt("Enter minutes focused (Manual Entry):");
+                                if (minutesStr) {
+                                    const mins = parseInt(minutesStr, 10);
+                                    if (!isNaN(mins) && mins > 0) {
+                                        onCompleteSession(null, mins * 60, 'STOPWATCH');
+                                        const xp = Math.round(mins * 10);
+                                        const gold = Math.round(mins * 2);
+                                        setSessionStats({
+                                            duration: mins * 60,
+                                            xpEarned: xp,
+                                            goldEarned: gold,
+                                            streakBonus: 0
+                                        });
+                                        setShowRewardModal(true);
+                                    }
+                                }
+                            }} 
+                            className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
+                        >
+                            <Plus size={12} />
+                            MANUAL ENTRY
+                        </button>
+
                         <button 
                             onClick={() => setShowArchived(!showArchived)} 
                             className="text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors flex items-center gap-2"

@@ -1,9 +1,9 @@
 {
   "onboarding": {
     "intro": {
-      "title": "Hello.",
-      "subtitle": "Let's calibrate your experience.",
-      "button": "Get Started"
+      "title": "System Online",
+      "subtitle": "Calibrating Neural Link...",
+      "button": "Initialize"
     },
     "language": {
       "title": "Choose your language",
@@ -641,5 +641,25 @@
       "strategy": "Strategy",
       "fame": "Fame",
       "store": "Store"
-  }
+  },
+  "habits": {
+    "title": "Habits",
+    "viewGrid": "Grid",
+    "viewWeek": "Week",
+    "newHabit": "New Habit",
+    "protocols": "Protocols",
+    "vices": "Vices",
+    "vicesTitle": "Vices & Bad Habits",
+    "newVice": "New Vice",
+    "empty": "No active protocols.",
+    "emptyVices": "No vices recorded. Stay clean.",
+    "identifyEnemy": "Identify Enemy",
+     "streak": "Streak",
+     "dailyProtocol": "Daily Protocol",
+     "completed": "completed",
+     "target": "Target",
+     "hpRisk": "HP Risk",
+     "protocolSafe": "Protocol Safe",
+     "dailyProtocols": "Daily Protocols"
+   }
 }

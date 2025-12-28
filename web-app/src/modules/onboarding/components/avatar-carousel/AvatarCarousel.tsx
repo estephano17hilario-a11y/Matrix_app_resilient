@@ -140,7 +140,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={1}
               onDragStart={() => setDragging(true)}
-              onDragEnd={(e, { offset, velocity }) => {
+              onDragEnd={(_, { offset, velocity }) => {
                 setDragging(false);
                 const swipe = swipePower(offset.x, velocity.x);
 

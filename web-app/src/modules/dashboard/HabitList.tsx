@@ -3,6 +3,7 @@ import { Flame } from 'lucide-react';
 import { Habit, Attribute } from '../../types';
 import { HabitItem } from './components/HabitItem';
 import { GlassPanel } from '../../components/ui/GlassPanel';
+import { useTranslation } from 'react-i18next';
 
 interface HabitListProps {
   habits: Habit[];
@@ -11,6 +12,7 @@ interface HabitListProps {
 }
 
 export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onCompleteHabit }) => {
+  const { t } = useTranslation();
   // Stats calculation
   const totalHabits = habits.length;
   const completedHabits = habits.filter(h => h.completedToday).length;
@@ -30,7 +32,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10" />
           <Flame className="text-orange-500 mb-1 relative z-10" size={20} />
           <span className="text-xl font-black text-white tracking-tight relative z-10">{streak}</span>
-          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold relative z-10">Streak</span>
+          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold relative z-10">{t('habits.streak')}</span>
         </GlassPanel>
 
         {/* DAILY PROTOCOL STATUS (New Requirement) */}
@@ -38,18 +40,18 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
            <div className={`absolute inset-0 opacity-20 transition-colors duration-500 ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'}`} />
            
            <div className="flex flex-col relative z-10">
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Daily Protocol</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{t('habits.dailyProtocol')}</span>
               <div className="flex items-baseline space-x-1">
                 <span className={`text-2xl font-black tracking-tight ${isSafe ? 'text-emerald-400' : 'text-white'}`}>
                   {completedHabits}/{totalHabits}
                 </span>
-                <span className="text-xs text-slate-500 font-medium">completed</span>
+                <span className="text-xs text-slate-500 font-medium">{t('habits.completed')}</span>
               </div>
            </div>
 
            <div className="flex flex-col items-end relative z-10 text-right">
               <div className="flex items-center space-x-1 mb-1">
-                 <span className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">Target</span>
+                 <span className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">{t('habits.target')}</span>
                  <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isSafe ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                     {minTarget}/{totalHabits}
                  </div>
@@ -57,18 +59,18 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
               
               {!isSafe ? (
                  <span className="text-xs font-medium text-rose-400 animate-pulse">
-                   -{potentialDamage} HP Risk
+                   -{potentialDamage} {t('habits.hpRisk')}
                  </span>
               ) : (
                  <span className="text-xs font-medium text-emerald-400">
-                   Protocol Safe
+                   {t('habits.protocolSafe')}
                  </span>
               )}
            </div>
         </GlassPanel>
       </div>
 
-      <h2 className="text-xl font-bold text-white tracking-tight px-1 mb-4">Daily Protocols</h2>
+      <h2 className="text-xl font-bold text-white tracking-tight px-1 mb-4">{t('habits.dailyProtocols')}</h2>
       <div className="space-y-3 pb-32">
         {habits.map(habit => (
           <HabitItem 
@@ -80,7 +82,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
         ))}
         {habits.length === 0 && (
              <div className="py-10 text-center text-white/20 italic">
-                No active protocols.
+                {t('habits.empty')}
              </div>
         )}
       </div>

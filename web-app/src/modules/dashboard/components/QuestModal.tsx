@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Target, Clock } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Target, Clock, ChevronDown } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -44,6 +44,7 @@ export const QuestModal = React.memo(({
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
     const [estimatedTime, setEstimatedTime] = useState(0);
+    const [isTimePickerOpen, setTimePickerOpen] = useState(false);
 
     // Effect to apply locked props or initial values
     React.useEffect(() => {
@@ -124,13 +125,13 @@ export const QuestModal = React.memo(({
             <div className="absolute inset-0 bg-black/95" onClick={onClose} />
             <div className="relative z-10 w-full max-w-[360px]">
                 <div 
-                    className="rounded-[2.5rem] p-5 overflow-visible relative" 
+                    className="rounded-[2.5rem] p-5 overflow-visible relative transition-all duration-500" 
                     style={{
-                        background: '#0a0a0a',
-                        border: `2px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
+                        background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
+                        border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
                         boxShadow: attrId 
-                            ? `0 0 0 1px ${activeColor}20, 0 10px 40px -10px ${activeColor}40`
-                            : '0 10px 30px -10px rgba(0,0,0,0.8)'
+                            ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
+                            : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
                     }}
                 >
                     {/* Header */}
@@ -295,22 +296,62 @@ export const QuestModal = React.memo(({
                         </div>
 
 
-                        {/* Estimated Time */}
-                        <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Clock size={16} className="text-cyan-400" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.quest.estimatedTime') || "Est. Time (min)"}</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 border border-white/5 focus-within:border-white/20 transition-colors w-32">
-                                <input 
-                                    type="number" 
-                                    value={estimatedTime === 0 ? '' : estimatedTime} 
-                                    onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)} 
-                                    placeholder="30"
-                                    className="w-full bg-transparent text-right text-sm font-bold text-white placeholder:text-white/20 outline-none"
-                                />
-                                <span className="text-[10px] font-bold text-white/30">min</span>
-                            </div>
+                        {/* Estimated Time - Redesigned */}
+                        <div className="relative z-40">
+                            <button 
+                                onClick={() => setTimePickerOpen(!isTimePickerOpen)}
+                                className="w-full bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between hover:bg-white/10 active:scale-[0.99] transition-all group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${estimatedTime > 0 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-400'}`}>
+                                        <Clock size={16} />
+                                    </div>
+                                    <div className="flex flex-col items-start">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiempo Aprox</span>
+                                        <span className={`text-sm font-black ${estimatedTime > 0 ? 'text-white' : 'text-white/30'}`}>
+                                            {estimatedTime > 0 ? `${estimatedTime} min` : 'Sin estimar'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className={`text-white/30 transition-transform duration-300 ${isTimePickerOpen ? 'rotate-180' : ''}`}>
+                                    <ChevronDown size={18} />
+                                </div>
+                            </button>
+
+                            {/* Dropdown */}
+                            {isTimePickerOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-[40]" onClick={() => setTimePickerOpen(false)} />
+                                    <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-[#1c1c1e] rounded-[1.5rem] border border-white/10 shadow-2xl z-[50] animate-in slide-in-from-top-2 fade-in duration-200">
+                                        <div className="grid grid-cols-4 gap-2 mb-3">
+                                            {[5, 10, 15, 30, 45, 60, 90, 120].map(time => (
+                                                <button
+                                                    key={time}
+                                                    onClick={() => { setEstimatedTime(time); setTimePickerOpen(false); }}
+                                                    className={`py-2 rounded-xl text-xs font-bold transition-all ${estimatedTime === time ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                                                >
+                                                    {time}m
+                                                </button>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Manual</span>
+                                            <div className="flex-1 bg-black/30 rounded-xl px-3 py-2 flex items-center border border-white/5 focus-within:border-cyan-500/50 transition-colors">
+                                                <input 
+                                                    type="number" 
+                                                    value={estimatedTime === 0 ? '' : estimatedTime} 
+                                                    onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                                                    placeholder="Custom"
+                                                    className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/20"
+                                                    autoFocus
+                                                />
+                                                <span className="text-[10px] font-bold text-slate-500 ml-1">min</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Difficulty Selector (Liquid UI) */}

@@ -76,7 +76,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-bold text-white tracking-tight">
-                            {section === 'PROTOCOLS' ? t('habits.title') : 'Vices & Bad Habits'}
+                            {section === 'PROTOCOLS' ? t('habits.title') : t('habits.vicesTitle')}
                         </h1>
 
                         {/* View Mode Toggle (Only for Protocols for now) */}
@@ -87,14 +87,14 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'GRID' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                 >
                                     <LayoutGrid size={10} />
-                                    {t('habits.viewGrid') || 'Grilla'}
+                                    {t('habits.viewGrid')}
                                 </button>
                                 <button 
                                     onClick={() => setViewMode('WEEK')}
                                     className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'WEEK' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                 >
                                     <Calendar size={10} />
-                                    {t('habits.viewWeek') || 'Semana'}
+                                    {t('habits.viewWeek')}
                                 </button>
                             </div>
                         )}
@@ -109,7 +109,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                         }`}
                     >
                         <Plus size={12} className="group-hover:rotate-90 transition-transform duration-300" />
-                        {section === 'PROTOCOLS' ? t('habits.newHabit') : 'New Vice'}
+                        {section === 'PROTOCOLS' ? t('habits.newHabit') : t('habits.newVice')}
                     </button>
                 </div>
 
@@ -128,7 +128,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             }`}
                         >
                             <Shield size={12} />
-                            Protocols
+                            {t('habits.protocols')}
                         </button>
                         <button 
                             onClick={() => {
@@ -142,7 +142,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             }`}
                         >
                             <Skull size={12} />
-                            Vices
+                            {t('habits.vices')}
                         </button>
                     </div>
                 </div>
@@ -190,12 +190,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center">
                                     <Skull className="text-rose-500/50" size={32} />
                                 </div>
-                                <p>No vices recorded. Stay clean.</p>
+                                <p>{t('habits.emptyVices')}</p>
                                 <button 
                                     onClick={onCreateBadHabit}
                                     className="px-6 py-2 bg-rose-500/20 text-rose-400 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-rose-500/30 transition-colors"
                                 >
-                                    Identify Enemy
+                                    {t('habits.identifyEnemy')}
                                 </button>
                             </div>
                         )}

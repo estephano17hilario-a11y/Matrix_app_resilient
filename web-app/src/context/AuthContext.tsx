@@ -98,11 +98,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // MATRIX LINK INITIALIZATION
 
-    // SAFETY NET: Force stop loading after 5 seconds if nothing happens (prevents infinite loading screen)
+    // SAFETY NET: Force stop loading after 8 seconds if nothing happens
     const safetyTimer = setTimeout(() => {
         setIsLoading(prev => {
             if (prev) {
-                console.warn("⚠️ MATRIX CORE: Auth timeout triggered (5000ms). Forcing entry.");
+                console.warn("⚠️ MATRIX CORE: Auth timeout triggered (8000ms). Forcing entry.");
                 // Check if we are online before assuming timeout error
                 if (navigator.onLine) {
                     setError("Connection slow. Entering Offline Mode.");
@@ -111,8 +111,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             return prev;
         });
-    }, 5000);
+    }, 8000);
     
+    // INTENT TO WAIT FOR AUTH READY (If available in SDK)
+    if ((auth as any).authStateReady) {
+        (auth as any).authStateReady().then(() => {
+             console.log("✅ MATRIX: Auth State Ready confirmed.");
+        }).catch((e: any) => {
+             console.warn("⚠️ MATRIX: Auth State Ready error:", e);
+        });
+    }
+
     // SAFEGUARD: If Config is invalid, we proceed in PHANTOM MODE (Mock)
     if (!configStatus.isValid) {
         console.warn("⚠️ MATRIX CORE: RUNNING IN PHANTOM MODE (No Firebase Config)");
@@ -124,7 +133,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!currentUser) {
           // LOGOUT / NO SESSION
           setUser(null);
-          setProfile(null);
+          
+          // INTELLIGENT SESSION HANDLING:
+          // If we have a cached profile in localStorage, it means we did NOT explicitly logout.
+          // In this case, we keep the profile in state to show the UI (Offline Mode / Zombie Mode)
+          // instead of flashing the Login screen.
+          const cached = localStorage.getItem('MATRIX_CACHED_PROFILE');
+          if (!cached) {
+              // Only clear profile if we truly have no local session data (Clean Logout)
+              setProfile(null);
+          } else {
+              console.log("ℹ️ MATRIX: User is null but Profile exists. Entering Zombie/Offline Mode.");
+          }
+          
           setIsLoading(false);
           return;
         }
