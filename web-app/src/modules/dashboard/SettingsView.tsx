@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { GlassInput } from '../../components/ui/GlassInput';
 import { cn } from '../../utils/cn';
+import { AvatarSelector } from '../customization/AvatarSelector';
 
 interface SettingsViewProps {
   currentTheme: ThemeId | string;
@@ -205,6 +206,16 @@ export const SettingsView = ({
                          </button>
                     </div>
                 </div>
+              </GlassPanel>
+
+              {/* AVATAR IDENTITY SECTION */}
+              <GlassPanel className="p-5 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <User className="text-cyan-400" size={18} />
+                    <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">Identity</h3>
+                </div>
+                
+                <AvatarSelector />
               </GlassPanel>
 
               {/* THEME SECTION */}

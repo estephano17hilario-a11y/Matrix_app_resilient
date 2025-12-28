@@ -9,7 +9,8 @@ export const BarChart = React.memo(({
     max,
     showGrid = true,
     className = "",
-    barClassName = ""
+    barClassName = "",
+    stacked = false
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -18,8 +19,26 @@ export const BarChart = React.memo(({
     showGrid?: boolean;
     className?: string;
     barClassName?: string;
+    stacked?: boolean;
 }) => {
-    const maxValue = useMemo(() => max || Math.max(...datasets.flatMap(d => d.data), 1), [datasets, max]);
+    // If stacked, max should be provided by parent or calculated by summing indices. 
+    // Here we assume if max is provided it is correct.
+    // If not provided and stacked, we need to calculate max of totals.
+    const maxValue = useMemo(() => {
+        if (max) return max;
+        if (stacked) {
+            // Calculate max of sums
+            let maxTotal = 0;
+            const length = datasets[0]?.data.length || 0;
+            for (let i = 0; i < length; i++) {
+                const sum = datasets.reduce((acc, ds) => acc + (ds.data[i] || 0), 0);
+                if (sum > maxTotal) maxTotal = sum;
+            }
+            return maxTotal || 1;
+        }
+        return Math.max(...datasets.flatMap(d => d.data), 1);
+    }, [datasets, max, stacked]);
+
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [tooltipPos, setTooltipPos] = useState<{top: number, left: number} | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -94,29 +113,35 @@ export const BarChart = React.memo(({
                         className="flex-1 h-full flex flex-col justify-end gap-1 group relative z-10 cursor-pointer"
                     >
                         {/* Bars Container */}
-                        <div className="w-full flex items-end justify-center gap-1 flex-1 relative px-0.5">
+                        <div className={`w-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'} flex-1 relative px-0.5`}>
                             {datasets.map((ds, idx) => {
                                 const val = ds.data[i];
                                 const h = (val / maxValue);
+                                // If 0, rendering 1px min-height might be misleading in stacked mode, but good for visibility.
+                                // In stacked mode, we control height via wrapper.
                                 return (
-                                    <div key={idx} className="w-full h-full relative flex items-end justify-center group-hover:brightness-125 transition-all duration-300">
+                                    <div 
+                                        key={idx} 
+                                        className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center group-hover:brightness-125 transition-all duration-300`}
+                                        style={stacked ? { height: `${h * 100}%` } : {}}
+                                    >
                                          <motion.div 
                                             initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: `${h * 100}%`, opacity: 1 }}
+                                            animate={{ height: stacked ? '100%' : `${h * 100}%`, opacity: 1 }}
                                             transition={{ 
                                                 type: "spring", 
                                                 stiffness: 300, 
                                                 damping: 25, 
                                                 delay: i * 0.005 
                                             }}
-                                            className={`w-full min-h-[4px] rounded-t-lg relative overflow-hidden ${barClassName}`}
+                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-sm last:rounded-t-sm' : 'rounded-t-lg'} ${stacked && idx > 0 ? 'border-b border-black/30' : ''} relative overflow-hidden ${barClassName}`}
                                             style={{ 
-                                                background: `linear-gradient(to top, ${ds.color}40, ${ds.color})`,
-                                                boxShadow: `0 0 20px ${ds.color}40`
+                                                background: ds.color,
+                                                boxShadow: `0 0 20px ${ds.color}60`
                                             }}
                                          >
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_10px_white]" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+                                            {!stacked && <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_10px_white]" />}
                                             
                                             {/* Inner Shine */}
                                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

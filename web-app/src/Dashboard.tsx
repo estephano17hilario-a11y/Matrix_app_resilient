@@ -550,6 +550,7 @@ export default function Dashboard() {
                                 email={user?.email}
                                 currentView={currentView}
                                 isPro={user?.plan === 'PRO'}
+                                avatarId={user?.avatarId}
                             />
                         </div>
                     </div>

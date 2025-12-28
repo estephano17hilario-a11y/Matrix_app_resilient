@@ -1,15 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAvatarState } from '../../../hooks/useAvatarState';
+import { getAvatarPath } from '../../../config/avatars';
 
 interface AvatarDisplayProps {
   hp: number;
   size?: number;
   className?: string;
+  avatarId?: string; // New Prop
 }
 
-export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, className = '' }) => {
+export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, className = '', avatarId }) => {
   const { mode, color, shadowColor, Icon } = useAvatarState(hp);
+  const avatarPath = getAvatarPath(avatarId);
 
   // SVG Configuration
   const strokeWidth = 6; // Slightly thicker for visibility
@@ -100,30 +103,47 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
         />
       </svg>
 
-      {/* 3. Dynamic Avatar Icon (Center) */}
-      <div className="relative z-10 w-1/2 h-1/2 flex items-center justify-center">
+      {/* 3. Dynamic Avatar Icon (Center) or Custom Image */}
+      <div className="relative z-10 w-3/4 h-3/4 flex items-center justify-center">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={mode} // Triggers animation when state changes
-            initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
-            animate={{ 
-              opacity: 1, 
-              scale: mode === 'DECAYED' ? [1, 1.1, 1] : mode === 'NEUTRAL' ? [1, 1.05, 1] : 1,
-              rotate: 0,
-              filter: mode === 'PRIME' ? 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.8))' : 'none'
-            }}
-            exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
-            transition={{
-              default: { type: "spring", stiffness: 200, damping: 20 },
-              scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : { type: "spring", stiffness: 200, damping: 20 })
-            }}
-          >
-            <Icon 
-              size={size * 0.4} 
-              color={mode === 'DECAYED' ? '#f43f5e' : 'white'} 
-              className={mode === 'DECAYED' ? 'animate-pulse' : ''}
-            />
-          </motion.div>
+          {avatarPath ? (
+             <motion.div
+               key="custom-avatar"
+               className="w-full h-full rounded-full overflow-hidden border-2 border-white/10"
+               initial={{ opacity: 0, scale: 0.8 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.8 }}
+               transition={{ type: "spring", stiffness: 200, damping: 20 }}
+             >
+               <img 
+                 src={avatarPath} 
+                 alt="User Avatar" 
+                 className="w-full h-full object-cover"
+               />
+             </motion.div>
+          ) : (
+            <motion.div
+              key={mode} // Triggers animation when state changes
+              initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+              animate={{ 
+                opacity: 1, 
+                scale: mode === 'DECAYED' ? [1, 1.1, 1] : mode === 'NEUTRAL' ? [1, 1.05, 1] : 1,
+                rotate: 0,
+                filter: mode === 'PRIME' ? 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.8))' : 'none'
+              }}
+              exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
+              transition={{
+                default: { type: "spring", stiffness: 200, damping: 20 },
+                scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : { type: "spring", stiffness: 200, damping: 20 })
+              }}
+            >
+              <Icon 
+                size={size * 0.4} 
+                color={mode === 'DECAYED' ? '#f43f5e' : 'white'} 
+                className={mode === 'DECAYED' ? 'animate-pulse' : ''}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 

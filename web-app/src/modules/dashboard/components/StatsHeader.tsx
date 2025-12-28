@@ -23,9 +23,10 @@ interface StatsHeaderProps {
   currentView?: string;
   isPro?: boolean;
   onShowStreak?: () => void;
+  avatarId?: string;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -33,7 +34,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, gold
     <header className={`flex justify-between items-center z-[100] relative ${
         isCompact 
             ? 'mt-0 mb-0' 
-            : 'mt-2'
+            : 'mt-6'
     } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
         <div className={`flex items-center gap-4 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Avatar Widget - MOVED FIRST */}
@@ -42,7 +43,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, streak, gold
                 onClick={onToggleProfile}
                 className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
             >
-                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} gold={gold} displayName={displayName} email={email} isPro={isPro} />}
+                {shouldShowAvatar && <AvatarWidget level={level} xp={xp} nextXp={nextXp} health={health} streak={streak} gold={gold} displayName={displayName} email={email} isPro={isPro} avatarId={avatarId} />}
             </div>
         </div>
         

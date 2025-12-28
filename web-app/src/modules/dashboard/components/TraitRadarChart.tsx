@@ -12,7 +12,7 @@ interface TraitRadarChartProps {
 export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, className }) => {
     const { t } = useTranslation();
     // 1. CONFIGURATION
-    const CONTAINER_SIZE = 300; // REDUCED: Compact Box
+    const CONTAINER_SIZE = 260; // REDUCED: Compact Box (Was 300)
     const [scale, setScale] = useState(1);
 
     useEffect(() => {
@@ -32,8 +32,8 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
     }, []);
 
     const CENTER = CONTAINER_SIZE / 2;
-    const GRID_RADIUS = 95; // ENLARGED: Bigger Graph relative to box
-    const ICON_DISTANCE = 110; // Adjusted for tightness
+    const GRID_RADIUS = 85; // Adjusted proportionally
+    const ICON_DISTANCE = 100; // Adjusted for tightness
 
     // Helper: Map Trait IDs to Hex Colors (Backup/Override)
     const TRAIT_COLORS: Record<string, string> = {

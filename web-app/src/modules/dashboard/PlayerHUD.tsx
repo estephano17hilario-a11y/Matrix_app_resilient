@@ -69,8 +69,8 @@ const TraitBar = ({
               <LiquidProgressBar 
                 value={safeXp} 
                 max={safeMax} 
-                color={barColor}
-                height={6}
+                color={barColor as any}
+                size="sm"
               />
           )}
       </div>
@@ -143,8 +143,8 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
          </div>
 
          <div className={cn(
-            "mt-2 relative flex items-center justify-center transition-all duration-500",
-            chartMode === 'RADAR' ? "min-h-[180px]" : "min-h-0"
+            "mt-1 relative flex items-center justify-center transition-all duration-500",
+            chartMode === 'RADAR' ? "min-h-[160px]" : "min-h-0"
          )}>
              <AnimatePresence mode="wait">
                 {chartMode === 'RADAR' ? (

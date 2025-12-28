@@ -18,7 +18,12 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete }: HabitItem
     <motion.div
       layout
       whileTap={{ scale: 0.98 }}
-      className="group relative backdrop-blur-2xl bg-white/5 border border-white/10 shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 hover:bg-[#1a1a20]/80"
+      className="group relative backdrop-blur-md border border-white/10 shadow-lg rounded-[1.5rem] p-1 transition-all duration-300"
+      style={{
+        background: activeColor 
+            ? `linear-gradient(165deg, ${activeColor}15 0%, rgba(26, 26, 32, 0.6) 100%)` 
+            : 'rgba(255, 255, 255, 0.05)'
+      }}
     >
       <div className="relative flex items-center p-3 gap-4">
         <div 

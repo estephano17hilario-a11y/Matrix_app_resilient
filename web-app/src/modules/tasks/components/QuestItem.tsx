@@ -18,7 +18,22 @@ interface QuestItemProps {
 
 export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const Icon = attribute?.icon;
+
+  const handleComplete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!quest.completed) {
+      setIsCompleting(true);
+      // Wait for animation to float up before actually completing
+      setTimeout(() => {
+        onComplete(e, quest);
+        // We don't reset isCompleting to prevent flickering before unmount
+      }, 1200); 
+    } else {
+      onComplete(e, quest);
+    }
+  };
 
   const difficultyColors: Record<string, string> = {
     S: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
@@ -50,7 +65,14 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
             : `linear-gradient(145deg, ${attribute?.color || '#333'}20 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` 
       }}
     >
-      <div className="relative bg-[#121216]/80 backdrop-blur-md rounded-[1.2rem] overflow-hidden">
+      <div 
+        className="relative backdrop-blur-md rounded-[1.2rem] overflow-hidden"
+        style={{
+            background: attribute?.color 
+                ? `linear-gradient(180deg, ${attribute.color}15 0%, rgba(18, 18, 22, 0.95) 100%)` 
+                : 'rgba(18, 18, 22, 0.95)'
+        }}
+      >
         {isSmart && (
             <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
                 <div 
@@ -204,6 +226,42 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
           </AnimatePresence>
         </div>
       </div>
+
+      {/* FLOATING REWARDS ANIMATION */}
+      <AnimatePresence>
+        {isCompleting && (
+            <motion.div
+                className="absolute left-10 top-0 z-50 pointer-events-none flex flex-col items-start gap-1"
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ 
+                    opacity: [0, 1, 1, 0], 
+                    y: -100, 
+                    scale: 1 
+                }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+            >
+                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                    <span className="text-emerald-400 font-black text-sm">+{Math.floor(xp)} XP</span>
+                </div>
+                
+                {attribute && (
+                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10"
+                         style={{ borderColor: `${attribute.color}40`, boxShadow: `0 0 15px ${attribute.color}30` }}>
+                        <Icon size={12} style={{ color: attribute.color }} />
+                        <span style={{ color: attribute.color }} className="font-bold text-sm">
+                            +{Math.floor(xp)} {attribute.label}
+                        </span>
+                    </div>
+                )}
+
+                {coins > 0 && (
+                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                        <span className="text-yellow-400 font-bold text-sm">+{coins} G</span>
+                    </div>
+                )}
+            </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 });

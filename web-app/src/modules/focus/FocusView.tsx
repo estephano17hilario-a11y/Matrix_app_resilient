@@ -324,34 +324,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 
                 {/* 1. HUD Section REMOVED (Global HUD is now persistent) */}
 
-                {/* 2. Header - Title + Archive (Fixed below HUD) */}
-                <div className="flex justify-between items-center py-4 px-6 flex-shrink-0 relative z-[150] bg-[#020204]/95 pointer-events-auto border-b border-white/5">
-                    <div className="w-8" /> {/* Spacer for balance */}
-                    <h2 className="text-[20px] font-black text-white tracking-widest uppercase drop-shadow-lg font-sf-display">
-                        {showArchived ? t('focus.archivedTitle', 'ARCHIVED') : t('focus.appTitle', 'FOCUS STUDIO')}
-                    </h2>
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowArchived(!showArchived);
-                        }} 
-                        className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer relative z-[160] ${
-                            showArchived 
-                            ? 'bg-white/10 hover:bg-white/20 border-white/30' 
-                            : 'bg-indigo-500/20 hover:bg-indigo-500/40 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
-                        }`}
-                        aria-label={showArchived ? "Back to Projects" : "View Archived Projects"}
-                    >
-                        {showArchived ? <ChevronLeft size={22} /> : <Archive size={22} />}
-                    </button>
-                </div>
 
                 {/* Scrollable Content - Let Dashboard handle scroll, just expand */}
                 <div className="w-full flex-1 pb-32">
 
                     {/* Stats - Only in Active View */}
                     {!showArchived && (
-                        <div className="relative z-10 mb-1 px-4 mt-4">
+                        <div className="relative z-10 mb-1 px-4 mt-1">
                             <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
                         </div>
                     )}

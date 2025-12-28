@@ -37,6 +37,7 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  avatarId?: string; // ID del avatar seleccionado (interno)
   plan: UserPlan;
   archetype: UserArchetype;
   stats: UserStats;
