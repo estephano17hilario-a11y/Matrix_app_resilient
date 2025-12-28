@@ -99,9 +99,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
 
 
     if (!isOpen) return null;
-
+    
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/95" onClick={onClose} />
             <div className="relative z-10 w-full max-w-[360px]">
                 <div 

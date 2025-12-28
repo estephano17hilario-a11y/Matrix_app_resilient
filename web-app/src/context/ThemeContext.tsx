@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
+import { boostColorSaturation } from '../utils/colorUtils';
 
 interface ThemeContextType {
   theme: ThemeId;
@@ -9,6 +10,8 @@ interface ThemeContextType {
   availableThemes: typeof THEMES;
   vicesMode: boolean;
   setVicesMode: (enabled: boolean) => void;
+  vividMode: boolean;
+  setVividMode: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -34,27 +37,51 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return 'ether';
   });
 
+  const [vividMode, setVividModeState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('matrix-vivid-mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // Apply theme to document
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
+    if (vividMode) {
+        root.setAttribute('data-vivid', 'true');
+    } else {
+        root.removeAttribute('data-vivid');
+    }
 
     // Inject CSS variables dynamically from config
     const themeConfig = THEMES[theme];
     if (themeConfig) {
-      root.style.setProperty('--color-bg-depth', themeConfig.colors.bgDepth);
-      root.style.setProperty('--color-primary-glow', themeConfig.colors.primaryGlow);
-      root.style.setProperty('--color-secondary-glow', themeConfig.colors.secondaryGlow);
+      const bgDepth = themeConfig.colors.bgDepth;
+      // Boost saturation if vivid mode is on
+      const primaryGlow = vividMode 
+        ? boostColorSaturation(themeConfig.colors.primaryGlow, 0.6) 
+        : themeConfig.colors.primaryGlow;
+        
+      const secondaryGlow = vividMode
+        ? boostColorSaturation(themeConfig.colors.secondaryGlow, 0.6)
+        : themeConfig.colors.secondaryGlow;
+
+      root.style.setProperty('--color-bg-depth', bgDepth);
+      root.style.setProperty('--color-primary-glow', primaryGlow);
+      root.style.setProperty('--color-secondary-glow', secondaryGlow);
       root.style.setProperty('--color-glass-tint', themeConfig.colors.glassTint);
       root.style.setProperty('--color-text-primary', themeConfig.colors.textPrimary);
     }
 
     try {
       localStorage.setItem('matrix-theme', theme);
+      localStorage.setItem('matrix-vivid-mode', String(vividMode));
     } catch (e) {
       // Ignore
     }
-  }, [theme]);
+  }, [theme, vividMode]);
 
   // Sync with Firestore
   // 1. Load from Firestore on login
@@ -68,8 +95,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (snapshot.exists()) {
           const data = snapshot.data();
           const remoteTheme = data.preferences?.theme;
+          const remoteVivid = data.preferences?.vividMode;
+          
           if (remoteTheme && remoteTheme !== theme && THEMES[remoteTheme as ThemeId]) {
             setThemeState(remoteTheme as ThemeId);
+          }
+          if (remoteVivid !== undefined && remoteVivid !== vividMode) {
+            setVividModeState(remoteVivid);
           }
         }
       } catch (error) {
@@ -98,8 +130,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const setVividMode = async (enabled: boolean) => {
+    setVividModeState(enabled);
+    if (user) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          await setDoc(userRef, {
+            preferences: { vividMode: enabled }
+          }, { merge: true });
+        } catch (error) {
+          console.error("Failed to save vivid mode to Matrix:", error);
+        }
+      }
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, availableThemes: THEMES, vicesMode, setVicesMode }}>
+    <ThemeContext.Provider value={{ theme, setTheme, availableThemes: THEMES, vicesMode, setVicesMode, vividMode, setVividMode }}>
       {children}
     </ThemeContext.Provider>
   );

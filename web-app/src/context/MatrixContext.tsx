@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useMatrixData, MatrixDataHook } from '../hooks/useMatrixData';
+import { useMatrixData, MatrixDataHook } from '@/hooks/useMatrixData';
 
 const MatrixContext = createContext<MatrixDataHook | undefined>(undefined);
 

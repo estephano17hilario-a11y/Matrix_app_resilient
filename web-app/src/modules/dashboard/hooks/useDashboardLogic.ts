@@ -1,26 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useMatrix } from '../../../context/MatrixContext';
-import { checkAchievements } from '../../../services/achievementListener';
-import { Achievement } from '../../../config/achievements';
+import { useMatrix } from '@/context/MatrixContext';
+import { checkAchievements } from '@/services/achievementListener';
+import { Achievement } from '@/config/achievements';
 import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon } from 'lucide-react';
 import { 
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
-} from '../../../types';
-import { DailyLimits } from '../../../types/User';
+} from '@/types';
+import { DailyLimits } from '@/types/User';
 import { TRAITS_LIST, DAILY_LIMITS } from '../constants';
-import { FREE_LIMITS } from '../../../config/limits';
-import { projectService } from '../../../services/projectService';
-import { persistenceService } from '../../../services/persistenceService';
-import { doc, setDoc, db, writeBatch } from '../../../services/firebase';
+import { FREE_LIMITS } from '@/config/limits';
+import { projectService } from '@/services/projectService';
+import { persistenceService } from '@/services/persistenceService';
+import { doc, setDoc, db, writeBatch } from '@/services/firebase';
 
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 
-import { SmartProject } from '../../../types/SmartGoal';
+import { SmartProject } from '@/types/SmartGoal';
 
 export const useDashboardLogic = () => {
     const { user, loading: matrixLoading } = useMatrix();
-    const { theme: currentTheme, setTheme: setCurrentTheme } = useTheme(); // Use ThemeContext instead of local state
+    const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
     const [currentView, setCurrentView] = useState('TASKS');
@@ -31,6 +31,7 @@ export const useDashboardLogic = () => {
     const [showProfile, setShowProfile] = useState(true);
     const [defaultChartMode, setDefaultChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
     const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID'>('BORDER');
+    const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
 
     const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID') => {
         setDashboardStyle(style);
@@ -43,12 +44,26 @@ export const useDashboardLogic = () => {
         }
     }, [user?.uid]);
 
+    const updateAvatarShape = useCallback(async (shape: 'CIRCLE' | 'SQUARE') => {
+        setAvatarShape(shape);
+        if (user?.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid), { avatarShape: shape }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save avatar shape", e);
+            }
+        }
+    }, [user?.uid]);
+
     // Sync Dashboard Style from User Profile
     useEffect(() => {
         if (user?.dashboardStyle) {
             setDashboardStyle(user.dashboardStyle);
         }
-    }, [user?.dashboardStyle]);
+        if (user?.avatarShape) {
+            setAvatarShape(user.avatarShape);
+        }
+    }, [user?.dashboardStyle, user?.avatarShape]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -1418,6 +1433,8 @@ export const useDashboardLogic = () => {
         removeAttribute,
         dashboardStyle,
         updateDashboardStyle,
+        avatarShape,
+        updateAvatarShape,
         // New exports
         notes,
         handleAddNote,
@@ -1425,6 +1442,8 @@ export const useDashboardLogic = () => {
         badHabits,
         handleBadHabitConfirm,
         handleBadHabitRelapse,
-        handleDeleteBadHabit
+        handleDeleteBadHabit,
+        vividMode,
+        setVividMode
     };
 };

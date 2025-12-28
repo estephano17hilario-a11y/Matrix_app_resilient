@@ -50,7 +50,9 @@
     "errors": {
       "passwordMismatch": "Passwords do not match",
       "passwordLength": "Password must be at least 6 characters",
-      "authDisabled": "Email/Password login is not enabled in Firebase Console."
+      "authDisabled": "Email/Password login is not enabled in Firebase Console.",
+      "nameRequired": "Name is required",
+      "required": "All fields are required"
     },
     "orContinue": "Or continue with",
     "google": "Google"
@@ -143,7 +145,6 @@
   },
   "store": {
     "title": "Store",
-    "inventory": "Inventory",
     "buy": "Buy",
     "locked": "Locked",
     "currency": "Gold",
@@ -156,13 +157,7 @@
     "filters": {
       "all": "All",
       "power_up": "Power Ups",
-      "theme": "Themes",
-      "cosmetic": "Cosmetics",
-      "bad_habit": "Bad Habits",
-      "digital_addiction": "Digital Addiction",
-      "physical_neglect": "Physical Neglect",
-      "mental_clutter": "Mental Clutter",
-      "social_behavioral": "Social/Behavioral"
+      "theme": "Themes"
     },
     "others": "Others",
     "emptyCollection": "Empty Collection",
@@ -174,42 +169,7 @@
         "freeze_streak": { "name": "Time Freeze", "desc": "Freezes your streak for 24 hours. Use before a busy day." },
         "theme_neon_purple": { "name": "Nebula Protocol", "desc": "Deep Purple and Pink UI Theme. Cyberpunk aesthetic." },
         "theme_matrix_green": { "name": "Source Code", "desc": "Classic Matrix Green. The raw data stream." },
-        "theme_apple_minimal": { "name": "Cupertino Glass", "desc": "Ultra-clean frosted glass aesthetic. Maximum clarity." },
-        "bad_habit_shorts": { "name": "Doomscrolling Shorts (30m)", "desc": "Buying this acknowledges the habit of watching endless short videos." },
-        "bad_habit_social": { "name": "Social Media Binge", "desc": "Checking feeds without purpose." },
-        "bad_habit_notifications": { "name": "Notification Slave", "desc": "Reacting instantly to every beep." },
-        "bad_habit_gaming": { "name": "Excessive Gaming", "desc": "Gaming when you should be working." },
-        "bad_habit_news": { "name": "News Overload", "desc": "Consuming negative news constantly." },
-        "bad_habit_sugar": { "name": "Sugar Rush", "desc": "Consuming sugary drinks/snacks in excess." },
-        "bad_habit_sedentary": { "name": "Couch Potato", "desc": "Sitting for >2 hours without moving." },
-        "bad_habit_sleep": { "name": "Sleep Revenge", "desc": "Staying up late for no reason." },
-        "bad_habit_posture": { "name": "Slouching", "desc": "Poor posture while working." },
-        "bad_habit_water": { "name": "Dehydration", "desc": "Forgetting to drink water." },
-        "bad_habit_procrastinate": { "name": "Procrastination", "desc": "Delaying tasks until the last minute." },
-        "bad_habit_multitask": { "name": "Multitasking Illusion", "desc": "Doing everything, achieving nothing." },
-        "bad_habit_negative": { "name": "Negative Self-Talk", "desc": "Being your own worst enemy." },
-        "bad_habit_worry": { "name": "Chronic Worry", "desc": "Stressing over things you can't control." },
-        "bad_habit_perfection": { "name": "Paralyzing Perfectionism", "desc": "Waiting for \"perfect\" conditions." },
-        "bad_habit_interrupt": { "name": "Interrupting Others", "desc": "Speaking before listening." },
-        "bad_habit_late": { "name": "Chronically Late", "desc": "Disrespecting others' time." },
-        "bad_habit_complain": { "name": "Complaining", "desc": "Focusing on problems, not solutions." },
-        "bad_habit_impulse": { "name": "Impulse Spending", "desc": "Buying things you don't need." },
-        "bad_habit_clutter": { "name": "Physical Clutter", "desc": "Messy space, messy mind." }
-    }
-  },
-  "inventory": {
-    "title": "Inventory",
-    "use": "Use",
-    "equip": "Equip/View",
-    "confirmUse": "Do you want to use {{name}}?",
-    "searchPlaceholder": "Search your items...",
-    "emptyTitle": "Empty Inventory",
-    "emptyDesc": "Visit the Store to get items.",
-    "filters": {
-      "all": "All",
-      "power_up": "Power Ups",
-      "cosmetic": "Cosmetics",
-      "bad_habit": "Bad Habits"
+        "theme_apple_minimal": { "name": "Cupertino Glass", "desc": "Ultra-clean frosted glass aesthetic. Maximum clarity." }
     }
   },
   "achievements": {
@@ -541,6 +501,8 @@
     "languageDesc": "Select system language / Seleccionar idioma del sistema",
     "visualTheme": "Visual Theme",
     "visualThemeDesc": "Select your preferred reality aesthetic",
+    "vividMode": "Vivid Mode (OLED)",
+    "vividModeDesc": "Boost saturation and brightness for OLED screens",
     "dashboardStyle": "Dashboard Style",
     "dashboardStyleDesc": "Select the appearance of the section selector",
     "styleBorder": "Bordered",
@@ -678,7 +640,6 @@
       "focus": "Focus",
       "strategy": "Strategy",
       "fame": "Fame",
-      "inventory": "Inventory",
       "store": "Store"
   }
 }

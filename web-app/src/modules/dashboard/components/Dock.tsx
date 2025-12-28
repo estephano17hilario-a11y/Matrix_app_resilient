@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon, Package, ShoppingBag } from 'lucide-react';
+import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -12,12 +12,12 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     
     // Shared base classes: Glass effect, positioning, sizing
     // REMOVED BACKDROP BLUR for stability
-    const baseClass = "pointer-events-auto relative box-border mx-auto !bg-transparent";
+    const baseClass = "pointer-events-auto relative box-border mx-auto";
     
     // Style-specific classes
     const styleClass = isLiquid
         ? "border !border-black/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]" // Elegant dark border + Deep Drop Shadow
-        : `glass-panel !shadow-none ${isOpen ? 'rgb-border-container rgb-border-active' : ''}`; // Standard RGB Border
+        : `glass-panel !shadow-none ${isOpen ? 'rgb-border-container rgb-border-active !bg-[#050505]/85' : ''}`; // Standard RGB Border
 
     const containerClass = `${baseClass} ${styleClass}`;
 
@@ -26,7 +26,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
             initial={false}
             animate={{ y: isHidden ? '200%' : '0%' }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none"
+            className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center pointer-events-none"
         >
            <motion.div 
                 layout
@@ -68,10 +68,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </button>
 
                     {/* NEW ROW */}
-                    <button onClick={() => { handleView('INVENTORY'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.1)]"><Package size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.inventory')}</span>
-                    </button>
-                    <button onClick={() => { handleView('STORE'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                    <button onClick={() => { handleView('STORE'); }} className="col-span-2 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.store')}</span>
                     </button>
 

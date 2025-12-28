@@ -16,7 +16,7 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
     if (!habit) return null;
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-black/95 animate-in fade-in" onClick={onClose} />
             <div 
                 className="relative z-10 w-full max-w-sm glass-panel rounded-[2rem] p-6 animate-modal-enter flex flex-col items-center transition-all duration-500"

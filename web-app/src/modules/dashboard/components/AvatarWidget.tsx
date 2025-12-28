@@ -2,15 +2,16 @@ import React from 'react';
 import { Heart, Zap, Flame, Coins } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DailyLimitsHUD } from './DailyLimitsHUD';
-import { DailyLimits } from '../../../types/User';
-import { GoldCounter } from '../../store/components/GoldCounter';
-import { getAvatarPath } from '../../../config/avatars';
+import { DailyLimits } from '@/types/User';
+import { GoldCounter } from '@/modules/store/components/GoldCounter';
+import { getAvatarPath, getAvatarConfig } from '@/config/avatars';
 
 interface AvatarWidgetProps {
   level: number;
   xp: number;
   nextXp: number;
   health: number;
+  maxHealth?: number;
   streak: number;
   gold?: number;
   dailyLimits?: DailyLimits;
@@ -18,6 +19,7 @@ interface AvatarWidgetProps {
   email?: string | null;
   isPro?: boolean;
   avatarId?: string;
+  avatarShape?: 'CIRCLE' | 'SQUARE';
 }
 
 const MiniLiquidBar = ({  value, 
@@ -57,7 +59,7 @@ const MiniLiquidBar = ({  value,
   const theme = themes[color];
 
   return (
-    <div className="flex items-center gap-2 w-20 sm:w-28 md:w-40 transition-all">
+    <div className="flex items-center gap-2 w-36 sm:w-40 md:w-48 transition-all">
         <Icon size={10} className={theme.iconColor} />
         <div className={`h-1.5 flex-1 ${theme.bg} rounded-full overflow-hidden relative shadow-inner`}>
              <motion.div 
@@ -66,21 +68,34 @@ const MiniLiquidBar = ({  value,
                 className={`h-full absolute left-0 top-0 rounded-full bg-gradient-to-r ${theme.gradient}`}
              />
         </div>
-        <span className="hidden sm:inline-block text-[9px] font-mono text-white/50 w-[45px] text-right tabular-nums">{safeValue}/{safeMax}</span>
+        <span className="text-[9px] font-mono text-white/50 w-[60px] text-right tabular-nums">{safeValue}/{safeMax}</span>
     </div>
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, gold = 0, dailyLimits, displayName, email, isPro, avatarId }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE' }: AvatarWidgetProps) => {
     const avatarPath = getAvatarPath(avatarId);
+    const avatarConfig = getAvatarConfig(avatarId);
+    const themeColor = avatarConfig?.themeColor;
     const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
 
+    const shapeClass = avatarShape === 'SQUARE' ? 'rounded-2xl' : 'rounded-full';
+
+    // Dynamic styles for Aura
+    const auraStyle = themeColor ? {
+        boxShadow: `0 0 25px -5px ${themeColor}`,
+        borderColor: `${themeColor}60`
+    } : {};
+
     return (
-    <div className="flex items-center gap-3 overflow-hidden opacity-100 translate-x-0 w-auto pl-1">
+    <div className="flex items-center gap-3 opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
-            <div className={`w-12 h-12 rounded-full p-[1px] border border-white/10 shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)] ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}>
-                <img src={avatarPath || defaultAvatar} alt="Avatar" className="w-full h-full rounded-full object-cover opacity-90" />
+            <div 
+                className={`w-12 h-12 ${shapeClass} p-[1px] border border-white/10 ${!themeColor ? 'shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)]' : ''} ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}
+                style={auraStyle}
+            >
+                <img src={avatarPath || defaultAvatar} alt="Avatar" className={`w-full h-full ${shapeClass} object-cover object-[50%_20%] opacity-90`} />
             </div>
             {/* Level Badge */}
             <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10">
@@ -131,7 +146,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, streak, gol
 
             {/* BARS */}
             <div className="flex flex-col gap-1">
-                 <MiniLiquidBar value={health} max={100} color="health" icon={Heart} />
+                 <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
                  <MiniLiquidBar value={xp} max={nextXp} color="xp" icon={Zap} />
             </div>
         </div>

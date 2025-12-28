@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AVAILABLE_AVATARS } from '../../config/avatars';
 import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc, db } from '../../services/firebase';
-import { CheckCircle } from 'lucide-react';
+import { AvatarSelectorCard } from './components/AvatarSelectorCard';
 
 interface AvatarSelectorProps {
   onClose?: () => void;
@@ -41,68 +40,28 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <h3 className="text-white text-lg font-medium mb-4 flex items-center gap-2">
+    <div className="w-full max-w-4xl mx-auto p-4">
+      <h3 className="text-white text-lg font-medium mb-6 flex items-center gap-2">
         <span className="text-cyan-400">///</span> SELECT IDENTITY
       </h3>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-        {AVAILABLE_AVATARS.map((avatar) => {
-          const isSelected = selectedId === avatar.id;
-
-          return (
-            <motion.button
-              key={avatar.id}
-              onClick={() => handleSelect(avatar.id)}
-              className={`group relative aspect-square rounded-2xl overflow-hidden border transition-all duration-300 ${
-                isSelected 
-                  ? 'border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.3)]' 
-                  : 'border-white/10 hover:border-white/30'
-              }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {/* Image */}
-              <img 
-                src={avatar.path} 
-                alt={avatar.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="lazy"
-              />
-
-              {/* Selection Overlay */}
-              <AnimatePresence>
-                {isSelected && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-cyan-500/20 flex items-center justify-center backdrop-blur-[2px]"
-                  >
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    >
-                      <CheckCircle className="w-8 h-8 text-white drop-shadow-lg" />
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Rarity Badge (Optional) */}
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[10px] uppercase tracking-wider text-white/80 font-mono">
-                  {avatar.name}
-                </span>
-              </div>
-            </motion.button>
-          );
-        })}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-h-[70vh] overflow-y-auto p-2 custom-scrollbar">
+        {AVAILABLE_AVATARS.map((avatar) => (
+          <AvatarSelectorCard
+            key={avatar.id}
+            id={avatar.id}
+            name={avatar.name}
+            rarity={avatar.rarity}
+            imageUrl={avatar.path}
+            themeColor={avatar.themeColor}
+            isSelected={selectedId === avatar.id}
+            onClick={handleSelect}
+          />
+        ))}
       </div>
       
       {/* Helper Text */}
-      <div className="mt-4 text-center">
+      <div className="mt-6 text-center">
          <p className="text-white/40 text-xs font-mono">
             {isSaving ? "SAVING IDENTITY..." : `${AVAILABLE_AVATARS.length} AVATARS AVAILABLE`}
          </p>

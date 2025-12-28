@@ -186,6 +186,6 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   stats: UserStats;
-  inventory?: Record<string, number>;
+  unlockedStoreItems?: string[];
   createdAt?: number;
 }

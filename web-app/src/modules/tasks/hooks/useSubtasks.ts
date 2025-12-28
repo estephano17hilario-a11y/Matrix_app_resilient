@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { doc, updateDoc, db } from '../../../services/firebase';
 import { Subtask } from '../../../types';
-import { useMatrix } from '../../../context/MatrixContext';
+import { useMatrix } from '@/context/MatrixContext';
 
 export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => {
   const { user } = useMatrix();

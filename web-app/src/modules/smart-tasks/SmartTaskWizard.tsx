@@ -117,7 +117,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   }, [currentStep, timeframeHierarchy, isStarting, generateProject, onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[50px] overflow-hidden">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-md overflow-hidden">
       {/* Dynamic Background based on Trait */}
       <div 
         className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out"

@@ -118,7 +118,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
                <img 
                  src={avatarPath} 
                  alt="User Avatar" 
-                 className="w-full h-full object-cover"
+                 className="w-full h-full object-cover object-[50%_20%]"
                />
              </motion.div>
           ) : (

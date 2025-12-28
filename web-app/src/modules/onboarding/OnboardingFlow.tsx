@@ -8,8 +8,9 @@ import { GlassCard } from './components/GlassCard';
 import { TRAITS_LIST } from '../dashboard/constants';
 import { persistenceService } from '../../services/persistenceService';
 import { useTranslation } from 'react-i18next';
+import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 
-type Step = 'intro' | 'language' | 'traits' | 'saving';
+type Step = 'intro' | 'language' | 'avatar' | 'traits' | 'saving';
 
 export function OnboardingFlow() {
   const { user, refreshProfile } = useAuth();
@@ -18,10 +19,12 @@ export function OnboardingFlow() {
   
   const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
   const [language, setLanguage] = useState<string>('en');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
 
   const handleNext = () => {
     if (step === 'intro') setStep('language');
-    else if (step === 'language') setStep('traits');
+    else if (step === 'language') setStep('avatar');
+    else if (step === 'avatar') setStep('traits');
     else if (step === 'traits') handleSubmit();
   };
 
@@ -44,6 +47,11 @@ export function OnboardingFlow() {
     }, 400);
   };
 
+  const handleAvatarSelect = (avatarId: string) => {
+    setSelectedAvatarId(avatarId);
+    handleNext();
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     setStep('saving');
@@ -53,6 +61,7 @@ export function OnboardingFlow() {
       
       // 1. Save Basic Onboarding Data
       await updateDoc(userRef, {
+        avatarId: selectedAvatarId, // Save the selected avatar
         onboarding: {
           completedAt: Date.now(),
           language: language
@@ -110,12 +119,25 @@ export function OnboardingFlow() {
                 className="absolute top-0 left-0 right-0 flex justify-center gap-2 py-10 z-50"
               >
                   <div className={`h-1.5 w-16 rounded-full transition-all duration-500 ${step === 'language' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-500 ${step === 'avatar' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
                   <div className={`h-1.5 w-16 rounded-full transition-all duration-500 ${step === 'traits' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
               </motion.div>
           )}
         </AnimatePresence>
 
         <div className="flex-1 w-full relative overflow-hidden">
+          {/* STEP: AVATAR SELECTION (Full Screen) */}
+          {step === 'avatar' ? (
+             <motion.div 
+               key="avatar-carousel"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 z-40"
+             >
+                <AvatarCarousel onSelect={handleAvatarSelect} />
+             </motion.div>
+          ) : (
           <div className="absolute inset-0 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="min-h-full w-full flex flex-col items-center justify-center max-w-4xl mx-auto px-4 py-24">
               <AnimatePresence mode="wait">
@@ -306,6 +328,7 @@ export function OnboardingFlow() {
             </AnimatePresence>
             </div>
           </div>
+        )}
         </div>
       </div>
     </OnboardingLayout>

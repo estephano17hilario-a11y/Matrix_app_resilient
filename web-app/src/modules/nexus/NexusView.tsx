@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMatrix } from '../../context/MatrixContext';
+import { useMatrix } from '@/context/MatrixContext';
 import { Habit, Note, Project, Quest } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
 import { MissionCard } from './components/MissionCard';

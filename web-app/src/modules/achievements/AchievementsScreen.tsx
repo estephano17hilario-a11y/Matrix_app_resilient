@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMatrix } from '../../context/MatrixContext';
+import { useMatrix } from '@/context/MatrixContext';
 import { ACHIEVEMENTS, AchievementCategory, Achievement, TRAIT_ICONS } from '../../config/achievements';
 import { Lock, Trophy } from 'lucide-react';
 import { AuroraBackground } from '../../components/AuroraBackground';

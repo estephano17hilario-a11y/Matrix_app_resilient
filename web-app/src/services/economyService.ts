@@ -1,12 +1,18 @@
 import { db, doc, runTransaction, Transaction } from "./firebase";
 
+export interface InventoryItem {
+  itemId: string;
+  quantity: number;
+  acquiredAt: number;
+}
+
 export interface StoreItem {
   id: string;
   name: string;
   description: string;
   price: number;
-  category: 'power_up' | 'theme' | 'bad_habit';
-  subCategory?: string; // For grouping bad habits or other items
+  category: 'power_up' | 'theme';
+  subCategory?: string; // For grouping items
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference
   effect?: {
@@ -18,7 +24,7 @@ export interface StoreItem {
 
 /**
  * Executes a secure transaction to purchase an item.
- * Atomic: Deducts gold and adds item to inventory simultaneously.
+ * Atomic: Deducts gold and applies effects immediately.
  */
 export const purchaseItem = async (userId: string, item: StoreItem) => {
   const userRef = doc(db, "users", userId);
@@ -32,7 +38,6 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
 
       const userData = userDoc.data() as any;
       const currentGold = userData.stats?.gold || 0;
-      const currentInventory = userData.inventory || {};
 
       if (currentGold < item.price) {
         throw new Error("Insufficient funds");
@@ -40,16 +45,44 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
 
       // Calculate new state
       const newGold = currentGold - item.price;
-      const newInventory = {
-        ...currentInventory,
-        [item.id]: (currentInventory[item.id] || 0) + 1
+      const updates: any = {
+        "stats.gold": newGold
       };
 
+      // APPLY EFFECTS IMMEDIATELY OR UNLOCK ITEM
+      if (item.category === 'power_up' && item.effect) {
+          // If it's a consumable power-up, add to INVENTORY instead of applying immediately?
+          // OR apply immediately if it's "Instant".
+          // For now, let's assume potions are added to inventory if they are bought in bulk,
+          // but here the store seems to be "Instant Use" or "Unlock".
+          // BUT the user wants Inventory. So let's change behavior:
+          // PowerUps go to Inventory. Themes go to Unlocked.
+          
+          const currentInventory = (userData.inventory || []) as InventoryItem[];
+          const existingItemIndex = currentInventory.findIndex((i: InventoryItem) => i.itemId === item.id);
+          
+          let newInventory = [...currentInventory];
+          if (existingItemIndex >= 0) {
+              newInventory[existingItemIndex].quantity += 1;
+          } else {
+              newInventory.push({
+                  itemId: item.id,
+                  quantity: 1,
+                  acquiredAt: Date.now()
+              });
+          }
+          updates.inventory = newInventory;
+
+      } else {
+          // PERMANENT UNLOCK (Themes, etc.)
+          const currentUnlocked = userData.unlockedStoreItems || [];
+          if (!currentUnlocked.includes(item.id)) {
+              updates.unlockedStoreItems = [...currentUnlocked, item.id];
+          }
+      }
+
       // Commit updates
-      transaction.update(userRef as any, {
-        "stats.gold": newGold,
-        inventory: newInventory
-      });
+      transaction.update(userRef as any, updates);
     });
 
     return { success: true };
@@ -57,6 +90,66 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
     console.error("Purchase failed:", error);
     return { success: false, error: error.message };
   }
+};
+
+/**
+ * Consumes an item from the inventory.
+ */
+export const consumeItem = async (userId: string, itemId: string, effect: StoreItem['effect']) => {
+    const userRef = doc(db, "users", userId);
+    
+    try {
+        await runTransaction(db, async (transaction: Transaction) => {
+            const userDoc = await transaction.get(userRef as any);
+            if (!userDoc.exists()) throw new Error("User not found");
+            
+            const userData = userDoc.data() as any;
+            const inventory = (userData.inventory || []) as InventoryItem[];
+            const itemIndex = inventory.findIndex(i => i.itemId === itemId);
+            
+            if (itemIndex === -1 || inventory[itemIndex].quantity < 1) {
+                throw new Error("Item not in inventory");
+            }
+            
+            // 1. Remove from inventory
+            const newInventory = [...inventory];
+            newInventory[itemIndex].quantity -= 1;
+            if (newInventory[itemIndex].quantity === 0) {
+                newInventory.splice(itemIndex, 1);
+            }
+            
+            const updates: any = { inventory: newInventory };
+            
+            // 2. Apply Effect
+            if (effect) {
+                const stats = userData.stats || {};
+                switch (effect.type) {
+                    case 'heal':
+                        const currentHp = stats.hp || 0;
+                        const maxHp = stats.maxHp || 100;
+                        updates["stats.hp"] = Math.min(maxHp, currentHp + effect.value);
+                        break;
+                    case 'xp_boost':
+                        updates["stats.xp"] = (stats.xp || 0) + effect.value;
+                        break;
+                    case 'restore_streak':
+                        updates["stats.currentStreak"] = (stats.currentStreak || 0) + effect.value;
+                        break;
+                    case 'freeze_streak':
+                        const now = new Date();
+                        const durationHours = effect.duration || 24;
+                        const freezeUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+                        updates["stats.streakFrozenUntil"] = freezeUntil.toISOString();
+                        break;
+                }
+            }
+            
+            transaction.update(userRef as any, updates);
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 };
 
 /**
@@ -69,7 +162,7 @@ export const addGold = async (userId: string, amount: number) => {
     await runTransaction(db, async (transaction: Transaction) => {
         const userDoc = await transaction.get(userRef as any);
         if (!userDoc.exists()) {
-            throw new Error("User does not exist!");
+             throw new Error("User does not exist!");
         }
         
         const userData = userDoc.data() as any;
@@ -79,84 +172,10 @@ export const addGold = async (userId: string, amount: number) => {
             "stats.gold": currentGold + amount
         });
     });
+    
     return { success: true };
-  } catch (error: any) {
-    console.error("Add Gold failed:", error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Consumes an item from the user's inventory and applies its effects.
- */
-export const consumeItem = async (userId: string, item: StoreItem) => {
-  const userRef = doc(db, "users", userId);
-
-  try {
-    await runTransaction(db, async (transaction: Transaction) => {
-      const userDoc = await transaction.get(userRef as any);
-      if (!userDoc.exists()) {
-        throw new Error("User does not exist!");
-      }
-
-      const userData = userDoc.data() as any;
-      const currentInventory = userData.inventory || {};
-      const itemCount = currentInventory[item.id] || 0;
-
-      if (itemCount <= 0) {
-        throw new Error("Item not in inventory");
-      }
-
-      const newInventory = {
-        ...currentInventory,
-        [item.id]: itemCount - 1
-      };
-
-      if (newInventory[item.id] === 0) {
-          delete newInventory[item.id];
-      }
-
-      const updates: any = {
-        inventory: newInventory
-      };
-
-      // APPLY EFFECTS
-      if (item.effect) {
-          const stats = userData.stats || {};
-          
-          switch (item.effect.type) {
-              case 'heal':
-                  const currentHp = stats.hp || 0;
-                  const maxHp = stats.maxHp || 100;
-                  updates["stats.hp"] = Math.min(maxHp, currentHp + item.effect.value);
-                  break;
-              
-              case 'xp_boost':
-                  updates["stats.xp"] = (stats.xp || 0) + item.effect.value;
-                  break;
-              
-              case 'restore_streak':
-                  // Assuming logic: If streak was lost recently, restore it?
-                  // For simplicity, let's just add to current streak.
-                  updates["stats.currentStreak"] = (stats.currentStreak || 0) + item.effect.value;
-                  break;
-
-              case 'freeze_streak':
-                  // Set a timestamp for when the freeze expires
-                  const now = new Date();
-                  const durationHours = item.effect.duration || 24;
-                  const freezeUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-                  updates["stats.streakFrozenUntil"] = freezeUntil.toISOString();
-                  break;
-          }
-      }
-
-      transaction.update(userRef as any, updates);
-    });
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Consume Item failed:", error);
-    return { success: false, error: error.message };
+  } catch (error) {
+      console.error("Error adding gold:", error);
+      return { success: false, error };
   }
 };

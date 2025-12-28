@@ -3,9 +3,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { StoreItem } from '../../../services/economyService';
 import { 
-  Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Lock, Clock, Code, Smartphone, 
-  Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX, 
-  Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash 
+  Zap, Brain, Palette, ShieldAlert, ShoppingBag, Lock, Clock, Code, Smartphone
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -17,9 +15,7 @@ interface StoreCardProps {
 }
 
 const IconMap: Record<string, React.ElementType> = {
-  Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Clock, Code, Smartphone,
-  Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX,
-  Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash
+  Zap, Brain, Palette, ShieldAlert, ShoppingBag, Clock, Code, Smartphone
 };
 
 export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ item, userGold, onPurchase, disabled }, ref) => {

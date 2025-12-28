@@ -42,13 +42,16 @@ export interface UserProfile {
   archetype: UserArchetype;
   stats: UserStats;
   dailyLimits?: DailyLimits;
-  inventory?: Record<string, number>;
   unlockedAchievements?: string[];
+  unlockedStoreItems?: string[];
+  inventory?: { itemId: string; quantity: number; acquiredAt: number }[];
+  equippedItems?: { [slot: string]: string }; // e.g. { "background": "theme_neon_purple" }
   createdAt: number; // Timestamp
   lastLoginAt: number;
   // Configuración visual
   theme: 'ETHER' | 'MATRIX' | 'SUNSET';
   dashboardStyle?: 'BORDER' | 'LIQUID';
+  avatarShape?: 'CIRCLE' | 'SQUARE';
   
   // Rate Limiting
   traitChanges?: {

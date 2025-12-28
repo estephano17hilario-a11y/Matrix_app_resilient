@@ -50,7 +50,9 @@
     "errors": {
       "passwordMismatch": "Las contraseñas no coinciden",
       "passwordLength": "La contraseña debe tener al menos 6 caracteres",
-      "authDisabled": "El inicio de sesión con Email/Contraseña no está habilitado."
+      "authDisabled": "El inicio de sesión con Email/Contraseña no está habilitado.",
+      "nameRequired": "El nombre es obligatorio",
+      "required": "Todos los campos son obligatorios"
     },
     "orContinue": "O continúa con",
     "google": "Google"
@@ -145,7 +147,6 @@
   },
   "store": {
     "title": "Tienda",
-    "inventory": "Inventario",
     "buy": "Comprar",
     "locked": "Bloqueado",
     "currency": "Oro",
@@ -158,11 +159,7 @@
     "filters": {
       "all": "Todo",
       "power_up": "Mejoras",
-      "theme": "Temas",
-      "digital_addiction": "Digital",
-      "physical_neglect": "Física",
-      "mental_clutter": "Mental",
-      "social_behavioral": "Social"
+      "theme": "Temas"
     },
     "others": "Otros",
     "emptyCollection": "Colección Vacía",
@@ -174,42 +171,7 @@
         "freeze_streak": { "name": "Congelar Tiempo", "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado." },
         "theme_neon_purple": { "name": "Protocolo Nébula", "desc": "Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk." },
         "theme_matrix_green": { "name": "Código Fuente", "desc": "Verde Matrix Clásico. El flujo de datos crudo." },
-        "theme_apple_minimal": { "name": "Cristal Cupertino", "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad." },
-        "bad_habit_shorts": { "name": "Doomscrolling Shorts (30m)", "desc": "Comprar esto reconoce el hábito de ver videos cortos sin fin." },
-        "bad_habit_social": { "name": "Atracón de Redes Sociales", "desc": "Revisar feeds sin propósito." },
-        "bad_habit_notifications": { "name": "Esclavo de Notificaciones", "desc": "Reaccionar instantáneamente a cada pitido." },
-        "bad_habit_gaming": { "name": "Juego Excesivo", "desc": "Jugar cuando deberías estar trabajando." },
-        "bad_habit_news": { "name": "Sobrecarga de Noticias", "desc": "Consumir noticias negativas constantemente." },
-        "bad_habit_sugar": { "name": "Subidón de Azúcar", "desc": "Consumir bebidas/snacks azucarados en exceso." },
-        "bad_habit_sedentary": { "name": "Papa de Sofá", "desc": "Sentarse por >2 horas sin moverse." },
-        "bad_habit_sleep": { "name": "Venganza del Sueño", "desc": "Quedarse despierto tarde sin razón." },
-        "bad_habit_posture": { "name": "Encorvarse", "desc": "Mala postura al trabajar." },
-        "bad_habit_water": { "name": "Deshidratación", "desc": "Olvidar beber agua." },
-        "bad_habit_procrastinate": { "name": "Procrastinación", "desc": "Retrasar tareas hasta el último minuto." },
-        "bad_habit_multitask": { "name": "Ilusión de Multitarea", "desc": "Hacer todo, no lograr nada." },
-        "bad_habit_negative": { "name": "Autodiálogo Negativo", "desc": "Ser tu propio peor enemigo." },
-        "bad_habit_worry": { "name": "Preocupación Crónica", "desc": "Estresarse por cosas que no puedes controlar." },
-        "bad_habit_perfection": { "name": "Perfeccionismo Paralizante", "desc": "Esperar las condiciones \"perfectas\"." },
-        "bad_habit_interrupt": { "name": "Interrumpir a Otros", "desc": "Hablar antes de escuchar." },
-        "bad_habit_late": { "name": "Crónicamente Tarde", "desc": "Disrespecting others' time." },
-        "bad_habit_complain": { "name": "Quejarse", "desc": "Enfocarse en problemas, no soluciones." },
-        "bad_habit_impulse": { "name": "Gasto Impulsivo", "desc": "Comprar cosas que no necesitas." },
-        "bad_habit_clutter": { "name": "Desorden Físico", "desc": "Espacio desordenado, mente desordenada." }
-    }
-  },
-  "inventory": {
-    "title": "Inventario",
-    "use": "Usar",
-    "equip": "Equipar/Ver",
-    "confirmUse": "¿Quieres usar {{name}}?",
-    "searchPlaceholder": "Buscar tus objetos...",
-    "emptyTitle": "Inventario Vacío",
-    "emptyDesc": "Visita la Tienda para conseguir objetos.",
-    "filters": {
-      "all": "Todo",
-      "power_up": "Mejoras",
-      "cosmetic": "Cosméticos",
-      "bad_habit": "Malos Hábitos"
+        "theme_apple_minimal": { "name": "Cristal Cupertino", "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad." }
     }
   },
   "achievements": {
@@ -544,6 +506,8 @@
     "languageDesc": "Seleccionar idioma del sistema / Select system language",
     "visualTheme": "Tema Visual",
     "visualThemeDesc": "Selecciona tu estética de realidad preferida",
+    "vividMode": "Modo Vívido (OLED)",
+    "vividModeDesc": "Aumenta la saturación y brillo para pantallas OLED",
     "dashboardStyle": "Estilo de Dashboard",
     "dashboardStyleDesc": "Selecciona la apariencia del selector de secciones",
     "styleBorder": "Con Borde",
@@ -681,7 +645,6 @@
       "focus": "Enfoque",
       "strategy": "Estrategia",
       "fame": "Fama",
-      "inventory": "Inventario",
       "store": "Tienda"
   }
 }

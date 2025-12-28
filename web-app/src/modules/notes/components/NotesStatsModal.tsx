@@ -91,7 +91,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries }: { is
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={onClose} 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-xl" 
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md" 
                     />
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}

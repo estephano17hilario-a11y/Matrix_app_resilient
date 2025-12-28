@@ -6,7 +6,7 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-transparent text-white selection:bg-indigo-500/30">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#020204] text-white selection:bg-indigo-500/30">
       
       {/* 1. Cinematic Grain / Noise Texture (Subtle) */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10" 

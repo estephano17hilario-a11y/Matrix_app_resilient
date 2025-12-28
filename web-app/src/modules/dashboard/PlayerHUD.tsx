@@ -2,12 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Hexagon, BarChart3, HelpCircle } from 'lucide-react';
-import { GlassPanel } from '../../components/ui/GlassPanel';
-import { LiquidProgressBar } from '../../components/ui/LiquidProgressBar';
-import { cn } from '../../utils/cn';
+import { GlassPanel } from '@/components/ui/GlassPanel';
+import { LiquidProgressBar } from '@/components/ui/LiquidProgressBar';
+import { cn } from '@/utils/cn';
 import { TraitRadarChart } from './components/TraitRadarChart';
 import { TRAITS_LIST } from './constants';
-import { Attribute } from '../../types';
+import { Attribute } from '@/types';
 
 interface PlayerHUDProps {
   attributes?: Attribute[];

@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { THEMES } from '../../config/themes';
 import { cn } from '../../utils/cn';
+import { HeartExplosion } from '../../components/ui/HeartExplosion';
 
 export const ThemeSelector: React.FC = () => {
   const { theme: currentTheme, setTheme } = useTheme();
+  const [showHearts, setShowHearts] = useState(false);
+
+  // Trigger hearts when Amy theme is selected
+  useEffect(() => {
+    if (currentTheme === 'amy') {
+      setShowHearts(true);
+      const timer = setTimeout(() => setShowHearts(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentTheme]);
 
   return (
     <div className="w-full space-y-6 py-4">
+      <HeartExplosion isActive={showHearts} />
       <div className="flex items-center justify-between px-1">
         <h3 className="text-white font-medium text-lg tracking-tight">
           Reality Distortion Field
@@ -85,7 +97,7 @@ export const ThemeSelector: React.FC = () => {
                         <div 
                           className="h-5 w-5 rounded-full border border-white/20 shadow-inner"
                           style={{ 
-                              background: `linear-gradient(135deg, rgba(${themeOption.colors.primaryGlow}, 0.5), rgba(${themeOption.colors.secondaryGlow}, 0.5))`
+                              background: `linear-gradient(135deg, rgb(${themeOption.colors.primaryGlow} / 0.5), rgb(${themeOption.colors.secondaryGlow} / 0.5))`
                           }}
                         />
                     </div>
@@ -109,6 +121,13 @@ export const ThemeSelector: React.FC = () => {
                              </div>
                              
                              <div className="relative z-10">
+                                {themeOption.id === 'amy' && (
+                                    <div className="absolute -top-8 left-0 right-0 flex justify-center items-center pointer-events-none">
+                                        <span className="text-[9px] font-serif italic text-white/90 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] tracking-wide animate-pulse">
+                                            Te Amo
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="h-4 w-16 rounded-lg bg-white/20 backdrop-blur-md border border-white/10 mb-1" />
                                 <div className="h-1.5 w-10 rounded-full bg-white/40" />
                              </div>

@@ -1,4 +1,4 @@
-export type ThemeId = 'ether' | 'matrix' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' | 'spotlight' | 'nebula' | 'aurora';
+export type ThemeId = 'ether' | 'matrix' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' | 'spotlight' | 'nebula' | 'aurora' | 'amy';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -213,28 +213,41 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   serio: {
     id: 'serio',
     name: 'Serio',
-    description: 'Minimal Dark',
+    description: 'Executive Black',
     colors: {
-      bgDepth: '0 0 0', // Pure Black
-      primaryGlow: '160 160 160', // Light Grey
-      secondaryGlow: '80 80 80', // Dark Grey
-      glassTint: '180 180 180',
-      textPrimary: '255 255 255',
+      bgDepth: '10 10 12',
+      primaryGlow: '200 200 200',
+      secondaryGlow: '100 100 100',
+      glassTint: '150 150 160',
+      textPrimary: '240 240 245',
     },
-    gradient: 'linear-gradient(135deg, #a0a0a0 0%, #505050 100%)',
+    gradient: 'linear-gradient(135deg, #e2e2e2 0%, #404040 100%)',
   },
   oled: {
     id: 'oled',
-    name: 'OLED Deep',
-    description: 'Pure Black Contrast',
+    name: 'OLED',
+    description: 'True Black Mastery',
     colors: {
       bgDepth: '0 0 0',
       primaryGlow: '255 255 255',
-      secondaryGlow: '150 150 150',
-      glassTint: '255 255 255',
+      secondaryGlow: '30 30 30',
+      glassTint: '50 50 50',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #ffffff 0%, #000000 100%)',
+    gradient: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
+  },
+  amy: {
+    id: 'amy',
+    name: 'Amy',
+    description: 'Nature & Serenity',
+    colors: {
+      bgDepth: '5 20 18', // Much darker/subtler Jungle Green (Less overwhelming)
+      primaryGlow: '52 211 153', // Emerald-400 (Kept Bright)
+      secondaryGlow: '20 184 166', // Teal-500
+      glassTint: '15 40 35', // Darker tint
+      textPrimary: '240 253 244', // Mint cream
+    },
+    gradient: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', // Darker gradient (Emerald-900 to almost black)
   },
   spotlight: {
     id: 'spotlight',
@@ -267,12 +280,12 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Aurora',
     description: 'Northern Lights',
     colors: {
-      bgDepth: '5 20 20', // Dark Teal
-      primaryGlow: '30 220 180', // Teal
-      secondaryGlow: '0 100 100', // Dark Teal
-      glassTint: '200 255 250',
+      bgDepth: '5 15 25', // Deep Aurora Blue
+      primaryGlow: '0 255 180', // Aurora Green
+      secondaryGlow: '140 60 255', // Aurora Purple
+      glassTint: '200 255 245',
       textPrimary: '255 255 255',
     },
-    gradient: 'linear-gradient(135deg, #1edcb4 0%, #006464 100%)',
+    gradient: 'linear-gradient(135deg, #00ffb4 0%, #8c3cff 100%)',
   },
 };

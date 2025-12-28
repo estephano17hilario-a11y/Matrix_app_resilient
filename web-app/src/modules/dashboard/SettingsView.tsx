@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogOut, User, Sliders, Palette, Edit3, Check, X, 
   BarChart3, Hexagon, ArrowLeft, Globe, Plus, Trash2, 
-  Layout, ShieldCheck
+  Layout, ShieldCheck, Square, Circle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { TRAITS_LIST } from './constants';
@@ -33,6 +33,10 @@ interface SettingsViewProps {
   isPro?: boolean;
   dashboardStyle?: 'BORDER' | 'LIQUID';
   onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID') => void;
+  avatarShape?: 'CIRCLE' | 'SQUARE';
+  onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
+  vividMode?: boolean;
+  onToggleVividMode?: (enabled: boolean) => void;
 }
 
 type TabId = 'DESIGN' | 'CONTROLS' | 'ACCOUNT';
@@ -52,7 +56,11 @@ export const SettingsView = ({
   onShowPro,
   isPro,
   dashboardStyle,
-  onDashboardStyleChange
+  onDashboardStyleChange,
+  avatarShape,
+  onAvatarShapeChange,
+  vividMode,
+  onToggleVividMode
 }: SettingsViewProps) => {
   const { logout, user } = useAuth();
   const { t, i18n } = useTranslation();
@@ -170,6 +178,27 @@ export const SettingsView = ({
                          </button>
                     </div>
                 </div>
+
+                {/* Avatar Shape Toggle */}
+                <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">Avatar Shape</span>
+                    <div className="flex bg-white/5 rounded-lg p-1 border border-white/5">
+                         <button 
+                            onClick={() => onAvatarShapeChange && onAvatarShapeChange('CIRCLE')}
+                            className={cn("p-1.5 rounded-md text-white/40 transition-all", (!avatarShape || avatarShape === 'CIRCLE') ? "bg-white/10 text-white shadow-sm" : "hover:text-white/60")}
+                            title="Circle"
+                         >
+                            <Circle size={16} />
+                         </button>
+                         <button 
+                            onClick={() => onAvatarShapeChange && onAvatarShapeChange('SQUARE')}
+                            className={cn("p-1.5 rounded-md text-white/40 transition-all", avatarShape === 'SQUARE' ? "bg-white/10 text-white shadow-sm" : "hover:text-white/60")}
+                            title="Rounded Square"
+                         >
+                            <Square size={16} />
+                         </button>
+                    </div>
+                </div>
                 
                 {/* Profile Toggle */}
                  <div className="flex items-center justify-between">
@@ -215,6 +244,25 @@ export const SettingsView = ({
                     <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">Identity</h3>
                 </div>
                 
+                {/* Avatar Shape Toggle */}
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-white/70 text-sm">Avatar Shape</span>
+                    <div className="flex bg-white/5 rounded-lg p-1 border border-white/5">
+                         <button 
+                            onClick={() => onAvatarShapeChange && onAvatarShapeChange('CIRCLE')}
+                            className={cn("p-1.5 rounded-md transition-all", avatarShape === 'CIRCLE' ? "bg-white/10 text-white" : "text-white/40")}
+                         >
+                            <Circle size={14} />
+                         </button>
+                         <button 
+                            onClick={() => onAvatarShapeChange && onAvatarShapeChange('SQUARE')}
+                            className={cn("p-1.5 rounded-md transition-all", avatarShape === 'SQUARE' ? "bg-white/10 text-white" : "text-white/40")}
+                         >
+                            <Square size={14} />
+                         </button>
+                    </div>
+                </div>
+
                 <AvatarSelector />
               </GlassPanel>
 
@@ -223,6 +271,26 @@ export const SettingsView = ({
                 <div className="flex items-center gap-2 mb-2">
                     <Palette className="text-pink-400" size={18} />
                     <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">{t('settings.themes')}</h3>
+                </div>
+
+                {/* Vivid Mode Toggle */}
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                    <div>
+                        <span className="text-white/90 text-sm font-medium block">{t('settings.vividMode')}</span>
+                        <span className="text-white/40 text-xs">{t('settings.vividModeDesc')}</span>
+                    </div>
+                    <button 
+                        onClick={() => onToggleVividMode && onToggleVividMode(!vividMode)}
+                        className={cn(
+                            "w-12 h-7 rounded-full transition-colors relative",
+                            vividMode ? "bg-pink-500" : "bg-white/10"
+                        )}
+                    >
+                        <div className={cn(
+                            "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
+                            vividMode ? "translate-x-5" : "translate-x-0"
+                        )} />
+                    </button>
                 </div>
                 
                 {/* THEME GRID - VISUAL PREVIEWS */}

@@ -56,10 +56,21 @@ export const AuthView = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Auth Submit:", { isLogin, email, name: isLogin ? 'N/A' : name });
     
     // FAST VALIDATION
-    if (!email || !password) return;
-    if (!isLogin && (!name || password !== confirmPassword)) {
+    if (!email || !password) {
+      setError(t('auth.errors.required') || "Email and password are required");
+      setShake(s => s + 1);
+      return;
+    }
+
+    if (!isLogin) {
+      if (!name) {
+        setError(t('auth.errors.nameRequired') || "Name is required");
+        setShake(s => s + 1);
+        return;
+      }
       if (password !== confirmPassword) {
         setError(t('auth.errors.passwordMismatch'));
         setShake(s => s + 1);
@@ -73,17 +84,22 @@ export const AuthView = () => {
     try {
       if (isLogin) {
         // LOGIN
+        console.log("Attempting login...");
         await signInWithEmailAndPassword(auth, email, password);
+        console.log("Login successful");
       } else {
         // REGISTER
+        console.log("Attempting registration...");
         if (password.length < 6) {
           throw new Error(t('auth.errors.passwordLength'));
         }
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log("User created:", userCredential.user.uid);
         
         // Update Profile with Name
         if (name) {
+          console.log("Updating profile with name:", name);
           // Fire and forget name updates to keep UI moving
           updateProfile(userCredential.user, { displayName: name });
           setDoc(doc(db, 'users', userCredential.user.uid), {
@@ -129,6 +145,29 @@ export const AuthView = () => {
 
   return (
     <AuthLayout>
+      {/* BACKGROUND EFFECT FOR AUTH (Same as Avatar Selector) */}
+      <div className="fixed inset-0 -z-10 bg-[#020204]">
+          {/* 1. Global Tint (Subtle Color Wash) */}
+          <div 
+              className="absolute inset-0 transition-colors duration-700"
+              style={{ 
+                  backgroundColor: '#4f46e5', // Indigo Default for Auth
+                  opacity: 0.15 
+              }}
+          />
+
+          {/* 2. The "Gradient" Overlay (Darkness from bottom/top) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#020204]/60 to-[#020204]" />
+
+          {/* 3. The Radial Aura (Centered Glow) */}
+          <div 
+             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] opacity-40 pointer-events-none blur-[100px]"
+             style={{ 
+                 background: `radial-gradient(circle, #4f46e5 0%, transparent 70%)` 
+             }}
+          />
+      </div>
+
       <motion.div
         animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
         transition={{ duration: 0.3 }}

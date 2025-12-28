@@ -1,15 +1,15 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { MatrixProvider } from './context/MatrixContext';
-import { EconomyProvider } from './context/EconomyContext';
-import { AuroraBackground } from './components/AuroraBackground';
-import { LoadingScreen } from './components/ui/LoadingScreen';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { MatrixProvider } from '@/context/MatrixContext';
+import { EconomyProvider } from '@/context/EconomyContext';
+import { AuroraBackground } from '@/components/AuroraBackground';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // CRITICAL MODULES
-import { AuthScreen } from './modules/auth/AuthScreen';
-import { OnboardingFlow } from './modules/onboarding/OnboardingFlow';
+import { AuthScreen } from '@/modules/auth/AuthScreen';
+import { OnboardingFlow } from '@/modules/onboarding/OnboardingFlow';
 
 // Lazy load Dashboard
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -18,6 +18,7 @@ const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
   const [showOverlay, setShowOverlay] = useState(true);
   const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [authDelayReady, setAuthDelayReady] = useState(false);
   
   // A profile is considered "loading" if we have a user but no profile data yet
   const isSyncingProfile = user && !profile;
@@ -42,6 +43,18 @@ const AppRoutes = () => {
       }
     }, 8000);
 
+    // AUTH DELAY: Prevent flash of register screen
+    let authTimer: any;
+    if (!isActuallyLoading && !user) {
+        // If we think we are logged out, wait 500ms to be sure it's not a blip
+        authTimer = setTimeout(() => {
+            setAuthDelayReady(true);
+        }, 500);
+    } else if (user) {
+        // If we have a user, we are definitely ready (or syncing profile, handled by isActuallyLoading)
+        setAuthDelayReady(true);
+    }
+
     if (!isActuallyLoading) {
       // FLASH PATH: Hide overlay immediately for better response
       const timer = setTimeout(() => {
@@ -50,12 +63,17 @@ const AppRoutes = () => {
       return () => {
         clearTimeout(timer);
         clearTimeout(safetyTimer);
+        clearTimeout(authTimer);
       };
     } else {
       setShowOverlay(true);
+      setAuthDelayReady(false); // Reset if we go back to loading
     }
 
-    return () => clearTimeout(safetyTimer);
+    return () => {
+        clearTimeout(safetyTimer);
+        clearTimeout(authTimer);
+    };
   }, [isActuallyLoading, isLoading, user, profile, hasTimedOut]);
 
   // Determine what to show in the content layer
@@ -67,6 +85,8 @@ const AppRoutes = () => {
     const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
 
     if (!user) {
+      if (!authDelayReady) return null; // Wait for delay to ensure we are really logged out
+
       return (
         <motion.div 
           key="auth" 
@@ -135,13 +155,13 @@ const AppRoutes = () => {
         {showOverlay && (
           <motion.div
             key="global-loading"
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020204]"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020204]/60 backdrop-blur-md"
             initial={{ opacity: 1 }}
             exit={{ 
               opacity: 0,
-              scale: 1.02,
-              filter: 'blur(10px)',
-              transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] }
+              scale: 1.05,
+              filter: 'blur(20px)',
+              transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] }
             }}
           >
             <LoadingScreen />

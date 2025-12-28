@@ -29,7 +29,6 @@ const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ de
 const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
 const AchievementsScreen = lazy(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
 const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
-const InventoryScreen = lazy(() => import('./modules/inventory/InventoryScreen').then(m => ({ default: m.InventoryScreen })));
 const NexusView = lazy(() => import('./modules/nexus').then(m => ({ default: m.NexusView })));
 const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
 const StrategicMapView = lazy(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
@@ -171,7 +170,6 @@ export default function Dashboard() {
                         import('./modules/notes/NotesView'),
                         import('./modules/achievements/AchievementsScreen'),
                         import('./modules/store/StoreScreen'),
-                        import('./modules/inventory/InventoryScreen'),
                         import('./modules/nexus'),
                         import('./modules/smart-tasks/components/StrategicMapView'),
                         import('./modules/dashboard/SettingsView')
@@ -244,15 +242,24 @@ export default function Dashboard() {
         removeAttribute,
         dashboardStyle,
         updateDashboardStyle,
+        avatarShape,
+        updateAvatarShape,
         badHabits,
         handleBadHabitConfirm,
-        handleBadHabitRelapse
+        handleBadHabitRelapse,
+        vividMode,
+        setVividMode
     } = useDashboardLogic();
+
+    // 🛡️ RECOVERED LOGIC: Calculate Max Health locally to avoid hook return type issues
+    const maxHealth = 100 + (player.level - 1) * 10;
 
     const [isNexusImmersive, setIsNexusImmersive] = useState(false);
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
+
+    const isOverlayActive = activeModal || validationHabit || isDockOpen;
 
     const handleToggleImmersive = (immersive: boolean) => {
         setIsNexusImmersive(immersive);
@@ -464,7 +471,7 @@ export default function Dashboard() {
     return (
         <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
             <GlobalStyles />
-            <AuroraBackground overrideColor={overrideBgColor} currentTheme={currentTheme} />
+            <AuroraBackground overrideColor={overrideBgColor} />
             
             <Suspense fallback={null}>
                 <ProUpgradeModal 
@@ -539,6 +546,7 @@ export default function Dashboard() {
                                 gold={player.gold}
                                 nextXp={player.nextXp} 
                                 health={health}
+                                maxHealth={maxHealth}
                                 streak={habits.reduce((acc, h) => acc + h.streak, 0)}
                                 isHidden={false}
                                 showProfile={showProfile}
@@ -551,12 +559,14 @@ export default function Dashboard() {
                                 currentView={currentView}
                                 isPro={user?.plan === 'PRO'}
                                 avatarId={user?.avatarId}
+                                avatarShape={avatarShape}
                             />
                         </div>
                     </div>
                 )}
 
-                <main className={`relative ${currentView === 'FOCUS' ? 'z-[200]' : 'z-10'} max-w-md mx-auto min-h-screen pt-4 ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
+                
+                <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} max-w-md mx-auto min-h-screen pt-4 ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
 
                     <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
@@ -676,6 +686,10 @@ export default function Dashboard() {
                                         isPro={user?.plan === 'PRO'}
                                         dashboardStyle={dashboardStyle}
                                         onDashboardStyleChange={updateDashboardStyle}
+                                        avatarShape={avatarShape}
+                                        onAvatarShapeChange={updateAvatarShape}
+                                        vividMode={vividMode}
+                                        onToggleVividMode={setVividMode}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -752,15 +766,6 @@ export default function Dashboard() {
                             <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0 relative flex-1">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <StoreScreen onNavigate={(view) => setCurrentView(view)} />
-                                </Suspense>
-                            </ViewContainer>
-                        )}
-
-                        {/* INVENTORY */}
-                        {(loadedViews.has('INVENTORY') || currentView === 'INVENTORY') && (
-                            <ViewContainer isActive={currentView === 'INVENTORY'} id="INVENTORY" className="h-full pt-0 relative flex-1">
-                                <Suspense fallback={<SuspenseFallback />}>
-                                    <InventoryScreen />
                                 </Suspense>
                             </ViewContainer>
                         )}
@@ -866,8 +871,7 @@ export default function Dashboard() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                // REMOVED BLUR: Critical for Android stability. Using solid dark overlay.
-                                className="fixed inset-0 z-40 bg-black/90"
+                                className="fixed inset-0 z-[350] bg-black/60 backdrop-blur-sm"
                                 onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
                             />
                         )}

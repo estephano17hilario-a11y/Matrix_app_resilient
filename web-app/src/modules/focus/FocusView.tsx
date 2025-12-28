@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X, ChevronLeft } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute, NotificationItem } from '../../types';
 import { FocusStats } from './components/FocusStats';
@@ -334,6 +334,16 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             <FocusStats projects={projects} attributes={attributes} isPro={isPro} onShowPro={onShowPro} />
                         </div>
                     )}
+
+                    <div className="flex justify-end px-6 mt-2 relative z-10">
+                        <button 
+                            onClick={() => setShowArchived(!showArchived)} 
+                            className="text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors flex items-center gap-2"
+                        >
+                            <Archive size={12} />
+                            {showArchived ? t('focus.hideArchived') : t('focus.showArchived')}
+                        </button>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 content-start relative z-10 pb-40 mt-4">
                     {projects.filter(p => !p.deleted && (showArchived ? p.archived : !p.archived)).map((project) => {
