@@ -126,6 +126,7 @@
       "tacticalSteps": "Pasos Tácticos",
       "addStepPlaceholder": "Añadir paso táctico...",
       "difficulty": "Dificultad",
+      "estimatedTime": "Tiempo",
       "difficulties": {
         "Basic": "Básico",
         "Medium": "Medio",

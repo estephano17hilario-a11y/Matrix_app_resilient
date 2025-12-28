@@ -126,6 +126,7 @@
       "tacticalSteps": "Tactical Steps",
       "addStepPlaceholder": "Add tactical step...",
       "difficulty": "Difficulty",
+      "estimatedTime": "Time",
       "difficulties": {
         "Basic": "Basic",
         "Medium": "Medium",

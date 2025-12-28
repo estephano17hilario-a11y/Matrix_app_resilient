@@ -307,7 +307,7 @@ export const QuestModal = React.memo(({
                                         <Clock size={16} />
                                     </div>
                                     <div className="flex flex-col items-start">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiempo Aprox</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('modals.quest.estimatedTime')}</span>
                                         <span className={`text-sm font-black ${estimatedTime > 0 ? 'text-white' : 'text-white/30'}`}>
                                             {estimatedTime > 0 ? `${estimatedTime} min` : 'Sin estimar'}
                                         </span>
