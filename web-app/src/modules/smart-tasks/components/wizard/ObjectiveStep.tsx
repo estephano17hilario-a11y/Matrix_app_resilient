@@ -18,36 +18,38 @@ export const ObjectiveStep: React.FC<ObjectiveStepProps> = ({ initialValue, onNe
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="w-full space-y-8"
+        className="w-full h-full flex flex-col"
     >
-        <div className="space-y-2">
+        <div className="space-y-2 flex-shrink-0 mb-8">
             <h2 className="text-2xl font-light text-white">
                 <Trans i18nKey="smartTask.wizard.objective.title" components={{ span: <span className="font-bold" /> }} />
             </h2>
             <p className="text-white/40 text-sm">{t('smartTask.wizard.objective.subtitle')}</p>
         </div>
         
-        <div className="relative group w-full">
-            <div 
-                className="absolute -inset-1 rounded-2xl opacity-30 group-hover:opacity-60 blur transition duration-500" 
-                style={{ background: `linear-gradient(to right, ${activeColor}, #4f46e5)` }}
-            />
-            <input
-                type="text"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder={t('smartTask.wizard.objective.placeholder')}
-                className="relative w-full px-6 py-5 text-xl text-center text-white bg-black/80 rounded-2xl border border-white/10 focus:border-white/20 focus:outline-none placeholder:text-white/20 transition-all shadow-2xl"
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && value.trim()) {
-                        e.preventDefault();
-                        onNext(value);
-                    }
-                }}
-            />
+        <div className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto px-1">
+            <div className="relative group w-full">
+                <div 
+                    className="absolute -inset-1 rounded-2xl opacity-30 group-hover:opacity-60 blur transition duration-500" 
+                    style={{ background: `linear-gradient(to right, ${activeColor}, #4f46e5)` }}
+                />
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder={t('smartTask.wizard.objective.placeholder')}
+                    className="relative w-full px-6 py-5 text-xl text-center text-white bg-black/80 rounded-2xl border border-white/10 focus:border-white/20 focus:outline-none placeholder:text-white/20 transition-all shadow-2xl"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && value.trim()) {
+                            e.preventDefault();
+                            onNext(value);
+                        }
+                    }}
+                />
+            </div>
         </div>
 
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-4 pb-4 flex-shrink-0">
             <button
                 type="button"
                 disabled={!value.trim()}

@@ -30,7 +30,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-4">
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 w-full max-w-4xl mx-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 w-full max-w-4xl mx-auto">
                 {traits.map((trait) => {
                     const Icon = trait.icon;
                     const isSelected = selectedTraitId === trait.id;
@@ -40,7 +40,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                             type="button"
                             onClick={() => onSelect(trait.id)}
                             className={cn(
-                                "flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all duration-300 relative overflow-hidden group aspect-square",
+                                "flex flex-col items-center justify-start pt-4 pb-2 px-2 gap-2 rounded-xl transition-all duration-300 relative overflow-hidden group min-h-[110px]",
                                 isSelected ? "bg-white/20 ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"
                             )}
                         >
@@ -49,10 +49,10 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                                 style={{ backgroundColor: trait.color }}
                             />
                             
-                            <div className={cn("p-2 rounded-full bg-white/5", isSelected ? "text-white" : "text-white/50")}>
+                            <div className={cn("p-2 rounded-full bg-white/5 flex-shrink-0", isSelected ? "text-white" : "text-white/50")}>
                                 {Icon && React.createElement(Icon as any, { size: 24, color: isSelected ? trait.color : 'currentColor' })}
                             </div>
-                            <span className={cn("text-xs font-medium truncate w-full text-center", isSelected ? "text-white" : "text-white/50")}>
+                            <span className={cn("text-[10px] sm:text-xs font-medium w-full text-center leading-tight line-clamp-2 text-wrap", isSelected ? "text-white" : "text-white/50")}>
                                 {t(trait.label)}
                             </span>
                         </button>

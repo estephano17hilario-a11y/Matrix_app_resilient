@@ -272,6 +272,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, smartProjec
                     <div className="pt-2">
                         <button 
                             onClick={() => onConfirm({ 
+                                id: initialData?.id,
                                 title, 
                                 description: desc, 
                                 attribute: attrId, 

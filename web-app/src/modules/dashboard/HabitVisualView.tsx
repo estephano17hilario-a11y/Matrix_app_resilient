@@ -7,6 +7,7 @@ import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from '@/modules/dashboard/components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
 import { HabitVisualCard } from './components/HabitVisualCard';
+import { HabitConsistencyChart } from './components/HabitConsistencyChart';
 
 interface HabitVisualViewProps {
     habits: Habit[];
@@ -73,6 +74,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         >
             {/* Header Section */}
             <div className="flex flex-col gap-4 mb-1 px-2 pt-2">
+                {section === 'PROTOCOLS' && (
+                    <HabitConsistencyChart habits={habits} />
+                )}
+
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-bold text-white tracking-tight">

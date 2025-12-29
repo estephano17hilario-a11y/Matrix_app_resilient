@@ -33,6 +33,7 @@ export default {
           primary: 'rgb(var(--color-primary-glow) / <alpha-value>)',
           secondary: 'rgb(var(--color-secondary-glow) / <alpha-value>)',
           text: 'rgb(var(--color-text-primary) / <alpha-value>)',
+          avatar: 'rgb(var(--color-avatar-accent) / <alpha-value>)',
         },
         glass: {
           10: 'rgba(255, 255, 255, 0.1)',
@@ -76,5 +77,9 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addVariant }) {
+      addVariant('desktop-hover', '@media (hover: hover) { &:hover }');
+    }
+  ],
 }

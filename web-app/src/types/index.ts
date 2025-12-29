@@ -67,6 +67,7 @@ export interface Habit {
   projectId?: string;
   estimatedTime?: number; // Minutes
   customColor?: string;
+  archived?: boolean;
 }
 
 export interface BadHabit {

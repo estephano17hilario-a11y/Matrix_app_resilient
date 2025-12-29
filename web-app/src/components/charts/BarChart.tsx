@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
 export const BarChart = React.memo(({ 
@@ -69,8 +68,8 @@ export const BarChart = React.memo(({
     
     return (
         <div ref={containerRef} className={`w-full relative select-none ${className}`} style={{ height }}>
-             {/* Apple Intelligence Aura Background */}
-             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 blur-3xl opacity-50 rounded-full pointer-events-none" />
+             {/* Apple Intelligence Aura Background - Optimized (No heavy blur) */}
+             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-40 rounded-3xl pointer-events-none" />
 
              {/* Grid Lines */}
              {showGrid && (
@@ -117,35 +116,25 @@ export const BarChart = React.memo(({
                             {datasets.map((ds, idx) => {
                                 const val = ds.data[i];
                                 const h = (val / maxValue);
-                                // If 0, rendering 1px min-height might be misleading in stacked mode, but good for visibility.
-                                // In stacked mode, we control height via wrapper.
                                 return (
                                     <div 
                                         key={idx} 
                                         className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center group-hover:brightness-125 transition-all duration-300`}
                                         style={stacked ? { height: `${h * 100}%` } : {}}
                                     >
-                                         <motion.div 
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: stacked ? '100%' : `${h * 100}%`, opacity: 1 }}
-                                            transition={{ 
-                                                type: "spring", 
-                                                stiffness: 300, 
-                                                damping: 25, 
-                                                delay: i * 0.005 
-                                            }}
-                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-sm last:rounded-t-sm' : 'rounded-t-lg'} ${stacked && idx > 0 ? 'border-b border-black/30' : ''} relative overflow-hidden ${barClassName}`}
+                                         <div 
+                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-sm last:rounded-t-sm' : 'rounded-t-lg'} ${stacked && idx > 0 ? 'border-b border-black/30' : ''} relative overflow-hidden transition-all duration-500 ease-out ${barClassName}`}
                                             style={{ 
+                                                height: stacked ? '100%' : `${h * 100}%`,
                                                 background: ds.color,
-                                                boxShadow: `0 0 20px ${ds.color}60`
                                             }}
                                          >
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-                                            {!stacked && <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_10px_white]" />}
+                                            {!stacked && <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />}
                                             
                                             {/* Inner Shine */}
                                             <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                         </motion.div>
+                                         </div>
                                     </div>
                                 );
                             })}
@@ -155,7 +144,7 @@ export const BarChart = React.memo(({
                         <span className={`text-[9px] font-bold text-center mt-2 transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
                     </div>
                 ))}
-                </div>
+            </div>
             </div>
     );
 });

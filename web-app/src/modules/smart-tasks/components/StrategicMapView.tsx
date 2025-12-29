@@ -396,7 +396,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                 {onCreateNew && (
                     <button 
                         onClick={onCreateNew}
-                        className="px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200 transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-full bg-theme-primary/10 border border-theme-primary/20 text-theme-primary hover:bg-theme-primary/20 hover:text-theme-primary transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
                     >
                         <Plus size={12} />
                         <span>Smart Goal</span>
@@ -525,7 +525,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                             <div className="flex justify-center mb-6">
                                 <button
                                     onClick={() => onOpenNexus && onOpenNexus(project.id)}
-                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-200 hover:border-indigo-500/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-indigo-500/5 group"
+                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-avatar/10 border border-avatar/20 text-avatar hover:bg-avatar/20 hover:text-avatar hover:border-avatar/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-avatar/5 group"
                                 >
                                     <Layout size={16} className="group-hover:scale-110 transition-transform" />
                                     <span>MISSIONS PROTOCOL</span>

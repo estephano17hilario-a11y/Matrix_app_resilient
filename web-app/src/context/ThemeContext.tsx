@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
 import { boostColorSaturation } from '../utils/colorUtils';
+import { AVAILABLE_AVATARS } from '../config/avatars';
 
 interface ThemeContextType {
   theme: ThemeId;
@@ -21,6 +22,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Ideally ThemeProvider is inside AuthProvider to access user
   const auth = useAuth(); // This might throw if ThemeProvider is outside AuthProvider
   const user = auth?.user;
+  const profile = auth?.profile; // Access full profile to get avatarId
   const [vicesMode, setVicesMode] = useState(false);
   
   // Initialize from localStorage or default
@@ -59,18 +61,36 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const themeConfig = THEMES[theme];
     if (themeConfig) {
       const bgDepth = themeConfig.colors.bgDepth;
+      
+      // Determine base Primary Glow
+      let basePrimaryGlow = themeConfig.colors.primaryGlow;
+
+      // ⚡ AVATAR ACCENT: Separate from Theme Primary
+      let avatarAccent = basePrimaryGlow;
+      if (profile?.avatarId) {
+        const avatarConfig = AVAILABLE_AVATARS.find(a => a.id === profile.avatarId);
+        if (avatarConfig?.themeColorRgb) {
+           avatarAccent = avatarConfig.themeColorRgb;
+        }
+      }
+
       // Boost saturation if vivid mode is on
       const primaryGlow = vividMode 
-        ? boostColorSaturation(themeConfig.colors.primaryGlow, 0.6) 
-        : themeConfig.colors.primaryGlow;
+        ? boostColorSaturation(basePrimaryGlow, 0.6) 
+        : basePrimaryGlow;
         
       const secondaryGlow = vividMode
         ? boostColorSaturation(themeConfig.colors.secondaryGlow, 0.6)
         : themeConfig.colors.secondaryGlow;
 
+      const avatarAccentFinal = vividMode
+        ? boostColorSaturation(avatarAccent, 0.6)
+        : avatarAccent;
+
       root.style.setProperty('--color-bg-depth', bgDepth);
       root.style.setProperty('--color-primary-glow', primaryGlow);
       root.style.setProperty('--color-secondary-glow', secondaryGlow);
+      root.style.setProperty('--color-avatar-accent', avatarAccentFinal);
       root.style.setProperty('--color-glass-tint', themeConfig.colors.glassTint);
       root.style.setProperty('--color-text-primary', themeConfig.colors.textPrimary);
     }
@@ -81,7 +101,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {
       // Ignore
     }
-  }, [theme, vividMode]);
+  }, [theme, vividMode, profile?.avatarId]); // Re-run when avatarId changes
 
   // Sync with Firestore
   // 1. Load from Firestore on login

@@ -114,13 +114,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, 8000);
     
     // INTENT TO WAIT FOR AUTH READY (If available in SDK)
-    if ((auth as any).authStateReady) {
-        (auth as any).authStateReady().then(() => {
-             console.log("✅ MATRIX: Auth State Ready confirmed.");
-        }).catch((e: any) => {
-             console.warn("⚠️ MATRIX: Auth State Ready error:", e);
-        });
-    }
+    const initAuth = async () => {
+        if ((auth as any).authStateReady) {
+            try {
+                await (auth as any).authStateReady();
+                console.log("✅ MATRIX: Auth State Ready confirmed.");
+            } catch (e: any) {
+                console.warn("⚠️ MATRIX: Auth State Ready error:", e);
+            }
+        }
+    };
+
+    initAuth();
 
     // SAFEGUARD: If Config is invalid, we proceed in PHANTOM MODE (Mock)
     if (!configStatus.isValid) {
@@ -146,7 +151,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               console.log("ℹ️ MATRIX: User is null but Profile exists. Entering Zombie/Offline Mode.");
           }
           
-          setIsLoading(false);
+          // Only stop loading if we are NOT waiting for a potential auth restoration
+          // We rely on authStateReady for the initial load, but this handles subsequent updates
+          setIsLoading(false); 
           return;
         }
 

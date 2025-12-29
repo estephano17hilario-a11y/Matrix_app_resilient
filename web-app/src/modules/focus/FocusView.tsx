@@ -6,6 +6,9 @@ import { FocusStats } from './components/FocusStats';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
 import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
+import { AuroraBackground } from '../../components/AuroraBackground';
+import { Heart } from 'lucide-react';
 
 export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro }: { 
     projects: Project[], 
@@ -20,6 +23,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     isPro?: boolean,
 }) => {
     const { t } = useTranslation();
+    const { theme, availableThemes } = useTheme();
     const [viewState, setViewState] = useState<'LIST' | 'TIMER'>('LIST');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
@@ -47,6 +51,9 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const activeAttr = useMemo(() => attributes.find((a) => a.id === selectedProject?.attribute), [selectedProject, attributes]);
     const themeColor = activeAttr?.color || '#3b82f6';
     const ActiveIcon = activeAttr?.icon || Target;
+
+    const themeConfig = availableThemes[theme];
+    const bgDepthRGB = themeConfig?.colors.bgDepth.split(' ').join(',') || '10,10,12';
 
     const confirmDelete = (e: React.MouseEvent, project: Project) => {
         e.stopPropagation();
@@ -97,6 +104,35 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     };
 
     const handleFinishSession = async () => {
+        let finalDuration = 0;
+        if (mode === 'POMO') {
+            finalDuration = totalDuration - timeLeft;
+        } else {
+            finalDuration = timeLeft; 
+        }
+
+        // Threshold check: Only save if session is > 5 seconds
+        if (finalDuration < 5) {
+            setIsActive(false);
+            setIsPaused(false);
+
+            // Notify user that session was too short to be saved
+            addNotification({ 
+                type: 'SYSTEM', 
+                label: 'SESSION TOO SHORT', 
+                fromLevel: `${finalDuration}s`, 
+                toLevel: 'Discarded', 
+                icon: AlertTriangle, 
+                color: '#f59e0b' 
+            });
+
+            const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
+            setTimeLeft(mode === 'POMO' ? duration : 0);
+            if(mode === 'POMO') setTotalDuration(duration);
+            else setTotalDuration(0);
+            return;
+        }
+
         setIsActive(false);
         setIsPaused(false);
         setIsCompleting(true);
@@ -106,17 +142,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         // Animation delay (Faster)
         await new Promise(resolve => setTimeout(resolve, 600));
 
-        let finalDuration = 0;
-        if (mode === 'POMO') {
-            // Elapsed time for Pomo
-            finalDuration = totalDuration - timeLeft;
-        } else {
-            // Elapsed time for Stopwatch
-            finalDuration = timeLeft; 
-        }
-
-        // Only save if meaningful duration (> 10 seconds? or just save all as requested)
-        // User asked for "exact progress", so we save it.
         onCompleteSession(selectedProjectId, finalDuration, mode);
 
         // Calculate Rewards (Simulation for Modal)
@@ -182,6 +207,18 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         }
     };
 
+    // Refs for interval to access latest state without triggering re-renders
+    const stateRef = React.useRef({ mode, isActive, isPaused, isCompleting });
+    // Update refs on every render
+    useEffect(() => {
+        stateRef.current = { mode, isActive, isPaused, isCompleting };
+    }, [mode, isActive, isPaused, isCompleting]);
+
+    const handleFinishSessionRef = React.useRef(handleFinishSession);
+    useEffect(() => {
+        handleFinishSessionRef.current = handleFinishSession;
+    }, [handleFinishSession]);
+
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
         if (isActive && !isPaused && !isCompleting) {
@@ -191,13 +228,15 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 const delta = Math.floor((now - lastTickRef.current) / 1000);
                 
                 if (delta >= 1) {
+                    const { mode } = stateRef.current;
+                    
                     setTimeLeft((prev) => {
                         if (mode === 'POMO') {
                             const newValue = prev - delta;
                             if (newValue <= 0) {
                                 clearInterval(interval);
                                 // Defer state update to avoid conflicts in render cycle
-                                setTimeout(() => handleFinishSession(), 0);
+                                setTimeout(() => handleFinishSessionRef.current(), 0);
                                 return 0;
                             }
                             return newValue;
@@ -206,12 +245,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             return prev + delta; 
                         }
                     });
-                    lastTickRef.current = now;
+                    // Adjust lastTickRef to account for the consumed time
+                    lastTickRef.current += delta * 1000;
                 }
-            }, 1000);
+            }, 100); // Check more frequently (100ms) for better responsiveness
         }
         return () => clearInterval(interval);
-    }, [isActive, isPaused, mode, selectedProjectId, totalDuration, onCompleteSession, isCompleting, handleFinishSession]);
+    }, [isActive, isPaused, isCompleting]);
 
     const toggleTimer = () => {
         if (!isActive) { setIsActive(true); setIsPaused(false); if(navigator.vibrate) navigator.vibrate(20); }
@@ -523,8 +563,14 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             </div>
 
             {/* --- TIMER VIEW --- */}
-            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100 ${isActive ? 'bg-[#0a0a0a]' : 'bg-[#0a0a0a]'}` : 'opacity-0 scale-110 pointer-events-none'}`}>
+            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100` : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
+                {/* Dynamic Background with Trait Tint */}
+                <div className="absolute inset-0 z-0">
+                    <AuroraBackground overrideColor={themeColor} />
+                    <div className="absolute inset-0 bg-black/20" /> 
+                </div>
+
                 {/* Header Actions (Minimize/Close) */}
                 <div className="w-full flex justify-between items-center px-6 pt-12 z-30 flex-none">
                     <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
@@ -544,13 +590,30 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 </div>
 
                 {/* Main Content Wrapper - Centered Vertically */}
-                <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 pb-12">
+                <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 pb-12 relative z-10">
                     
                     {/* Timer Display */}
                     <div className="relative w-[320px] h-[320px] flex items-center justify-center">
+                        {/* Theme-integrated Inner Background Plate */}
+                        <div 
+                            className="absolute rounded-full transition-all duration-1000"
+                            style={{ 
+                                width: '256px', 
+                                height: '256px',
+                                background: `linear-gradient(135deg, rgba(${bgDepthRGB}, 0.85) 0%, rgba(${bgDepthRGB}, 0.98) 100%)`,
+                                boxShadow: `
+                                    inset 0 0 60px ${themeColor}20, 
+                                    inset 0 0 20px ${themeColor}10,
+                                    0 10px 40px rgba(0,0,0,0.5)
+                                `,
+                                border: `1px solid ${themeColor}15`,
+                                backdropFilter: 'blur(10px)'
+                            }} 
+                        />
+
                         {/* Ambient Glow - Optimized */}
                         <div 
-                            className={`absolute inset-0 rounded-full transition-opacity duration-1000 ${isActive ? 'opacity-30' : 'opacity-0'}`} 
+                            className={`absolute inset-0 rounded-full transition-opacity duration-1000 ${isActive ? 'opacity-20' : 'opacity-0'}`} 
                             style={{ 
                                 background: `radial-gradient(circle, ${themeColor} 0%, transparent 70%)`,
                                 transform: 'translateZ(0)'

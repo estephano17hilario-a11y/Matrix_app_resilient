@@ -21,15 +21,15 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
     }, [timeRange]);
 
     const activeFilterColor = useMemo(() => {
-        if (filterMode === 'GLOBAL') return '#6366f1'; // Indigo
+        if (filterMode === 'GLOBAL') return 'indigo'; // Indigo
         const activeAttr = attributes.find(a => a.id === filterMode);
         if (activeAttr) return activeAttr.color;
         const activeProj = projects.find(p => p.id === filterMode);
         if (activeProj) {
             const attr = attributes.find(a => a.id === activeProj.attribute);
-            return attr ? attr.color : '#6366f1';
+            return attr ? attr.color : 'indigo';
         }
-        return '#6366f1'; 
+        return 'indigo'; 
     }, [filterMode, attributes, projects]);
 
     const activeAttribute = useMemo(() => attributes.find(a => a.id === filterMode), [filterMode, attributes]);
@@ -85,10 +85,14 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
         <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
             {/* Main Panel - Solid Background for Android Stability (No Blur) */}
             <div className="bg-[#121212] rounded-[1.5rem] p-2 flex flex-col gap-1 relative overflow-visible border border-white/5 shadow-2xl">
-                 {/* Background Glow - Optimized */}
+                 {/* Background Glow - Optimized (Radial Gradient instead of Blur) */}
                  <div 
-                    className="absolute top-0 right-0 w-64 h-64 blur-[80px] rounded-full pointer-events-none opacity-20" 
-                    style={{ background: activeFilterColor, transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
+                    className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-20" 
+                    style={{ 
+                        background: `radial-gradient(circle closest-side, ${activeFilterColor}, transparent)`,
+                        transform: 'translateZ(0)', 
+                        backfaceVisibility: 'hidden' 
+                    }}
                  />
                  
                 {/* HEADER ROW: Stats & Time Range */}
@@ -268,6 +272,15 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                             </motion.div>
                         )}
                     </AnimatePresence>
+                </div>
+
+                <div className="px-1 mt-1">
+                    <LiquidProgressBar 
+                        value={progressPercentage} 
+                        color={(['blue', 'cyan', 'gray', 'indigo', 'pink', 'violet', 'emerald', 'rose', 'amber'] as const).includes(activeFilterColor as any) 
+                            ? (activeFilterColor as any) 
+                            : 'indigo'} 
+                    />
                 </div>
 
                 {/* CHART AREA */}

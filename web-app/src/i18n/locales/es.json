@@ -539,12 +539,6 @@
     "noStrategyDesc": "Aún no has definido tu Gran Estrategia. Divide tu objetivo final en pasos accionables.",
     "initProtocol": "Inicializar Protocolo"
   },
-  "habits": {
-    "title": "Hábitos",
-    "subtitle": "Diseña tu vida, un día a la vez.",
-    "newHabit": "Nuevo Hábito",
-    "empty": "No hay hábitos aún. Comienza creando uno."
-  },
   "loading": {
     "quotes": [
         { "text": "La mente es su propio lugar, y en sí misma puede hacer un cielo del infierno, un infierno del cielo.", "author": "JOHN MILTON" },
@@ -650,6 +644,7 @@
   },
   "habits": {
     "title": "Hábitos",
+    "subtitle": "Diseña tu vida, un día a la vez.",
     "viewGrid": "Grilla",
     "viewWeek": "Semana",
     "newHabit": "Nuevo Hábito",

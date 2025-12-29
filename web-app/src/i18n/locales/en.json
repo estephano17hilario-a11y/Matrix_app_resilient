@@ -534,12 +534,6 @@
     "noStrategyDesc": "You haven't defined your Grand Strategy yet. Break down your ultimate goal into actionable steps.",
     "initProtocol": "Initialize Protocol"
   },
-  "habits": {
-    "title": "Habits",
-    "subtitle": "Design your life, one day at a time.",
-    "newHabit": "New Habit",
-    "empty": "No habits yet. Start by creating one."
-  },
   "loading": {
     "quotes": [
         { "text": "The mind is its own place, and in itself can make a heaven of hell, a hell of heaven.", "author": "JOHN MILTON" },
@@ -645,6 +639,7 @@
   },
   "habits": {
     "title": "Habits",
+    "subtitle": "Design your life, one day at a time.",
     "viewGrid": "Grid",
     "viewWeek": "Week",
     "newHabit": "New Habit",

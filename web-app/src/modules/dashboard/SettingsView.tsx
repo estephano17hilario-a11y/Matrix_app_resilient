@@ -156,7 +156,7 @@ export const SettingsView = ({
               {/* INTERFACE SECTION */}
               <GlassPanel className="p-5 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                    <Layout className="text-indigo-400" size={18} />
+                    <Layout className="text-avatar" size={18} />
                     <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">Interface</h3>
                 </div>
 
@@ -207,7 +207,7 @@ export const SettingsView = ({
                         onClick={() => onToggleProfile(!showProfile)}
                         className={cn(
                             "w-12 h-7 rounded-full transition-colors relative",
-                            showProfile ? "bg-indigo-500" : "bg-white/10"
+                            showProfile ? "bg-avatar" : "bg-white/10"
                         )}
                     >
                         <div className={cn(

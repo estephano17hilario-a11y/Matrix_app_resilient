@@ -116,7 +116,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
             <p className="text-white/40 text-sm">{getStepDescription()}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-48 space-y-4">
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-24 space-y-4">
              {multiInputs.map((val, idx) => (
                  <div key={idx} className="relative group">
                      <div 
@@ -142,7 +142,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
              ))}
         </div>
 
-        <div className="flex justify-center pt-4 flex-shrink-0">
+        <div className="flex justify-center pt-4 pb-4 flex-shrink-0">
             <button
                 type="button"
                 disabled={!multiInputs.every(v => v.trim())}

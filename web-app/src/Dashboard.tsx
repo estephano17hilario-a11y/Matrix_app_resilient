@@ -539,33 +539,46 @@ export default function Dashboard() {
                 </div>
 
                 {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
-                {!isNexusImmersive && !isWizardOpen && (
-                    <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
-                        <div className="max-w-md mx-auto px-4 sm:px-6">
-                            <StatsHeader 
-                                level={player.level} 
-                                xp={player.xp} 
-                                gold={player.gold}
-                                nextXp={player.nextXp} 
-                                health={health}
-                                maxHealth={maxHealth}
-                                streak={habits.reduce((acc, h) => acc + h.streak, 0)}
-                                isHidden={false}
-                                showProfile={showProfile}
-                                onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
-                                onShowPro={() => setIsProModalOpen(true)}
-                                onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
-                                displayName={user?.displayName}
-                                email={user?.email}
-                                currentView={currentView}
-                                isPro={user?.plan === 'PRO'}
-                                avatarId={user?.avatarId}
-                                avatarShape={avatarShape}
-                                onUpdateLevel={updatePlayerLevel}
-                            />
+                {!isNexusImmersive && !isWizardOpen && !isFocusMode && (
+                    <>
+                        <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
+                            <div className="max-w-md mx-auto px-4 sm:px-6">
+                                <StatsHeader 
+                                    level={player.level} 
+                                    xp={player.xp} 
+                                    gold={player.gold}
+                                    nextXp={player.nextXp} 
+                                    health={health}
+                                    maxHealth={maxHealth}
+                                    streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                                    isHidden={false} // Always visible in Dashboard
+                                    showProfile={showProfile}
+                                    onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+                                    onShowPro={() => setIsProModalOpen(true)}
+                                    onShowSettings={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                    onToggleProfile={() => setCurrentView(prev => prev === 'SETTINGS' ? 'TASKS' : 'SETTINGS')}
+                                    displayName={user?.displayName}
+                                    email={user?.email}
+                                    currentView={currentView}
+                                    isPro={user?.plan === 'PRO'}
+                                    avatarId={user?.avatarId}
+                                    avatarShape={avatarShape}
+                                    onUpdateLevel={updatePlayerLevel}
+                                />
+                            </div>
                         </div>
-                    </div>
+
+                        {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
+                        {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
+                             <div className="relative z-[290] px-4 sm:px-6 max-w-md mx-auto -mt-2 mb-4">
+                                <PlayerHUD 
+                                    attributes={attributes}
+                                    defaultChartMode={defaultChartMode}
+                                    onUpdateAttributeLevel={updateAttributeLevel}
+                                />
+                            </div>
+                        )}
+                    </>
                 )}
 
                 
@@ -581,14 +594,14 @@ export default function Dashboard() {
                                         <div className="flex p-1 rounded-full backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
                                             <button 
                                                 onClick={() => setTaskViewMode('LIST')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 <ListTodo size={14} />
                                                 {t('dashboard.tasks')}
                                             </button>
                                             <button 
                                                 onClick={() => setTaskViewMode('STRATEGY')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 <Target size={14} />
                                                 {t('dashboard.strategy')}
@@ -597,16 +610,7 @@ export default function Dashboard() {
                                     </div>
                                 )}
 
-                                {/* 💎 STATUS HUD - THE MIRROR */}
-                                {showProfile && !isNexusImmersive && taskViewMode !== 'STRATEGY' && (
-                                    <div className="relative z-20 -mx-2">
-                                        <PlayerHUD 
-                                            attributes={attributes}
-                                            defaultChartMode={defaultChartMode}
-                                            onUpdateAttributeLevel={updateAttributeLevel}
-                                        />
-                                    </div>
-                                )}
+
 
                                 {taskViewMode === 'LIST' ? (
                                     <>

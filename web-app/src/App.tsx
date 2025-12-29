@@ -16,24 +16,14 @@ const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
-  const [showOverlay, setShowOverlay] = useState(true);
   const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [authDelayReady, setAuthDelayReady] = useState(false);
-  
-  // 🛡️ MINIMUM LOAD TIME ENFORCER (1.5 Seconds)
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  
-  useEffect(() => {
-      const timer = setTimeout(() => {
-          console.log("⏰ MATRIX: Minimum load time (1.5s) elapsed.");
-          setMinTimeElapsed(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-  }, []);
   
   // A profile is considered "loading" if we have a user but no profile data yet
-  const isSyncingProfile = user && !profile;
+  const isSyncingProfile = !!user && !profile;
   const isActuallyLoading = (isLoading || isSyncingProfile) && !hasTimedOut;
+  
+  // SIMPLIFIED: Overlay follows loading state directly
+  const showOverlay = isActuallyLoading;
 
   useEffect(() => {
     // MATRIX STATS LOGGING
@@ -43,85 +33,24 @@ const AppRoutes = () => {
       hasProfile: !!profile, 
       isSyncingProfile,
       isActuallyLoading,
-      hasTimedOut,
-      minTimeElapsed
+      hasTimedOut
     });
     
-    // Safety timeout: If loading takes more than 5 seconds, force show whatever we have
+    // Safety timeout: If loading takes more than 8 seconds, force show whatever we have
     const safetyTimer = setTimeout(() => {
       if (isActuallyLoading) {
         console.warn("MATRIX: Loading took too long. Forcing entry...");
         setHasTimedOut(true);
       }
-    }, 5000);
+    }, 8000);
 
-    // AUTH DELAY: Prevent flash of register screen
-    let authTimer: any;
-    // We only assume logged out if we have NO user AND NO profile
-    if (!isActuallyLoading && !user && !profile) {
-        // If we think we are logged out, wait 800ms to be sure it's not a blip
-        authTimer = setTimeout(() => {
-            setAuthDelayReady(true);
-        }, 800);
-    } else if (user || profile) {
-        // If we have a user OR a profile (zombie mode), we are ready
-        setAuthDelayReady(true);
-    }
-
-    // 🔒 THE GATEKEEPER:
-    // We only open the overlay if:
-    // 1. Loading is finished (isActuallyLoading = false)
-    // 2. Minimum time of 3s has passed (minTimeElapsed = true)
-    const canLiftCurtain = !isActuallyLoading && minTimeElapsed;
-
-    if (canLiftCurtain) {
-      // SMART OVERLAY LOGIC:
-      // Only hide the overlay if we have decided where to go.
-      
-      const canEnterMatrix = !!user || !!profile;
-      
-      if (canEnterMatrix) {
-          // Case 1: Going to Dashboard. Safe to hide immediately.
-          // FORCE UNMOUNT AUTH SCREEN: Ensure auth screen is destroyed
-          if (authDelayReady) setAuthDelayReady(false);
-          
-          const timer = setTimeout(() => {
-            setShowOverlay(false);
-          }, 50);
-          return () => clearTimeout(timer);
-      } else {
-          // Case 2: Going to Auth.
-          // CRITICAL: Only hide if authDelayReady is TRUE.
-          // If authDelayReady is false, it means we are still in the "uncertainty buffer" (500ms).
-          // We must KEEP the overlay up until that buffer expires.
-          if (authDelayReady) {
-              const timer = setTimeout(() => {
-                setShowOverlay(false);
-              }, 50);
-              return () => clearTimeout(timer);
-          } else {
-              // We are not loading, but we are not ready for Auth either.
-              // Keep overlay up.
-              setShowOverlay(true);
-          }
-      }
-    } else {
-      setShowOverlay(true);
-      if (isActuallyLoading) {
-          setAuthDelayReady(false); // Reset if we go back to loading
-      }
-    }
-
-    return () => {
-        clearTimeout(safetyTimer);
-        clearTimeout(authTimer);
-    };
-  }, [isActuallyLoading, isLoading, user, profile, hasTimedOut, minTimeElapsed, authDelayReady]);
+    return () => clearTimeout(safetyTimer);
+  }, [isActuallyLoading, isLoading, user, profile, hasTimedOut]);
 
   // Determine what to show in the content layer
-  // If we are loading, we don't render anything in Layer 1 to avoid partial mounts
   const renderContent = () => {
-    if (isActuallyLoading && !hasTimedOut) return null;
+    // CRITICAL: If overlay is showing, DO NOT render content yet to avoid "ghosts" behind the glass.
+    if (showOverlay) return null;
 
     // Snappier transition for FLASH speed
     const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
@@ -130,8 +59,6 @@ const AppRoutes = () => {
     const canEnterMatrix = !!user || !!profile;
 
     if (!canEnterMatrix) {
-      if (!authDelayReady) return null; // Wait for delay to ensure we are really logged out
-
       return (
         <motion.div 
           key="auth" 
@@ -200,7 +127,7 @@ const AppRoutes = () => {
         {showOverlay && (
           <motion.div
             key="global-loading"
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020204]/60 backdrop-blur-md"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020204]/60 backdrop-blur-xl"
             initial={{ opacity: 1 }}
             exit={{ 
               opacity: 0,
