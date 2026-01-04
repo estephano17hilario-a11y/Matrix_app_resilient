@@ -17,7 +17,7 @@ const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
   obstacles: [],
   coachingTone: "Stoic",
-  completedAt: 0 // Default to 0 so we know to show the Onboarding Flow
+  completedAt: Date.now() // ASSUME COMPLETED by default for Optimistic UI (prevents flashing for existing users)
 };
 
 interface AuthContextType {
@@ -230,7 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             createdAt: Date.now(),
             lastLoginAt: Date.now(),
             theme: 'MATRIX',
-            onboarding: DEFAULT_ONBOARDING
+            onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 } // FORCE 0 for truly new users
           };
 
           const cleanProfile = sanitizeFirestoreData(newUserProfile);

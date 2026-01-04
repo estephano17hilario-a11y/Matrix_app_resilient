@@ -594,14 +594,14 @@ export default function Dashboard() {
                                         <div className="flex p-1 rounded-full backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
                                             <button 
                                                 onClick={() => setTaskViewMode('LIST')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-theme-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 <ListTodo size={14} />
                                                 {t('dashboard.tasks')}
                                             </button>
                                             <button 
                                                 onClick={() => setTaskViewMode('STRATEGY')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-theme-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                                             >
                                                 <Target size={14} />
                                                 {t('dashboard.strategy')}

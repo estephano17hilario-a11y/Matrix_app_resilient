@@ -75,17 +75,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Boost saturation if vivid mode is on
-      const primaryGlow = vividMode 
+      let primaryGlow = vividMode 
         ? boostColorSaturation(basePrimaryGlow, 0.6) 
         : basePrimaryGlow;
         
-      const secondaryGlow = vividMode
+      let secondaryGlow = vividMode
         ? boostColorSaturation(themeConfig.colors.secondaryGlow, 0.6)
         : themeConfig.colors.secondaryGlow;
 
-      const avatarAccentFinal = vividMode
+      let avatarAccentFinal = vividMode
         ? boostColorSaturation(avatarAccent, 0.6)
         : avatarAccent;
+
+      // 🚨 VICES MODE OVERRIDE (Red Alert)
+      if (vicesMode) {
+          primaryGlow = "220, 38, 38";   // Red-600
+          secondaryGlow = "153, 27, 27"; // Red-800
+          avatarAccentFinal = "239, 68, 68"; // Red-500
+      }
 
       root.style.setProperty('--color-bg-depth', bgDepth);
       root.style.setProperty('--color-primary-glow', primaryGlow);
@@ -101,7 +108,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {
       // Ignore
     }
-  }, [theme, vividMode, profile?.avatarId]); // Re-run when avatarId changes
+  }, [theme, vividMode, profile?.avatarId, vicesMode]); // Re-run when avatarId or vicesMode changes
 
   // Sync with Firestore
   // 1. Load from Firestore on login

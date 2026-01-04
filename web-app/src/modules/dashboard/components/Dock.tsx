@@ -69,7 +69,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
                     {/* NEW ROW */}
                     <button onClick={() => { handleView('STORE'); }} className="col-span-2 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.store')}</span>
+                       <div className="w-8 h-8 rounded-full bg-theme-avatar/10 border border-theme-avatar/20 flex items-center justify-center text-theme-avatar group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(var(--color-avatar-accent),0.1)]"><ShoppingBag size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.store')}</span>
                     </button>
 
                 </div>

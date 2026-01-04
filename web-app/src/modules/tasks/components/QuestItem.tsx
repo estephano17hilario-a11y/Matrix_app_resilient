@@ -94,7 +94,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                   ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-95" 
                   : isSmart 
                     ? "bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-500/20"
-                    : "bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10"
+                    : "bg-white/5 border border-white/10 hover:border-theme-avatar/50 hover:bg-theme-avatar/10"
               )}
             >
               {quest.completed ? (

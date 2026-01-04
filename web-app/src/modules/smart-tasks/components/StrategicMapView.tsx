@@ -525,7 +525,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                             <div className="flex justify-center mb-6">
                                 <button
                                     onClick={() => onOpenNexus && onOpenNexus(project.id)}
-                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-avatar/10 border border-avatar/20 text-avatar hover:bg-avatar/20 hover:text-avatar hover:border-avatar/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-avatar/5 group"
+                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-theme-avatar/10 border border-theme-avatar/20 text-theme-avatar hover:bg-theme-avatar/20 hover:text-theme-avatar hover:border-theme-avatar/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-theme-avatar/5 group"
                                 >
                                     <Layout size={16} className="group-hover:scale-110 transition-transform" />
                                     <span>MISSIONS PROTOCOL</span>

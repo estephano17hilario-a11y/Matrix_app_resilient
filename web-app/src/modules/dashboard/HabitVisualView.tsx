@@ -74,9 +74,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         >
             {/* Header Section */}
             <div className="flex flex-col gap-4 mb-1 px-2 pt-2">
-                {section === 'PROTOCOLS' && (
-                    <HabitConsistencyChart habits={habits} />
-                )}
 
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-4">
@@ -151,6 +148,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                         </button>
                     </div>
                 </div>
+
+                {section === 'PROTOCOLS' && (
+                    <HabitConsistencyChart habits={habits} />
+                )}
             </div>
 
             {/* Content */}

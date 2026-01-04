@@ -125,7 +125,7 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
             >
               <Filter size={14} />
               {!showFilters && activeFiltersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-avatar rounded-full border border-black flex items-center justify-center text-[8px] text-white font-bold">
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-theme-avatar rounded-full border border-black flex items-center justify-center text-[8px] text-white font-bold">
                       {activeFiltersCount}
                   </span>
               )}
