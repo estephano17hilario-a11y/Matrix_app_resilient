@@ -22,7 +22,8 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
       transition={{ type: "spring", stiffness: 300, damping: 30, mass: 1 }}
       className={cn(
         // OPTIMIZED HYPER-GLASS (Safe for VisionOS/Android)
-        "bg-gray-900/40 backdrop-blur-lg", 
+        // Reduced blur from lg to md to prevent GPU flickering
+        "bg-gray-900/60 backdrop-blur-md", 
         // Borde de Luz (Rim Light)
         "border border-white/10",
         // Reflejo Superior (Specular Highlight) & Sombra de Elevación (Glow Shadow)

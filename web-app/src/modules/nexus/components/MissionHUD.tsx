@@ -84,17 +84,18 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
   // --- RENDER ---
   return (
     <div className="fixed inset-0 z-[200] bg-[#020204] text-white overflow-hidden font-sans flex flex-col">
-      {/* Background */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-1000"
+      {/* Background - OPTIMIZED: Removed heavy blur-[120px] and pulse animation to fix GPU flickering */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none"
         style={{ background: `radial-gradient(circle at 50% 0%, ${themeColor}, transparent 70%)` }} />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-fuchsia-500/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
+        {/* Fake Glow using opacity instead of blur for performance */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-500/5 rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-fuchsia-500/5 rounded-full" />
       </div>
 
       {/* HEADER */}
-      <div className="relative z-10 pt-6 px-6 pb-4 flex items-center justify-between shrink-0 bg-gradient-to-b from-[#020204] to-transparent">
-        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md flex items-center justify-center hover:bg-white/10 active:scale-95 border border-white/5 transition-all">
+      <div className="relative z-10 pt-6 px-6 pb-4 flex items-center justify-between shrink-0 bg-[#020204]/90 border-b border-white/5">
+        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 active:scale-95 border border-white/5 transition-all">
           <ChevronLeft className="w-5 h-5 text-white/80" />
         </button>
         <div className="text-center">
@@ -122,7 +123,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
           
           {/* --- SECTION 1: DIRECTIVES (TASKS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/80 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/95 py-2 z-20 border-b border-white/5">
                   <Target size={14} className="text-cyan-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Directives</h3>
                   <span className="ml-auto text-[10px] font-bold text-white/20 bg-white/5 px-2 py-0.5 rounded-full">{quests.length} ACTIVE</span>
@@ -279,7 +280,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
 
           {/* --- SECTION 4: LOG (NOTES) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/80 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/95 py-2 z-20 border-b border-white/5">
                   <Edit2 size={14} className="text-emerald-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Mission Log</h3>
               </div>

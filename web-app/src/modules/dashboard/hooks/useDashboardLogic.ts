@@ -23,7 +23,20 @@ export const useDashboardLogic = () => {
     const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
-    const [currentView, setCurrentView] = useState('TASKS');
+    const [currentView, setCurrentView] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('matrix_last_view') || 'TASKS';
+        }
+        return 'TASKS';
+    });
+
+    // Persist View
+    useEffect(() => {
+        if (currentView) {
+            localStorage.setItem('matrix_last_view', currentView);
+        }
+    }, [currentView]);
+
     const [isDockOpen, setIsDockOpen] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false); 
     const [isNoteTaking, setIsNoteTaking] = useState(false); 
