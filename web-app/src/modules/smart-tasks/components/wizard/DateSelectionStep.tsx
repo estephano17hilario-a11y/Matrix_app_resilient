@@ -17,6 +17,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
   const [endDate, setEndDate] = useState<string>(''); 
   const [inputType, setInputType] = useState<'date' | 'duration'>('date');
   const [duration, setDuration] = useState<{years: number, months: number, days: number}>({ years: 0, months: 0, days: 0 });
+  const [activeField, setActiveField] = useState<'years' | 'months' | 'days' | null>(null);
   const [fractalPreview, setFractalPreview] = useState<FractalStructure | null>(null);
 
   // Debounced Fractal Preview
@@ -115,16 +116,40 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                     ) : (
                         <div className="grid grid-cols-3 gap-4">
                              <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">Years</label>
-                                <input type="number" min="0" value={duration.years} onChange={(e) => setDuration({...duration, years: parseInt(e.target.value) || 0})} className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white" />
+                                <label className="text-xs text-white/50 text-center block">{t('common.time.years')}</label>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    value={activeField === 'years' && duration.years === 0 ? '' : duration.years} 
+                                    onChange={(e) => setDuration({...duration, years: parseInt(e.target.value) || 0})} 
+                                    onFocus={() => setActiveField('years')}
+                                    onBlur={() => setActiveField(null)}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                />
                              </div>
                              <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">Months</label>
-                                <input type="number" min="0" value={duration.months} onChange={(e) => setDuration({...duration, months: parseInt(e.target.value) || 0})} className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white" />
+                                <label className="text-xs text-white/50 text-center block">{t('common.time.months')}</label>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    value={activeField === 'months' && duration.months === 0 ? '' : duration.months} 
+                                    onChange={(e) => setDuration({...duration, months: parseInt(e.target.value) || 0})} 
+                                    onFocus={() => setActiveField('months')}
+                                    onBlur={() => setActiveField(null)}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                />
                              </div>
                              <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">Days</label>
-                                <input type="number" min="0" value={duration.days} onChange={(e) => setDuration({...duration, days: parseInt(e.target.value) || 0})} className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white" />
+                                <label className="text-xs text-white/50 text-center block">{t('common.time.days')}</label>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    value={activeField === 'days' && duration.days === 0 ? '' : duration.days} 
+                                    onChange={(e) => setDuration({...duration, days: parseInt(e.target.value) || 0})} 
+                                    onFocus={() => setActiveField('days')}
+                                    onBlur={() => setActiveField(null)}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                />
                              </div>
                         </div>
                     )}
@@ -138,8 +163,10 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                         className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3"
                     >
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-white/50">Fractal Structure</span>
-                            <span className="text-white font-mono">{fractalPreview.drillDownPath.join(' > ')}</span>
+                            <span className="text-white/50">{t('strategicMap.fractalStructure')}</span>
+                            <span className="text-white font-mono text-xs md:text-sm">
+                                {fractalPreview.drillDownPath.map(unit => t(`strategicMap.levels.${unit}`)).join(' > ')}
+                            </span>
                         </div>
                          <div className="flex gap-1 h-2 w-full rounded-full overflow-hidden bg-white/5">
                             {fractalPreview.structure.map((_, i) => (

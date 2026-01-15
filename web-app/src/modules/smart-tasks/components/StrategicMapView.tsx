@@ -359,7 +359,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     <div className="w-full h-full flex flex-col bg-black/20 font-sans">
         
         {/* --- 1. NAVIGATION HEADER --- */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl z-10 flex items-center justify-between">
+        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-md z-10 flex items-center justify-between">
             <div className="flex items-center gap-1 flex-wrap gap-y-2">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;

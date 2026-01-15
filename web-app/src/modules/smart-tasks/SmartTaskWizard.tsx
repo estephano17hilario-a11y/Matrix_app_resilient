@@ -77,7 +77,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   // Limit Reached Screen
   if (isLimitReached) {
       return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md">
              <button 
                 onClick={onCancel}
                 className="absolute top-8 right-8 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50"
@@ -108,7 +108,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   useEffect(() => {
       // If we are not starting and we have gone past the hierarchy
       // Or if generateProject returns a valid project and we are at a point where we should finish
-      if (!isStarting && timeframeHierarchy.length > 0 && currentStep >= timeframeHierarchy.length) {
+      // FIXED: We iterate up to length - 1 because the last level (DAY) is the leaf and doesn't generate children
+      if (!isStarting && timeframeHierarchy.length > 0 && currentStep >= timeframeHierarchy.length - 1) {
           const project = generateProject();
           if (project) {
               onComplete(project);
@@ -148,23 +149,32 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     transition={{ duration: 0.3 }}
                     className="flex flex-col items-center justify-start md:justify-center text-center space-y-6 w-full h-full"
                   >
-                    {/* APPLE INTELLIGENCE HEADER - Always Visible in Wizard */}
-                    <div className="flex flex-col items-center mb-4 flex-shrink-0">
-                        <div className="relative mb-4">
-                            <div 
-                                className="absolute inset-0 blur-[60px] opacity-20 animate-pulse transition-colors duration-500" 
-                                style={{ backgroundColor: activeColor }}
-                            />
-                            <Sparkles 
-                                className="w-12 h-12 relative z-10 transition-colors duration-500" 
-                                style={{ color: activeColor }}
-                            />
-                        </div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
-                        <p className="text-sm text-white/50">{t('smartTask.wizard.subtitle')}</p>
-                    </div>
+                    {/* APPLE INTELLIGENCE HEADER - Visible only in Objective Step */}
+                    <AnimatePresence>
+                        {wizardStep === 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                className="flex flex-col items-center flex-shrink-0 overflow-hidden"
+                            >
+                                <div className="relative mb-4">
+                                    <div 
+                                        className="absolute inset-0 blur-[60px] opacity-20 animate-pulse transition-colors duration-500" 
+                                        style={{ backgroundColor: activeColor }}
+                                    />
+                                    <Sparkles 
+                                        className="w-12 h-12 relative z-10 transition-colors duration-500" 
+                                        style={{ color: activeColor }}
+                                    />
+                                </div>
+                                <h1 className="text-3xl font-bold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
+                                <p className="text-sm text-white/50">{t('smartTask.wizard.subtitle')}</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    <div className="w-full max-w-2xl flex-1 flex flex-col min-h-0">
+                    <div className="w-full max-w-2xl flex-1 flex flex-col min-h-0 justify-center">
                         {wizardStep === 0 && (
                             <ObjectiveStep 
                                 initialValue={tempObjective}

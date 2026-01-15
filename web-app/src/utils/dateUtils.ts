@@ -45,7 +45,7 @@ export const getContextDates = (
                 end = new Date(start);
                 end.setFullYear(end.getFullYear() + 5);
             }
-            label = index === 0 ? 'Primer Lustro' : 'Segundo Lustro';
+            label = `Lustro ${index + 1}`;
             break;
 
         case '5_YEARS':
@@ -71,7 +71,7 @@ export const getContextDates = (
                 end = new Date(start);
                 end.setMonth(end.getMonth() + 6);
             }
-            label = index === 0 ? 'Primeros 6 Meses' : 'Segundos 6 Meses';
+            label = `Semestre ${index + 1}`;
             break;
 
         case 'SEMESTER':

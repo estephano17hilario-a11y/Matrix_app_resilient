@@ -38,7 +38,7 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
       className={clsx(
         "relative flex flex-col p-4 rounded-[20px] overflow-hidden transition-all duration-200",
         // Apple Glassmorphism (Cleaner)
-        "bg-[#1c1c1e]/80 backdrop-blur-xl", // Apple dark system gray
+        "bg-[#1c1c1e]/80 backdrop-blur-md", // Apple dark system gray
         "border border-white/5",
         canAfford ? "shadow-sm" : "grayscale-[0.3] opacity-80"
       )}

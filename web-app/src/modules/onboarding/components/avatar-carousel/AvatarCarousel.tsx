@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { AVAILABLE_AVATARS } from '../../../../config/avatars';
 import { AvatarSelectorCard } from '../../../customization/components/AvatarSelectorCard';
@@ -11,8 +11,6 @@ interface AvatarCarouselProps {
 
 export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initialAvatarId }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0); // -1 for left, 1 for right
-  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     if (initialAvatarId) {
@@ -21,218 +19,196 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
     }
   }, [initialAvatarId]);
 
-  // === PRELOAD NEXT/PREV IMAGES ===
+  // === PRELOAD IMAGES ===
   useEffect(() => {
-    const nextIndex = (currentIndex + 1) % AVAILABLE_AVATARS.length;
-    const prevIndex = (currentIndex - 1 + AVAILABLE_AVATARS.length) % AVAILABLE_AVATARS.length;
-    
-    const preloadImage = (src: string) => {
-      const img = new Image();
-      img.src = src;
-    };
-
-    preloadImage(AVAILABLE_AVATARS[nextIndex].path);
-    preloadImage(AVAILABLE_AVATARS[prevIndex].path);
-  }, [currentIndex]);
+    // Preload all avatars for smoothness
+    AVAILABLE_AVATARS.forEach(avatar => {
+        const img = new Image();
+        img.src = avatar.path;
+    });
+  }, []);
 
   const currentAvatar = AVAILABLE_AVATARS[currentIndex];
 
-  const paginate = (newDirection: number) => {
-    setDirection(newDirection);
-    setCurrentIndex((prev) => {
-      let nextIndex = prev + newDirection;
-      if (nextIndex < 0) nextIndex = AVAILABLE_AVATARS.length - 1;
-      if (nextIndex >= AVAILABLE_AVATARS.length) nextIndex = 0;
-      return nextIndex;
-    });
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % AVAILABLE_AVATARS.length);
   };
 
-  const handleNext = () => paginate(1);
-  const handlePrev = () => paginate(-1);
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + AVAILABLE_AVATARS.length) % AVAILABLE_AVATARS.length);
+  };
 
   const handleConfirm = () => {
     onSelect(currentAvatar.id);
   };
 
-  // === ULTRA-FLUID TRANSITIONS ===
-  const variants: Variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? '100%' : '-100%',
-      scale: 0.85,
-      opacity: 0,
-      zIndex: 0,
-      rotateY: direction > 0 ? 10 : -10 // Reduced rotation for less "3D jank"
-    }),
-    center: {
-      x: 0,
-      scale: 1,
-      opacity: 1,
-      zIndex: 1,
-      rotateY: 0,
-      transition: {
-        x: { type: "spring", stiffness: 400, damping: 35, mass: 0.8 }, // Snappier but smooth
-        scale: { duration: 0.3, ease: "circOut" },
-        opacity: { duration: 0.2 },
-        rotateY: { type: "spring", stiffness: 400, damping: 35 }
-      }
-    },
-    exit: (direction: number) => ({
-      x: direction < 0 ? '100%' : '-100%',
-      scale: 0.85,
-      opacity: 0,
-      zIndex: 0,
-      rotateY: direction < 0 ? 10 : -10,
-      transition: {
-        x: { type: "spring", stiffness: 400, damping: 35, mass: 0.8 },
-        scale: { duration: 0.3 },
-        opacity: { duration: 0.2 }
-      }
-    })
-  };
-
-  const swipeConfidenceThreshold = 10000;
-  const swipePower = (offset: number, velocity: number) => {
-    return Math.abs(offset) * velocity;
+  // Helper to get relative index for circular rendering
+  const getRelativeIndex = (index: number) => {
+    const len = AVAILABLE_AVATARS.length;
+    // Normalized difference handling wrap-around
+    let diff = (index - currentIndex + len) % len;
+    if (diff > len / 2) diff -= len;
+    return diff;
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden touch-none select-none">
+    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-[#020204]">
       
       {/* 
-         DYNAMIC ATMOSPHERE BACKGROUND (OPTIMIZED - NO UNMOUNTING)
+         1. DYNAMIC ATMOSPHERE (Optimized)
+         Background glow based on current avatar theme
       */}
-      <div className="absolute inset-0 -z-10 overflow-hidden bg-gray-950">
-         {/* 1. Global Tint (Subtle Color Wash) - Hardware Accelerated */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+         {/* Base Dark */}
+         <div className="absolute inset-0 bg-[#020204]" />
+         
+         {/* Ambient Glow */}
          <motion.div 
-            className="absolute inset-0 will-change-[background-color]"
+            className="absolute inset-0 opacity-20 transition-colors duration-700"
             animate={{ backgroundColor: currentAvatar.themeColor }}
-            transition={{ duration: 0.5 }} // Faster tint transition
-            style={{ opacity: 0.1 }}
          />
-
-         {/* 2. The "Gradient" Overlay (Static) */}
-         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/80" />
-
-         {/* 3. The Radial Aura (Optimized) */}
+         
+         {/* Central Spot */}
          <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] opacity-30 pointer-events-none will-change-[background-color]"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] opacity-20 blur-[100px] rounded-full transition-colors duration-700"
             animate={{ backgroundColor: currentAvatar.themeColor }}
-            transition={{ duration: 0.5 }}
-            style={{ 
-                maskImage: 'radial-gradient(circle, black 0%, transparent 70%)',
-                WebkitMaskImage: 'radial-gradient(circle, black 0%, transparent 70%)'
-            }}
          />
       </div>
 
-      {/* Main Card Carousel */}
-      <div className="relative w-full flex-1 flex items-center justify-center min-h-0 py-4 z-10 px-6">
-        <div className="relative w-full max-w-[320px] aspect-[9/16] max-h-full perspective-1000">
-          <AnimatePresence initial={false} custom={direction} mode="popLayout">
-            <motion.div
-              key={currentIndex}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={1}
-              onDragStart={() => setDragging(true)}
-              onDragEnd={(_, { offset, velocity }) => {
-                setDragging(false);
-                const swipe = swipePower(offset.x, velocity.x);
-
-                if (swipe < -swipeConfidenceThreshold) {
-                  paginate(1);
-                } else if (swipe > swipeConfidenceThreshold) {
-                  paginate(-1);
-                }
-              }}
-              className="absolute inset-0 w-full h-full flex items-center justify-center touch-pan-y cursor-grab active:cursor-grabbing will-change-transform"
-            >
-              <AvatarSelectorCard
-                id={currentAvatar.id}
-                name={currentAvatar.name}
-                rarity={currentAvatar.rarity}
-                imageUrl={currentAvatar.path}
-                themeColor={currentAvatar.themeColor}
-                isSelected={true} 
-                // Removed backdrop-blur-sm and simplified shadow
-                className="w-full h-full border-0 ring-1 ring-white/10 shadow-2xl pointer-events-none" // pointer-events-none to prevent image dragging issues
-                onClick={() => !dragging && handleConfirm()} // Only click if not dragging
-              />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Controls & Name */}
-      <div className="flex flex-col items-center gap-6 z-20 w-full px-6 mb-8 pointer-events-none">
+      {/* 
+         2. CAROUSEL AREA 
+         Fixed height container to prevent "Too Big" feel.
+      */}
+      <div className="relative w-full max-w-7xl mx-auto h-[60vh] min-h-[400px] max-h-[600px] flex items-center justify-center perspective-1000 mb-8">
         
-        {/* Avatar Info Text */}
-        <motion.div 
-          key={`text-${currentAvatar.id}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-center"
-        >
-           <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg">
-             {currentAvatar.name}
-           </h2>
-           <p className="text-white/50 text-sm uppercase tracking-widest mt-1">
-             {currentAvatar.rarity}
-           </p>
-        </motion.div>
+        {AVAILABLE_AVATARS.map((avatar, index) => {
+            const relativeIndex = getRelativeIndex(index);
+            const isCenter = relativeIndex === 0;
+            const isLeft = relativeIndex === -1;
+            const isRight = relativeIndex === 1;
+            
+            // Only render visible items (center + 1 neighbor on each side)
+            // For smoother exit, maybe render +/- 2 if needed, but +/- 1 is usually enough for strict control
+            const isVisible = Math.abs(relativeIndex) <= 1;
 
-        {/* Navigation Buttons (Pointer events auto to enable clicking) */}
-        <div className="flex items-center gap-6 sm:gap-12 pointer-events-auto">
-            <motion.button
-                whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
-                whileTap={{ scale: 0.9 }}
+            if (!isVisible) return null;
+
+            return (
+                <motion.div
+                    key={avatar.id}
+                    layoutId={`avatar-${avatar.id}`}
+                    className="absolute top-1/2 left-1/2 w-[300px] aspect-[9/16] origin-center"
+                    initial={false}
+                    animate={{
+                        x: `calc(-50% + ${relativeIndex * 110}%)`, // Spacing
+                        y: '-50%',
+                        scale: isCenter ? 1 : 0.85,
+                        opacity: isCenter ? 1 : 0.4,
+                        zIndex: isCenter ? 50 : 10,
+                        rotateY: relativeIndex * -15, // Slight rotation towards center
+                        filter: isCenter ? 'blur(0px) brightness(1)' : 'blur(2px) brightness(0.6)',
+                    }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                        mass: 1
+                    }}
+                    style={{
+                        transformStyle: 'preserve-3d'
+                    }}
+                >
+                    <div 
+                        className={`w-full h-full transition-all duration-300 ${isCenter ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
+                        onClick={() => {
+                            if (isLeft) handlePrev();
+                            if (isRight) handleNext();
+                        }}
+                    >
+                        <AvatarSelectorCard
+                            id={avatar.id}
+                            name={avatar.name}
+                            rarity={avatar.rarity}
+                            imageUrl={avatar.path}
+                            themeColor={avatar.themeColor}
+                            isSelected={isCenter}
+                            className={`w-full h-full ${isCenter ? 'shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-white/20' : ''}`}
+                        />
+                    </div>
+                </motion.div>
+            );
+        })}
+      </div>
+
+      {/* 
+         3. CONTROLS & INFO
+         Clean typography, centered.
+      */}
+      <div className="flex flex-col items-center gap-6 z-20 w-full px-6">
+        
+        <div className="text-center space-y-2">
+           <motion.h2 
+             key={currentAvatar.id}
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             className="text-3xl font-bold text-white tracking-tight drop-shadow-xl"
+           >
+             {currentAvatar.name}
+           </motion.h2>
+           <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ delay: 0.1 }}
+             className="flex items-center justify-center gap-3"
+           >
+             <span 
+                className="px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.2em] uppercase bg-white/10 border border-white/10"
+                style={{ color: currentAvatar.themeColor }}
+             >
+                {currentAvatar.rarity}
+             </span>
+           </motion.div>
+        </div>
+
+        <div className="flex items-center gap-8 mt-4">
+            <button
                 onClick={handlePrev}
-                className="p-4 rounded-full border border-white/10 text-white/70 hover:text-white transition-colors backdrop-blur-md bg-black/20"
+                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 backdrop-blur-sm"
             >
                 <ChevronLeft size={24} />
-            </motion.button>
+            </button>
 
             <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirm}
-                className="px-8 py-3 rounded-full font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2 z-30"
+                className="px-10 py-4 rounded-full font-bold text-black shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center gap-2"
                 style={{ backgroundColor: currentAvatar.themeColor || '#fff' }}
             >
-                <span>SELECT</span>
+                <span>CONFIRM IDENTITY</span>
                 <Check size={18} />
             </motion.button>
 
-            <motion.button
-                whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
-                whileTap={{ scale: 0.9 }}
+            <button
                 onClick={handleNext}
-                className="p-4 rounded-full border border-white/10 text-white/70 hover:text-white transition-colors backdrop-blur-md bg-black/20"
+                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 backdrop-blur-sm"
             >
                 <ChevronRight size={24} />
-            </motion.button>
+            </button>
         </div>
-      </div>
 
-      {/* Progress Dots */}
-      <div className="absolute bottom-6 flex gap-2 z-20">
-        {AVAILABLE_AVATARS.map((_, idx) => (
-          <div 
-            key={idx}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? 'w-6' : 'w-1.5 bg-white/20'
-            }`}
-            style={{ 
-              backgroundColor: idx === currentIndex ? currentAvatar.themeColor : undefined 
-            }}
-          />
-        ))}
+        {/* Progress Dots */}
+        <div className="flex gap-2 mt-8">
+            {AVAILABLE_AVATARS.map((_, idx) => (
+            <div 
+                key={idx}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                idx === currentIndex ? 'w-8 bg-white' : 'w-1 bg-white/20'
+                }`}
+            />
+            ))}
+        </div>
+
       </div>
     </div>
   );

@@ -570,7 +570,7 @@ export default function Dashboard() {
 
                         {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
                         {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
-                             <div className="relative z-[290] px-4 sm:px-6 max-w-md mx-auto -mt-2 mb-4">
+                             <div className="relative z-[290] px-4 sm:px-6 max-w-md mx-auto mt-6 mb-4">
                                 <PlayerHUD 
                                     attributes={attributes}
                                     defaultChartMode={defaultChartMode}

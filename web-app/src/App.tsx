@@ -127,7 +127,7 @@ const AppRoutes = () => {
         {showOverlay && (
           <motion.div
             key="global-loading"
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020204]/60 backdrop-blur-xl"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020204]/60 backdrop-blur-md"
             initial={{ opacity: 1 }}
             exit={{ 
               opacity: 0,

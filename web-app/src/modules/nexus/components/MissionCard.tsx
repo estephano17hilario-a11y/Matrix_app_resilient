@@ -30,7 +30,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
       onClick={onClick}
       className={cn(
         "relative group cursor-pointer overflow-hidden rounded-3xl",
-        "bg-gray-900/40 backdrop-blur-xl border border-white/10",
+        "bg-gray-900/40 backdrop-blur-md border border-white/10",
         "hover:bg-gray-800/50 transition-colors duration-300",
         "h-[280px] flex flex-col justify-between p-6",
         isCompleted ? "shadow-[0_0_30px_-5px_rgba(234,179,8,0.3)] border-yellow-500/30" : "shadow-lg hover:shadow-cyan-500/20"

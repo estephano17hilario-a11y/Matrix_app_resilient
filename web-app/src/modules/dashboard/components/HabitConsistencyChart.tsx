@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { subDays, subMonths, format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, eachMonthOfInterval, startOfYear, endOfYear, isSameMonth } from 'date-fns';
+import { subDays, subMonths, format, isSameDay, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';

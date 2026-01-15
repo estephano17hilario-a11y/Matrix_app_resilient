@@ -121,7 +121,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                 const themeColor = NOTE_THEMES.find(t => t.id === note.theme)?.color || '#64748b';
                                 const project = projects.find((p) => p.id === note.projectId);
                                 return (
-                                    <div key={note.id} onClick={() => openNote(note)} className="w-full break-inside-avoid mb-4 rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/5 bg-black/20 backdrop-blur-xl">
+                                    <div key={note.id} onClick={() => openNote(note)} className="w-full break-inside-avoid mb-4 rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/5 bg-black/20 backdrop-blur-md">
                                         <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-500" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
                                         <div className="relative z-10">
                                             {project && <div className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}

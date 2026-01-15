@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, LayoutGrid, Calendar, Skull, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
-import { RelapseChart } from '@/modules/dashboard/components/RelapseChart';
+import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
 import { HabitVisualCard } from './components/HabitVisualCard';
 import { HabitConsistencyChart } from './components/HabitConsistencyChart';
@@ -73,85 +73,109 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             className="min-h-screen pb-32"
         >
             {/* Header Section */}
-            <div className="flex flex-col gap-4 mb-1 px-2 pt-2">
-
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-white tracking-tight">
-                            {section === 'PROTOCOLS' ? t('habits.title') : t('habits.vicesTitle')}
-                        </h1>
-
-                        {/* View Mode Toggle (Only for Protocols for now) */}
-                        {section === 'PROTOCOLS' && (
-                            <div className="flex p-0.5 rounded-lg bg-white/5 border border-white/10">
-                                <button 
-                                    onClick={() => setViewMode('GRID')}
-                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'GRID' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                >
-                                    <LayoutGrid size={10} />
-                                    {t('habits.viewGrid')}
-                                </button>
-                                <button 
-                                    onClick={() => setViewMode('WEEK')}
-                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${viewMode === 'WEEK' ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                >
-                                    <Calendar size={10} />
-                                    {t('habits.viewWeek')}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    <button 
-                        onClick={section === 'PROTOCOLS' ? onCreateHabit : onCreateBadHabit}
-                        className={`group flex items-center gap-2 px-3 py-1.5 text-white rounded-lg font-medium text-[10px] uppercase tracking-wider transition-all border ${
-                            section === 'PROTOCOLS' 
-                            ? 'bg-[#1a1a1a]/95 hover:bg-[#252525] border-white/10' 
-                            : 'bg-rose-950/80 hover:bg-rose-900 border-rose-500/30'
-                        }`}
-                    >
-                        <Plus size={12} className="group-hover:rotate-90 transition-transform duration-300" />
-                        {section === 'PROTOCOLS' ? t('habits.newHabit') : t('habits.newVice')}
-                    </button>
-                </div>
-
-                {/* Section Toggle */}
-                <div className="flex items-center justify-center mb-0">
-                    <div className="flex p-1 rounded-full bg-black/5 backdrop-blur-[1px] border border-white/10 shadow-lg relative transform-gpu">
-                         <button 
-                            onClick={() => {
-                                setSection('PROTOCOLS');
-                                setVicesMode(false);
+            <div className="flex flex-col gap-4 mb-4 px-4 sm:px-6 pt-2">
+                
+                {/* Unified Control Bar - High Density Matrix */}
+                <div className="flex flex-col sm:flex-row gap-2 p-1.5 rounded-2xl bg-[#0a0a0a]/80 border border-white/5 backdrop-blur-md shadow-2xl">
+                    
+                    {/* 1. Mode Switcher (Protocols / Vices) - Grows to fill space */}
+                    <div className="relative flex-1 grid grid-cols-2 gap-1 p-1 bg-white/5 rounded-xl border border-white/5 z-0">
+                        {/* Animated Background Slider */}
+                        <motion.div
+                            layoutId="activeTab"
+                            className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-lg shadow-sm z-0 ${
+                                section === 'PROTOCOLS' ? 'bg-white/10 border border-white/10' : 'bg-rose-500/20 border border-rose-500/20'
+                            }`}
+                            initial={false}
+                            animate={{
+                                x: section === 'PROTOCOLS' ? '0%' : 'calc(100% + 4px)'
                             }}
-                            className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${
-                                section === 'PROTOCOLS' 
-                                ? 'text-emerald-950 bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' 
-                                : 'text-white/40 hover:text-white'
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                        
+                        <button
+                            onClick={() => { setSection('PROTOCOLS'); setVicesMode(false); }}
+                            className={`relative z-10 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors w-full rounded-lg ${
+                                section === 'PROTOCOLS' ? 'text-white' : 'text-white/40 hover:text-white/60'
                             }`}
                         >
-                            <Shield size={12} />
-                            {t('habits.protocols')}
+                            <Shield size={12} className={section === 'PROTOCOLS' ? 'text-emerald-400' : 'opacity-50'} />
+                            <span className="truncate">{t('habits.protocols')}</span>
                         </button>
-                        <button 
-                            onClick={() => {
-                                setSection('VICES');
-                                setVicesMode(true);
-                            }}
-                            className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300 relative z-10 ${
-                                section === 'VICES' 
-                                ? 'text-white bg-gradient-to-r from-rose-600 to-red-600 shadow-[0_0_20px_rgba(225,29,72,0.4)]' 
-                                : 'text-white/40 hover:text-white'
+
+                        <button
+                            onClick={() => { setSection('VICES'); setVicesMode(true); }}
+                            className={`relative z-10 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors w-full rounded-lg ${
+                                section === 'VICES' ? 'text-white' : 'text-white/40 hover:text-white/60'
                             }`}
                         >
-                            <Skull size={12} />
-                            {t('habits.vices')}
+                            <Skull size={12} className={section === 'VICES' ? 'text-rose-500' : 'opacity-50'} />
+                            <span className="truncate">{t('habits.vices')}</span>
+                        </button>
+                    </div>
+
+                    {/* 2. Tools & Actions - Compact Group */}
+                    <div className="flex items-center justify-center gap-2 h-10 sm:h-auto w-full sm:w-auto">
+                        {/* View Toggles (Only visible in Protocols) */}
+                        <AnimatePresence mode="popLayout">
+                            {section === 'PROTOCOLS' && (
+                                <motion.div 
+                                    key="view-toggles"
+                                    initial={{ opacity: 0, width: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, width: 'auto', scale: 1 }}
+                                    exit={{ opacity: 0, width: 0, scale: 0.9 }}
+                                    className="flex p-1 bg-white/5 rounded-xl border border-white/5 overflow-hidden h-full sm:h-auto"
+                                >
+                                    <button
+                                        onClick={() => setViewMode('GRID')}
+                                        className={`px-4 h-full rounded-lg transition-all flex items-center justify-center ${
+                                            viewMode === 'GRID' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white'
+                                        }`}
+                                        title={t('habits.viewGrid')}
+                                    >
+                                        <LayoutGrid size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('WEEK')}
+                                        className={`px-4 h-full rounded-lg transition-all flex items-center justify-center ${
+                                            viewMode === 'WEEK' ? 'bg-white/10 text-white shadow-sm' : 'text-white/30 hover:text-white'
+                                        }`}
+                                        title={t('habits.viewWeek')}
+                                    >
+                                        <Calendar size={14} />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Add Button - Centered & Balanced */}
+                        <button
+                            onClick={section === 'PROTOCOLS' ? onCreateHabit : onCreateBadHabit}
+                            className={`flex items-center justify-center gap-2 px-8 h-full sm:h-auto sm:py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border shadow-lg active:scale-95 whitespace-nowrap ${
+                                section === 'PROTOCOLS'
+                                    ? 'bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-white/40 shadow-white/5'
+                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/40 shadow-rose-900/20'
+                            }`}
+                        >
+                            <Plus size={14} />
+                            <span>{section === 'PROTOCOLS' ? t('habits.newHabit') : t('habits.newVice')}</span>
                         </button>
                     </div>
                 </div>
 
-                {section === 'PROTOCOLS' && (
-                    <HabitConsistencyChart habits={habits} />
-                )}
+                <AnimatePresence mode="wait">
+                    {section === 'PROTOCOLS' && (
+                        <motion.div
+                            key="chart"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <HabitConsistencyChart habits={habits} />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Content */}

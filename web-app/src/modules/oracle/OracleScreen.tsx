@@ -112,7 +112,7 @@ const InputField = ({ onSend, isLoading }: { onSend: (text: string) => void, isL
     <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
       <div className="relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 blur"></div>
-        <div className="relative flex items-center bg-gray-900/60 backdrop-blur-xl rounded-full border border-white/10 p-2 shadow-2xl">
+        <div className="relative flex items-center bg-gray-900/60 backdrop-blur-md rounded-full border border-white/10 p-2 shadow-2xl">
           
           <div className="pl-4 pr-2">
             <Brain className="w-5 h-5 text-indigo-400 animate-pulse" />

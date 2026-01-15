@@ -98,7 +98,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries }: { is
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
                         transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                        className="relative z-10 w-full max-w-[420px] bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
+                        className="relative z-10 w-full max-w-[420px] bg-[#1c1c1e]/80 backdrop-blur-lg border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
                     >
                         {/* Noise Texture */}
                         <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />

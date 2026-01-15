@@ -284,7 +284,7 @@
     "levels": {
       "10_YEARS": "10 Years",
       "5_YEARS": "5 Years",
-      "YEAR": "Year",
+      "1_YEAR": "Year",
       "SEMESTER": "Semester",
       "QUARTER": "Quarter",
       "MONTH": "Month",
@@ -294,7 +294,7 @@
     "placeholders": {
       "10_YEARS": "Decade {{index}}",
       "5_YEARS": "Lustrum {{index}}",
-      "YEAR": "Year {{index}}",
+      "1_YEAR": "Year {{index}}",
       "SEMESTER": "Semester {{index}}",
       "QUARTER": "Quarter {{index}}",
       "MONTH": "Month {{index}}",
@@ -323,7 +323,9 @@
     "deleteBranchConfirm": "Delete this branch and all subtasks?",
     "new": "New",
     "add": "Add",
-    "section": "Section"
+    "section": "Section",
+    "fractalStructure": "Fractal Structure",
+    "fractalHelper": "Your goal will be intelligently divided into these blocks."
   },
   "common": {
     "endDate": "End Date",

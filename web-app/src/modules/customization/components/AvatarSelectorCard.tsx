@@ -99,7 +99,8 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
             alt={name}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover will-change-transform"
+            // object-top ensures that when aspect ratio is constrained (e.g. 4:5), we don't cut off the head
+            className="w-full h-full object-cover object-top will-change-transform"
             variants={{
               hover: { scale: 1.05 },
             }}
@@ -112,25 +113,20 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
         </div>
 
         {/* Layer 2: Gradient Overlay (Static) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 pointer-events-none" />
 
-        {/* Layer 3: Info */}
-        <div className="absolute bottom-0 left-0 w-full p-4 flex flex-col items-start justify-end z-20 pointer-events-none">
-          <span 
-            className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/70 mb-1"
-            style={{ color: isSelected ? themeColor : 'rgba(255,255,255,0.7)' }}
-          >
-            {rarity}
-          </span>
-          <h3 className="text-white font-bold text-lg leading-tight drop-shadow-md">
-            {name}
-          </h3>
-        </div>
-
-        {/* Layer 4: Subtle Top Shine */}
-        <div 
-          className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-30"
-        />
+      {/* Layer 3: Info */}
+      <div className="absolute bottom-0 left-0 w-full p-6 flex flex-col items-start justify-end z-20 pointer-events-none">
+        <span 
+          className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/70 mb-2"
+          style={{ color: isSelected ? themeColor : 'rgba(255,255,255,0.7)' }}
+        >
+          {rarity}
+        </span>
+        <h3 className="text-white font-bold text-xl leading-none tracking-tight drop-shadow-md">
+          {name}
+        </h3>
+      </div>
       </motion.div>
     </motion.div>
   );

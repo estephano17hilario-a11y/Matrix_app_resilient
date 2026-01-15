@@ -179,7 +179,7 @@ export const AuthView = () => {
         animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
         transition={{ duration: 0.3 }}
       >
-        <GlassCard className="p-8 backdrop-blur-3xl bg-black/40 border-white/10 relative overflow-hidden">
+        <GlassCard className="p-8 backdrop-blur-lg bg-black/40 border-white/10 relative overflow-hidden">
           
           {/* Language Selector */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-20">

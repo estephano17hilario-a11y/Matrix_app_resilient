@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StrategicNode, TimeFrame } from '../../../../types/SmartGoal';
 import { getContextDates, formatDate } from '../../../../utils/dateUtils';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, differenceInMonths } from 'date-fns';
 
 interface RecursiveFillingStepProps {
   currentNode: StrategicNode;
@@ -76,13 +76,23 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
       }
   };
 
-  // Helper for placeholder
-  const getPlaceholder = (index: number) => {
+  const getStepInfo = (index: number) => {
       const startDate = currentNode.startDate ? currentNode.startDate.toDate() : new Date();
       const endDate = currentNode.dueDate ? currentNode.dueDate.toDate() : new Date(startDate.getTime() + 31536000000);
       const { label, start, end } = getContextDates(startDate, endDate, currentNode.level, index, requiredCount);
-      const dateRange = `${formatDate(start)} - ${formatDate(end)}`;
-      return t('smartTask.wizard.stepPlaceholder', { label, dateRange });
+      
+      const nextLevel = timeframeHierarchy[timeframeHierarchy.indexOf(currentNode.level) + 1];
+      let durationStr = '';
+      
+      if (['YEAR', '5_YEARS', '10_YEARS'].includes(nextLevel)) {
+          const months = differenceInMonths(end, start);
+          durationStr = `${months} Meses`;
+      } else {
+          const days = differenceInDays(end, start);
+          durationStr = `${days} Días`;
+      }
+
+      return { label, start, end, durationStr };
   };
   
   const getStepTitle = () => {
@@ -116,30 +126,47 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
             <p className="text-white/40 text-sm">{getStepDescription()}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-24 space-y-4">
-             {multiInputs.map((val, idx) => (
-                 <div key={idx} className="relative group">
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-24 space-y-6 flex flex-col justify-center">
+             {multiInputs.map((_, i) => i).reverse().map((idx) => {
+                 const val = multiInputs[idx];
+                 const info = getStepInfo(idx);
+                 
+                 return (
+                 <div key={idx} className="relative group w-full max-w-xl mx-auto">
+                     {/* Info Header */}
+                     <div className="flex justify-between items-end mb-2 px-1">
+                        <div className="flex items-center gap-2">
+                             <span className="text-sm font-bold text-white/90">{info.label}</span>
+                             <div className="h-px w-8 bg-white/10" />
+                        </div>
+                        <span className="text-[10px] font-mono text-white/50 bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                            {formatDate(info.start)} - {formatDate(info.end)} 
+                            <span className="text-white/20 mx-2">|</span> 
+                            <span className="text-white/70">{info.durationStr}</span>
+                        </span>
+                     </div>
+
                      <div 
                         className="absolute -inset-0.5 rounded-xl opacity-0 group-focus-within:opacity-100 transition duration-500 blur"
                         style={{ background: `linear-gradient(to right, ${activeColor}, transparent)` }} 
                      />
-                     <div className="relative flex items-center bg-black/50 border border-white/10 rounded-xl overflow-hidden">
-                        <div className="px-4 text-white/30 font-mono text-sm">{idx + 1}</div>
+                     <div className="relative flex items-center bg-black/50 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors">
+                        <div className="px-4 text-white/30 font-mono text-xs">{idx + 1}</div>
                         <input
                             type="text"
                             value={val}
                             onChange={(e) => updateMultiInput(idx, e.target.value)}
-                            placeholder={getPlaceholder(idx)}
-                            className="flex-1 bg-transparent py-4 px-2 text-white placeholder:text-white/20 focus:outline-none text-center"
+                            placeholder="Define el objetivo..."
+                            className="flex-1 bg-transparent py-4 px-2 text-white placeholder:text-white/20 focus:outline-none text-sm font-medium"
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && idx === multiInputs.length - 1) {
+                                if (e.key === 'Enter' && idx === 0) {
                                     handleSubmit(e);
                                 }
                             }}
                         />
                      </div>
                  </div>
-             ))}
+             )})}
         </div>
 
         <div className="flex justify-center pt-4 pb-4 flex-shrink-0">

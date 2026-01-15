@@ -35,7 +35,7 @@ export const DailyLimitsHUD: React.FC<DailyLimitsHUDProps> = ({ limits }) => {
   ];
 
   return (
-    <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-gray-900/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+    <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-gray-900/40 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
       <div className="flex items-center gap-1.5 px-1 mb-0.5">
         <div className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
         <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Límites Diarios</span>

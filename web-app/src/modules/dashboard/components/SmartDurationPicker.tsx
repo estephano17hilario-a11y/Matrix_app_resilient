@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Calendar, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { generateTimeBlocks, FractalStructure } from '../../../utils/fractalTimeEngine';
 import { addMonths } from '../../../utils/dateUtils';
 
@@ -10,6 +11,7 @@ interface SmartDurationPickerProps {
 }
 
 export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startDate, onStructureChange }) => {
+    const { t } = useTranslation();
     const [endDateStr, setEndDateStr] = useState('');
     const [structure, setStructure] = useState<FractalStructure | null>(null);
 
@@ -39,10 +41,10 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
             {/* Presets */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {[
-                    { label: '3 Meses', months: 3 },
-                    { label: '6 Meses', months: 6 },
-                    { label: '1 Año', months: 12 },
-                    { label: '5 Años', months: 60 },
+                    { label: `3 ${t('common.time.months')}`, months: 3 },
+                    { label: `6 ${t('common.time.months')}`, months: 6 },
+                    { label: `1 ${t('strategicMap.levels.1_YEAR')}`, months: 12 },
+                    { label: `5 ${t('common.time.years')}`, months: 60 },
                 ].map((preset) => (
                     <button
                         key={preset.label}
@@ -73,13 +75,13 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
                 <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-2 text-indigo-300">
                         <Clock size={14} />
-                        <span className="text-xs font-bold uppercase">Estructura Fractal</span>
+                        <span className="text-xs font-bold uppercase">{t('strategicMap.fractalStructure')}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         {structure.structure.map((block, idx) => (
                             <React.Fragment key={idx}>
                                 <div className="bg-indigo-500/20 px-2 py-1 rounded-md text-xs font-medium text-indigo-200 border border-indigo-500/30">
-                                    {block.durationLabel}
+                                    {t(`strategicMap.levels.${block.type}`)} {idx + 1}
                                 </div>
                                 {idx < structure.structure.length - 1 && (
                                     <span className="text-white/20">+</span>
@@ -88,7 +90,7 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
                         ))}
                     </div>
                     <p className="mt-2 text-[10px] text-white/40">
-                        Tu meta se dividirá inteligentemente en estos bloques.
+                        {t('strategicMap.fractalHelper')}
                     </p>
                 </div>
             )}

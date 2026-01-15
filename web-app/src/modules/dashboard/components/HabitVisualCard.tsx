@@ -26,8 +26,9 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
         if (habit.customColor) return habit.customColor;
         if (attribute?.color) return attribute.color;
         let hash = 0;
-        for (let i = 0; i < habit.id.length; i++) {
-            hash = habit.id.charCodeAt(i) + ((hash << 5) - hash);
+        const safeId = habit.id || 'default';
+        for (let i = 0; i < safeId.length; i++) {
+            hash = safeId.charCodeAt(i) + ((hash << 5) - hash);
         }
         return NEON_COLORS[Math.abs(hash) % NEON_COLORS.length];
     }, [habit.id, attribute, habit.customColor]);

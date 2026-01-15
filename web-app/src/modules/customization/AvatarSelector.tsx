@@ -40,12 +40,10 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
-      <h3 className="text-white text-lg font-medium mb-6 flex items-center gap-2">
-        <span className="text-cyan-400">///</span> SELECT IDENTITY
-      </h3>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-h-[70vh] overflow-y-auto p-2 custom-scrollbar">
+    <div className="w-full">
+      {/* Grid Layout - Clean & Full Visibility */}
+      {/* Increased column density (3 on mobile, 4 on sm, 5 on md) to fit more in "one zone" */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
         {AVAILABLE_AVATARS.map((avatar) => (
           <AvatarSelectorCard
             key={avatar.id}
@@ -56,16 +54,20 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
             themeColor={avatar.themeColor}
             isSelected={selectedId === avatar.id}
             onClick={handleSelect}
+            // Overriding aspect ratio to be slightly shorter (4:5 instead of 9:16) for better visibility
+            className="aspect-[4/5]" 
           />
         ))}
       </div>
       
-      {/* Helper Text */}
-      <div className="mt-6 text-center">
-         <p className="text-white/40 text-xs font-mono">
-            {isSaving ? "SAVING IDENTITY..." : `${AVAILABLE_AVATARS.length} AVATARS AVAILABLE`}
-         </p>
-      </div>
+      {/* Feedback State */}
+      {isSaving && (
+        <div className="mt-4 text-center">
+           <p className="text-cyan-400 text-xs font-mono animate-pulse tracking-widest">
+              UPDATING REALITY...
+           </p>
+        </div>
+      )}
     </div>
   );
 };

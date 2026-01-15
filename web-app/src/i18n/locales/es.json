@@ -289,7 +289,7 @@
     "levels": {
       "10_YEARS": "10 Años",
       "5_YEARS": "5 Años",
-      "YEAR": "Año",
+      "1_YEAR": "Año",
       "SEMESTER": "Semestre",
       "QUARTER": "Trimestre",
       "MONTH": "Mes",
@@ -299,7 +299,7 @@
     "placeholders": {
       "10_YEARS": "Década {{index}}",
       "5_YEARS": "Lustro {{index}}",
-      "YEAR": "Año {{index}}",
+      "1_YEAR": "Año {{index}}",
       "SEMESTER": "Semestre {{index}}",
       "QUARTER": "Trimestre {{index}}",
       "MONTH": "Mes {{index}}",
@@ -328,7 +328,9 @@
     "deleteBranchConfirm": "¿Eliminar esta rama y todas sus subtareas?",
     "new": "Nuevo",
     "add": "Añadir",
-    "section": "Sección"
+    "section": "Sección",
+    "fractalStructure": "Estructura Fractal",
+    "fractalHelper": "Tu meta se dividirá inteligentemente en estos bloques."
   },
   "common": {
     "endDate": "Fecha de Finalización",
