@@ -20,7 +20,8 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
     try {
       const ref = collection(db as Firestore, 'users', userId, collectionName);
       const snapshot = await getDocs(ref);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as object } as T));
+      // Ensure doc.id takes precedence over any 'id' in data
+      return snapshot.docs.map(doc => ({ ...doc.data() as object, id: doc.id } as T));
     } catch (error) {
       console.error(`Error fetching ${collectionName}:`, error);
       return [];
@@ -33,7 +34,8 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
         const ref = collection(db as Firestore, 'users', userId, collectionName);
         const q = query(ref, ...constraints);
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as object } as T));
+        // Ensure doc.id takes precedence over any 'id' in data
+        return snapshot.docs.map(doc => ({ ...doc.data() as object, id: doc.id } as T));
     } catch (error) {
         console.error(`Error fetching filtered ${collectionName}:`, error);
         return [];
@@ -43,6 +45,14 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
   // SAVE = UPSERT (Create or Merge)
   save: async (userId: string, item: T): Promise<void> => {
     try {
+      if (!item.id) {
+          console.warn(`[Persistence] Attempted to save ${collectionName} without ID. Generating one.`);
+          // Create a new reference with auto-generated ID if missing
+          const ref = doc(collection(db as Firestore, 'users', userId, collectionName));
+          const cleanItem = sanitizeFirestoreData({ ...item, id: ref.id });
+          await setDoc(ref, cleanItem, { merge: true });
+          return;
+      }
       const ref = doc(db as Firestore, 'users', userId, collectionName, item.id);
       const cleanItem = sanitizeFirestoreData(item);
       await setDoc(ref, cleanItem, { merge: true });
@@ -55,6 +65,9 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
   // UPDATE = UPSERT (Create or Merge)
   update: async (userId: string, itemId: string, data: Partial<T>): Promise<void> => {
     try {
+      if (!itemId) {
+          throw new Error(`[Persistence] Cannot update ${collectionName}: ID is undefined.`);
+      }
       const ref = doc(db as Firestore, 'users', userId, collectionName, itemId);
       const cleanData = sanitizeFirestoreData(data);
       await setDoc(ref, cleanData, { merge: true });

@@ -27,7 +27,7 @@ export const ObjectiveStep: React.FC<ObjectiveStepProps> = ({ initialValue, onNe
             <p className="text-white/40 text-sm">{t('smartTask.wizard.objective.subtitle')}</p>
         </div>
         
-        <div className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto px-1">
+        <div className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto px-1 py-10">
             <div className="relative group w-full">
                 <div 
                     className="absolute -inset-1 rounded-2xl opacity-30 group-hover:opacity-60 blur transition duration-500" 

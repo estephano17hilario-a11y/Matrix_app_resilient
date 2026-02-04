@@ -112,6 +112,9 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
        return t('smartTask.wizard.stepDescription.generic', { title: currentNode.title, count: requiredCount });
   };
 
+  // Determine density mode based on item count
+  const isHighDensity = requiredCount > 4;
+
   return (
     <motion.div 
         initial={{ opacity: 0, x: 20 }}
@@ -119,14 +122,17 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
         exit={{ opacity: 0, x: -20 }}
         className="w-full h-full flex flex-col"
     >
-        <div className="space-y-2 mb-4 flex-shrink-0 text-center">
+        <div className="space-y-2 mb-4 flex-shrink-0 text-center relative z-20">
              <h2 className="text-2xl font-light text-white">
                 <span className="font-bold">{getStepTitle()}</span>
             </h2>
             <p className="text-white/40 text-sm">{getStepDescription()}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-24 space-y-6 flex flex-col justify-center">
+        {/* Scroll Container - Removed mask to fix "black box" issue and improved scrolling */}
+        <div 
+            className={`flex-1 overflow-y-auto min-h-0 px-2 pb-24 flex flex-col justify-start pt-4 relative z-10 ${isHighDensity ? 'space-y-3' : 'space-y-6'}`}
+        >
              {multiInputs.map((_, i) => i).reverse().map((idx) => {
                  const val = multiInputs[idx];
                  const info = getStepInfo(idx);
@@ -134,12 +140,12 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                  return (
                  <div key={idx} className="relative group w-full max-w-xl mx-auto">
                      {/* Info Header */}
-                     <div className="flex justify-between items-end mb-2 px-1">
+                     <div className={`flex justify-between items-end px-1 ${isHighDensity ? 'mb-1' : 'mb-2'}`}>
                         <div className="flex items-center gap-2">
-                             <span className="text-sm font-bold text-white/90">{info.label}</span>
+                             <span className={`font-bold text-white/90 ${isHighDensity ? 'text-xs' : 'text-sm'}`}>{info.label}</span>
                              <div className="h-px w-8 bg-white/10" />
                         </div>
-                        <span className="text-[10px] font-mono text-white/50 bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                        <span className={`font-mono text-white/50 bg-white/5 px-2 rounded-md border border-white/5 ${isHighDensity ? 'text-[9px] py-0.5' : 'text-[10px] py-1'}`}>
                             {formatDate(info.start)} - {formatDate(info.end)} 
                             <span className="text-white/20 mx-2">|</span> 
                             <span className="text-white/70">{info.durationStr}</span>
@@ -150,14 +156,14 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                         className="absolute -inset-0.5 rounded-xl opacity-0 group-focus-within:opacity-100 transition duration-500 blur"
                         style={{ background: `linear-gradient(to right, ${activeColor}, transparent)` }} 
                      />
-                     <div className="relative flex items-center bg-black/50 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors">
-                        <div className="px-4 text-white/30 font-mono text-xs">{idx + 1}</div>
+                     <div className={`relative flex items-center bg-black/50 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors ${isHighDensity ? 'min-h-[42px]' : ''}`}>
+                        <div className={`text-white/30 font-mono text-xs ${isHighDensity ? 'px-3' : 'px-4'}`}>{idx + 1}</div>
                         <input
                             type="text"
                             value={val}
                             onChange={(e) => updateMultiInput(idx, e.target.value)}
                             placeholder="Define el objetivo..."
-                            className="flex-1 bg-transparent py-4 px-2 text-white placeholder:text-white/20 focus:outline-none text-sm font-medium"
+                            className={`flex-1 bg-transparent text-white placeholder:text-white/20 focus:outline-none text-sm font-medium ${isHighDensity ? 'py-2.5 px-1' : 'py-4 px-2'}`}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && idx === 0) {
                                     handleSubmit(e);

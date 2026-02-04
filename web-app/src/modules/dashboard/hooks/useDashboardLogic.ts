@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMatrix } from '@/context/MatrixContext';
+import { useAuth } from '@/context/AuthContext';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
 import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon } from 'lucide-react';
@@ -19,7 +20,30 @@ import { useTheme } from '@/context/ThemeContext';
 import { SmartProject } from '@/types/SmartGoal';
 
 export const useDashboardLogic = () => {
-    const { user, loading: matrixLoading } = useMatrix();
+    const { user: matrixUser, loading: matrixLoading } = useMatrix();
+    const { profile: authProfile } = useAuth();
+
+    // 🛡️ HYBRID SYNC: Combine Realtime Stream (Matrix) with Instant Updates (Auth)
+    // This ensures Avatar changes are reflected immediately via refreshProfile()
+    // while keeping stats synced via Firestore listeners.
+    const user = useMemo(() => {
+        if (!matrixUser) return null;
+        if (!authProfile) return matrixUser;
+        
+        // If UIDs match, merge carefully
+        if (matrixUser.uid === authProfile.uid) {
+            return {
+                ...matrixUser,
+                // Prefer Auth Profile for Identity fields (updated via Settings)
+                avatarId: authProfile.avatarId || matrixUser.avatarId,
+                displayName: authProfile.displayName || matrixUser.displayName,
+                // Prefer Matrix for Game Stats (updated via Game Loop)
+                stats: matrixUser.stats
+            };
+        }
+        return matrixUser;
+    }, [matrixUser, authProfile]);
+
     const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
@@ -115,6 +139,10 @@ export const useDashboardLogic = () => {
 
     useEffect(() => {
         if (user && user.stats) {
+            // 🛡️ SKELETON PROTECTION: Do not sync stats from a skeleton profile
+            // This prevents overwriting local state with defaults while real data loads
+            if (user.isSkeleton) return;
+
             const serverStats = user.stats;
             const currentLast = lastServerStats.current;
 
@@ -222,6 +250,7 @@ export const useDashboardLogic = () => {
     // --- DAILY RESET & PENALTY LOGIC ---
     useEffect(() => {
         if (!user?.uid || !areHabitsLoaded || isDailyCheckDone) return;
+        if (user.isSkeleton) return; // 🛡️ SKELETON PROTECTION
 
         const processDailyReset = async () => {
             const today = new Date().toISOString().split('T')[0];
@@ -318,7 +347,7 @@ export const useDashboardLogic = () => {
     // --- ACHIEVEMENT LISTENER ---
     useEffect(() => {
         const verifyAchievements = async () => {
-            if (user && player.xp > 0) {
+            if (user && player.xp > 0 && !user.isSkeleton) {
                 const hybridUser = { 
                     ...user, 
                     stats: { 
@@ -637,7 +666,8 @@ export const useDashboardLogic = () => {
             const newStats = { level: newLevel, xp: newXp, nextXp: newNextXp, gold: newGold };
 
             // PERSISTENCE: Save new stats to Firestore immediately
-            if (user?.uid) {
+            // 🛡️ SKELETON PROTECTION: Don't save if we are in skeleton mode
+            if (user?.uid && !user.isSkeleton) {
                 setDoc(doc(db, 'users', user.uid), {
                     stats: {
                         level: newStats.level,
@@ -679,7 +709,7 @@ export const useDashboardLogic = () => {
                     const updatedAttr = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
                     
                     // SAVE TO FIRESTORE
-                    if (user?.uid) {
+                    if (user?.uid && !user.isSkeleton) {
                         persistenceService.attributes.save(user.uid, updatedAttr);
                     }
 

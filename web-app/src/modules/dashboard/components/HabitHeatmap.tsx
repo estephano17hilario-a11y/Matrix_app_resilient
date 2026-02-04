@@ -29,11 +29,11 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                 });
 
                 return (
-                    <div key={mIndex} className="flex flex-col gap-1 min-w-[100px]">
-                        <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">
+                    <div key={mIndex} className="flex flex-col gap-2 min-w-[100px]">
+                        <div className="text-[10px] font-semibold text-white/40 uppercase tracking-widest pl-0.5">
                             {format(monthDate, 'MMMM')}
                         </div>
-                        <div className="grid grid-rows-7 grid-flow-col gap-1">
+                        <div className="grid grid-rows-7 grid-flow-col gap-1.5">
                             {days.map((day, dIndex) => {
                                 const dateStr = day.toISOString();
                                 const isCompleted = historySet.has(dateStr) || Array.from(historySet).some(h => h.startsWith(format(day, 'yyyy-MM-dd')));
@@ -41,10 +41,10 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                 return (
                                     <div
                                         key={dIndex}
-                                        className={`w-2 h-2 rounded-sm transition-all duration-300 ${
+                                        className={`w-2.5 h-2.5 rounded-[3px] transition-all duration-300 ${
                                             isCompleted 
-                                            ? 'opacity-100 shadow-[0_0_8px_-2px_currentColor]' 
-                                            : 'bg-white/5 opacity-100'
+                                            ? 'opacity-100 shadow-[0_0_10px_-2px_currentColor]' 
+                                            : 'bg-white/10 opacity-100 hover:bg-white/20'
                                         }`}
                                         style={{ 
                                             backgroundColor: isCompleted ? color : undefined 

@@ -29,52 +29,42 @@ export const HabitWeekView: React.FC<HabitWeekViewProps> = ({ history, activeCol
     };
   });
 
-  return (
-    <div className="flex justify-between items-center px-2 py-4 mt-2 border-t border-white/5 bg-white/5 rounded-2xl">
-      {weekDays.map((day) => (
-        <div key={day.dateStr} className="flex flex-col items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.1 }}
-            onClick={() => onToggleDay(day.dateStr)}
-            className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-500 relative",
-              day.isCompleted
-                ? "border-transparent shadow-lg"
-                : "bg-white/5 border-white/10 hover:border-white/30",
-              day.isToday && !day.isCompleted && "ring-2 ring-white/20"
-            )}
-            style={day.isCompleted ? {
-              backgroundColor: activeColor || '#10b981',
-              boxShadow: `0 0 15px ${activeColor || '#10b981'}60, inset 0 0 10px rgba(255,255,255,0.2)`
-            } : undefined}
-          >
-            {day.isCompleted ? (
-              <Check size={16} className="text-white drop-shadow-sm" strokeWidth={4} />
-            ) : (
-              day.isToday && (
-                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_white]" />
-              )
-            )}
-            
-            {/* Liquid Shine Effect */}
-            {day.isCompleted && (
-              <motion.div 
-                initial={{ x: '-100%' }}
-                animate={{ x: '100%' }}
-                transition={{ repeat: Infinity, duration: 2, ease: "linear", repeatDelay: 3 }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 pointer-events-none"
-              />
-            )}
-          </motion.button>
-          <span className={cn(
-            "text-[10px] font-bold tracking-tight",
-            day.isToday ? "text-white" : "text-slate-500"
-          )}>
-            {day.dayName}
-          </span>
+    return (
+        <div className="flex justify-between items-center px-1 py-2 mt-2">
+            {weekDays.map((day) => (
+                <div key={day.dateStr} className="flex flex-col items-center gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1 }}
+                        onClick={() => onToggleDay(day.dateStr)}
+                        className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 relative group",
+                            day.isCompleted
+                                ? "border-transparent shadow-lg"
+                                : "bg-white/10 border-white/10 hover:border-white/20 hover:bg-white/20",
+                            day.isToday && !day.isCompleted && "ring-1 ring-white/30"
+                        )}
+                        style={day.isCompleted ? {
+                            backgroundColor: activeColor || '#10b981',
+                            boxShadow: `0 0 15px ${activeColor || '#10b981'}50`
+                        } : undefined}
+                    >
+                        {day.isCompleted ? (
+                            <Check size={18} className="text-white drop-shadow-sm" strokeWidth={3} />
+                        ) : (
+                            day.isToday && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_white]" />
+                            )
+                        )}
+                    </motion.button>
+                    <span className={cn(
+                        "text-[10px] font-bold tracking-tight",
+                        day.isToday ? "text-white" : "text-white/30"
+                    )}>
+                        {day.dayName}
+                    </span>
+                </div>
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 };

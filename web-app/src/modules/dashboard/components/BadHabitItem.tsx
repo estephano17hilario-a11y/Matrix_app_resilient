@@ -15,29 +15,44 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     onRelapse
 }) => {
     const isRelapsed = habit.relapsedToday;
+    const color = attribute?.color || '#10b981'; // Default Emerald if no attribute
 
     return (
         <motion.div
             layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+                backgroundColor: isRelapsed ? undefined : `${color}10`, // Very subtle background
+                borderColor: isRelapsed ? undefined : `${color}30`,
+                boxShadow: isRelapsed ? undefined : `0 0 20px ${color}05`
+            }}
             className={`group relative backdrop-blur-md border shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 ${
                 isRelapsed 
                 ? 'bg-rose-950/40 border-rose-500/20 opacity-60' 
-                : 'bg-[#111]/40 border-white/10 hover:bg-[#1a1a20]/60'
+                : 'hover:bg-[#1a1a20]/60' // Kept hover effect but removed base bg/border
             }`}
         >
             <div className="relative flex items-center p-3 gap-4">
                 {/* Icon Box */}
                 <div 
+                    style={{
+                        backgroundColor: isRelapsed ? undefined : `${color}20`,
+                        borderColor: isRelapsed ? undefined : `${color}30`,
+                    }}
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner transition-transform group-hover:scale-105 ${
                         isRelapsed 
                         ? 'bg-rose-500/10 border-rose-500/20' 
-                        : 'bg-emerald-500/10 border-emerald-500/20'
+                        : ''
                     }`}
                 >
                     {isRelapsed ? (
                         <Skull size={22} className="text-rose-500" />
                     ) : (
-                        <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+                        <div 
+                            className="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" 
+                            style={{ backgroundColor: color, color: color }}
+                        />
                     )}
                 </div>
                 
@@ -46,10 +61,23 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                         {habit.title}
                     </h4>
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500">
+                        <div 
+                            style={{ 
+                                borderColor: isRelapsed ? undefined : `${color}20`,
+                                backgroundColor: isRelapsed ? undefined : `${color}10`,
+                                color: isRelapsed ? undefined : '#94a3b8' // Slate-400
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
+                        >
                             {attribute?.label || 'HABIT'}
                         </div>
-                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isRelapsed ? 'text-rose-500 bg-rose-500/10' : 'text-emerald-500 bg-emerald-500/10'}`}>
+                        <div 
+                            style={{
+                                color: isRelapsed ? undefined : color,
+                                backgroundColor: isRelapsed ? undefined : `${color}15`
+                            }}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isRelapsed ? 'text-rose-500 bg-rose-500/10' : ''}`}
+                        >
                             {isRelapsed ? 'RELAPSED' : `${habit.streak} DAY STREAK`}
                         </div>
                     </div>

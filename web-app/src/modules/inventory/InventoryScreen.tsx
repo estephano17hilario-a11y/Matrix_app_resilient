@@ -78,12 +78,12 @@ export const InventoryScreen: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-[#1c1c1e] border border-white/10 p-4 rounded-2xl flex items-center justify-between group"
+                    className="bg-white/5 border border-white/10 p-4 rounded-3xl flex items-center justify-between group backdrop-blur-md shadow-lg"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
                         {/* Dynamic Icon could go here */}
-                        <Package size={20} className="text-white/70" />
+                        <Package size={20} className="text-white/80" />
                       </div>
                       <div>
                         <h3 className="font-bold">{storeItem.name}</h3>

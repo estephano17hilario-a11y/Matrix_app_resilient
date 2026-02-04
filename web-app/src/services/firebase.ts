@@ -2,8 +2,12 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 
   Auth, 
+  setPersistence,
+  browserLocalPersistence,
   signInWithEmailAndPassword as firebaseSignIn,
   signInWithPopup as firebasePopup,
+  signInWithCredential as firebaseSignInWithCredential,
+  getRedirectResult as firebaseGetRedirectResult,
   createUserWithEmailAndPassword as firebaseCreate,
   signOut as firebaseSignOut,
   updateProfile as firebaseUpdateProfile,
@@ -45,6 +49,7 @@ import {
     QueryConstraint,
     writeBatch as firestoreWriteBatch
 } from 'firebase/firestore';
+import { getMessaging, Messaging, getToken, onMessage } from 'firebase/messaging';
 
 // --- 1. CONFIGURATION ---
 const firebaseConfig = {
@@ -68,11 +73,23 @@ const forceOffline = localStorage.getItem('MATRIX_FORCE_OFFLINE') === 'true';
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let messaging: Messaging | null = null;
 
 if (isConfigValid && !forceOffline) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    
+    // 🛡️ SECURITY: Explicitly set persistence to LOCAL to avoid session loss on redirect/refresh
+    setPersistence(auth, browserLocalPersistence).catch(err => {
+        console.warn("⚠️ MATRIX CORE: Failed to set Auth Persistence:", err);
+    });
+
+    try {
+        messaging = getMessaging(app);
+    } catch (e) {
+        console.warn("⚠️ MATRIX CORE: Firebase Messaging not supported in this environment.", e);
+    }
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
@@ -116,7 +133,7 @@ if (isConfigValid && !forceOffline) {
 }
 
 // --- 3. EXPORTS & PHANTOM PROXIES ---
-export { app, auth, db };
+export { app, auth, db, messaging, getToken, onMessage };
 
 
 
@@ -131,7 +148,10 @@ import {
     phantomGetDoc, 
     phantomSetDoc, 
     phantomUpdateDoc,
+    phantomDeleteDoc,
+    phantomGetDocs,
     phantomOnAuthStateChanged,
+    phantomOnSnapshot,
     phantomRunTransaction,
     phantomWriteBatch
 } from './phantom';
@@ -190,6 +210,37 @@ export const signInWithPopup = async (authInstance: any, provider: any) => {
         return { user: PHANTOM_USER };
     }
     return firebasePopup(authInstance, provider);
+};
+
+export const signInWithCredential = async (authInstance: any, credential: any) => {
+    if (authInstance?._isMock) {
+         console.warn("🛡️ PHANTOM AUTH: Simulating Credential Login...");
+         return signInWithPopup(authInstance, credential);
+    }
+    return firebaseSignInWithCredential(authInstance, credential);
+};
+
+export const signInWithRedirect = async (authInstance: any, provider: any) => {
+    // 🛡️ FORCE OVERRIDE: Redirect is dangerous on partitioned storage environments (Brave, Incognito).
+    // We forcibly upgrade this call to Popup to prevent the "Missing Initial State" crash.
+    console.warn("⚠️ MATRIX CORE: signInWithRedirect intercepted. Upgrading to signInWithPopup for stability.");
+    return signInWithPopup(authInstance, provider);
+};
+
+export const getRedirectResult = async (authInstance: any) => {
+    if (authInstance?._isMock) {
+        return null;
+    }
+    try {
+        return await firebaseGetRedirectResult(authInstance);
+    } catch (e: any) {
+        // Silently handle the "missing initial state" error at the lowest level
+        if (e.code === 'auth/missing-initial-state') {
+            console.debug("⚠️ MATRIX CORE: Suppressed 'missing initial state' error.");
+            return null;
+        }
+        throw e;
+    }
 };
 
 export const createUserWithEmailAndPassword = async (authInstance: any, email: string, pass: string) => {
@@ -272,8 +323,7 @@ export const collection = (firestore: any, path: string, ...segments: string[]) 
 
 export const getDocs = async (queryRef: any) => {
     if (queryRef?.firestore?._isMock || queryRef?._isMock) {
-        console.warn("🛡️ PHANTOM DB: Simulating getDocs...");
-        return { docs: [] };
+        return phantomGetDocs(queryRef);
     }
     return firestoreGetDocs(queryRef);
 };
@@ -285,16 +335,18 @@ export const query = (ref: any, ...constraints: any[]) => {
 
 export const deleteDoc = async (docRef: any) => {
     if (docRef?.firestore?._isMock || docRef?._isMock) {
-        console.warn("🛡️ PHANTOM DB: Simulating Delete...");
-        return;
+        return phantomDeleteDoc(docRef);
     }
     return firestoreDeleteDoc(docRef);
 };
 
 export const onSnapshot = (ref: any, ...args: any[]) => {
     if (ref?.firestore?._isMock || ref?._isMock) {
-        console.log("👻 PHANTOM: onSnapshot (No-op/Static)");
-        return () => {};
+        const [first, second, third] = args;
+        if (typeof first === 'function') {
+            return phantomOnSnapshot(ref, first, second);
+        }
+        return phantomOnSnapshot(ref, second, third);
     }
     // @ts-ignore
     return firestoreSnapshot(ref, ...args);
@@ -344,13 +396,13 @@ export {
     DocumentSnapshot, 
     QuerySnapshot, 
     DocumentReference, 
-    CollectionReference
+    CollectionReference,
+    Transaction
 };
 export type { User } from 'firebase/auth';
 export type { 
     Firestore,
     Auth,
-    Transaction,
     QueryConstraint,
     FirestoreError
 };

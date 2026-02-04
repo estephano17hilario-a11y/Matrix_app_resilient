@@ -27,6 +27,7 @@ interface AuthContextType {
   error: string | null;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfileLocally: (updates: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,6 +52,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.warn("Cache failed", e);
     }
+  };
+
+  const updateProfileLocally = (updates: Partial<UserProfile>) => {
+    if (!profile) return;
+    const newProfile = { ...profile, ...updates };
+    setProfile(newProfile);
+    saveProfileToCache(newProfile);
+    console.log("⚡ MATRIX: Profile updated locally (Optimistic)", updates);
   };
 
   const refreshProfile = async () => {
@@ -173,7 +182,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: Date.now(),
                 lastLoginAt: Date.now(),
                 theme: 'MATRIX',
-                onboarding: DEFAULT_ONBOARDING
+                onboarding: DEFAULT_ONBOARDING,
+                isSkeleton: true // 🛡️ MARK AS SKELETON TO PREVENT SYNC
             };
             setProfile(skeletonProfile);
         }
@@ -218,27 +228,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              saveProfileToCache(finalProfile);
           }
         } else {
-          // NEW USER CASE
-          const newUserProfile: UserProfile = {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
-            photoURL: currentUser.photoURL,
-            plan: 'FREE',
-            archetype: 'NEO',
-            stats: DEFAULT_USER_STATS,
-            createdAt: Date.now(),
-            lastLoginAt: Date.now(),
-            theme: 'MATRIX',
-            onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 } // FORCE 0 for truly new users
-          };
+          // NEW USER CASE CHECK
+          // 🛡️ PREVENT OVERWRITE: Only create new profile if account is actually new (created < 2 mins ago)
+          // If account is old but profile missing, it's likely a sync error or data corruption, NOT a new user.
+          const creationTime = currentUser.metadata.creationTime ? new Date(currentUser.metadata.creationTime).getTime() : Date.now();
+          const accountAge = Date.now() - creationTime;
+          const isTrulyNewAccount = accountAge < 120000; // 2 minutes buffer
 
-          const cleanProfile = sanitizeFirestoreData(newUserProfile);
-          await setDoc(userRef, cleanProfile, { merge: true });
-          
-          if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
-          setProfile(newUserProfile);
-          saveProfileToCache(newUserProfile);
+          if (isTrulyNewAccount) {
+              console.log("🆕 MATRIX: New recruit detected. Initializing neural link...");
+              const newUserProfile: UserProfile = {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
+                photoURL: currentUser.photoURL,
+                plan: 'FREE',
+                archetype: 'NEO',
+                stats: DEFAULT_USER_STATS,
+                createdAt: Date.now(),
+                lastLoginAt: Date.now(),
+                theme: 'MATRIX',
+                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 } // FORCE 0 for truly new users
+              };
+
+              const cleanProfile = sanitizeFirestoreData(newUserProfile);
+              await setDoc(userRef, cleanProfile, { merge: true });
+              
+              if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
+              setProfile(newUserProfile);
+              saveProfileToCache(newUserProfile);
+          } else {
+              console.error("⚠️ MATRIX: CRITICAL - Profile missing for existing account. Preventing overwrite.");
+              // We keep the skeleton in memory so app doesn't crash, but we DO NOT save it.
+              // Ideally, we should show an error or retry fetching.
+          }
         }
       } catch (err: any) {
         console.error("CRITICAL AUTH ERROR:", err);
@@ -255,7 +278,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, isLoading, error, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, isLoading, error, logout, refreshProfile, updateProfileLocally }}>
       {children}
     </AuthContext.Provider>
   );

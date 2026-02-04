@@ -180,13 +180,7 @@ export const NexusView: React.FC<{
         {selectedProject && (
           <MissionHUD 
             project={selectedProject} 
-            onClose={() => {
-                if (onClose) {
-                    onClose();
-                } else {
-                    handleSelectProject(null);
-                }
-            }} 
+            onClose={() => handleSelectProject(null)} 
             habits={habits.filter(h => h.projectId === selectedProject.id)}
             notes={notes.filter(n => n.projectId === selectedProject.id)}
             projects={projects.filter(p => p.smartProjectId === selectedProject.id)}

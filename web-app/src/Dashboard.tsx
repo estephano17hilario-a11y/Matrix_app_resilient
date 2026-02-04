@@ -803,6 +803,7 @@ export default function Dashboard() {
                                             setTaskViewMode('STRATEGY');
                                             setCurrentView('TASKS');
                                             setIsNexusImmersive(false);
+                                            setActiveSmartProjectId(null);
                                         }}
                                         onSelectProject={(id) => setActiveSmartProjectId(id)}
                                         onAddQuest={handleOpenSmartTaskCreator}

@@ -9,31 +9,53 @@ interface AvatarSelectorProps {
 }
 
 export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
   const [selectedId, setSelectedId] = useState<string | undefined>(profile?.avatarId);
   const [isSaving, setIsSaving] = useState(false);
 
+  // ⚡ SYNC WITH REALITY: Ensure local state matches global profile when it loads or updates externally
+  React.useEffect(() => {
+    // FIX: Only sync if NOT saving to avoid reverting optimistic updates
+    if (profile?.avatarId && !isSaving) {
+      setSelectedId(profile.avatarId);
+    }
+  }, [profile?.avatarId, isSaving]);
+
   const handleSelect = async (avatarId: string) => {
     if (!user) return;
+    if (avatarId === selectedId) return; // Prevent unnecessary updates
+    
+    console.log(`AvatarSelector: Selecting ${avatarId}`);
+
+    // 1. Optimistic UI: Update visual immediately
     setSelectedId(avatarId);
     setIsSaving(true);
 
+    // 2. Update Global Context IMMEDIATELY (Simulated Reality)
+    // This ensures the dashboard and other components update instantly
+    // and stay updated even if the backend write fails (Permission/Network)
+    updateProfileLocally({ avatarId });
+
     try {
-      // 1. Update Firestore
+      // 3. Update Firestore (Persistence)
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         avatarId: avatarId
       });
 
-      // 2. Refresh Context
+      console.log("AvatarSelector: Firestore updated");
+
+      // 4. Refresh Context to propagate changes to the rest of the app
       await refreshProfile();
       
-      // 3. Optional: Close modal after short delay
+      // 5. Optional: Close modal after short delay
       if (onClose) {
         setTimeout(onClose, 500);
       }
     } catch (error) {
-      console.error("Failed to update avatar:", error);
+      console.warn("Avatar persistence failed (Permissions/Network). Keeping local reality.", error);
+      // We purposefully DO NOT revert. 
+      // The user chose this avatar, so it IS their avatar in this session.
     } finally {
       setIsSaving(false);
     }

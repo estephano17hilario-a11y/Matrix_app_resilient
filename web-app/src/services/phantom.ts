@@ -170,6 +170,37 @@ export const phantomUpdateDoc = async (ref: any, data: any) => {
     saveDB(PHANTOM_DB);
 };
 
+export const phantomDeleteDoc = async (ref: any) => {
+    console.log(`👻 PHANTOM: deleteDoc(${ref.path})`);
+    if (PHANTOM_DB[ref.path]) {
+        delete PHANTOM_DB[ref.path];
+        saveDB(PHANTOM_DB);
+    }
+};
+
+export const phantomGetDocs = async (collectionRef: any) => {
+    console.log(`👻 PHANTOM: getDocs(${collectionRef.path})`);
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    const prefix = collectionRef.path + '/';
+    const docs: any[] = [];
+
+    Object.keys(PHANTOM_DB).forEach(key => {
+        if (!key.startsWith(prefix)) return;
+        const remaining = key.substring(prefix.length);
+        if (!remaining || remaining.includes('/')) return;
+
+        const data = PHANTOM_DB[key];
+        docs.push({
+            id: remaining,
+            data: () => data,
+            exists: () => true
+        });
+    });
+
+    return { docs, empty: docs.length === 0 };
+};
+
 export const phantomRunTransaction = async (_db: any, updateFunction: (transaction: any) => Promise<any>) => {
     console.log("👻 PHANTOM: runTransaction");
     const transactionMock = {
@@ -188,7 +219,9 @@ export const phantomRunTransaction = async (_db: any, updateFunction: (transacti
              delete PHANTOM_DB[ref.path];
         }
     };
-    return await updateFunction(transactionMock);
+    const result = await updateFunction(transactionMock);
+    saveDB(PHANTOM_DB);
+    return result;
 };
 
 export const phantomWriteBatch = (_db: any) => {

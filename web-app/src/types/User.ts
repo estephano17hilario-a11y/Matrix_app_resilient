@@ -66,6 +66,9 @@ export interface UserProfile {
     coachingTone: string;
     completedAt: number;
   };
+  
+  // Internal State Flags
+  isSkeleton?: boolean;
 }
 
 export type UserData = UserProfile;

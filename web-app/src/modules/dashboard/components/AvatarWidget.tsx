@@ -44,32 +44,42 @@ const MiniLiquidBar = ({  value,
   
   const themes = {
     health: {
-      gradient: 'from-rose-500 to-red-600',
-      shadow: 'shadow-rose-500/50',
+      gradient: 'from-rose-500 via-red-500 to-rose-600',
+      shadow: 'shadow-[0_0_10px_rgba(244,63,94,0.4)]',
       iconColor: 'text-rose-400',
-      bg: 'bg-rose-950/30'
+      bg: 'bg-rose-950/20',
+      track: 'bg-rose-950/40'
     },
     xp: {
-      gradient: 'from-emerald-400 to-teal-500',
-      shadow: 'shadow-emerald-500/50',
-      iconColor: 'text-emerald-400',
-      bg: 'bg-emerald-950/30'
+      gradient: 'from-cyan-400 via-blue-500 to-indigo-500',
+      shadow: 'shadow-[0_0_10px_rgba(34,211,238,0.4)]',
+      iconColor: 'text-cyan-400',
+      bg: 'bg-cyan-950/20',
+      track: 'bg-cyan-950/40'
     }
   };
 
   const theme = themes[color];
 
   return (
-    <div className="flex items-center gap-2 w-36 sm:w-40 md:w-48 transition-all">
-        <Icon size={10} className={theme.iconColor} />
-        <div className={`h-1.5 flex-1 ${theme.bg} rounded-full overflow-hidden relative shadow-inner`}>
-             <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${percent}%` }}
-                className={`h-full absolute left-0 top-0 rounded-full bg-gradient-to-r ${theme.gradient}`}
-             />
+    <div className="flex items-center gap-3 w-40 sm:w-48 transition-all group/bar">
+        <div className={`flex items-center justify-center w-5 h-5 rounded-md ${theme.bg} backdrop-blur-sm border border-white/5`}>
+            <Icon size={12} className={theme.iconColor} />
         </div>
-        <span className="text-[9px] font-mono text-white/50 w-[60px] text-right tabular-nums">{safeValue}/{safeMax}</span>
+        <div className="flex-1 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between px-0.5">
+                 <span className={`text-[9px] font-bold tracking-wider uppercase ${theme.iconColor} opacity-80`}>{color}</span>
+                 <span className="text-[9px] font-mono text-white/50 tabular-nums">{safeValue}/{safeMax}</span>
+            </div>
+            <div className={`h-1.5 w-full ${theme.track} rounded-full overflow-hidden relative border border-white/5`}>
+                 <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percent}%` }}
+                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                    className={`h-full absolute left-0 top-0 rounded-full bg-gradient-to-r ${theme.gradient} ${theme.shadow}`}
+                 />
+            </div>
+        </div>
     </div>
   );
 };
@@ -85,22 +95,29 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     // Dynamic styles for Aura
     const auraStyle = themeColor ? {
         boxShadow: `0 0 25px -5px ${themeColor}`,
-        borderColor: `${themeColor}60`
     } : {};
 
     return (
-    <div className="flex items-center gap-3 opacity-100 translate-x-0 w-auto pl-1">
-        {/* AVATAR */}
+    <div className="flex items-center gap-4 opacity-100 translate-x-0 w-auto pl-1">
+        {/* AVATAR - RESTORED & CENTERED */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
             <div 
-                className={`w-12 h-12 ${shapeClass} p-[1px] border border-white/10 ${!themeColor ? 'shadow-[0_0_20px_-5px_rgba(79,70,229,0.3)]' : ''} ${isPro ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500' : 'bg-gradient-to-tr from-slate-800 to-slate-900'}`}
+                className={`w-14 h-14 ${shapeClass} overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/50`}
                 style={auraStyle}
             >
-                <img src={avatarPath || defaultAvatar} alt="Avatar" className={`w-full h-full ${shapeClass} object-cover object-[50%_20%] opacity-90`} />
+                <img 
+                    src={avatarPath || defaultAvatar} 
+                    alt="Avatar" 
+                    className={`w-full h-full object-cover object-[50%_20%] transform transition-transform duration-700 group-hover:scale-110`} 
+                />
+                
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             </div>
-            {/* Level Badge */}
+            
+            {/* Level Badge - Minimalist Corner Circle */}
             <div 
-                className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur-md border border-white/10 rounded-full w-5 h-5 flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-colors"
+                className="absolute -bottom-1 -right-1 w-5 h-5 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-all shadow-lg group-hover:scale-110"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (onUpdateLevel) {
@@ -114,53 +131,44 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                     }
                 }}
             >
-                 <span className="text-[10px] font-bold text-white">{level}</span>
+                 <span className="text-[9px] font-bold text-white font-mono">{level}</span>
             </div>
         </div>
 
-        {/* STATS COLUMN */}
-        <div className="flex flex-col gap-1">
-            {/* HEADER: NAME + STREAK + GOLD */}
-            <div className="flex items-center gap-3">
-                <div className="flex flex-col leading-none">
-                    <span className="text-xs sm:text-sm font-bold text-white tracking-tight truncate max-w-[80px] sm:max-w-none">
+        {/* STATS COLUMN - PREMIUM APPLE STYLE */}
+        <div className="flex flex-col gap-2 relative">
+             {/* DAILY LIMITS HUD - POSITIONED ABOVE (Adjusted Z-Index & Position) */}
+             {dailyLimits && (
+                <div className="absolute -top-32 -right-4 w-40 z-[100] pointer-events-none">
+                    <DailyLimitsHUD limits={dailyLimits} />
+                </div>
+             )}
+
+            {/* HEADER: NAME + STREAK */}
+            <div className="flex items-center justify-between min-w-[180px]">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-white tracking-tight drop-shadow-md">
                         {displayName || 'Neo'}
                     </span>
-                    {email && (
-                        <span className="hidden sm:inline-block text-[10px] text-slate-400 font-mono tracking-tight truncate max-w-[120px]">
-                            {email}
-                        </span>
+                    {streak > 0 && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                            <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />
+                            <span className="text-[9px] font-mono font-bold text-orange-400">{streak}</span>
+                        </div>
                     )}
                 </div>
                 
-                <div className="flex flex-col gap-1 items-end relative">
-                    {/* DAILY LIMITS HUD - POSITIONED ABOVE STREAK/GOLD */}
-                    {dailyLimits && (
-                        <div className="absolute -top-32 -right-4 w-40 z-30">
-                            <DailyLimitsHUD limits={dailyLimits} />
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-1.5">
-                        {streak > 0 && (
-                            <div className="flex items-center gap-1 bg-orange-500/10 px-1.5 py-0.5 rounded-full border border-orange-500/20">
-                                <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />
-                                <span className="text-[10px] font-mono font-bold text-orange-400">{streak}</span>
-                            </div>
-                        )}
-                        
-                        <div className="flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
-                            <Coins size={10} className="text-amber-400" />
-                            <span className="text-[10px] font-mono font-bold text-amber-400">
-                                <GoldCounter value={gold} />
-                            </span>
-                        </div>
-                    </div>
+                {/* Gold Pill - Premium Look */}
+                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.3)]">
+                    <Coins size={12} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    <span className="text-xs font-mono font-bold text-amber-300">
+                        <GoldCounter value={gold} />
+                    </span>
                 </div>
             </div>
 
-            {/* BARS */}
-            <div className="flex flex-col gap-1">
+            {/* BARS - REFINED (Restored Numbers) */}
+            <div className="flex flex-col gap-1.5">
                  <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
                  <MiniLiquidBar value={xp} max={nextXp} color="xp" icon={Zap} />
             </div>

@@ -8,6 +8,11 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
+    GoogleAuth: {
+      scopes: ["profile", "email"],
+      serverClientId: "770116190928-8o5hunfe5m2ue5db4h1sqdpa0vo9cc9v.apps.googleusercontent.com",
+      forceCodeForRefreshToken: true,
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
