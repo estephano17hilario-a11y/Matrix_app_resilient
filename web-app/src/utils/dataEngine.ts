@@ -1,5 +1,5 @@
 import { getStartOfWeek } from './dateUtils';
-import { Project, Session, Attribute } from '../types';
+import { Project, Attribute } from '../types';
 
 export const generateFocusData = (
     projects: Project[],

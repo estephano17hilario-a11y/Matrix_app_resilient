@@ -58,6 +58,7 @@ export interface Habit {
   totalCompletions: number;
   frequency: string;
   type: 'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN';
+  iconName?: string;
   targetValue?: number;
   currentValue?: number;
   unit?: string;

@@ -48,8 +48,10 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
       if (!item.id) {
           console.warn(`[Persistence] Attempted to save ${collectionName} without ID. Generating one.`);
           // Create a new reference with auto-generated ID if missing
-          const ref = doc(collection(db as Firestore, 'users', userId, collectionName));
-          const cleanItem = sanitizeFirestoreData({ ...item, id: ref.id });
+          // Use a simple random ID generator to avoid dependency issues
+          const newId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          const ref = doc(db as Firestore, 'users', userId, collectionName, newId);
+          const cleanItem = sanitizeFirestoreData({ ...item, id: newId });
           await setDoc(ref, cleanItem, { merge: true });
           return;
       }

@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   signInWithEmailAndPassword as firebaseSignIn,
   signInWithPopup as firebasePopup,
+  signInWithRedirect as firebaseSignInWithRedirect,
   signInWithCredential as firebaseSignInWithCredential,
   getRedirectResult as firebaseGetRedirectResult,
   createUserWithEmailAndPassword as firebaseCreate,
@@ -61,13 +62,48 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const isConfigValid = 
-  firebaseConfig.apiKey && 
-  firebaseConfig.apiKey.length > 20 &&
-  !firebaseConfig.apiKey.includes('your_api_key');
+const isValidEnvValue = (value?: string) => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return false;
+  if (trimmed.includes('your_')) return false;
+  return true;
+};
+
+const requiredConfig = {
+  apiKey: firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  appId: firebaseConfig.appId
+};
+
+const missingKeys = Object.entries(requiredConfig)
+  .filter(([, value]) => !isValidEnvValue(value))
+  .map(([key]) => key);
+
+const isConfigValid = missingKeys.length === 0;
 
 // --- 1.5 FORCE OFFLINE OVERRIDE ---
 const forceOffline = localStorage.getItem('MATRIX_FORCE_OFFLINE') === 'true';
+
+// --- HELPER: PROMISE TIMEOUT WRAPPER ---
+const withTimeout = <T>(promise: Promise<T>, ms: number, opName: string): Promise<T> => {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error(`TIMEOUT: ${opName} took too long (> ${ms/1000}s). Check connection.`));
+        }, ms);
+
+        promise
+            .then(res => {
+                clearTimeout(timer);
+                resolve(res);
+            })
+            .catch(err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+    });
+};
 
 // --- 2. SINGLETON INSTANCES ---
 let app: FirebaseApp;
@@ -139,7 +175,8 @@ export { app, auth, db, messaging, getToken, onMessage };
 
 export const configStatus = {
     isValid: !!isConfigValid,
-    hasKeys: Object.keys(firebaseConfig).length > 0
+    hasKeys: Object.keys(firebaseConfig).length > 0,
+    missingKeys
 };
 
 import { 
@@ -189,7 +226,9 @@ export const signInWithEmailAndPassword = async (authInstance: any, email: strin
         }
         return { user };
     }
-    return firebaseSignIn(authInstance, email, pass);
+    if (!authInstance) throw new Error("Auth System Offline (Not Initialized)");
+    // INCREASED TIMEOUT: 15s -> 60s to accommodate slow networks/hardware
+    return withTimeout(firebaseSignIn(authInstance, email, pass), 60000, "Login");
 };
 
 export const signInWithPopup = async (authInstance: any, provider: any) => {
@@ -209,7 +248,8 @@ export const signInWithPopup = async (authInstance: any, provider: any) => {
         }
         return { user: PHANTOM_USER };
     }
-    return firebasePopup(authInstance, provider);
+    if (!authInstance) throw new Error("Auth System Offline (Not Initialized)");
+    return withTimeout(firebasePopup(authInstance, provider), 60000, "Google Login");
 };
 
 export const signInWithCredential = async (authInstance: any, credential: any) => {
@@ -217,14 +257,20 @@ export const signInWithCredential = async (authInstance: any, credential: any) =
          console.warn("🛡️ PHANTOM AUTH: Simulating Credential Login...");
          return signInWithPopup(authInstance, credential);
     }
-    return firebaseSignInWithCredential(authInstance, credential);
+    // INCREASED TIMEOUT: 15s -> 60s
+    return withTimeout(firebaseSignInWithCredential(authInstance, credential), 60000, "Credential Login");
 };
 
 export const signInWithRedirect = async (authInstance: any, provider: any) => {
-    // 🛡️ FORCE OVERRIDE: Redirect is dangerous on partitioned storage environments (Brave, Incognito).
-    // We forcibly upgrade this call to Popup to prevent the "Missing Initial State" crash.
-    console.warn("⚠️ MATRIX CORE: signInWithRedirect intercepted. Upgrading to signInWithPopup for stability.");
-    return signInWithPopup(authInstance, provider);
+    if (authInstance?._isMock) {
+        return signInWithPopup(authInstance, provider);
+    }
+    if (!authInstance) throw new Error("Auth System Offline (Not Initialized)");
+    
+    // DIRECT SYSTEM CALL: No timeouts.
+    // We trust the browser/OS to handle the navigation.
+    // Adding a timeout here causes false negatives on slow systems or specific OS interruptions (Windows Hello).
+    return firebaseSignInWithRedirect(authInstance, provider);
 };
 
 export const getRedirectResult = async (authInstance: any) => {
@@ -232,12 +278,17 @@ export const getRedirectResult = async (authInstance: any) => {
         return null;
     }
     try {
-        return await firebaseGetRedirectResult(authInstance);
+        // INCREASED TIMEOUT: 10s -> 30s for safety on slow reloads
+        return await withTimeout(firebaseGetRedirectResult(authInstance), 30000, "Redirect Check");
     } catch (e: any) {
         // Silently handle the "missing initial state" error at the lowest level
         if (e.code === 'auth/missing-initial-state') {
             console.debug("⚠️ MATRIX CORE: Suppressed 'missing initial state' error.");
             return null;
+        }
+        // Suppress timeout on redirect check (it happens on load)
+        if (e.message?.includes('TIMEOUT')) {
+             return null;
         }
         throw e;
     }
@@ -267,7 +318,10 @@ export const createUserWithEmailAndPassword = async (authInstance: any, email: s
         }
         return { user };
     }
-    return firebaseCreate(authInstance, email, pass);
+    if (!authInstance) throw new Error("Auth System Offline (Not Initialized)");
+    // INCREASED TIMEOUT: 8s -> 60s. Users reported "Registration took too long (> 8s)".
+    // This allows system/network delays without false negatives.
+    return withTimeout(firebaseCreate(authInstance, email, pass), 60000, "Registration");
 };
 
 export const signOut = async (authInstance: any) => {

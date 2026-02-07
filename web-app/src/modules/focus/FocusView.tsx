@@ -8,7 +8,6 @@ import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AuroraBackground } from '../../components/AuroraBackground';
-import { Heart } from 'lucide-react';
 
 export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro }: { 
     projects: Project[], 

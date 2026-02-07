@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { AuthContext } from './AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
 import { boostColorSaturation } from '../utils/colorUtils';
@@ -18,9 +18,9 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // We use useAuth conditionally or handle null if ThemeProvider is outside AuthProvider
-  // Ideally ThemeProvider is inside AuthProvider to access user
-  const auth = useAuth(); // This might throw if ThemeProvider is outside AuthProvider
+  // We use useContext(AuthContext) directly to avoid throwing if ThemeProvider is outside AuthProvider
+  // This prevents crashes during HMR updates or misconfiguration
+  const auth = useContext(AuthContext);
   const user = auth?.user;
   const profile = auth?.profile; // Access full profile to get avatarId
   const [vicesMode, setVicesMode] = useState(false);

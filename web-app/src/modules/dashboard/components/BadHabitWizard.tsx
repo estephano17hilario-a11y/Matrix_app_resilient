@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Clock, ShieldAlert, Skull } from 'lucide-react';
+import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame } from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
 
 interface BadHabitWizardProps {
@@ -10,17 +10,36 @@ interface BadHabitWizardProps {
     attributes: Attribute[];
 }
 
-// --- AURORA BACKGROUND COMPONENT ---
-const AuroraBackground = () => (
+// --- OPTIMIZED AURORA BACKGROUND (Zero Cost) ---
+// Uses radial gradients instead of CSS Blur filters for 60 FPS
+const AmbientBackground = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] animate-pulse-slow delay-1000" />
-        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-fuchsia-600/10 rounded-full blur-[120px] animate-pulse-slow delay-2000" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.15)_0%,_transparent_50%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.15)_0%,_transparent_50%)]" />
     </div>
 );
 
-// --- SPRING CONFIG ---
-const springTransition = { type: "spring" as const, stiffness: 300, damping: 30, mass: 1 };
+// --- SPRING CONFIGURATION (iOS "Fluid" Physics) ---
+const springConfig = { type: "spring" as const, stiffness: 400, damping: 30, mass: 1 };
+const slideVariants = {
+    enter: (direction: number) => ({
+        x: direction > 0 ? 20 : -20, // Reduced distance for faster feel
+        opacity: 0,
+        scale: 0.99
+    }),
+    center: {
+        zIndex: 1,
+        x: 0,
+        opacity: 1,
+        scale: 1
+    },
+    exit: (direction: number) => ({
+        zIndex: 0,
+        x: direction < 0 ? 20 : -20,
+        opacity: 0,
+        scale: 0.99
+    })
+};
 
 export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     isOpen,
@@ -28,7 +47,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     onConfirm,
     attributes
 }) => {
-    const [step, setStep] = useState(1); // 1: Identity, 2: Reason, 3: Cost & Calculation
+    const [step, setStep] = useState(1);
+    const [direction, setDirection] = useState(0);
     
     // Form Data
     const [title, setTitle] = useState('');
@@ -42,36 +62,45 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     useEffect(() => {
         if (!isOpen) {
-            // Reset form
-            setStep(1);
-            setTitle('');
-            setAttribute('');
-            setReason('');
-            setNegativeImpact('');
-            setTimeConsumed(0);
+            const timer = setTimeout(() => {
+                setStep(1);
+                setTitle('');
+                setAttribute('');
+                setReason('');
+                setNegativeImpact('');
+                setTimeConsumed(0);
+                setDirection(0);
+            }, 300);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
     useEffect(() => {
-        // Calculate Penalties Logic
-        const baseHp = 10;
         const timePenalty = Math.floor(timeConsumed / 10);
-        const totalHp = baseHp + timePenalty;
-        
-        // XP Penalty increases significantly with time to discourage long bad habits
-        const totalXp = 50 + (timeConsumed * 2); 
-        
-        // Gold cost is high to make "paying it off" a luxury
+        const totalHp = 10 + timePenalty;
+        const totalXp = 50 + (timeConsumed * 2);
         const goldCost = totalXp * 2;
-
-        setPenalties({
-            hp: totalHp,
-            xp: totalXp,
-            gold: goldCost
-        });
+        setPenalties({ hp: totalHp, xp: totalXp, gold: goldCost });
     }, [timeConsumed]);
 
+    const handleNext = () => {
+        if (step < 3) {
+            setDirection(1);
+            setStep(s => s + 1);
+        } else {
+            handleConfirm();
+        }
+    };
+
+    const handleBack = () => {
+        if (step > 1) {
+            setDirection(-1);
+            setStep(s => s - 1);
+        }
+    };
+
     const handleConfirm = () => {
+        // Dopamine Trigger could go here (Haptic/Sound)
         onConfirm({
             title,
             attribute,
@@ -83,275 +112,278 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         onClose();
     };
 
+    const isStepValid = () => {
+        if (step === 1) return title.length > 2 && attribute;
+        if (step === 2) return reason.length > 5;
+        return true;
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-[#020204]/90 backdrop-blur-md" 
-                onClick={onClose}
-            />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans">
+                    {/* 1. BACKDROP - Optimized: Reduced Opacity, No Blur needed if BG is dark enough */}
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 bg-[#050505]/60 backdrop-blur-[2px]"
+                        onClick={onClose}
+                    />
 
-            {/* Main Modal - "Sentient Glass" */}
-            <motion.div 
-                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-                animate={{ scale: 1, opacity: 1, y: 0 }} 
-                transition={springTransition}
-                className="relative w-full max-w-2xl overflow-hidden rounded-[32px] border border-white/10 shadow-[0_20px_50px_-12px_rgba(79,70,229,0.15)]"
-            >
-                {/* Glass Layer */}
-                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-lg" />
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-                
-                <AuroraBackground />
+                    {/* 2. MODAL - "Sentient Glass" */}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={springConfig}
+                        className="relative w-full max-w-lg bg-[#0f0f11] rounded-[32px] shadow-2xl overflow-hidden border border-white/10 ring-1 ring-white/5"
+                    >
+                        {/* Fake Glass Highlights */}
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-100" />
+                        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
+                        <AmbientBackground />
 
-                {/* Content Container */}
-                <div className="relative p-8 flex flex-col h-full min-h-[500px]">
-                    
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            <motion.h2 
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="text-3xl font-bold text-white tracking-tight drop-shadow-md"
-                            >
-                                Protocolo de Purga
-                            </motion.h2>
-                            <p className="text-white/60 font-medium mt-1">Identifica y neutraliza la anomalía.</p>
-                        </div>
-                        <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
-                            <X size={24} />
-                        </button>
-                    </div>
-
-                    {/* Progress Indicator */}
-                    <div className="flex gap-2 mb-8">
-                        {[1, 2, 3].map((s) => (
-                            <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} />
-                        ))}
-                    </div>
-
-                    {/* Steps */}
-                    <div className="flex-1">
-                        <AnimatePresence mode="wait">
-                            {step === 1 && (
-                                <motion.div 
-                                    key="step1"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={springTransition}
-                                    className="space-y-6"
-                                >
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-indigo-300 ml-1">NOMBRE DE LA ANOMALÍA</label>
-                                        <input 
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            placeholder="Ej: Scroll Infinito, Fumar, Procrastinar..."
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl text-white placeholder-white/20 focus:outline-none focus:bg-white/10 focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-inner"
-                                            autoFocus
-                                        />
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-medium text-indigo-300 ml-1">SISTEMA AFECTADO (RASGO)</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {attributes.map(attr => (
-                                                <button
-                                                    key={attr.id}
-                                                    onClick={() => setAttribute(attr.id)}
-                                                    className={`relative group overflow-hidden p-4 rounded-2xl border text-left transition-all ${
-                                                        attribute === attr.id 
-                                                        ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.2)]' 
-                                                        : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-lg ${attribute === attr.id ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/60'}`}>
-                                                            {/* Assuming Icon is component or we use generic */}
-                                                            <Zap size={18} />
-                                                        </div>
-                                                        <span className={`font-bold ${attribute === attr.id ? 'text-white' : 'text-white/60'}`}>
-                                                            {attr.label}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ))}
+                        <div className="relative flex flex-col min-h-[580px]">
+                            
+                            {/* Header - Apple Style */}
+                            <div className="px-8 pt-8 pb-2 flex justify-between items-center z-10">
+                                <div>
+                                    <motion.div 
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="flex items-center gap-2 mb-1"
+                                    >
+                                        <div className="p-1 bg-rose-500/20 rounded-md">
+                                            <Skull size={14} className="text-rose-400" />
                                         </div>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            {step === 2 && (
-                                <motion.div 
-                                    key="step2"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={springTransition}
-                                    className="space-y-6"
+                                        <span className="text-xs font-bold text-rose-400 tracking-wider uppercase">Protocolo de Purga</span>
+                                    </motion.div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                                        {step === 1 && "Identificar Anomalía"}
+                                        {step === 2 && "Diagnóstico del Fallo"}
+                                        {step === 3 && "Ejecutar Eliminación"}
+                                    </h2>
+                                </div>
+                                <motion.button 
+                                    whileHover={{ scale: 1.1, rotate: 90 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={onClose} 
+                                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors border border-white/5"
                                 >
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-indigo-300 ml-1">RAZÓN DE PURGA</label>
-                                        <textarea 
-                                            value={reason}
-                                            onChange={(e) => setReason(e.target.value)}
-                                            placeholder="¿Por qué debes eliminar esto de tu sistema?"
-                                            className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-white/10 focus:ring-2 focus:ring-indigo-500/30 transition-all resize-none shadow-inner"
-                                        />
-                                    </div>
+                                    <X size={18} />
+                                </motion.button>
+                            </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-rose-300 ml-1">IMPACTO EN TU VIDA</label>
-                                        <textarea 
-                                            value={negativeImpact}
-                                            onChange={(e) => setNegativeImpact(e.target.value)}
-                                            placeholder="Describe el daño que causa..."
-                                            className="w-full h-32 bg-rose-900/10 border border-rose-500/20 rounded-2xl px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-rose-900/20 focus:ring-2 focus:ring-rose-500/30 transition-all resize-none shadow-inner"
-                                        />
-                                    </div>
-                                </motion.div>
-                            )}
+                            {/* Minimal Progress */}
+                            <div className="px-8 mt-4 mb-8">
+                                <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
+                                    <motion.div 
+                                        initial={{ width: "33%" }}
+                                        animate={{ width: `${(step / 3) * 100}%` }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="h-full bg-gradient-to-r from-indigo-500 to-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                                    />
+                                </div>
+                            </div>
 
-                            {step === 3 && (
-                                <motion.div 
-                                    key="step3"
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={springTransition}
-                                    className="space-y-8"
-                                >
-                                    <div className="space-y-4">
-                                        <label className="text-sm font-medium text-indigo-300 ml-1 uppercase tracking-wider">Tiempo Perdido por Incidente</label>
-                                        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex items-center gap-6">
-                                            <div className="p-4 bg-indigo-500/20 rounded-2xl text-indigo-400">
-                                                <Clock size={32} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <input 
-                                                    type="range" 
-                                                    min="0" 
-                                                    max="240" 
-                                                    step="5"
-                                                    value={timeConsumed}
-                                                    onChange={(e) => setTimeConsumed(Number(e.target.value))}
-                                                    className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                                />
-                                                <div className="flex justify-between mt-2 text-xs text-white/40 font-mono">
-                                                    <span>0m</span>
-                                                    <span>120m</span>
-                                                    <span>240m+</span>
+                            {/* Content Area */}
+                            <div className="flex-1 px-8 relative overflow-hidden">
+                                <AnimatePresence initial={false} custom={direction} mode="wait">
+                                    {step === 1 && (
+                                        <motion.div
+                                            key="step1"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            className="space-y-8 h-full"
+                                        >
+                                            <div className="space-y-4">
+                                                <label className="text-sm font-medium text-white/60 ml-1">
+                                                    ¿Qué hábito deseas eliminar?
+                                                </label>
+                                                <div className="relative group">
+                                                    <input 
+                                                        value={title}
+                                                        onChange={(e) => setTitle(e.target.value)}
+                                                        placeholder="Ej: Fumar, TikTok..."
+                                                        className="w-full bg-transparent border-b-2 border-white/10 px-2 py-4 text-3xl font-bold text-white placeholder-white/10 focus:outline-none focus:border-rose-500 transition-colors"
+                                                        autoFocus
+                                                    />
                                                 </div>
                                             </div>
-                                            <div className="w-24 text-right">
-                                                <span className="text-3xl font-mono font-bold text-white">{timeConsumed}</span>
-                                                <span className="text-sm text-white/60 ml-1">min</span>
+
+                                            <div className="space-y-4">
+                                                <label className="text-sm font-medium text-white/60 ml-1">
+                                                    Afecta a tu atributo:
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-3 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
+                                                    {attributes.map(attr => (
+                                                        <motion.button
+                                                            key={attr.id}
+                                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => setAttribute(attr.id)}
+                                                            className={`relative p-4 rounded-xl border text-left transition-all duration-200 group ${
+                                                                attribute === attr.id 
+                                                                ? 'bg-rose-500/10 border-rose-500/50 ring-1 ring-rose-500/20' 
+                                                                : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-2 rounded-lg transition-colors ${attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/5 text-white/40 group-hover:bg-white/10'}`}>
+                                                                    <Zap size={18} />
+                                                                </div>
+                                                                <span className={`text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
+                                                                    {attr.label}
+                                                                </span>
+                                                            </div>
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        </motion.div>
+                                    )}
 
-                                    {/* The Calculation Result */}
-                                    <div className="space-y-4">
-                                        <label className="text-sm font-medium text-rose-300 ml-1 uppercase tracking-wider flex items-center gap-2">
-                                            <ShieldAlert size={14} />
-                                            Análisis de Consecuencias
-                                        </label>
-                                        
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {/* HP Penalty */}
-                                            <motion.div 
-                                                className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden group"
-                                                whileHover={{ scale: 1.05 }}
-                                            >
-                                                <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors" />
-                                                <span className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-1">HP Damage</span>
-                                                <span className="text-3xl font-mono font-black text-white drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]">
-                                                    -{penalties.hp}
-                                                </span>
-                                            </motion.div>
+                                    {step === 2 && (
+                                        <motion.div
+                                            key="step2"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            className="space-y-6 h-full"
+                                        >
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-white/60 ml-1">
+                                                    ¿Por qué quieres dejarlo?
+                                                </label>
+                                                <textarea 
+                                                    value={reason}
+                                                    onChange={(e) => setReason(e.target.value)}
+                                                    placeholder="Escribe tu razón principal..."
+                                                    className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all resize-none"
+                                                />
+                                            </div>
 
-                                            {/* XP Penalty */}
-                                            <motion.div 
-                                                className="bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden group"
-                                                whileHover={{ scale: 1.05 }}
-                                            >
-                                                <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors" />
-                                                <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">XP Loss</span>
-                                                <span className="text-3xl font-mono font-black text-white drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">
-                                                    -{penalties.xp}
-                                                </span>
-                                            </motion.div>
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-rose-400 ml-1 flex items-center gap-2">
+                                                    <AlertTriangle size={14} />
+                                                    Impacto Negativo (Visualízalo)
+                                                </label>
+                                                <textarea 
+                                                    value={negativeImpact}
+                                                    onChange={(e) => setNegativeImpact(e.target.value)}
+                                                    placeholder="¿Qué pasará si no te detienes?"
+                                                    className="w-full h-32 bg-rose-500/5 border border-rose-500/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-rose-500/10 focus:border-rose-500/30 transition-all resize-none"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
 
-                                            {/* Gold Cost */}
-                                            <motion.div 
-                                                className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden group"
-                                                whileHover={{ scale: 1.05 }}
-                                            >
-                                                <div className="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors" />
-                                                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-1">Bail Cost</span>
-                                                <span className="text-3xl font-mono font-black text-white drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">
-                                                    {penalties.gold}
-                                                </span>
-                                            </motion.div>
-                                        </div>
-                                        <p className="text-center text-xs text-white/40 italic">
-                                            "El precio de la libertad es la vigilancia eterna."
-                                        </p>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                                    {step === 3 && (
+                                        <motion.div
+                                            key="step3"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            className="h-full flex flex-col"
+                                        >
+                                            <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-6 mb-6">
+                                                <h3 className="text-lg font-semibold text-rose-200 mb-4 flex items-center gap-2">
+                                                    <Flame className="text-rose-500" size={20} />
+                                                    Penalización por Recaída
+                                                </h3>
+                                                <div className="space-y-6">
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-white/60">Tiempo perdido por sesión</span>
+                                                            <span className="text-white font-mono">{timeConsumed} min</span>
+                                                        </div>
+                                                        <input 
+                                                            type="range" 
+                                                            min="0" 
+                                                            max="120" 
+                                                            step="5"
+                                                            value={timeConsumed}
+                                                            onChange={(e) => setTimeConsumed(parseInt(e.target.value))}
+                                                            className="w-full accent-rose-500 h-2 bg-white/10 rounded-full appearance-none cursor-pointer"
+                                                        />
+                                                    </div>
 
-                    {/* Footer / Navigation */}
-                    <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-white/5">
-                        {step > 1 && (
-                            <button 
-                                onClick={() => setStep(step - 1)}
-                                className="px-6 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/5 transition-colors font-medium"
-                            >
-                                Atrás
-                            </button>
-                        )}
-                        
-                        {step < 3 ? (
-                            <button 
-                                onClick={() => {
-                                    if (step === 1 && (!title || !attribute)) return;
-                                    if (step === 2 && (!reason || !negativeImpact)) return;
-                                    setStep(step + 1);
-                                }}
-                                disabled={
-                                    (step === 1 && (!title || !attribute)) ||
-                                    (step === 2 && (!reason || !negativeImpact))
-                                }
-                                className="px-8 py-3 bg-white text-black rounded-full font-bold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
-                            >
-                                Siguiente
-                            </button>
-                        ) : (
-                            <button 
-                                onClick={handleConfirm}
-                                className="relative group overflow-hidden px-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:scale-105 active:scale-95 transition-all"
-                            >
-                                <span className="relative z-10 flex items-center gap-2">
-                                    <Skull size={18} />
-                                    Inicializar Protocolo
-                                </span>
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            </button>
-                        )}
-                    </div>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
+                                                            <div className="text-xs text-white/40 mb-1">Daño HP</div>
+                                                            <div className="text-xl font-bold text-rose-500">-{penalties.hp}</div>
+                                                        </div>
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
+                                                            <div className="text-xs text-white/40 mb-1">Pérdida XP</div>
+                                                            <div className="text-xl font-bold text-orange-500">-{penalties.xp}</div>
+                                                        </div>
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
+                                                            <div className="text-xs text-white/40 mb-1">Costo Oro</div>
+                                                            <div className="text-xl font-bold text-yellow-500">-{penalties.gold}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-center space-y-2 mt-auto mb-4">
+                                                <p className="text-sm text-white/40">
+                                                    "La única forma de ganar es no jugar."
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Footer / Navigation */}
+                            <div className="p-8 pt-4 flex justify-between items-center bg-gradient-to-t from-[#0f0f11] to-transparent">
+                                {step > 1 ? (
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleBack}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                                    >
+                                        <ChevronLeft size={20} />
+                                        <span className="font-medium">Atrás</span>
+                                    </motion.button>
+                                ) : <div />}
+
+                                <motion.button
+                                    whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(244,63,94,0.3)" }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleNext}
+                                    disabled={!isStepValid()}
+                                    className={`
+                                        flex items-center gap-2 px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-all
+                                        ${isStepValid() 
+                                            ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-rose-900/20' 
+                                            : 'bg-white/10 text-white/20 cursor-not-allowed'}
+                                    `}
+                                >
+                                    <span>{step === 3 ? 'Activar Protocolo' : 'Continuar'}</span>
+                                    {step < 3 && <ChevronRight size={20} />}
+                                    {step === 3 && <ShieldAlert size={20} />}
+                                </motion.button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
-            </motion.div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 };
-

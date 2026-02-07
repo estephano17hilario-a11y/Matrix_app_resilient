@@ -84,7 +84,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', onUpdateLevel }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, avatarId, avatarShape = 'CIRCLE', onUpdateLevel }: AvatarWidgetProps) => {
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;

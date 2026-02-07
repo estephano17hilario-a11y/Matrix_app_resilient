@@ -3,7 +3,7 @@ import { useMatrix } from '@/context/MatrixContext';
 import { useAuth } from '@/context/AuthContext';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
-import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon } from 'lucide-react';
+import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon, Skull } from 'lucide-react';
 import { 
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
@@ -1279,6 +1279,16 @@ export const useDashboardLogic = () => {
         setActiveModal(null);
     }, [user, habits]);
 
+    const handleHabitUpdate = useCallback((habitId: string, data: Partial<Habit>) => {
+        if (!habitId) return;
+        setHabits(prev => prev.map(h => h.id === habitId ? { ...h, ...data } as Habit : h));
+        if (user?.uid) {
+            persistenceService.habits.update(user.uid, habitId, data as Habit).catch((error) => {
+                console.error("Error updating habit:", error);
+            });
+        }
+    }, [user?.uid]);
+
     const handleDeleteHabit = useCallback(async (habitId: string) => {
         if (!user) return;
         setHabits(prev => prev.filter(h => h.id !== habitId));
@@ -1395,6 +1405,17 @@ export const useDashboardLogic = () => {
     const handleBadHabitConfirm = useCallback(async (data: Partial<BadHabit>) => {
         if (!user?.uid) return;
 
+        // ⚡ DOPAMINE TRIGGER: Visual Confirmation
+        addNotification({ 
+            type: 'ACHIEVEMENT', 
+            label: 'PROTOCOL INITIATED', 
+            fromLevel: 'Anomaly', 
+            toLevel: 'Targeted', 
+            icon: Skull, 
+            color: '#f43f5e' 
+        });
+        spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#f43f5e', Skull);
+
         const badHabit: BadHabit = {
             id: data.id || Date.now().toString(),
             streak: 0,
@@ -1418,7 +1439,7 @@ export const useDashboardLogic = () => {
 
         await persistenceService.badHabits.save(user.uid, badHabit);
         setActiveModal(null);
-    }, [user?.uid]);
+    }, [user?.uid, addNotification, spawnParticles]);
 
     const handleBadHabitRelapse = useCallback(async (habit: BadHabit, paymentMethod: 'GOLD' | 'HP') => {
         if (!user?.uid) return;
@@ -1519,6 +1540,7 @@ export const useDashboardLogic = () => {
         handleQuestConfirm,
         handleDeleteQuest,
         handleHabitConfirm,
+        handleHabitUpdate,
         handleDeleteHabit,
         handleProjectConfirm,
         handleDeleteProject,

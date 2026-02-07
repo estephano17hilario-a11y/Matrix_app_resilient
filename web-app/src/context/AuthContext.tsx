@@ -12,6 +12,7 @@ import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
+import { PersistenceService } from '../services/persistence';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -30,35 +31,24 @@ interface AuthContextType {
   updateProfileLocally: (updates: Partial<UserProfile>) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  
+  // 🧠 MEMORY CORE: Boot directly from Persistence
   const [profile, setProfile] = useState<UserProfile | null>(() => {
-    // OPTIMISTIC CACHE: Try to load from localStorage for instant UI
-    try {
-      const cached = localStorage.getItem('MATRIX_CACHED_PROFILE');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
+    return PersistenceService.getProfile();
   });
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const saveProfileToCache = (p: UserProfile) => {
-    try {
-      localStorage.setItem('MATRIX_CACHED_PROFILE', JSON.stringify(p));
-    } catch (e) {
-      console.warn("Cache failed", e);
-    }
-  };
 
   const updateProfileLocally = (updates: Partial<UserProfile>) => {
     if (!profile) return;
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
-    saveProfileToCache(newProfile);
+    PersistenceService.saveProfile(newProfile);
     console.log("⚡ MATRIX: Profile updated locally (Optimistic)", updates);
   };
 
@@ -68,13 +58,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-         const data = userSnap.data() as UserProfile;
-         // ⚡ OVERRIDE: Global PRO
-         if (ENABLE_GLOBAL_PRO) {
-             data.plan = 'PRO';
-         }
-         setProfile(data);
-         saveProfileToCache(data);
+        const data = userSnap.data() as UserProfile;
+        if (ENABLE_GLOBAL_PRO) {
+            data.plan = 'PRO';
+        }
+        setProfile(data);
+        PersistenceService.saveProfile(data);
       }
     } catch (e) {
       console.error("Error refreshing profile:", e);
@@ -84,9 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
-      localStorage.removeItem('MATRIX_CACHED_PROFILE');
+      // We do NOT clear profile here immediately to allow for "offline" access if needed,
+      // but standard logout implies clearing session.
+      PersistenceService.clearProfile();
+      
       try {
-          // Attempt to flush pending writes
           await Promise.race([
               waitForPendingWrites(db),
               new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 3000))
@@ -99,20 +90,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut(auth);
       setUser(null);
       setProfile(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Logout Error:", error);
+      setError(error.message);
     }
   };
 
   useEffect(() => {
-    // MATRIX LINK INITIALIZATION
-
-    // SAFETY NET: Force stop loading after 8 seconds if nothing happens
+    // SAFETY NET: Force stop loading after 45 seconds (Extended for Hardware Keys / Slow Connections)
     const safetyTimer = setTimeout(() => {
         setIsLoading(prev => {
             if (prev) {
-                console.warn("⚠️ MATRIX CORE: Auth timeout triggered (8000ms). Forcing entry.");
-                // Check if we are online before assuming timeout error
+                console.warn("⚠️ MATRIX CORE: Auth timeout triggered. Forcing entry.");
                 if (navigator.onLine) {
                     setError("Connection slow. Entering Offline Mode.");
                 }
@@ -120,26 +109,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             return prev;
         });
-    }, 8000);
-    
-    // INTENT TO WAIT FOR AUTH READY (If available in SDK)
-    const initAuth = async () => {
-        if ((auth as any).authStateReady) {
-            try {
-                await (auth as any).authStateReady();
-                console.log("✅ MATRIX: Auth State Ready confirmed.");
-            } catch (e: any) {
-                console.warn("⚠️ MATRIX: Auth State Ready error:", e);
-            }
-        }
-    };
+    }, 45000);
 
-    initAuth();
-
-    // SAFEGUARD: If Config is invalid, we proceed in PHANTOM MODE (Mock)
+    // SAFEGUARD: Mock Mode
     if (!configStatus.isValid) {
         console.warn("⚠️ MATRIX CORE: RUNNING IN PHANTOM MODE (No Firebase Config)");
-        // We do NOT return here anymore. The wrapped onAuthStateChanged handles the mock.
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser: User | null) => {
@@ -148,99 +122,93 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // LOGOUT / NO SESSION
           setUser(null);
           
-          // INTELLIGENT SESSION HANDLING:
-          // If we have a cached profile in localStorage, it means we did NOT explicitly logout.
-          // In this case, we keep the profile in state to show the UI (Offline Mode / Zombie Mode)
-          // instead of flashing the Login screen.
-          const cached = localStorage.getItem('MATRIX_CACHED_PROFILE');
+          // ZOMBIE MODE CHECK
+          const cached = PersistenceService.getProfile();
           if (!cached) {
-              // Only clear profile if we truly have no local session data (Clean Logout)
               setProfile(null);
           } else {
               console.log("ℹ️ MATRIX: User is null but Profile exists. Entering Zombie/Offline Mode.");
           }
           
-          // Only stop loading if we are NOT waiting for a potential auth restoration
-          // We rely on authStateReady for the initial load, but this handles subsequent updates
           setIsLoading(false); 
           return;
         }
 
-        // LOGIN DETECTED - SET USER IMMEDIATELY
+        // LOGIN DETECTED
         setUser(currentUser);
+        setError(null);
         
-        // OPTIMISTIC: If we don't have a profile yet, create a skeleton so the UI doesn't hang
+        // OPTIMISTIC: If cached profile matches, use it while syncing
         if (!profile || profile.uid !== currentUser.uid) {
-            const skeletonProfile: UserProfile = {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
-                photoURL: currentUser.photoURL,
-                plan: 'FREE',
-                archetype: 'NEO',
-                stats: DEFAULT_USER_STATS,
-                createdAt: Date.now(),
-                lastLoginAt: Date.now(),
-                theme: 'MATRIX',
-                onboarding: DEFAULT_ONBOARDING,
-                isSkeleton: true // 🛡️ MARK AS SKELETON TO PREVENT SYNC
-            };
-            setProfile(skeletonProfile);
+             const cached = PersistenceService.getProfile();
+             if (cached && cached.uid === currentUser.uid) {
+                 console.log("⚡ MATRIX: Restored cached profile.");
+                 setProfile(cached);
+             } else {
+                 // SKELETON (Prevent UI Hang)
+                 const skeletonProfile: UserProfile = {
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    displayName: currentUser.displayName || "Operator",
+                    photoURL: currentUser.photoURL,
+                    plan: 'FREE',
+                    archetype: 'NEO',
+                    stats: DEFAULT_USER_STATS,
+                    createdAt: Date.now(),
+                    lastLoginAt: Date.now(),
+                    theme: 'MATRIX',
+                    onboarding: DEFAULT_ONBOARDING,
+                    isSkeleton: true 
+                };
+                setProfile(skeletonProfile);
+             }
         }
 
-        // FAST PATH: Stop loading now if we have a basic profile (even if skeleton/cached)
+        // Unblock UI immediately
         setIsLoading(false);
         
-        // BACKGROUND HYDRATION: Fetch real data without blocking the UI
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
+        // BACKGROUND HYDRATION
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists()) {
-          const existingProfile = userSnap.data() as UserProfile;
-          
-          // Check for missing critical fields
-          if (!existingProfile.stats || !existingProfile.archetype || !existingProfile.onboarding) {
-             console.log("⚠️ MATRIX: Background Hydrating skeleton profile...");
-             const completeProfile = {
-                ...existingProfile,
-                stats: existingProfile.stats || DEFAULT_USER_STATS,
-                archetype: existingProfile.archetype || 'NEO',
-                plan: existingProfile.plan || 'FREE',
-                theme: existingProfile.theme || 'MATRIX',
-                createdAt: existingProfile.createdAt || Date.now(),
-                lastLoginAt: Date.now(),
-                onboarding: existingProfile.onboarding || DEFAULT_ONBOARDING
-             };
-             
-             // Async write, don't await
-             setDoc(userRef, completeProfile, { merge: true });
-             
-             if (ENABLE_GLOBAL_PRO) completeProfile.plan = 'PRO';
-             setProfile(completeProfile as UserProfile);
-             saveProfileToCache(completeProfile as UserProfile);
-          } else {
-             // Normal update
-             setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
-  
-             if (ENABLE_GLOBAL_PRO) existingProfile.plan = 'PRO';
-             const finalProfile = { ...existingProfile, lastLoginAt: Date.now() };
-             setProfile(finalProfile);
-             saveProfileToCache(finalProfile);
-          }
-        } else {
-          // NEW USER CASE CHECK
-          // 🛡️ PREVENT OVERWRITE: Only create new profile if account is actually new (created < 2 mins ago)
-          // If account is old but profile missing, it's likely a sync error or data corruption, NOT a new user.
-          const creationTime = currentUser.metadata.creationTime ? new Date(currentUser.metadata.creationTime).getTime() : Date.now();
-          const accountAge = Date.now() - creationTime;
-          const isTrulyNewAccount = accountAge < 120000; // 2 minutes buffer
-
-          if (isTrulyNewAccount) {
-              console.log("🆕 MATRIX: New recruit detected. Initializing neural link...");
+            if (userSnap.exists()) {
+              const existingProfile = userSnap.data() as UserProfile;
+              
+              // RECOVERY: Fix empty profiles
+              if (!existingProfile.stats || !existingProfile.archetype) {
+                 console.log("⚠️ MATRIX: Repairing corrupted profile...");
+                 const completeProfile = {
+                    ...existingProfile,
+                    stats: existingProfile.stats || DEFAULT_USER_STATS,
+                    archetype: existingProfile.archetype || 'NEO',
+                    plan: existingProfile.plan || 'FREE',
+                    theme: existingProfile.theme || 'MATRIX',
+                    createdAt: existingProfile.createdAt || Date.now(),
+                    lastLoginAt: Date.now(),
+                    onboarding: existingProfile.onboarding || DEFAULT_ONBOARDING
+                 };
+                 
+                 setDoc(userRef, completeProfile, { merge: true });
+                 if (ENABLE_GLOBAL_PRO) completeProfile.plan = 'PRO';
+                 
+                 setProfile(completeProfile as UserProfile);
+                 PersistenceService.saveProfile(completeProfile as UserProfile);
+              } else {
+                 // NORMAL SYNC
+                 setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
+                 if (ENABLE_GLOBAL_PRO) existingProfile.plan = 'PRO';
+                 
+                 const finalProfile = { ...existingProfile, lastLoginAt: Date.now() };
+                 setProfile(finalProfile);
+                 PersistenceService.saveProfile(finalProfile);
+              }
+            } else {
+              console.log("🆕 MATRIX: Creating missing profile.");
               const newUserProfile: UserProfile = {
                 uid: currentUser.uid,
                 email: currentUser.email,
-                displayName: currentUser.displayName || currentUser.email?.split('@')[0] || "Operator",
+                displayName: currentUser.displayName || "Operator",
                 photoURL: currentUser.photoURL,
                 plan: 'FREE',
                 archetype: 'NEO',
@@ -248,7 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: Date.now(),
                 lastLoginAt: Date.now(),
                 theme: 'MATRIX',
-                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 } // FORCE 0 for truly new users
+                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 }
               };
 
               const cleanProfile = sanitizeFirestoreData(newUserProfile);
@@ -256,17 +224,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               
               if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
               setProfile(newUserProfile);
-              saveProfileToCache(newUserProfile);
-          } else {
-              console.error("⚠️ MATRIX: CRITICAL - Profile missing for existing account. Preventing overwrite.");
-              // We keep the skeleton in memory so app doesn't crash, but we DO NOT save it.
-              // Ideally, we should show an error or retry fetching.
-          }
+              PersistenceService.saveProfile(newUserProfile);
+            }
+        } catch (err) {
+            console.error("🔥 MATRIX: Background Sync Failed", err);
         }
       } catch (err: any) {
         console.error("CRITICAL AUTH ERROR:", err);
         setError(err.message || "Failed to synchronize neural link.");
-      } finally {
         setIsLoading(false);
       }
     });

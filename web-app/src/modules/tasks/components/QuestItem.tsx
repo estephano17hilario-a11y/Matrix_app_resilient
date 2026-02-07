@@ -87,7 +87,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
         >
           <div className="flex items-center gap-4">
             <button 
-              onClick={(e) => { e.stopPropagation(); onComplete(e, quest); }} 
+              onClick={handleComplete} 
               className={cn(
                 "w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 active:scale-90",
                 quest.completed 

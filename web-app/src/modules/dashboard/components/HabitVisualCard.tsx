@@ -1,10 +1,59 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Flame, Trash2, Edit2 } from 'lucide-react';
+import {
+    Activity,
+    AlarmClock,
+    Anchor,
+    Aperture,
+    Award,
+    Backpack,
+    BatteryCharging,
+    Book,
+    Brain,
+    Briefcase,
+    Calendar,
+    Camera,
+    Check,
+    CheckSquare,
+    Clock,
+    Cloud,
+    Code,
+    Coffee,
+    Compass,
+    Cpu,
+    Dumbbell,
+    Edit2,
+    Feather,
+    Flame,
+    Gem,
+    Globe,
+    Heart,
+    Home,
+    Key,
+    Leaf,
+    Lightbulb,
+    Map,
+    Medal,
+    Minus,
+    Moon,
+    Mountain,
+    Music,
+    PenTool,
+    Rocket,
+    Shield,
+    Sparkles,
+    Star,
+    Sun,
+    Target,
+    Timer,
+    Trash2,
+    Trophy,
+    User,
+    Wallet,
+    Zap
+} from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
-import { HabitHeatmap } from './HabitHeatmap';
-import { HabitWeekView } from './HabitWeekView';
 
 interface HabitVisualCardProps {
     habit: Habit;
@@ -14,65 +63,147 @@ interface HabitVisualCardProps {
     onToggleDay: (h: Habit, date: string) => void;
     onDelete?: (id: string) => void;
     onEdit?: (habit: Habit) => void;
+    onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
+    onClick?: (habit: Habit) => void;
 }
 
-export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMode = 'GRID', attribute, onComplete, onToggleDay, onDelete, onEdit }) => {
-    const isCompleted = habit.completedToday;
-    
-    // Apple/HabitKit Neon Palette - Refined for "Glass" look
-    const NEON_COLORS = ['#d946ef', '#facc15', '#3b82f6', '#4ade80', '#f472b6', '#60a5fa'];
-    
-    const color = useMemo(() => {
+const ICON_LIBRARY = {
+    Activity,
+    AlarmClock,
+    Anchor,
+    Aperture,
+    Award,
+    Backpack,
+    BatteryCharging,
+    Book,
+    Brain,
+    Briefcase,
+    Calendar,
+    Camera,
+    CheckSquare,
+    Clock,
+    Cloud,
+    Code,
+    Coffee,
+    Compass,
+    Cpu,
+    Dumbbell,
+    Feather,
+    Flame,
+    Gem,
+    Globe,
+    Heart,
+    Home,
+    Key,
+    Leaf,
+    Lightbulb,
+    Map,
+    Medal,
+    Moon,
+    Mountain,
+    Music,
+    PenTool,
+    Rocket,
+    Shield,
+    Sparkles,
+    Star,
+    Sun,
+    Target,
+    Timer,
+    Trophy,
+    User,
+    Wallet,
+    Zap
+} as const;
+
+type IconName = keyof typeof ICON_LIBRARY;
+
+const ICON_CATEGORIES: { id: string; label: string; icons: IconName[] }[] = [
+    { id: 'focus', label: 'Enfoque', icons: ['Target', 'Timer', 'CheckSquare', 'Zap', 'Rocket', 'Trophy'] },
+    { id: 'mind', label: 'Mente', icons: ['Brain', 'Lightbulb', 'Compass', 'Map', 'Book', 'PenTool'] },
+    { id: 'health', label: 'Salud', icons: ['Dumbbell', 'Heart', 'Sun', 'Moon', 'Activity', 'Leaf'] },
+    { id: 'work', label: 'Trabajo', icons: ['Briefcase', 'Code', 'Cpu', 'Calendar', 'AlarmClock', 'Wallet'] },
+    { id: 'style', label: 'Estilo', icons: ['Sparkles', 'Feather', 'Gem', 'Aperture', 'Camera', 'Star'] },
+    { id: 'life', label: 'Vida', icons: ['Home', 'Globe', 'Mountain', 'Coffee', 'Cloud', 'Anchor'] }
+];
+
+export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMode = 'GRID', attribute, onComplete, onToggleDay: _onToggleDay, onDelete, onEdit, onUpdateHabit, onClick }) => {
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    void _onToggleDay;
+
+    const accentColor = useMemo(() => {
         if (habit.customColor) return habit.customColor;
         if (attribute?.color) return attribute.color;
-        let hash = 0;
-        const safeId = habit.id || 'default';
-        for (let i = 0; i < safeId.length; i++) {
-            hash = safeId.charCodeAt(i) + ((hash << 5) - hash);
+        return '#3b82f6';
+    }, [habit.customColor, attribute?.color]);
+
+    const SelectedIcon = useMemo(() => {
+        if (habit.iconName && ICON_LIBRARY[habit.iconName as IconName]) {
+            return ICON_LIBRARY[habit.iconName as IconName];
         }
-        return NEON_COLORS[Math.abs(hash) % NEON_COLORS.length];
-    }, [habit.id, attribute, habit.customColor]);
+        return attribute?.icon || Flame;
+    }, [habit.iconName, attribute?.icon]);
+
+    const progress = useMemo(() => {
+        if (habit.type === 'CHECKLIST') {
+            const total = habit.checklist?.length || 0;
+            const completed = habit.checklist?.filter(i => i.completed).length || 0;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            return {
+                percent,
+                detail: `${percent}% · ${completed}/${total}`,
+                state: percent === 100 ? 'complete' : percent > 0 ? 'partial' : 'empty'
+            };
+        }
+        if (habit.type === 'QUANTITY') {
+            const total = habit.targetValue || 0;
+            const current = habit.currentValue || 0;
+            const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            const detail = total > 0
+                ? `${percent}% · ${Math.min(current, total)}/${total} ${habit.unit || ''}`.trim()
+                : `${percent}% · ${current} ${habit.unit || ''}`.trim();
+            return {
+                percent,
+                detail,
+                state: percent === 100 ? 'complete' : percent > 0 ? 'partial' : 'empty'
+            };
+        }
+        const percent = habit.completedToday ? 100 : 0;
+        return {
+            percent,
+            detail: `${percent}%`,
+            state: percent === 100 ? 'complete' : 'empty'
+        };
+    }, [habit.type, habit.checklist, habit.targetValue, habit.currentValue, habit.unit, habit.completedToday]);
+
+    const checkboxClass = progress.state === 'complete'
+        ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
+        : progress.state === 'partial'
+            ? 'bg-yellow-500/15 border-yellow-400/40 text-yellow-300'
+            : 'bg-white/5 border-white/10 text-white/40';
+
+    const isWeek = viewMode === 'WEEK';
 
     return (
         <motion.div
-            layout
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative overflow-hidden rounded-[32px] bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-white/30 transition-all duration-300 backdrop-blur-xl shadow-2xl shadow-black/40"
-            style={{
-                borderColor: habit.customColor ? `${habit.customColor}60` : undefined,
-                boxShadow: habit.customColor ? `0 0 40px -10px ${habit.customColor}20, inset 0 0 20px -10px ${habit.customColor}10` : undefined
-            }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="group relative rounded-[28px] border border-white/10 bg-[#0b0b0d]/70 p-5 shadow-sm cursor-pointer"
+            onClick={() => onClick?.(habit)}
         >
-            {/* Custom Gradient Background - Stronger */}
-            {habit.customColor && (
-                <div 
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-                    style={{ 
-                        background: `linear-gradient(135deg, ${habit.customColor}20, transparent 80%)`,
-                        opacity: 0.6
-                    }}
-                />
-            )}
+            <div className="absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
 
-            {/* Subtle Ambient Glow - Reduced opacity */}
-            <div 
-                className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none transition-colors duration-500"
-                style={{ backgroundColor: color }} 
-            />
-
-            {/* Action Buttons (Visible on Hover) */}
-            <div className="absolute top-4 right-4 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+            <div className="absolute top-4 right-4 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {onEdit && (
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onEdit(habit);
                         }}
-                        className="p-1.5 rounded-full bg-black/40 text-white/50 hover:text-white hover:bg-black/60 transition-all duration-200 backdrop-blur-md border border-white/10"
-                        title="Edit Habit"
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white transition-colors"
                     >
-                        <Edit2 size={12} />
+                        <Edit2 size={14} />
                     </button>
                 )}
                 {onDelete && (
@@ -83,100 +214,118 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                                 onDelete(habit.id);
                             }
                         }}
-                        className="p-1.5 rounded-full bg-black/40 text-white/50 hover:text-red-400 hover:bg-black/60 transition-all duration-200 backdrop-blur-md border border-white/10"
-                        title="Delete Habit"
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-red-300 transition-colors"
                     >
-                        <Trash2 size={12} />
+                        <Trash2 size={14} />
                     </button>
                 )}
             </div>
 
-            <div className="relative p-5 flex flex-col gap-4">
-                
-                {/* Header: Clean & Apple-like */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div 
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/10 border border-white/10 text-white/90 shadow-sm shrink-0 backdrop-blur-sm"
-                        >
-                            {attribute?.icon ? <attribute.icon size={18} /> : <Flame size={18} />}
-                        </div>
-                        <div className="flex flex-col min-w-0 gap-0.5">
-                            <h3 className="text-base font-medium text-white tracking-tight leading-none truncate">
-                                {habit.title}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                                <div className="flex items-center gap-1.5 text-[11px] text-white/50 font-medium whitespace-nowrap">
-                                    <Flame size={11} className={cn("transition-colors", habit.streak > 0 ? "text-orange-400" : "text-white/30")} />
-                                    <span className={habit.streak > 0 ? "text-white/80" : ""}>{habit.streak} streak</span>
-                                </div>
-                                <div className="w-0.5 h-2 rounded-full bg-white/10" />
-                                <span className="text-[11px] text-white/50 whitespace-nowrap">{habit.totalCompletions} done</span>
-                            </div>
-                        </div>
+            <div className="relative flex items-center gap-4">
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsPickerOpen(true);
+                        }}
+                        className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
+                        style={{ color: accentColor }}
+                    >
+                        <SelectedIcon size={22} strokeWidth={1.8} />
+                    </button>
+                    <AnimatePresence>
+                        {isPickerOpen && (
+                            <>
+                                <motion.div
+                                    className="fixed inset-0 z-30"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={(e) => { e.stopPropagation(); setIsPickerOpen(false); }}
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                    className="absolute left-0 top-full mt-3 z-40 w-[320px] rounded-[20px] bg-[#0b0b10]/95 border border-white/10 shadow-md p-3"
+                                >
+                                    <div className="max-h-[280px] overflow-y-auto space-y-3 pr-1">
+                                        {ICON_CATEGORIES.map(category => (
+                                            <div key={category.id} className="space-y-2">
+                                                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium">
+                                                    {category.label}
+                                                </div>
+                                                <div className="grid grid-cols-6 gap-2">
+                                                    {category.icons.map((iconName) => {
+                                                        const Icon = ICON_LIBRARY[iconName];
+                                                        const isActive = habit.iconName === iconName;
+                                                        return (
+                                                            <button
+                                                                key={iconName}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setIsPickerOpen(false);
+                                                                    onUpdateHabit?.(habit.id, { iconName });
+                                                                }}
+                                                                className={cn(
+                                                                    'w-9 h-9 rounded-xl border flex items-center justify-center transition-colors',
+                                                                    isActive ? 'bg-white/20 border-white/30 text-white' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                                                                )}
+                                                            >
+                                                                <Icon size={16} strokeWidth={1.8} />
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="flex-1 text-center min-w-0">
+                    <h3 className="text-[17px] font-semibold text-white tracking-tight truncate">
+                        {habit.title}
+                    </h3>
+                    <div className="text-xs text-white/50 font-medium mt-1">
+                        {attribute?.label || 'Rasgo'}
                     </div>
                 </div>
 
-                <AnimatePresence mode="wait">
-                    {viewMode === 'GRID' ? (
-                        <motion.div
-                            key="grid"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="flex flex-col gap-4"
-                        >
-                            {/* Check Button - Apple Style (Larger, Cleaner) */}
-                            <div className="flex justify-center py-1">
-                                <button
-                                    onClick={(e) => onComplete(e, habit)}
-                                    className={cn(
-                                        "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 border relative overflow-hidden shrink-0 group/btn",
-                                        isCompleted 
-                                            ? "text-white border-transparent" 
-                                            : "bg-white/5 border-white/10 text-white/20 hover:bg-white/10 hover:border-white/20 hover:scale-105 active:scale-95"
-                                    )}
-                                    style={{
-                                        backgroundColor: isCompleted ? color : undefined,
-                                        boxShadow: isCompleted ? `0 0 40px -10px ${color}80` : undefined
-                                    }}
-                                >
-                                    <Check size={24} strokeWidth={3} className={cn("relative z-10 transition-all duration-300", isCompleted ? "scale-100" : "scale-75 opacity-40 group-hover/btn:opacity-60")} />
-                                    {isCompleted && (
-                                        <motion.div 
-                                            layoutId={`glow-${habit.id}`}
-                                            className="absolute inset-0 bg-white blur-xl opacity-30"
-                                        />
-                                    )}
-                                </button>
-                            </div>
-
-                            {/* Heatmap Grid - Full Width, reduced dead space */}
-                            <div className="w-full">
-                                <HabitHeatmap 
-                                    habit={habit}
-                                    color={color} 
-                                />
-                            </div>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="week"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="py-2"
-                        >
-                            <HabitWeekView 
-                                history={habit.history || []}
-                                activeColor={color}
-                                onToggleDay={(date) => onToggleDay(habit, date)}
-                            />
-                        </motion.div>
+                <button
+                    onClick={(e) => onComplete(e, habit)}
+                    className={cn(
+                        'w-14 h-12 rounded-xl border flex items-center justify-center transition-transform active:scale-95',
+                        checkboxClass
                     )}
-                </AnimatePresence>
+                >
+                    {progress.state === 'complete' ? (
+                        <Check size={20} strokeWidth={3} />
+                    ) : progress.state === 'partial' ? (
+                        <Minus size={20} strokeWidth={2.5} />
+                    ) : (
+                        <div className="w-5 h-1 rounded-full bg-white/30" />
+                    )}
+                </button>
+            </div>
+
+            <div className={cn('relative mt-4 flex flex-col gap-2', isWeek ? 'opacity-90' : '')}>
+                <div className="text-[11px] text-white/55 font-medium tracking-tight text-center">
+                    <span className="font-mono text-white/75">{progress.detail}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                    <motion.div
+                        className="h-full rounded-full origin-left"
+                        style={{ backgroundColor: accentColor }}
+                        initial={false}
+                        animate={{ scaleX: progress.percent / 100 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                </div>
             </div>
         </motion.div>
     );

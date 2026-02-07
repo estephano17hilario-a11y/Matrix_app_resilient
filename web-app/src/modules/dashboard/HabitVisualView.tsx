@@ -7,6 +7,7 @@ import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
 import { HabitVisualCard } from './components/HabitVisualCard';
+import { HabitDetailView } from './components/HabitDetailView';
 import { HabitConsistencyChart } from './components/HabitConsistencyChart';
 
 interface HabitVisualViewProps {
@@ -19,6 +20,7 @@ interface HabitVisualViewProps {
     onCreateBadHabit: () => void;
     onDeleteHabit?: (id: string) => void;
     onEditHabit?: (habit: Habit) => void;
+    onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
     isActive?: boolean;
 }
@@ -33,6 +35,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onCreateBadHabit,
     onDeleteHabit,
     onEditHabit,
+    onUpdateHabit,
     onRelapseBadHabit,
     isActive = true
 }) => {
@@ -40,6 +43,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const { setVicesMode } = useTheme();
     const [viewMode, setViewMode] = useState<'GRID' | 'WEEK'>('GRID');
     const [section, setSection] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
+    const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
 
     // Sync Vices Mode with visibility and section
     useEffect(() => {
@@ -192,6 +196,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 onToggleDay={onToggleHabitDay}
                                 onDelete={onDeleteHabit}
                                 onEdit={onEditHabit}
+                                onUpdateHabit={onUpdateHabit}
+                                onClick={setSelectedHabit}
                             />
                         ))}
                         {habits.length === 0 && (
@@ -232,6 +238,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     </>
                 )}
             </div>
+
+            <HabitDetailView 
+                habit={selectedHabit} 
+                onClose={() => setSelectedHabit(null)} 
+            />
         </motion.div>
     );
 });

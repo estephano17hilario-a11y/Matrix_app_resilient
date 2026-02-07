@@ -1,10 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { MatrixProvider } from '@/context/MatrixContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { AuroraBackground } from '@/components/AuroraBackground';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // CRITICAL MODULES
@@ -15,43 +14,10 @@ import { OnboardingFlow } from '@/modules/onboarding/OnboardingFlow';
 const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
-  const { user, profile, isLoading } = useAuth();
-  const [hasTimedOut, setHasTimedOut] = useState(false);
-  
-  // A profile is considered "loading" if we have a user but no profile data yet
-  const isSyncingProfile = !!user && !profile;
-  const isActuallyLoading = (isLoading || isSyncingProfile) && !hasTimedOut;
-  
-  // SIMPLIFIED: Overlay follows loading state directly
-  const showOverlay = isActuallyLoading;
-
-  useEffect(() => {
-    // MATRIX STATS LOGGING
-    console.log("MATRIX STATE:", { 
-      isLoading, 
-      hasUser: !!user, 
-      hasProfile: !!profile, 
-      isSyncingProfile,
-      isActuallyLoading,
-      hasTimedOut
-    });
-    
-    // Safety timeout: If loading takes more than 8 seconds, force show whatever we have
-    const safetyTimer = setTimeout(() => {
-      if (isActuallyLoading) {
-        console.warn("MATRIX: Loading took too long. Forcing entry...");
-        setHasTimedOut(true);
-      }
-    }, 8000);
-
-    return () => clearTimeout(safetyTimer);
-  }, [isActuallyLoading, isLoading, user, profile, hasTimedOut]);
+  const { user, profile } = useAuth();
 
   // Determine what to show in the content layer
   const renderContent = () => {
-    // CRITICAL: If overlay is showing, DO NOT render content yet to avoid "ghosts" behind the glass.
-    if (showOverlay) return null;
-
     // Snappier transition for FLASH speed
     const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
 
@@ -117,29 +83,10 @@ const AppRoutes = () => {
 
       {/* 2. LAYER 1: APP CONTENT */}
       <div className="relative z-10 w-full h-full">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {renderContent()}
         </AnimatePresence>
       </div>
-
-      {/* 3. LAYER 2: GLOBAL LOADING OVERLAY (The Gate) */}
-      <AnimatePresence>
-        {showOverlay && (
-          <motion.div
-            key="global-loading"
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020204]/60 backdrop-blur-md"
-            initial={{ opacity: 1 }}
-            exit={{ 
-              opacity: 0,
-              scale: 1.05,
-              filter: 'blur(20px)',
-              transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] }
-            }}
-          >
-            <LoadingScreen />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

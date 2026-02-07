@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,6 +15,7 @@ export interface AvatarSelectorCardProps {
   imageUrl: string;
   themeColor?: string; // Hex color e.g., #00ffcc
   isSelected?: boolean;
+  showInfo?: boolean;
   onClick?: (id: string) => void;
   className?: string;
 }
@@ -26,6 +27,7 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
   imageUrl,
   themeColor = '#00ffcc',
   isSelected = false,
+  showInfo = true,
   onClick,
   className,
 }) => {
@@ -116,17 +118,26 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90 pointer-events-none" />
 
       {/* Layer 3: Info */}
-      <div className="absolute bottom-0 left-0 w-full p-6 flex flex-col items-start justify-end z-20 pointer-events-none">
-        <span 
-          className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/70 mb-2"
-          style={{ color: isSelected ? themeColor : 'rgba(255,255,255,0.7)' }}
-        >
-          {rarity}
-        </span>
-        <h3 className="text-white font-bold text-xl leading-none tracking-tight drop-shadow-md">
-          {name}
-        </h3>
-      </div>
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-0 left-0 w-full p-6 flex flex-col items-start justify-end z-20 pointer-events-none"
+          >
+            <span 
+              className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/70 mb-2"
+              style={{ color: isSelected ? themeColor : 'rgba(255,255,255,0.7)' }}
+            >
+              {rarity}
+            </span>
+            <h3 className="text-white font-bold text-xl leading-none tracking-tight drop-shadow-md">
+              {name}
+            </h3>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </motion.div>
     </motion.div>
   );

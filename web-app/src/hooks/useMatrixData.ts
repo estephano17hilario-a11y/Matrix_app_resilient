@@ -3,6 +3,7 @@ import { doc, onSnapshot, FirestoreError } from '../services/firebase';
 import { db, configStatus } from '../services/firebase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
+import { PersistenceService } from '../services/persistence';
 
 export { type UserData, type UserStats };
 
@@ -14,8 +15,22 @@ export interface MatrixDataHook {
 }
 
 export const useMatrixData = (userId: string | null | undefined): MatrixDataHook => {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // 🧠 MEMORY CORE: Initialize directly from persistence to prevent "Flash of Null"
+  const [user, setUser] = useState<UserData | null>(() => {
+    if (!userId) return null;
+    const cached = PersistenceService.getProfile();
+    // Only use cache if it matches the requested user (Security)
+    if (cached && cached.uid === userId) {
+        console.log("💾 MATRIX: Instant Boot from Memory Core.");
+        return { 
+            ...cached, 
+            stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } 
+        } as UserData;
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(!user); // If we have user, we are not "loading" (Optimistic)
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -24,6 +39,18 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
 
   useEffect(() => {
     isMounted.current = true;
+    
+    // Reset if userId changes and we don't have matching cache
+    if (userId && user?.uid !== userId) {
+        const cached = PersistenceService.getProfile();
+        if (cached && cached.uid === userId) {
+            setUser({ ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData);
+            setLoading(false);
+        } else {
+            setLoading(true);
+            setUser(null);
+        }
+    }
 
     const connectToMatrix = async () => {
         if (!userId) {
@@ -62,11 +89,16 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
                             data.plan = 'PRO';
                         }
 
-                        setUser({ 
+                        const newData = { 
                             uid: snapshot.id, 
                             ...data,
                             stats: safeStats
-                        } as UserData);
+                        } as UserData;
+
+                        setUser(newData);
+                        // 💾 PERSIST: Save to local storage immediately
+                        PersistenceService.saveProfile(newData);
+                        
                         setError(null);
                     } else {
                         console.log("⚠️ MATRIX: User profile pending creation.");

@@ -1,23 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { 
   auth, 
   db, 
-  signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   updateProfile,
   doc,
   setDoc,
-  GoogleAuthProvider
+  getRedirectResult
 } from '../../services/firebase';
+import { loginWithGoogle, loginWithGooglePopup } from '../../services/firebaseService';
 import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
-
-const googleProvider = new GoogleAuthProvider();
 
 export const AuthView = () => {
   const { t, i18n } = useTranslation();
@@ -26,7 +24,16 @@ export const AuthView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
+  const [showPopupFallback, setShowPopupFallback] = useState(false);
+  const watchdogRef = useRef<any>(null); // Use 'any' for timeout compatibility
   const emailRef = useRef<HTMLInputElement>(null);
+
+  // CLEANUP WATCHDOG
+  useEffect(() => {
+      return () => {
+          if (watchdogRef.current) clearTimeout(watchdogRef.current);
+      };
+  }, []);
 
   // RESET TO LOGIN ON MOUNT
   // Whenever this component is remounted (e.g. after logout), it will start at Login
@@ -40,6 +47,33 @@ export const AuthView = () => {
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const normalizeEmail = (value: string) => value.trim().toLowerCase();
+  const normalizeName = (value: string) => value.trim();
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const resolveAuthErrorMessage = useCallback((err: any) => {
+    const code = err?.code;
+    const msg = err?.message || '';
+
+    if (code === 'auth/operation-not-allowed') return t('auth.errors.authDisabled');
+    if (code === 'auth/network-request-failed') return t('auth.errors.network');
+    if (code === 'auth/invalid-email') return t('auth.errors.invalidEmail');
+    if (code === 'auth/user-not-found') return t('auth.errors.userNotFound');
+    if (code === 'auth/wrong-password') return t('auth.errors.wrongPassword');
+    if (code === 'auth/email-already-in-use') return t('auth.errors.emailInUse');
+    if (code === 'auth/weak-password') return t('auth.errors.weakPassword');
+    if (code === 'auth/too-many-requests') return t('auth.errors.tooManyRequests');
+    if (code === 'auth/unauthorized-domain') return t('auth.errors.unauthorizedDomain');
+    if (code === 'auth/insecure-context') return t('auth.errors.insecureContext');
+    if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request') return t('auth.errors.popupBlocked');
+    if (code === 'auth/popup-closed-by-user') return t('auth.errors.popupClosed');
+    
+    // TIMEOUT HANDLING
+    if (msg.includes('TIMEOUT')) return "Connection too slow. Please check your internet.";
+
+    return msg.replace('Firebase: ', '') || t('auth.errors.generic');
+  }, [t]);
+
   // AUTO-FOCUS
   useEffect(() => {
     if (emailRef.current) {
@@ -47,18 +81,86 @@ export const AuthView = () => {
     }
   }, [isLogin]);
 
+  useEffect(() => {
+    let active = true;
+    const run = async () => {
+      try {
+        // DETECT IF RETURNING FROM REDIRECT
+        // If we are just mounting, we might be coming back from Google.
+        // We set loading true tentatively to avoid flickering if a user is found immediately.
+        
+        // This call is lightweight if no redirect happened.
+        const result = await getRedirectResult(auth);
+        
+        if (result?.user) {
+             console.log("✅ Redirect Login Detected:", result.user.uid);
+             if (!active) return;
+             // The AuthContext will pick this up via onAuthStateChanged
+             // We just keep loading to avoid UI flicker
+             setIsLoading(true);
+        }
+      } catch (err: any) {
+        if (!active) return;
+        console.error("Redirect Result Error:", err);
+        setError(resolveAuthErrorMessage(err));
+        setShake(prev => prev + 1);
+        setIsLoading(false); // Stop loading if error
+      }
+    };
+    run();
+    return () => {
+      active = false;
+    };
+  }, [resolveAuthErrorMessage]);
+
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError(null);
+    setShowPopupFallback(false);
+    
+    // WATCHDOG: If redirect takes > 4s, show fallback
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = setTimeout(() => {
+        console.warn("⚠️ Redirect seems stalled. Offering popup.");
+        setShowPopupFallback(true);
+        // We don't stop loading, just show the option
+    }, 4000);
+
     try {
-      await signInWithPopup(auth, googleProvider);
+      // loginWithGoogle now defaults to Redirect for robustness
+      const result = await loginWithGoogle();
+      
+      // If result is null, it means we redirected (or are about to)
+      if (result === null) {
+        // Keep loading true indefinitely while the browser redirects
+        setIsLoading(true);
+        return;
+      }
+      
+      // If we got a result (legacy popup path), we handle it
+      if (watchdogRef.current) clearTimeout(watchdogRef.current);
+      console.log("✅ Google Login Manual Success:", result.uid);
     } catch (err: any) {
+      if (watchdogRef.current) clearTimeout(watchdogRef.current);
       console.error("Google Login Failed:", err);
-      setError(err.message.replace('Firebase: ', ''));
+      setError(resolveAuthErrorMessage(err));
       setShake(prev => prev + 1);
-    } finally {
-      setIsLoading(false);
-    }
+      setIsLoading(false); // Only turn off loading if we actually failed/threw
+    } 
+  };
+
+  const handlePopupFallback = async () => {
+      if (watchdogRef.current) clearTimeout(watchdogRef.current);
+      setIsLoading(true);
+      setError(null);
+      try {
+          await loginWithGooglePopup();
+          // Success handled by AuthContext
+      } catch (err: any) {
+          console.error("Popup Fallback Failed:", err);
+          setError(resolveAuthErrorMessage(err));
+          setIsLoading(false);
+      }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,14 +168,23 @@ export const AuthView = () => {
     console.log("Auth Submit:", { isLogin, email, name: isLogin ? 'N/A' : name });
     
     // FAST VALIDATION
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = normalizeName(name);
+
+    if (!normalizedEmail || !password) {
       setError(t('auth.errors.required') || "Email and password are required");
       setShake(s => s + 1);
       return;
     }
 
+    if (!isValidEmail(normalizedEmail)) {
+      setError(t('auth.errors.invalidEmail'));
+      setShake(s => s + 1);
+      return;
+    }
+
     if (!isLogin) {
-      if (!name) {
+      if (!normalizedName) {
         setError(t('auth.errors.nameRequired') || "Name is required");
         setShake(s => s + 1);
         return;
@@ -92,7 +203,7 @@ export const AuthView = () => {
       if (isLogin) {
         // LOGIN
         console.log("Attempting login...");
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, normalizedEmail, password);
         console.log("Login successful");
       } else {
         // REGISTER
@@ -101,38 +212,40 @@ export const AuthView = () => {
           throw new Error(t('auth.errors.passwordLength'));
         }
         
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
         console.log("User created:", userCredential.user.uid);
         
         // Update Profile with Name
-        if (name) {
-          console.log("Updating profile with name:", name);
+        if (normalizedName) {
+          console.log("Updating profile with name:", normalizedName);
           // Fire and forget name updates to keep UI moving
-          updateProfile(userCredential.user, { displayName: name });
+          updateProfile(userCredential.user, { displayName: normalizedName });
           setDoc(doc(db, 'users', userCredential.user.uid), {
-            displayName: name,
-            email: email
+            displayName: normalizedName,
+            email: normalizedEmail
           }, { merge: true }).catch(e => console.warn("Background sync failed", e));
         }
       }
     } catch (err: any) {
       console.error("Auth Error:", err);
       
-      let errorMessage = err.message.replace('Firebase: ', '');
-      if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = t('auth.errors.authDisabled');
-      } else if (err.code === 'auth/network-request-failed') {
+      if (err.code === 'auth/network-request-failed' || err.message?.includes('TIMEOUT')) {
          console.warn("⚠️ NETWORK FAILURE DETECTED. ENGAGING PHANTOM PROTOCOL.");
-         localStorage.setItem('MATRIX_FORCE_OFFLINE', 'true');
-         window.location.reload();
+         // Auto-show offline suggestion
+         setError("Connection unstable. Switch to Offline Mode?");
          return;
       }
-      
-      setError(errorMessage);
+
+      setError(resolveAuthErrorMessage(err));
       setShake(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const enableOfflineMode = () => {
+      localStorage.setItem('MATRIX_FORCE_OFFLINE', 'true');
+      window.location.reload();
   };
 
   // ULTRA-FAST SPRING PHYSICS
@@ -302,9 +415,20 @@ export const AuthView = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={springConfig}
-                  className="text-red-400 text-xs text-center font-mono bg-red-950/30 p-2 rounded-lg border border-red-500/20"
+                  className="flex flex-col gap-2"
                 >
-                  {error}
+                    <div className="text-red-400 text-xs text-center font-mono bg-red-950/30 p-2 rounded-lg border border-red-500/20">
+                      {error}
+                    </div>
+                    {(error.includes('Offline') || error.includes('TIMEOUT') || error.includes('network')) && (
+                        <button 
+                            type="button"
+                            onClick={enableOfflineMode}
+                            className="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 text-xs font-bold rounded-lg border border-indigo-500/30 transition-colors"
+                        >
+                            ENTER OFFLINE MODE (DEMO)
+                        </button>
+                    )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -346,31 +470,46 @@ export const AuthView = () => {
           <motion.button
             layout
             onClick={handleGoogleLogin}
+            disabled={isLoading}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={springConfig}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-300"
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-             <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                />
-                <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                />
-                <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                />
-                <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                />
-            </svg>
-            <span className="text-white font-medium">{t('auth.google')}</span>
+             {isLoading ? ( 
+                 <Loader2 className="w-5 h-5 animate-spin text-white/60" />
+              ) : (
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+             )}
+            <span className="text-white font-medium">
+                {isLoading ? t('common.loading', 'Conectando...') : t('auth.google')}
+            </span>
           </motion.button>
+
+          {/* Fallback Popup Button */}
+          <AnimatePresence>
+            {showPopupFallback && (
+                <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2"
+                >
+                    <button
+                        onClick={handlePopupFallback}
+                        className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <span>⚠️ No redirige?</span>
+                        <span className="underline font-bold">Usar Ventana Emergente</span>
+                    </button>
+                </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.div layout className="mt-6 text-center" transition={springConfig}>
             <button 

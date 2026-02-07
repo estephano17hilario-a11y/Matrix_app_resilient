@@ -231,6 +231,7 @@ export default function Dashboard() {
         handleDeleteQuest,
         handleDeleteHabit,
         handleHabitConfirm,
+        handleHabitUpdate,
         handleProjectConfirm,
         handleUpdateProject,
         handleUpdateSmartProject,
@@ -717,6 +718,7 @@ export default function Dashboard() {
                             onCreateBadHabit={() => setActiveModal('BAD_HABIT')}
                             onDeleteHabit={handleDeleteHabit}
                             onEditHabit={handleEditHabit}
+                            onUpdateHabit={handleHabitUpdate}
                             onRelapseBadHabit={(habit) => {
                                 setRelapsingHabit(habit);
                                 setActiveModal('RELAPSE');
@@ -875,7 +877,7 @@ export default function Dashboard() {
                     
                     {/* --- GLOBAL BLUR BACKDROP (APPLE INTELLIGENCE MODE) --- */}
                     <AnimatePresence>
-                        {(activeModal || validationHabit || isDockOpen) && (
+                        {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || isDockOpen) && (
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}

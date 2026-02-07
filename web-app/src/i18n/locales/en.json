@@ -50,9 +50,21 @@
     "errors": {
       "passwordMismatch": "Passwords do not match",
       "passwordLength": "Password must be at least 6 characters",
+      "invalidEmail": "Email address is invalid",
+      "userNotFound": "No account found with this email",
+      "wrongPassword": "Incorrect password",
+      "emailInUse": "Email already in use",
+      "weakPassword": "Password is too weak",
+      "tooManyRequests": "Too many attempts. Try again later",
       "authDisabled": "Email/Password login is not enabled in Firebase Console.",
       "nameRequired": "Name is required",
-      "required": "All fields are required"
+      "required": "All fields are required",
+      "network": "Network error. Check your connection or disable blockers.",
+      "unauthorizedDomain": "This domain is not authorized for Google login.",
+      "insecureContext": "Google login requires HTTPS or localhost.",
+      "popupBlocked": "Popup blocked. We will continue with redirect.",
+      "popupClosed": "Login popup closed before completion.",
+      "generic": "Login failed. Please try again."
     },
     "orContinue": "Or continue with",
     "google": "Google"

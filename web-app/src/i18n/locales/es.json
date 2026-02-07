@@ -50,9 +50,21 @@
     "errors": {
       "passwordMismatch": "Las contraseñas no coinciden",
       "passwordLength": "La contraseña debe tener al menos 6 caracteres",
+      "invalidEmail": "El correo electrónico no es válido",
+      "userNotFound": "No existe una cuenta con este correo",
+      "wrongPassword": "Contraseña incorrecta",
+      "emailInUse": "El correo ya está en uso",
+      "weakPassword": "La contraseña es demasiado débil",
+      "tooManyRequests": "Demasiados intentos. Intenta más tarde",
       "authDisabled": "El inicio de sesión con Email/Contraseña no está habilitado.",
       "nameRequired": "El nombre es obligatorio",
-      "required": "Todos los campos son obligatorios"
+      "required": "Todos los campos son obligatorios",
+      "network": "Error de red. Verifica tu conexión o desactiva bloqueadores.",
+      "unauthorizedDomain": "Este dominio no está autorizado para Google login.",
+      "insecureContext": "Google login requiere HTTPS o localhost.",
+      "popupBlocked": "Popup bloqueado. Continuaremos con redirección.",
+      "popupClosed": "El popup se cerró antes de completar el login.",
+      "generic": "No se pudo iniciar sesión. Inténtalo de nuevo."
     },
     "orContinue": "O continúa con",
     "google": "Google"
