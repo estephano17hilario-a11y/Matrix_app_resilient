@@ -49,7 +49,6 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -186,10 +185,11 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
           <AnimatePresence>
             {expanded && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0, scaleY: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="overflow-hidden origin-top"
               >
                 <div className="pt-4 pb-1">
                   <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-3" />
@@ -240,12 +240,12 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                 }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
             >
-                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     <span className="text-emerald-400 font-black text-sm">+{Math.floor(xp)} XP</span>
                 </div>
                 
                 {attribute && (
-                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10"
+                    <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-white/10"
                          style={{ borderColor: `${attribute.color}40`, boxShadow: `0 0 15px ${attribute.color}30` }}>
                         <Icon size={12} style={{ color: attribute.color }} />
                         <span style={{ color: attribute.color }} className="font-bold text-sm">
@@ -255,7 +255,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                 )}
 
                 {coins > 0 && (
-                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                    <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
                         <span className="text-yellow-400 font-bold text-sm">+{coins} G</span>
                     </div>
                 )}

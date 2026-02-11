@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Globe, Sparkles, CheckCircle2 } from 'lucide-react';
-import { doc, updateDoc, db } from '../../services/firebase';
+import { doc, setDoc, db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { GlassCard } from './components/GlassCard';
@@ -13,7 +13,7 @@ import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 type Step = 'intro' | 'language' | 'avatar' | 'traits' | 'saving';
 
 export function OnboardingFlow() {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
   const [step, setStep] = useState<Step>('intro');
   
@@ -53,20 +53,39 @@ export function OnboardingFlow() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    const userId = user?.uid || profile?.uid;
+    if (!userId) {
+      alert(t('auth.errors.generic'));
+      return;
+    }
     setStep('saving');
+    if (profile) {
+      const baseOnboarding = profile.onboarding || {
+        successDefinition: "Becoming the One",
+        obstacles: [],
+        coachingTone: "Stoic",
+        completedAt: 0
+      };
+      updateProfileLocally({
+        onboarding: { ...baseOnboarding, completedAt: Date.now() },
+        avatarId: selectedAvatarId ?? profile.avatarId
+      });
+    }
     
     try {
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", userId);
       
-      // 1. Save Basic Onboarding Data
-      await updateDoc(userRef, {
+      // 1. Save Basic Onboarding Data (Use setDoc with merge to be safe)
+      await setDoc(userRef, {
         avatarId: selectedAvatarId, // Save the selected avatar
         onboarding: {
           completedAt: Date.now(),
           language: language
-        }
-      });
+        },
+        // Ensure critical fields exist
+        archetype: 'NEO', // Default fallback, user can change later if needed or if logic expands
+        updatedAt: Date.now()
+      }, { merge: true });
 
       // 2. Save Selected Attributes
       // First, get the full attribute objects for selected IDs
@@ -86,20 +105,27 @@ export function OnboardingFlow() {
 
       // Save each attribute
       await Promise.all(attributesToSave.map(attr => 
-          persistenceService.attributes.save(user.uid, attr!)
+          persistenceService.attributes.save(userId, attr!)
       ));
       
       // Update local state to redirect to dashboard
-      await refreshProfile();
+      if (user) {
+        await refreshProfile();
+      }
       
     } catch (error) {
       console.error("Error saving onboarding:", error);
       // Fail-safe: Even if it fails, try to refresh profile and hope for the best, 
       // or at least let the user know.
       try {
-        await refreshProfile();
+        if (user) {
+          await refreshProfile();
+        } else if (!profile) {
+          setStep('traits');
+          alert("Error saving data. Please check your connection.");
+        }
       } catch (e) {
-        setStep('traits'); // Go back so they can try again
+        setStep('traits');
         alert("Error saving data. Please check your connection.");
       }
     }

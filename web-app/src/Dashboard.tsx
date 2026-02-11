@@ -23,6 +23,9 @@ import { persistenceService } from './services/persistenceService';
 import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
 
+import { ViewContainer } from './modules/dashboard/components/ViewContainer';
+import { ParticleLayer } from './modules/dashboard/components/ParticleLayer';
+
 // Lazy Load Heavy Views
 const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
 const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
@@ -42,26 +45,6 @@ const SuspenseFallback = () => (
 );
 
 // Helper to convert SmartProject nodes to Real Quests
-const ViewContainer = ({ isActive, children, className = "", id }: { isActive: boolean, children: React.ReactNode, className?: string, id?: string }) => {
-    return (
-        <div 
-            id={id} 
-            className={`${className} w-full h-full`}
-            style={{ 
-                display: isActive ? 'block' : 'none',
-            }}
-        >
-            <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ type: "spring", stiffness: 350, damping: 25, mass: 1 }}
-                className="w-full h-full"
-            >
-                {children}
-            </motion.div>
-        </div>
-    );
-};
 
 const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectId: string): Quest[] => {
     const quests: Quest[] = [];
@@ -251,13 +234,18 @@ export default function Dashboard() {
         vividMode,
         setVividMode,
         updatePlayerLevel,
-        updateAttributeLevel
+        updateAttributeLevel,
+        habitSectionControl,
+        updateHabitSectionControl,
+        allowDockSectionSwitch,
+        updateAllowDockSectionSwitch
     } = useDashboardLogic();
 
     // 🛡️ RECOVERED LOGIC: Calculate Max Health locally to avoid hook return type issues
     const maxHealth = 100 + (player.level - 1) * 10;
 
     const [isNexusImmersive, setIsNexusImmersive] = useState(false);
+    const [isFullScreenFocus, setIsFullScreenFocus] = useState(false);
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
@@ -294,6 +282,8 @@ export default function Dashboard() {
     const isProModalOpen = activeModal === 'PRO';
     const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);
     const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
+    const [habitViewMode, setHabitViewMode] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
+    const [noteViewMode, setNoteViewMode] = useState<'NOTES' | 'JOURNAL'>('NOTES');
     const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string, lockedSmartProjectId?: string } | null>(null);
     const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -308,6 +298,12 @@ export default function Dashboard() {
         setActiveSmartProjectId(smartProjectId);
         setCurrentView('NEXUS');
     };
+
+    useEffect(() => {
+        if (currentView !== 'FOCUS') {
+            handleFocusModeChange(null);
+        }
+    }, [currentView, handleFocusModeChange]);
 
     const handleOpenSmartTaskCreator = (date: Date, smartProjectId?: string) => {
         const targetProject = smartProjectId ? smartProjects.find(p => p.id === smartProjectId) : smartProject;
@@ -451,15 +447,34 @@ export default function Dashboard() {
 
     const handleDockViewChange = (view: string) => {
         setIsNexusImmersive(false);
+
         if (view === 'STRATEGY') {
             setCurrentView('TASKS');
             setTaskViewMode('STRATEGY');
-        } else {
-            setCurrentView(view);
-            // Optional: If clicking "TASKS" explicitly, maybe we want to ensure we see the list?
+            return;
+        }
+
+        if (view === currentView) {
+            // Toggle logic for active view
             if (view === 'TASKS') {
-                setTaskViewMode('LIST');
+                if (allowDockSectionSwitch) {
+                    setTaskViewMode(prev => prev === 'LIST' ? 'STRATEGY' : 'LIST');
+                }
+            } else if (view === 'HABITS') {
+                if (allowDockSectionSwitch) {
+                    setHabitViewMode(prev => prev === 'PROTOCOLS' ? 'VICES' : 'PROTOCOLS');
+                }
+            } else if (view === 'NOTES') {
+                if (allowDockSectionSwitch) {
+                    setNoteViewMode(prev => prev === 'NOTES' ? 'JOURNAL' : 'NOTES');
+                }
             }
+        } else {
+            // Switching to new view - Reset sub-views to default
+            setCurrentView(view);
+            if (view === 'TASKS') setTaskViewMode('LIST');
+            if (view === 'HABITS') setHabitViewMode('PROTOCOLS');
+            if (view === 'NOTES') setNoteViewMode('NOTES');
         }
     };
 
@@ -491,32 +506,7 @@ export default function Dashboard() {
                 />
 
                 {/* FX LAYER */}
-                <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-                    {particles.map(p => {
-                        const Icon = p.icon;
-                        const tx = p.tx !== undefined ? p.tx - p.x : 0;
-                        const ty = p.ty !== undefined ? p.ty - p.y : 0;
-                        const isTargeted = p.tx !== undefined;
-                        
-                        return (
-                            <div key={p.id} className="absolute flex items-center justify-center will-change-transform" style={{ left: p.x, top: p.y, color: p.color, animation: isTargeted ? `flyToProfile 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards` : `jumpAndFall 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards` }}>
-                                <Icon size={p.type === 'fire' ? 24 : 16} fill={p.type === 'fire' ? p.color : "currentColor"} className="drop-shadow-lg" />
-                                <style>{`
-                                    @keyframes jumpAndFall { 
-                                        0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 1; } 
-                                        15% { transform: translate3d(${p.vx * 0.5}px, ${p.vy}px, 0) scale(1.2); opacity: 1; } 
-                                        100% { transform: translate3d(${p.vx * 1.5}px, 100vh, 0) scale(0.8); opacity: 0; } 
-                                    }
-                                    @keyframes flyToProfile {
-                                        0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 1; }
-                                        20% { transform: translate3d(0, -20px, 0) scale(1.5); opacity: 1; }
-                                        100% { transform: translate3d(${tx}px, ${ty}px, 0) scale(0.5); opacity: 0; }
-                                    }
-                                `}</style>
-                            </div>
-                        )
-                    })}
-                </div>
+                <ParticleLayer particles={particles} />
 
                 {/* NOTIFICATIONS */}
                 <div className="fixed top-4 left-0 right-0 z-[120] flex flex-col items-center gap-2 pointer-events-none px-4">
@@ -540,7 +530,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
-                {!isNexusImmersive && !isWizardOpen && !isFocusMode && (
+                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && (
                     <>
                         <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
                             <div className="max-w-md mx-auto px-4 sm:px-6">
@@ -590,7 +580,7 @@ export default function Dashboard() {
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
                             <div className="flex flex-col gap-6 h-full">
                                 {/* VIEW TOGGLE */}
-                                {!isNexusImmersive && (
+                                {(!isNexusImmersive && habitSectionControl === 'VISIBLE') && (
                                     <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
                                         <div className="flex p-1 rounded-full backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
                                             <button 
@@ -626,7 +616,6 @@ export default function Dashboard() {
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
                                             onOpenNexus={handleOpenNexus}
-                                            onOpenWizard={() => setIsWizardOpen(true)}
                                         />
                                     </>
                                 ) : (
@@ -699,6 +688,10 @@ export default function Dashboard() {
                                         onAvatarShapeChange={updateAvatarShape}
                                         vividMode={vividMode}
                                         onToggleVividMode={setVividMode}
+                                        habitSectionControl={habitSectionControl}
+                                        onUpdateHabitSectionControl={updateHabitSectionControl}
+                                        allowDockSectionSwitch={allowDockSectionSwitch}
+                                        onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -707,6 +700,26 @@ export default function Dashboard() {
                         {/* HABITS */}
                         {(loadedViews.has('HABITS') || currentView === 'HABITS') && (
                             <ViewContainer isActive={currentView === 'HABITS'}>
+                                {/* SECTION SWITCHER (RESTORED) */}
+                                {habitSectionControl === 'VISIBLE' && (
+                                    <div className="flex justify-center pt-6 pb-2 z-10 relative">
+                                        <div className="flex p-1 bg-white/5 backdrop-blur-md rounded-full border border-white/10 shadow-lg">
+                                            <button
+                                                onClick={() => setHabitViewMode('PROTOCOLS')}
+                                                className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                            >
+                                                PROTOCOLS
+                                            </button>
+                                            <button
+                                                onClick={() => setHabitViewMode('VICES')}
+                                                className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
+                                            >
+                                                VICES
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <HabitVisualView 
                             habits={habits} 
@@ -723,6 +736,8 @@ export default function Dashboard() {
                                 setRelapsingHabit(habit);
                                 setActiveModal('RELAPSE');
                             }}
+                            currentSection={habitViewMode}
+                            isActive={currentView === 'HABITS'}
                         />
                                 </Suspense>
                             </ViewContainer>
@@ -743,6 +758,8 @@ export default function Dashboard() {
                                         initialProjectId={focusTargetProjectId}
                                         onShowPro={() => setActiveModal('PRO')}
                                         isPro={user?.plan === 'PRO'}
+                                        onToggleFullScreen={setIsFullScreenFocus}
+                                        isActive={currentView === 'FOCUS'}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -757,6 +774,8 @@ export default function Dashboard() {
                                         onInteractionEnd={() => setIsNoteTaking(false)}
                                         projects={projects}
                                         onShowPro={() => setActiveModal('PRO')}
+                                        currentSubView={noteViewMode}
+                                        sectionControl={habitSectionControl}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -871,7 +890,7 @@ export default function Dashboard() {
                         onOpenModal={setActiveModal} 
                         isOpen={isDockOpen} 
                         onToggle={setIsDockOpen} 
-                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive}
+                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus}
                         dashboardStyle={dashboardStyle}
                     />
                     

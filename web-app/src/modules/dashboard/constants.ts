@@ -25,6 +25,6 @@ export const DAILY_LIMITS = {
     MAX_COUNT: 999 // Only first 10 habits give rewards
   },
   FOCUS: {
-    MAX_SECONDS: 86400 // 24 hours (24 * 3600)
+    MAX_SECONDS: 43200 // 12 hours (12 * 3600)
   }
 };

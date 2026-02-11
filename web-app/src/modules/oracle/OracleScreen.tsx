@@ -74,7 +74,7 @@ const ChatBubble = ({ message }: { message: AIMessage }) => {
       )}
     >
       <div className={cn(
-        "relative max-w-[80%] p-4 rounded-2xl backdrop-blur-md border", // Reduced blur from xl to md
+        "relative max-w-[80%] p-4 rounded-2xl border",
         isUser 
           ? "bg-indigo-500/20 border-indigo-500/30 text-white rounded-br-sm" 
           : "bg-gray-900/60 border-white/10 text-white/90 rounded-bl-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
@@ -112,7 +112,7 @@ const InputField = ({ onSend, isLoading }: { onSend: (text: string) => void, isL
     <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
       <div className="relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 blur"></div>
-        <div className="relative flex items-center bg-gray-900/60 backdrop-blur-md rounded-full border border-white/10 p-2 shadow-2xl">
+        <div className="relative flex items-center bg-gray-900/70 rounded-full border border-white/10 p-2 shadow-2xl">
           
           <div className="pl-4 pr-2">
             <Brain className="w-5 h-5 text-indigo-400 animate-pulse" />

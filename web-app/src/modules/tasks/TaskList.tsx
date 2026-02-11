@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
@@ -17,10 +17,9 @@ interface TaskListProps {
   onAddQuest?: () => void;
   onFocusProject?: (projectId: string) => void;
   onOpenNexus?: (smartProjectId: string) => void;
-  onOpenWizard?: () => void;
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus }) => {
+export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus }) => {
   const { t } = useTranslation();
 
   // Filters
@@ -31,12 +30,12 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>('all');
   const [hideCompleted, setHideCompleted] = useState<boolean>(true);
 
-  // Filter Logic
-  const filteredQuests = quests.filter(quest => {
-    // 1. Completed
+  const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
+  const projectMap = useMemo(() => new Map((projects || []).map(project => [project.id, project])), [projects]);
+
+  const filteredQuests = useMemo(() => quests.filter(quest => {
     if (hideCompleted && quest.completed) return false;
 
-    // 2. Date
     if (dateFilter !== 'all') {
       if (!quest.deadline) return false;
       const date = parseISO(quest.deadline);
@@ -45,47 +44,66 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
       if (dateFilter === 'month' && !isThisMonth(date)) return false;
     }
 
-    // 3. Trait
     if (traitFilter !== 'all' && quest.attribute !== traitFilter) return false;
 
-    // 4. Type
     if (typeFilter === 'smart' && !quest.isSmartQuest) return false;
     if (typeFilter === 'normal' && quest.isSmartQuest) return false;
 
-    // 5. Difficulty
     if (difficultyFilter !== 'all' && quest.difficulty !== difficultyFilter) return false;
 
     return true;
-  });
+  }), [quests, hideCompleted, dateFilter, traitFilter, typeFilter, difficultyFilter]);
 
-  // Sort: Active first, then by deadline, then by difficulty (S > A > B > C)
-  const sortedQuests = filteredQuests.sort((a, b) => {
-    if (a.completed === b.completed) {
-       // Priority: Deadline -> Difficulty -> Creation (implicit)
-       if (a.deadline && b.deadline) {
-         const timeDiff = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-         if (timeDiff !== 0) return timeDiff;
-       }
-       if (a.deadline && !b.deadline) return -1;
-       if (!a.deadline && b.deadline) return 1;
+  const sortedQuests = useMemo(() => {
+    const list = [...filteredQuests];
+    return list.sort((a, b) => {
+      if (a.completed === b.completed) {
+        if (a.deadline && b.deadline) {
+          const timeDiff = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          if (timeDiff !== 0) return timeDiff;
+        }
+        if (a.deadline && !b.deadline) return -1;
+        if (!a.deadline && b.deadline) return 1;
 
-       // Difficulty sort if no deadline difference
-       const difficultyRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
-       const diffA = difficultyRank[a.difficulty] || 0;
-       const diffB = difficultyRank[b.difficulty] || 0;
-       return diffB - diffA; // Higher rank first
-    }
-    return a.completed ? 1 : -1;
-  });
+        const difficultyRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
+        const diffA = difficultyRank[a.difficulty] || 0;
+        const diffB = difficultyRank[b.difficulty] || 0;
+        return diffB - diffA;
+      }
+      return a.completed ? 1 : -1;
+    });
+  }, [filteredQuests]);
 
-  const activeCount = filteredQuests.filter(q => !q.completed).length;
-  const activeFiltersCount = [
+  const activeCount = useMemo(() => filteredQuests.filter(q => !q.completed).length, [filteredQuests]);
+  const activeFiltersCount = useMemo(() => [
     dateFilter !== 'all',
     traitFilter !== 'all',
     typeFilter !== 'all',
     difficultyFilter !== 'all',
-    hideCompleted
-  ].filter(Boolean).length;
+    !hideCompleted // Count only if we are SHOWING completed tasks (deviation from default)
+  ].filter(Boolean).length, [dateFilter, traitFilter, typeFilter, difficultyFilter, hideCompleted]);
+
+  // Refs for Camera Movement
+  const headerRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
+    if (showFilters) {
+      // Camera Down: Focus on filters
+      setTimeout(() => {
+        filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } else {
+      // Camera Up: Return to header
+      headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [showFilters]);
 
   const resetFilters = () => {
       setDateFilter('all');
@@ -98,7 +116,7 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
   return (
     <div className="flex flex-col gap-6">
       {/* ACTIVE MISSIONS HEADER */}
-      <div>
+      <div ref={headerRef} className="scroll-mt-24">
         <div className="flex items-center justify-between px-1 mb-3">
           <h2 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">
             {t('dashboard.activeMissions')}
@@ -146,12 +164,13 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
         <AnimatePresence>
           {showFilters && (
             <motion.div
-              initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-              animate={{ height: 'auto', opacity: 1, marginBottom: 16 }}
-              exit={{ height: 0, opacity: 0, marginBottom: 0 }}
-              className="overflow-hidden"
+              initial={{ opacity: 0, scaleY: 0 }}
+              animate={{ opacity: 1, scaleY: 1 }}
+              exit={{ opacity: 0, scaleY: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="overflow-hidden origin-top"
             >
-              <div className="bg-gray-900/40 backdrop-blur-md border border-white/10 rounded-xl p-4 space-y-5 shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] relative">
+              <div ref={filtersRef} className="bg-gray-900/40 backdrop-blur-md border border-white/10 rounded-xl p-4 space-y-5 shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] relative mb-4">
                 
                 {/* Reset Button */}
                 <button 
@@ -327,20 +346,20 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
         </AnimatePresence>
         
         <div className="flex flex-col pb-32 gap-3">
-          <AnimatePresence mode='popLayout'>
+          <AnimatePresence mode="sync">
             {sortedQuests.map((quest) => (
                 <motion.div
                     key={quest.id}
-                    layout
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    style={{ contentVisibility: 'auto', containIntrinsicSize: '180px' }}
                 >
                     <QuestItem 
                         quest={quest} 
-                        attribute={attributes.find(a => a.id === quest.attribute)} 
-                        project={projects?.find(p => p.id === quest.projectId)}
+                        attribute={attributeMap.get(quest.attribute)} 
+                        project={quest.projectId ? projectMap.get(quest.projectId) : undefined}
                         onComplete={onCompleteQuest} 
                         onDelete={onDeleteQuest}
                         onEdit={onEditQuest}
@@ -360,4 +379,4 @@ export const TaskList: React.FC<TaskListProps> = ({ quests, attributes, projects
       </div>
     </div>
   );
-};
+});

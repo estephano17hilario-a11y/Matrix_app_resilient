@@ -66,7 +66,9 @@ export interface Habit {
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
   projectId?: string;
+  smartProjectId?: string;
   estimatedTime?: number; // Minutes
+  impact?: number;
   customColor?: string;
   archived?: boolean;
 }

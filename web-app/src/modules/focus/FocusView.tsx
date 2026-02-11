@@ -8,8 +8,9 @@ import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AuroraBackground } from '../../components/AuroraBackground';
+import { HabitDetailView } from '../dashboard/components/HabitDetailView';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro, onToggleFullScreen, isActive: isViewActive }: { 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
@@ -20,6 +21,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     initialProjectId?: string | null,
     onShowPro?: () => void,
     isPro?: boolean,
+    onToggleFullScreen?: (full: boolean) => void,
+    isActive?: boolean
 }) => {
     const { t } = useTranslation();
     const { theme, availableThemes } = useTheme();
@@ -38,11 +41,45 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
     const [showRewardModal, setShowRewardModal] = useState(false);
     const [sessionStats, setSessionStats] = useState<{ duration: number, xpEarned: number, goldEarned: number, streakBonus: number } | null>(null);
-    
-    // Robust Timer Ref
+    const [detailProject, setDetailProject] = useState<Project | null>(null);
+
+    // --- HUD & VIEW RESET LOGIC ---
+    // 1. Reset detail view when leaving the Focus section
+    useEffect(() => {
+        if (isViewActive === false) {
+            setDetailProject(null);
+        }
+    }, [isViewActive]);
+
+    // 2. Toggle Global HUD when entering/exiting detail view
+    useEffect(() => {
+        if (onToggleFullScreen) {
+            onToggleFullScreen(!!detailProject);
+        }
+        // Safety cleanup when component unmounts (though it's cached)
+        return () => {
+             if (onToggleFullScreen && !detailProject) {
+                 // Only force off if we are unmounting while NOT in detail view? 
+                 // Actually, if we unmount, we should restore HUD. 
+                 // But since it's cached, this runs less often.
+                 // The safe bet is relying on Dashboard's state, but ensuring we sync up.
+             }
+        };
+    }, [detailProject, onToggleFullScreen]);
+
     const lastTickRef = React.useRef<number>(0);
-    // Initialize ref on mount
+    const startTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isCompletingRef = React.useRef(false);
     useEffect(() => { lastTickRef.current = Date.now(); }, []);
+
+    const clearStartTimeout = () => {
+        if (startTimeoutRef.current) {
+            clearTimeout(startTimeoutRef.current);
+            startTimeoutRef.current = null;
+        }
+    };
+
+    useEffect(() => () => clearStartTimeout(), []);
 
     // --- PERSISTENCE LOGIC ---
     const STORAGE_KEY = 'matrix_focus_session';
@@ -85,11 +122,9 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 setMode(session.mode);
                 setFocusMode(session.attributeId);
                 
-                if (session.viewState === 'TIMER') {
-                    setViewState('TIMER');
-                    setIsActive(session.isActive);
-                    setIsPaused(session.isPaused);
-                }
+                setViewState('LIST');
+                setIsActive(false);
+                setIsPaused(false);
             } catch (e) {
                 console.error("Failed to restore focus session", e);
             }
@@ -98,7 +133,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
 
     // 2. Persist Session (On Status Change)
     useEffect(() => {
-        if (viewState === 'TIMER' && selectedProjectId) {
+        if (viewState === 'TIMER' && selectedProjectId && (isActive || isPaused)) {
             const now = Date.now();
             const state = {
                 projectId: selectedProjectId,
@@ -115,6 +150,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 startTime: mode === 'STOPWATCH' ? now - (timeLeft * 1000) : null,
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } else if (viewState === 'TIMER' && !isActive && !isPaused) {
+            localStorage.removeItem(STORAGE_KEY);
         }
     }, [isActive, isPaused, mode, selectedProjectId, viewState, totalDuration]); // Intentionally omitting timeLeft to avoid per-second writes
 
@@ -151,7 +188,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         setTotalDuration(duration);
         setFocusMode(project?.attribute || null);
         setViewState('TIMER');
-        setTimeout(() => { setIsActive(true); setIsPaused(false); }, 500);
+        clearStartTimeout();
+        startTimeoutRef.current = setTimeout(() => { setIsActive(true); setIsPaused(false); }, 500);
     };
 
     useEffect(() => {
@@ -173,17 +211,26 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     }, [initialProjectId, projects]);
 
     const stopSession = () => {
+        clearStartTimeout();
         setIsActive(false); setIsPaused(false); setViewState('LIST');
         setFocusMode(null); setSelectedProjectId(null);
         localStorage.removeItem(STORAGE_KEY);
     };
 
     const handleFinishSession = async () => {
+        if (isCompletingRef.current) return;
+
+        const isActionable = isActive || isPaused || (mode === 'STOPWATCH' && timeLeft > 0) || (mode === 'POMO' && timeLeft < totalDuration);
+        if (!isActionable) return;
+
+        const modeSnapshot = mode;
+        const timeLeftSnapshot = timeLeft;
+        const totalDurationSnapshot = totalDuration;
         let finalDuration = 0;
-        if (mode === 'POMO') {
-            finalDuration = totalDuration - timeLeft;
+        if (modeSnapshot === 'POMO') {
+            finalDuration = Math.max(0, Math.min(totalDurationSnapshot, totalDurationSnapshot - timeLeftSnapshot));
         } else {
-            finalDuration = timeLeft; 
+            finalDuration = Math.max(0, timeLeftSnapshot);
         }
 
         // Threshold check: Only save if session is > 5 seconds
@@ -209,6 +256,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             return;
         }
 
+        clearStartTimeout();
+        isCompletingRef.current = true;
         setIsActive(false);
         setIsPaused(false);
         setIsCompleting(true);
@@ -236,6 +285,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         setIsCompleting(false);
+        isCompletingRef.current = false;
         setShowRewardModal(true);
         // setShowHistory(true); // User requested NOT to show history automatically
         
@@ -247,6 +297,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     };
 
     const resetTimer = () => {
+        if (isCompletingRef.current) return;
         // Now acts as Stop & Save
         if (isActive || isPaused || (mode === 'STOPWATCH' && timeLeft > 0) || (mode === 'POMO' && timeLeft < totalDuration)) {
             handleFinishSession();
@@ -292,6 +343,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         stateRef.current = { mode, isActive, isPaused, isCompleting };
     }, [mode, isActive, isPaused, isCompleting]);
 
+    useEffect(() => {
+        isCompletingRef.current = isCompleting;
+    }, [isCompleting]);
+
     const handleFinishSessionRef = React.useRef(handleFinishSession);
     useEffect(() => {
         handleFinishSessionRef.current = handleFinishSession;
@@ -336,7 +391,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         else { setIsPaused(!isPaused); if(navigator.vibrate) navigator.vibrate(10); }
     };
 
-    const radius = 130; 
+    const radius = 160; 
     const circumference = 2 * Math.PI * radius;
     const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
     const dashOffset = circumference * (1 - progress);
@@ -517,7 +572,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         const activeColor = attr?.color || '#6366f1';
 
                         return (
-                            <div key={project.id} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 bg-[#121212]/95 border overflow-visible transition-all duration-500 hover:bg-[#181818] flex flex-col gap-3 shadow-xl">
+                            <div key={project.id} onClick={() => setDetailProject(project)} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 bg-[#121212]/95 border overflow-visible transition-all duration-500 hover:bg-[#181818] flex flex-col gap-3 shadow-xl">
                                 
                                 {/* --- Sentient Glass Effects --- */}
                                 <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
@@ -553,7 +608,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                                     initial={{ opacity: 0, scale: 0.9, y: 10, x: -10 }} animate={{ opacity: 1, scale: 1, y: 0, x: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10, x: -10 }}
                                                     className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1"
                                                 >
-                                                    <button onClick={onOpenProjectModal} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); onOpenProjectModal(); }} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
                                                     
                                                     {/* Toggle Archive/Unarchive Label */}
                                                     <button 
@@ -640,8 +695,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             </div>
             </div>
 
+            <HabitDetailView 
+                project={detailProject} 
+                onClose={() => setDetailProject(null)} 
+            />
+
             {/* --- TIMER VIEW --- */}
-            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100` : 'opacity-0 scale-110 pointer-events-none'}`}>
+            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-1000 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100` : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
                 {/* Dynamic Background with Trait Tint */}
                 <div className="absolute inset-0 z-0">
@@ -668,24 +728,23 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 </div>
 
                 {/* Main Content Wrapper - Centered Vertically */}
-                <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 pb-12 relative z-10">
+                <div className="flex-1 w-full flex flex-col items-center justify-end gap-0 pb-10 relative z-10">
                     
                     {/* Timer Display */}
-                    <div className="relative w-[320px] h-[320px] flex items-center justify-center">
+                    <div className="relative w-[380px] h-[380px] flex items-center justify-center my-auto">
                         {/* Theme-integrated Inner Background Plate */}
                         <div 
                             className="absolute rounded-full transition-all duration-1000"
                             style={{ 
-                                width: '256px', 
-                                height: '256px',
-                                background: `linear-gradient(135deg, rgba(${bgDepthRGB}, 0.85) 0%, rgba(${bgDepthRGB}, 0.98) 100%)`,
+                                width: '300px', 
+                                height: '300px',
+                                background: `linear-gradient(135deg, rgba(${bgDepthRGB}, 0.92) 0%, rgba(${bgDepthRGB}, 1) 100%)`,
                                 boxShadow: `
                                     inset 0 0 60px ${themeColor}20, 
                                     inset 0 0 20px ${themeColor}10,
                                     0 10px 40px rgba(0,0,0,0.5)
                                 `,
-                                border: `1px solid ${themeColor}15`,
-                                backdropFilter: 'blur(10px)'
+                                border: `1px solid ${themeColor}15`
                             }} 
                         />
 
@@ -706,10 +765,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                 </linearGradient>
                             </defs>
                             {/* Track */}
-                            <circle cx="160" cy="160" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
+                            <circle cx="190" cy="190" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="2" />
                             {/* Progress */}
                             <circle 
-                                cx="160" cy="160" r={radius} fill="none" 
+                                cx="190" cy="190" r={radius} fill="none" 
                                 stroke="url(#gradient)" 
                                 strokeWidth="6" 
                                 strokeLinecap="round" 
@@ -738,7 +797,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     </div>
 
                     {/* Timer Controls */}
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-8 mt-8">
                         <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 group shadow-lg">
                             <StopCircle size={24} className="group-hover:text-red-400 transition-colors" />
                         </button>

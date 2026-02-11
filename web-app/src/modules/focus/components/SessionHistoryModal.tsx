@@ -49,27 +49,27 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/95 animate-in fade-in duration-300" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm bg-[#1c1c1e] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300">
+            <div className="relative z-10 w-full max-w-sm bg-[#1c1c1e] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <div>
                         <h3 className="text-white font-bold text-lg">Session History</h3>
                         <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{project.title}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                         <button onClick={() => setIsAdding(!isAdding)} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isAdding ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20'}`}>
+                         <button type="button" onClick={() => setIsAdding(!isAdding)} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isAdding ? 'bg-white text-black' : 'bg-white/10 hover:bg-white/20'}`}>
                             <Plus size={16} className={isAdding ? 'rotate-45 transition-transform' : 'transition-transform'} />
                         </button>
-                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
+                        <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
                     </div>
                 </div>
 
                 {isAdding && (
                     <div className="p-4 bg-white/5 border-b border-white/5 animate-in slide-in-from-top-2">
                         <div className="flex gap-2 mb-3">
-                            <button onClick={() => setNewType('POMO')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${newType === 'POMO' ? 'bg-orange-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Pomodoro</button>
-                            <button onClick={() => setNewType('STOPWATCH')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${newType === 'STOPWATCH' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Flow</button>
+                            <button type="button" onClick={() => setNewType('POMO')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${newType === 'POMO' ? 'bg-orange-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Pomodoro</button>
+                            <button type="button" onClick={() => setNewType('STOPWATCH')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${newType === 'STOPWATCH' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Flow</button>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex-1 bg-black/40 rounded-xl px-3 py-2 flex items-center gap-2 border border-white/5 focus-within:border-white/20 transition-colors">
@@ -78,12 +78,14 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
                                     type="number" 
                                     value={newDuration}
                                     onChange={(e) => setNewDuration(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddSession()}
                                     className="flex-1 bg-transparent text-right text-white font-mono font-bold outline-none"
                                     placeholder="25"
+                                    autoFocus
                                 />
                                 <span className="text-slate-500 text-xs">min</span>
                             </div>
-                            <button onClick={handleAddSession} className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-slate-200 transition-colors shadow-lg active:scale-95">
+                            <button type="button" onClick={handleAddSession} className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-slate-200 transition-colors shadow-lg active:scale-95">
                                 <Check size={20} />
                             </button>
                         </div>

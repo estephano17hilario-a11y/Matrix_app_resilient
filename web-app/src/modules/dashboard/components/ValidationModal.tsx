@@ -26,8 +26,8 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                         : '#141419',
                     borderColor: habit?.attribute ? `${(attributes.find(a => a.id === habit.attribute)?.color || '#fff')}30` : 'rgba(255, 255, 255, 0.1)',
                     boxShadow: habit?.attribute 
-                        ? `0 20px 50px -12px ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}30, inset 0 1px 0 0 rgba(255,255,255,0.1)` 
-                        : '0 20px 50px -12px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.1)',
+                        ? `0 14px 32px -14px ${(attributes.find(a => a.id === habit.attribute)?.color || '#3b82f6')}20, inset 0 1px 0 0 rgba(255,255,255,0.1)` 
+                        : '0 14px 32px -14px rgba(0,0,0,0.45), inset 0 1px 0 0 rgba(255,255,255,0.1)',
                     /* REMOVED BACKDROP FILTER FOR ANDROID STABILITY */
                 }}
             >

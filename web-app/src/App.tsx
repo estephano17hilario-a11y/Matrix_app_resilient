@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { MatrixProvider } from '@/context/MatrixContext';
@@ -95,6 +96,45 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          toastOptions={{
+            className: '',
+            style: {
+              background: 'rgba(5, 5, 5, 0.95)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#fff',
+              boxShadow: '0 0 40px rgba(0,0,0,0.8)',
+              borderRadius: '16px',
+              padding: '12px 24px',
+              fontSize: '14px',
+              maxWidth: '400px',
+              zIndex: 9999,
+            },
+            success: {
+              style: {
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                boxShadow: '0 0 30px rgba(16, 185, 129, 0.2)',
+              },
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#050505',
+              },
+            },
+            error: {
+              style: {
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)',
+              },
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#050505',
+              },
+            },
+          }}
+        />
         <AppRoutes />
       </ThemeProvider>
     </AuthProvider>

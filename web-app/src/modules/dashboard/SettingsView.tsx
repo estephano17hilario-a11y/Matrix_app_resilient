@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogOut, User, Sliders, Palette, Edit3, Check, X, 
   BarChart3, Hexagon, ArrowLeft, Globe, Plus, Trash2, 
-  Layout, ShieldCheck, Square, Circle
+  Layout, ShieldCheck, Square, Circle, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { TRAITS_LIST } from './constants';
@@ -37,6 +37,10 @@ interface SettingsViewProps {
   onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
   vividMode?: boolean;
   onToggleVividMode?: (enabled: boolean) => void;
+  habitSectionControl?: 'VISIBLE' | 'HIDDEN';
+  onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
+  allowDockSectionSwitch?: boolean;
+  onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
 }
 
 type TabId = 'DESIGN' | 'CONTROLS' | 'ACCOUNT';
@@ -60,13 +64,18 @@ export const SettingsView = ({
   avatarShape,
   onAvatarShapeChange,
   vividMode,
-  onToggleVividMode
+  onToggleVividMode,
+  habitSectionControl = 'VISIBLE',
+  onUpdateHabitSectionControl,
+  allowDockSectionSwitch = true,
+  onUpdateAllowDockSectionSwitch
 }: SettingsViewProps) => {
   const { logout, user } = useAuth();
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('DESIGN');
   const [editingTraitId, setEditingTraitId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ label: string; color: string }>({ label: '', color: '' });
+  const [showHabitHelp, setShowHabitHelp] = useState<string | null>(null);
 
   const changeLanguage = (lng: string) => {
     console.log("Settings: Changing language to", lng);
@@ -233,6 +242,110 @@ export const SettingsView = ({
                          >
                             <BarChart3 size={14} />
                          </button>
+                    </div>
+                </div>
+
+                {/* Habit Navigation Config */}
+                 <div className="pt-4 mt-4 border-t border-white/5 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Sliders className="text-purple-400" size={16} />
+                        <h4 className="text-xs font-bold text-white/60 uppercase tracking-wider">Navigation Controls</h4>
+                    </div>
+
+                    {/* Config 1: Show Buttons */}
+                    <div className="space-y-2">
+                         <div className="flex items-center justify-between">
+                            <span className="text-white/70 text-sm">Show Section Buttons</span>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setShowHabitHelp(prev => prev === 'BUTTONS' ? null : 'BUTTONS')}
+                                    className="text-white/20 hover:text-white/60 transition-colors"
+                                >
+                                    <HelpCircle size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (habitSectionControl === 'VISIBLE') {
+                                            if (!allowDockSectionSwitch && onUpdateAllowDockSectionSwitch) {
+                                                onUpdateAllowDockSectionSwitch(true);
+                                            }
+                                            onUpdateHabitSectionControl?.('HIDDEN');
+                                        } else {
+                                            onUpdateHabitSectionControl?.('VISIBLE');
+                                        }
+                                    }}
+                                    className={cn(
+                                        "w-10 h-6 rounded-full transition-colors relative",
+                                        habitSectionControl === 'VISIBLE' ? "bg-theme-avatar" : "bg-white/10"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                                        habitSectionControl === 'VISIBLE' ? "translate-x-4" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+                        </div>
+                        <AnimatePresence>
+                            {showHabitHelp === 'BUTTONS' && (
+                                <motion.div 
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden"
+                                >
+                                    Controls whether the section switching buttons (Protocols/Vices, List/Strategy, Notes/Journal) are visible. Turn this OFF for a cleaner, minimal look across the app.
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Config 2: Dock Toggle */}
+                    <div className="space-y-2">
+                         <div className="flex items-center justify-between">
+                            <span className="text-white/70 text-sm">Dock Icon Toggles Section</span>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setShowHabitHelp(prev => prev === 'DOCK' ? null : 'DOCK')}
+                                    className="text-white/20 hover:text-white/60 transition-colors"
+                                >
+                                    <HelpCircle size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (allowDockSectionSwitch) {
+                                            if (habitSectionControl === 'HIDDEN' && onUpdateHabitSectionControl) {
+                                                onUpdateHabitSectionControl('VISIBLE');
+                                            }
+                                            onUpdateAllowDockSectionSwitch?.(false);
+                                        } else {
+                                            onUpdateAllowDockSectionSwitch?.(true);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "w-10 h-6 rounded-full transition-colors relative",
+                                        allowDockSectionSwitch ? "bg-theme-avatar" : "bg-white/10"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                                        allowDockSectionSwitch ? "translate-x-4" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+                        </div>
+                        <AnimatePresence>
+                             {showHabitHelp === 'DOCK' && (
+                                <motion.div 
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden"
+                                >
+                                    If enabled, clicking the Dock icon (e.g. Habits, Tasks, Notes) will toggle between sections. If disabled, it simply opens the view.
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
               </GlassPanel>

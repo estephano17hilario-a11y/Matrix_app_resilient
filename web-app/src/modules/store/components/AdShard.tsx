@@ -32,7 +32,7 @@ export const AdShard: React.FC<AdShardProps> = ({ onWatch }) => {
       onClick={handleWatch}
     >
       {/* Background Ambience */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-lg -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
       {/* Icon Circle */}
       <div className="relative mr-5 z-10">

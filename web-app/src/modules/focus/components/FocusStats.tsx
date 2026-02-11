@@ -83,17 +83,10 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
 
     return (
         <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
-            {/* Main Panel - Solid Background for Android Stability (No Blur) */}
-            <div className="bg-[#121212] rounded-[1.5rem] p-2 flex flex-col gap-1 relative overflow-visible border border-white/5 shadow-2xl">
-                 {/* Background Glow - Optimized (Radial Gradient instead of Blur) */}
-                 <div 
-                    className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-20" 
-                    style={{ 
-                        background: `radial-gradient(circle closest-side, ${activeFilterColor}, transparent)`,
-                        transform: 'translateZ(0)', 
-                        backfaceVisibility: 'hidden' 
-                    }}
-                 />
+            {/* Main Panel - Glass Background */}
+            <div className="bg-[#0a0a0a]/60 backdrop-blur-md rounded-[32px] p-4 flex flex-col gap-1 relative overflow-visible border border-white/5 shadow-2xl group">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -z-10 pointer-events-none" />
+                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] -z-10 pointer-events-none" />
                  
                 {/* HEADER ROW: Stats & Time Range */}
                 <div className="flex justify-between items-start z-10 min-h-[42px]">
@@ -290,6 +283,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     height={160}
                     max={Math.max(stats.max, 60)}
                     className="mt-2"
+                    showBackground={false}
                     stacked={groupMode !== 'TOTAL'}
                 />
             </div>

@@ -40,7 +40,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
     >
       {/* Background Ambient Glow */}
       <div className={cn(
-        "absolute -top-20 -right-20 w-60 h-60 rounded-full blur-[80px] opacity-20",
+        "absolute -top-20 -right-20 w-60 h-60 rounded-full blur-lg opacity-20",
         isCompleted ? "bg-yellow-500" : "bg-cyan-500"
       )} />
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   auth, 
   db, 
+  configStatus,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   updateProfile,
@@ -12,7 +13,8 @@ import {
   setDoc,
   getRedirectResult
 } from '../../services/firebase';
-import { loginWithGoogle, loginWithGooglePopup } from '../../services/firebaseService';
+import { loginWithGoogle, loginAsGuest } from '../../services/firebaseService';
+import { isNetworkAvailable, retryOperation } from '../../utils/networkUtils';
 import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
@@ -21,19 +23,11 @@ export const AuthView = () => {
   const { t, i18n } = useTranslation();
   // FORCE DEFAULT TO LOGIN (true)
   const [isLogin, setIsLogin] = useState(true);
+  const [isGuestMode, setIsGuestMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
-  const [showPopupFallback, setShowPopupFallback] = useState(false);
-  const watchdogRef = useRef<any>(null); // Use 'any' for timeout compatibility
   const emailRef = useRef<HTMLInputElement>(null);
-
-  // CLEANUP WATCHDOG
-  useEffect(() => {
-      return () => {
-          if (watchdogRef.current) clearTimeout(watchdogRef.current);
-      };
-  }, []);
 
   // RESET TO LOGIN ON MOUNT
   // Whenever this component is remounted (e.g. after logout), it will start at Login
@@ -50,7 +44,6 @@ export const AuthView = () => {
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
   const normalizeName = (value: string) => value.trim();
   const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-
   const resolveAuthErrorMessage = useCallback((err: any) => {
     const code = err?.code;
     const msg = err?.message || '';
@@ -71,6 +64,11 @@ export const AuthView = () => {
     // TIMEOUT HANDLING
     if (msg.includes('TIMEOUT')) return "Connection too slow. Please check your internet.";
 
+    // SPECIFIC HINT FOR PREVIEW ENVIRONMENTS
+    if (code === 'auth/network-request-failed' && window.self !== window.top) {
+        return "Network Error in Preview Mode. Please open in external browser.";
+    }
+
     return msg.replace('Firebase: ', '') || t('auth.errors.generic');
   }, [t]);
 
@@ -84,6 +82,7 @@ export const AuthView = () => {
   useEffect(() => {
     let active = true;
     const run = async () => {
+      if (!configStatus.isValid) return;
       try {
         // DETECT IF RETURNING FROM REDIRECT
         // If we are just mounting, we might be coming back from Google.
@@ -114,53 +113,35 @@ export const AuthView = () => {
   }, [resolveAuthErrorMessage]);
 
   const handleGoogleLogin = async () => {
+    if (!configStatus.isValid) {
+      const missing = configStatus.missingKeys?.join(', ') || 'Firebase config inválida';
+      setError(`Faltan variables de Firebase: ${missing}`);
+      setShake(prev => prev + 1);
+      return;
+    }
+    
+    const online = await isNetworkAvailable();
+    if (!online) {
+      setError(t('auth.errors.network') || "No internet connection detected");
+      setShake(prev => prev + 1);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    setShowPopupFallback(false);
-    
-    // WATCHDOG: If redirect takes > 4s, show fallback
-    if (watchdogRef.current) clearTimeout(watchdogRef.current);
-    watchdogRef.current = setTimeout(() => {
-        console.warn("⚠️ Redirect seems stalled. Offering popup.");
-        setShowPopupFallback(true);
-        // We don't stop loading, just show the option
-    }, 4000);
-
     try {
-      // loginWithGoogle now defaults to Redirect for robustness
       const result = await loginWithGoogle();
-      
-      // If result is null, it means we redirected (or are about to)
       if (result === null) {
-        // Keep loading true indefinitely while the browser redirects
         setIsLoading(true);
         return;
       }
-      
-      // If we got a result (legacy popup path), we handle it
-      if (watchdogRef.current) clearTimeout(watchdogRef.current);
-      console.log("✅ Google Login Manual Success:", result.uid);
+      setIsLoading(false);
     } catch (err: any) {
-      if (watchdogRef.current) clearTimeout(watchdogRef.current);
       console.error("Google Login Failed:", err);
       setError(resolveAuthErrorMessage(err));
       setShake(prev => prev + 1);
       setIsLoading(false); // Only turn off loading if we actually failed/threw
     } 
-  };
-
-  const handlePopupFallback = async () => {
-      if (watchdogRef.current) clearTimeout(watchdogRef.current);
-      setIsLoading(true);
-      setError(null);
-      try {
-          await loginWithGooglePopup();
-          // Success handled by AuthContext
-      } catch (err: any) {
-          console.error("Popup Fallback Failed:", err);
-          setError(resolveAuthErrorMessage(err));
-          setIsLoading(false);
-      }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,39 +152,68 @@ export const AuthView = () => {
     const normalizedEmail = normalizeEmail(email);
     const normalizedName = normalizeName(name);
 
-    if (!normalizedEmail || !password) {
-      setError(t('auth.errors.required') || "Email and password are required");
-      setShake(s => s + 1);
-      return;
-    }
+    if (isGuestMode) {
+        if (!normalizedName) {
+            setError(t('auth.errors.nameRequired') || "Name is required");
+            setShake(s => s + 1);
+            return;
+        }
+    } else {
+        if (!normalizedEmail || !password) {
+            setError(t('auth.errors.required') || "Email and password are required");
+            setShake(s => s + 1);
+            return;
+        }
 
-    if (!isValidEmail(normalizedEmail)) {
-      setError(t('auth.errors.invalidEmail'));
-      setShake(s => s + 1);
-      return;
-    }
+        if (!isValidEmail(normalizedEmail)) {
+            setError(t('auth.errors.invalidEmail'));
+            setShake(s => s + 1);
+            return;
+        }
 
-    if (!isLogin) {
-      if (!normalizedName) {
-        setError(t('auth.errors.nameRequired') || "Name is required");
-        setShake(s => s + 1);
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError(t('auth.errors.passwordMismatch'));
-        setShake(s => s + 1);
-        return;
-      }
+        if (!isLogin) {
+            if (!normalizedName) {
+                setError(t('auth.errors.nameRequired') || "Name is required");
+                setShake(s => s + 1);
+                return;
+            }
+            if (password !== confirmPassword) {
+                setError(t('auth.errors.passwordMismatch'));
+                setShake(s => s + 1);
+                return;
+            }
+        }
     }
 
     setError(null);
     setIsLoading(true);
 
     try {
-      if (isLogin) {
+      if (!configStatus.isValid) {
+        const missing = configStatus.missingKeys?.join(', ') || 'Firebase config inválida';
+        throw new Error(`Faltan variables de Firebase: ${missing}`);
+      }
+
+      // 1. NETWORK CHECK
+      const online = await isNetworkAvailable();
+      if (!online) {
+        // If we are in an iframe (preview mode), the check might be strict.
+        const isIframe = window.self !== window.top;
+        if (isIframe) {
+           console.warn("⚠️ Running in Iframe/Preview - Network might be restricted.");
+        }
+        throw new Error(t('auth.errors.network') || "No internet connection detected");
+      }
+
+      if (isGuestMode) {
+        // GUEST LOGIN
+        console.log("Attempting Guest Login...");
+        await retryOperation(() => loginAsGuest(normalizedName));
+        console.log("Guest Login successful");
+      } else if (isLogin) {
         // LOGIN
         console.log("Attempting login...");
-        await signInWithEmailAndPassword(auth, normalizedEmail, password);
+        await retryOperation(() => signInWithEmailAndPassword(auth, normalizedEmail, password));
         console.log("Login successful");
       } else {
         // REGISTER
@@ -212,7 +222,7 @@ export const AuthView = () => {
           throw new Error(t('auth.errors.passwordLength'));
         }
         
-        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+        const userCredential = await retryOperation(() => createUserWithEmailAndPassword(auth, normalizedEmail, password));
         console.log("User created:", userCredential.user.uid);
         
         // Update Profile with Name
@@ -228,13 +238,6 @@ export const AuthView = () => {
       }
     } catch (err: any) {
       console.error("Auth Error:", err);
-      
-      if (err.code === 'auth/network-request-failed' || err.message?.includes('TIMEOUT')) {
-         console.warn("⚠️ NETWORK FAILURE DETECTED. ENGAGING PHANTOM PROTOCOL.");
-         // Auto-show offline suggestion
-         setError("Connection unstable. Switch to Offline Mode?");
-         return;
-      }
 
       setError(resolveAuthErrorMessage(err));
       setShake(prev => prev + 1);
@@ -243,18 +246,25 @@ export const AuthView = () => {
     }
   };
 
-  const enableOfflineMode = () => {
-      localStorage.setItem('MATRIX_FORCE_OFFLINE', 'true');
-      window.location.reload();
-  };
-
   // ULTRA-FAST SPRING PHYSICS
   const springConfig = { type: "spring" as const, stiffness: 500, damping: 40, mass: 0.5 };
 
   const toggleMode = () => {
-    setIsLogin(!isLogin);
+    if (isGuestMode) {
+        setIsGuestMode(false);
+        setIsLogin(true);
+    } else {
+        setIsLogin(!isLogin);
+    }
     setError(null);
     setShake(0);
+  };
+
+  const toggleGuestMode = () => {
+      setIsGuestMode(true);
+      setIsLogin(false); // Guest mode is technically a "register" flow but anonymous
+      setError(null);
+      setShake(0);
   };
 
   const changeLanguage = (lang: string) => {
@@ -281,7 +291,7 @@ export const AuthView = () => {
 
           {/* 3. The Radial Aura (Centered Glow) */}
           <div 
-             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] opacity-40 pointer-events-none blur-[100px]"
+             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] opacity-40 pointer-events-none blur-lg"
              style={{ 
                  background: `radial-gradient(circle, #4f46e5 0%, transparent 70%)` 
              }}
@@ -325,13 +335,13 @@ export const AuthView = () => {
 
           <div className="flex flex-col items-center mb-8 pt-4">
             <motion.h1 
-              key={isLogin ? "login-title" : "register-title"}
+              key={isGuestMode ? "guest-title" : (isLogin ? "login-title" : "register-title")}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={springConfig}
               className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight text-center"
             >
-              {isLogin ? t('auth.login.title') : t('auth.register.title')}
+              {isGuestMode ? "Modo Invitado" : (isLogin ? t('auth.login.title') : t('auth.register.title'))}
             </motion.h1>
             <motion.p 
               className="text-white/40 text-sm mt-2 font-medium tracking-wide text-center"
@@ -339,13 +349,15 @@ export const AuthView = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              {isLogin ? t('auth.login.subtitle') : t('auth.register.subtitle')}
+              {isGuestMode 
+                ? "Sin registro. Tus datos se guardan en este dispositivo." 
+                : (isLogin ? t('auth.login.subtitle') : t('auth.register.subtitle'))}
             </motion.p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <AnimatePresence mode="popLayout" initial={false}>
-              {!isLogin && (
+              {(isGuestMode || !isLogin) && (
                 <motion.div
                   key="name-field"
                   initial={{ opacity: 0, height: 0, scale: 0.95 }}
@@ -359,35 +371,39 @@ export const AuthView = () => {
                     placeholder={t('auth.fields.name')} 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    required={!isLogin}
+                    required={!isLogin || isGuestMode}
                   />
                 </motion.div>
               )}
 
-              <motion.div layout key="email-field" transition={springConfig}>
-                <AuthInput 
-                  ref={emailRef}
-                  icon={Mail} 
-                  type="email" 
-                  placeholder={t('auth.fields.email')} 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </motion.div>
+              {!isGuestMode && (
+                <>
+                  <motion.div layout key="email-field" transition={springConfig}>
+                    <AuthInput 
+                      ref={emailRef}
+                      icon={Mail} 
+                      type="email" 
+                      placeholder={t('auth.fields.email')} 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </motion.div>
 
-              <motion.div layout key="password-field" transition={springConfig}>
-                <AuthInput 
-                  icon={Lock} 
-                  type="password" 
-                  placeholder={t('auth.fields.password')} 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </motion.div>
+                  <motion.div layout key="password-field" transition={springConfig}>
+                    <AuthInput 
+                      icon={Lock} 
+                      type="password" 
+                      placeholder={t('auth.fields.password')} 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </motion.div>
+                </>
+              )}
 
-              {!isLogin && (
+              {!isLogin && !isGuestMode && (
                 <motion.div
                   key="confirm-password-field"
                   initial={{ opacity: 0, height: 0, scale: 0.95 }}
@@ -406,7 +422,7 @@ export const AuthView = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-
+            
             {/* Error Message */}
             <AnimatePresence mode="popLayout">
               {error && (
@@ -420,15 +436,6 @@ export const AuthView = () => {
                     <div className="text-red-400 text-xs text-center font-mono bg-red-950/30 p-2 rounded-lg border border-red-500/20">
                       {error}
                     </div>
-                    {(error.includes('Offline') || error.includes('TIMEOUT') || error.includes('network')) && (
-                        <button 
-                            type="button"
-                            onClick={enableOfflineMode}
-                            className="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 text-xs font-bold rounded-lg border border-indigo-500/30 transition-colors"
-                        >
-                            ENTER OFFLINE MODE (DEMO)
-                        </button>
-                    )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -441,7 +448,11 @@ export const AuthView = () => {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               transition={springConfig}
-              className="w-full relative group overflow-hidden rounded-xl bg-white text-black font-bold py-4 text-lg shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transition-all duration-300"
+              className={`w-full relative group overflow-hidden rounded-xl font-bold py-4 text-lg shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transition-all duration-300 ${
+                  isGuestMode 
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40' 
+                    : 'bg-white text-black'
+              }`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-shimmer" />
               <span className="flex items-center justify-center gap-2">
@@ -449,7 +460,7 @@ export const AuthView = () => {
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
                   <>
-                    {isLogin ? t('auth.login.button') : t('auth.register.button')}
+                    {isGuestMode ? "Entrar como Invitado" : (isLogin ? t('auth.login.button') : t('auth.register.button'))}
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -491,35 +502,28 @@ export const AuthView = () => {
             </span>
           </motion.button>
 
-          {/* Fallback Popup Button */}
-          <AnimatePresence>
-            {showPopupFallback && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-2"
+          <motion.div layout className="mt-6 text-center flex flex-col gap-3" transition={springConfig}>
+            {!isGuestMode && (
+                <button 
+                  onClick={toggleGuestMode}
+                  className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors duration-300 font-medium"
                 >
-                    <button
-                        onClick={handlePopupFallback}
-                        className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <span>⚠️ No redirige?</span>
-                        <span className="underline font-bold">Usar Ventana Emergente</span>
-                    </button>
-                </motion.div>
+                  Entrar como Invitado (sin registro)
+                </button>
             )}
-          </AnimatePresence>
 
-          <motion.div layout className="mt-6 text-center" transition={springConfig}>
             <button 
               onClick={toggleMode}
               className="text-sm text-white/60 hover:text-white transition-colors duration-300 font-medium"
             >
-              {isLogin ? (
-                <span>{t('auth.login.footer')} <span className="text-indigo-400 hover:underline">{t('auth.login.footerAction')}</span></span>
+              {isGuestMode ? (
+                 <span>¿Ya tienes cuenta? <span className="text-indigo-400 hover:underline">Iniciar Sesión</span></span>
               ) : (
-                <span>{t('auth.register.footer')} <span className="text-indigo-400 hover:underline">{t('auth.register.footerAction')}</span></span>
+                 isLogin ? (
+                    <span>{t('auth.login.footer')} <span className="text-indigo-400 hover:underline">{t('auth.login.footerAction')}</span></span>
+                 ) : (
+                    <span>{t('auth.register.footer')} <span className="text-indigo-400 hover:underline">{t('auth.register.footerAction')}</span></span>
+                 )
               )}
             </button>
           </motion.div>

@@ -204,6 +204,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  PersistenceService.saveProfile(finalProfile);
               }
             } else {
+              // 🛡️ SAFETY CHECK: Before creating a new profile, check local cache one last time
+              // This prevents overwriting data if Firestore returns empty due to latency/offline issues
+              const localProfile = PersistenceService.getProfile();
+              if (localProfile && localProfile.uid === currentUser.uid && localProfile.stats) {
+                  console.log("⚠️ MATRIX: Firestore empty, but Local Profile exists. Resyncing Local -> Remote.");
+                  await setDoc(userRef, sanitizeFirestoreData(localProfile), { merge: true });
+                  setProfile(localProfile);
+                  return;
+              }
+
               console.log("🆕 MATRIX: Creating missing profile.");
               const newUserProfile: UserProfile = {
                 uid: currentUser.uid,

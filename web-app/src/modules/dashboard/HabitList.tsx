@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Flame } from 'lucide-react';
 import { Habit, Attribute } from '../../types';
 import { HabitItem } from './components/HabitItem';
-import { HabitDetailView } from './components/HabitDetailView';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { useTranslation } from 'react-i18next';
 
@@ -14,15 +13,14 @@ interface HabitListProps {
 
 export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onCompleteHabit }) => {
   const { t } = useTranslation();
-  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
 
   // Stats calculation
   const totalHabits = habits.length;
   const completedHabits = habits.filter(h => h.completedToday).length;
   const streak = habits.reduce((acc, h) => acc + h.streak, 0);
   
-  // 80% Rule Logic
-  const minTarget = Math.ceil(totalHabits * 0.8);
+  // 75% Rule Logic
+  const minTarget = Math.ceil(totalHabits * 0.75);
   const isSafe = completedHabits >= minTarget;
   const deficit = isSafe ? 0 : minTarget - completedHabits;
   const potentialDamage = deficit * 3;
@@ -81,7 +79,6 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
             habit={habit} 
             attribute={attributes.find(a => a.id === habit.attribute)} 
             onComplete={onCompleteHabit}
-            onClick={setSelectedHabit} 
           />
         ))}
         {habits.length === 0 && (
@@ -91,10 +88,6 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
         )}
       </div>
 
-      <HabitDetailView 
-        habit={selectedHabit} 
-        onClose={() => setSelectedHabit(null)} 
-      />
     </div>
   );
 };

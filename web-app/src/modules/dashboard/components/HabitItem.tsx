@@ -1,84 +1,203 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, Flame } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { Check, Flame, MoreVertical } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
+import { QuantityUpdateModal } from './QuantityUpdateModal';
 
 interface HabitItemProps {
   habit: Habit;
   attribute?: Attribute;
   onComplete: (e: React.MouseEvent, h: Habit) => void;
   onClick?: (habit: Habit) => void;
+  onEdit?: (habit: Habit) => void;
+  onUpdate?: (habitId: string, data: Partial<Habit>) => void;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick }: HabitItemProps) => {
-  const Icon = attribute?.icon;
-  const activeColor = habit.customColor || attribute?.color;
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate }: HabitItemProps) => {
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
+  
+  const CustomIcon = habit.iconName && (LucideIcons as any)[habit.iconName] 
+      ? (LucideIcons as any)[habit.iconName] 
+      : null;
+  const Icon = CustomIcon || attribute?.icon;
+
+  // Fallback color if none provided
+  const baseColor = habit.customColor || attribute?.color || '#6366f1'; // Indigo default
+
+  // Helper to format progress text
+  const getProgressText = () => {
+    if (habit.type === 'QUANTITY') {
+      return `${habit.currentValue || 0}/${habit.targetValue} ${habit.unit || ''}`;
+    }
+    if (habit.type === 'CHECKLIST') {
+      const total = habit.checklist?.length || 0;
+      const completed = habit.checklist?.filter(i => i.completed).length || 0;
+      return `${completed}/${total}`;
+    }
+    return habit.completedToday ? '1/1' : '0/1';
+  };
+
+  const handleChecklistToggle = (itemId: string, currentStatus: boolean) => {
+    if (!onUpdate || !habit.checklist) return;
+    const newChecklist = habit.checklist.map(item => 
+        item.id === itemId ? { ...item, completed: !currentStatus } : item
+    );
+    onUpdate(habit.id, { checklist: newChecklist });
+  };
+
+  // Helper for time display
+  const getTimeDisplay = () => {
+    if (!habit.reminderTime) return null;
+    // Format simple time string if needed, or just return as is
+    return habit.reminderTime;
+  };
+
+  const timeDisplay = getTimeDisplay();
 
   return (
+    <>
     <motion.div
       layout
       whileTap={{ scale: 0.98 }}
       onClick={() => onClick?.(habit)}
-      className="group relative backdrop-blur-md border border-white/10 shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 cursor-pointer"
-      style={{
-        background: activeColor 
-            ? `linear-gradient(165deg, ${activeColor}15 0%, rgba(26, 26, 32, 0.6) 100%)` 
-            : 'rgba(255, 255, 255, 0.05)'
-      }}
+      className="group relative bg-gray-900/80 backdrop-blur-lg border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-gray-800/80"
     >
-      <div className="relative flex items-center p-3 gap-4">
+        {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
-          className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform group-hover:scale-105"
-          style={{ backgroundColor: activeColor ? `${activeColor}15` : 'rgba(255,255,255,0.05)' }}
+            className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-500" 
+            style={{ backgroundColor: baseColor }}
+        />
+
+      <div className="relative flex items-center gap-3">
+        {/* Left: Icon Box */}
+        <div 
+          className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/5"
+          style={{ backgroundColor: `${baseColor}20` }}
         >
           {attribute && Icon && (
-            <Icon size={22} style={{ color: activeColor }} strokeWidth={2} />
+            <Icon size={20} style={{ color: baseColor }} strokeWidth={2} />
           )}
         </div>
         
-        <div className="flex-1 min-w-0">
-          <h4 className="text-white font-bold text-[15px] mb-1 tracking-tight truncate">
+        {/* Middle: Content */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+          {/* Title */}
+          <h4 className="text-white font-bold text-[16px] leading-tight tracking-tight truncate flex items-center gap-2">
             {habit.title}
+            {habit.streak > 0 && (
+                <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 border border-orange-500/20">
+                    <Flame size={10} className="fill-orange-400" /> {habit.streak}
+                </span>
+            )}
           </h4>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className={cn(
-              "flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border transition-colors",
-              habit.completedToday 
-                ? "text-orange-400 border-orange-500/20 bg-orange-500/10" 
-                : "text-slate-500 border-white/5 bg-white/5"
-            )}>
-              <Flame size={10} className={habit.completedToday ? 'fill-orange-400' : ''} />
-              {habit.streak}
-            </div>
-            {habit.type === 'QUANTITY' && (
-               <span className="text-[10px] text-slate-500 font-mono">
-                 {habit.currentValue || 0} / {habit.targetValue} {habit.unit}
-               </span>
+
+          {/* Stats Row */}
+          <div className="flex items-center gap-2">
+            {/* Progress Text */}
+            <span 
+                onClick={(e) => {
+                    if (habit.type === 'QUANTITY' && onUpdate) {
+                        e.stopPropagation();
+                        setIsQuantityModalOpen(true);
+                    }
+                }}
+                className={cn(
+                    "text-[13px] font-semibold tracking-wide opacity-90",
+                    habit.type === 'QUANTITY' && onUpdate ? "cursor-pointer hover:underline decoration-white/30 underline-offset-2 hover:text-white transition-colors" : ""
+                )}
+                style={{ color: baseColor }}
+            >
+                {getProgressText()}
+            </span>
+
+             {/* Time Display - Tiny */}
+             {timeDisplay && (
+                <span className="text-[11px] text-white/30 font-medium tracking-wider pl-1 border-l border-white/10 flex items-center gap-1">
+                    {timeDisplay}
+                </span>
             )}
           </div>
+
+          {/* CHECKLIST CONTROLS */}
+          {habit.type === 'CHECKLIST' && habit.checklist && onUpdate && (
+            <div className="mt-2 space-y-1.5 w-full" onClick={e => e.stopPropagation()}>
+                {habit.checklist.map(item => (
+                    <div key={item.id} className="flex items-center gap-2 group/item cursor-pointer" onClick={() => handleChecklistToggle(item.id, item.completed)}>
+                        <div
+                            className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                item.completed 
+                                    ? "bg-indigo-500 border-indigo-500 text-white" 
+                                    : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                            )}
+                        >
+                            {item.completed && <Check size={10} strokeWidth={3} />}
+                        </div>
+                        <span className={cn(
+                            "text-xs transition-colors truncate",
+                            item.completed ? "text-white/30 line-through" : "text-white/80"
+                        )}>
+                            {item.text}
+                        </span>
+                    </div>
+                ))}
+            </div>
+          )}
         </div>
 
-        <button 
-          onClick={(e) => onComplete(e, habit)}
-          className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 relative overflow-hidden active:scale-90",
-            habit.completedToday 
-              ? (activeColor ? "text-white border-transparent" : "bg-gradient-to-br from-emerald-500 to-green-600 border-transparent shadow-[0_0_20px_rgba(16,185,129,0.4)]")
-              : "bg-[#0a0a0c] border-white/10 hover:border-white/30"
-          )}
-          style={habit.completedToday && activeColor ? {
-              background: `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
-              boxShadow: `0 0 20px ${activeColor}60`
-          } : undefined}
-        >
-          {habit.completedToday ? (
-            <Check size={24} className="text-white drop-shadow-md" strokeWidth={3.5} />
-          ) : (
-            <div className="w-4 h-4 rounded-full border-[2.5px] border-white/20 group-hover:border-white/50 transition-colors" />
-          )}
-        </button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
+             {/* Circle Checkbox */}
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (habit.type === 'QUANTITY' && onUpdate) {
+                        setIsQuantityModalOpen(true);
+                    } else {
+                        onComplete(e, habit);
+                    }
+                }}
+                className={cn(
+                    "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300",
+                    habit.completedToday 
+                    ? "bg-transparent border-transparent" // Filled state handled below
+                    : "border-slate-600 hover:border-slate-500 bg-transparent"
+                )}
+                style={habit.completedToday ? {
+                    backgroundColor: baseColor,
+                    borderColor: baseColor,
+                    boxShadow: `0 0 15px ${baseColor}60`
+                } : undefined}
+            >
+                {habit.completedToday && (
+                    <Check size={20} className="text-white" strokeWidth={3} />
+                )}
+            </button>
+
+            {/* Menu Button */}
+            <button 
+                className="text-slate-500 hover:text-white transition-colors p-1"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(habit);
+                }}
+            >
+                <MoreVertical size={20} />
+            </button>
+        </div>
       </div>
     </motion.div>
+
+    {habit.type === 'QUANTITY' && onUpdate && (
+        <QuantityUpdateModal 
+            habit={habit}
+            isOpen={isQuantityModalOpen}
+            onClose={() => setIsQuantityModalOpen(false)}
+            onUpdate={onUpdate}
+        />
+    )}
+    </>
   );
 });

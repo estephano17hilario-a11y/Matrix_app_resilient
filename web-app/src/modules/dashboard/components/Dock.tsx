@@ -1,11 +1,17 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, CheckCircle2, Zap, ChevronDown, Briefcase, Map as MapIcon, ShoppingBag } from 'lucide-react';
+import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ClipboardList, Flame, ChevronDown, Brain, Map as MapIcon, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' }) => {
     const { t } = useTranslation();
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };
+    
+    const handleSmartNav = (v: string) => {
+        onChangeView(v);
+        onToggle(false);
+    };
+
     const handleModal = (m: string) => { onOpenModal(m); onToggle(false); };
 
     const isLiquid = dashboardStyle === 'LIQUID';
@@ -50,13 +56,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 <div className="relative w-full h-full">
                 <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     
-                    <button onClick={() => { handleView('TASKS'); setTimeout(() => handleModal('QUEST'), 150); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+                    <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
                     </button>
-                    <button onClick={() => { handleView('HABITS'); setTimeout(() => handleModal('HABIT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                    <button onClick={() => { handleModal('HABIT'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.habit')}</span>
                     </button>
-                    <button onClick={() => { handleView('FOCUS'); setTimeout(() => handleModal('PROJECT'), 150); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
+                    <button onClick={() => { handleModal('PROJECT'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.focus')}</span>
                     </button>
                     
@@ -75,13 +81,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20">
                     <div className="flex justify-center">
-                        <button onClick={() => handleView('TASKS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'TASKS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
-                            <CheckCircle2 size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'TASKS' ? 2.5 : 2} />
+                        <button onClick={() => handleSmartNav('TASKS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'TASKS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                            <ClipboardList size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'TASKS' ? 2.5 : 2} />
                         </button>
                     </div>
                     <div className="flex justify-center">
-                        <button onClick={() => handleView('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
-                            <Zap size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
+                        <button onClick={() => handleSmartNav('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                            <Flame size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
                         </button>
                     </div>
                     
@@ -92,13 +98,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </div>
 
                     <div className="flex justify-center">
-                        <button onClick={() => handleView('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                        <button onClick={() => handleSmartNav('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
                             <Target size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} />
                         </button>
                     </div>
                     <div className="flex justify-center">
-                        <button onClick={() => handleView('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
-                            <Briefcase size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} />
+                        <button onClick={() => handleSmartNav('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                            <Brain size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} />
                         </button>
                     </div>
                 </div>

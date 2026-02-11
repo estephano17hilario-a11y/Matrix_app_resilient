@@ -70,7 +70,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
          
          {/* Central Spot */}
          <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] opacity-20 blur-[100px] rounded-full transition-colors duration-700"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] opacity-20 blur-lg rounded-full transition-colors duration-700"
             animate={{ backgroundColor: currentAvatar.themeColor }}
          />
       </div>

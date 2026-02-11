@@ -52,6 +52,8 @@ export interface UserProfile {
   theme: 'ETHER' | 'MATRIX' | 'SUNSET';
   dashboardStyle?: 'BORDER' | 'LIQUID';
   avatarShape?: 'CIRCLE' | 'SQUARE';
+  habitSectionControl?: 'VISIBLE' | 'HIDDEN';
+  allowDockSectionSwitch?: boolean;
   
   // Rate Limiting
   traitChanges?: {

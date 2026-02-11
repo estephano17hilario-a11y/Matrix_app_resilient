@@ -452,7 +452,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                         {/* ACTIVE CONTEXT HEADER (Apple Event Style) */}
                         <div className="text-center relative">
                             <div 
-                                className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-[80px] rounded-full pointer-events-none transition-colors duration-700"
+                                className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-lg rounded-full pointer-events-none transition-colors duration-700"
                                 style={{ backgroundColor: `${traitColor}33` }} 
                             />
                             

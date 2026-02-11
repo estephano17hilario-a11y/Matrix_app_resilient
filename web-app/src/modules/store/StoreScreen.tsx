@@ -64,7 +64,7 @@ const ConfirmationModal = ({
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
                         onClick={onCancel}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+                        className="absolute inset-0 bg-black/90" 
                     />
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -178,7 +178,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
         
         {/* Header - Refined */}
         <div className="sticky top-4 z-50 mb-6">
-            <div className="absolute inset-0 bg-[#1c1c1e]/90 backdrop-blur-md rounded-[24px] shadow-sm border border-white/5" />
+            <div className="absolute inset-0 bg-[#1c1c1e]/95 rounded-[24px] shadow-sm border border-white/5" />
             <div className="relative flex justify-between items-center px-5 py-3.5">
                 <div className="flex items-center gap-3">
                     <h1 className="text-[22px] font-semibold tracking-tight text-white">{t('store.title')}</h1>

@@ -23,11 +23,11 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
       className={cn(
         // OPTIMIZED HYPER-GLASS (Safe for VisionOS/Android)
         // Reduced blur from lg to md to prevent GPU flickering
-        "bg-gray-900/60 backdrop-blur-md", 
+        "bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent", 
         // Borde de Luz (Rim Light)
         "border border-white/10",
         // Reflejo Superior (Specular Highlight) & Sombra de Elevación (Glow Shadow)
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(79,70,229,0.15)]",
+        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_12px_30px_-16px_rgba(79,70,229,0.12)]",
         // Rounded defaults
         "rounded-2xl",
         className

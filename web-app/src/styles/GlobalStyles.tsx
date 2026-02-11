@@ -46,9 +46,7 @@ export const GlobalStyles = React.memo(() => (
     .apple-btn:active { transform: scale(0.96); opacity: 0.8; }
     
     .apple-input {
-        background: rgba(26, 26, 26, 0.6);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: rgba(26, 26, 26, 0.7);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 18px;
         transition: all 0.3s ease;
@@ -61,9 +59,7 @@ export const GlobalStyles = React.memo(() => (
     }
 
     .trait-card {
-        background: rgba(26, 26, 26, 0.6);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: rgba(26, 26, 26, 0.7);
         border: 1px solid rgba(255,255,255,0.05);
         transition: all 0.4s var(--spring-easing);
     }
@@ -88,8 +84,8 @@ export const GlobalStyles = React.memo(() => (
     
     .aura-container {
       position: relative; isolation: isolate; overflow: hidden;
-      will-change: transform, width, height, border-radius;
-      box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
+      will-change: transform, opacity;
+      box-shadow: 0 12px 30px -10px rgba(0,0,0,0.45);
       transform: translateZ(0);
     }
     .aura-container::before {
@@ -107,14 +103,14 @@ export const GlobalStyles = React.memo(() => (
     .aura-container::after {
       content: ''; position: absolute; inset: 2px; 
       background: rgba(10, 10, 10, 0.2); 
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-radius: inherit; z-index: -1;
       transition: background 0.5s ease;
-      box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
+      box-shadow: inset 0 0 16px rgba(255,255,255,0.05);
     }
     .aura-active::before { opacity: 1; filter: blur(8px); }
     .aura-active::after { background: rgba(0, 0, 0, 0.05); box-shadow: inset 0 0 30px rgba(255,255,255,0.02); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } 
-    .aura-active { box-shadow: 0 20px 60px -15px rgba(0,0,0,0.8); border: none; }
+    .aura-active { box-shadow: 0 16px 40px -18px rgba(0,0,0,0.7); border: none; }
 
     .btn-orb-glow {
       position: relative; overflow: hidden;
@@ -151,11 +147,9 @@ export const GlobalStyles = React.memo(() => (
     
     .editor-block:focus-within { background: rgba(255,255,255,0.03); }
     .glass-editor {
-        background: rgba(10, 10, 12, 0.4);
-        backdrop-filter: blur(50px) saturate(150%);
-        -webkit-backdrop-filter: blur(50px) saturate(150%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0) 60%), rgba(10, 10, 12, 0.7);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.8);
+        box-shadow: 0 12px 30px -16px rgba(0,0,0,0.65);
     }
   `}</style>
 ));

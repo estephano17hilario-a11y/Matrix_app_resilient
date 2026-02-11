@@ -25,6 +25,8 @@ interface NotesViewProps {
     onInteractionEnd: () => void;
     projects: Project[];
     onShowPro?: () => void;
+    currentSubView?: 'NOTES' | 'JOURNAL';
+    sectionControl?: 'VISIBLE' | 'HIDDEN';
 }
 
 const getEntryTitle = (blocks: NoteBlock[]) => {
@@ -43,11 +45,19 @@ const WigglyLine = () => (
     </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE' }: NotesViewProps) => {
     const { t, i18n } = useTranslation();
     const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
     const [subView, setSubView] = useState<'NOTES' | 'JOURNAL'>('NOTES');
+
+    // Sync subView with external prop
+    React.useEffect(() => {
+        if (currentSubView) {
+            setSubView(currentSubView);
+        }
+    }, [currentSubView]);
+
     const [journalViewMode, setJournalViewMode] = useState<'CALENDAR' | 'LIST'>('CALENDAR');
     const [editorMode, setEditorMode] = useState<'NONE' | 'NOTE' | 'JOURNAL'>('NONE');
     const [draftId, setDraftId] = useState<string | null>(null);
@@ -104,13 +114,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             <div className={`transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-0 scale-95 pointer-events-none blur-sm' : 'opacity-100 scale-100'}`}>
                 <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
                     <div className="w-8" />
-                    <div className="bg-black/40 p-1 rounded-full border border-white/10 flex relative backdrop-blur-md shadow-2xl w-full max-w-[200px]">
-                        <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
-                            subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
-                        }`} />
-                        <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Notes</button>
-                        <button onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Journal</button>
-                    </div>
+                    {sectionControl === 'VISIBLE' && (
+                        <div className="bg-black/40 p-1 rounded-full border border-white/10 flex relative backdrop-blur-md shadow-2xl w-full max-w-[200px]">
+                            <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
+                                subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
+                            }`} />
+                            <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Notes</button>
+                            <button onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Journal</button>
+                        </div>
+                    )}
+                    {sectionControl !== 'VISIBLE' && <div className="flex-1" />}
                     <button onClick={() => setShowStats(true)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"><BarChart3 size={16} /></button>
                 </div>
                 {subView === 'NOTES' && (
@@ -254,7 +267,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <div className="w-full h-full max-w-2xl mx-auto flex flex-col p-4 sm:p-6">
                         <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in zoom-in-95 duration-500 delay-100 shadow-2xl">
                              <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
-                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none blur-3xl transition-colors duration-1000" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
+                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none blur-lg transition-colors duration-1000" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
                              </div>
                             
                             <div className="flex justify-between items-center p-6 border-b border-white/5 relative z-20">
@@ -314,9 +327,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                      <style>
                         {`
                             @keyframes mood-splash {
-                                0% { opacity: 0; transform: scale(0.5) translateY(20px); filter: blur(10px); }
-                                40% { opacity: 0.6; transform: scale(1.2); filter: blur(0px); }
-                                100% { opacity: 0; transform: scale(1.5); filter: blur(20px); }
+                                0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+                                40% { opacity: 0.6; transform: scale(1.2); }
+                                100% { opacity: 0; transform: scale(1.5); }
                             }
                         `}
                      </style>

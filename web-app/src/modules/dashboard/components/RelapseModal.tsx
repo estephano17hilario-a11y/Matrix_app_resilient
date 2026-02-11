@@ -13,8 +13,8 @@ interface RelapseModalProps {
 
 const AuroraBackground = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-rose-600/20 rounded-full blur-[100px] animate-pulse-slow" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-red-900/20 rounded-full blur-[80px] animate-pulse-slow delay-1000" />
+        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-rose-600/20 rounded-full blur-lg animate-pulse-slow" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-red-900/20 rounded-full blur-lg animate-pulse-slow delay-1000" />
     </div>
 );
 

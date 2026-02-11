@@ -145,7 +145,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     key="start"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+                    exit={{ opacity: 0, scale: 1.03 }}
                     transition={{ duration: 0.3 }}
                     className="flex flex-col items-center justify-center text-center space-y-6 w-full h-full pt-12 md:pt-0"
                   >
@@ -153,14 +153,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     <AnimatePresence>
                         {wizardStep === 0 && (
                             <motion.div 
-                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
-                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                className="flex flex-col items-center flex-shrink-0 overflow-hidden"
+                                initial={{ opacity: 0, scale: 0.98, y: 6 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.98, y: -6 }}
+                                className="flex flex-col items-center flex-shrink-0"
                             >
                                 <div className="relative mb-4">
                                     <div 
-                                        className="absolute inset-0 blur-[60px] opacity-20 animate-pulse transition-colors duration-500" 
+                                        className="absolute inset-0 blur-lg opacity-20 animate-pulse transition-colors duration-500" 
                                         style={{ backgroundColor: activeColor }}
                                     />
                                     <Sparkles 

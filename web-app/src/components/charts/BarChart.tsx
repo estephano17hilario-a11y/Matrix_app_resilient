@@ -7,6 +7,7 @@ export const BarChart = React.memo(({
     height = 160,
     max,
     showGrid = true,
+    showBackground = true,
     className = "",
     barClassName = "",
     stacked = false
@@ -16,6 +17,7 @@ export const BarChart = React.memo(({
     height?: number;
     max?: number;
     showGrid?: boolean;
+    showBackground?: boolean;
     className?: string;
     barClassName?: string;
     stacked?: boolean;
@@ -68,8 +70,9 @@ export const BarChart = React.memo(({
     
     return (
         <div ref={containerRef} className={`w-full relative select-none ${className}`} style={{ height }}>
-             {/* Apple Intelligence Aura Background - Optimized (No heavy blur) */}
-             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-40 rounded-3xl pointer-events-none" />
+             {showBackground && (
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-40 rounded-3xl pointer-events-none" />
+             )}
 
              {/* Grid Lines */}
              {showGrid && (

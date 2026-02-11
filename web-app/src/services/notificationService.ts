@@ -62,10 +62,22 @@ export const notificationService = {
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
         console.log('Push Received:', notification);
+        
+        // Haptics for Push
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+        }
+
         toast(notification.title || 'New Message', {
            icon: '📱',
-           duration: 5000,
-           style: { background: '#333', color: '#fff' }
+           duration: 6000,
+           className: '!bg-[#050505]/90 !backdrop-blur-md !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
+           style: {
+             // Overridden by className, but kept for backup
+             background: '#050505',
+             color: '#fff',
+             border: '1px solid rgba(255,255,255,0.1)'
+           }
         });
       });
 
