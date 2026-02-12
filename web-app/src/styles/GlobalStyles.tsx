@@ -102,14 +102,13 @@ export const GlobalStyles = React.memo(() => (
     }
     .aura-container::after {
       content: ''; position: absolute; inset: 2px; 
-      background: rgba(10, 10, 10, 0.2); 
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.35)); 
       border-radius: inherit; z-index: -1;
       transition: background 0.5s ease;
-      box-shadow: inset 0 0 16px rgba(255,255,255,0.05);
+      box-shadow: inset 0 0 14px rgba(255,255,255,0.04);
     }
-    .aura-active::before { opacity: 1; filter: blur(8px); }
-    .aura-active::after { background: rgba(0, 0, 0, 0.05); box-shadow: inset 0 0 30px rgba(255,255,255,0.02); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } 
+    .aura-active::before { opacity: 1; }
+    .aura-active::after { background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.45)); box-shadow: inset 0 0 16px rgba(255,255,255,0.03); } 
     .aura-active { box-shadow: 0 16px 40px -18px rgba(0,0,0,0.7); border: none; }
 
     .btn-orb-glow {
@@ -131,7 +130,7 @@ export const GlobalStyles = React.memo(() => (
       background: conic-gradient(from 0deg, #06b6d4, transparent 40%, #ec4899, transparent 90%, #06b6d4);
       transform: translate(-50%, -50%);
       animation: orb-spin 10s linear infinite;
-      filter: blur(12px); z-index: -1; opacity: 0.6;
+      filter: blur(6px); z-index: -1; opacity: 0.6;
       will-change: transform;
     }
     @keyframes orb-spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }

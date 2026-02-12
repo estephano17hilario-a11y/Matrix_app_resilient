@@ -70,8 +70,8 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
          
          {/* Central Spot */}
          <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] opacity-20 blur-lg rounded-full transition-colors duration-700"
-            animate={{ backgroundColor: currentAvatar.themeColor }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[800px] max-h-[800px] opacity-20 rounded-full transition-colors duration-700"
+            animate={{ background: `radial-gradient(circle, ${currentAvatar.themeColor} 0%, transparent 65%)` }}
          />
       </div>
 
@@ -103,10 +103,9 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
                         x: `calc(-50% + ${relativeIndex * 85}%)`, 
                         y: '-50%',
                         scale: isCenter ? 1 : 0.85,
-                        opacity: isCenter ? 1 : 0.4,
+                        opacity: isCenter ? 1 : 0.55,
                         zIndex: isCenter ? 50 : 10 - Math.abs(relativeIndex),
                         rotateY: relativeIndex * -15, // Slight rotation towards center
-                        filter: isCenter ? 'blur(0px) brightness(1)' : 'blur(2px) brightness(0.6)',
                     }}
                     transition={{
                         type: "spring",
@@ -152,7 +151,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
         <div className="flex items-center gap-6 md:gap-8">
             <button
                 onClick={handlePrev}
-                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 backdrop-blur-sm"
+                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 bg-white/5"
             >
                 <ChevronLeft size={24} />
             </button>
@@ -170,7 +169,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
 
             <button
                 onClick={handleNext}
-                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 backdrop-blur-sm"
+                className="p-4 rounded-full border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all active:scale-95 bg-white/5"
             >
                 <ChevronRight size={24} />
             </button>

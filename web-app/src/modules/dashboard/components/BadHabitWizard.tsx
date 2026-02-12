@@ -130,7 +130,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute inset-0 bg-[#050505]/60 backdrop-blur-[2px]"
+                        className="absolute inset-0 bg-[#050505]/70"
                         onClick={onClose}
                     />
 

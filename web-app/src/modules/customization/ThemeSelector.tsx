@@ -113,7 +113,7 @@ export const ThemeSelector: React.FC = () => {
                              />
                              
                              {/* Glass Overlay on Hero */}
-                             <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
+                             <div className="absolute inset-0 bg-black/15" />
 
                              {/* Content inside Hero */}
                              <div className="relative z-10 flex justify-between items-start">
@@ -128,7 +128,7 @@ export const ThemeSelector: React.FC = () => {
                                         </span>
                                     </div>
                                 )}
-                                <div className="h-4 w-16 rounded-lg bg-white/20 backdrop-blur-md border border-white/10 mb-1" />
+                                <div className="h-4 w-16 rounded-lg bg-white/20 border border-white/10 mb-1" />
                                 <div className="h-1.5 w-10 rounded-full bg-white/40" />
                              </div>
                         </div>

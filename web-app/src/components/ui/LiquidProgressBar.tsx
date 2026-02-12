@@ -60,7 +60,7 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
       
       {/* Container: Tube */}
       <div className={cn(
-        "relative w-full bg-gray-800/50 rounded-full shadow-inner overflow-hidden backdrop-blur-sm",
+        "relative w-full bg-gray-800/60 rounded-full shadow-inner overflow-hidden",
         heightMap[size]
       )}>
         {/* Liquid Fill */}
@@ -77,7 +77,7 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
           
           {/* The "Head" Glow */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-4 bg-white blur-[4px] opacity-80" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-4 bg-white/80 opacity-80 shadow-[0_0_6px_rgba(255,255,255,0.25)]" />
         </motion.div>
       </div>
     </div>

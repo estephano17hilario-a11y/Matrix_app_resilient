@@ -1,33 +1,76 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { subDays, subMonths, format, isSameDay, isSameMonth } from 'date-fns';
+import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { toLocalISOString } from '../../../utils/dateUtils';
-import { TrendingUp, TrendingDown, Zap, Activity, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Zap, Calendar } from 'lucide-react';
+import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
+import { useMatrix } from '@/context/MatrixContext';
+import { getAvatarConfig } from '@/config/avatars';
 
 interface HabitConsistencyChartProps {
     habits: Habit[];
+    onOpenStreak?: () => void;
+    isActive?: boolean;
 }
 
 type TimeFrame = 'WEEK' | 'MONTH' | 'YEAR';
 
-export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits }) => {
+const getRequiredPercentForDay = (day: number) => {
+    if (day <= 7) return 50;
+    if (day <= 14) return 53;
+    if (day <= 21) return 57;
+    if (day <= 30) return 67;
+    if (day <= 45) return 80;
+    if (day <= 60) return 85;
+    return 85;
+};
+
+export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true }) => {
+    const { user } = useMatrix();
+    const avatarConfig = getAvatarConfig(user?.avatarId);
+    const themeColor = useMemo(() => {
+        return avatarConfig?.themeColor || '#10b981';
+    }, [avatarConfig?.themeColor]);
+
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [timeframe, setTimeframe] = useState<TimeFrame>('WEEK');
-    const [showStreakInfo, setShowStreakInfo] = useState(false);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (isActive) {
+            setTimeframe('WEEK');
+            setCurrentDate(new Date());
+        }
+    }, [isActive]);
+
+    const handleTabClick = (tf: TimeFrame) => {
+        if (timeframe === tf) {
+            setIsDateModalOpen(true);
+        } else {
+            setTimeframe(tf);
+            setCurrentDate(new Date());
+        }
+    };
+
+    const handleDateSelect = (date: Date) => {
+        setCurrentDate(date);
+    };
 
     // --- 1. DATA CALCULATION ---
-    const { chartData, stats, trend, todayStats } = useMemo(() => {
+    const { chartData, stats, trend, todayStats, dateRangeLabel } = useMemo(() => {
         const activeHabits = habits.filter(h => !h.archived);
         const totalHabits = activeHabits.length;
-        const now = new Date();
-        const todayStr = format(now, 'yyyy-MM-dd');
+        const today = new Date();
+        const viewDate = currentDate;
+        const todayStr = format(today, 'yyyy-MM-dd');
 
         let data: any[] = [];
         let prevPeriodAvg = 0;
-        
+
         const normalizeHistoryDate = (value: string) => {
             if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
             const parsed = new Date(value);
@@ -35,24 +78,32 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             return value.split('T')[0];
         };
 
-        const getCompletionCount = (dateStr: string) => {
-            return activeHabits.filter(h => 
-                h.history?.some(hDate => normalizeHistoryDate(hDate) === dateStr)
-            ).length;
-        };
+        const completionByDate = new Map<string, number>();
+        const completionByMonth = new Map<string, number>();
+
+        activeHabits.forEach(h => {
+            h.history?.forEach(hDate => {
+                const normalized = normalizeHistoryDate(hDate);
+                completionByDate.set(normalized, (completionByDate.get(normalized) || 0) + 1);
+                const monthKey = normalized.slice(0, 7);
+                completionByMonth.set(monthKey, (completionByMonth.get(monthKey) || 0) + 1);
+            });
+        });
+
+        const getCompletionCount = (dateStr: string) => completionByDate.get(dateStr) || 0;
 
         // Today's Stats
         const todayCount = getCompletionCount(todayStr);
         const todayPercent = totalHabits > 0 ? Math.round((todayCount / totalHabits) * 100) : 0;
-        const minForStreak = Math.ceil(totalHabits * 0.75); // 75% rule
 
         if (timeframe === 'WEEK') {
-            // Last 7 days including today
+            const start = viewDate;
             data = Array.from({ length: 7 }, (_, i) => {
-                const date = subDays(now, 6 - i);
+                const date = addDays(start, i);
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
                 const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+                const isFutureDate = isFuture(date) && !isSameDay(date, today);
                 
                 return {
                     date,
@@ -62,26 +113,31 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     percent,
                     label: format(date, 'EEE', { locale: es }).charAt(0).toUpperCase(),
                     fullLabel: format(date, 'EEEE d', { locale: es }),
-                    isCurrent: isSameDay(date, now)
+                    isCurrent: isSameDay(date, today),
+                    isFuture: isFutureDate
                 };
             });
 
-            // Calculate previous week average for trend
             let prevSum = 0;
-            for(let i=1; i<=7; i++) {
-                const d = subDays(now, 6 + 7 - i); // Shifted back 7 days
+            for (let i = 1; i <= 7; i += 1) {
+                const d = subDays(start, i);
                 const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
                 prevSum += totalHabits > 0 ? (c / totalHabits) : 0;
             }
             prevPeriodAvg = (prevSum / 7) * 100;
 
         } else if (timeframe === 'MONTH') {
-            // Last 30 days
-            data = Array.from({ length: 30 }, (_, i) => {
-                const date = subDays(now, 29 - i);
+            // ViewDate Month Calendar View
+            const start = startOfMonth(viewDate);
+            const end = endOfMonth(viewDate);
+            const days = eachDayOfInterval({ start, end });
+            
+            data = days.map((date) => {
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
                 const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+                const dayNum = date.getDate();
+                const isFutureDate = isFuture(date) && !isSameDay(date, today);
 
                 return {
                     date,
@@ -89,35 +145,34 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     count,
                     total: totalHabits,
                     percent,
-                    label: i % 5 === 0 ? format(date, 'd') : '',
+                    label: [1, 7, 14, 21, 28].includes(dayNum) ? dayNum.toString() : '',
                     fullLabel: format(date, 'd MMM', { locale: es }),
-                    isCurrent: isSameDay(date, now)
+                    isCurrent: isSameDay(date, today),
+                    isFuture: isFutureDate
                 };
             });
 
-             // Previous 30 days for trend
+             // Previous month for trend
+             const startPrev = startOfMonth(subMonths(viewDate, 1));
+             const endPrev = endOfMonth(subMonths(viewDate, 1));
+             const daysPrev = eachDayOfInterval({ start: startPrev, end: endPrev });
+             
              let prevSum = 0;
-             for(let i=1; i<=30; i++) {
-                 const d = subDays(now, 29 + 30 - i);
+             daysPrev.forEach(d => {
                  const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
                  prevSum += totalHabits > 0 ? (c / totalHabits) : 0;
-             }
-             prevPeriodAvg = (prevSum / 30) * 100;
+             });
+             prevPeriodAvg = (prevSum / daysPrev.length) * 100;
 
         } else {
-            // YEAR (Last 12 months)
+            // YEAR (Jan - Dec of viewDate year)
+            const start = startOfYear(viewDate);
             data = Array.from({ length: 12 }, (_, i) => {
-                const date = subMonths(now, 11 - i);
+                const date = addMonths(start, i);
                 const monthStr = format(date, 'yyyy-MM');
                 const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
                 const totalPossible = totalHabits * daysInMonth;
-                
-                let totalCompletedInMonth = 0;
-                activeHabits.forEach(h => {
-                    h.history?.forEach(hDate => {
-                        if (normalizeHistoryDate(hDate).startsWith(monthStr)) totalCompletedInMonth++;
-                    });
-                });
+                const totalCompletedInMonth = completionByMonth.get(monthStr) || 0;
 
                 const percent = totalPossible > 0 ? Math.round((totalCompletedInMonth / totalPossible) * 100) : 0;
 
@@ -129,16 +184,17 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     percent,
                     label: format(date, 'MMM', { locale: es }).charAt(0).toUpperCase(),
                     fullLabel: format(date, 'MMMM yyyy', { locale: es }),
-                    isCurrent: isSameMonth(date, now)
+                    isCurrent: isSameMonth(date, today),
+                    isFuture: false
                 };
             });
-             // Previous year average (approx) -> just setting 0 for now as simple comp
              prevPeriodAvg = 0; 
         }
 
         // Stats Calculation
-        const currentAvg = Math.round(data.reduce((acc, curr) => acc + curr.percent, 0) / data.length) || 0;
-        const bestDay = Math.max(...data.map(d => d.percent));
+        const validData = data.filter(d => !d.isFuture);
+        const currentAvg = Math.round(validData.reduce((acc, curr) => acc + curr.percent, 0) / validData.length) || 0;
+        const bestDay = Math.max(...validData.map(d => d.percent));
         
         // Streak calculation: Consecutive days with >= 75% completion
         // Iterate backwards from yesterday (since today might not be over)
@@ -147,39 +203,42 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         // If today >= 75%, streak includes today.
         
         let currentStreak = 0;
-        // We need a longer history for accurate streak if it goes beyond the chart. 
-        // For now, we calculate based on the chart data window (which might be limited) or activeHabits history.
-        // To be accurate, we should probably check day by day backwards from today using getCompletionCount.
-        
-        let streakCheckDate = now;
-        while (true) {
-            const dateStr = format(streakCheckDate, 'yyyy-MM-dd');
+        for (let i = 365; i >= 1; i -= 1) {
+            const dateStr = format(subDays(today, i), 'yyyy-MM-dd');
             const count = getCompletionCount(dateStr);
-            const percent = totalHabits > 0 ? (count / totalHabits) * 100 : 0;
-            
-            // If it's today and not yet completed, don't break streak, just don't count it yet?
-            // User requirement: "complete 75% ... to count the streak".
-            // So if today is 40%, streak is effectively paused or potentially broken if not done by end of day.
-            // Usually apps show "Current Streak" as the number of consecutive days COMPLETED.
-            // So if today is not done, streak is from yesterday.
-            
-            if (percent >= 75) {
-                currentStreak++;
-                streakCheckDate = subDays(streakCheckDate, 1);
+            const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+            const required = getRequiredPercentForDay(currentStreak + 1);
+            if (percent >= required) {
+                currentStreak += 1;
             } else {
-                if (isSameDay(streakCheckDate, now)) {
-                    // Today not done yet, check yesterday
-                    streakCheckDate = subDays(streakCheckDate, 1);
-                    continue;
-                }
-                break; // Break on first non-75% day (that isn't today)
+                currentStreak = 0;
             }
-            
-            // Safety break for loop
-            if (currentStreak > 365) break; 
         }
 
+        const requiredToday = getRequiredPercentForDay(currentStreak + 1);
+        if (todayPercent >= requiredToday) {
+            currentStreak += 1;
+        }
+
+        const minForStreak = Math.ceil((totalHabits * requiredToday) / 100);
+
         const trendValue = currentAvg - Math.round(prevPeriodAvg);
+
+        // Date Range Label Logic
+        let rangeLabel = '';
+        if (data.length > 0) {
+            const startD = data[0].date;
+            const endD = data[data.length - 1].date;
+            
+            if (timeframe === 'WEEK') {
+                rangeLabel = `${format(startD, 'd MMM').toUpperCase()} - ${format(endD, 'd MMM', { locale: es }).toUpperCase()}`;
+            } else if (timeframe === 'MONTH') {
+                const monthName = format(startD, 'MMMM', { locale: es });
+                rangeLabel = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${format(startD, 'yyyy')}`;
+            } else {
+                rangeLabel = format(startD, 'yyyy');
+            }
+        }
 
         return {
             chartData: data,
@@ -190,49 +249,83 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 totalHabits
             },
             trend: trendValue,
+            dateRangeLabel: rangeLabel,
             todayStats: {
                 count: todayCount,
                 total: totalHabits,
                 percent: todayPercent,
-                minForStreak
+                minForStreak,
+                requiredToday
             }
         };
-    }, [habits, timeframe]);
+    }, [habits, timeframe, currentDate]);
 
     // Color logic for the progress bar
-    const getProgressColor = (percent: number) => {
-        if (percent >= 80) return 'bg-emerald-500'; // Green
-        if (percent >= 30) return 'bg-yellow-500';  // Yellow
-        return 'bg-rose-500';                       // Red
+    const getProgressColor = (percent: number, required: number) => {
+        if (percent >= required) return themeColor;
+        if (percent >= required * 0.6) return `${themeColor}CC`; // 80% opacity
+        return '#f43f5e';
     };
 
-    const getProgressColorText = (percent: number) => {
-        if (percent >= 80) return 'text-emerald-400';
-        if (percent >= 30) return 'text-yellow-400';
-        return 'text-rose-400';
+    const getProgressColorStyle = (percent: number, required: number) => {
+        if (percent >= required) return { color: themeColor };
+        if (percent >= required * 0.6) return { color: `${themeColor}CC` };
+        return { color: '#fb7185' }; // rose-400
     };
+
+    const isCurrentRange = useMemo(() => {
+        const today = new Date();
+        if (timeframe === 'WEEK') {
+            const start = currentDate;
+            const end = addDays(currentDate, 6);
+            return isWithinInterval(today, { start, end });
+        }
+        if (timeframe === 'MONTH') {
+            return isSameMonth(currentDate, today);
+        }
+        return currentDate.getFullYear() === today.getFullYear();
+    }, [currentDate, timeframe]);
+
+    const showTicks = timeframe === 'MONTH';
 
     return (
-        <div className="w-full bg-[#0a0a0a]/60 backdrop-blur-md rounded-[32px] p-4 border border-white/5 shadow-2xl overflow-hidden relative group">
-            {/* Ambient Glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -z-10 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] -z-10 pointer-events-none" />
+        <div className="w-full bg-[#0a0a0a]/70 rounded-[32px] p-4 border border-white/5 shadow-md overflow-hidden relative group">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
 
             {/* --- HEADER --- */}
             <div className="flex flex-col gap-2 mb-2">
                 {/* Row 1: Title & Controls */}
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <Activity size={14} className="text-emerald-400" />
-                        <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Rendimiento</h3>
-                    </div>
+                    <motion.div 
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        key={dateRangeLabel}
+                        className="flex items-center"
+                    >
+                        <div className={cn(
+                            "px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-sm transition-colors cursor-default border",
+                            isCurrentRange
+                                ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                                : "bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20"
+                        )}>
+                            <Calendar size={10} className={cn(isCurrentRange ? "text-blue-300" : "text-amber-300")} />
+                            <span className={cn(
+                                "text-[10px] font-bold tracking-wide whitespace-nowrap font-mono",
+                                isCurrentRange ? "text-blue-200/90" : "text-amber-200/90"
+                            )}>
+                                {dateRangeLabel}
+                            </span>
+                        </div>
+                    </motion.div>
 
                     {/* Controls - Compact */}
                     <div className="flex p-0.5 rounded-full bg-zinc-900/80 border border-white/10 relative scale-95 origin-right">
-                        {(['WEEK', 'MONTH', 'YEAR'] as TimeFrame[]).map((tf) => (
+                         {(['WEEK', 'MONTH', 'YEAR'] as TimeFrame[]).map((tf) => (
                             <button
                                 key={tf}
-                                onClick={() => setTimeframe(tf)}
+                                onClick={() => handleTabClick(tf)}
                                 className={cn(
                                     "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-300 z-10",
                                     timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
@@ -252,7 +345,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 </div>
 
                 {/* Row 2: Stats */}
-                <div className="flex items-center gap-6">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                     {/* Average Percent */}
                     <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-mono font-bold text-white tracking-tighter">
@@ -270,9 +363,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     </div>
 
                     {/* Current Streak */}
-                    <div 
-                        onClick={() => setShowStreakInfo(true)}
-                        className="cursor-pointer group/streak flex flex-col items-start"
+                    <button 
+                        onClick={() => onOpenStreak?.()}
+                        className="cursor-pointer group/streak flex flex-col items-start text-left"
                     >
                         <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-amber-400 transition-colors">
                             Racha Actual
@@ -283,17 +376,18 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 {stats.streak} <span className="text-sm font-normal text-zinc-500">días</span>
                             </span>
                         </div>
-                    </div>
+                    </button>
+
                 </div>
             </div>
 
             {/* --- COMPACT CHART AREA --- */}
-            <div className="h-32 flex items-end justify-between gap-1 relative mb-2">
+            <div className="h-32 flex items-end justify-between gap-1 relative mb-2 pt-3">
                 {/* Horizontal Guidelines */}
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                <div className="absolute inset-x-0 top-3 bottom-0 flex flex-col justify-between pointer-events-none">
                     {[100, 50, 0].map((val) => (
                         <div key={val} className="w-full border-t border-white/5 relative h-0">
-                            <span className="absolute -top-2 -left-0 text-[9px] text-zinc-700 font-mono">{val}%</span>
+                            <span className="absolute top-1/2 -translate-y-1/2 -left-0 text-[9px] text-zinc-700 font-mono">{val}%</span>
                         </div>
                     ))}
                 </div>
@@ -313,7 +407,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 5, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/10 p-3 rounded-xl shadow-2xl z-50 min-w-[100px]"
+                                    className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-white/10 p-3 rounded-xl shadow-md z-50 min-w-[100px]"
                                 >
                                     <div className="text-[10px] text-zinc-400 font-medium mb-1 uppercase tracking-wider">{data.fullLabel}</div>
                                     <div className="flex items-center gap-2">
@@ -325,8 +419,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                     {/* Mini indicator */}
                                     <div className="w-full h-1 bg-zinc-800 rounded-full mt-2 overflow-hidden">
                                         <div 
-                                            className="h-full bg-emerald-500 rounded-full" 
-                                            style={{ width: `${data.percent}%` }}
+                                            className="h-full rounded-full" 
+                                            style={{ width: `${data.percent}%`, backgroundColor: themeColor }}
                                         />
                                     </div>
                                 </motion.div>
@@ -353,12 +447,17 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                     damping: 24, 
                                     delay: i * 0.03 
                                 }}
-                                style={{ height: '100%' }}
+                                style={{ 
+                                    height: '100%',
+                                    background: data.isCurrent 
+                                        ? `linear-gradient(to top, ${themeColor}, ${themeColor})` 
+                                        : `linear-gradient(to top, #3f3f46, #52525b)`, // zinc-700 to zinc-600
+                                    boxShadow: data.isCurrent ? `0 0 20px ${themeColor}4d` : 'none', // 30% opacity
+                                    opacity: data.isCurrent ? 1 : 0.6
+                                }}
                                 className={cn(
                                     "w-full rounded-t-sm relative overflow-hidden transition-all duration-300 origin-bottom",
-                                    data.isCurrent 
-                                        ? "bg-gradient-to-t from-emerald-500 to-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.3)]" 
-                                        : "bg-gradient-to-t from-zinc-700 to-zinc-600 opacity-60 hover:opacity-100"
+                                    !data.isCurrent && "hover:opacity-100"
                                 )}
                             >
                                 {/* Glass Reflection */}
@@ -366,14 +465,29 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             </motion.div>
                         </div>
 
-                        {/* Label */}
-                        <div className="h-6 flex items-center justify-center mt-2">
-                            <span className={cn(
-                                "text-[9px] font-bold transition-colors duration-300",
-                                data.isCurrent ? "text-emerald-400" : "text-zinc-600 group-hover/bar:text-zinc-400"
-                            )}>
-                                {data.label}
-                            </span>
+                        {/* Label & Ticks */}
+                        <div className="flex flex-col items-center mt-2">
+                            {showTicks && (
+                                <div className={cn(
+                                    "w-[1px] mb-1 transition-all duration-300",
+                                    data.label 
+                                        ? "h-2 bg-zinc-600" 
+                                        : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
+                                )} />
+                            )}
+                            
+                            {/* Date Label */}
+                            <div className="h-4 flex items-center justify-center">
+                                <span 
+                                    className={cn(
+                                        "text-[9px] font-bold transition-colors duration-300",
+                                        !data.isCurrent && "text-zinc-600 group-hover/bar:text-zinc-400"
+                                    )}
+                                    style={data.isCurrent ? { color: themeColor } : {}}
+                                >
+                                    {data.label}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -385,7 +499,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                      <div className="flex flex-col">
                         <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-wide">Objetivo Diario</span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className={cn("text-base font-bold", getProgressColorText(todayStats.percent))}>
+                            <span className="text-base font-bold" style={getProgressColorStyle(todayStats.percent, todayStats.requiredToday)}>
                                 {todayStats.count}/{todayStats.total}
                             </span>
                             <span className="text-[10px] text-zinc-600">completados</span>
@@ -393,87 +507,33 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     </div>
                     <div className="text-right">
                          <span className="text-[9px] text-zinc-500">
-                            {todayStats.percent >= 75 ? '¡Racha asegurada!' : `Faltan ${Math.max(0, todayStats.minForStreak - todayStats.count)} para racha`}
+                            {todayStats.percent >= todayStats.requiredToday ? '¡Racha asegurada!' : `Faltan ${Math.max(0, todayStats.minForStreak - todayStats.count)} para racha`}
                         </span>
                     </div>
                 </div>
 
-                {/* Progress Bar with 75% Marker */}
-                <div className="relative h-1.5 bg-zinc-800/50 rounded-full overflow-hidden">
-                    {/* 75% Marker Line */}
-                        <div className="absolute top-0 bottom-0 w-[2px] bg-white/20 z-10" style={{ left: '75%' }} />
+                {/* Progress Bar with Goal Marker */}
+                    <div className="relative h-1.5 bg-zinc-800/50 rounded-full overflow-hidden">
+                    <div className="absolute top-0 bottom-0 w-[2px] bg-white/10 z-10" style={{ left: `${todayStats.requiredToday}%` }} />
                         
-                        {/* Progress */}
+                    {/* Progress */}
                         <motion.div 
-                            className={cn("h-full rounded-full transition-colors duration-500 origin-left", getProgressColor(todayStats.percent))}
+                            className={cn("h-full rounded-full transition-colors duration-500 origin-left")}
                             initial={{ scaleX: 0 }}
                             animate={{ scaleX: todayStats.percent / 100 }}
                             transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                            style={{ width: '100%' }}
+                            style={{ width: '100%', backgroundColor: getProgressColor(todayStats.percent, todayStats.requiredToday) }}
                         />
                     </div>
             </div>
 
-            {/* --- STREAK INFO MODAL --- */}
-            <AnimatePresence>
-                {showStreakInfo && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowStreakInfo(false)}
-                            className="absolute inset-0 bg-black/80"
-                        />
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                            className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative z-10"
-                        >
-                            <button 
-                                onClick={() => setShowStreakInfo(false)}
-                                className="absolute top-4 right-4 text-zinc-500 hover:text-white"
-                            >
-                                <X size={18} />
-                            </button>
-                            
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                    <Zap size={32} className="text-amber-400" />
-                                </div>
-                                
-                                <div>
-                                    <h3 className="text-lg font-bold text-white mb-2">Sistema de Racha</h3>
-                                    <p className="text-sm text-zinc-400 leading-relaxed">
-                                        Para mantener tu racha, debes completar al menos el <span className="text-emerald-400 font-bold">75%</span> de tus hábitos activos cada día.
-                                    </p>
-                                </div>
-
-                                <div className="w-full bg-zinc-900 rounded-xl p-4 border border-white/5">
-                                    <div className="flex justify-between text-sm mb-2">
-                                        <span className="text-zinc-500">Mínimo hoy:</span>
-                                        <span className="text-white font-bold">{todayStats.minForStreak} hábitos</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-zinc-500">Tu progreso:</span>
-                                        <span className={cn("font-bold", getProgressColorText(todayStats.percent))}>
-                                            {todayStats.count}/{todayStats.total} ({todayStats.percent}%)
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={() => setShowStreakInfo(false)}
-                                    className="w-full py-2.5 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors"
-                                >
-                                    Entendido
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            <DateSelectionModal 
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={handleDateSelect}
+                mode={timeframe as DateSelectionMode}
+                currentDate={currentDate}
+            />
         </div>
     );
 };
