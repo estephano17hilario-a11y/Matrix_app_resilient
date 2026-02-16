@@ -10,7 +10,9 @@ export const BarChart = React.memo(({
     showBackground = true,
     className = "",
     barClassName = "",
-    stacked = false
+    stacked = false,
+    yTicks,
+    yTickFormatter
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -21,6 +23,8 @@ export const BarChart = React.memo(({
     className?: string;
     barClassName?: string;
     stacked?: boolean;
+    yTicks?: number[];
+    yTickFormatter?: (value: number) => string;
 }) => {
     // If stacked, max should be provided by parent or calculated by summing indices. 
     // Here we assume if max is provided it is correct.
@@ -74,14 +78,29 @@ export const BarChart = React.memo(({
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-40 rounded-3xl pointer-events-none" />
              )}
 
-             {/* Grid Lines */}
-             {showGrid && (
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 opacity-10">
+            {showGrid && !yTicks && (
+                <div className="absolute inset-x-0 top-4 bottom-6 flex flex-col justify-between pointer-events-none opacity-10">
                     <div className="border-t border-dashed border-white/20 w-full" />
                     <div className="border-t border-dashed border-white/20 w-full" />
                     <div className="border-t border-dashed border-white/20 w-full" />
                 </div>
              )}
+
+            {showGrid && yTicks && (
+                <div className="absolute inset-x-0 top-4 bottom-6 pointer-events-none">
+                    {yTicks.map((val) => (
+                        <div
+                            key={val}
+                            className="absolute left-7 right-0 border-t border-dashed border-white/15"
+                            style={{ top: `${100 - (val / maxValue) * 100}%` }}
+                        >
+                            <span className="absolute -top-2 left-0 text-[9px] text-slate-500 font-mono">
+                                {yTickFormatter ? yTickFormatter(val) : val}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Portal Tooltip */}
             {activeIndex !== null && tooltipPos && createPortal(
@@ -107,7 +126,7 @@ export const BarChart = React.memo(({
                 document.body
             )}
 
-            <div className="absolute inset-0 flex items-end gap-2 pt-4">
+            <div className={`absolute inset-0 flex items-end gap-2 pt-4 pb-6 ${yTicks ? 'pl-7' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
@@ -119,24 +138,25 @@ export const BarChart = React.memo(({
                             {datasets.map((ds, idx) => {
                                 const val = ds.data[i];
                                 const h = (val / maxValue);
+                                const isTopSegment = !stacked || idx === datasets.length - 1;
                                 return (
                                     <div 
                                         key={idx} 
-                                        className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center group-hover:brightness-125 transition-all duration-300`}
-                                        style={stacked ? { height: `${h * 100}%` } : {}}
+                                        className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
+                                        style={stacked ? { height: `${h * 100}%`, perspective: '700px' } : { perspective: '700px' }}
                                     >
                                          <div 
-                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-sm last:rounded-t-sm' : 'rounded-t-lg'} ${stacked && idx > 0 ? 'border-b border-black/30' : ''} relative overflow-hidden transition-all duration-500 ease-out ${barClassName}`}
+                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
                                             style={{ 
                                                 height: stacked ? '100%' : `${h * 100}%`,
-                                                background: ds.color,
+                                                transformStyle: 'preserve-3d',
                                             }}
                                          >
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-                                            {!stacked && <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/40" />}
-                                            
-                                            {/* Inner Shine */}
-                                            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                            <div className={`absolute inset-0 ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
+                                            {isTopSegment && (
+                                                <div className={`absolute top-0 left-0 right-0 h-[6px] ${stacked ? 'last:rounded-t-md' : 'rounded-t-xl'} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
+                                            )}
+                                            <div className="absolute top-0 right-0 w-[6px] h-full border border-white/10" style={{ background: ds.color, transform: 'rotateY(-90deg)', transformOrigin: 'right' }} />
                                          </div>
                                     </div>
                                 );

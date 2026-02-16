@@ -323,7 +323,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                                 {Math.floor(currentMinutes / 60)}h {currentMinutes % 60}m
                             </span>
                             <span className="text-[9px] font-medium text-white/30">
-                                / {Math.floor(dailyGoalMinutes / 60)}h
+                                / {Math.floor(dailyGoalMinutes / 60)}h{dailyGoalMinutes % 60 > 0 ? ` ${dailyGoalMinutes % 60}m` : ''}
                             </span>
                             <span className="text-[9px] font-bold ml-0.5" style={{ color: activeFilterColor }}>
                                 {Math.round(progressPercentage)}%

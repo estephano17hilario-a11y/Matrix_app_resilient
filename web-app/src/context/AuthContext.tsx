@@ -18,7 +18,7 @@ const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
   obstacles: [],
   coachingTone: "Stoic",
-  completedAt: Date.now() // ASSUME COMPLETED by default for Optimistic UI (prevents flashing for existing users)
+  completedAt: Date.now()
 };
 
 interface AuthContextType {
@@ -75,7 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
       // We do NOT clear profile here immediately to allow for "offline" access if needed,
       // but standard logout implies clearing session.
-      PersistenceService.clearProfile();
+      if (user?.uid) {
+        PersistenceService.clearUserCache(user.uid);
+      }
+      PersistenceService.clearSession();
       
       try {
           await Promise.race([
@@ -136,6 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // LOGIN DETECTED
         setUser(currentUser);
+        PersistenceService.setSession(currentUser.uid);
         setError(null);
         
         // OPTIMISTIC: If cached profile matches, use it while syncing
@@ -157,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     createdAt: Date.now(),
                     lastLoginAt: Date.now(),
                     theme: 'MATRIX',
-                    onboarding: DEFAULT_ONBOARDING,
+                    onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
                     isSkeleton: true 
                 };
                 setProfile(skeletonProfile);
@@ -206,7 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else {
               // 🛡️ SAFETY CHECK: Before creating a new profile, check local cache one last time
               // This prevents overwriting data if Firestore returns empty due to latency/offline issues
-              const localProfile = PersistenceService.getProfile();
+              const localProfile = PersistenceService.getProfile(currentUser.uid);
               if (localProfile && localProfile.uid === currentUser.uid && localProfile.stats) {
                   console.log("⚠️ MATRIX: Firestore empty, but Local Profile exists. Resyncing Local -> Remote.");
                   await setDoc(userRef, sanitizeFirestoreData(localProfile), { merge: true });

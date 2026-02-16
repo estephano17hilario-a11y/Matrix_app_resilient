@@ -382,9 +382,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             </div>
 
             {/* --- COMPACT CHART AREA --- */}
-            <div className="h-32 flex items-end justify-between gap-1 relative mb-2 pt-3">
+            <div className="h-32 flex items-end justify-between gap-1 relative mb-0 pt-3">
                 {/* Horizontal Guidelines */}
-                <div className="absolute inset-x-0 top-3 bottom-0 flex flex-col justify-between pointer-events-none">
+                <div className="absolute inset-x-0 top-3 bottom-6 flex flex-col justify-between pointer-events-none">
                     {[100, 50, 0].map((val) => (
                         <div key={val} className="w-full border-t border-white/5 relative h-0">
                             <span className="absolute top-1/2 -translate-y-1/2 -left-0 text-[9px] text-zinc-700 font-mono">{val}%</span>
@@ -477,7 +477,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             )}
                             
                             {/* Date Label */}
-                            <div className="h-4 flex items-center justify-center">
+                            <div className="h-4 flex items-end justify-center">
                                 <span 
                                     className={cn(
                                         "text-[9px] font-bold transition-colors duration-300",

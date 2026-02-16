@@ -41,6 +41,10 @@ export interface UserProfile {
   plan: UserPlan;
   archetype: UserArchetype;
   stats: UserStats;
+  preferences?: {
+    theme?: string;
+    vividMode?: boolean;
+  };
   dailyLimits?: DailyLimits;
   unlockedAchievements?: string[];
   unlockedStoreItems?: string[];
@@ -54,6 +58,7 @@ export interface UserProfile {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   allowDockSectionSwitch?: boolean;
+  stickyHud?: boolean;
   
   // Rate Limiting
   traitChanges?: {

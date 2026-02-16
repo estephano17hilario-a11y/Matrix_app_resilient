@@ -1,7 +1,7 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { BadHabit } from '../../../types';
-import { format, subDays, isSameDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 interface RelapseChartProps {
     badHabits: BadHabit[];
@@ -10,22 +10,22 @@ interface RelapseChartProps {
 export const RelapseChart: React.FC<RelapseChartProps> = ({ badHabits }) => {
     // Calculate total relapses per day for the last 14 days
     const data = React.useMemo(() => {
+        const counts = new Map<string, number>();
+
+        badHabits.forEach(h => {
+            h.history?.forEach(relapseDate => {
+                const key = format(new Date(relapseDate), 'yyyy-MM-dd');
+                counts.set(key, (counts.get(key) || 0) + 1);
+            });
+        });
+
         const days = [];
         for (let i = 13; i >= 0; i--) {
             const date = subDays(new Date(), i);
-            let count = 0;
-            badHabits.forEach(h => {
-                if (h.history) {
-                    h.history.forEach(relapseDate => {
-                        if (isSameDay(new Date(relapseDate), date)) {
-                            count++;
-                        }
-                    });
-                }
-            });
+            const key = format(date, 'yyyy-MM-dd');
             days.push({
                 date: format(date, 'MMM dd'),
-                count: count
+                count: counts.get(key) || 0
             });
         }
         return days;
@@ -39,7 +39,8 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({ badHabits }) => {
     const Ar = Area as any;
 
     return (
-        <div className="w-full h-48 bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-md mb-4">
+        <div className="w-full h-48 bg-[#0b0b0d]/80 rounded-2xl p-4 border border-white/5 shadow-sm mb-4 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest">Relapse History</h3>
                 <div className="flex items-center gap-2">

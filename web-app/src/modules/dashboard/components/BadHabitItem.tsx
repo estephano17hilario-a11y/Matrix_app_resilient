@@ -7,31 +7,51 @@ interface BadHabitItemProps {
     habit: BadHabit;
     attribute?: Attribute;
     onRelapse: (habit: BadHabit) => void;
+    reduceMotion?: boolean;
 }
 
 export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     habit,
     attribute,
-    onRelapse
+    onRelapse,
+    reduceMotion
 }) => {
     const isRelapsed = habit.relapsedToday;
     const color = attribute?.color || '#10b981'; // Default Emerald if no attribute
 
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{
-                backgroundColor: isRelapsed ? undefined : `${color}10`, // Very subtle background
-                borderColor: isRelapsed ? undefined : `${color}30`,
-                boxShadow: isRelapsed ? undefined : `0 0 20px ${color}05`
-            }}
-            className={`group relative backdrop-blur-md border shadow-lg rounded-[1.5rem] p-1 transition-all duration-300 ${
+    const Wrapper: React.ElementType = reduceMotion ? 'div' : motion.div;
+
+    const wrapperStyle: React.CSSProperties = {
+        backgroundColor: isRelapsed ? undefined : `${color}10`,
+        borderColor: isRelapsed ? undefined : `${color}30`,
+        boxShadow: isRelapsed ? undefined : `0 0 12px ${color}05`,
+        contentVisibility: 'auto',
+        containIntrinsicSize: '120px'
+    };
+
+    const wrapperProps = reduceMotion
+        ? {
+            className: `group relative border shadow-sm rounded-[1.5rem] p-1 transition-all duration-300 active:scale-95 ${
                 isRelapsed 
                 ? 'bg-rose-950/40 border-rose-500/20 opacity-60' 
-                : 'hover:bg-[#1a1a20]/60' // Kept hover effect but removed base bg/border
-            }`}
+                : 'bg-[#0b0b0d]/80 hover:bg-[#15151a]/80'
+            }`,
+            style: wrapperStyle
+        }
+        : {
+            initial: { opacity: 0, scale: 0.95 },
+            animate: { opacity: 1, scale: 1 },
+            className: `group relative border shadow-sm rounded-[1.5rem] p-1 transition-all duration-300 ${
+                isRelapsed 
+                ? 'bg-rose-950/40 border-rose-500/20 opacity-60' 
+                : 'bg-[#0b0b0d]/80 hover:bg-[#15151a]/80'
+            }`,
+            style: wrapperStyle
+        };
+
+    return (
+        <Wrapper
+            {...wrapperProps}
         >
             <div className="relative flex items-center p-3 gap-4">
                 {/* Icon Box */}
@@ -97,6 +117,6 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     </button>
                 )}
             </div>
-        </motion.div>
+        </Wrapper>
     );
 };

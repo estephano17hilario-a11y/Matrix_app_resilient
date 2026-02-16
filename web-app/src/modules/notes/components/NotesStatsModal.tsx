@@ -91,14 +91,14 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries }: { is
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={onClose} 
-                        className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+                        className="absolute inset-0 bg-black/80" 
                     />
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
                         transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                        className="relative z-10 w-full max-w-[420px] bg-[#1c1c1e]/80 backdrop-blur-lg border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
+                        className="relative z-10 w-full max-w-[420px] bg-[#1c1c1e]/90 border border-white/10 rounded-[32px] overflow-hidden shadow-md"
                     >
                         {/* Noise Texture */}
                         <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
@@ -136,9 +136,9 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries }: { is
 
                         {/* Chart Section */}
                         <div className="px-6 pb-6 relative z-10">
-                             <div className="flex bg-black/20 p-1 rounded-xl mb-6 backdrop-blur-sm border border-white/5">
+                            <div className="flex bg-black/20 p-1 rounded-xl mb-6 border border-white/5">
                                 {['WEEK', 'MONTH', 'YEAR'].map(r => (
-                                    <button key={r} onClick={() => setRange(r as any)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${range === r ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'text-white/30 hover:text-white/60'}`}>{r}</button>
+                                    <button key={r} onClick={() => setRange(r as any)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${range === r ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'text-white/30 hover:text-white/60'}`}>{r}</button>
                                 ))}
                             </div>
                             

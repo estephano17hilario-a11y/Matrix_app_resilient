@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Star, MoreVertical, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
+import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute, NotificationItem } from '../../types';
 import { FocusStats } from './components/FocusStats';
@@ -8,9 +8,10 @@ import { SessionRewardModal } from './components/SessionRewardModal';
 import { useTranslation, Trans } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { AuroraBackground } from '../../components/AuroraBackground';
+import { ProjectSimpleItem } from './components/ProjectSimpleItem';
 import { HabitDetailView } from '../dashboard/components/HabitDetailView';
 
-export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro, onToggleFullScreen, isActive: isViewActive }: { 
+export const FocusView = React.memo(({ projects, attributes, onCompleteSession, onOpenProjectModal, setFocusMode, onUpdateProject, addNotification, initialProjectId, onShowPro, isPro, onToggleFullScreen, isActive: isViewActive }: {  
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
@@ -37,7 +38,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const [showHistory, setShowHistory] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);
-    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
     const [showRewardModal, setShowRewardModal] = useState(false);
     const [sessionStats, setSessionStats] = useState<{ duration: number, xpEarned: number, goldEarned: number, streakBonus: number } | null>(null);
@@ -68,18 +68,10 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     }, [detailProject, onToggleFullScreen]);
 
     const lastTickRef = React.useRef<number>(0);
-    const startTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const isCompletingRef = React.useRef(false);
     useEffect(() => { lastTickRef.current = Date.now(); }, []);
 
-    const clearStartTimeout = () => {
-        if (startTimeoutRef.current) {
-            clearTimeout(startTimeoutRef.current);
-            startTimeoutRef.current = null;
-        }
-    };
 
-    useEffect(() => () => clearStartTimeout(), []);
 
     // --- PERSISTENCE LOGIC ---
     const STORAGE_KEY = 'matrix_focus_session';
@@ -111,9 +103,15 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         const elapsed = Math.floor((now - start) / 1000);
                         setTimeLeft(elapsed);
                     }
+                    // Restore to TIMER if active
+                    setViewState('TIMER');
                 } else {
                     // Paused - Restore snapshot
                     setTimeLeft(session.timeLeft);
+                    setViewState('LIST'); // Default to list if paused? Or restore timer?
+                    // User probably wants to see where they left off if paused, but let's stick to LIST for safety unless they were deep in it.
+                    // Actually, if it's paused, we might want to let them resume.
+                    if (session.viewState === 'TIMER') setViewState('TIMER');
                 }
 
                 // Restore State
@@ -122,9 +120,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 setMode(session.mode);
                 setFocusMode(session.attributeId);
                 
-                setViewState('LIST');
-                setIsActive(false);
-                setIsPaused(false);
+                setIsActive(session.isActive);
+                setIsPaused(session.isPaused);
             } catch (e) {
                 console.error("Failed to restore focus session", e);
             }
@@ -165,12 +162,12 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
 
     const themeConfig = availableThemes[theme];
     const bgDepthRGB = themeConfig?.colors.bgDepth.split(' ').join(',') || '10,10,12';
+    const attributeById = useMemo(() => new Map(attributes.map(a => [a.id, a])), [attributes]);
+    const filteredProjects = useMemo(
+        () => projects.filter(p => !p.deleted && (showArchived ? p.archived : !p.archived)),
+        [projects, showArchived]
+    );
 
-    const confirmDelete = (e: React.MouseEvent, project: Project) => {
-        e.stopPropagation();
-        setProjectToDelete(project);
-        setActiveMenuId(null);
-    };
 
     const handleDeleteProject = () => {
         if (projectToDelete) {
@@ -188,8 +185,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         setTotalDuration(duration);
         setFocusMode(project?.attribute || null);
         setViewState('TIMER');
-        clearStartTimeout();
-        startTimeoutRef.current = setTimeout(() => { setIsActive(true); setIsPaused(false); }, 500);
+        setIsActive(true);
+        setIsPaused(false);
     };
 
     useEffect(() => {
@@ -211,7 +208,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     }, [initialProjectId, projects]);
 
     const stopSession = () => {
-        clearStartTimeout();
         setIsActive(false); setIsPaused(false); setViewState('LIST');
         setFocusMode(null); setSelectedProjectId(null);
         localStorage.removeItem(STORAGE_KEY);
@@ -256,7 +252,6 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
             return;
         }
 
-        clearStartTimeout();
         isCompletingRef.current = true;
         setIsActive(false);
         setIsPaused(false);
@@ -298,16 +293,13 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
 
     const resetTimer = () => {
         if (isCompletingRef.current) return;
-        // Now acts as Stop & Save
-        if (isActive || isPaused || (mode === 'STOPWATCH' && timeLeft > 0) || (mode === 'POMO' && timeLeft < totalDuration)) {
-            handleFinishSession();
-        } else {
-            // If nothing happened, just reset visually
-            setIsActive(false); setIsPaused(false);
-            const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
-            setTimeLeft(mode === 'POMO' ? duration : 0);
-            localStorage.removeItem(STORAGE_KEY);
-        }
+        setIsActive(false);
+        setIsPaused(false);
+        localStorage.removeItem(STORAGE_KEY);
+        const duration = selectedProject ? selectedProject.pomoDuration * 60 : 25 * 60;
+        setTimeLeft(mode === 'POMO' ? duration : 0);
+        if (mode === 'POMO') setTotalDuration(duration);
+        else setTotalDuration(0);
     };
 
     const formatTime = (seconds: number) => {
@@ -381,7 +373,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     // Adjust lastTickRef to account for the consumed time
                     lastTickRef.current += delta * 1000;
                 }
-            }, 100); // Check more frequently (100ms) for better responsiveness
+            }, 1000);
         }
         return () => clearInterval(interval);
     }, [isActive, isPaused, isCompleting]);
@@ -423,7 +415,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90"
                     >
                         <div className="relative flex items-center justify-center w-32 h-32">
                             {/* Ripple Effect - Soft Water Wave */}
@@ -467,7 +459,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     >
                         <motion.div 
                             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                            className="bg-[#121212] border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden"
+                            className="bg-[#121212] border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-lg relative overflow-hidden"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="absolute top-0 right-0 p-4 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setProjectToDelete(null)}><X size={20} className="text-white" /></div>
@@ -493,8 +485,17 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 )}
             </AnimatePresence>
 
-            {/* --- LIST VIEW --- */}
-            <div className={`flex flex-col w-full h-full transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'LIST' ? 'opacity-100 z-10 translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-4 absolute inset-0'}`}>
+            {/* --- VIEW SWITCHER --- */}
+            <AnimatePresence mode="wait" initial={false}>
+                {viewState === 'LIST' ? (
+                    <motion.div
+                        key="list-view"
+                        className="flex flex-col w-full h-full"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    >
                 
                 {/* 1. HUD Section REMOVED (Global HUD is now persistent) */}
 
@@ -545,144 +546,21 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 content-start relative z-10 pb-40 mt-4">
-                    {projects.filter(p => !p.deleted && (showArchived ? p.archived : !p.archived)).map((project) => {
-                        const attr = attributes.find((a) => a.id === project.attribute);
+                    {filteredProjects.map((project) => {
+                        const attr = attributeById.get(project.attribute);
                         
-                        // Calculate Progress (Daily vs Lifetime)
-                        const isDaily = project.goalFrequency === 'DAILY';
-                        let relevantTime = project.totalTime;
-                        if (isDaily && project.sessions) {
-                            relevantTime = project.sessions.filter(s => {
-                                const sessionDate = new Date(s.date);
-                                const today = new Date();
-                                return sessionDate.getDate() === today.getDate() && 
-                                       sessionDate.getMonth() === today.getMonth() && 
-                                       sessionDate.getFullYear() === today.getFullYear();
-                            }).reduce((acc, s) => acc + s.duration, 0);
-                        }
-                        
-                        // Calculate Progress (Goal Target is in Minutes)
-                        const goalMinutes = project.goalTarget || 60; // Default to 60m if not set
-                        const goalSeconds = goalMinutes * 60;
-                        const progressVal = Math.min(100, (relevantTime / goalSeconds) * 100);
-                        const progressPercentage = (relevantTime / goalSeconds) * 100;
-                        const remainingPercentage = Math.max(0, 100 - progressPercentage);
-                        
-                        const Icon = attr?.icon || Star;
-                        const activeColor = attr?.color || '#6366f1';
-
                         return (
-                            <div key={project.id} onClick={() => setDetailProject(project)} style={{ zIndex: activeMenuId === project.id ? 50 : 0, backgroundColor: `${activeColor}08`, borderColor: `${activeColor}20` }} className="relative group rounded-[2rem] p-4 bg-[#121212]/95 border overflow-visible transition-all duration-500 hover:bg-[#181818] flex flex-col gap-3 shadow-xl">
-                                
-                                {/* --- Sentient Glass Effects --- */}
-                                <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                </div>
-
-                                {/* --- Header: Icon + Title + Menu --- */}
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-2">
-                                        <div 
-                                            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg relative overflow-hidden shrink-0"
-                                            style={{ background: `linear-gradient(135deg, ${activeColor}20, ${activeColor}05)` }}
-                                        >
-                                            <div className="absolute inset-0 opacity-20" style={{ background: activeColor, filter: 'blur(5px)' }} />
-                                            <Icon size={14} style={{ color: activeColor }} className="relative z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
-                                        </div>
-                                        <div className="min-w-0 flex flex-col justify-center">
-                                            <h3 className="text-sm font-bold text-white tracking-tight leading-none truncate pr-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
-                                                {project.title}
-                                            </h3>
-                                            <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase mt-0.5">{attr?.label || 'General'}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Menu */}
-                                    <div className="relative shrink-0 -mt-1 -mr-1">
-                                        <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === project.id ? null : project.id); }} className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors">
-                                            <MoreVertical size={14} />
-                                        </button>
-                                        <AnimatePresence>
-                                            {activeMenuId === project.id && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.9, y: 10, x: -10 }} animate={{ opacity: 1, scale: 1, y: 0, x: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10, x: -10 }}
-                                                    className="absolute right-0 top-6 bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] min-w-[160px] py-1"
-                                                >
-                                                    <button onClick={(e) => { e.stopPropagation(); onOpenProjectModal(); }} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-white hover:bg-white/5 flex items-center gap-3 transition-colors"><Target size={14} /> Edit Target</button>
-                                                    
-                                                    {/* Toggle Archive/Unarchive Label */}
-                                                    <button 
-                                                        onClick={(e) => {
-                                                             e.stopPropagation();
-                                                             onUpdateProject({ ...project, archived: !project.archived });
-                                                             setActiveMenuId(null);
-                                                             addNotification({ type: 'SYSTEM', label: project.archived ? 'Project Unarchived' : t('focus.notifications.projectArchived'), icon: Archive, color: '#f59e0b' });
-                                                        }} 
-                                                        className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 flex items-center gap-3 transition-colors"
-                                                    >
-                                                        <Archive size={14} /> {project.archived ? 'Unarchive' : 'Archive'}
-                                                    </button>
-                                                    
-                                                    <div className="h-[1px] bg-white/5 my-1" />
-                                                    <button onClick={(e) => confirmDelete(e, project)} className="w-full px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"><Trash2 size={14} /> Delete</button>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-
-                                {/* --- Body: Action + Progress --- */}
-                                <div className="flex items-center gap-3">
-                                    {/* Focus Button (Left) */}
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); startSession(project.id); }}
-                                        style={{ 
-                                            backgroundColor: `${activeColor}15`, // Very light tint
-                                            borderColor: `${activeColor}30`,
-                                            boxShadow: `0 0 20px -5px ${activeColor}20`
-                                        }}
-                                        className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 group/btn"
-                                    >
-                                        <Play size={18} style={{ fill: activeColor, color: activeColor }} className="ml-1" />
-                                    </button>
-
-                                    {/* Progress Info (Right) */}
-                                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                        {/* Top: Time / Goal */}
-                                        <div className="flex justify-between items-end">
-                                             <div className="flex items-baseline gap-1 text-xs font-mono text-white/50">
-                                                <span className="text-white font-bold text-sm">{Math.floor(relevantTime / 3600)}h {Math.floor((relevantTime % 3600) / 60)}m</span>
-                                                <span className="text-[10px] opacity-60">/</span>
-                                                <span className="text-[10px] opacity-60">{Math.floor(goalMinutes / 60)}h {goalMinutes % 60 > 0 ? `${goalMinutes % 60}m` : ''}</span>
-                                             </div>
-                                        </div>
-
-                                        {/* Middle: Bar */}
-                                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${progressVal}%` }}
-                                                transition={{ type: "spring", stiffness: 50, damping: 20 }}
-                                                style={{ backgroundColor: activeColor }}
-                                                className="h-full rounded-full relative overflow-hidden shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]" />
-                                            </motion.div>
-                                        </div>
-
-                                        {/* Bottom: % Remaining */}
-                                        <div className="flex justify-end">
-                                            <span className="text-[9px] font-bold tracking-wider text-white/40">
-                                                {progressPercentage >= 100 ? (
-                                                    <span style={{ color: activeColor }}>COMPLETED</span>
-                                                ) : (
-                                                    <span>{Math.round(remainingPercentage)}% LEFT</span>
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <ProjectSimpleItem 
+                                key={project.id}
+                                project={project}
+                                attribute={attr}
+                                isActive={selectedProjectId === project.id && isActive}
+                                onStartSession={(e, p) => {
+                                    e.stopPropagation();
+                                    startSession(p.id);
+                                }}
+                                onClick={(p) => setDetailProject(p)}
+                            />
                         )
                     })}
                     {!showArchived && (
@@ -692,17 +570,23 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                     </button>
                     )}
                 </div>
-            </div>
-            </div>
-
-            <HabitDetailView 
-                project={detailProject} 
-                onClose={() => setDetailProject(null)} 
-            />
-
-            {/* --- TIMER VIEW --- */}
-            <div className={`fixed inset-0 flex flex-col items-center transition-all duration-1000 ease-[cubic-bezier(0.32,0.72,0,1)] ${viewState === 'TIMER' ? `opacity-100 z-[100] delay-100 scale-100` : 'opacity-0 scale-110 pointer-events-none'}`}>
                 
+                <HabitDetailView 
+                    project={detailProject} 
+                    attributeColor={detailProject ? attributeById.get(detailProject.attribute)?.color : undefined}
+                    onClose={() => setDetailProject(null)} 
+                />
+            </div>
+            </motion.div>
+        ) : (
+            <motion.div
+                key="timer-view"
+                className="fixed inset-0 flex flex-col items-center z-[100]"
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
                 {/* Dynamic Background with Trait Tint */}
                 <div className="absolute inset-0 z-0">
                     <AuroraBackground overrideColor={themeColor} />
@@ -711,11 +595,11 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
 
                 {/* Header Actions (Minimize/Close) */}
                 <div className="w-full flex justify-between items-center px-6 pt-12 z-30 flex-none">
-                    <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-lg"><ChevronDown size={22} /></button>
+                    <button onClick={stopSession} className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white border border-white/10 transition-all active:scale-90 shadow-md"><ChevronDown size={22} /></button>
                     
                     {/* Mode Switcher (Timer) */}
                     <div className={`flex flex-col items-center gap-2 ${shakeMode ? 'animate-shake' : ''}`}>
-                        <div className="bg-black/90 p-1 rounded-full border border-white/10 flex gap-1 shadow-2xl relative">
+                        <div className="bg-black/90 p-1 rounded-full border border-white/10 flex gap-1 shadow-md relative">
                             {/* Blocker */}
                             {isActive && <div className="absolute inset-0 z-50 cursor-not-allowed" onClick={() => { if(navigator.vibrate) navigator.vibrate(50); setShakeMode(true); setTimeout(()=>setShakeMode(false), 500); }} />}
                             
@@ -774,7 +658,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                 strokeLinecap="round" 
                                 strokeDasharray={circumference} 
                                 strokeDashoffset={dashOffset} 
-                                className="transition-all duration-1000 ease-linear"
+                                className="transition-[stroke-dashoffset] duration-1000 ease-linear"
                                 style={{ filter: `drop-shadow(0 0 15px ${themeColor}50)` }}
                             />
                         </svg>
@@ -798,7 +682,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
 
                     {/* Timer Controls */}
                     <div className="flex items-center gap-8 mt-8">
-                        <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 group shadow-lg">
+                        <button onClick={resetTimer} className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 group shadow-md">
                             <StopCircle size={24} className="group-hover:text-red-400 transition-colors" />
                         </button>
                         
@@ -807,18 +691,20 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                             style={{ 
                                 backgroundColor: themeColor, 
                                 color: '#ffffff',
-                                boxShadow: `0 0 60px ${themeColor}60`
+                                boxShadow: `0 0 36px ${themeColor}45`
                             }}
                         >
                             {isActive && !isPaused ? <Pause size={38} fill="currentColor" /> : <Play size={38} fill="currentColor" className="ml-2" />}
                         </button>
                         
-                        <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 shadow-lg">
+                        <button className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-all active:scale-90 shadow-md">
                             <Volume2 size={24} />
                         </button>
                     </div>
                 </div>
-            </div>
+            </motion.div>
+        )}
+        </AnimatePresence>
 
             {/* Session History Modal */}
             {selectedProject && (

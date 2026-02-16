@@ -21,6 +21,7 @@ interface AvatarWidgetProps {
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onUpdateLevel?: (newLevel: number) => void;
+  isHabitsCompleted?: boolean;
 }
 
 const MiniLiquidBar = ({  value, 
@@ -84,7 +85,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, avatarId, avatarShape = 'CIRCLE', onUpdateLevel }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, avatarId, avatarShape = 'CIRCLE', onUpdateLevel, isHabitsCompleted = false }: AvatarWidgetProps) => {
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;
@@ -151,9 +152,22 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                         {displayName || 'Neo'}
                     </span>
                     {streak > 0 && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-                            <Flame size={10} className="text-orange-400 fill-orange-400 animate-pulse" />
-                            <span className="text-[9px] font-mono font-bold text-orange-400">{streak}</span>
+                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 ${
+                            isHabitsCompleted 
+                                ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
+                                : "bg-white/5 border-white/10"
+                        }`}>
+                            <Flame 
+                                size={10} 
+                                className={`transition-all duration-500 ${
+                                    isHabitsCompleted 
+                                        ? "text-orange-400 fill-orange-400 animate-pulse drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]" 
+                                        : "text-white/20 fill-none"
+                                }`} 
+                            />
+                            <span className={`text-[9px] font-mono font-bold transition-colors duration-500 ${
+                                isHabitsCompleted ? "text-orange-400" : "text-white/40"
+                            }`}>{streak}</span>
                         </div>
                     )}
                 </div>

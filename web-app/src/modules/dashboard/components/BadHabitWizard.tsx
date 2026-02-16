@@ -54,8 +54,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [title, setTitle] = useState('');
     const [attribute, setAttribute] = useState('');
     const [reason, setReason] = useState('');
-    const [negativeImpact, setNegativeImpact] = useState('');
-    const [timeConsumed, setTimeConsumed] = useState(0);
+    const [impactLevel, setImpactLevel] = useState(3);
+    const [timeIndex, setTimeIndex] = useState(4); // Default to 1 hour (index 4 -> 60min)
 
     // Calculated Penalties
     const [penalties, setPenalties] = useState({ hp: 0, xp: 0, gold: 0 });
@@ -67,21 +67,57 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 setTitle('');
                 setAttribute('');
                 setReason('');
-                setNegativeImpact('');
-                setTimeConsumed(0);
+                setImpactLevel(3);
+                setTimeIndex(4);
                 setDirection(0);
             }, 300);
             return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
+    const getMinutesFromIndex = (index: number) => {
+        if (index <= 8) return (index + 1) * 15; // 15, 30, 45, 60, 75, 90, 105, 120, 135
+        // After 135 (index 8), we want to jump to hours?
+        // User requested: 15 min increments up to 2 hours (120 min).
+        // Then 1 hour increments up to 12 hours.
+        
+        // 0 -> 15
+        // 1 -> 30
+        // ...
+        // 7 -> 120 (2h)
+        
+        if (index <= 7) return (index + 1) * 15;
+        
+        // Index 8 starts at 3 hours? Or 2h + 1h = 3h?
+        // 8 -> 180 (3h)
+        // ...
+        // 17 -> 720 (12h)
+        return 120 + ((index - 7) * 60);
+    };
+
+    const minutes = getMinutesFromIndex(timeIndex);
+
     useEffect(() => {
-        const timePenalty = Math.floor(timeConsumed / 10);
-        const totalHp = 10 + timePenalty;
-        const totalXp = 50 + (timeConsumed * 2);
-        const goldCost = totalXp * 2;
+        // Penalty Formula
+        // Impact Level: 1-5
+        // Time: minutes
+        
+        const timeMultiplier = Math.max(1, minutes / 30);
+        
+        // HP Damage: Base + (Impact * TimeFactor)
+        // Ex: Impact 3, 60min (Factor 2) -> 5 + (3 * 2) = 11 HP
+        // Ex: Impact 5, 120min (Factor 4) -> 5 + (5 * 4) = 25 HP
+        const totalHp = Math.floor(5 + (impactLevel * timeMultiplier));
+        
+        // XP Loss: Base + (Minutes * Impact)
+        // Ex: 60min * 3 = 180 XP
+        const totalXp = Math.floor(50 + (minutes * (1 + impactLevel * 0.2)));
+        
+        // Gold Cost
+        const goldCost = Math.floor(totalXp * 1.5);
+        
         setPenalties({ hp: totalHp, xp: totalXp, gold: goldCost });
-    }, [timeConsumed]);
+    }, [timeIndex, impactLevel]);
 
     const handleNext = () => {
         if (step < 3) {
@@ -105,8 +141,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             title,
             attribute,
             reason,
-            negativeImpact,
-            timeConsumed,
+            negativeImpact: `Nivel de Impacto: ${impactLevel}/5`, // Storing level in description for now or could add new field
+            timeConsumed: minutes,
             penalties
         });
         onClose();
@@ -274,17 +310,34 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 />
                                             </div>
 
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
                                                 <label className="text-sm font-medium text-rose-400 ml-1 flex items-center gap-2">
                                                     <AlertTriangle size={14} />
-                                                    Impacto Negativo (Visualízalo)
+                                                    Impacto Negativo (Nivel de Severidad)
                                                 </label>
-                                                <textarea 
-                                                    value={negativeImpact}
-                                                    onChange={(e) => setNegativeImpact(e.target.value)}
-                                                    placeholder="¿Qué pasará si no te detienes?"
-                                                    className="w-full h-32 bg-rose-500/5 border border-rose-500/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-rose-500/10 focus:border-rose-500/30 transition-all resize-none"
-                                                />
+                                                <div className="grid grid-cols-5 gap-2">
+                                                    {[1, 2, 3, 4, 5].map((level) => (
+                                                        <button
+                                                            key={level}
+                                                            onClick={() => setImpactLevel(level)}
+                                                            className={`
+                                                                h-12 rounded-xl font-bold text-lg transition-all border
+                                                                ${impactLevel === level 
+                                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)] scale-105 z-10' 
+                                                                    : 'bg-white/5 text-white/20 border-white/5 hover:bg-white/10 hover:text-white/60 hover:border-white/10'}
+                                                            `}
+                                                        >
+                                                            {level}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="text-center text-sm font-medium text-rose-200/60 h-5 tracking-wide">
+                                                    {impactLevel === 1 && "Leve - Molestia menor"}
+                                                    {impactLevel === 2 && "Bajo - Interferencia ocasional"}
+                                                    {impactLevel === 3 && "Moderado - Afecta el rendimiento"}
+                                                    {impactLevel === 4 && "Alto - Daño significativo"}
+                                                    {impactLevel === 5 && "CRÍTICO - Colapso inminente"}
+                                                </div>
                                             </div>
                                         </motion.div>
                                     )}
@@ -307,33 +360,42 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </h3>
                                                 <div className="space-y-6">
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between text-sm">
+                                                        <div className="flex justify-between text-sm items-end">
                                                             <span className="text-white/60">Tiempo perdido por sesión</span>
-                                                            <span className="text-white font-mono">{timeConsumed} min</span>
+                                                            <span className="font-mono font-bold text-xl text-rose-400">
+                                                                {minutes < 60 ? `${minutes} min` : `${Math.floor(minutes/60)}h ${minutes%60 > 0 ? minutes%60 + 'm' : ''}`}
+                                                            </span>
                                                         </div>
                                                         <input 
                                                             type="range" 
                                                             min="0" 
-                                                            max="120" 
-                                                            step="5"
-                                                            value={timeConsumed}
-                                                            onChange={(e) => setTimeConsumed(parseInt(e.target.value))}
+                                                            max="17" 
+                                                            step="1"
+                                                            value={timeIndex}
+                                                            onChange={(e) => setTimeIndex(parseInt(e.target.value))}
                                                             className="w-full accent-rose-500 h-2 bg-white/10 rounded-full appearance-none cursor-pointer"
                                                         />
+                                                        <div className="flex justify-between text-[10px] text-white/20 font-mono px-1">
+                                                            <span>15m</span>
+                                                            <span>2h</span>
+                                                            <span>12h</span>
+                                                        </div>
                                                     </div>
 
-                                                    <div className="grid grid-cols-3 gap-4">
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
-                                                            <div className="text-xs text-white/40 mb-1">Daño HP</div>
-                                                            <div className="text-xl font-bold text-rose-500">-{penalties.hp}</div>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
+                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Daño HP</div>
+                                                            <div className="text-xl font-black text-rose-500">-{penalties.hp}</div>
                                                         </div>
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
-                                                            <div className="text-xs text-white/40 mb-1">Pérdida XP</div>
-                                                            <div className="text-xl font-bold text-orange-500">-{penalties.xp}</div>
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
+                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider truncate px-1">
+                                                                XP {attributes.find(a => a.id === attribute)?.label || 'General'}
+                                                            </div>
+                                                            <div className="text-xl font-black text-orange-500">-{penalties.xp}</div>
                                                         </div>
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5">
-                                                            <div className="text-xs text-white/40 mb-1">Costo Oro</div>
-                                                            <div className="text-xl font-bold text-yellow-500">-{penalties.gold}</div>
+                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
+                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Costo Oro</div>
+                                                            <div className="text-xl font-black text-yellow-500">-{penalties.gold}</div>
                                                         </div>
                                                     </div>
                                                 </div>

@@ -22,8 +22,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     
     // Style-specific classes
     const styleClass = isLiquid
-        ? "border !border-black/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]" // Elegant dark border + Deep Drop Shadow
-        : `glass-panel !shadow-none ${isOpen ? 'rgb-border-container rgb-border-active !bg-[#050505]/85' : ''}`; // Standard RGB Border
+        ? "bg-black/90 border !border-black/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]"
+        : `glass-panel !shadow-none ${isOpen ? 'rgb-border-container rgb-border-active !bg-black/90 !bg-none' : ''}`;
 
     const containerClass = `${baseClass} ${styleClass}`;
 
@@ -38,7 +38,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 layout
                 initial={false}
                 animate={{ 
-                    height: isOpen ? 410 : 70, // Increased height for new row
+                    height: isOpen ? 440 : 70, // Increased height for new row + breathing room
                     borderRadius: isOpen ? 32 : 34,
                     width: '85vw', // Reduced from 88vw for better mobile safety
                     maxWidth: 330
@@ -52,7 +52,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 className={containerClass}
                 style={{ overflow: 'visible' }}
              >
-             <div className="absolute inset-0 overflow-hidden rounded-[inherit] z-10">
+             <div className={`absolute inset-0 overflow-hidden rounded-[inherit] z-10 ${isOpen ? 'bg-black/90' : 'bg-transparent'}`}>
                 <div className="relative w-full h-full">
                 <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     

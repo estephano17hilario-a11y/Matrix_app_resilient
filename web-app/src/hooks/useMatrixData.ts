@@ -18,7 +18,7 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
   // 🧠 MEMORY CORE: Initialize directly from persistence to prevent "Flash of Null"
   const [user, setUser] = useState<UserData | null>(() => {
     if (!userId) return null;
-    const cached = PersistenceService.getProfile();
+    const cached = PersistenceService.getProfile(userId);
     // Only use cache if it matches the requested user (Security)
     if (cached && cached.uid === userId) {
         console.log("💾 MATRIX: Instant Boot from Memory Core.");
@@ -36,13 +36,15 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
   
   const isMounted = useRef(true);
   const unsubscribeRef = useRef<() => void>();
+  const lastPayloadRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
     
     // Reset if userId changes and we don't have matching cache
     if (userId && user?.uid !== userId) {
-        const cached = PersistenceService.getProfile();
+        lastPayloadRef.current = null;
+        const cached = PersistenceService.getProfile(userId);
         if (cached && cached.uid === userId) {
             setUser({ ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData);
             setLoading(false);
@@ -95,9 +97,12 @@ export const useMatrixData = (userId: string | null | undefined): MatrixDataHook
                             stats: safeStats
                         } as UserData;
 
-                        setUser(newData);
-                        // 💾 PERSIST: Save to local storage immediately
-                        PersistenceService.saveProfile(newData);
+                        const payload = JSON.stringify(newData);
+                        if (lastPayloadRef.current !== payload) {
+                            lastPayloadRef.current = payload;
+                            setUser(newData);
+                            PersistenceService.saveProfile(newData);
+                        }
                         
                         setError(null);
                     } else {

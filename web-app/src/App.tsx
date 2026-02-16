@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { MatrixProvider } from '@/context/MatrixContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { AuroraBackground } from '@/components/AuroraBackground';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // CRITICAL MODULES
@@ -15,7 +16,7 @@ import { OnboardingFlow } from '@/modules/onboarding/OnboardingFlow';
 const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
 
   // Determine what to show in the content layer
   const renderContent = () => {
@@ -24,6 +25,21 @@ const AppRoutes = () => {
 
     // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
     const canEnterMatrix = !!user || !!profile;
+
+    if (isLoading || profile?.isSkeleton) {
+      return (
+        <motion.div 
+          key="loading" 
+          initial={{ opacity: 0, scale: 0.99 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          exit={{ opacity: 0, scale: 1.01 }} 
+          transition={transition}
+          className="w-full h-full"
+        >
+          <LoadingScreen />
+        </motion.div>
+      );
+    }
 
     if (!canEnterMatrix) {
       return (

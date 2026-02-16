@@ -75,6 +75,17 @@ export const useDashboardLogic = () => {
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>('VISIBLE');
     const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(true);
+    const [stickyHud, setStickyHud] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const root = document.documentElement;
+        if (overrideBgColor) {
+            root.style.setProperty('--color-override-glow', overrideBgColor);
+        } else {
+            root.style.removeProperty('--color-override-glow');
+        }
+    }, [overrideBgColor]);
 
     const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID') => {
         setDashboardStyle(style);
@@ -120,6 +131,17 @@ export const useDashboardLogic = () => {
         }
     }, [user?.uid]);
 
+    const updateStickyHud = useCallback(async (sticky: boolean) => {
+        setStickyHud(sticky);
+        if (user?.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid), { stickyHud: sticky }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save sticky hud preference", e);
+            }
+        }
+    }, [user?.uid]);
+
     // Sync Dashboard Style from User Profile
     useEffect(() => {
         if (user?.dashboardStyle) {
@@ -134,7 +156,10 @@ export const useDashboardLogic = () => {
         if (user?.allowDockSectionSwitch !== undefined) {
             setAllowDockSectionSwitch(user.allowDockSectionSwitch);
         }
-    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.allowDockSectionSwitch]);
+        if (user?.stickyHud !== undefined) {
+            setStickyHud(user.stickyHud);
+        }
+    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.allowDockSectionSwitch, user?.stickyHud]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: 500, gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -281,7 +306,7 @@ export const useDashboardLogic = () => {
     useEffect(() => {
         if (!user?.uid) return;
 
-        const cached = PersistenceService.getProfile();
+        const cached = PersistenceService.getProfile(user.uid);
         if (!cached || cached.uid !== user.uid) return;
 
         const updatedProfile = {
@@ -396,6 +421,17 @@ export const useDashboardLogic = () => {
     ); 
     const prevAttributes = useRef(attributes);
     const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);
+    const COLLECTION_SYNC_TTL = 5 * 60 * 1000;
+    const hydrateAttributes = (fetchedAttrs: Attribute[]) => {
+        if (fetchedAttrs.length > 0) {
+            const enriched = fetchedAttrs.map(attr => {
+                const def = TRAITS_LIST.find(t => t.id === attr.id);
+                return { ...attr, icon: def?.icon, color: def?.color || attr.color, label: def?.label || attr.label };
+            });
+            setAttributes(enriched);
+        }
+        setAreAttributesLoaded(true);
+    };
 
     // --- ACHIEVEMENT LISTENER ---
     useEffect(() => {
@@ -423,34 +459,110 @@ export const useDashboardLogic = () => {
 
     // --- LOAD PROJECTS, QUESTS, HABITS, NOTES, JOURNAL ---
     useEffect(() => {
-        if (user?.uid) {
-            projectService.getUserProjects(user.uid).then(setProjects);
-            // Load other data
-            persistenceService.quests.getAll(user.uid).then(setQuests);
-            persistenceService.habits.getAll(user.uid).then(h => {
+        if (!user?.uid) return;
+        const uid = user.uid;
+        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+        const cachedProjects = PersistenceService.getCollection<Project>(uid, 'projects');
+        if (cachedProjects) setProjects(cachedProjects);
+
+        const cachedQuests = PersistenceService.getCollection<Quest>(uid, 'quests');
+        if (cachedQuests) setQuests(cachedQuests);
+
+        const cachedHabits = PersistenceService.getCollection<Habit>(uid, 'habits');
+        if (cachedHabits) {
+            setHabits(cachedHabits);
+            setAreHabitsLoaded(true);
+        }
+
+        const cachedBadHabits = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
+        if (cachedBadHabits) setBadHabits(cachedBadHabits);
+
+        const cachedSmartProjects = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
+        if (cachedSmartProjects) setSmartProjects(cachedSmartProjects);
+
+        const cachedAttributes = PersistenceService.getCollection<Attribute>(uid, 'attributes');
+        if (cachedAttributes) {
+            hydrateAttributes(cachedAttributes);
+        }
+
+        if (!isOnline) return;
+
+        if (PersistenceService.shouldSyncCollection(uid, 'projects', COLLECTION_SYNC_TTL)) {
+            projectService.getUserProjects(uid).then(projects => {
+                setProjects(projects);
+                PersistenceService.saveCollection(uid, 'projects', projects);
+            });
+        }
+
+        if (PersistenceService.shouldSyncCollection(uid, 'quests', COLLECTION_SYNC_TTL)) {
+            persistenceService.quests.getAll(uid).then(quests => {
+                setQuests(quests);
+                PersistenceService.saveCollection(uid, 'quests', quests);
+            });
+        }
+
+        if (PersistenceService.shouldSyncCollection(uid, 'habits', COLLECTION_SYNC_TTL)) {
+            persistenceService.habits.getAll(uid).then(h => {
                 setHabits(h);
                 setAreHabitsLoaded(true);
+                PersistenceService.saveCollection(uid, 'habits', h);
             });
-            persistenceService.badHabits.getAll(user.uid).then(setBadHabits);
-            persistenceService.smartProjects.getAll(user.uid).then(setSmartProjects);
-            persistenceService.attributes.getAll(user.uid).then(fetchedAttrs => {
-                if (fetchedAttrs.length > 0) {
-                     // If we have saved attributes, use ONLY those.
-                     const enriched = fetchedAttrs.map(attr => {
-                        const def = TRAITS_LIST.find(t => t.id === attr.id);
-                        return { ...attr, icon: def?.icon, color: def?.color || attr.color, label: def?.label || attr.label };
-                     });
-                     setAttributes(enriched);
-                } else {
-                    // Fallback: If no attributes saved (legacy user), keep showing all defaults
-                    // This ensures we don't break existing users.
-                    // New users coming from Onboarding will have 5 saved, so they will hit the 'if' block.
-                    console.log("No attributes found in DB, using defaults.");
-                }
-                setAreAttributesLoaded(true);
+        }
+
+        if (PersistenceService.shouldSyncCollection(uid, 'badHabits', COLLECTION_SYNC_TTL)) {
+            persistenceService.badHabits.getAll(uid).then(items => {
+                setBadHabits(items);
+                PersistenceService.saveCollection(uid, 'badHabits', items);
+            });
+        }
+
+        if (PersistenceService.shouldSyncCollection(uid, 'smartProjects', COLLECTION_SYNC_TTL)) {
+            persistenceService.smartProjects.getAll(uid).then(items => {
+                setSmartProjects(items);
+                PersistenceService.saveCollection(uid, 'smartProjects', items);
+            });
+        }
+
+        if (PersistenceService.shouldSyncCollection(uid, 'attributes', COLLECTION_SYNC_TTL)) {
+            persistenceService.attributes.getAll(uid).then(fetchedAttrs => {
+                hydrateAttributes(fetchedAttrs);
+                const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
+                PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
             });
         }
     }, [user?.uid]);
+
+    useEffect(() => {
+        if (!user?.uid || !areHabitsLoaded) return;
+        PersistenceService.saveCollection(user.uid, 'habits', habits);
+    }, [habits, user?.uid, areHabitsLoaded]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        PersistenceService.saveCollection(user.uid, 'quests', quests);
+    }, [quests, user?.uid]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        PersistenceService.saveCollection(user.uid, 'badHabits', badHabits);
+    }, [badHabits, user?.uid]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        PersistenceService.saveCollection(user.uid, 'smartProjects', smartProjects);
+    }, [smartProjects, user?.uid]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        PersistenceService.saveCollection(user.uid, 'projects', projects);
+    }, [projects, user?.uid]);
+
+    useEffect(() => {
+        if (!user?.uid || !areAttributesLoaded) return;
+        const attrsForCache = attributes.map(({ icon, ...rest }) => rest);
+        PersistenceService.saveCollection(user.uid, 'attributes', attrsForCache);
+    }, [attributes, user?.uid, areAttributesLoaded]);
 
     const addAttribute = async (traitId: string) => {
         // LIMIT CHECK: Active Traits
@@ -1694,10 +1806,15 @@ export const useDashboardLogic = () => {
             return [...prev, project];
         });
         
-        if (user) {
-            await projectService.saveProject(user.uid, project);
-        }
+        // Optimistic UI: Close immediately
         setActiveModal(null);
+
+        if (user) {
+            // Background sync
+            projectService.saveProject(user.uid, project).catch(err => {
+                console.error("Failed to save project:", err);
+            });
+        }
     }, [user, projects]);
 
     const handleDeleteProject = useCallback(async (projectId: string) => {
@@ -1916,6 +2033,8 @@ export const useDashboardLogic = () => {
         updateHabitSectionControl,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
+        stickyHud,
+        updateStickyHud,
         // New exports
         notes,
         handleAddNote,

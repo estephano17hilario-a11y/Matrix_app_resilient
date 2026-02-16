@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Note, JournalEntry, NoteBlock, Project } from '../../types';
@@ -51,8 +51,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
     const [subView, setSubView] = useState<'NOTES' | 'JOURNAL'>('NOTES');
 
-    // Sync subView with external prop
-    React.useEffect(() => {
+    useEffect(() => {
         if (currentSubView) {
             setSubView(currentSubView);
         }
@@ -72,6 +71,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
     const [moodSplash, setMoodSplash] = useState<string | null>(null);
     const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
+    const themeColorMap = useMemo(() => new Map(NOTE_THEMES.map(t => [t.id, t.color])), []);
+    const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+    const journalEntryMap = useMemo(() => {
+        const map = new Map<string, JournalEntry>();
+        journalEntries.forEach(entry => map.set(entry.date, entry));
+        return map;
+    }, [journalEntries]);
+    const notesContainerRef = useRef<HTMLDivElement | null>(null);
+    const [notesScrollTop, setNotesScrollTop] = useState(0);
+    const [notesViewportHeight, setNotesViewportHeight] = useState(0);
 
     const openNote = useCallback((note: Note) => { 
         setEditorMode('NOTE'); setDraftId(note.id); setDraftTitle(note.title); setDraftBlocks(note.blocks); setDraftTheme(note.theme || 'slate'); setDraftProjectId(note.projectId); onInteractionStart(); 
@@ -87,9 +96,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     
     const openJournal = useCallback((date: Date) => { 
         const dateStr = toLocalISOString(date); 
-        const entry = journalEntries.find((e: JournalEntry) => e.date === dateStr); 
+        const entry = journalEntryMap.get(dateStr); 
         setEditorMode('JOURNAL'); setDraftDate(date); setDraftId(entry?.id || Date.now().toString()); setDraftBlocks(entry?.blocks || [{ id: 'init-1', type: 'text', content: '' }]); setDraftMood(entry?.mood); setDraftTheme(entry?.theme || 'slate'); onInteractionStart(); 
-    }, [journalEntries, onInteractionStart]);
+    }, [journalEntryMap, onInteractionStart]);
     
     const handleSave = () => { 
         if (editorMode === 'NOTE' && draftId) { 
@@ -107,15 +116,49 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
     const emptyDays = Array(firstDay).fill(null);
     const monthDays = Array.from({ length: days }, (_, i) => i + 1);
-    const activeThemeColor = NOTE_THEMES.find(t => t.id === draftTheme)?.color || '#fff';
+    const activeThemeColor = themeColorMap.get(draftTheme) || '#fff';
+    const noteItems = useMemo(() => [{ type: 'create' as const }, ...notes.map(note => ({ type: 'note' as const, note }))], [notes]);
+    const useVirtualizedNotes = noteItems.length > 20;
+    const noteColumns = 2;
+    const cardHeight = 260;
+    const rowGap = 16;
+    const rowHeight = cardHeight + rowGap;
+    const totalRows = Math.ceil(noteItems.length / noteColumns);
+    const totalHeight = totalRows * rowHeight;
+    const startRow = useVirtualizedNotes ? Math.max(0, Math.floor(notesScrollTop / rowHeight) - 2) : 0;
+    const endRow = useVirtualizedNotes ? Math.min(totalRows, Math.ceil((notesScrollTop + notesViewportHeight) / rowHeight) + 2) : totalRows;
+    const visibleItems = useVirtualizedNotes ? noteItems.slice(startRow * noteColumns, endRow * noteColumns) : noteItems;
+    const offsetY = useVirtualizedNotes ? startRow * rowHeight : 0;
+
+    useEffect(() => {
+        if (subView !== 'NOTES') return;
+        const el = notesContainerRef.current;
+        if (!el) return;
+        let rafId: number | null = null;
+        const handle = () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                setNotesScrollTop(el.scrollTop);
+                setNotesViewportHeight(el.clientHeight);
+            });
+        };
+        handle();
+        el.addEventListener('scroll', handle, { passive: true });
+        window.addEventListener('resize', handle);
+        return () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            el.removeEventListener('scroll', handle);
+            window.removeEventListener('resize', handle);
+        };
+    }, [subView]);
 
     return (
         <div className="h-full flex flex-col relative">
-            <div className={`transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-0 scale-95 pointer-events-none blur-sm' : 'opacity-100 scale-100'}`}>
+            <div className={`transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
                 <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
                     <div className="w-8" />
                     {sectionControl === 'VISIBLE' && (
-                        <div className="bg-black/40 p-1 rounded-full border border-white/10 flex relative backdrop-blur-md shadow-2xl w-full max-w-[200px]">
+                        <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
                             <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
                                 subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
                             }`} />
@@ -127,25 +170,61 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <button onClick={() => setShowStats(true)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"><BarChart3 size={16} /></button>
                 </div>
                 {subView === 'NOTES' && (
-                    <div className="flex-1 overflow-y-auto no-scrollbar pb-32 animate-in slide-in-from-left-4 fade-in duration-500 px-1">
-                        <div className="columns-2 gap-4 space-y-4">
-                            <button onClick={createNote} className="w-full aspect-[4/5] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-all group backdrop-blur-sm"><div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-lg"><Plus size={28} className="text-white/80" strokeWidth={1.5} /></div><span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span></button>
-                            {notes.map((note) => {
-                                const themeColor = NOTE_THEMES.find(t => t.id === note.theme)?.color || '#64748b';
-                                const project = projects.find((p) => p.id === note.projectId);
-                                return (
-                                    <div key={note.id} onClick={() => openNote(note)} className="w-full break-inside-avoid mb-4 rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/5 bg-black/20 backdrop-blur-md">
-                                        <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-500" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
-                                        <div className="relative z-10">
-                                            {project && <div className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 backdrop-blur-md border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
-                                            <h3 className={`text-[17px] font-bold leading-tight mb-3 line-clamp-2 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || 'Untitled'}</h3>
-                                            <p className="text-[13px] text-white/60 line-clamp-6 leading-relaxed font-medium break-words">{note.blocks.find(b => b.type === 'text')?.content || <span className="italic opacity-50">Empty...</span>}</p>
-                                        </div>
-                                        <div className="relative z-10 mt-4 flex justify-between items-center border-t border-white/5 pt-3"><span className="text-[10px] font-medium text-white/30">{new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span><div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} /></div>
+                    <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 animate-in slide-in-from-left-4 fade-in duration-500 px-1">
+                        {useVirtualizedNotes ? (
+                            <div className="relative" style={{ height: totalHeight }}>
+                                <div className="absolute left-0 right-0 top-0" style={{ transform: `translateY(${offsetY}px)`, willChange: 'transform' }}>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {visibleItems.map((item) => {
+                                            if (item.type === 'create') {
+                                                return (
+                                                    <button key="create-note" onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/40">
+                                                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-white/80" strokeWidth={1.5} /></div>
+                                                        <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
+                                                    </button>
+                                                );
+                                            }
+                                            const note = item.note;
+                                            const themeColor = themeColorMap.get(note.theme || 'slate') || '#64748b';
+                                            const project = note.projectId ? projectMap.get(note.projectId) : undefined;
+                                            return (
+                                                <div key={note.id} onClick={() => openNote(note)} className="w-full h-[260px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40">
+                                                    <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-500" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
+                                                    <div className="relative z-10">
+                                                        {project && <div className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
+                                                        <h3 className={`text-[17px] font-bold leading-tight mb-3 line-clamp-2 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || 'Untitled'}</h3>
+                                                        <p className="text-[13px] text-white/60 line-clamp-6 leading-relaxed font-medium break-words">{note.blocks.find(b => b.type === 'text')?.content || <span className="italic opacity-50">Empty...</span>}</p>
+                                                    </div>
+                                                    <div className="relative z-10 mt-4 flex justify-between items-center border-t border-white/5 pt-3"><span className="text-[10px] font-medium text-white/30">{new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span><div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} /></div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                )
-                            })}
-                        </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/40">
+                                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-white/80" strokeWidth={1.5} /></div>
+                                    <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
+                                </button>
+                                {notes.map((note) => {
+                                    const themeColor = themeColorMap.get(note.theme || 'slate') || '#64748b';
+                                    const project = note.projectId ? projectMap.get(note.projectId) : undefined;
+                                    return (
+                                        <div key={note.id} onClick={() => openNote(note)} className="w-full h-[260px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40">
+                                            <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-500" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
+                                            <div className="relative z-10">
+                                                {project && <div className="inline-flex items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
+                                                <h3 className={`text-[17px] font-bold leading-tight mb-3 line-clamp-2 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || 'Untitled'}</h3>
+                                                <p className="text-[13px] text-white/60 line-clamp-6 leading-relaxed font-medium break-words">{note.blocks.find(b => b.type === 'text')?.content || <span className="italic opacity-50">Empty...</span>}</p>
+                                            </div>
+                                            <div className="relative z-10 mt-4 flex justify-between items-center border-t border-white/5 pt-3"><span className="text-[10px] font-medium text-white/30">{new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span><div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} /></div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
                 {subView === 'JOURNAL' && (
@@ -157,8 +236,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
-                                    <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-all ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Calendar View"><Calendar size={14} /></button>
-                                    <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-all ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Notebook View"><AlignLeft size={14} /></button>
+                                    <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Calendar View"><Calendar size={14} /></button>
+                                    <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Notebook View"><AlignLeft size={14} /></button>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
@@ -175,7 +254,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                     {monthDays.map(day => {
                                         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                                         const dateStr = toLocalISOString(date);
-                                        const entry = journalEntries.find((e) => e.date === dateStr);
+                                        const entry = journalEntryMap.get(dateStr);
                                         const mood = MOODS.find(m => m.id === entry?.mood);
                                         const isToday = toLocalISOString(new Date()) === dateStr;
                                         
@@ -190,12 +269,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                 key={day} 
                                                 onClick={() => !isFuture && openJournal(date)} 
                                                 disabled={isFuture}
-                                                className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-all active:scale-90 group overflow-hidden border ${isToday ? 'bg-white/10 border-white/20 shadow-lg ring-1 ring-white/20' : 'bg-black/20 border-white/5'} ${!isFuture ? 'hover:bg-white/5 hover:border-white/10' : 'opacity-30 cursor-not-allowed'}`}
+                                                className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform active:scale-90 group overflow-hidden border ${isToday ? 'bg-white/10 border-white/20 shadow-sm ring-1 ring-white/20' : 'bg-black/20 border-white/5'} ${!isFuture ? 'hover:bg-white/5 hover:border-white/10' : 'opacity-30 cursor-not-allowed'}`}
                                             >
                                                 {mood && <div className="absolute inset-0 opacity-20 bg-gradient-to-b from-transparent to-current transition-opacity" style={{ color: mood.color }} />}
                                                 <div className="flex-1 flex items-center justify-center z-10 w-full">
                                                     {mood ? (
-                                                        <span className="text-2xl filter drop-shadow-lg group-hover:scale-125 transition-transform duration-300">{mood.icon}</span>
+                                                        <span className="text-2xl group-hover:scale-125 transition-transform duration-300">{mood.icon}</span>
                                                     ) : isFuture ? (
                                                         <Lock size={16} className="text-white/20" />
                                                     ) : null}
@@ -216,7 +295,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                         {monthDays.map(day => {
                                             const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                                             const dateStr = toLocalISOString(date);
-                                            const entry = journalEntries.find((e) => e.date === dateStr);
+                                            const entry = journalEntryMap.get(dateStr);
                                             const title = entry ? getEntryTitle(entry.blocks) : '';
                                             const mood = entry ? MOODS.find(m => m.id === entry.mood) : null;
                                             const isToday = toLocalISOString(new Date()) === dateStr;
@@ -232,7 +311,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                         onClick={() => !isFuture && openJournal(date)}
                                                         disabled={isFuture}
                                                         className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10
-                                                            ${!isFuture ? 'hover:bg-white/5 active:scale-[0.995] transition-all' : 'opacity-30 cursor-not-allowed'}
+                                                            ${!isFuture ? 'hover:bg-white/5 active:scale-[0.995] transition-transform' : 'opacity-30 cursor-not-allowed'}
                                                         `}
                                                     >
                                                         <span className={`text-xs font-mono font-bold w-6 text-right ${isToday ? 'text-white' : 'text-white/20'}`}>{day < 10 ? `0${day}` : day}</span>
@@ -243,7 +322,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                                 ) : (
                                                                     <span className="text-base text-white/10 font-serif italic">Empty page...</span>
                                                                 )}
-                                                                {mood && <span className="text-lg filter drop-shadow-md opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
+                                                                {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
                                                             </div>
                                                             {/* Wiggly underline for every line */}
                                                             <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
@@ -262,12 +341,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 )}
             </div>
             <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} />
-            <div className={`absolute inset-0 z-50 flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-[20px] pointer-events-none'}`}>
+            <div className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-[20px] pointer-events-none'}`}>
                 {editorMode !== 'NONE' && (
                     <div className="w-full h-full max-w-2xl mx-auto flex flex-col p-4 sm:p-6">
-                        <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in zoom-in-95 duration-500 delay-100 shadow-2xl">
+                        <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in zoom-in-95 duration-500 delay-100 shadow-md">
                              <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
-                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none blur-lg transition-colors duration-1000" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
+                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-1000" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
                              </div>
                             
                             <div className="flex justify-between items-center p-6 border-b border-white/5 relative z-20">
@@ -280,7 +359,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                     </div>
                                     <div className="w-[1px] h-6 bg-white/10" />
                                     {editorMode === 'NOTE' && <button onClick={handleDelete} className="w-10 h-10 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-500 flex items-center justify-center transition-all"><Trash2 size={18} /></button>}
-                                    <button onClick={handleSave} className="px-6 py-2 bg-white text-black rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]">{t('notes.save')}</button>
+                                    <button onClick={handleSave} className="px-6 py-2 bg-white text-black rounded-full font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm">{t('notes.save')}</button>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
@@ -297,8 +376,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                         <div className="text-center mb-8 relative z-10">
                                             <span className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">{draftDate.toLocaleDateString(i18n.language, { weekday: 'long' })}</span>
                                             <h2 className="text-5xl font-black text-white mt-1 tracking-tighter leading-none mb-4">{draftDate.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' })}</h2>
-                                            <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
-                                                {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-all ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-lg ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
+                                            <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                                                {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
                                             </div>
                                         </div>
                                         <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />

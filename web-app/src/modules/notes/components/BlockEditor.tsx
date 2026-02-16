@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Trash2, Check, ImageIcon } from 'lucide-react';
 import { NoteBlock } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: { blocks: NoteBlock[], onChange: (blocks: NoteBlock[]) => void, readOnly?: boolean }) => {
     const { t } = useTranslation();
-    // Removed synchronous useEffect to prevent rendering loops.
-    // Initialization of empty blocks should be handled by the parent component.
+    const heightRaf = useRef<number | null>(null);
 
     const updateBlock = (id: string, updates: Partial<NoteBlock>) => {
         onChange(blocks.map(b => b.id === id ? { ...b, ...updates } : b));
@@ -16,9 +15,12 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         onChange(blocks.filter(b => b.id !== id));
     };
 
-    const adjustHeight = (el: HTMLTextAreaElement) => {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
+    const scheduleAdjustHeight = (el: HTMLTextAreaElement) => {
+        if (heightRaf.current) cancelAnimationFrame(heightRaf.current);
+        heightRaf.current = requestAnimationFrame(() => {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        });
     };
 
     if (blocks.length === 0 && !readOnly) {
@@ -32,7 +34,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     return (
         <div className="flex flex-col gap-3 w-full pb-20">
             {blocks.map((block) => (
-                <div key={block.id} className="group relative flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in duration-300 editor-line">
+                <div key={block.id} className="group relative flex items-start gap-3 editor-line">
                     {!readOnly && (
                         <div className="absolute -left-8 top-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                             <button onClick={() => removeBlock(block.id)} className="text-slate-500 hover:text-red-400 p-1 transition-colors"><Trash2 size={14} /></button>
@@ -41,11 +43,11 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     
                     {block.type === 'text' && (
                         <textarea 
-                            ref={el => { if(el) adjustHeight(el) }} // Initial adjustment
+                            ref={el => { if (el) scheduleAdjustHeight(el) }}
                             value={block.content} 
                             onChange={(e) => { 
                                 updateBlock(block.id, { content: e.target.value });
-                                adjustHeight(e.target);
+                                scheduleAdjustHeight(e.target);
                             }}  
                             placeholder={t('components.blockEditor.typeSomething')} 
                             className="w-full bg-transparent text-slate-100 placeholder:text-slate-600 resize-none outline-none leading-relaxed text-[17px] font-normal font-sans" 

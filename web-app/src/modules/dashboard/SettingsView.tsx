@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { TRAITS_LIST } from './constants';
-import { THEMES, ThemeId } from '../../config/themes';
+import { THEMES, ThemeId, ThemeCategory } from '../../config/themes';
 import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,8 @@ interface SettingsViewProps {
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
+  stickyHud?: boolean;
+  onUpdateStickyHud?: (sticky: boolean) => void;
 }
 
 type TabId = 'DESIGN' | 'CONTROLS' | 'ACCOUNT';
@@ -67,12 +69,15 @@ export const SettingsView = ({
   onToggleVividMode,
   habitSectionControl = 'VISIBLE',
   onUpdateHabitSectionControl,
-  allowDockSectionSwitch = true,
-  onUpdateAllowDockSectionSwitch
+  allowDockSectionSwitch,
+  onUpdateAllowDockSectionSwitch,
+  stickyHud,
+  onUpdateStickyHud
 }: SettingsViewProps) => {
   const { logout, user } = useAuth();
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>('DESIGN');
+  const [activeThemeCategory, setActiveThemeCategory] = useState<ThemeCategory | 'all'>('all');
   const [editingTraitId, setEditingTraitId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ label: string; color: string }>({ label: '', color: '' });
   const [showHabitHelp, setShowHabitHelp] = useState<string | null>(null);
@@ -130,7 +135,7 @@ export const SettingsView = ({
 
       {/* TABS (Segmented Control) */}
       <div className="px-6 pb-6">
-        <div className="flex p-1 bg-white/5 rounded-full border border-white/5 backdrop-blur-md">
+        <div className="flex p-1 bg-white/5 bg-gradient-to-b from-white/10 to-transparent rounded-full border border-white/10">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -289,10 +294,10 @@ export const SettingsView = ({
                         <AnimatePresence>
                             {showHabitHelp === 'BUTTONS' && (
                                 <motion.div 
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden"
+                                    initial={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden origin-top"
                                 >
                                     Controls whether the section switching buttons (Protocols/Vices, List/Strategy, Notes/Journal) are visible. Turn this OFF for a cleaner, minimal look across the app.
                                 </motion.div>
@@ -337,12 +342,51 @@ export const SettingsView = ({
                         <AnimatePresence>
                              {showHabitHelp === 'DOCK' && (
                                 <motion.div 
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden"
+                                    initial={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden origin-top"
                                 >
                                     If enabled, clicking the Dock icon (e.g. Habits, Tasks, Notes) will toggle between sections. If disabled, it simply opens the view.
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Config 3: Sticky HUD */}
+                    <div className="space-y-2">
+                         <div className="flex items-center justify-between">
+                            <span className="text-white/70 text-sm">Sticky HUD (Follow Scroll)</span>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => setShowHabitHelp(prev => prev === 'STICKY' ? null : 'STICKY')}
+                                    className="text-white/20 hover:text-white/60 transition-colors"
+                                >
+                                    <HelpCircle size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => onUpdateStickyHud?.(!stickyHud)}
+                                    className={cn(
+                                        "w-10 h-6 rounded-full transition-colors relative",
+                                        stickyHud ? "bg-theme-avatar" : "bg-white/10"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                                        stickyHud ? "translate-x-4" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+                        </div>
+                        <AnimatePresence>
+                             {showHabitHelp === 'STICKY' && (
+                                <motion.div 
+                                    initial={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                                    className="text-xs text-white/50 bg-white/5 p-3 rounded-lg overflow-hidden origin-top"
+                                >
+                                    If enabled, the System Metrics (HUD) will stay fixed at the top of the screen while you scroll.
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -407,8 +451,27 @@ export const SettingsView = ({
                 </div>
                 
                 {/* THEME GRID - VISUAL PREVIEWS */}
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {(['all', 'flow', 'orbs', 'minimal', 'nature'] as const).map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveThemeCategory(cat)}
+                            className={cn(
+                                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap border",
+                                activeThemeCategory === cat 
+                                    ? "bg-white text-black border-white" 
+                                    : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10 hover:text-white"
+                            )}
+                        >
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
-                  {Object.values(THEMES).map((theme) => {
+                  {Object.values(THEMES)
+                    .filter(theme => activeThemeCategory === 'all' || theme.category === activeThemeCategory)
+                    .map((theme) => {
                      const isActive = currentTheme === theme.id;
                      return (
                         <button
@@ -421,7 +484,7 @@ export const SettingsView = ({
                         >
                             {/* MINI THEME PREVIEW CARD */}
                             <div className={cn(
-                                "w-full aspect-[16/10] rounded-xl overflow-hidden relative border transition-all mb-3 shadow-lg",
+                                "w-full aspect-[16/10] rounded-xl overflow-hidden relative border transition-all mb-3 shadow-md",
                                 isActive 
                                     ? "border-white/40 ring-2 ring-white/10 ring-offset-2 ring-offset-black/20" 
                                     : "border-white/10 group-hover:border-white/20"
@@ -430,12 +493,12 @@ export const SettingsView = ({
                                 <div className="absolute inset-0" style={{ background: theme.gradient }} />
                                 
                                 {/* Overlay for Depth */}
-                                <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
 
                                 {/* Active Checkmark Overlay */}
                                 {isActive && (
-                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-20">
-                                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-100 animate-in zoom-in duration-300">
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+                                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-md transform scale-100 animate-in zoom-in duration-300">
                                             <Check size={16} strokeWidth={3} />
                                         </div>
                                     </div>
@@ -445,12 +508,12 @@ export const SettingsView = ({
                                 <div className="absolute inset-2 flex flex-col gap-2 z-10 opacity-90">
                                     {/* Mini Header */}
                                     <div className="flex justify-between items-center">
-                                        <div className="h-1.5 w-10 rounded-full bg-white/40 backdrop-blur-sm" />
+                                        <div className="h-1.5 w-10 rounded-full bg-white/30" />
                                         <div className="h-2 w-2 rounded-full border border-white/40" />
                                     </div>
                                     
                                     {/* Mini Content Card */}
-                                    <div className="flex-1 rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm p-1.5 flex flex-col gap-1.5">
+                                    <div className="flex-1 rounded-lg border border-white/10 bg-white/10 p-1.5 flex flex-col gap-1.5">
                                         <div className="h-1.5 w-16 rounded-full bg-white/30" />
                                         <div className="h-1 w-full rounded-full bg-white/10" />
                                         <div className="mt-auto flex gap-1">
@@ -602,7 +665,7 @@ export const SettingsView = ({
               className="space-y-6"
             >
               <GlassPanel className="p-6 flex flex-col items-center text-center space-y-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-1 shadow-xl shadow-indigo-500/20">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-1 shadow-md shadow-indigo-500/20">
                       <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                           {user?.photoURL ? (
                               <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />

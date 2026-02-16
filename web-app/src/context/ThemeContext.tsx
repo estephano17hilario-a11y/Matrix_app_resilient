@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
@@ -112,8 +112,33 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Sync with Firestore
   // 1. Load from Firestore on login
+  const lastThemeSyncUid = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) {
+      lastThemeSyncUid.current = null;
+      return;
+    }
+
+    if (lastThemeSyncUid.current === user.uid) return;
+
+    const localPrefs = profile?.uid === user.uid ? profile?.preferences : undefined;
+    const localTheme = localPrefs?.theme;
+    const localVivid = localPrefs?.vividMode;
+
+    if (localTheme && localTheme !== theme && THEMES[localTheme as ThemeId]) {
+      setThemeState(localTheme as ThemeId);
+    }
+    if (localVivid !== undefined && localVivid !== vividMode) {
+      setVividModeState(localVivid);
+    }
+
+    const hasLocalTheme = !!localTheme;
+    const hasLocalVivid = localVivid !== undefined;
+    if (hasLocalTheme && hasLocalVivid) {
+      lastThemeSyncUid.current = user.uid;
+      return;
+    }
 
     const loadUserTheme = async () => {
       try {
@@ -133,12 +158,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } catch (error) {
         console.error("Failed to sync theme from Matrix:", error);
+      } finally {
+        lastThemeSyncUid.current = user.uid;
       }
     };
-    
+
     loadUserTheme();
-    // We only run this on user change (login), not on every user object update to avoid race conditions
-  }, [user?.uid]);
+  }, [user?.uid, profile?.uid, profile?.preferences, theme, vividMode]);
 
   // 2. Save to Firestore on change
   const setTheme = async (newTheme: ThemeId) => {

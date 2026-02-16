@@ -1,59 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Activity,
-    AlarmClock,
-    Anchor,
-    Aperture,
-    Award,
-    Backpack,
-    BatteryCharging,
-    Book,
-    Brain,
-    Briefcase,
-    Calendar,
-    Camera,
-    Check,
-    CheckSquare,
-    Clock,
-    Cloud,
-    Code,
-    Coffee,
-    Compass,
-    Cpu,
-    Dumbbell,
-    Edit2,
-    Feather,
-    Flame,
-    Gem,
-    Globe,
-    Heart,
-    Home,
-    Key,
-    Leaf,
-    Lightbulb,
-    Map,
-    Medal,
-    Minus,
-    Moon,
-    Mountain,
-    Music,
-    PenTool,
-    Rocket,
-    Shield,
-    Sparkles,
-    Star,
-    Sun,
-    Target,
-    Timer,
-    Trash2,
-    Trophy,
-    User,
-    Wallet,
-    Zap
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { Edit2, Trash2, Check, Flame, Minus } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
+import { ICON_CATEGORIES as SHARED_CATEGORIES } from '../constants/iconCategories';
 
 interface HabitVisualCardProps {
     habit: Habit;
@@ -67,65 +18,11 @@ interface HabitVisualCardProps {
     onClick?: (habit: Habit) => void;
 }
 
-const ICON_LIBRARY = {
-    Activity,
-    AlarmClock,
-    Anchor,
-    Aperture,
-    Award,
-    Backpack,
-    BatteryCharging,
-    Book,
-    Brain,
-    Briefcase,
-    Calendar,
-    Camera,
-    CheckSquare,
-    Clock,
-    Cloud,
-    Code,
-    Coffee,
-    Compass,
-    Cpu,
-    Dumbbell,
-    Feather,
-    Flame,
-    Gem,
-    Globe,
-    Heart,
-    Home,
-    Key,
-    Leaf,
-    Lightbulb,
-    Map,
-    Medal,
-    Moon,
-    Mountain,
-    Music,
-    PenTool,
-    Rocket,
-    Shield,
-    Sparkles,
-    Star,
-    Sun,
-    Target,
-    Timer,
-    Trophy,
-    User,
-    Wallet,
-    Zap
-} as const;
-
-type IconName = keyof typeof ICON_LIBRARY;
-
-const ICON_CATEGORIES: { id: string; label: string; icons: IconName[] }[] = [
-    { id: 'focus', label: 'Enfoque', icons: ['Target', 'Timer', 'CheckSquare', 'Zap', 'Rocket', 'Trophy'] },
-    { id: 'mind', label: 'Mente', icons: ['Brain', 'Lightbulb', 'Compass', 'Map', 'Book', 'PenTool'] },
-    { id: 'health', label: 'Salud', icons: ['Dumbbell', 'Heart', 'Sun', 'Moon', 'Activity', 'Leaf'] },
-    { id: 'work', label: 'Trabajo', icons: ['Briefcase', 'Code', 'Cpu', 'Calendar', 'AlarmClock', 'Wallet'] },
-    { id: 'style', label: 'Estilo', icons: ['Sparkles', 'Feather', 'Gem', 'Aperture', 'Camera', 'Star'] },
-    { id: 'life', label: 'Vida', icons: ['Home', 'Globe', 'Mountain', 'Coffee', 'Cloud', 'Anchor'] }
-];
+const ICON_CATEGORIES = Object.entries(SHARED_CATEGORIES).map(([label, icons]) => ({
+    id: label,
+    label,
+    icons
+}));
 
 export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMode = 'GRID', attribute, onComplete, onToggleDay: _onToggleDay, onDelete, onEdit, onUpdateHabit, onClick }) => {
     const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -138,8 +35,8 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
     }, [habit.customColor, attribute?.color]);
 
     const SelectedIcon = useMemo(() => {
-        if (habit.iconName && ICON_LIBRARY[habit.iconName as IconName]) {
-            return ICON_LIBRARY[habit.iconName as IconName];
+        if (habit.iconName && (LucideIcons as any)[habit.iconName]) {
+            return (LucideIcons as any)[habit.iconName];
         }
         return attribute?.icon || Flame;
     }, [habit.iconName, attribute?.icon]);
@@ -258,8 +155,9 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                                                 </div>
                                                 <div className="grid grid-cols-6 gap-2">
                                                     {category.icons.map((iconName) => {
-                                                        const Icon = ICON_LIBRARY[iconName];
+                                                        const Icon = (LucideIcons as any)[iconName];
                                                         const isActive = habit.iconName === iconName;
+                                                        if (!Icon) return null;
                                                         return (
                                                             <button
                                                                 key={iconName}

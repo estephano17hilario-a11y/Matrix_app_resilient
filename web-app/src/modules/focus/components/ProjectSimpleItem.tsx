@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, MoreVertical, Target, Clock } from 'lucide-react';
+import { Play, ChevronRight, Pause } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 
@@ -9,137 +9,132 @@ interface ProjectSimpleItemProps {
   attribute?: Attribute;
   onStartSession: (e: React.MouseEvent, p: Project) => void;
   onClick?: (project: Project) => void;
-  onEdit?: (project: Project) => void;
   isActive?: boolean;
 }
 
-export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSession, onClick, onEdit, isActive }: ProjectSimpleItemProps) => {
-  const Icon = attribute?.icon;
+export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSession, onClick, isActive }: ProjectSimpleItemProps) => {
   const baseColor = attribute?.color || '#6366f1'; 
 
   // Calculate Progress
   const goalMinutes = project.goalTarget || 60;
-  const totalMinutes = Math.floor(project.totalTime / 60);
-  const progressPercent = Math.min(100, (totalMinutes / goalMinutes) * 100);
+  
+  // Calculate Relevant Time (Daily vs Lifetime)
+  let relevantTime = project.totalTime;
+  if (project.goalFrequency === 'DAILY' && project.sessions) {
+      const now = new Date();
+      const todayDate = now.getDate();
+      const todayMonth = now.getMonth();
+      const todayYear = now.getFullYear();
+      relevantTime = project.sessions.filter(s => {
+          const d = new Date(s.date);
+          return d.getDate() === todayDate && d.getMonth() === todayMonth && d.getFullYear() === todayYear;
+      }).reduce((acc, s) => acc + s.duration, 0);
+  }
+
+  const totalMinutes = Math.floor(relevantTime / 60);
+  const progressPercent = (totalMinutes / goalMinutes) * 100;
+  const visualPercent = Math.min(100, progressPercent);
+
+  // Time formatting
+  const currentHours = Math.floor(relevantTime / 3600);
+  const currentMinutes = Math.floor((relevantTime % 3600) / 60);
+  const goalHours = Math.floor(goalMinutes / 60);
+  const goalRemainingMins = goalMinutes % 60;
 
   return (
     <motion.div
       layout
       whileTap={{ scale: 0.98 }}
       onClick={() => onClick?.(project)}
-      className="group relative bg-gray-900/80 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-[1.5rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-gray-800/80"
+      className="group relative bg-gray-900/40 backdrop-blur-md border border-white/10 shadow-sm rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-gray-800/40"
     >
         <div 
-            className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-500" 
+            className="absolute inset-0 opacity-[0.02] group-hover:opacity-0 transition-opacity duration-500" 
             style={{ backgroundColor: baseColor }}
         />
 
-      <div className="relative flex items-center gap-4">
-        {/* Left: Icon Box */}
-        <div 
-          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0 border border-white/5"
-          style={{ backgroundColor: `${baseColor}20` }}
+      <div className="relative flex items-center gap-5">
+        {/* Left: Big Play Button */}
+        <button 
+            onClick={(e) => {
+                e.stopPropagation();
+                onStartSession(e, project);
+            }}
+            className={cn(
+                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg shrink-0",
+                isActive 
+                    ? "animate-pulse" 
+                    : "hover:scale-105 active:scale-95"
+            )}
+            style={{ 
+                backgroundColor: baseColor,
+                boxShadow: isActive ? `0 0 20px ${baseColor}60` : `0 4px 12px ${baseColor}40`
+            }}
         >
-          {attribute && Icon && (
-            <Icon size={24} style={{ color: baseColor }} strokeWidth={2} />
-          )}
-        </div>
+            {isActive ? (
+                <Pause size={28} className="text-white fill-white" strokeWidth={0} />
+            ) : (
+                <Play size={28} className="text-white fill-white ml-1" strokeWidth={0} />
+            )}
+        </button>
         
         {/* Middle: Content */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-          {/* Title */}
-          <h4 className="text-white font-bold text-[17px] leading-tight tracking-tight truncate flex items-center gap-2">
-            {project.title}
-            {isActive && (
-                <span className="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 border border-green-500/20 animate-pulse">
-                    ACTIVE
-                </span>
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Header: Title + Chevron */}
+          <div className="flex justify-between items-center">
+             <h4 
+                className="font-bold text-lg leading-tight tracking-tight truncate"
+                style={{ color: baseColor }}
+             >
+                {project.title}
+             </h4>
+             <div className="flex items-center gap-2">
+                 {isActive && (
+                    <span className="text-[10px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full animate-pulse">
+                        LIVE
+                    </span>
+                 )}
+                 <ChevronRight size={20} className="text-white/30 group-hover:text-white/60 transition-colors" />
+             </div>
+          </div>
+
+          {/* Timer */}
+          <div className="flex items-baseline gap-2 whitespace-nowrap">
+             <span className="text-2xl font-bold text-white tracking-tighter">
+                {currentHours}h {currentMinutes.toString().padStart(2, '0')}m
+             </span>
+             <span className="text-base text-white/30 font-medium">
+                / {goalHours}h {goalRemainingMins.toString().padStart(2, '0')}m
+             </span>
+          </div>
+
+          {/* Progress Bar Row */}
+          <div className="flex items-center gap-3 mt-2">
+            <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden relative">
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${visualPercent}%` }}
+                    transition={{ type: "spring", stiffness: 50, damping: 15 }}
+                    className="h-full rounded-full relative"
+                    style={{ 
+                        backgroundColor: baseColor,
+                        boxShadow: progressPercent >= 100 ? `0 0 12px ${baseColor}90` : `0 0 8px ${baseColor}50`
+                    }}
+                >
+                     {/* UNIFIED SHIMMER ANIMATION (Recycled from Focus Stats) */}
+                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                </motion.div>
+            </div>
+            <span className={cn(
+                "text-xs font-mono font-medium min-w-[3ch] text-right transition-all duration-300",
+                progressPercent >= 100 ? "text-white font-black scale-110" : "text-white/40"
             )}
-          </h4>
-
-          {/* Badges Row */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div 
-                className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border border-white/5"
-                style={{ 
-                    backgroundColor: `${baseColor}10`, 
-                    color: baseColor 
-                }}
+            style={progressPercent >= 100 ? { textShadow: `0 0 10px ${baseColor}` } : {}}
             >
-                {attribute?.label || 'Project'}
-            </div>
-
-            <div 
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide border border-white/5"
-                style={{ 
-                    backgroundColor: `${baseColor}15`, 
-                    color: '#e2e8f0' 
-                }}
-            >
-                <Clock size={12} strokeWidth={2.5} />
-                {Math.floor(project.totalTime / 3600)}h {Math.floor((project.totalTime % 3600) / 60)}m
-            </div>
-
-             {/* Progress Badge */}
-             <div 
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide border border-white/5"
-                style={{ 
-                    backgroundColor: progressPercent >= 100 ? '#22c55e15' : `${baseColor}10`,
-                    color: progressPercent >= 100 ? '#4ade80' : baseColor
-                }}
-            >
-                <Target size={12} strokeWidth={2.5} />
                 {progressPercent.toFixed(0)}%
-            </div>
+            </span>
           </div>
         </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
-             {/* Play Button */}
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onStartSession(e, project);
-                }}
-                className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300 group/play",
-                    isActive
-                    ? "bg-transparent border-transparent" 
-                    : "border-slate-600 hover:border-white/50 bg-transparent"
-                )}
-                style={isActive ? {
-                    backgroundColor: baseColor,
-                    borderColor: baseColor,
-                    boxShadow: `0 0 15px ${baseColor}60`
-                } : undefined}
-            >
-                <Play size={18} className={cn("text-slate-400 group-hover/play:text-white transition-colors", isActive && "text-white fill-white")} strokeWidth={3} style={isActive ? { fill: 'currentColor' } : undefined} />
-            </button>
-
-            {/* Menu Button */}
-            <button 
-                className="text-slate-500 hover:text-white transition-colors p-1"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.(project);
-                }}
-            >
-                <MoreVertical size={20} />
-            </button>
-        </div>
-      </div>
-      
-      {/* Progress Bar Line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-          <div 
-            className="h-full transition-all duration-500"
-            style={{ 
-                width: `${progressPercent}%`,
-                backgroundColor: baseColor,
-                boxShadow: `0 0 10px ${baseColor}`
-            }}
-          />
       </div>
     </motion.div>
   );

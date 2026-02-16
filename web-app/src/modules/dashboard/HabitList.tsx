@@ -13,6 +13,7 @@ interface HabitListProps {
 
 export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onCompleteHabit }) => {
   const { t } = useTranslation();
+  const attributeMap = React.useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
 
   // Stats calculation
   const totalHabits = habits.length;
@@ -29,7 +30,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
     <div>
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <GlassPanel className="p-3 flex flex-col items-center justify-center bg-white/5 backdrop-blur-md border-white/5 relative overflow-hidden">
+        <GlassPanel className="p-3 flex flex-col items-center justify-center bg-white/5 border-white/5 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10" />
           <Flame className="text-orange-500 mb-1 relative z-10" size={20} />
           <span className="text-xl font-black text-white tracking-tight relative z-10">{streak}</span>
@@ -37,7 +38,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
         </GlassPanel>
 
         {/* DAILY PROTOCOL STATUS (New Requirement) */}
-        <GlassPanel className={`col-span-2 p-3 flex flex-row items-center justify-between bg-white/5 backdrop-blur-md border-white/5 relative overflow-hidden group`}>
+        <GlassPanel className={`col-span-2 p-3 flex flex-row items-center justify-between bg-white/5 border-white/5 relative overflow-hidden group`}>
            <div className={`absolute inset-0 opacity-20 transition-colors duration-500 ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'}`} />
            
            <div className="flex flex-col relative z-10">
@@ -77,7 +78,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
           <HabitItem 
             key={habit.id} 
             habit={habit} 
-            attribute={attributes.find(a => a.id === habit.attribute)} 
+            attribute={attributeMap.get(habit.attribute)} 
             onComplete={onCompleteHabit}
           />
         ))}

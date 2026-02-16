@@ -95,6 +95,8 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
     const lastX = lastPoint ? getX(cumulativeData.length - 1) : 0;
     const lastY = lastPoint ? getY(lastPoint.cumulativeValue) : 0;
     const goalY = getY(goalValue);
+    const endpointRadius = 1.5;
+    const endpointStrokeWidth = 0.5;
 
     return (
         <div className="w-full h-full relative select-none">
@@ -169,8 +171,10 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                 <motion.circle
                     cx={getX(dataPoints.length - 1)}
                     cy={goalY}
-                    r="1"
+                    r={endpointRadius}
                     fill="#52525b"
+                    stroke="#52525b"
+                    strokeWidth={endpointStrokeWidth}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 1 }}
@@ -180,10 +184,10 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                 <motion.circle
                     cx={lastX}
                     cy={lastY}
-                    r="1.5"
+                    r={endpointRadius}
                     fill="#000"
                     stroke={color}
-                    strokeWidth="0.5"
+                    strokeWidth={endpointStrokeWidth}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 1.2, type: "spring" }}

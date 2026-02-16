@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
@@ -87,6 +87,27 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
   const headerRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const isVirtualized = sortedQuests.length > 20;
+  const rowHeight = 120;
+  const overscan = 6;
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  useEffect(() => {
+    if (!isVirtualized) return;
+    const element = listRef.current;
+    if (!element) return;
+    const updateSize = () => setViewportHeight(element.clientHeight);
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isVirtualized]);
 
   useEffect(() => {
     if (!isMounted.current) {
@@ -113,8 +134,15 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
       setHideCompleted(true);
   };
 
+  const totalHeight = isVirtualized ? sortedQuests.length * rowHeight : 0;
+  const startIndex = isVirtualized ? Math.max(0, Math.floor(scrollTop / rowHeight) - overscan) : 0;
+  const endIndex = isVirtualized
+    ? Math.min(sortedQuests.length, Math.ceil((scrollTop + viewportHeight) / rowHeight) + overscan)
+    : sortedQuests.length;
+  const visibleQuests = isVirtualized ? sortedQuests.slice(startIndex, endIndex) : sortedQuests;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 h-full min-h-0">
       {/* ACTIVE MISSIONS HEADER */}
       <div ref={headerRef} className="scroll-mt-24">
         <div className="flex items-center justify-between px-1 mb-3">
@@ -170,7 +198,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="overflow-hidden origin-top"
             >
-              <div ref={filtersRef} className="bg-gray-900/40 backdrop-blur-md border border-white/10 rounded-xl p-4 space-y-5 shadow-[0_0_40px_-10px_rgba(0,0,0,0.5)] relative mb-4">
+              <div ref={filtersRef} className="bg-gray-900/50 border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
                 
                 {/* Reset Button */}
                 <button 
@@ -345,18 +373,15 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
           )}
         </AnimatePresence>
         
-        <div className="flex flex-col pb-32 gap-3">
-          <AnimatePresence mode="sync">
-            {sortedQuests.map((quest) => (
-                <motion.div
-                    key={quest.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    style={{ contentVisibility: 'auto', containIntrinsicSize: '180px' }}
-                >
-                    <QuestItem 
+        <div className="flex flex-col pb-32 gap-3 flex-1 min-h-0">
+          {isVirtualized ? (
+            <div ref={listRef} onScroll={handleScroll} className="relative flex-1 min-h-0 overflow-y-auto pr-1">
+              <div style={{ height: totalHeight, position: 'relative' }}>
+                {visibleQuests.map((quest, i) => {
+                  const index = startIndex + i;
+                  return (
+                    <div key={quest.id} style={{ position: 'absolute', top: index * rowHeight, left: 0, right: 0 }}>
+                      <QuestItem 
                         quest={quest} 
                         attribute={attributeMap.get(quest.attribute)} 
                         project={quest.projectId ? projectMap.get(quest.projectId) : undefined}
@@ -365,10 +390,38 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                         onEdit={onEditQuest}
                         onFocusProject={onFocusProject}
                         onOpenNexus={onOpenNexus}
-                    />
-                </motion.div>
-            ))}
-          </AnimatePresence>
+                        isLite
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <AnimatePresence mode="sync">
+              {sortedQuests.map((quest) => (
+                  <motion.div
+                      key={quest.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                      style={{ contentVisibility: 'auto', containIntrinsicSize: '180px' }}
+                  >
+                      <QuestItem 
+                          quest={quest} 
+                          attribute={attributeMap.get(quest.attribute)} 
+                          project={quest.projectId ? projectMap.get(quest.projectId) : undefined}
+                          onComplete={onCompleteQuest} 
+                          onDelete={onDeleteQuest}
+                          onEdit={onEditQuest}
+                          onFocusProject={onFocusProject}
+                          onOpenNexus={onOpenNexus}
+                      />
+                  </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
           
           {sortedQuests.length === 0 && (
              <div className="py-10 text-center text-white/20 italic">

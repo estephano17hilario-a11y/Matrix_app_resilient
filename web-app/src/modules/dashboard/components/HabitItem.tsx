@@ -13,9 +13,11 @@ interface HabitItemProps {
   onClick?: (habit: Habit) => void;
   onEdit?: (habit: Habit) => void;
   onUpdate?: (habitId: string, data: Partial<Habit>) => void;
+  onShowActions?: (habit: Habit) => void;
+  reduceMotion?: boolean;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, reduceMotion }: HabitItemProps) => {
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   
   const CustomIcon = habit.iconName && (LucideIcons as any)[habit.iconName] 
@@ -56,13 +58,27 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const timeDisplay = getTimeDisplay();
 
+  const Wrapper: React.ElementType = reduceMotion ? 'div' : motion.div;
+
+  const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: '120px' };
+
+  const wrapperProps = reduceMotion
+    ? {
+        onClick: () => onClick?.(habit),
+        className: "group relative bg-[#0b0b0d]/80 border border-white/10 shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80 active:scale-95",
+        style: wrapperStyle
+      }
+    : {
+        whileTap: { scale: 0.98 },
+        onClick: () => onClick?.(habit),
+        className: "group relative bg-[#0b0b0d]/80 border border-white/10 shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80",
+        style: wrapperStyle
+      };
+
   return (
     <>
-    <motion.div
-      layout
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onClick?.(habit)}
-      className="group relative bg-gray-900/80 backdrop-blur-lg border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-gray-800/80"
+    <Wrapper
+      {...wrapperProps}
     >
         {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
@@ -181,14 +197,18 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                 className="text-slate-500 hover:text-white transition-colors p-1"
                 onClick={(e) => {
                     e.stopPropagation();
-                    onEdit?.(habit);
+                    if (onShowActions) {
+                        onShowActions(habit);
+                    } else {
+                        onEdit?.(habit);
+                    }
                 }}
             >
                 <MoreVertical size={20} />
             </button>
         </div>
       </div>
-    </motion.div>
+    </Wrapper>
 
     {habit.type === 'QUANTITY' && onUpdate && (
         <QuantityUpdateModal 

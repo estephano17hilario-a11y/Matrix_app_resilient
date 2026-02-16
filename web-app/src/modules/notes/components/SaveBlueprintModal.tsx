@@ -64,14 +64,14 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/80"
                 onClick={onClose}
             />
             <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl p-6"
+                className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-md p-6"
             >
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-medium text-white">{t('modals.blueprint.title')}</h2>
@@ -139,7 +139,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
                     <button
                         onClick={handleSave}
                         disabled={!name.trim() || loading}
-                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-medium transition-colors shadow-sm shadow-indigo-500/20 flex items-center justify-center gap-2"
                     >
                         {loading ? t('modals.blueprint.saving') : <><Save size={18} /> {t('modals.blueprint.saveBtn')}</>}
                     </button>

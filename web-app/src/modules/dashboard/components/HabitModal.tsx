@@ -1,15 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
-import { X, Infinity as InfinityIcon, Plus, Clock, CheckCircle2, Hash, List, ArrowUp, ChevronDown, Star, Target, Zap, AlertCircle } from 'lucide-react';
+import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards, Difficulty } from '../../../utils/rewardCalculator';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { IconPicker } from './IconPicker';
+import { DurationPicker } from './DurationPicker';
 
-export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => void, initialData?: Habit }) => {
+export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit }) => {
     const { t } = useTranslation();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
     
@@ -37,18 +38,25 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const [smartProjectId, setSmartProjectId] = useState('');
     const [projectId, setProjectId] = useState('');
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const iconPickerRef = useRef<HTMLDivElement>(null);
 
-    const NEON_COLORS = [
-        '#ef4444', // Red
-        '#f97316', // Orange
-        '#eab308', // Yellow
-        '#22c55e', // Green
-        '#06b6d4', // Cyan
-        '#3b82f6', // Blue
-        '#8b5cf6', // Violet
-        '#d946ef', // Fuchsia
-        '#f43f5e', // Rose
-    ];
+    const handleIconPickerToggle = (isOpen: boolean) => {
+        if (isOpen) {
+            // Wait for animation to expand enough to calculate correct center
+            setTimeout(() => {
+                if (iconPickerRef.current) {
+                    iconPickerRef.current.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                }
+            }, 300);
+        }
+    };
 
     // Reset or Populate form on open
     useEffect(() => {
@@ -94,10 +102,12 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
+    const hasColorSource = !!attrId || !!customColor;
     const CustomIcon = customIconName && (LucideIcons as any)[customIconName] 
         ? (LucideIcons as any)[customIconName] 
         : null;
     const SelectedIcon = CustomIcon || selectedAttr?.icon || Star;
+    const TraitIcon = selectedAttr?.icon || Star;
     const activeLabel = selectedAttr?.label || 'Trait';
 
     const difficultyMap: Record<number, Difficulty> = {
@@ -115,7 +125,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
     const isBlock2Valid = true; // Always valid with defaults
-    const isBlock3Valid = estimatedTime > 0;
+    const isBlock3Valid = estimatedTime > 0 && reminder !== '';
 
     const canSubmit = isBlock1Valid && isBlock2Valid && isBlock3Valid;
 
@@ -127,21 +137,59 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         setExpandedBlock(block);
     };
 
-    if (!isOpen) return null;
-    
+    const handleConfirm = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await onConfirm({
+                title,
+                description: desc,
+                attribute: attrId,
+                type: logic,
+                frequency: freq,
+                targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
+                unit: unit || undefined,
+                checklist: logic === 'CHECKLIST' ? subtasks.map((t, i) => ({ id: `${Date.now()}-${i}`, text: t, completed: false })) : [],
+                reminderTime: reminder || undefined,
+                estimatedTime,
+                customColor,
+                iconName: customIconName || undefined,
+                impact,
+                projectId: projectId || undefined,
+                smartProjectId: smartProjectId || undefined,
+                ...(initialData?.id ? { id: initialData.id } : {})
+            });
+            onClose();
+        } catch (error) {
+            console.error("Failed to save habit", error);
+            setIsSubmitting(false);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-            <motion.div 
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+                >
+                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
+                    <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="relative z-10 w-full max-w-[400px]"
             >
                 <div 
-                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a]"
+                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
                     style={{
-                        boxShadow: `0 0 0 1px rgba(255,255,255,0.1), 0 20px 50px -10px rgba(0,0,0,0.5)`
+                        border: `1px solid ${hasColorSource ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
+                        boxShadow: hasColorSource
+                            ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
+                            : `0 20px 50px -10px rgba(0,0,0,0.5)`
                     }}
                 >
                     {/* Header */}
@@ -158,7 +206,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
                     </div>
 
-                    <div className="overflow-y-auto no-scrollbar p-4 space-y-3">
+                    <div ref={scrollContainerRef} className="overflow-y-auto no-scrollbar p-4 space-y-3">
                         
                         {/* BLOCK 1: IDENTIDAD */}
                         <div className={cn(
@@ -211,17 +259,17 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
 
                                         {/* Trait Picker */}
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col gap-2">
                                             <div 
-                                                onClick={() => setAttrPickerOpen(true)} 
+                                                onClick={() => setAttrPickerOpen(!isAttrPickerOpen)} 
                                                 className={cn(
-                                                    "flex-1 h-12 rounded-xl border flex items-center px-3 gap-3 cursor-pointer transition-all relative",
+                                                    "w-full h-12 rounded-xl border flex items-center px-3 gap-3 cursor-pointer transition-all relative",
                                                     attrId ? "bg-white/5 border-white/10" : "bg-black/20 border-dashed border-white/10 hover:border-white/30"
                                                 )}
                                             >
                                                 {attrId ? (
                                                     <>
-                                                        <SelectedIcon size={18} style={{ color: activeColor }} />
+                                                        <TraitIcon size={18} style={{ color: selectedAttr?.color || '#3b82f6' }} />
                                                         <span className="text-xs font-bold text-white">{selectedAttr?.label}</span>
                                                     </>
                                                 ) : (
@@ -230,33 +278,64 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         <span className="text-xs font-bold text-white/30">Seleccionar Rasgo</span>
                                                     </>
                                                 )}
-                                                
+                                                <ChevronDown size={16} className={cn("ml-auto transition-transform text-white/30", isAttrPickerOpen && "rotate-180")} />
+                                            </div>
+
+                                            <AnimatePresence>
                                                 {isAttrPickerOpen && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-[998]" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
-                                                        <div className="absolute top-full left-0 mt-2 p-2 bg-[#1c1c1e] rounded-xl grid grid-cols-2 gap-2 z-[999] w-full shadow-2xl border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
                                                             {attributes.map((attr) => {
                                                                 const Icon = attr.icon;
+                                                                const isSelected = attrId === attr.id;
                                                                 return (
-                                                                    <button key={attr.id} onClick={(e) => { e.stopPropagation(); setAttrId(attr.id); setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                                                                        <Icon size={16} style={{ color: attr.color }} />
-                                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{attr.label}</span>
+                                                                    <button 
+                                                                        key={attr.id} 
+                                                                        onClick={(e) => { 
+                                                                            e.stopPropagation(); 
+                                                                            setAttrId(attr.id); 
+                                                                            setAttrPickerOpen(false); 
+                                                                        }} 
+                                                                        className={cn(
+                                                                            "flex items-center gap-3 p-3 rounded-lg transition-all border",
+                                                                            isSelected 
+                                                                                ? "bg-white/10 border-white/20" 
+                                                                                : "bg-white/5 border-transparent hover:bg-white/10"
+                                                                        )}
+                                                                    >
+                                                                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-black/40">
+                                                                            <Icon size={16} style={{ color: attr.color }} />
+                                                                        </div>
+                                                                        <span className={cn(
+                                                                            "text-xs font-bold",
+                                                                            isSelected ? "text-white" : "text-slate-400"
+                                                                        )}>
+                                                                            {attr.label}
+                                                                        </span>
                                                                     </button>
                                                                 )
                                                             })}
                                                         </div>
-                                                    </>
+                                                    </motion.div>
                                                 )}
-                                            </div>
+                                            </AnimatePresence>
                                         </div>
 
                                         {/* Icon & Color Picker */}
-                                        <IconPicker 
-                                            selectedIcon={customIconName}
-                                            onSelectIcon={setCustomIconName}
-                                            selectedColor={customColor}
-                                            onSelectColor={setCustomColor}
-                                        />
+                                        <div ref={iconPickerRef}>
+                                            <IconPicker 
+                                                selectedIcon={customIconName}
+                                                onSelectIcon={setCustomIconName}
+                                                selectedColor={customColor}
+                                                onSelectColor={setCustomColor}
+                                                onToggle={handleIconPickerToggle}
+                                            />
+                                        </div>
 
                                         <div className="pt-2 flex justify-end">
                                             <button 
@@ -445,22 +524,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         className="px-4 pb-4 space-y-4"
                                     >
                                         {/* Estimated Time */}
-                                        <div className="bg-black/20 rounded-xl p-3 flex items-center justify-between border border-white/5">
-                                             <div className="flex items-center gap-2">
-                                                 <Clock size={16} className="text-purple-400" />
-                                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.quest.estimatedTime') || "Tiempo Diario"}</span>
-                                             </div>
-                                             <div className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-1 border border-white/5 focus-within:border-white/20 transition-colors w-24">
-                                                 <input 
-                                                     type="number" 
-                                                     value={estimatedTime === 0 ? '' : estimatedTime} 
-                                                     onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)} 
-                                                     placeholder="30"
-                                                     className="w-full bg-transparent text-right text-sm font-bold text-white placeholder:text-white/20 outline-none"
-                                                 />
-                                                 <span className="text-[10px] font-bold text-white/30">min</span>
-                                             </div>
-                                        </div>
+                                        <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />
 
                                         {/* Reminder */}
                                         <div className="bg-black/20 rounded-xl p-3 flex items-center justify-between border border-white/5 group">
@@ -558,7 +622,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
                                     {/* Trait XP */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                                        <SelectedIcon size={12} style={{ color: activeColor }} />
+                                        <TraitIcon size={12} style={{ color: selectedAttr?.color || '#3b82f6' }} />
                                         <span className="text-[10px] font-black text-white">+{prediction.traitXp} {activeLabel}</span>
                                     </div>
                                 </motion.div>
@@ -566,39 +630,29 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         </AnimatePresence>
                         
                         <button 
-                            disabled={!canSubmit}
-                            onClick={() => {
-                                onConfirm({
-                                    title,
-                                    description: desc,
-                                    attribute: attrId,
-                                    projectId: projectId || undefined,
-                                    smartProjectId: smartProjectId || undefined,
-                                    frequency: freq as any,
-                                    type: logic,
-                                    targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
-                                    unit,
-                                    checklist: logic === 'CHECKLIST' ? subtasks.map((t, i) => ({ id: i.toString(), text: t, completed: false })) : [],
-                                    reminderTime: reminder,
-                                    estimatedTime,
-                                    customColor,
-                                    iconName: customIconName || undefined,
-                                    impact
-                                });
-                                onClose();
+                            disabled={!canSubmit || isSubmitting}
+                            onClick={handleConfirm}
+                            className={`w-full h-12 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                            style={{
+                                background: (!canSubmit || isSubmitting) 
+                                    ? undefined 
+                                    : `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
+                                boxShadow: (!canSubmit || isSubmitting) 
+                                    ? undefined 
+                                    : `0 8px 20px -4px ${activeColor}60, inset 0 1px 0 0 rgba(255,255,255,0.3)`
                             }}
-                            className="w-full h-12 bg-white rounded-xl font-black text-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group relative overflow-hidden"
                         >
-                            <span className="relative z-10 flex items-center justify-center gap-2">
-                                {initialData ? 'Guardar Cambios' : 'Crear Hábito'} <ArrowUp size={18} />
-                            </span>
-                            {canSubmit && (
-                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            {isSubmitting ? (
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                            ) : (
+                                initialData ? t('modals.habit.update') : t('modals.habit.create')
                             )}
                         </button>
                     </div>
                 </div>
             </motion.div>
-        </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }, (prev, next) => prev.isOpen === next.isOpen && prev.initialData === next.initialData);

@@ -5,10 +5,12 @@ import { Habit, Project, Session } from '../../../types';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachWeekOfInterval, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, differenceInMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
+import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 
 interface HabitDetailViewProps {
     habit?: Habit | null;
     project?: Project | null;
+    attributeColor?: string;
     onClose: () => void;
 }
 
@@ -61,10 +63,23 @@ const formatValue = (value: number, type: Habit['type'] | undefined, unit: strin
         }
     };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, onClose }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose }) => {
+    const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
+
     const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
     const [summaryScope, setSummaryScope] = useState<SummaryScope>('WEEK');
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+
+    const handleTabClick = (tabValue: TimeRange) => {
+        if (timeRange === tabValue) {
+            if (tabValue === 'WEEK' || tabValue === 'MONTH' || tabValue === 'YEAR') {
+                setIsDateModalOpen(true);
+            }
+        } else {
+            setTimeRange(tabValue);
+        }
+    };
     const [isLoading, setIsLoading] = useState(true);
     const activeItem = habit || project || null;
 
@@ -453,7 +468,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const StatCard = ({ label, value, icon: Icon, isGold }: any) => (
         <motion.div 
             variants={itemVariants}
-            className="bg-zinc-900/60 backdrop-blur-md rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800/60 transition-colors border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+            className="bg-zinc-900/70 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800/70 transition-colors border border-white/10 shadow-sm"
         >
             <div className="flex justify-between items-start relative z-10">
                 {isGold ? (
@@ -526,14 +541,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         {/* 1. MAIN STATS CARD */}
                         <motion.div 
                             variants={itemVariants} 
-                            className="bg-zinc-900/40 backdrop-blur-md rounded-[32px] p-6 border border-white/10 shadow-lg mb-4 relative overflow-hidden"
+                            className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
                         >
                             {/* Glow Effect */}
                             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] -z-10 pointer-events-none" />
                             
                             <div className="flex flex-col gap-4">
                                 {/* Tabs */}
-                                <div className="flex bg-black/20 p-1 rounded-full self-center backdrop-blur-sm border border-white/5">
+                                <div className="flex bg-black/40 p-1 rounded-full self-center border border-white/5">
                                     {[
                                         { value: 'TODAY', label: 'Hoy' },
                                         { value: 'WEEK', label: 'Esta semana' },
@@ -598,7 +613,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 2. GOAL SUMMARY (Line Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-900/40 backdrop-blur-md rounded-[32px] p-6 border border-white/10 shadow-lg relative overflow-hidden">
+                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
                             <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide mb-6">RESUMEN DE METAS</h3>
                             
                             <div className="flex justify-between items-start mb-8">
@@ -630,12 +645,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     totalValue={summaryValue}
                                     startDate={chartData[0]?.date || new Date()}
                                     endDate={chartData[chartData.length - 1]?.date || new Date()}
+                                    color={themeColor}
                                 />
                             </div>
                         </motion.div>
 
                         {/* 3. WORKED HOURS (Bar Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-900/40 backdrop-blur-md rounded-[32px] p-6 border border-white/10 shadow-lg relative overflow-hidden">
+                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide">
                                     {isTimeBased ? 'HORAS TRABAJADAS' : 'PROGRESO'}
@@ -646,7 +662,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             </div>
 
                             {/* Time Range Tabs */}
-                            <div className="flex bg-black/20 p-1 rounded-lg mb-6 backdrop-blur-sm border border-white/5 w-fit">
+                            <div className="flex bg-black/40 p-1 rounded-lg mb-6 border border-white/5 w-fit relative">
                                 {[
                                     { value: 'WEEK', label: 'Semana' },
                                     { value: '8_WEEKS', label: '8 Semanas' },
@@ -655,7 +671,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 ].map((tab) => (
                                     <button
                                         key={tab.value}
-                                        onClick={() => setTimeRange(tab.value as TimeRange)}
+                                        onClick={() => handleTabClick(tab.value as TimeRange)}
                                         className={cn(
                                             "px-3 py-1 rounded-md text-[10px] font-bold transition-all relative",
                                             timeRange === tab.value 
@@ -747,13 +763,12 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             )}
                                             <motion.div 
                                                 variants={barVariants}
-                                                style={{ height: `${(data.value / maxChartValue) * 100}%`, originY: 1 }}
-                                                className={cn(
-                                                    "w-full rounded-t-[4px] relative overflow-hidden",
-                                                    data.isToday 
-                                                        ? "bg-[#0ea5e9]" 
-                                                        : "bg-[#0ea5e9]/60"
-                                                )}
+                                                style={{ 
+                                                    height: `${(data.value / maxChartValue) * 100}%`, 
+                                                    originY: 1,
+                                                    backgroundColor: data.isToday ? themeColor : `${themeColor}99` // 60% opacity
+                                                }}
+                                                className="w-full rounded-t-[4px] relative overflow-hidden"
                                             />
                                         </div>
                                         <span className="absolute bottom-0 text-[10px] font-bold uppercase text-zinc-500 truncate w-full text-center">{data.label}</span>
@@ -792,6 +807,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                     </motion.div>
                 </div>
             </motion.div>
+
+            <DateSelectionModal 
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={setCurrentDate}
+                mode={timeRange as DateSelectionMode}
+                currentDate={currentDate}
+            />
         </AnimatePresence>
     );
 };

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull } from 'lucide-react';
+import { Skull, Archive, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
@@ -21,8 +21,10 @@ interface HabitVisualViewProps {
     onEditHabit?: (habit: Habit) => void;
     onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
+    onShowActions?: (habit: Habit) => void;
     isActive?: boolean;
     currentSection?: 'PROTOCOLS' | 'VICES';
+    onOpenStreak?: () => void;
 }
 
 export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({ 
@@ -35,12 +37,33 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onEditHabit,
     onUpdateHabit,
     onRelapseBadHabit,
+    onShowActions,
     isActive = true,
-    currentSection
+    currentSection,
+    onOpenStreak
 }) => {
     const { t } = useTranslation();
     const { setVicesMode } = useTheme();
     const [section, setSection] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
+    const [showArchived, setShowArchived] = useState(false);
+
+    // Split habits into active and archived
+    const { activeHabits, archivedHabits } = useMemo(() => {
+        return {
+            activeHabits: habits.filter(h => !h.archived),
+            archivedHabits: habits.filter(h => h.archived)
+        };
+    }, [habits]);
+
+    const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
+
+    const displayedHabits = useMemo(() => {
+        return showArchived ? archivedHabits : activeHabits;
+    }, [showArchived, archivedHabits, activeHabits]);
+
+    const reduceMotion = useMemo(() => {
+        return displayedHabits.length + badHabits.length > 20;
+    }, [displayedHabits.length, badHabits.length]);
 
     // Sync section with external prop
     useEffect(() => {
@@ -48,6 +71,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             setSection(currentSection);
         }
     }, [currentSection]);
+
+    // Reset archived view when switching sections
+    useEffect(() => {
+        setShowArchived(false);
+    }, [section]);
 
     // Sync Vices Mode with visibility and section
     useEffect(() => {
@@ -63,15 +91,15 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         return () => setVicesMode(false);
     }, []);
 
-    const container = {
+    const container = useMemo(() => ({
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.05
+                staggerChildren: reduceMotion ? 0 : 0.05
             }
         }
-    };
+    }), [reduceMotion]);
 
     const contentVariants = {
         initial: { opacity: 0, x: 0, scale: 0.95 },
@@ -91,14 +119,14 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             {/* Header Section Removed as per request */}
             <div className="flex flex-col gap-4 mb-4 px-4 sm:px-6 pt-2">
                  <AnimatePresence mode="wait">
-                    {section === 'PROTOCOLS' && (
+                    {(section === 'PROTOCOLS' && !showArchived) && (
                         <motion.div
                             key="chart"
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                         >
-                            <HabitConsistencyChart habits={habits} />
+                            <HabitConsistencyChart habits={habits} onOpenStreak={onOpenStreak} isActive={isActive} />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -109,7 +137,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 <AnimatePresence mode="wait" initial={false}>
                     {section === 'PROTOCOLS' ? (
                         <motion.div
-                            key="protocols"
+                            key={showArchived ? "archived" : "protocols"}
                             variants={contentVariants}
                             initial="initial"
                             animate="animate"
@@ -117,17 +145,37 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             transition={transitionConfig}
                             className="w-full grid gap-3"
                         >
-                            {habits.map(habit => (
+                            {/* ARCHIVED HEADER */}
+                            {showArchived && (
+                                <div className="flex items-center gap-2 mb-2 px-1">
+                                    <button 
+                                        onClick={() => setShowArchived(false)}
+                                        className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    <span className="text-sm font-bold text-white/60 uppercase tracking-wider">
+                                        Archivos ({archivedHabits.length})
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* LIST */}
+                            {displayedHabits.map(habit => (
                                 <HabitItem
                                     key={habit.id}
                                     habit={habit}
-                                    attribute={attributes.find(a => a.id === habit.attribute)}
+                                    attribute={attributeMap.get(habit.attribute)}
                                     onComplete={onCompleteHabit}
                                     onEdit={onEditHabit}
                                     onUpdate={onUpdateHabit}
+                                    onShowActions={onShowActions}
+                                    reduceMotion={reduceMotion}
                                 />
                             ))}
-                            {habits.length === 0 && (
+
+                            {/* EMPTY STATE */}
+                            {!showArchived && activeHabits.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 flex flex-col items-center gap-4">
                                     <p>{t('habits.empty')}</p>
                                     <button 
@@ -135,6 +183,26 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         className="px-6 py-2 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-indigo-500/30 transition-colors"
                                     >
                                         Crear Protocolo
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* EMPTY ARCHIVED STATE */}
+                            {showArchived && archivedHabits.length === 0 && (
+                                <div className="col-span-full py-20 text-center text-slate-500 italic">
+                                    No hay hábitos archivados
+                                </div>
+                            )}
+
+                            {/* ARCHIVED TOGGLE BUTTON */}
+                            {!showArchived && archivedHabits.length > 0 && (
+                                <div className="flex justify-center mt-4">
+                                    <button
+                                        onClick={() => setShowArchived(true)}
+                                        className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-xs font-medium text-white/40 hover:text-white hover:bg-white/10 transition-all hover:scale-105"
+                                    >
+                                        <Archive size={12} />
+                                        <span>Ver Archivados ({archivedHabits.length})</span>
                                     </button>
                                 </div>
                             )}
@@ -158,8 +226,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 <BadHabitItem
                                     key={habit.id}
                                     habit={habit}
-                                    attribute={attributes.find(a => a.id === habit.attribute)}
+                                    attribute={attributeMap.get(habit.attribute)}
                                     onRelapse={onRelapseBadHabit}
+                                    reduceMotion={reduceMotion}
                                 />
                             ))}
                             {badHabits.length === 0 && (

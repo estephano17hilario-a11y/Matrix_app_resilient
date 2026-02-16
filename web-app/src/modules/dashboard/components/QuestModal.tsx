@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Target, Clock, ChevronDown } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Lock, Target } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
+import { DurationPicker } from './DurationPicker';
 import { toLocalISOString } from '../../../utils/dateUtils';
 
 export const QuestModal = React.memo(({ 
@@ -25,7 +26,7 @@ export const QuestModal = React.memo(({
     attributes: Attribute[], 
     projects?: Project[],
     smartProjects?: SmartProject[],
-    onConfirm: (data: Partial<Quest>) => void,
+    onConfirm: (data: Partial<Quest>) => Promise<void> | void,
     lockedAttributeId?: string,
     lockedDate?: string,
     lockedSmartProjectId?: string,
@@ -44,7 +45,6 @@ export const QuestModal = React.memo(({
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
     const [estimatedTime, setEstimatedTime] = useState(0);
-    const [isTimePickerOpen, setTimePickerOpen] = useState(false);
 
     // Effect to apply locked props or initial values
     React.useEffect(() => {
@@ -86,9 +86,14 @@ export const QuestModal = React.memo(({
         return calculateTaskRewards(difficulty, deadline, estimatedTime);
     }, [difficulty, deadline, estimatedTime]);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     if (!isOpen) return null;
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         // If the selected projectId is actually a smart project, move it to smartProjectId
         const finalSmartProjectId = lockedSmartProjectId || 
                                    smartProjects.find(p => p.id === projectId)?.id || 
@@ -96,21 +101,26 @@ export const QuestModal = React.memo(({
         
         const finalProjectId = smartProjects.find(p => p.id === projectId) ? '' : projectId;
 
-        onConfirm({ 
-            ...(initialValues?.id ? { id: initialValues.id } : {}),
-            title, 
-            description: desc, 
-            attribute: attrId, 
-            projectId: finalProjectId,
-            smartProjectId: finalSmartProjectId,
-            difficulty, 
-            deadline,
-            estimatedTime,
-            subtasks: [], // Empty as tactical steps are removed
-            xpReward: prediction.xp,
-            gold: prediction.coins,
-            isSmartQuest: isSmartTask || !!finalSmartProjectId
-        });
+        try {
+            await onConfirm({ 
+                ...(initialValues?.id ? { id: initialValues.id } : {}),
+                title, 
+                description: desc, 
+                attribute: attrId, 
+                projectId: finalProjectId,
+                smartProjectId: finalSmartProjectId,
+                difficulty, 
+                deadline,
+                estimatedTime,
+                subtasks: [], // Empty as tactical steps are removed
+                xpReward: prediction.xp,
+                gold: prediction.coins,
+                isSmartQuest: isSmartTask || !!finalSmartProjectId
+            });
+        } catch (error) {
+            console.error("Failed to save quest", error);
+            setIsSubmitting(false);
+        }
     };
 
     const difficulties: { id: Difficulty, label: string, icon: React.ElementType, color: string }[] = [
@@ -296,63 +306,14 @@ export const QuestModal = React.memo(({
                         </div>
 
 
-                        {/* Estimated Time - Redesigned */}
-                        <div className="relative z-40">
-                            <button 
-                                onClick={() => setTimePickerOpen(!isTimePickerOpen)}
-                                className="w-full bg-white/5 rounded-[1.5rem] border border-white/5 p-4 flex items-center justify-between hover:bg-white/10 active:scale-[0.99] transition-all group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${estimatedTime > 0 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-400'}`}>
-                                        <Clock size={16} />
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('modals.quest.estimatedTime')}</span>
-                                        <span className={`text-sm font-black ${estimatedTime > 0 ? 'text-white' : 'text-white/30'}`}>
-                                            {estimatedTime > 0 ? `${estimatedTime} min` : 'Sin estimar'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className={`text-white/30 transition-transform duration-300 ${isTimePickerOpen ? 'rotate-180' : ''}`}>
-                                    <ChevronDown size={18} />
-                                </div>
-                            </button>
-
-                            {/* Dropdown */}
-                            {isTimePickerOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-[40]" onClick={() => setTimePickerOpen(false)} />
-                                    <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-[#1c1c1e] rounded-[1.5rem] border border-white/10 shadow-2xl z-[50] animate-in slide-in-from-top-2 fade-in duration-200">
-                                        <div className="grid grid-cols-4 gap-2 mb-3">
-                                            {[5, 10, 15, 30, 45, 60, 90, 120].map(time => (
-                                                <button
-                                                    key={time}
-                                                    onClick={() => { setEstimatedTime(time); setTimePickerOpen(false); }}
-                                                    className={`py-2 rounded-xl text-xs font-bold transition-all ${estimatedTime === time ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
-                                                >
-                                                    {time}m
-                                                </button>
-                                            ))}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-3 pt-3 border-t border-white/5">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Manual</span>
-                                            <div className="flex-1 bg-black/30 rounded-xl px-3 py-2 flex items-center border border-white/5 focus-within:border-cyan-500/50 transition-colors">
-                                                <input 
-                                                    type="number" 
-                                                    value={estimatedTime === 0 ? '' : estimatedTime} 
-                                                    onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
-                                                    placeholder="Custom"
-                                                    className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/20"
-                                                    autoFocus
-                                                />
-                                                <span className="text-[10px] font-bold text-slate-500 ml-1">min</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                        {/* Estimated Time - Visual Picker */}
+                        <div className="pt-2">
+                            <DurationPicker 
+                                value={estimatedTime} 
+                                onChange={setEstimatedTime} 
+                            />
                         </div>
+
 
                         {/* Difficulty Selector (Liquid UI) */}
                         <div className="bg-white/5 rounded-[1.5rem] border border-white/5 p-1 flex justify-between relative">
@@ -402,10 +363,14 @@ export const QuestModal = React.memo(({
 
                         <button 
                             onClick={handleConfirm} 
-                            disabled={!title || !attrId} 
-                            className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all ${(!title || !attrId) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-xl hover:border-white/20'}`}
+                            disabled={!title || !attrId || isSubmitting} 
+                            className={`w-full h-14 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-xl hover:border-white/20'}`}
                         >
-                            {t('modals.quest.confirm')}
+                            {isSubmitting ? (
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                            ) : (
+                                t('modals.quest.confirm')
+                            )}
                         </button>
                     </div>
                 </div>

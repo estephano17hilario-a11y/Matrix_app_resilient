@@ -16,6 +16,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
   const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const isLiteList = subtasks.length > 20;
 
   // Calculate Progress
   const total = subtasks.length;
@@ -37,6 +38,47 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
     toggleSubtask(id);
   };
 
+  const renderSubtaskContent = (task: Subtask) => (
+    <>
+      <button
+        onClick={() => handleToggle(task.id)}
+        className={cn(
+          "relative w-5 h-5 rounded-full border transition-all duration-300 flex items-center justify-center shrink-0",
+          task.isCompleted 
+            ? "bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] scale-100" 
+            : "border-white/30 bg-transparent hover:border-cyan-400/50"
+        )}
+      >
+        {task.isCompleted && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          >
+            <Check size={12} className="text-black stroke-[3]" />
+          </motion.div>
+        )}
+      </button>
+
+      <span 
+        className={cn(
+          "flex-1 text-sm font-medium transition-all duration-300",
+          task.isCompleted ? "text-white/50 line-through" : "text-white/90"
+        )}
+      >
+        {task.title}
+      </span>
+
+      <button
+        onClick={() => deleteSubtask(task.id)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/10 text-red-400/80 hover:text-red-400"
+        aria-label="Delete subtask"
+      >
+        <Trash2 size={14} />
+      </button>
+    </>
+  );
+
   return (
     <div className="w-full mt-4 flex flex-col gap-4">
       {/* A. La Barra de Progreso (Liquid Bar) */}
@@ -52,60 +94,32 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
 
       {/* C. La Lista de Items (Physics-Based List) */}
       <div className="flex flex-col gap-2">
-        <Reorder.Group axis="y" values={subtasks} onReorder={reorderSubtasks} className="flex flex-col gap-2">
-          <AnimatePresence mode='popLayout'>
+        {isLiteList ? (
+          <div className="flex flex-col gap-2">
             {subtasks.map((task) => (
-              <Reorder.Item 
-                key={task.id} 
-                value={task}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="group relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-grab active:cursor-grabbing"
-              >
-                {/* Custom Checkbox */}
-                <button
-                  onClick={() => handleToggle(task.id)}
-                  className={cn(
-                    "relative w-5 h-5 rounded-full border transition-all duration-300 flex items-center justify-center shrink-0",
-                    task.isCompleted 
-                      ? "bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] scale-100" 
-                      : "border-white/30 bg-transparent hover:border-cyan-400/50"
-                  )}
-                >
-                  {task.isCompleted && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                    >
-                      <Check size={12} className="text-black stroke-[3]" />
-                    </motion.div>
-                  )}
-                </button>
-
-                {/* Text */}
-                <span 
-                  className={cn(
-                    "flex-1 text-sm font-medium transition-all duration-300",
-                    task.isCompleted ? "text-white/50 line-through" : "text-white/90"
-                  )}
-                >
-                  {task.title}
-                </span>
-
-                {/* Delete Action (Hover only) */}
-                <button
-                  onClick={() => deleteSubtask(task.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/10 text-red-400/80 hover:text-red-400"
-                  aria-label="Delete subtask"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </Reorder.Item>
+              <div key={task.id} className="group relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                {renderSubtaskContent(task)}
+              </div>
             ))}
-          </AnimatePresence>
-        </Reorder.Group>
+          </div>
+        ) : (
+          <Reorder.Group axis="y" values={subtasks} onReorder={reorderSubtasks} className="flex flex-col gap-2">
+            <AnimatePresence mode='popLayout'>
+              {subtasks.map((task) => (
+                <Reorder.Item 
+                  key={task.id} 
+                  value={task}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="group relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-grab active:cursor-grabbing"
+                >
+                  {renderSubtaskContent(task)}
+                </Reorder.Item>
+              ))}
+            </AnimatePresence>
+          </Reorder.Group>
+        )}
       </div>
 
       {/* B. El Input de Creación (Input Táctico) */}

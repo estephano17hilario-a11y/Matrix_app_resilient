@@ -14,9 +14,10 @@ interface QuestItemProps {
   onEdit?: (quest: Quest) => void;
   onFocusProject?: (projectId: string) => void;
   onOpenNexus?: (smartProjectId: string) => void;
+  isLite?: boolean;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const Icon = attribute?.icon;
@@ -29,7 +30,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
       setTimeout(() => {
         onComplete(e, quest);
         // We don't reset isCompleting to prevent flickering before unmount
-      }, 1200); 
+      }, 600); 
     } else {
       onComplete(e, quest);
     }
@@ -47,17 +48,19 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
   const coins = quest.gold || 0;
   const isSmart = quest.isSmartQuest;
 
+  const Container: any = isLite ? 'div' : motion.div;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+    <Container
+      {...(isLite ? {} : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 } })}
       className={cn(
         "relative rounded-[1.25rem] transition-all duration-300 mb-3 group",
         expanded ? "z-10 ring-1 ring-white/10" : "hover:bg-white/5",
         isSmart && "ring-1 ring-indigo-500/30 shadow-[0_0_15px_-5px_rgba(99,102,241,0.2)]"
       )}
       style={{ 
+        contentVisibility: 'auto',
+        containIntrinsicSize: '100px',
         padding: '1px', 
         background: isSmart 
             ? `linear-gradient(145deg, ${attribute?.color || '#333'}40 0%, rgba(99,102,241,0.1) 40%, transparent 100%)`
@@ -65,7 +68,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
       }}
     >
       <div 
-        className="relative backdrop-blur-md rounded-[1.2rem] overflow-hidden"
+        className="relative rounded-[1.2rem] overflow-hidden"
         style={{
             background: attribute?.color 
                 ? `linear-gradient(180deg, ${attribute.color}15 0%, rgba(18, 18, 22, 0.95) 100%)` 
@@ -173,13 +176,18 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                 </button>
             )}
 
-            <ChevronDown 
-              size={16} 
-              className={cn(
-                "text-white/20 transition-transform duration-300",
-                expanded ? "rotate-180 text-white/60" : ""
-              )} 
-            />
+            <div className="flex items-center gap-2">
+                <span className="text-[9px] font-mono text-white/30 tracking-widest">
+                    {expanded ? '2/2' : '1/2'}
+                </span>
+                <ChevronDown 
+                  size={16} 
+                  className={cn(
+                    "text-white/20 transition-transform duration-300",
+                    expanded ? "rotate-180 text-white/60" : ""
+                  )} 
+                />
+            </div>
           </div>
 
           <AnimatePresence>
@@ -228,40 +236,42 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
       </div>
 
       {/* FLOATING REWARDS ANIMATION */}
-      <AnimatePresence>
-        {isCompleting && (
-            <motion.div
-                className="absolute left-10 top-0 z-50 pointer-events-none flex flex-col items-start gap-1"
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ 
-                    opacity: [0, 1, 1, 0], 
-                    y: -100, 
-                    scale: 1 
-                }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-            >
-                <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                    <span className="text-emerald-400 font-black text-sm">+{Math.floor(xp)} XP</span>
-                </div>
-                
-                {attribute && (
-                    <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-white/10"
-                         style={{ borderColor: `${attribute.color}40`, boxShadow: `0 0 15px ${attribute.color}30` }}>
-                        <Icon size={12} style={{ color: attribute.color }} />
-                        <span style={{ color: attribute.color }} className="font-bold text-sm">
-                            +{Math.floor(xp)} {attribute.label}
-                        </span>
-                    </div>
-                )}
+      {!isLite && (
+        <AnimatePresence>
+          {isCompleting && (
+              <motion.div
+                  className="absolute left-10 top-0 z-50 pointer-events-none flex flex-col items-start gap-1"
+                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                  animate={{ 
+                      opacity: [0, 1, 1, 0], 
+                      y: -100, 
+                      scale: 1 
+                  }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+              >
+                  <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      <span className="text-emerald-400 font-black text-sm">+{Math.floor(xp)} XP</span>
+                  </div>
+                  
+                  {attribute && (
+                      <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-white/10"
+                           style={{ borderColor: `${attribute.color}40`, boxShadow: `0 0 15px ${attribute.color}30` }}>
+                          <Icon size={12} style={{ color: attribute.color }} />
+                          <span style={{ color: attribute.color }} className="font-bold text-sm">
+                              +{Math.floor(xp)} {attribute.label}
+                          </span>
+                      </div>
+                  )}
 
-                {coins > 0 && (
-                    <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-                        <span className="text-yellow-400 font-bold text-sm">+{coins} G</span>
-                    </div>
-                )}
-            </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+                  {coins > 0 && (
+                      <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                          <span className="text-yellow-400 font-bold text-sm">+{coins} G</span>
+                      </div>
+                  )}
+              </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </Container>
   );
 });

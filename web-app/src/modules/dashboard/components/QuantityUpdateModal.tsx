@@ -72,7 +72,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        className="absolute inset-0 bg-black/80"
                     />
 
                     {/* Modal Window */}
@@ -84,7 +84,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                         className={cn(
                             "relative w-full max-w-[340px] rounded-[2.5rem] p-8 overflow-hidden transition-all duration-500",
                             // Glassmorphism base
-                            "bg-gray-900/90 backdrop-blur-2xl border border-white/10",
+                            "bg-gray-900/90 border border-white/10",
                             // Conditional Styles when Complete
                             isComplete 
                                 ? "shadow-[0_0_80px_-20px_rgba(16,185,129,0.3)] border-emerald-500/50" 
@@ -151,7 +151,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                 <motion.button
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleDecrement}
-                                    className="w-20 h-20 rounded-full bg-white/5 hover:bg-white/10 active:bg-white/20 transition-all flex items-center justify-center border border-white/5 group backdrop-blur-md"
+                                    className="w-20 h-20 rounded-full bg-white/5 hover:bg-white/10 active:bg-white/20 transition-all flex items-center justify-center border border-white/5 group"
                                 >
                                     <Minus size={32} className="text-white/40 group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </motion.button>
@@ -160,7 +160,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleIncrement}
                                     className={cn(
-                                        "w-20 h-20 rounded-full flex items-center justify-center border transition-all backdrop-blur-md shadow-lg group",
+                                        "w-20 h-20 rounded-full flex items-center justify-center border transition-all shadow-lg group",
                                         isComplete 
                                             ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/40 hover:bg-emerald-400" 
                                             : "bg-white text-black border-white/50 hover:bg-gray-200"

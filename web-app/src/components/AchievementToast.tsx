@@ -32,7 +32,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -150, opacity: 0, scale: 0.8 }}
           transition={{ type: "spring", stiffness: 400, damping: 25, mass: 1.2 }}
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex justify-center pointer-events-none w-full max-w-sm px-4"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[10000] flex justify-center pointer-events-none w-full max-w-sm px-4"
         >
           {/* Hyper-Glass Capsule */}
           <div className="
@@ -65,13 +65,13 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
               <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase mb-1 drop-shadow-sm">
                 {t('achievements.unlocked')}
               </span>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <span className="text-base font-bold text-white leading-none tracking-tight drop-shadow-md">
                   {t(achievement.title)}
                 </span>
                 <span className="
-                    flex items-center justify-center
-                    text-xs font-mono font-bold text-emerald-300 
+                    flex items-center justify-center self-start
+                    text-xs font-mono font-bold text-emerald-300 leading-none
                     bg-emerald-950/50 px-2 py-1 rounded-md 
                     border border-emerald-500/30
                     shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]

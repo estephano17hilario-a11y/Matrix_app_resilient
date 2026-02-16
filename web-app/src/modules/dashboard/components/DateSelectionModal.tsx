@@ -1,0 +1,284 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { 
+    format, 
+    addMonths, 
+    subMonths, 
+    addYears, 
+    subYears, 
+    startOfMonth, 
+    endOfMonth, 
+    eachDayOfInterval, 
+    isSameDay, 
+    isSameMonth, 
+    isSameYear,
+    startOfWeek,
+    endOfWeek,
+    isWithinInterval
+} from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '../../../utils/cn';
+
+export type DateSelectionMode = 'WEEK' | 'MONTH' | 'YEAR';
+
+interface DateSelectionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSelect: (date: Date) => void;
+    mode: DateSelectionMode;
+    currentDate?: Date;
+}
+
+export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
+    isOpen,
+    onClose,
+    onSelect,
+    mode,
+    currentDate = new Date()
+}) => {
+    const [viewDate, setViewDate] = useState(currentDate);
+
+    // Reset view date when opening
+    React.useEffect(() => {
+        if (isOpen) {
+            setViewDate(currentDate);
+        }
+    }, [isOpen, currentDate]);
+
+    const handleSelect = (date: Date) => {
+        const selection = mode === 'WEEK' ? startOfWeek(date, { weekStartsOn: 1 }) : date;
+        onSelect(selection);
+        onClose();
+    };
+
+    // --- RENDERERS ---
+
+    const renderYearView = () => {
+        const currentYear = viewDate.getFullYear();
+        const startYear = currentYear - 6;
+        const endYear = currentYear + 5;
+        const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+
+        return (
+            <div className="grid grid-cols-3 gap-3">
+                {years.map(year => {
+                    const isSelected = year === currentDate.getFullYear();
+                    const isCurrent = year === new Date().getFullYear();
+                    
+                    return (
+                        <button
+                            key={year}
+                            onClick={() => handleSelect(new Date(year, 0, 1))}
+                            className={cn(
+                                "h-12 rounded-xl text-sm font-bold transition-all relative overflow-hidden group",
+                                isSelected 
+                                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
+                                    : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+                            )}
+                        >
+                            <span className="relative z-10">{year}</span>
+                            {isCurrent && !isSelected && (
+                                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderMonthView = () => {
+        const months = Array.from({ length: 12 }, (_, i) => i);
+
+        return (
+            <div className="space-y-4">
+                {/* Year Navigation */}
+                <div className="flex items-center justify-between px-2">
+                    <button 
+                        onClick={() => setViewDate(d => subYears(d, 1))}
+                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <span className="text-lg font-bold text-white tracking-tight">
+                        {viewDate.getFullYear()}
+                    </span>
+                    <button 
+                        onClick={() => setViewDate(d => addYears(d, 1))}
+                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    {months.map(month => {
+                        const date = new Date(viewDate.getFullYear(), month, 1);
+                        const isSelected = isSameMonth(date, currentDate) && isSameYear(date, currentDate);
+                        const isCurrent = isSameMonth(date, new Date());
+                        
+                        return (
+                            <button
+                                key={month}
+                                onClick={() => handleSelect(date)}
+                                className={cn(
+                                    "h-10 rounded-xl text-xs font-bold uppercase tracking-wide transition-all relative",
+                                    isSelected 
+                                        ? "bg-white text-black shadow-lg" 
+                                        : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+                                )}
+                            >
+                                {format(date, 'MMM', { locale: es })}
+                                {isCurrent && !isSelected && (
+                                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    const renderWeekView = () => {
+        const monthStart = startOfMonth(viewDate);
+        const monthEnd = endOfMonth(viewDate);
+        const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+        const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+        const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+        const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+        // Calculate selected week range
+        const selectedStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const selectedEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+
+        return (
+            <div className="space-y-4">
+                 {/* Month Navigation */}
+                 <div className="flex items-center justify-between px-2">
+                    <button 
+                        onClick={() => setViewDate(d => subMonths(d, 1))}
+                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <span className="text-lg font-bold text-white tracking-tight capitalize">
+                        {format(viewDate, 'MMMM yyyy', { locale: es })}
+                    </span>
+                    <button 
+                        onClick={() => setViewDate(d => addMonths(d, 1))}
+                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+
+                {/* Calendar Grid */}
+                <div>
+                    {/* Weekday Headers */}
+                    <div className="grid grid-cols-7 mb-2">
+                        {weekDays.map(day => (
+                            <div key={day} className="text-center text-[10px] font-bold text-slate-500">
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Days */}
+                    <div className="grid grid-cols-7 gap-y-1 gap-x-1">
+                        {days.map((day) => {
+                            const isSelected = isWithinInterval(day, { start: selectedStart, end: selectedEnd });
+                            const isCurrentMonth = isSameMonth(day, viewDate);
+                            const isToday = isSameDay(day, new Date());
+
+                            // Styling for range selection visual
+                            const isRangeStart = isSameDay(day, selectedStart);
+                            const isRangeEnd = isSameDay(day, selectedEnd);
+
+                            return (
+                                <button
+                                    key={day.toISOString()}
+                                    onClick={() => handleSelect(day)}
+                                    className={cn(
+                                        "h-8 relative flex items-center justify-center text-xs font-medium rounded-md transition-all",
+                                        !isCurrentMonth && "opacity-30",
+                                        isSelected ? "text-white bg-white/10" : "text-slate-300 hover:bg-white/5",
+                                        (isRangeStart || isRangeEnd) && "bg-indigo-500 text-white shadow-sm font-bold",
+                                        isToday && !isSelected && "text-emerald-400 font-bold"
+                                    )}
+                                >
+                                    {format(day, 'd')}
+                                    {isToday && (
+                                        <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-emerald-500" />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                    />
+
+                    {/* Modal */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-4"
+                    >
+                        <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-2xl pointer-events-auto relative overflow-hidden">
+                            {/* Glass Effect */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-6 relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
+                                        <Calendar size={18} className="text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-white leading-none">
+                                            {mode === 'WEEK' ? 'Seleccionar Semana' : mode === 'MONTH' ? 'Seleccionar Mes' : 'Seleccionar Año'}
+                                        </h2>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            Viaja en el tiempo
+                                        </p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={onClose}
+                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="relative z-10 min-h-[280px]">
+                                {mode === 'YEAR' && renderYearView()}
+                                {mode === 'MONTH' && renderMonthView()}
+                                {mode === 'WEEK' && renderWeekView()}
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+};

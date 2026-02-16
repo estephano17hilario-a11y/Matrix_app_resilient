@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AVAILABLE_AVATARS } from '../../config/avatars';
 import { useAuth } from '../../context/AuthContext';
-import { doc, updateDoc, db } from '../../services/firebase';
+import { doc, setDoc, db } from '../../services/firebase';
 import { AvatarSelectorCard } from './components/AvatarSelectorCard';
 
 interface AvatarSelectorProps {
@@ -22,7 +22,6 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
   }, [profile?.avatarId, isSaving]);
 
   const handleSelect = async (avatarId: string) => {
-    if (!user) return;
     if (avatarId === selectedId) return; // Prevent unnecessary updates
     
     console.log(`AvatarSelector: Selecting ${avatarId}`);
@@ -36,12 +35,20 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
     // and stay updated even if the backend write fails (Permission/Network)
     updateProfileLocally({ avatarId });
 
+    if (!user) {
+      setIsSaving(false);
+      if (onClose) {
+        setTimeout(onClose, 200);
+      }
+      return;
+    }
+
     try {
       // 3. Update Firestore (Persistence)
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
         avatarId: avatarId
-      });
+      }, { merge: true });
 
       console.log("AvatarSelector: Firestore updated");
 

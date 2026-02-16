@@ -36,7 +36,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-[#020204]/90 backdrop-blur-md" 
+                className="absolute inset-0 bg-[#020204]/90" 
                 onClick={onClose}
             />
 
@@ -47,7 +47,8 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-rose-500/20 shadow-[0_20px_50px_-12px_rgba(225,29,72,0.3)]"
             >
                 {/* Glass Layer */}
-                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-lg" />
+                <div className="absolute inset-0 bg-gray-900/60" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
                 <AuroraBackground />
 
                 <div className="relative p-8 text-center space-y-6">

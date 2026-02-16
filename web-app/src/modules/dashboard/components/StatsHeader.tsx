@@ -10,6 +10,7 @@ interface StatsHeaderProps {
   maxHealth?: number;
   streak: number;
   gold: number;
+  isHabitsCompleted?: boolean;
   isHidden: boolean;
   showProfile: boolean;
   hideAvatar?: boolean;
@@ -28,7 +29,7 @@ interface StatsHeaderProps {
   onUpdateLevel?: (newLevel: number) => void;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -65,7 +66,8 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                       isPro={isPro} 
                       avatarId={avatarId} 
                       avatarShape={avatarShape}
-                      onUpdateLevel={onUpdateLevel} 
+                      onUpdateLevel={onUpdateLevel}
+                      isHabitsCompleted={isHabitsCompleted}
                     />
                   </div>
                 )}

@@ -12,7 +12,7 @@ interface TraitRadarChartProps {
 export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, className }) => {
     const { t } = useTranslation();
     // 1. CONFIGURATION
-    const CONTAINER_SIZE = 260; // REDUCED: Compact Box (Was 300)
+    const CONTAINER_SIZE = 300; // Expanded to fit new radius
     const [scale, setScale] = useState(1);
 
     useEffect(() => {
@@ -32,8 +32,8 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
     }, []);
 
     const CENTER = CONTAINER_SIZE / 2;
-    const GRID_RADIUS = 85; // Adjusted proportionally
-    const ICON_DISTANCE = 100; // Adjusted for tightness
+    const GRID_RADIUS = 95; // Increased to touch icons
+    const ICON_DISTANCE = 110; // Moved further out
 
     // Helper: Map Trait IDs to Hex Colors (Backup/Override)
     const TRAIT_COLORS: Record<string, string> = {
@@ -68,7 +68,9 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         if (!validAttributes.length) return 10;
         
         const max = Math.max(...validAttributes.map(a => a.level || 1), 1);
-        return Math.max(max, 5);
+        // Add 15% buffer so the highest value isn't stuck to the edge (User Request: "mental demasiado pegado")
+        // This ensures the max value is around ~87% of the radius, leaving breathing room.
+        return Math.max(max * 1.15, 5);
     }, [attributes]);
 
     const chartData = useMemo(() => {
@@ -133,6 +135,15 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
             };
         });
     }, [attributes, maxLevel]);
+
+    const getLabelClassName = (label: string) => {
+        const words = label.trim().split(/\s+/).filter(Boolean);
+        const maxWordLength = Math.max(0, ...words.map(word => word.length));
+        if (maxWordLength <= 6) return "text-[9px] tracking-widest";
+        if (maxWordLength <= 8) return "text-[8px] tracking-wide";
+        if (maxWordLength <= 10) return "text-[7px] tracking-normal";
+        return "text-[6px] tracking-normal";
+    };
 
     // 3. POLYGON PATHS
     const polygonPath = useMemo(() => {
@@ -274,6 +285,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
             {/* HTML LABELS LAYER */}
             {chartData.map((item, i) => {
                 const Icon = item.icon;
+                const labelText = t(item.label) as string;
                 
                 return (
                     <motion.div
@@ -325,10 +337,13 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                                 item.alignment === 'left' && "items-end"
                             )}>
                                 <span 
-                                    className="text-[9px] font-bold uppercase tracking-widest drop-shadow-md leading-none mb-0.5"
+                                    className={cn(
+                                        "font-bold uppercase drop-shadow-md leading-none mb-0.5",
+                                        getLabelClassName(labelText)
+                                    )}
                                     style={{ color: item.color }}
                                 >
-                                    {t(item.label)}
+                                    {labelText}
                                 </span>
                                 <span className="text-[8px] font-mono text-white/40 leading-none">
                                     {t('dashboard.level')} {item.level}

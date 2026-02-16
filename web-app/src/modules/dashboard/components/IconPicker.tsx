@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { Search, X, ChevronDown, Palette, Check, ArrowDown } from 'lucide-react';
+import { Search, X, ChevronDown, Palette, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../utils/cn';
 
@@ -9,6 +9,7 @@ interface IconPickerProps {
     onSelectIcon: (iconName: string | null) => void;
     selectedColor: string | undefined;
     onSelectColor: (color: string | undefined) => void;
+    onToggle?: (isOpen: boolean) => void;
 }
 
 const COLOR_PALETTE = {
@@ -24,20 +25,9 @@ const COLOR_PALETTE = {
     'Grises': ['#ffffff', '#f8fafc', '#e2e8f0', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b']
 };
 
-const ICON_CATEGORIES: Record<string, string[]> = {
-    'Populares': ['Star', 'Heart', 'Zap', 'Flame', 'Trophy', 'Target', 'Check', 'Clock', 'Calendar', 'User', 'Home', 'Settings'],
-    'Salud': ['Activity', 'Heart', 'Pulse', 'Stethoscope', 'Pill', 'Apple', 'Dumbbell', 'Bike', 'Footprints', 'GlassWater', 'Bed', 'Brain', 'Smile', 'Salad'],
-    'Finanzas': ['DollarSign', 'CreditCard', 'Wallet', 'PiggyBank', 'Banknote', 'Coins', 'TrendingUp', 'BarChart', 'PieChart', 'Briefcase', 'Receipt', 'ShoppingBag'],
-    'Productividad': ['CheckSquare', 'List', 'FileText', 'Book', 'BookOpen', 'Pen', 'Pencil', 'Folder', 'Archive', 'Inbox', 'Mail', 'Send', 'Paperclip', 'Pin'],
-    'Tecnología': ['Smartphone', 'Laptop', 'Monitor', 'Cpu', 'Wifi', 'Battery', 'Bluetooth', 'Code', 'Terminal', 'Database', 'Server', 'Cloud', 'Keyboard', 'Mouse'],
-    'Naturaleza': ['Sun', 'Moon', 'CloudRain', 'Wind', 'Umbrella', 'TreeDeciduous', 'Leaf', 'Flower', 'Sprout', 'Mountain', 'Waves', 'Droplets', 'Snowflake'],
-    'Hogar': ['Home', 'Key', 'Lock', 'Unlock', 'DoorOpen', 'Sofa', 'BedDouble', 'Bath', 'Utensils', 'Coffee', 'ChefHat', 'Trash2', 'Wrench', 'Hammer'],
-    'Viajes': ['Plane', 'Car', 'Bus', 'Train', 'Ship', 'Map', 'MapPin', 'Compass', 'Globe', 'Flag', 'Luggage', 'Ticket', 'Camera', 'Image'],
-    'Social': ['User', 'Users', 'UserPlus', 'MessageCircle', 'MessageSquare', 'Phone', 'Video', 'Mic', 'Music', 'Headphones', 'Share', 'ThumbsUp', 'HeartHandshake'],
-    'Formas': ['Circle', 'Square', 'Triangle', 'Hexagon', 'Octagon', 'Box', 'Layers', 'Grid', 'Layout', 'Maximize', 'Minimize', 'ArrowRight', 'ArrowUp', 'Plus', 'Minus']
-};
+import { ICON_CATEGORIES } from '../constants/iconCategories';
 
-export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelectColor }: IconPickerProps) => {
+export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelectColor, onToggle }: IconPickerProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
@@ -50,10 +40,16 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
         setShowScrollIndicator(true);
     }, [activeTab]);
 
-    // Filter valid icons from Lucide exports
+    // Filter valid icons from Lucide exports AND restrict to our categories
     const iconList = useMemo(() => {
-        return Object.keys(LucideIcons)
-            .filter(key => key !== 'createLucideIcon' && key !== 'default' && /^[A-Z]/.test(key))
+        const allIcons = new Set<string>();
+        Object.values(ICON_CATEGORIES).forEach(icons => {
+            icons.forEach(icon => allIcons.add(icon));
+        });
+        
+        // Validate against Lucide library to prevent crashes if an icon name is wrong
+        return Array.from(allIcons)
+            .filter(name => (LucideIcons as any)[name])
             .sort();
     }, []);
 
@@ -109,7 +105,11 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
 
             {/* Trigger Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                    const newState = !isOpen;
+                    setIsOpen(newState);
+                    onToggle?.(newState);
+                }}
                 className={cn(
                     "w-full h-14 rounded-xl border flex items-center justify-between px-4 transition-all relative group",
                     selectedIcon || isOpen ? "bg-white/5 border-white/10" : "bg-black/20 border-dashed border-white/10 hover:border-white/30"

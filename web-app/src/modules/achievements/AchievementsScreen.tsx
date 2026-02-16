@@ -71,7 +71,7 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
   const { t } = useTranslation();
   
   return (
-    <motion.div
+      <motion.div
       layout
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ 
@@ -87,18 +87,18 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
       }}
       whileTap={{ scale: 0.98 }}
       className={`
-        relative group flex flex-col p-5 text-left h-full
+        relative group flex flex-col p-4 sm:p-5 text-left h-full min-w-0
         rounded-[24px] border transition-all duration-500 overflow-hidden
         ${isUnlocked 
-          ? 'bg-gray-900/40 backdrop-blur-lg border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] hover:shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]' 
-          : 'bg-black/20 backdrop-blur-sm border-white/5 opacity-70'}
+          ? 'bg-gray-900/50 backdrop-blur-md border-white/10 shadow-md hover:shadow-md' 
+          : 'bg-black/30 backdrop-blur-sm border-white/5 opacity-70'}
       `}
     >
       {/* Shine Effect */}
       <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
       {/* Top Section: Icon & Reward */}
-      <div className="flex justify-between items-start mb-4 relative z-10">
+      <div className="flex justify-between items-center mb-4 relative z-10">
         <div className={`
           p-3 rounded-2xl transition-all duration-500
           ${isUnlocked 
@@ -112,7 +112,7 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
         </div>
 
         {isUnlocked && (
-           <span className="px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm">
+           <span className="px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400 drop-shadow-sm leading-none">
              +{Math.floor(achievement.xpReward)} XP
            </span>
         )}
@@ -182,12 +182,12 @@ export const AchievementsScreen: React.FC = () => {
   if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">{t('achievements.loading')}</div>;
 
   return (
-    <div className="min-h-screen text-white p-4 md:p-8 pb-32 overflow-y-auto overflow-x-hidden relative font-sans">
+    <div className="min-h-full w-full text-white px-4 sm:px-6 lg:px-10 pb-32 overflow-x-hidden relative font-sans">
       
       <AuroraBackground />
 
       {/* Content Container */}
-      <div className="relative z-10 max-w-7xl mx-auto">
+      <div className="relative z-10 w-full max-w-7xl mx-auto">
         
         {/* Header Section */}
         <div className="mb-8 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -208,7 +208,7 @@ export const AchievementsScreen: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-5 bg-black/40 backdrop-blur-lg border border-white/10 px-6 py-4 rounded-[24px] shadow-2xl"
+            className="flex items-center gap-4 bg-black/50 backdrop-blur-md border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
           >
             <div className="text-right">
               <span className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('achievements.sync')}</span>
@@ -221,8 +221,8 @@ export const AchievementsScreen: React.FC = () => {
         </div>
 
         {/* Primary Filter Tabs */}
-        <div className="sticky top-0 z-50 py-4 -mx-4 px-4 bg-gradient-to-b from-black/0 via-black/0 to-transparent backdrop-blur-none">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade p-1">
+        <div className="sticky top-0 z-50 py-3 bg-gradient-to-b from-black/0 via-black/0 to-transparent">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar p-1">
             {categories.map((cat) => (
                 <CategoryTab 
                 key={cat} 
@@ -276,7 +276,7 @@ export const AchievementsScreen: React.FC = () => {
         {/* Masonry Grid */}
         <motion.div 
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 pb-20"
         >
           <AnimatePresence mode='popLayout'>
             {filteredAchievements.map((ach) => {

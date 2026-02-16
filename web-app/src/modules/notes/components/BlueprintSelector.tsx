@@ -78,7 +78,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-4xl max-h-[80vh] overflow-y-auto bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl p-6 custom-scrollbar"
+                    className="relative w-full max-w-4xl max-h-[80vh] overflow-y-auto bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-md p-6 custom-scrollbar"
                 >
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-light text-white tracking-tight">
@@ -95,7 +95,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                                 key={bp.id}
                                 whileHover={{ y: -5, scale: 1.02 }}
                                 onClick={() => handleSelect(bp)}
-                                className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-white/20`}
+                                className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 cursor-pointer overflow-hidden transition-colors duration-300 hover:shadow-sm hover:border-white/20`}
                             >
                                 {/* Hover Glow Effect using accentColor */}
                                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${bp.accentColor}`} />
