@@ -14,7 +14,7 @@ export const LoadingScreen = () => {
   
   // Fallback if translation fails or returns string
   const validQuotes = Array.isArray(quotes) ? quotes : [
-    { text: "Loading Matrix...", author: "SYSTEM" }
+    { text: "Loading Lux...", author: "SYSTEM" }
   ];
 
   const [quote, setQuote] = useState<Quote>(validQuotes[0]);
@@ -69,7 +69,7 @@ export const LoadingScreen = () => {
               }}
               className="text-4xl md:text-6xl font-sans font-extralight tracking-[0.5em] text-white/90 select-none uppercase"
             >
-              Matrix
+              Lux
             </motion.h1>
             
             <div className="absolute -bottom-12 left-0 right-0 flex justify-center">

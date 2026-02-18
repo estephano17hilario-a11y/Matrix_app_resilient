@@ -37,6 +37,7 @@ export interface Quest {
   gold: number;
   attribute: string;
   completed: boolean;
+  completedAt?: string;
   deadline?: string;
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
@@ -98,6 +99,8 @@ export interface Project {
   attribute: string;
   goalTarget: number;
   goalFrequency: string;
+  uiFrequency?: string; // Stores the user's selected frequency (WEEKLY, MONTHLY, etc) for UI restoration
+  uiTarget?: number; // Stores the user's input target (e.g. 10 hours) for UI restoration
   pomoDuration: number;
   breakDuration: number;
   impact: number;

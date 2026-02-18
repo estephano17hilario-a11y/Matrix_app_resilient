@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.matrixresilient.app',
-  appName: 'Matrix App',
+  appId: 'com.luxresilient.app',
+  appName: 'Lux',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

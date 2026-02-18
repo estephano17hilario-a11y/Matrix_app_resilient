@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { 
   User, 
   onAuthStateChanged,
@@ -41,18 +41,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return PersistenceService.getProfile();
   });
   
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !PersistenceService.getProfile());
   const [error, setError] = useState<string | null>(null);
 
-  const updateProfileLocally = (updates: Partial<UserProfile>) => {
+  const updateProfileLocally = useCallback((updates: Partial<UserProfile>) => {
     if (!profile) return;
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     PersistenceService.saveProfile(newProfile);
     console.log("⚡ MATRIX: Profile updated locally (Optimistic)", updates);
-  };
+  }, [profile]);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
       const userRef = doc(db, "users", user.uid);
@@ -68,9 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("Error refreshing profile:", e);
     }
-  };
+  }, [user]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
       // We do NOT clear profile here immediately to allow for "offline" access if needed,
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Logout Error:", error);
       setError(error.message);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     // SAFETY NET: Force stop loading after 45 seconds (Extended for Hardware Keys / Slow Connections)
@@ -256,8 +256,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  const value = useMemo(() => ({
+    user,
+    profile,
+    isLoading,
+    error,
+    logout,
+    refreshProfile,
+    updateProfileLocally
+  }), [user, profile, isLoading, error, logout, refreshProfile, updateProfileLocally]);
+
   return (
-    <AuthContext.Provider value={{ user, profile, isLoading, error, logout, refreshProfile, updateProfileLocally }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

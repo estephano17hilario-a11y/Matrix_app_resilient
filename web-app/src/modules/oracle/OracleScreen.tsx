@@ -153,7 +153,7 @@ export default function OracleScreen() {
   const [messages, setMessages] = useState<AIMessage[]>([
     {
       role: 'assistant',
-      content: 'I am the Oracle. The Matrix is connected. How may I assist you, Operator?',
+      content: 'I am the Oracle. Lux is connected. How may I assist you, Operator?',
       timestamp: Date.now()
     }
   ]);

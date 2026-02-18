@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { Search, X, ChevronDown, Palette, ArrowDown } from 'lucide-react';
+import { Search, X, ChevronDown, Palette, ArrowDown, ListFilter, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../utils/cn';
 
@@ -33,6 +33,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
     const [displayLimit, setDisplayLimit] = useState(100);
     const [activeTab, setActiveTab] = useState<'icons' | 'colors'>('icons');
     const [activeCategory, setActiveCategory] = useState('Todos');
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(true);
     
     // Reset scroll indicator when tab changes
@@ -196,28 +197,88 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
 
                                         {/* Categories */}
                                         {!searchTerm && (
-                                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 shrink-0 w-full touch-pan-x">
-                                                <button
-                                                    onClick={() => setActiveCategory('Todos')}
-                                                    className={cn(
-                                                        "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-colors border shrink-0",
-                                                        activeCategory === 'Todos' ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
-                                                    )}
-                                                >
-                                                    Todos
-                                                </button>
-                                                {Object.keys(ICON_CATEGORIES).map(cat => (
+                                            <div className="flex gap-2 w-full items-start relative z-20">
+                                                {/* Dropdown Trigger */}
+                                                <div className="relative shrink-0">
                                                     <button
-                                                        key={cat}
-                                                        onClick={() => setActiveCategory(cat)}
+                                                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                                        className={cn(
+                                                            "w-8 h-[29px] rounded-lg flex items-center justify-center transition-all border",
+                                                            showCategoryDropdown 
+                                                                ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
+                                                                : "bg-white/5 text-white/50 border-transparent hover:bg-white/10 hover:text-white"
+                                                        )}
+                                                        title="Ver todas las categorías"
+                                                    >
+                                                        <ListFilter size={16} />
+                                                    </button>
+
+                                                    <AnimatePresence>
+                                                        {showCategoryDropdown && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                                                                className="absolute top-full left-0 mt-2 w-48 bg-[#151516] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col p-1 max-h-60 overflow-y-auto"
+                                                            >
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setActiveCategory('Todos');
+                                                                        setShowCategoryDropdown(false);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full px-3 py-2 rounded-lg text-xs font-bold text-left flex items-center justify-between transition-colors shrink-0",
+                                                                        activeCategory === 'Todos' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5 hover:text-white"
+                                                                    )}
+                                                                >
+                                                                    <span>TODOS</span>
+                                                                    {activeCategory === 'Todos' && <Check size={12} />}
+                                                                </button>
+                                                                <div className="h-px bg-white/5 my-1 mx-2 shrink-0" />
+                                                                {Object.keys(ICON_CATEGORIES).map(cat => (
+                                                                    <button
+                                                                        key={cat}
+                                                                        onClick={() => {
+                                                                            setActiveCategory(cat);
+                                                                            setShowCategoryDropdown(false);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "w-full px-3 py-2 rounded-lg text-xs font-medium text-left flex items-center justify-between transition-colors shrink-0",
+                                                                            activeCategory === cat ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5 hover:text-white"
+                                                                        )}
+                                                                    >
+                                                                        <span>{cat}</span>
+                                                                        {activeCategory === cat && <Check size={12} />}
+                                                                    </button>
+                                                                ))}
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+
+                                                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 shrink-0 flex-1 touch-pan-x">
+                                                    <button
+                                                        onClick={() => setActiveCategory('Todos')}
                                                         className={cn(
                                                             "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-colors border shrink-0",
-                                                            activeCategory === cat ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
+                                                            activeCategory === 'Todos' ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
                                                         )}
                                                     >
-                                                        {cat}
+                                                        Todos
                                                     </button>
-                                                ))}
+                                                    {Object.keys(ICON_CATEGORIES).map(cat => (
+                                                        <button
+                                                            key={cat}
+                                                            onClick={() => setActiveCategory(cat)}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-colors border shrink-0",
+                                                                activeCategory === cat ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
+                                                            )}
+                                                        >
+                                                            {cat}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
 

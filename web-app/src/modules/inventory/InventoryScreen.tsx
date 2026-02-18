@@ -1,12 +1,12 @@
 import React from 'react';
 import { useEconomy } from '@/context/EconomyContext';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Zap, Check } from 'lucide-react';
 
 export const InventoryScreen: React.FC = () => {
   const { inventory, consume, storeItems } = useEconomy();
-  const { user } = useMatrix();
+  const { user } = useLux();
 
   const handleConsume = async (itemId: string) => {
     const success = await consume(itemId);

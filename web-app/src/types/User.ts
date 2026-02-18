@@ -10,6 +10,7 @@ export interface UserStats {
   availableTraitPoints?: number; // Puntos para mejorar atributos
   streak: number;   // Días consecutivos
   streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
+  lastStreakDate?: string; // Fecha de la última vez que se incrementó la racha
 }
 
 export interface DailyLimits {
@@ -29,6 +30,7 @@ export interface DailyLimits {
   habitGold?: number;
   habitTraitPoints?: number;
   tasksCompleted?: number;
+  notesCompleted?: number;
   focusMinutes?: number;
 }
 

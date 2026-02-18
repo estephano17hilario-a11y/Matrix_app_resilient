@@ -1,5 +1,5 @@
 
-// Matrix Oracle Service (AI Layer)
+// Lux Oracle Service (AI Layer)
 // Handles communication with the Intelligence Core (LLM)
 
 export interface AIResponse {
@@ -16,7 +16,7 @@ export interface AIMessage {
 
 const MOCK_RESPONSES = [
   "I am analyzing your biometrics. Stress levels are within acceptable parameters.",
-  "The Matrix code is flowing efficiently today. Your productivity streak is noted.",
+  "The Lux stream is flowing efficiently today. Your productivity streak is noted.",
   "I've detected a pattern in your habit completion. You perform better in the mornings.",
   "Accessing the Archives... data retrieved. How can I assist you further?",
   "System optimal. Ready for your command.",

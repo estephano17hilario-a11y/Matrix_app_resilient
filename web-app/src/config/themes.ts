@@ -1,7 +1,7 @@
 export type ThemeCategory = 'orbs' | 'minimal' | 'nature' | 'flow';
 
 export type ThemeId = 
-  | 'ether' | 'matrix' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' 
+  | 'ether' | 'matrix' | 'digital_rain' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' 
   | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' 
   | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' 
   | 'spotlight' | 'nebula' | 'aurora' | 'amy' | 'modern_dark' | 'modern_light' 
@@ -42,7 +42,21 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   matrix: {
     id: 'matrix',
-    name: 'The Matrix',
+    name: 'Matrix',
+    description: 'Neon Code Stream',
+    category: 'orbs',
+    colors: {
+      bgDepth: '2 6 4',
+      primaryGlow: '0 255 120',
+      secondaryGlow: '0 120 80',
+      glassTint: '120 255 200',
+      textPrimary: '230 255 240',
+    },
+    gradient: 'linear-gradient(135deg, #00ff88 0%, #004d2b 100%)',
+  },
+  digital_rain: {
+    id: 'digital_rain',
+    name: 'Digital Rain',
     description: 'Digital Rain',
     category: 'orbs',
     colors: {

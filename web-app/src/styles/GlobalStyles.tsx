@@ -26,9 +26,7 @@ export const GlobalStyles = React.memo(() => (
     .accordion-inner { overflow: hidden; transform: translateZ(0); }
 
     .glass-panel {
-      background: rgba(17, 17, 17, 0.6); 
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.25)), rgba(17, 17, 17, 0.7); 
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);

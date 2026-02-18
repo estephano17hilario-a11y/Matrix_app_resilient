@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { purchaseItem, addGold, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 
 export interface EconomyContextType {
   purchase: (item: StoreItem) => Promise<boolean>;
@@ -81,10 +81,10 @@ const STORE_ITEMS: StoreItem[] = [
 ];
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useMatrix();
+  const { user } = useLux();
   const [isTransactionPending, setIsTransactionPending] = useState(false);
 
-  const purchase = async (item: StoreItem): Promise<boolean> => {
+  const purchase = useCallback(async (item: StoreItem): Promise<boolean> => {
     if (!user?.uid) return false;
     
     setIsTransactionPending(true);
@@ -104,9 +104,9 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       return false;
     }
-  };
+  }, [user?.uid]);
 
-  const useItem = async (itemId: string): Promise<boolean> => {
+  const useItem = useCallback(async (itemId: string): Promise<boolean> => {
       if (!user?.uid) return false;
       setIsTransactionPending(true);
       
@@ -115,9 +115,9 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       setIsTransactionPending(false);
       return result.success;
-  };
+  }, [user?.uid]);
 
-  const watchAd = async () => {
+  const watchAd = useCallback(async () => {
     if (!user?.uid) return;
     setIsTransactionPending(true);
     
@@ -128,20 +128,22 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsTransactionPending(false);
     
     if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
-  };
+  }, [user?.uid]);
 
   const consume = useItem;
+  const inventory = useMemo(() => (user?.inventory || []) as InventoryItem[], [user?.inventory]);
+  const value = useMemo(() => ({ 
+    purchase, 
+    watchAd, 
+    useItem, 
+    consume,
+    isTransactionPending, 
+    storeItems: STORE_ITEMS,
+    inventory
+  }), [purchase, watchAd, useItem, consume, isTransactionPending, inventory]);
 
   return (
-    <EconomyContext.Provider value={{ 
-        purchase, 
-        watchAd, 
-        useItem, 
-        consume,
-        isTransactionPending, 
-        storeItems: STORE_ITEMS,
-        inventory: (user?.inventory || []) as InventoryItem[]
-    }}>
+    <EconomyContext.Provider value={value}>
       {children}
     </EconomyContext.Provider>
   );

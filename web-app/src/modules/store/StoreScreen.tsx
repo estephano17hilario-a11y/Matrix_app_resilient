@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
 import { AdShard } from './components/AdShard';
@@ -118,7 +118,7 @@ interface StoreScreenProps {
 }
 
 const StoreContent = ({ }: StoreScreenProps) => {
-  const { user } = useMatrix();
+  const { user } = useLux();
   const { t } = useTranslation();
   const { purchase, watchAd, storeItems, isTransactionPending } = useEconomy();
   const [activeFilter, setActiveFilter] = useState<string>('all');

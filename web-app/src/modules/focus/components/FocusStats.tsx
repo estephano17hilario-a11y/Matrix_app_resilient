@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Target, Lock as LockIcon, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Layers } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
 import { formatDateRange, getStartOfWeek } from '../../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
+import { DAILY_LIMITS } from '../../dashboard/constants';
 
 export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }: { projects: Project[], attributes: Attribute[], isPro?: boolean, onShowPro?: () => void }) => {
-    const { user } = useMatrix();
+    const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
@@ -140,37 +141,38 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                 {/* HEADER ROW: Stats & Time Range */}
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 z-10 min-h-[42px]">
                     <div className="flex flex-col min-w-0">
-                        <div className="flex items-baseline gap-2 min-w-0">
+                        <div className="flex flex-col min-w-0">
                             <span className={`${hoursFontSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter transition-all duration-300 whitespace-nowrap leading-none`}>{formattedHours}</span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
+                                {timeRange === 'DAY' && (
+                                    <span className="text-[9px] font-mono font-medium text-white/20 border border-white/10 px-1 rounded bg-white/5">
+                                        / {DAILY_LIMITS.FOCUS.MAX_HOURS}h MAX
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex items-center justify-end flex-shrink-0">
-                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-sm flex-nowrap">
+                        <div className="flex items-center gap-0.5 bg-black/40 p-0.5 rounded-lg border border-white/5 shadow-sm flex-nowrap origin-right">
                         {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => {
-                            const isLocked = !isPro && (range === 'MONTH' || range === 'YEAR');
                             return (
                                 <button 
                                     key={range} 
                                     onClick={() => { 
-                                        if (isLocked) {
-                                            if (onShowPro) onShowPro();
-                                            return;
-                                        }
                                         setTimeRange(range as 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'); 
                                     }} 
-                                    className={`relative px-3 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 z-10 flex items-center gap-1 whitespace-nowrap ${timeRange === range ? 'text-white' : 'text-slate-500 hover:text-white'} ${isLocked ? 'opacity-50' : ''}`}
+                                    className={`relative px-2.5 py-1 rounded-md text-[9px] font-bold transition-all duration-300 z-10 flex items-center gap-1 whitespace-nowrap ${timeRange === range ? 'text-white' : 'text-slate-500 hover:text-white'}`}
                                 >
                                     {timeRange === range && (
                                         <motion.div 
                                             layoutId="activeRange"
-                                            className="absolute inset-0 bg-white/10 rounded-lg shadow-sm border border-white/10"
+                                            className="absolute inset-0 bg-white/10 rounded-md shadow-sm border border-white/10"
                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
                                     {range}
-                                    {isLocked && <LockIcon size={8} className="text-amber-400" />}
                                 </button>
                             );
                         })}

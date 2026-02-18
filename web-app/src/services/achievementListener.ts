@@ -61,7 +61,7 @@ export const checkAchievements = async (
       await setDoc(userRef, updates, { merge: true });
       console.log('Achievements Unlocked & Saved:', newAchievements.map(a => a.title));
     } catch (error) {
-      console.error('Matrix Database Error (Achievements):', error);
+      console.error('Lux Database Error (Achievements):', error);
       // We don't throw here because we want the user to see the celebration 
       // even if the backend sync is pending (Offline Mode).
     }

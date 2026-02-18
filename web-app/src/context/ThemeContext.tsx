@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { AuthContext } from './AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
 import { ThemeId, THEMES } from '../config/themes';
@@ -28,7 +28,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize from localStorage or default
   const [theme, setThemeState] = useState<ThemeId>(() => {
     try {
-      const saved = localStorage.getItem('matrix-theme');
+      const saved = localStorage.getItem('lux-theme') || localStorage.getItem('matrix-theme');
       // Validate that the saved theme actually exists
       if (saved && THEMES[saved as ThemeId]) {
         return saved as ThemeId;
@@ -41,7 +41,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [vividMode, setVividModeState] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('matrix-vivid-mode') === 'true';
+      return localStorage.getItem('lux-vivid-mode') === 'true' || localStorage.getItem('matrix-vivid-mode') === 'true';
     } catch {
       return false;
     }
@@ -157,7 +157,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
       } catch (error) {
-        console.error("Failed to sync theme from Matrix:", error);
+        console.error("Failed to sync theme from Lux:", error);
       } finally {
         lastThemeSyncUid.current = user.uid;
       }
@@ -167,7 +167,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user?.uid, profile?.uid, profile?.preferences, theme, vividMode]);
 
   // 2. Save to Firestore on change
-  const setTheme = async (newTheme: ThemeId) => {
+  const setTheme = useCallback(async (newTheme: ThemeId) => {
     setThemeState(newTheme);
     
     if (user) {
@@ -178,12 +178,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           preferences: { theme: newTheme }
         }, { merge: true });
       } catch (error) {
-        console.error("Failed to save theme to Matrix:", error);
+        console.error("Failed to save theme to Lux:", error);
       }
     }
-  };
+  }, [user]);
 
-  const setVividMode = async (enabled: boolean) => {
+  const setVividMode = useCallback(async (enabled: boolean) => {
     setVividModeState(enabled);
     if (user) {
         try {
@@ -192,13 +192,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             preferences: { vividMode: enabled }
           }, { merge: true });
         } catch (error) {
-          console.error("Failed to save vivid mode to Matrix:", error);
+          console.error("Failed to save vivid mode to Lux:", error);
         }
       }
-  };
+  }, [user]);
+
+  const value = useMemo(() => ({
+    theme,
+    setTheme,
+    availableThemes: THEMES,
+    vicesMode,
+    setVicesMode,
+    vividMode,
+    setVividMode
+  }), [theme, setTheme, vicesMode, vividMode, setVividMode]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, availableThemes: THEMES, vicesMode, setVicesMode, vividMode, setVividMode }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

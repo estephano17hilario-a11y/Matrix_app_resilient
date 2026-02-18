@@ -2,6 +2,8 @@ import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
+import { DailyLimits } from '../../types/User';
+import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
 import { isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +13,7 @@ interface TaskListProps {
   quests: Quest[];
   attributes: Attribute[];
   projects?: Project[];
+  dailyLimits?: DailyLimits;
   onCompleteQuest: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
   onEditQuest?: (quest: Quest) => void;
@@ -19,7 +22,7 @@ interface TaskListProps {
   onOpenNexus?: (smartProjectId: string) => void;
 }
 
-export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus }) => {
+export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus, dailyLimits }) => {
   const { t } = useTranslation();
 
   // Filters
@@ -90,12 +93,22 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
   const listRef = useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const scrollRafRef = useRef<number | null>(null);
+  const lastScrollTopRef = useRef(0);
   const isVirtualized = sortedQuests.length > 20;
   const rowHeight = 120;
   const overscan = 6;
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+    const target = e.currentTarget;
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const nextScrollTop = target.scrollTop;
+      if (nextScrollTop !== lastScrollTopRef.current) {
+        lastScrollTopRef.current = nextScrollTop;
+        setScrollTop(nextScrollTop);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -108,6 +121,12 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
     observer.observe(element);
     return () => observer.disconnect();
   }, [isVirtualized]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isMounted.current) {
@@ -143,6 +162,33 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
   return (
     <div className="flex flex-col gap-6 h-full min-h-0">
+      
+      {/* DAILY TASK XP LIMIT - PROGRESS BAR */}
+      {dailyLimits && (
+        <div className="px-1 -mb-2">
+            <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">XP Diaria (Tareas)</span>
+                <span className={`text-[10px] font-mono font-bold ${dailyLimits.taskXp >= DAILY_LIMITS.TASKS.XP ? 'text-emerald-400' : 'text-white/60'}`}>
+                    {dailyLimits.taskXp}/{DAILY_LIMITS.TASKS.XP} XP
+                </span>
+            </div>
+            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+                 <div className="absolute inset-0 bg-white/5" />
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (dailyLimits.taskXp / DAILY_LIMITS.TASKS.XP) * 100)}%` }}
+                    className={`h-full relative z-10 ${dailyLimits.taskXp >= DAILY_LIMITS.TASKS.XP ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-gradient-to-r from-indigo-500 to-indigo-400'}`}
+                />
+            </div>
+            {dailyLimits.taskXp >= DAILY_LIMITS.TASKS.XP && (
+                <p className="text-[9px] text-emerald-400/80 mt-1 font-medium flex items-center gap-1">
+                    <CheckCircle2 size={10} />
+                    Límite alcanzado. Solo ganarás Coins.
+                </p>
+            )}
+        </div>
+      )}
+
       {/* ACTIVE MISSIONS HEADER */}
       <div ref={headerRef} className="scroll-mt-24">
         <div className="flex items-center justify-between px-1 mb-3">

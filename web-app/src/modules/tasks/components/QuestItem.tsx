@@ -20,6 +20,7 @@ interface QuestItemProps {
 export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSubtasksComplete, setIsSubtasksComplete] = useState(false);
   const Icon = attribute?.icon;
 
   const handleComplete = (e: React.MouseEvent) => {
@@ -62,7 +63,9 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
         contentVisibility: 'auto',
         containIntrinsicSize: '100px',
         padding: '1px', 
-        background: isSmart 
+        background: isSubtasksComplete
+            ? `linear-gradient(145deg, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.1) 40%, transparent 100%)`
+            : isSmart 
             ? `linear-gradient(145deg, ${attribute?.color || '#333'}40 0%, rgba(99,102,241,0.1) 40%, transparent 100%)`
             : `linear-gradient(145deg, ${attribute?.color || '#333'}20 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` 
       }}
@@ -70,7 +73,9 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
       <div 
         className="relative rounded-[1.2rem] overflow-hidden"
         style={{
-            background: attribute?.color 
+            background: isSubtasksComplete
+                ? `linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(18, 18, 22, 0.95) 100%)`
+                : attribute?.color 
                 ? `linear-gradient(180deg, ${attribute.color}15 0%, rgba(18, 18, 22, 0.95) 100%)` 
                 : 'rgba(18, 18, 22, 0.95)'
         }}
@@ -218,7 +223,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
                     </div>
                   )}
 
-                  <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} />
+                  <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} onCompletionChange={setIsSubtasksComplete} />
 
                   {quest.deadline && (
                      <div className={cn(

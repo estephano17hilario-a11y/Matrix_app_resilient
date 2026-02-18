@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
@@ -14,7 +14,7 @@ import { FREE_LIMITS } from '@/config/limits';
 import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
-import { doc, setDoc, db, writeBatch } from '@/services/firebase';
+import { doc, setDoc, db, writeBatch, updateDoc } from '@/services/firebase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { toLocalISOString, getHistoryDateKey } from '../../../utils/dateUtils';
@@ -24,36 +24,36 @@ import { useTheme } from '@/context/ThemeContext';
 import { SmartProject } from '@/types/SmartGoal';
 
 export const useDashboardLogic = () => {
-    const { user: matrixUser, loading: matrixLoading } = useMatrix();
+    const { user: luxUser, loading: luxLoading } = useLux();
     const { profile: authProfile } = useAuth();
 
-    // 🛡️ HYBRID SYNC: Combine Realtime Stream (Matrix) with Instant Updates (Auth)
+    // 🛡️ HYBRID SYNC: Combine Realtime Stream (Lux) with Instant Updates (Auth)
     // This ensures Avatar changes are reflected immediately via refreshProfile()
     // while keeping stats synced via Firestore listeners.
     const user = useMemo(() => {
-        if (!matrixUser) return authProfile || null;
-        if (!authProfile) return matrixUser;
+        if (!luxUser) return authProfile || null;
+        if (!authProfile) return luxUser;
         
         // If UIDs match, merge carefully
-        if (matrixUser.uid === authProfile.uid) {
+        if (luxUser.uid === authProfile.uid) {
             return {
-                ...matrixUser,
+                ...luxUser,
                 // Prefer Auth Profile for Identity fields (updated via Settings)
-                avatarId: authProfile.avatarId || matrixUser.avatarId,
-                displayName: authProfile.displayName || matrixUser.displayName,
-                // Prefer Matrix for Game Stats (updated via Game Loop)
-                stats: matrixUser.stats
+                avatarId: authProfile.avatarId || luxUser.avatarId,
+                displayName: authProfile.displayName || luxUser.displayName,
+                // Prefer Lux for Game Stats (updated via Game Loop)
+                stats: luxUser.stats
             };
         }
-        return matrixUser;
-    }, [matrixUser, authProfile]);
+        return luxUser;
+    }, [luxUser, authProfile]);
 
     const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
     const [currentView, setCurrentView] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('matrix_last_view') || 'TASKS';
+            return localStorage.getItem('lux_last_view') || localStorage.getItem('matrix_last_view') || 'TASKS';
         }
         return 'TASKS';
     });
@@ -61,7 +61,7 @@ export const useDashboardLogic = () => {
     // Persist View
     useEffect(() => {
         if (currentView) {
-            localStorage.setItem('matrix_last_view', currentView);
+            localStorage.setItem('lux_last_view', currentView);
         }
     }, [currentView]);
 
@@ -71,7 +71,7 @@ export const useDashboardLogic = () => {
     const [overrideBgColor, setOverrideBgColor] = useState<string | undefined>(undefined);
     const [showProfile, setShowProfile] = useState(true);
     const [defaultChartMode, setDefaultChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
-    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID'>('BORDER');
+    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS'>('BORDER');
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>('VISIBLE');
     const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(true);
@@ -87,7 +87,7 @@ export const useDashboardLogic = () => {
         }
     }, [overrideBgColor]);
 
-    const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID') => {
+    const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID' | 'GLASS') => {
         setDashboardStyle(style);
         if (user?.uid) {
             try {
@@ -355,6 +355,28 @@ export const useDashboardLogic = () => {
                 // 2. Prepare Batch
                 const batch = writeBatch(db);
                 const userRef = doc(db, 'users', user.uid);
+
+                // 1.5 CHECK STREAK CONTINUITY (Global Streak)
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                const streakFrozenUntil = user.stats?.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
+                const isFrozen = streakFrozenUntil && streakFrozenUntil > new Date(today);
+                const lastStreakDate = user.stats?.lastStreakDate;
+                
+                // If last streak date is older than yesterday (and not frozen), reset streak.
+                if (user.stats?.streak && user.stats.streak > 0 && !isFrozen) {
+                    if (lastStreakDate && lastStreakDate < yesterdayStr) {
+                         console.log(`[DAILY RESET] Streak Broken. Last active: ${lastStreakDate}, Yesterday: ${yesterdayStr}`);
+                         // Reset streak to 0
+                         batch.update(userRef as any, { 'stats.streak': 0 });
+                    } else if (!lastStreakDate) {
+                        // Legacy handling: If no date, we assume it's valid for now, or maybe reset?
+                        // Let's NOT reset to be safe for existing users, until they complete a streak cycle.
+                        console.log("[DAILY RESET] No lastStreakDate found. Preserving legacy streak.");
+                    }
+                }
 
                 // 3. Apply Damage
                 let newHealth = health;
@@ -695,6 +717,12 @@ export const useDashboardLogic = () => {
 
                 if (habit.completedToday && !isCompletedTodayInHistory) {
                     newItem.completedToday = false;
+                    
+                    // Reset checklist if it exists
+                    if (habit.type === 'CHECKLIST' && habit.checklist) {
+                        newItem.checklist = habit.checklist.map(i => ({ ...i, completed: false }));
+                    }
+                    
                     changed = true;
                 }
 
@@ -717,10 +745,14 @@ export const useDashboardLogic = () => {
                 if (changed) {
                     hasChanges = true;
                     // Persist individual updates
-                    persistenceService.habits.update(user.uid, habit.id, { 
+                    const updates: any = { 
                         completedToday: newItem.completedToday,
                         streak: newItem.streak
-                    });
+                    };
+                    if (newItem.checklist) {
+                        updates.checklist = newItem.checklist;
+                    }
+                    persistenceService.habits.update(user.uid, habit.id, updates);
                 }
                 return newItem;
             });
@@ -750,10 +782,8 @@ export const useDashboardLogic = () => {
     const handleFocusModeChange = useCallback((attrId: string | null) => {
         if (attrId) {
             const attr = attributes.find(a => a.id === attrId);
-            if (attr) {
-                setOverrideBgColor(attr.color);
-                setIsFocusMode(true);
-            }
+            setOverrideBgColor(attr?.color);
+            setIsFocusMode(true);
         } else {
             setOverrideBgColor(undefined);
             setIsFocusMode(false);
@@ -773,9 +803,9 @@ export const useDashboardLogic = () => {
 
     useEffect(() => {
         // Skip notification on first load or if level hasn't increased
-        // We also wait for matrixLoading to be false to ensure we have the real level from DB
-        if (isFirstLoad.current || matrixLoading) {
-            if (!matrixLoading && user?.stats) {
+        // We also wait for luxLoading to be false to ensure we have the real level from DB
+        if (isFirstLoad.current || luxLoading) {
+            if (!luxLoading && user?.stats) {
                 // Ensure player state has synced with user state before enabling notifications
                 if (player.level === user.stats.level) {
                     isFirstLoad.current = false;
@@ -789,7 +819,7 @@ export const useDashboardLogic = () => {
             addNotification({ type: 'GLOBAL', label: 'HERO', fromLevel: prevPlayerLevel.current, toLevel: player.level, icon: Trophy, color: '#fbbf24' });
         }
         prevPlayerLevel.current = player.level;
-    }, [player.level, addNotification, matrixLoading, user]);
+    }, [player.level, addNotification, luxLoading, user]);
 
     useEffect(() => {
         if (!areAttributesLoaded) return;
@@ -808,6 +838,56 @@ export const useDashboardLogic = () => {
         });
         prevAttributes.current = attributes;
     }, [attributes, addNotification, areAttributesLoaded]);
+
+
+    // --- STREAK ACTIVATION ---
+    const isActivatingStreak = useRef(false);
+
+    useEffect(() => {
+        if (!user?.uid || !user.stats) return;
+
+        const checkStreak = async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const lastStreakDate = user.stats.lastStreakDate;
+            
+            // Already active today?
+            if (lastStreakDate === today) return;
+            if (isActivatingStreak.current) return;
+
+            const { 
+                tasksCompleted = 0, 
+                habitsCompleted = 0, 
+                focusSeconds = 0, 
+                notesCompleted = 0 
+            } = dailyLimits;
+
+            if (tasksCompleted >= 2 && habitsCompleted >= 1 && focusSeconds >= 3600 && notesCompleted >= 1) {
+                console.log("🔥 STREAK ACTIVATED!");
+                isActivatingStreak.current = true;
+                
+                try {
+                    const userRef = doc(db, 'users', user.uid);
+                    await updateDoc(userRef, {
+                        'stats.streak': (user.stats.streak || 0) + 1,
+                        'stats.lastStreakDate': today
+                    });
+                    
+                    addNotification({ 
+                        type: 'GLOBAL', 
+                        label: 'STREAK ACTIVE', 
+                        icon: Flame, 
+                        color: '#f97316' // Orange-500
+                    });
+                } catch (e) {
+                    console.error("Failed to activate streak:", e);
+                } finally {
+                    isActivatingStreak.current = false;
+                }
+            }
+        };
+
+        checkStreak();
+    }, [dailyLimits, user?.uid, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification]);
 
 
     // --- UNIFIED REWARD SYSTEM ---
@@ -1187,7 +1267,8 @@ export const useDashboardLogic = () => {
                     ...currentLimits,
                     taskXp: currentLimits.taskXp + Math.max(0, rewardXp),
                     taskGold: currentLimits.taskGold + Math.max(0, rewardGold),
-                    taskTraitPoints: currentLimits.taskTraitPoints + Math.max(0, rewardTraitXp)
+                    taskTraitPoints: currentLimits.taskTraitPoints + Math.max(0, rewardTraitXp),
+                    tasksCompleted: (currentLimits.tasksCompleted || 0) + 1
                 };
                 setDailyLimits(newLimits);
             } else {
@@ -1197,7 +1278,8 @@ export const useDashboardLogic = () => {
                         ...dailyLimits,
                         taskXp: Math.max(0, dailyLimits.taskXp + rewardXp),
                         taskGold: Math.max(0, dailyLimits.taskGold + rewardGold),
-                        taskTraitPoints: Math.max(0, dailyLimits.taskTraitPoints + rewardTraitXp)
+                        taskTraitPoints: Math.max(0, dailyLimits.taskTraitPoints + rewardTraitXp),
+                        tasksCompleted: Math.max(0, (dailyLimits.tasksCompleted || 0) - 1)
                     };
                     setDailyLimits(newLimits);
                 }
@@ -1279,7 +1361,8 @@ export const useDashboardLogic = () => {
                     ...currentLimits,
                     taskXp: currentLimits.taskXp + Math.max(0, rewardXp),
                     taskGold: currentLimits.taskGold + Math.max(0, rewardGold),
-                    taskTraitPoints: currentLimits.taskTraitPoints + Math.max(0, rewardTraitXp)
+                    taskTraitPoints: currentLimits.taskTraitPoints + Math.max(0, rewardTraitXp),
+                    tasksCompleted: (currentLimits.tasksCompleted || 0) + 1
                 };
                 setDailyLimits(newLimits);
                 batch.update(userRef, { dailyLimits: newLimits });
@@ -1291,7 +1374,8 @@ export const useDashboardLogic = () => {
                         ...dailyLimits,
                         taskXp: Math.max(0, dailyLimits.taskXp + rewardXp), // rewardXp is negative
                         taskGold: Math.max(0, dailyLimits.taskGold + rewardGold),
-                        taskTraitPoints: Math.max(0, dailyLimits.taskTraitPoints + rewardTraitXp)
+                        taskTraitPoints: Math.max(0, dailyLimits.taskTraitPoints + rewardTraitXp),
+                        tasksCompleted: Math.max(0, (dailyLimits.tasksCompleted || 0) - 1)
                     };
                     setDailyLimits(newLimits);
                     batch.update(userRef, { dailyLimits: newLimits });
@@ -1526,8 +1610,8 @@ export const useDashboardLogic = () => {
 
             // D. Update Daily Limits
             if (!isReversal && rewardXp > 0) {
-                 let currentLimits = dailyLimits;
-                 if (currentLimits.date !== today) {
+                let currentLimits = dailyLimits;
+                if (currentLimits.date !== today) {
                     currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
                 }
                 const newLimits = { 
@@ -1540,6 +1624,20 @@ export const useDashboardLogic = () => {
                 
                 // Add to Batch
                 batch.update(userRef, { dailyLimits: newLimits });
+            } else if (isReversal) {
+                let currentLimits = dailyLimits;
+                if (currentLimits.date === today) {
+                     const newLimits = { 
+                        ...currentLimits, 
+                        habitsCompleted: Math.max(0, (currentLimits.habitsCompleted || 0) - 1) 
+                    };
+                    
+                    // Update Local Limits
+                    setDailyLimits(newLimits);
+                    
+                    // Add to Batch
+                    batch.update(userRef, { dailyLimits: newLimits });
+                }
             }
 
             // COMMIT
@@ -1783,9 +1881,42 @@ export const useDashboardLogic = () => {
             }
         }
 
-        const project: Project = projectData.id
-            ? projectData as Project
-            : {
+        let project: Project;
+
+        if (projectData.id) {
+            // Updating existing project
+            const existingProject = projects.find(p => p.id === projectData.id);
+            if (existingProject) {
+                project = {
+                    ...existingProject,
+                    ...projectData,
+                    // Ensure critical stats are preserved if not provided in update
+                    sessions: existingProject.sessions || [],
+                    totalTime: existingProject.totalTime || 0,
+                    // Ensure deleted/archived flags are preserved unless explicitly changed
+                    deleted: projectData.deleted !== undefined ? projectData.deleted : existingProject.deleted,
+                    archived: projectData.archived !== undefined ? projectData.archived : existingProject.archived
+                } as Project;
+            } else {
+                // Fallback for ID present but not found locally (should trigger save anyway)
+                project = {
+                    id: projectData.id,
+                    totalTime: 0,
+                    sessions: [],
+                    goalTarget: 0,
+                    goalFrequency: 'WEEKLY',
+                    pomoDuration: 25,
+                    breakDuration: 5,
+                    impact: 1,
+                    title: 'New Project',
+                    description: '',
+                    attribute: 'MENTAL',
+                    ...projectData
+                } as Project;
+            }
+        } else {
+            // New Project
+            project = {
                 id: Date.now().toString(),
                 totalTime: 0,
                 sessions: [],
@@ -1799,6 +1930,7 @@ export const useDashboardLogic = () => {
                 attribute: 'MENTAL',
                 ...projectData
             } as Project;
+        }
 
         setProjects(prev => {
             const exists = prev.find(p => p.id === project.id);
@@ -1958,7 +2090,8 @@ export const useDashboardLogic = () => {
 
     return {
         user,
-        matrixLoading,
+        luxLoading,
+        matrixLoading: luxLoading,
         lastAchievement,
         setLastAchievement,
         currentTheme,

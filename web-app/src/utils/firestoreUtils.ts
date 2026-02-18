@@ -1,3 +1,5 @@
+import { UserData, DEFAULT_USER_STATS } from '../types/User';
+
 // HELPER: Sanitize data for Firestore (Removes Functions, Symbols, Undefined)
 export const sanitizeFirestoreData = (data: any): any => {
     if (data === null || typeof data !== 'object') return data;
@@ -26,4 +28,24 @@ export const sanitizeFirestoreData = (data: any): any => {
         }
     }
     return sanitized;
+};
+
+export const normalizeUserProfile = (data: any): UserData => {
+    if (!data) return {} as UserData;
+    
+    return {
+        uid: data.uid || '',
+        email: data.email || null,
+        displayName: data.displayName || 'Operator',
+        photoURL: data.photoURL || null,
+        plan: data.plan || 'FREE',
+        archetype: data.archetype || 'NEO',
+        stats: { ...DEFAULT_USER_STATS, ...(data.stats || {}) },
+        theme: data.theme || 'MATRIX',
+        createdAt: data.createdAt || Date.now(),
+        lastLoginAt: data.lastLoginAt || Date.now(),
+        onboarding: data.onboarding || { completedAt: 0 },
+        // Preserve any other existing fields that might be in the data
+        ...data
+    };
 };

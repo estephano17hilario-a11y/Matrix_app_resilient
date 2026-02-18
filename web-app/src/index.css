@@ -42,7 +42,7 @@
     -webkit-backdrop-filter: blur(16px) !important;
   }
 
-  [data-theme='matrix'] {
+  [data-theme='digital_rain'] {
     --color-bg-depth: 0 5 0;
     --color-primary-glow: 0 255 65;
     --color-secondary-glow: 0 100 0;
@@ -171,6 +171,16 @@
   [data-theme='modern_light'] .backdrop-blur-md,
   [data-theme='modern_light'] .backdrop-blur-xl,
   [data-theme='modern_light'] .backdrop-blur-3xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .android-webview .backdrop-blur-sm,
+  .android-webview .backdrop-blur-md,
+  .android-webview .backdrop-blur-lg,
+  .android-webview .backdrop-blur-xl,
+  .android-webview .backdrop-blur-2xl,
+  .android-webview .backdrop-blur-3xl {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -327,8 +337,8 @@
   }
   
   /* 
-   * PRIMARY ACTION: "Matrix Core" Button Style
-   * A capsule of energy.
+   * PRIMARY ACTION: "Lux Core" Button Style
+   * Used for the main call-to-action (Initialize, Sync, Commit)
    */
   .glass-button {
     @apply rounded-full bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white font-medium shadow-lg transition-all duration-300;
@@ -402,13 +412,13 @@
     box-shadow: 0 0 20px rgba(79, 70, 229, 0.1);
   }
 
-  .matrix-gradient-text {
+  .lux-gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x;
     background-size: 200% auto;
   }
 
-  .matrix-border-glow {
-    animation: matrix-pulse-glow 3s infinite;
+  .lux-border-glow {
+    animation: lux-pulse-glow 3s infinite;
   }
 }
 
@@ -439,7 +449,7 @@
   100% { background-position: 200% 50%; }
 }
 
-@keyframes matrix-pulse-glow {
+@keyframes lux-pulse-glow {
   0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
   50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.6); }
 }

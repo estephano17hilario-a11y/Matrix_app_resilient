@@ -91,7 +91,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Protocol Limit Reached</h2>
                 <p className="text-white/60 mb-8">
-                    Free initiates are limited to 3 active Smart Tasks. Complete existing tasks or upgrade to Matrix PRO for unlimited access.
+                    Free initiates are limited to 3 active Smart Tasks. Complete existing tasks or upgrade to Lux PRO for unlimited access.
                 </p>
                 <button 
                     onClick={onCancel} // In a real scenario, this might trigger the PRO modal

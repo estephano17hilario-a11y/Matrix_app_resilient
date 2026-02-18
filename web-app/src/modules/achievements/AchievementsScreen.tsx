@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { ACHIEVEMENTS, AchievementCategory, Achievement, TRAIT_ICONS } from '../../config/achievements';
 import { Lock, Trophy } from 'lucide-react';
 import { AuroraBackground } from '../../components/AuroraBackground';
@@ -149,7 +149,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 export const AchievementsScreen: React.FC = () => {
-  const { user } = useMatrix();
+  const { user } = useLux();
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'ALL'>('ALL');
   const [selectedTrait, setSelectedTrait] = useState<string | null>(null);

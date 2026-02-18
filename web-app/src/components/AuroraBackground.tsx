@@ -92,7 +92,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
                     delay: h.delay,
                     ease: "linear",
                   }}
-                  className={`absolute flex items-center justify-center whitespace-nowrap ${h.type === 'text' ? 'text-emerald-200/30 font-serif italic tracking-wider' : 'text-emerald-300/20'}`}
+                  className={`absolute flex items-center justify-center whitespace-nowrap will-change-transform ${h.type === 'text' ? 'text-emerald-200/30 font-serif italic tracking-wider' : 'text-emerald-300/20'}`}
                   style={{ 
                     left: h.left,
                     fontSize: h.type === 'text' ? '1.5rem' : undefined,

@@ -2,11 +2,12 @@ import {
   User
 } from 'firebase/auth';
 
-// --- MATRIX LOCAL PROTOCOL (OFFLINE-FIRST) ---
-// "The Construct" - A pure local simulation of the database.
+// --- LUX LOCAL PROTOCOL (OFFLINE-FIRST) ---
+// "The Core" - A pure local simulation of the database.
 // Replaces Google Firebase to ensure 100% Privacy and Reliability.
 
-const STORAGE_PREFIX = 'matrix_v1_';
+const STORAGE_PREFIX = 'lux_v1_';
+const LEGACY_PREFIX = 'matrix_v1_';
 
 // --- MOCK TYPES ---
 export interface DocumentReference {
@@ -30,8 +31,17 @@ const dispatchUpdate = (path: string) => {
 };
 
 const getLocalData = (path: string) => {
-  const data = localStorage.getItem(STORAGE_PREFIX + path);
-  return data ? JSON.parse(data) : null;
+  let raw = localStorage.getItem(STORAGE_PREFIX + path);
+  if (!raw) {
+    // Try legacy migration
+    const legacy = localStorage.getItem(LEGACY_PREFIX + path);
+    if (legacy) {
+      raw = legacy;
+      localStorage.setItem(STORAGE_PREFIX + path, legacy);
+      // localStorage.removeItem(LEGACY_PREFIX + path); // Keep for safety
+    }
+  }
+  return raw ? JSON.parse(raw) : null;
 };
 
 const setLocalData = (path: string, data: any) => {
@@ -217,9 +227,9 @@ export const onAuthStateChanged = (_authInstance: any, callback: (user: User | n
 export const signInWithPopup = async (_authInstance: any, _provider: any) => {
   // Simulate successful login
   const mockUser: User = {
-    uid: 'local_neo_v1',
-    displayName: 'Neo (Local)',
-    email: 'neo@matrix.local',
+    uid: 'local_operator_v1',
+    displayName: 'Operator (Local)',
+    email: 'operator@lux.local',
     emailVerified: true,
     isAnonymous: false,
     metadata: {},
@@ -254,7 +264,7 @@ export const signInWithPopup = async (_authInstance: any, _provider: any) => {
 };
 
 export const signOut = async (_authInstance: any) => {
-  console.log('Matrix: Disconnected from Construct');
+  console.log('Lux: Disconnected from Core');
   notifyAuthListeners(null);
 };
 

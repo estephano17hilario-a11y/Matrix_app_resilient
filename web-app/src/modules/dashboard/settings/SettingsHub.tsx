@@ -34,8 +34,8 @@ interface SettingsHubProps {
   onClose: () => void;
   onShowPro?: () => void;
   isPro?: boolean;
-  dashboardStyle?: 'BORDER' | 'LIQUID';
-  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID') => void;
+  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
+  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
   vividMode?: boolean;
@@ -65,7 +65,7 @@ export const SettingsHub = (props: SettingsHubProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-8 bg-black/60 backdrop-blur-md"
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-lg"
     >
       {/* MAIN CONTAINER - THE HUB */}
       <motion.div 
@@ -161,8 +161,14 @@ export const SettingsHub = (props: SettingsHubProps) => {
         <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-900/20 to-black">
           {/* Background Elements */}
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px]" />
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px]" />
+            <div
+              className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-60"
+              style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }}
+            />
+            <div
+              className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-60"
+              style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 70%)' }}
+            />
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
           </div>
 
@@ -170,9 +176,9 @@ export const SettingsHub = (props: SettingsHubProps) => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSection}
-                initial={{ opacity: 0, x: 20, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, x: -20, filter: 'blur(4px)' }}
+                initial={{ opacity: 0, x: 20, scale: 0.98 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -20, scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="h-full"
               >

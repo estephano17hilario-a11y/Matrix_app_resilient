@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { Habit, Note, Project, Quest } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
 import { MissionCard } from './components/MissionCard';
@@ -49,7 +49,7 @@ export const NexusView: React.FC<{
   onClose,
   onSelectProject
 }) => {
-  const { user } = useMatrix();
+  const { user } = useLux();
   const { t } = useTranslation();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(targetSmartProjectId || null);
 
@@ -63,6 +63,9 @@ export const NexusView: React.FC<{
     setSelectedProjectId(projectId);
     if (onSelectProject) {
         onSelectProject(projectId);
+    }
+    if (onToggleImmersive) {
+      onToggleImmersive(!!projectId);
     }
   };
 

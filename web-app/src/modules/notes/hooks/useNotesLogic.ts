@@ -3,6 +3,7 @@ import { Note, JournalEntry } from '../../../types';
 import { persistenceService } from '../../../services/persistenceService';
 import { useAuth } from '../../../context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
+import { db, doc, getDoc, updateDoc } from '../../../services/firebase';
 
 export const useNotesLogic = () => {
     const { user, profile } = useAuth();
@@ -44,10 +45,33 @@ export const useNotesLogic = () => {
         });
 
         // Persistence
-        if (notes.some(n => n.id === note.id)) {
+        const isNew = !notes.some(n => n.id === note.id);
+        
+        if (!isNew) {
             await persistenceService.notes.update(user.uid, note.id, note);
         } else {
             await persistenceService.notes.save(user.uid, note);
+            
+            // UPDATE STREAK PROTOCOL (Notes/Journaling)
+            const userRef = doc(db, 'users', user.uid);
+            getDoc(userRef).then(snap => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const today = new Date().toISOString().split('T')[0];
+                    let limits = data.dailyLimits || {};
+                    
+                    if (limits.date !== today) {
+                        limits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, notesCompleted: 0 };
+                    }
+                    
+                    updateDoc(userRef, {
+                        dailyLimits: {
+                            ...limits,
+                            notesCompleted: (limits.notesCompleted || 0) + 1
+                        }
+                    }).catch(console.error);
+                }
+            });
         }
     }, [user?.uid, notes]);
 
@@ -77,10 +101,33 @@ export const useNotesLogic = () => {
         });
 
         // Persistence
-        if (journalEntries.some(e => e.id === entry.id)) {
+        const isNew = !journalEntries.some(e => e.id === entry.id);
+
+        if (!isNew) {
             await persistenceService.journal.update(user.uid, entry.id, entry);
         } else {
             await persistenceService.journal.save(user.uid, entry);
+            
+            // UPDATE STREAK PROTOCOL (Notes/Journaling)
+            const userRef = doc(db, 'users', user.uid);
+            getDoc(userRef).then(snap => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const today = new Date().toISOString().split('T')[0];
+                    let limits = data.dailyLimits || {};
+                    
+                    if (limits.date !== today) {
+                        limits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, notesCompleted: 0 };
+                    }
+                    
+                    updateDoc(userRef, {
+                        dailyLimits: {
+                            ...limits,
+                            notesCompleted: (limits.notesCompleted || 0) + 1
+                        }
+                    }).catch(console.error);
+                }
+            });
         }
     }, [user?.uid, journalEntries]);
 

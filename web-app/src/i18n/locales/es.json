@@ -20,7 +20,7 @@
     "traits": {
       "title": "Selecciona tus Objetivos",
       "subtitle": "Elige 5 áreas para mejorar ({{count}}/5)",
-      "button": "Inicializar Matrix"
+      "button": "Inicializar Lux"
     },
     "saving": {
       "title": "Configurando Realidad..."
@@ -35,7 +35,7 @@
       "footerAction": "Registrarse"
     },
     "register": {
-      "title": "Únete a la Matrix",
+      "title": "Únete a Lux",
       "subtitle": "Inicializa tu enlace neural",
       "button": "Crear Cuenta",
       "footer": "¿Ya tienes cuenta?",
@@ -183,14 +183,14 @@
         "redemption_token": { "name": "Restauración de Racha", "desc": "Repara una racha rota. Una segunda oportunidad para la perfección." },
         "freeze_streak": { "name": "Congelar Tiempo", "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado." },
         "theme_neon_purple": { "name": "Protocolo Nébula", "desc": "Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk." },
-        "theme_matrix_green": { "name": "Código Fuente", "desc": "Verde Matrix Clásico. El flujo de datos crudo." },
+        "theme_matrix_green": { "name": "Código Fuente", "desc": "Verde Digital Clásico. El flujo de datos crudo." },
         "theme_apple_minimal": { "name": "Cristal Cupertino", "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad." }
     }
   },
   "achievements": {
     "title": "Logros",
     "subtitle": "Tu viaje hacia la maestría",
-    "loading": "Cargando matriz de logros...",
+    "loading": "Cargando datos de logros...",
     "sync": "Sincronización",
     "currency": "XP",
     "empty": "No hay logros en esta categoría.",
@@ -208,7 +208,7 @@
     "arcs": {
       "initiate": {
         "title": "El Iniciado",
-        "desc": "Tus primeros pasos en la Matrix."
+        "desc": "Tus primeros pasos en Lux."
       },
       "theone": {
         "title": "El Elegido",
@@ -294,7 +294,7 @@
     "userLabel": "OPERADOR",
     "systemLabel": "SISTEMA ORÁCULO",
     "placeholder": "Pregunta al Oráculo...",
-    "welcome": "Soy el Oráculo. La Matrix está conectada. ¿Cómo puedo asistirte, Operador?",
+    "welcome": "Soy el Oráculo. Lux está conectado. ¿Cómo puedo asistirte, Operador?",
     "error": "Conexión con el Núcleo de Inteligencia interrumpida."
   },
   "strategicMap": {
@@ -509,7 +509,7 @@
   },
   "settings": {
     "title": "Configuración del Sistema",
-    "subtitle": "Preferencias del Entorno Matrix",
+    "subtitle": "Preferencias del Entorno Lux",
     "tabs": {
       "design": "Diseño",
       "controls": "Controles",
@@ -562,6 +562,18 @@
     ]
   },
   "traits": {
+    "DISCIPLINA": "Disciplina",
+    "FISICO": "Físico",
+    "MENTAL": "Mental",
+    "SOCIAL": "Social",
+    "ESPIRITU": "Espíritu",
+    "FINANZAS": "Finanzas",
+    "CREATIVIDAD": "Creatividad",
+    "ORDEN": "Orden",
+    "LIDERAZGO": "Liderazgo",
+    "RESILIENCIA": "Resiliencia",
+    "VITALIDAD": "Vitalidad",
+    "ESTILO": "Estilo",
       "disciplina": { 
           "label": "Disciplina", 
           "desc": "Voluntad inquebrantable.",

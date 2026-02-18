@@ -15,6 +15,10 @@ console.error = (...args) => {
 
 console.log('MAIN: Mounting application...');
 
+if (/Android/i.test(navigator.userAgent)) {
+    document.documentElement.classList.add('android-webview');
+}
+
 createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <App />

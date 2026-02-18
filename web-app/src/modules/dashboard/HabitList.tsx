@@ -4,6 +4,7 @@ import { Habit, Attribute } from '../../types';
 import { HabitItem } from './components/HabitItem';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { useTranslation } from 'react-i18next';
+import { DAILY_LIMITS } from './constants';
 
 interface HabitListProps {
   habits: Habit[];
@@ -20,7 +21,10 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
   const completedHabits = habits.filter(h => h.completedToday).length;
   const streak = habits.reduce((acc, h) => acc + h.streak, 0);
   
-  // 75% Rule Logic
+  // Cognitive Load Limit (Top 12)
+  const limit = DAILY_LIMITS.HABITS.MAX_COUNT;
+
+  // 75% Rule Logic (Still applies for "Safe Protocol")
   const minTarget = Math.ceil(totalHabits * 0.75);
   const isSafe = completedHabits >= minTarget;
   const deficit = isSafe ? 0 : minTarget - completedHabits;
@@ -37,7 +41,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
           <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold relative z-10">{t('habits.streak')}</span>
         </GlassPanel>
 
-        {/* DAILY PROTOCOL STATUS (New Requirement) */}
+        {/* DAILY PROTOCOL STATUS */}
         <GlassPanel className={`col-span-2 p-3 flex flex-row items-center justify-between bg-white/5 border-white/5 relative overflow-hidden group`}>
            <div className={`absolute inset-0 opacity-20 transition-colors duration-500 ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'}`} />
            
@@ -72,16 +76,41 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
         </GlassPanel>
       </div>
 
-      <h2 className="text-xl font-bold text-white tracking-tight px-1 mb-4">{t('habits.dailyProtocols')}</h2>
+      <div className="flex items-center justify-between px-1 mb-4">
+        <h2 className="text-xl font-bold text-white tracking-tight">{t('habits.dailyProtocols')}</h2>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 border border-white/5">
+             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+             <span className="text-[9px] font-bold text-white/50 uppercase tracking-widest">
+                 XP Limit: {limit}
+             </span>
+        </div>
+      </div>
+
       <div className="space-y-3 pb-32">
-        {habits.map(habit => (
-          <HabitItem 
-            key={habit.id} 
-            habit={habit} 
-            attribute={attributeMap.get(habit.attribute)} 
-            onComplete={onCompleteHabit}
-          />
-        ))}
+        {habits.map((habit, index) => {
+          const isOverLimit = index >= limit;
+          const isLimitBoundary = index === limit;
+
+          return (
+            <React.Fragment key={habit.id}>
+                {isLimitBoundary && (
+                    <div className="relative py-4 flex items-center justify-center opacity-60">
+                        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                        <span className="relative bg-[#020204] px-3 text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] border border-white/5 rounded-full py-0.5">
+                            Carga Cognitiva Máxima (No XP)
+                        </span>
+                    </div>
+                )}
+                <div className={isOverLimit ? "opacity-50 grayscale transition-all duration-300 hover:opacity-80 hover:grayscale-0" : ""}>
+                    <HabitItem 
+                        habit={habit} 
+                        attribute={attributeMap.get(habit.attribute)} 
+                        onComplete={onCompleteHabit}
+                    />
+                </div>
+            </React.Fragment>
+          );
+        })}
         {habits.length === 0 && (
              <div className="py-10 text-center text-white/20 italic">
                 {t('habits.empty')}

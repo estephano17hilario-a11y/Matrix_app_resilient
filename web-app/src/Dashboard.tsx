@@ -657,6 +657,7 @@ export default function Dashboard() {
                                     avatarShape={avatarShape}
                                     onUpdateLevel={updatePlayerLevel}
                                     isHabitsCompleted={isHabitsCompleted}
+                                    dailyLimits={user?.dailyLimits}
                                 />
                             </div>
                         </div>
@@ -664,7 +665,7 @@ export default function Dashboard() {
                         {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
                         {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
                              <div className={cn(
-                                "px-4 sm:px-6 max-w-md mx-auto mt-6 mb-4",
+                                "px-4 sm:px-6 max-w-md mx-auto mt-2 mb-6",
                                 stickyHud ? "sticky top-4 z-[300]" : "relative z-[290]"
                              )}>
                                 <PlayerHUD 
@@ -721,6 +722,7 @@ export default function Dashboard() {
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
                                             onOpenNexus={handleOpenNexus}
+                                            dailyLimits={user?.dailyLimits}
                                         />
                                     </>
                                 ) : (
@@ -838,7 +840,10 @@ export default function Dashboard() {
                                         projects={projects} 
                                         attributes={attributes} 
                                         onCompleteSession={handleCompleteSession} 
-                                        onOpenProjectModal={() => setActiveModal('PROJECT')} 
+                                        onOpenProjectModal={(project) => {
+                                            if (project) setModalInitialContext(project);
+                                            setActiveModal('PROJECT');
+                                        }} 
                                         setFocusMode={handleFocusModeChange} 
                                         onUpdateProject={handleUpdateProject}
                                         addNotification={addNotification}

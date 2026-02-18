@@ -1,9 +1,9 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ClipboardList, Flame, ChevronDown, Brain, Map as MapIcon, ShoppingBag } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ClipboardList, Flame, ChevronDown, Brain, Map as MapIcon, ShoppingBag, Zap, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' }) => {
+export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' }) => {
     const { t } = useTranslation();
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };
     
@@ -15,6 +15,143 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     const handleModal = (m: string) => { onOpenModal(m); onToggle(false); };
 
     const isLiquid = dashboardStyle === 'LIQUID';
+    const isGlass = dashboardStyle === 'GLASS';
+    
+    // --- GLASS STYLE (VISION OS) ---
+    if (isGlass) {
+        return (
+            <motion.div 
+                initial={false}
+                animate={{ y: isHidden ? '200%' : '0%' }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="fixed bottom-8 left-0 right-0 z-[400] flex justify-center pointer-events-none"
+            >
+                <motion.div 
+                    layout
+                    initial={false}
+                    animate={{ 
+                        height: isOpen ? 420 : 72,
+                        width: '92vw',
+                        maxWidth: 380, // Increased size as requested
+                        borderRadius: 36
+                    }}
+                    transition={{ 
+                        type: "spring", 
+                        stiffness: 350, 
+                        damping: 30,
+                        mass: 0.8
+                    }}
+                    className="pointer-events-auto relative bg-[#0a0a0a]/60 backdrop-blur-lg border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
+                >
+                    {/* Fake Glass Shine */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 z-0" />
+
+                    {/* EXPANDED MENU CONTENT */}
+                    <div className={`absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2 transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0 delay-100' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                        <button onClick={() => handleModal('QUEST')} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center text-orange-400 border border-orange-500/20 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+                                    <Crosshair size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <span className="block text-white font-bold text-sm">New Mission</span>
+                                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Single Task</span>
+                                </div>
+                            </div>
+                            <Plus size={18} className="text-white/20 group-hover:text-white transition-colors" />
+                        </button>
+                        
+                        {[
+                            { id: 'HABIT', label: 'Habit', icon: InfinityIcon, color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/20', action: () => handleModal('HABIT') },
+                            { id: 'PROJECT', label: 'Focus', icon: Target, color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/20', action: () => handleModal('PROJECT') },
+                            { id: 'STRATEGY', label: 'Map', icon: MapIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20', border: 'border-indigo-500/20', action: () => handleView('STRATEGY') },
+                            { id: 'STORE', label: 'Store', icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/20', action: () => handleView('STORE') }
+                        ].map((item) => (
+                            <button 
+                                key={item.id}
+                                onClick={item.action}
+                                className="relative z-10 h-24 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex flex-col items-center justify-center gap-2 group"
+                            >
+                                <div className={`w-9 h-9 rounded-full ${item.bg} flex items-center justify-center ${item.color} border ${item.border} group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(0,0,0,0)] group-hover:shadow-[0_0_15px_${item.color.replace('text-', 'rgba(').replace('-400', ',0.2)')}]`}>
+                                    <item.icon size={16} />
+                                </div>
+                                <span className="text-[10px] font-bold text-white/80">{item.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* MAIN DOCK BAR (Fixed at bottom of container) */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[72px] px-6 flex items-center justify-between gap-2 z-20">
+                        {/* TASKS */}
+                        <button 
+                            onClick={() => handleSmartNav('TASKS')}
+                            className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
+                        >
+                            <div className={`relative transition-all duration-300 ${currentView === 'TASKS' ? 'text-cyan-400 scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
+                                {currentView === 'TASKS' && <div className="absolute inset-0 bg-cyan-400/20 rounded-full blur-md" />}
+                                <ClipboardList size={22} strokeWidth={currentView === 'TASKS' ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'TASKS' ? 'text-white' : 'text-white/30'}`}>TASKS</span>
+                        </button>
+
+                        {/* HABITS */}
+                        <button 
+                            onClick={() => handleSmartNav('HABITS')}
+                            className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
+                        >
+                            <div className={`relative transition-all duration-300 ${currentView === 'HABITS' ? 'text-cyan-400 scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
+                                {currentView === 'HABITS' && <div className="absolute inset-0 bg-cyan-400/20 rounded-full blur-md" />}
+                                <Zap size={22} strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'HABITS' ? 'text-white' : 'text-white/30'}`}>HABITS</span>
+                        </button>
+
+                        {/* CENTER ACTION BUTTON */}
+                        <div className="px-0 relative z-10 shrink-0">
+                            <button 
+                                onClick={() => onToggle(!isOpen)}
+                                className={`
+                                    w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                                    ${isOpen 
+                                        ? 'bg-zinc-800/80 rotate-45 border border-white/10 text-white hover:bg-zinc-700' 
+                                        : 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)]'
+                                    }
+                                `}
+                            >
+                                <Plus size={24} strokeWidth={2.5} />
+                            </button>
+                        </div>
+
+                        {/* FOCUS */}
+                        <button 
+                            onClick={() => handleSmartNav('FOCUS')}
+                            className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
+                        >
+                            <div className={`relative transition-all duration-300 ${currentView === 'FOCUS' ? 'text-cyan-400 scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
+                                {currentView === 'FOCUS' && <div className="absolute inset-0 bg-cyan-400/20 rounded-full blur-md" />}
+                                <Target size={22} strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30'}`}>FOCUS</span>
+                        </button>
+
+                        {/* STATS */}
+                        <button 
+                            onClick={() => handleSmartNav('NOTES')}
+                            className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
+                        >
+                            <div className={`relative transition-all duration-300 ${currentView === 'NOTES' ? 'text-cyan-400 scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
+                                {currentView === 'NOTES' && <div className="absolute inset-0 bg-cyan-400/20 rounded-full blur-md" />}
+                                <Activity size={22} strokeWidth={currentView === 'NOTES' ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'NOTES' ? 'text-white' : 'text-white/30'}`}>STATS</span>
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        );
+    }
+
+    // --- LEGACY STYLES (BORDER / LIQUID) ---
     
     // Shared base classes: Glass effect, positioning, sizing
     // REMOVED BACKDROP BLUR for stability

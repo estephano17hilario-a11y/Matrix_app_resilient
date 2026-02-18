@@ -85,7 +85,10 @@ const MiniLiquidBar = ({  value,
   );
 };
 
+import { StreakStatusModal } from './StreakStatusModal';
+
 export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, avatarId, avatarShape = 'CIRCLE', onUpdateLevel, isHabitsCompleted = false }: AvatarWidgetProps) => {
+    const [showStreakModal, setShowStreakModal] = React.useState(false);
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;
@@ -99,6 +102,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     } : {};
 
     return (
+    <>
     <div className="flex items-center gap-4 opacity-100 translate-x-0 w-auto pl-1">
         {/* AVATAR - RESTORED & CENTERED */}
         <div className="relative group active:scale-95 transition-transform shrink-0">
@@ -118,7 +122,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             
             {/* Level Badge - Minimalist Corner Circle */}
             <div 
-                className="absolute -bottom-1 -right-1 w-5 h-5 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-all shadow-lg group-hover:scale-110"
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-all shadow-lg group-hover:scale-110"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (onUpdateLevel) {
@@ -132,7 +136,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                     }
                 }}
             >
-                 <span className="text-[9px] font-bold text-white font-mono">{level}</span>
+                 <span className="text-[10px] font-bold text-white font-mono">{level}</span>
             </div>
         </div>
 
@@ -152,7 +156,9 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                         {displayName || 'Neo'}
                     </span>
                     {streak > 0 && (
-                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 ${
+                        <div 
+                            onClick={() => setShowStreakModal(true)}
+                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 cursor-pointer hover:bg-white/10 ${
                             isHabitsCompleted 
                                 ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
                                 : "bg-white/5 border-white/10"
@@ -188,5 +194,14 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             </div>
         </div>
     </div>
+    {dailyLimits && (
+        <StreakStatusModal
+            isOpen={showStreakModal}
+            onClose={() => setShowStreakModal(false)}
+            dailyLimits={dailyLimits}
+            streak={streak}
+        />
+    )}
+    </>
   );
 });

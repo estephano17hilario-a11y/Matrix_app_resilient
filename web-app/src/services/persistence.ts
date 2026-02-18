@@ -32,6 +32,28 @@ const hashString = (input: string) => {
 const buildProfileKey = (uid: string) => `${KEYS.PROFILE}:${uid}`;
 const buildCollectionKey = (uid: string, collectionName: string) => `${KEYS.COLLECTION_PREFIX}:${uid}:${collectionName}`;
 
+const findLatestProfileUid = () => {
+  try {
+    const prefix = `${KEYS.PROFILE}:`;
+    let latestUid = '';
+    let latestTs = 0;
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i) || '';
+      if (!key.startsWith(prefix) || !key.endsWith('_TS')) continue;
+      const tsRaw = localStorage.getItem(key);
+      const ts = tsRaw ? parseInt(tsRaw, 10) : 0;
+      if (!Number.isFinite(ts) || ts <= latestTs) continue;
+      const uid = key.slice(prefix.length, key.length - 3);
+      if (!uid) continue;
+      latestUid = uid;
+      latestTs = ts;
+    }
+    return latestUid;
+  } catch {
+    return '';
+  }
+};
+
 const buildEnvelope = <T>(uid: string, data: T): PersistedEnvelope<T> => {
   const payload = JSON.stringify({ v: STORAGE_VERSION, uid, data });
   return {
@@ -93,7 +115,7 @@ export const PersistenceService = {
 
   getProfile: (uid?: string): UserProfile | null => {
     try {
-      const resolvedUid = uid || sessionStorage.getItem(KEYS.SESSION_UID) || '';
+      const resolvedUid = uid || sessionStorage.getItem(KEYS.SESSION_UID) || findLatestProfileUid();
       if (!resolvedUid) return null;
       const key = buildProfileKey(resolvedUid);
       return readWithBackup<UserProfile>(key, resolvedUid);

@@ -255,22 +255,33 @@ export function OnboardingFlow() {
             {step === 'traits' && (
               <div key="traits" className="w-full flex flex-col items-center pb-32">
                   <div className="text-center mb-10 flex-shrink-0 max-w-2xl mx-auto px-4">
-                      <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4">
-                          {t('onboarding.traits.title')}
-                      </h1>
-                      <p className="text-white/60 text-lg">
-                          {t('onboarding.traits.subtitle', { count: selectedTraits.length })}
-                          {selectedTraits.length < 3 && (
-                             <span className="block text-sm text-red-400 mt-2 font-medium">
-                               ({t('common.selectAtLeast', { count: 3 }) || `Select at least 3 (Selected: ${selectedTraits.length})`})
-                             </span>
-                          )}
-                      </p>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4"
+                      >
+                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-xl">
+                            {t('onboarding.traits.title')}
+                        </h1>
+                        <p className="text-white/60 text-lg font-light tracking-wide">
+                            {t('onboarding.traits.subtitle', { count: selectedTraits.length })}
+                        </p>
+                      </motion.div>
+                      
+                      {selectedTraits.length < 3 && (
+                         <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="text-sm text-red-400 mt-2 font-medium bg-red-500/10 py-2 px-4 rounded-full inline-block border border-red-500/20 backdrop-blur-sm"
+                         >
+                           {t('common.selectAtLeast', { count: 3 }) || `Select at least 3 (Selected: ${selectedTraits.length})`}
+                         </motion.div>
+                      )}
                   </div>
 
                   <div className="w-full max-w-5xl mx-auto px-4">
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                          {TRAITS_LIST.map((trait) => {
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {TRAITS_LIST.map((trait, index) => {
                               const isSelected = selectedTraits.includes(trait.id);
                               const isMaxReached = !isSelected && selectedTraits.length >= 5;
                               
@@ -278,61 +289,94 @@ export function OnboardingFlow() {
                                   <motion.button
                                       key={trait.id}
                                       layoutId={trait.id}
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ 
+                                          opacity: isMaxReached ? 0.3 : 1, 
+                                          scale: 1,
+                                          filter: isMaxReached ? 'grayscale(100%)' : 'grayscale(0%)'
+                                      }}
+                                      transition={{ delay: index * 0.05 }}
                                       onClick={() => toggleTrait(trait.id)}
                                       disabled={isMaxReached}
-                                      whileHover={!isMaxReached ? { scale: 1.05 } : {}}
+                                      whileHover={!isMaxReached ? { scale: 1.03, y: -2 } : {}}
                                       whileTap={!isMaxReached ? { scale: 0.95 } : {}}
-                                      className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-3xl transition-all duration-300 aspect-square group overflow-hidden ${
+                                      className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-3xl transition-all duration-300 aspect-square group overflow-hidden border backdrop-blur-md ${
                                           isSelected 
-                                              ? 'bg-white/20 ring-2 ring-white shadow-[0_0_30px_rgba(255,255,255,0.2)]' 
-                                              : isMaxReached
-                                                  ? 'opacity-20 grayscale cursor-not-allowed bg-white/5'
-                                                  : 'bg-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'
+                                              ? 'bg-white/10 border-white/50 shadow-[0_0_30px_rgba(255,255,255,0.15)]' 
+                                              : 'bg-[#0a0a0a]/40 border-white/5 hover:bg-white/5 hover:border-white/20'
                                       }`}
                                   >
-                                      <div 
-                                          className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300"
-                                          style={{ backgroundColor: trait.color }}
-                                      />
+                                      {/* Selection Glow Background */}
                                       {isSelected && (
-                                          <div 
-                                              className="absolute inset-0 opacity-20 animate-pulse"
-                                              style={{ backgroundColor: trait.color }}
+                                          <motion.div 
+                                              layoutId="selection-glow"
+                                              className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" 
+                                              transition={{ duration: 0.3 }}
                                           />
                                       )}
+                                      
+                                      {/* Colored Glow Spot */}
+                                      <div 
+                                          className={`absolute inset-0 opacity-0 transition-opacity duration-500 blur-xl ${isSelected ? 'opacity-20' : 'group-hover:opacity-10'}`}
+                                          style={{ backgroundColor: trait.color }}
+                                      />
 
-                                      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${
-                                          isSelected ? 'bg-white text-black scale-110' : 'bg-white/10 text-white'
-                                      }`} style={{ color: isSelected ? trait.color : undefined }}>
-                                          <trait.icon size={24} />
+                                      {/* Icon Container */}
+                                      <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${
+                                          isSelected 
+                                            ? 'bg-white text-black shadow-lg scale-110' 
+                                            : 'bg-white/5 text-white/70 group-hover:bg-white/10 group-hover:text-white'
+                                      }`} style={{ 
+                                          color: isSelected ? trait.color : undefined,
+                                          boxShadow: isSelected ? `0 0 20px ${trait.color}40` : 'none'
+                                      }}>
+                                          <trait.icon size={26} strokeWidth={isSelected ? 2.5 : 1.5} />
                                       </div>
                                       
-                                      <span className={`text-[11px] sm:text-xs font-bold uppercase tracking-wider text-center relative z-10 w-full px-1 leading-tight line-clamp-2 ${
-                                          isSelected ? 'text-white' : 'text-white/70'
+                                      {/* Label */}
+                                      <span className={`text-xs font-bold uppercase tracking-wider text-center relative z-10 w-full px-1 leading-tight transition-colors duration-300 ${
+                                          isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
                                       }`}>
                                           {t(trait.label)}
                                       </span>
 
-                                      {isSelected && (
-                                          <div className="absolute top-3 right-3 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-lg z-20">
-                                              <CheckCircle2 size={12} className="text-black" />
-                                          </div>
-                                      )}
+                                      {/* Checkmark Badge */}
+                                      <AnimatePresence>
+                                        {isSelected && (
+                                            <motion.div 
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0, opacity: 0 }}
+                                                className="absolute top-3 right-3 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg z-20"
+                                            >
+                                                <CheckCircle2 size={14} className="text-black" strokeWidth={3} />
+                                            </motion.div>
+                                        )}
+                                      </AnimatePresence>
                                   </motion.button>
                               );
                           })}
                       </div>
                   </div>
 
+                  {/* Floating Action Button */}
                   <div className="fixed bottom-10 left-0 right-0 flex justify-center z-50 pointer-events-none">
                       <motion.button
-                          initial={{ opacity: 0, y: 50 }}
-                          animate={{ opacity: selectedTraits.length >= 3 ? 1 : 0.5, y: 0 }}
+                          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                          animate={{ 
+                              opacity: selectedTraits.length >= 3 ? 1 : 0, 
+                              y: selectedTraits.length >= 3 ? 0 : 50,
+                              scale: selectedTraits.length >= 3 ? 1 : 0.9
+                          }}
                           disabled={selectedTraits.length < 3}
                           onClick={handleNext}
-                          className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-xl shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] transition-all flex items-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none active:scale-95"
+                          className="pointer-events-auto relative overflow-hidden group bg-white text-black px-12 py-5 rounded-full font-bold text-xl shadow-[0_0_50px_rgba(255,255,255,0.3)] hover:shadow-[0_0_80px_rgba(255,255,255,0.5)] transition-all flex items-center gap-3 disabled:pointer-events-none"
                       >
-                          {t('onboarding.traits.button')} <ArrowRight className="w-6 h-6" />
+                          <span className="relative z-10">{t('onboarding.traits.button')}</span>
+                          <ArrowRight className="w-6 h-6 relative z-10 group-hover:translate-x-1 transition-transform" />
+                          
+                          {/* Shimmer Effect */}
+                          <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent z-0" />
                       </motion.button>
                   </div>
               </div>

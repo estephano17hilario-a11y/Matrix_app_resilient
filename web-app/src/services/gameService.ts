@@ -3,7 +3,7 @@ import { RewardPrediction } from "../utils/rewardCalculator";
 
 /**
  * SERVICE: Game Logic & Transactions
- * Handles the "Matrix" core mechanics: Rewards, Leveling, Stats.
+ * Handles the "Lux" core mechanics: Rewards, Leveling, Stats.
  */
 
 export const completeTaskTransaction = async (

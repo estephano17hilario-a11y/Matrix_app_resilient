@@ -139,7 +139,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
                 >
                   <Sparkles size={12} className="text-indigo-400" />
                   <span className="text-[10px] font-bold tracking-widest text-indigo-300 uppercase">
-                    Matrix Intelligence
+                    Lux Intelligence
                   </span>
                 </motion.div>
 

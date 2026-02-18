@@ -20,7 +20,7 @@
     "traits": {
       "title": "Select your Focus",
       "subtitle": "Choose 5 areas to improve ({{count}}/5)",
-      "button": "Initialize Matrix"
+      "button": "Initialize Lux"
     },
     "saving": {
       "title": "Configuring Reality..."
@@ -35,7 +35,7 @@
       "footerAction": "Register"
     },
     "register": {
-      "title": "Join the Matrix",
+      "title": "Join Lux",
       "subtitle": "Initialize your neural link",
       "button": "Create Account",
       "footer": "Already have an account?",
@@ -181,14 +181,14 @@
         "redemption_token": { "name": "Streak Restoration", "desc": "Repairs a broken streak. A second chance for perfection." },
         "freeze_streak": { "name": "Time Freeze", "desc": "Freezes your streak for 24 hours. Use before a busy day." },
         "theme_neon_purple": { "name": "Nebula Protocol", "desc": "Deep Purple and Pink UI Theme. Cyberpunk aesthetic." },
-        "theme_matrix_green": { "name": "Source Code", "desc": "Classic Matrix Green. The raw data stream." },
+        "theme_matrix_green": { "name": "Source Code", "desc": "Classic Digital Rain. The raw data stream." },
         "theme_apple_minimal": { "name": "Cupertino Glass", "desc": "Ultra-clean frosted glass aesthetic. Maximum clarity." }
     }
   },
   "achievements": {
     "title": "Achievements",
     "subtitle": "Your journey to mastery",
-    "loading": "Loading achievement matrix...",
+    "loading": "Loading achievement data...",
     "sync": "Sync",
     "currency": "XP",
     "empty": "No achievements in this category.",
@@ -206,7 +206,7 @@
     "arcs": {
       "initiate": {
         "title": "The Initiate",
-        "desc": "Your first steps in the Matrix."
+        "desc": "Your first steps in Lux."
       },
       "theone": {
         "title": "The One",
@@ -289,7 +289,7 @@
     "userLabel": "OPERATOR",
     "systemLabel": "ORACLE SYSTEM",
     "placeholder": "Ask the Oracle...",
-    "welcome": "I am the Oracle. The Matrix is connected. How may I assist you, Operator?",
+    "welcome": "I am the Oracle. Lux is connected. How may I assist you, Operator?",
     "error": "Connection to the Intelligence Core interrupted."
   },
   "strategicMap": {
@@ -504,7 +504,7 @@
   },
   "settings": {
     "title": "System Config",
-    "subtitle": "Matrix Environment Preferences",
+    "subtitle": "Lux Environment Preferences",
     "tabs": {
       "design": "Design",
       "controls": "Controls",
@@ -557,6 +557,18 @@
     ]
   },
   "traits": {
+    "DISCIPLINA": "Discipline",
+    "FISICO": "Physical",
+    "MENTAL": "Mental",
+    "SOCIAL": "Social",
+    "ESPIRITU": "Spirit",
+    "FINANZAS": "Finance",
+    "CREATIVIDAD": "Creativity",
+    "ORDEN": "Order",
+    "LIDERAZGO": "Leadership",
+    "RESILIENCIA": "Resilience",
+    "VITALIDAD": "Vitality",
+    "ESTILO": "Style",
       "disciplina": { 
           "label": "Discipline", 
           "desc": "Unbreakable will.",

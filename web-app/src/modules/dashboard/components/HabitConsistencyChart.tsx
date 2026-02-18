@@ -7,7 +7,7 @@ import { cn } from '../../../utils/cn';
 import { toLocalISOString } from '../../../utils/dateUtils';
 import { TrendingUp, TrendingDown, Zap, Calendar } from 'lucide-react';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
-import { useMatrix } from '@/context/MatrixContext';
+import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
 
 interface HabitConsistencyChartProps {
@@ -29,7 +29,7 @@ const getRequiredPercentForDay = (day: number) => {
 };
 
 export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true }) => {
-    const { user } = useMatrix();
+    const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const themeColor = useMemo(() => {
         return avatarConfig?.themeColor || '#10b981';
@@ -262,13 +262,13 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
     // Color logic for the progress bar
     const getProgressColor = (percent: number, required: number) => {
-        if (percent >= required) return themeColor;
+        if (percent >= required) return '#10b981'; // Emerald-500 for success
         if (percent >= required * 0.6) return `${themeColor}CC`; // 80% opacity
         return '#f43f5e';
     };
 
     const getProgressColorStyle = (percent: number, required: number) => {
-        if (percent >= required) return { color: themeColor };
+        if (percent >= required) return { color: '#10b981' };
         if (percent >= required * 0.6) return { color: `${themeColor}CC` };
         return { color: '#fb7185' }; // rose-400
     };
@@ -304,12 +304,15 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         key={dateRangeLabel}
                         className="flex items-center"
                     >
-                        <div className={cn(
-                            "px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-sm transition-colors cursor-default border",
-                            isCurrentRange
-                                ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
-                                : "bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20"
-                        )}>
+                        <button 
+                            onClick={() => setIsDateModalOpen(true)}
+                            className={cn(
+                                "px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer border active:scale-95",
+                                isCurrentRange
+                                    ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                                    : "bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20"
+                            )}
+                        >
                             <Calendar size={10} className={cn(isCurrentRange ? "text-blue-300" : "text-amber-300")} />
                             <span className={cn(
                                 "text-[10px] font-bold tracking-wide whitespace-nowrap font-mono",
@@ -317,7 +320,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             )}>
                                 {dateRangeLabel}
                             </span>
-                        </div>
+                        </button>
                     </motion.div>
 
                     {/* Controls - Compact */}

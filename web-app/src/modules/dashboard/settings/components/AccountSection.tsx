@@ -37,7 +37,7 @@ export const AccountSection = ({
       <div className="space-y-2">
         <h2 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
           <UserCircle className="text-amber-400" size={32} />
-          Identity Matrix
+          Identity Lux
         </h2>
         <p className="text-white/40 text-lg max-w-2xl">
           Manage your digital footprint, security clearance, and session persistence.
@@ -56,7 +56,10 @@ export const AccountSection = ({
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col items-center text-center space-y-6 relative overflow-hidden">
              
              {/* Background Glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-amber-500/10 blur-[60px] pointer-events-none" />
+             <div
+               className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 pointer-events-none opacity-70"
+               style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.25) 0%, transparent 70%)' }}
+             />
 
              {/* Avatar */}
              <div className="relative z-10">
@@ -118,7 +121,7 @@ export const AccountSection = ({
                       </div>
                       <div>
                          <h4 className="text-lg font-bold text-white">
-                            {isPro ? 'Matrix Architect' : 'Standard Resident'}
+                            {isPro ? 'Lux Architect' : 'Standard Resident'}
                          </h4>
                          <p className="text-sm text-white/50">
                             {isPro ? 'Full system access granted.' : 'Limited system access.'}

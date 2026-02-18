@@ -31,8 +31,8 @@ interface SettingsViewProps {
   onClose: () => void;
   onShowPro?: () => void;
   isPro?: boolean;
-  dashboardStyle?: 'BORDER' | 'LIQUID';
-  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID') => void;
+  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
+  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
   vividMode?: boolean;
@@ -189,6 +189,12 @@ export const SettingsView = ({
                             className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all", dashboardStyle === 'LIQUID' ? "bg-white/10 text-white" : "text-white/40")}
                          >
                             Liquid
+                         </button>
+                         <button 
+                            onClick={() => onDashboardStyleChange && onDashboardStyleChange('GLASS')}
+                            className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all", dashboardStyle === 'GLASS' ? "bg-white/10 text-white" : "text-white/40")}
+                         >
+                            Glass
                          </button>
                     </div>
                 </div>

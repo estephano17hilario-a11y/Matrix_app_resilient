@@ -1,8 +1,8 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
-import { MatrixProvider } from '@/context/MatrixContext';
+import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -18,15 +18,22 @@ const Dashboard = lazy(() => import('./Dashboard'));
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
 
+  useEffect(() => {
+    if (user || profile) {
+      import('./Dashboard');
+    }
+  }, [user, profile]);
+
   // Determine what to show in the content layer
   const renderContent = () => {
     // Snappier transition for FLASH speed
     const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
 
     // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
-    const canEnterMatrix = !!user || !!profile;
+    const canEnterLux = !!user || !!profile;
+    const shouldShowLoading = isLoading && !profile;
 
-    if (isLoading || profile?.isSkeleton) {
+    if (shouldShowLoading) {
       return (
         <motion.div 
           key="loading" 
@@ -41,7 +48,7 @@ const AppRoutes = () => {
       );
     }
 
-    if (!canEnterMatrix) {
+    if (!canEnterLux) {
       return (
         <motion.div 
           key="auth" 
@@ -56,7 +63,7 @@ const AppRoutes = () => {
       );
     }
 
-    if (!profile?.onboarding?.completedAt) {
+    if (profile && !profile.isSkeleton && !profile.onboarding?.completedAt) {
       return (
         <motion.div 
           key="onboarding" 
@@ -80,13 +87,13 @@ const AppRoutes = () => {
         transition={transition}
         className="w-full h-full"
       >
-        <MatrixProvider userId={user?.uid || profile?.uid || 'phantom-user'}>
+        <LuxProvider userId={user?.uid || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <Suspense fallback={null}>
               <Dashboard />
             </Suspense>
           </EconomyProvider>
-        </MatrixProvider>
+        </LuxProvider>
       </motion.div>
     );
   };
@@ -100,7 +107,7 @@ const AppRoutes = () => {
 
       {/* 2. LAYER 1: APP CONTENT */}
       <div className="relative z-10 w-full h-full">
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {renderContent()}
         </AnimatePresence>
       </div>
@@ -118,8 +125,7 @@ export default function App() {
           toastOptions={{
             className: '',
             style: {
-              background: 'rgba(5, 5, 5, 0.95)',
-              backdropFilter: 'blur(12px)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2)), rgba(5, 5, 5, 0.95)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               color: '#fff',
               boxShadow: '0 0 40px rgba(0,0,0,0.8)',

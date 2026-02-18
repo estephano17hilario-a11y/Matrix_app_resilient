@@ -1,0 +1,26 @@
+export const GAMIFICATION_CONFIG = {
+  LEVEL_CONSTANT: 20,
+  MAX_DAILY_TASK_XP: 200,
+  MAX_DAILY_FOCUS_HOURS: 16,
+  CRITICAL_HIT_CHANCE: 0.10,
+  CRITICAL_MULTIPLIER: 1.5,
+  
+  // Base Rewards
+  TASKS: {
+    LIGHT: { XP: 10, TP: 10, COINS: 10 },
+    MID: { XP: 30, TP: 30, COINS: 30 },
+    EPIC: { XP: 60, TP: 60, COINS: 60 },
+  },
+  
+  HABITS: {
+    COGNITIVE_LOAD_LIMIT: 12,
+    PRIMARY: { XP: 10, TP: 10, COINS: 5 },
+    SECONDARY: { XP: 0, TP: 0, COINS: 5 },
+  },
+  
+  FOCUS: {
+    BASE_HOURLY: { XP: 20, TP: 25, COINS: 10 },
+    IMMERSION_THRESHOLD_MINUTES: 120,
+    IMMERSION_MULTIPLIER: 1.1,
+  }
+} as const;

@@ -1,10 +1,12 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
-import { Check, Flame, MoreVertical } from 'lucide-react';
+import { Check, Flame, MoreVertical, ChevronDown } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { QuantityUpdateModal } from './QuantityUpdateModal';
+import { ChecklistModal } from './ChecklistModal';
+import { LiquidProgressCircle } from './LiquidProgressCircle';
 
 interface HabitItemProps {
   habit: Habit;
@@ -19,6 +21,8 @@ interface HabitItemProps {
 
 export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, reduceMotion }: HabitItemProps) => {
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   
   const CustomIcon = habit.iconName && (LucideIcons as any)[habit.iconName] 
       ? (LucideIcons as any)[habit.iconName] 
@@ -46,7 +50,23 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     const newChecklist = habit.checklist.map(item => 
         item.id === itemId ? { ...item, completed: !currentStatus } : item
     );
+    
+    // Auto-completion logic
+    const allCompleted = newChecklist.every(item => item.completed);
+    
     onUpdate(habit.id, { checklist: newChecklist });
+
+    // Prepare updated habit for atomic completion
+    const updatedHabit = { ...habit, checklist: newChecklist };
+
+    // If all items are completed and habit is not, complete it.
+    if (allCompleted && !habit.completedToday) {
+        onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
+    } 
+    // If habit is completed but not all items are checked, uncomplete it.
+    else if (!allCompleted && habit.completedToday) {
+         onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
+    }
   };
 
   // Helper for time display
@@ -62,16 +82,50 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: '120px' };
 
+  const handleWrapperClick = () => {
+    if (habit.type === 'CHECKLIST') {
+        setIsExpanded(!isExpanded);
+    } else {
+        onClick?.(habit);
+    }
+  };
+
+  const percentage = React.useMemo(() => {
+    if (habit.type === 'QUANTITY') {
+        const target = habit.targetValue || 1;
+        const current = habit.currentValue || 0;
+        return Math.min(100, Math.max(0, (current / target) * 100));
+    }
+    if (habit.type === 'CHECKLIST') {
+        const total = habit.checklist?.length || 0;
+        if (total === 0) return habit.completedToday ? 100 : 0;
+        const completed = habit.checklist?.filter(i => i.completed).length || 0;
+        return Math.min(100, Math.max(0, (completed / total) * 100));
+    }
+    return habit.completedToday ? 100 : 0;
+  }, [habit.type, habit.targetValue, habit.currentValue, habit.checklist, habit.completedToday]);
+
+  const allChecklistCompleted = React.useMemo(() => {
+    if (habit.type !== 'CHECKLIST' || !habit.checklist) return false;
+    return habit.checklist.length > 0 && habit.checklist.every(i => i.completed);
+  }, [habit.checklist, habit.type]);
+
   const wrapperProps = reduceMotion
     ? {
-        onClick: () => onClick?.(habit),
-        className: "group relative bg-[#0b0b0d]/80 border border-white/10 shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80 active:scale-95",
+        onClick: handleWrapperClick,
+        className: cn(
+            "group relative bg-[#0b0b0d]/80 border shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80 active:scale-95",
+            allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/10"
+        ),
         style: wrapperStyle
       }
     : {
         whileTap: { scale: 0.98 },
-        onClick: () => onClick?.(habit),
-        className: "group relative bg-[#0b0b0d]/80 border border-white/10 shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80",
+        onClick: handleWrapperClick,
+        className: cn(
+            "group relative bg-[#0b0b0d]/80 border shadow-sm rounded-[1.5rem] p-3 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]/80",
+            allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/10"
+        ),
         style: wrapperStyle
       };
 
@@ -86,8 +140,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             style={{ backgroundColor: baseColor }}
         />
 
-      <div className="relative flex items-center gap-3">
-        {/* Left: Icon Box */}
+      <div className="relative flex items-start gap-3">
         <div 
           className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/5"
           style={{ backgroundColor: `${baseColor}20` }}
@@ -97,9 +150,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           )}
         </div>
         
-        {/* Middle: Content */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-          {/* Title */}
           <h4 className="text-white font-bold text-[16px] leading-tight tracking-tight truncate flex items-center gap-2">
             {habit.title}
             {habit.streak > 0 && (
@@ -109,90 +160,98 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             )}
           </h4>
 
-          {/* Stats Row */}
           <div className="flex items-center gap-2">
-            {/* Progress Text */}
             <span 
                 onClick={(e) => {
                     if (habit.type === 'QUANTITY' && onUpdate) {
                         e.stopPropagation();
                         setIsQuantityModalOpen(true);
+                    } else if (habit.type === 'CHECKLIST' && onUpdate) {
+                        e.stopPropagation();
+                        setIsChecklistModalOpen(true);
                     }
                 }}
                 className={cn(
                     "text-[13px] font-semibold tracking-wide opacity-90",
-                    habit.type === 'QUANTITY' && onUpdate ? "cursor-pointer hover:underline decoration-white/30 underline-offset-2 hover:text-white transition-colors" : ""
+                    (habit.type === 'QUANTITY' || habit.type === 'CHECKLIST') && onUpdate ? "cursor-pointer hover:underline decoration-white/30 underline-offset-2 hover:text-white transition-colors" : ""
                 )}
                 style={{ color: baseColor }}
             >
                 {getProgressText()}
             </span>
 
-             {/* Time Display - Tiny */}
-             {timeDisplay && (
+            {timeDisplay && (
                 <span className="text-[11px] text-white/30 font-medium tracking-wider pl-1 border-l border-white/10 flex items-center gap-1">
                     {timeDisplay}
                 </span>
             )}
+            
+            {habit.type === 'CHECKLIST' && (
+                <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="text-white/40 ml-auto"
+                >
+                    <ChevronDown size={14} />
+                </motion.div>
+            )}
           </div>
 
-          {/* CHECKLIST CONTROLS */}
-          {habit.type === 'CHECKLIST' && habit.checklist && onUpdate && (
-            <div className="mt-2 space-y-1.5 w-full" onClick={e => e.stopPropagation()}>
+          <AnimatePresence>
+          {habit.type === 'CHECKLIST' && habit.checklist && onUpdate && isExpanded && (
+            <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="overflow-hidden w-full" 
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-1">
                 {habit.checklist.map(item => (
-                    <div key={item.id} className="flex items-center gap-2 group/item cursor-pointer" onClick={() => handleChecklistToggle(item.id, item.completed)}>
+                    <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, item.completed)}>
                         <div
-                            className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
-                                item.completed 
-                                    ? "bg-indigo-500 border-indigo-500 text-white" 
-                                    : "bg-white/5 border-white/20 group-hover/item:border-white/40"
-                            )}
-                        >
-                            {item.completed && <Check size={10} strokeWidth={3} />}
+                                className={cn(
+                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                    item.completed 
+                                        ? (allChecklistCompleted ? "bg-emerald-500 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-indigo-500 border-indigo-500 text-white")
+                                        : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                                )}
+                            >
+                            {item.completed && <Check size={12} strokeWidth={3} />}
                         </div>
                         <span className={cn(
-                            "text-xs transition-colors truncate",
+                            "text-sm transition-colors truncate flex-1 font-medium",
                             item.completed ? "text-white/30 line-through" : "text-white/80"
                         )}>
                             {item.text}
                         </span>
                     </div>
                 ))}
-            </div>
+                </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
-             {/* Circle Checkbox */}
-            <button 
+        <div className="flex items-center gap-3 h-12">
+            <LiquidProgressCircle
+                percentage={percentage}
+                color={baseColor}
+                isCompleted={habit.completedToday}
+                size={40}
                 onClick={(e) => {
                     e.stopPropagation();
                     if (habit.type === 'QUANTITY' && onUpdate) {
                         setIsQuantityModalOpen(true);
+                    } else if (habit.type === 'CHECKLIST' && onUpdate) {
+                        setIsChecklistModalOpen(true);
                     } else {
                         onComplete(e, habit);
                     }
                 }}
-                className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300",
-                    habit.completedToday 
-                    ? "bg-transparent border-transparent" // Filled state handled below
-                    : "border-slate-600 hover:border-slate-500 bg-transparent"
-                )}
-                style={habit.completedToday ? {
-                    backgroundColor: baseColor,
-                    borderColor: baseColor,
-                    boxShadow: `0 0 15px ${baseColor}60`
-                } : undefined}
-            >
-                {habit.completedToday && (
-                    <Check size={20} className="text-white" strokeWidth={3} />
-                )}
-            </button>
+            />
 
-            {/* Menu Button */}
             <button 
                 className="text-slate-500 hover:text-white transition-colors p-1"
                 onClick={(e) => {
@@ -216,6 +275,16 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             isOpen={isQuantityModalOpen}
             onClose={() => setIsQuantityModalOpen(false)}
             onUpdate={onUpdate}
+        />
+    )}
+
+    {habit.type === 'CHECKLIST' && onUpdate && (
+        <ChecklistModal
+            habit={habit}
+            isOpen={isChecklistModalOpen}
+            onClose={() => setIsChecklistModalOpen(false)}
+            onUpdate={onUpdate}
+            onComplete={onComplete}
         />
     )}
     </>

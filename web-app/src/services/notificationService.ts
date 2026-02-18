@@ -89,11 +89,11 @@ export const notificationService = {
       // Initialize Local Notifications Channel (Android 8+)
       try {
         await LocalNotifications.createChannel({
-            id: 'matrix_daily',
+            id: 'lux_daily',
             name: 'Daily Protocol',
             importance: 5,
             description: 'Reminders for your daily goals',
-            sound: 'matrix_sound.wav', // optional
+            sound: 'lux_sound.wav', // optional
             visibility: 1
         });
       } catch (channelError) {
@@ -226,7 +226,7 @@ export const notificationService = {
            
            return {
                id: 100 + dayIndex,
-               title: "The Matrix Awaits",
+               title: "Lux Awaits",
                body: "It is time to synchronize your daily protocol.",
                schedule: { 
                    on: { 

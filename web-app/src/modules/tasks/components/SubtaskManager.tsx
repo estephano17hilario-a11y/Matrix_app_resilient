@@ -9,9 +9,10 @@ import { useTranslation } from 'react-i18next';
 interface SubtaskManagerProps {
   taskId: string;
   initialSubtasks?: Subtask[];
+  onCompletionChange?: (isComplete: boolean) => void;
 }
 
-export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [] }) => {
+export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [], onCompletionChange }) => {
   const { t } = useTranslation();
   const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks);
   const [inputValue, setInputValue] = useState('');
@@ -23,6 +24,12 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
   const completed = subtasks.filter(t => t.isCompleted).length;
   const progress = total === 0 ? 0 : (completed / total) * 100;
   const isComplete = total > 0 && progress === 100;
+
+  React.useEffect(() => {
+    if (onCompletionChange) {
+      onCompletionChange(isComplete);
+    }
+  }, [isComplete, onCompletionChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && inputValue.trim()) {

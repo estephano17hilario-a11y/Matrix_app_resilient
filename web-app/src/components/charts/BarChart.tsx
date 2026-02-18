@@ -87,14 +87,14 @@ export const BarChart = React.memo(({
              )}
 
             {showGrid && yTicks && (
-                <div className="absolute inset-x-0 top-4 bottom-6 pointer-events-none">
+                <div className="absolute inset-x-0 top-2 bottom-4 pointer-events-none">
                     {yTicks.map((val) => (
                         <div
                             key={val}
-                            className="absolute left-7 right-0 border-t border-dashed border-white/15"
+                            className="absolute left-6 right-0 border-t border-dashed border-white/15"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
-                            <span className="absolute -top-2 left-0 text-[9px] text-slate-500 font-mono">
+                            <span className="absolute -top-1.5 -left-6 w-6 text-right pr-1 text-[9px] text-slate-500 font-mono">
                                 {yTickFormatter ? yTickFormatter(val) : val}
                             </span>
                         </div>
@@ -126,45 +126,49 @@ export const BarChart = React.memo(({
                 document.body
             )}
 
-            <div className={`absolute inset-0 flex items-end gap-2 pt-4 pb-6 ${yTicks ? 'pl-7' : ''}`}>
+            <div className={`absolute inset-0 flex items-end gap-1 ${yTicks ? 'pl-6' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
                         onClick={(e) => handleBarClick(i, e)}
-                        className="flex-1 h-full flex flex-col justify-end gap-1 group relative z-10 cursor-pointer"
+                        className="flex-1 h-full relative group z-10 cursor-pointer"
                     >
                         {/* Bars Container */}
-                        <div className={`w-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'} flex-1 relative px-0.5`}>
-                            {datasets.map((ds, idx) => {
-                                const val = ds.data[i];
-                                const h = (val / maxValue);
-                                const isTopSegment = !stacked || idx === datasets.length - 1;
-                                return (
-                                    <div 
-                                        key={idx} 
-                                        className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
-                                        style={stacked ? { height: `${h * 100}%`, perspective: '700px' } : { perspective: '700px' }}
-                                    >
-                                         <div 
-                                            className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
-                                            style={{ 
-                                                height: stacked ? '100%' : `${h * 100}%`,
-                                                transformStyle: 'preserve-3d',
-                                            }}
-                                         >
-                                            <div className={`absolute inset-0 ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
-                                            {isTopSegment && (
-                                                <div className={`absolute top-0 left-0 right-0 h-[6px] ${stacked ? 'last:rounded-t-md' : 'rounded-t-xl'} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
-                                            )}
-                                            <div className="absolute top-0 right-0 w-[6px] h-full border border-white/10" style={{ background: ds.color, transform: 'rotateY(-90deg)', transformOrigin: 'right' }} />
-                                         </div>
-                                    </div>
-                                );
-                            })}
+                        <div className="absolute top-2 bottom-4 left-0 right-0 px-0.5">
+                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'}`}>
+                                {datasets.map((ds, idx) => {
+                                    const val = ds.data[i];
+                                    const h = (val / maxValue);
+                                    const isTopSegment = !stacked || idx === datasets.length - 1;
+                                    return (
+                                        <div 
+                                            key={idx} 
+                                            className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
+                                            style={stacked ? { height: `${h * 100}%`, perspective: '700px' } : { perspective: '700px' }}
+                                        >
+                                             <div 
+                                                className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
+                                                style={{ 
+                                                    height: stacked ? '100%' : `${h * 100}%`,
+                                                    transformStyle: 'preserve-3d',
+                                                }}
+                                             >
+                                                <div className={`absolute inset-0 ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
+                                                {isTopSegment && (
+                                                    <div className={`absolute top-0 left-0 right-0 h-[6px] ${stacked ? 'last:rounded-t-md' : 'rounded-t-xl'} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
+                                                )}
+                                                <div className="absolute top-0 right-0 w-[6px] h-full border border-white/10" style={{ background: ds.color, transform: 'rotateY(-90deg)', transformOrigin: 'right' }} />
+                                             </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Label */}
-                        <span className={`text-[9px] font-bold text-center mt-2 transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                        <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+                            <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                        </div>
                     </div>
                 ))}
             </div>

@@ -93,7 +93,7 @@ export const NotificationSettings: React.FC = () => {
       toast.success("Neural Link Established", {
         style: { background: '#10B981', color: '#fff' }
       });
-      notificationService.testLocalNotification("System Connected", "Matrix Uplink Successful.");
+      notificationService.testLocalNotification("System Connected", "Lux Uplink Successful.");
     } else {
       // Detailed Error Handling (Apple Intelligence Style)
       switch (result.error) {
@@ -154,49 +154,33 @@ export const NotificationSettings: React.FC = () => {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Enable Neural Updates?</h3>
                   <p className="text-white/60 text-sm leading-relaxed">
-                    The Matrix needs permission to send you critical protocol reminders, 
-                    achievement unlocks, and daily synchronization alerts.
+                    Lux needs permission to send you critical protocol reminders, 
                   </p>
-               </div>
-
-               <div className="flex gap-3">
-                  <button 
-                    onClick={() => setShowPermissionModal(false)}
-                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all font-medium"
-                  >
-                    Decay
-                  </button>
-                  <button 
-                    onClick={executePermissionRequest}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all"
-                  >
-                    Synchronize
-                  </button>
+                  
+                  <div className="flex gap-2 w-full mt-2">
+                    <button 
+                      onClick={() => setShowPermissionModal(false)}
+                      className="flex-1 py-3 rounded-xl bg-white/5 border border-white/5 text-white/50 text-sm hover:bg-white/10"
+                    >
+                      Ignore
+                    </button>
+                    <button 
+                      onClick={executePermissionRequest}
+                      className="flex-1 py-3 rounded-xl bg-indigo-500/80 text-white text-sm font-medium shadow-lg hover:bg-indigo-500 transition-colors"
+                    >
+                      Connect
+                    </button>
+                  </div>
                </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Neural Link</h2>
-          <p className="text-white/60">Manage direct cerebral inputs</p>
-        </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-mono border ${
-          permissionStatus === 'granted' 
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-            : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-        }`}>
-          {permissionStatus === 'granted' ? 'ONLINE' : 'OFFLINE'}
-        </div>
-      </div>
-
-      {/* MAIN TOGGLE */}
-      <div className="bg-white/5 rounded-xl p-4 flex items-center justify-between border border-white/10">
-        <div>
-          <h3 className="text-white font-medium">System Notifications</h3>
-          <p className="text-sm text-white/40">Allow the Matrix to contact you</p>
+          <h3 className="text-white text-lg font-medium">System Alerts</h3>
+          <p className="text-sm text-white/40">Allow Lux to contact you</p>
         </div>
         {permissionStatus !== 'granted' ? (
            <LiquidButton onClick={handleEnableNotifications} size="sm">

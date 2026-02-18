@@ -47,31 +47,33 @@ const isMilestoneDay = (day: number) => {
     return [7, 14, 21, 30, 45, 60].includes(day);
 };
 
-// --- COMPONENT: GLOWING ORB ---
-const GlowingOrb = ({ color, delay = 0 }: { color: string, delay?: number }) => (
+// --- COMPONENT: GLOWING ORB (OPTIMIZED) ---
+const GlowingOrb = ({ glowColor, className, delay = 0 }: { glowColor: string; className: string; delay?: number }) => (
     <motion.div
         animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3]
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3]
         }}
         transition={{ 
-            duration: 4, 
+            duration: 5, 
             repeat: Infinity, 
             delay,
             ease: "easeInOut" 
         }}
-        className={cn("absolute rounded-full blur-[80px] pointer-events-none", color)}
+        className={cn("absolute rounded-full pointer-events-none opacity-70", className)}
+        style={{ background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)` }}
     />
 );
 
 // --- COMPONENT: NODE CARD ---
 const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; index: number; xOffset: number; currentStreak: number }) => {
-    const isLeft = index % 2 === 0;
+    // Determine visibility priority
+    const distance = Math.abs(node.day - currentStreak);
+    const isVisible = distance < 15; // Only heavy render items close to streak
     
     // Milestones have special icons
     const getIcon = () => {
-        // CHANGED: Show day number instead of Lock icon for locked days
-        if (node.status === 'locked') return <span className="font-bold text-sm text-white/30">{node.day}</span>;
+        if (node.status === 'locked') return <span className="font-bold text-sm text-white/30 font-mono">{node.day}</span>;
         if (node.day === 60) return <Crown size={20} className="text-amber-300" />;
         if (node.day === 30) return <Trophy size={18} className="text-purple-300" />;
         if (node.day % 7 === 0) return <Gift size={18} className="text-cyan-300" />;
@@ -81,7 +83,6 @@ const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; 
     const handleMilestoneClick = () => {
         if (!node.isMilestone) return;
         
-        // Example rewards based on milestone day
         let rewardText = "Recompensa desconocida";
         if (node.day === 7) rewardText = "+500 XP, +100 Gold";
         else if (node.day === 14) rewardText = "+1000 XP, +250 Gold, Badge 'Constancia'";
@@ -97,8 +98,7 @@ const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; 
             </div>,
             {
                 style: {
-                    background: 'rgba(20, 20, 20, 0.8)',
-                    backdropFilter: 'blur(10px)',
+                    background: 'rgba(20, 20, 20, 0.95)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     color: '#fff',
                 },
@@ -107,7 +107,6 @@ const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; 
         );
     };
 
-    // Calculate text for day label
     const getDayLabel = () => {
         if (node.day === 60) return "Final Boss";
         
@@ -125,101 +124,82 @@ const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; 
     };
 
     const isActiveCompleted = node.status === 'done' && node.day === currentStreak;
+    const isCurrent = node.status === 'current';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 50 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ 
-                type: "spring", 
-                stiffness: 200, 
-                damping: 20, 
-                delay: index * 0.05 
-            }}
-            className="absolute flex items-center justify-center w-full"
+        <div
+            className="absolute flex items-center justify-center w-full pointer-events-none"
             style={{ 
                 top: index * ITEM_HEIGHT, 
                 height: ITEM_HEIGHT,
-                paddingLeft: isLeft ? 0 : `${Math.abs(xOffset) * 2}px`,
-                paddingRight: isLeft ? `${Math.abs(xOffset) * 2}px` : 0,
+                transform: `translateX(${xOffset}px)`
             }}
         >
             {/* The Card */}
             <motion.div 
                 onClick={handleMilestoneClick}
-                whileHover={node.isMilestone ? { scale: 1.05 } : { scale: 1.02 }}
-                animate={node.isMilestone && node.status !== 'done' ? { 
-                    scale: [1, 1.03, 1],
-                    boxShadow: [
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        "0 10px 15px -3px rgba(245, 158, 11, 0.1), 0 4px 6px -2px rgba(245, 158, 11, 0.05)",
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-                    ]
-                } : {}}
-                transition={node.isMilestone ? {
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                } : { duration: 0.2 }}
+                initial={isVisible ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                    duration: 0.4,
+                    delay: isVisible ? Math.min(index * 0.03, 1) : 0 
+                }}
                 className={cn(
-                "relative group rounded-3xl border transition-colors duration-300 flex items-center gap-3 cursor-pointer",
-                node.isMilestone ? "w-64 py-5 px-5 z-20 border-amber-500/20" : "w-40 py-2 px-3 opacity-90 hover:opacity-100",
-                node.status === 'current' 
-                    ? "bg-slate-800/80 border-indigo-500/30 shadow-[0_0_15px_-3px_rgba(99,102,241,0.25)] scale-105 z-30 backdrop-blur-md"
+                "relative group rounded-3xl border transition-all duration-300 flex items-center gap-3 pointer-events-auto",
+                // SIZE
+                node.isMilestone ? "w-64 py-4 px-5 z-20" : "w-40 py-2 px-3",
+                
+                // CURSOR
+                node.isMilestone ? "cursor-pointer" : "cursor-default",
+
+                // STYLES (OPTIMIZED: Removed backdrop-blur from non-critical items)
+                isCurrent
+                    ? "bg-slate-800/90 border-indigo-500/50 shadow-[0_0_25px_-5px_rgba(99,102,241,0.4)] scale-110 z-30"
                     : node.status === 'done'
                         ? cn(
-                            "bg-emerald-900/40 border-emerald-500/30 shadow-[0_0_15px_-3px_rgba(16,185,129,0.2)] hover:bg-emerald-900/50 backdrop-blur-sm",
-                            isActiveCompleted && "bg-emerald-500/20 border-emerald-400/50 border-b-emerald-300/50 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)]"
+                            "bg-[#0a0a0a]/80 border-emerald-500/20 shadow-none",
+                            isActiveCompleted && "bg-emerald-900/20 border-emerald-400/50"
                         )
                         : node.isMilestone
-                            ? "bg-[#121212]/80 backdrop-blur-md border-white/10"
-                            : cn(
-                                "bg-[#121212] border-white/5 opacity-60 hover:opacity-100",
-                                index === currentStreak && node.status === 'locked' && "border-b-indigo-500/30 shadow-[0_4px_10px_-4px_rgba(99,102,241,0.15)] opacity-80"
-                            )
+                            ? "bg-[#121212]/90 border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.1)]"
+                            : "bg-[#050505]/60 border-white/5 opacity-50"
             )}>
-                {isActiveCompleted && (
-                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-emerald-400/25 to-transparent pointer-events-none" />
-                )}
-                {/* Current Day Pulse */}
-                {node.status === 'current' && (
-                    <div className="absolute inset-0 rounded-3xl border border-indigo-500/30 animate-pulse" />
+                {/* Highlight Glow for Current */}
+                {isCurrent && (
+                    <div className="absolute inset-0 rounded-3xl border border-indigo-400/50 animate-pulse" />
                 )}
 
                 {/* Circle Icon */}
                 <div className={cn(
-                    "rounded-2xl flex items-center justify-center shadow-lg border shrink-0 transition-transform duration-500",
-                    node.isMilestone ? "w-12 h-12 group-hover:rotate-[360deg]" : "w-10 h-10",
-                    node.status === 'current' 
-                        ? "bg-indigo-500 text-white border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                    "rounded-2xl flex items-center justify-center border shrink-0 transition-transform duration-500",
+                    node.isMilestone ? "w-12 h-12" : "w-10 h-10",
+                    isCurrent
+                        ? "bg-indigo-600 text-white border-indigo-400 shadow-lg" 
                         : node.status === 'done'
-                            ? isActiveCompleted 
-                                ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/60 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-white/5 text-white/30 border-white/10"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-white/5 text-white/20 border-white/5"
                 )}>
                     {node.status === 'done' ? <CheckCircle2 size={node.isMilestone ? 20 : 16} /> : getIcon()}
                 </div>
 
                 {/* Text Info */}
-                <div className="flex flex-col">
+                <div className="flex flex-col min-w-0">
                     <span className={cn(
-                        "text-[10px] font-bold uppercase tracking-wider mb-0.5",
-                        node.status === 'current' ? "text-indigo-300" : "text-white/50"
+                        "text-[9px] font-bold uppercase tracking-wider mb-0.5 truncate",
+                        isCurrent ? "text-indigo-300" : "text-white/30"
                     )}>
                         {getDayLabel()}
                     </span>
                     <div className="flex items-center gap-1.5">
                         {node.status === 'done' ? (
-                            <span className="text-xs font-bold text-emerald-400">Completado</span>
+                            <span className="text-xs font-bold text-emerald-500/80">Completado</span>
                         ) : (
                             <>
-                                <Target size={12} className={node.status === 'current' ? "text-white" : "text-white/30"} />
+                                <Target size={12} className={isCurrent ? "text-white" : "text-white/20"} />
                                 <span className={cn(
                                     "text-xs font-bold",
-                                    node.status === 'current' ? "text-white" : "text-white/40",
-                                    // Special color for milestone percentages as requested
-                                    node.isMilestone && "text-amber-100 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] text-sm"
+                                    isCurrent ? "text-white" : "text-white/30",
+                                    node.isMilestone && "text-amber-200"
                                 )}>
                                     {node.requiredPercent}%
                                 </span>
@@ -228,30 +208,23 @@ const NodeCard = ({ node, index, xOffset, currentStreak }: { node: RoadmapNode; 
                     </div>
                 </div>
 
+                {/* Milestone Reward Icon */}
                 {node.isMilestone && (
-                    <div className="ml-auto flex items-center gap-2">
-                        <div className="relative">
-                            <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-md animate-pulse" />
-                            <Gift size={22} className={cn("relative", node.status === 'locked' ? "text-amber-300/50" : "text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]")} />
-                        </div>
-                        <span className={cn(
-                            "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border",
-                            node.status === 'locked' ? "text-amber-300/40 border-amber-300/20 bg-amber-500/5" : "text-amber-200 border-amber-400/40 bg-amber-500/15"
-                        )}>
-                            Regalo
-                        </span>
+                    <div className="ml-auto">
+                        <Gift size={20} className={cn(node.status === 'locked' ? "text-white/10" : "text-amber-400 animate-bounce")} />
                     </div>
                 )}
                 
-                {/* Connector Dot (Visual anchor for the path) */}
+                {/* Connector Dot */}
                 <div className={cn(
                     "absolute top-1/2 w-3 h-3 rounded-full border-2 transform -translate-y-1/2 z-20",
-                    isLeft ? "-right-1.5 translate-x-0" : "-left-1.5 -translate-x-0", // Adjusted slightly
-                    node.status === 'current' ? "bg-indigo-500 border-indigo-300 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" : 
-                    node.status === 'done' ? "bg-emerald-500 border-emerald-300" : "bg-black border-white/20"
+                    // Fix Dot Position based on xOffset direction
+                    xOffset < 0 ? "-right-1.5" : "-left-1.5", 
+                    isCurrent ? "bg-indigo-500 border-indigo-300 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : 
+                    node.status === 'done' ? "bg-emerald-600 border-emerald-400" : "bg-black border-white/10"
                 )} />
             </motion.div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -391,9 +364,11 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
         <div className="fixed inset-0 bg-[#020204] z-[500] flex flex-col font-sans text-white overflow-hidden">
             {/* ... Background ... */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <GlowingOrb color="bg-indigo-600/20 w-[500px] h-[500px] -top-20 -left-20" />
-                <GlowingOrb color="bg-rose-600/20 w-[400px] h-[400px] bottom-0 right-0" delay={2} />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+                <GlowingOrb glowColor="rgba(99,102,241,0.35)" className="w-[500px] h-[500px] -top-20 -left-20" />
+                <GlowingOrb glowColor="rgba(244,63,94,0.3)" className="w-[400px] h-[400px] bottom-0 right-0" delay={2} />
+                <div className="absolute inset-0 opacity-[0.03]" 
+                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+                />
             </div>
 
             {/* --- HEADER (HUD) --- */}
@@ -449,13 +424,6 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                                 <stop offset={`${(visualProgress / TOTAL_DAYS) * 100 + 5}%`} stopColor="#3b82f6" />
                                 <stop offset="100%" stopColor="#6366f1" stopOpacity="0.2" />
                             </linearGradient>
-                            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="SourceGraphic"/>
-                                </feMerge>
-                            </filter>
                         </defs>
                         
                         {/* Background Path (Dim) */}
@@ -474,10 +442,10 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             stroke="url(#pathGradient)" 
                             strokeWidth="4" 
                             strokeLinecap="round"
-                            filter="url(#glow)"
+                            style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.5))' }}
                             initial={{ pathLength: 0 }}
                             animate={{ pathLength: visualProgress / TOTAL_DAYS }}
-                            transition={{ duration: 2, ease: "easeOut" }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
                         />
                     </svg>
 
@@ -488,7 +456,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                                 key={node.day} 
                                 node={node} 
                                 index={index} 
-                                xOffset={index % 2 === 0 ? -1 : 1}
+                                xOffset={index % 2 === 0 ? -AMPLITUDE : AMPLITUDE}
                                 currentStreak={currentStreak}
                             />
                         ))}

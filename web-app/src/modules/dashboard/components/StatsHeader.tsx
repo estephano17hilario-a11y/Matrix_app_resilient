@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, ShoppingBag, Crown, RefreshCw } from 'lucide-react';
+import { Settings, ShoppingBag, RefreshCw } from 'lucide-react';
 import { AvatarWidget } from './AvatarWidget';
 
 interface StatsHeaderProps {
@@ -27,9 +27,10 @@ interface StatsHeaderProps {
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onUpdateLevel?: (newLevel: number) => void;
+  dailyLimits?: any; // Using any temporarily to avoid deep type imports if not needed, but better to use DailyLimits
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowPro, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel, dailyLimits }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -68,6 +69,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                       avatarShape={avatarShape}
                       onUpdateLevel={onUpdateLevel}
                       isHabitsCompleted={isHabitsCompleted}
+                      dailyLimits={dailyLimits}
                     />
                   </div>
                 )}
@@ -81,13 +83,8 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                 <RefreshCw size={14} className="text-emerald-400 animate-spin" />
              </div>
 
-             {/* PRO Button - Only show if NOT Pro */}
-             {!isPro && (
-             <button onClick={onShowPro} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-yellow-500/20 flex items-center justify-center transition-all bg-gradient-to-br from-yellow-500/10 to-amber-500/10 text-yellow-500 hover:text-yellow-400 hover:border-yellow-500/50 hover:shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] active:scale-95 group relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <Crown size={18} className="group-hover:scale-110 transition-transform relative z-10" />
-            </button>
-            )}
+            {/* PRO Button - REMOVED */}
+
 
              {/* Settings Button - Updated to trigger view */}
              <div className="relative">

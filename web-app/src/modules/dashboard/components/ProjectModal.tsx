@@ -42,9 +42,28 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 setDesc(initialData.description || '');
                 setAttrId(initialData.attribute || '');
                 setSmartProjectId(initialData.smartProjectId || '');
-                // goalTarget logic is complex due to calculation, for now we skip complex reverse-calc or assume simpler default if not fully provided
-                setGoalTarget(initialData.goalTarget ? Math.round(initialData.goalTarget / 60) : 10); // Convert back to hours approx
-                setGoalFreq(initialData.goalFrequency || 'DAILY'); 
+                
+                // Frequency Restoration
+                const freq = initialData.uiFrequency || initialData.goalFrequency || 'DAILY';
+                setGoalFreq(freq);
+
+                // Target Restoration
+                if (initialData.uiTarget) {
+                    setGoalTarget(initialData.uiTarget);
+                } else if (initialData.goalTarget) {
+                    // Fallback logic for legacy projects
+                    const days = initialData.workingDays?.length || 5;
+                    if (freq === 'WEEKLY') {
+                         setGoalTarget(Math.round((initialData.goalTarget * days) / 60));
+                    } else if (freq === 'MONTHLY') {
+                         setGoalTarget(Math.round((initialData.goalTarget * days * 4) / 60));
+                    } else {
+                         setGoalTarget(Math.round(initialData.goalTarget / 60));
+                    }
+                } else {
+                    setGoalTarget(10);
+                }
+
                 setPomoDuration(initialData.pomoDuration || 25);
                 setReminder(initialData.reminder || '');
                 setImpact(initialData.impact || 1);
@@ -112,11 +131,14 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         try {
             // Optimistic UI: 0ms delay
             await onConfirm({ 
+                id: initialData?.id,
                 title, 
                 description: desc, 
                 attribute: attrId, 
                 goalTarget: calculatedDailyGoal * 60, // Save as minutes (User inputs Hours)
                 goalFrequency: 'DAILY', // Always save as DAILY so the tracker works per day
+                uiFrequency: goalFreq, // Store UI preference
+                uiTarget: goalTarget, // Store UI input
                 pomoDuration, 
                 breakDuration: 5, 
                 reminder, 

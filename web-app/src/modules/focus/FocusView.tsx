@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Lock, Pause, Play, StopCircle, Volume2, Plus, Target, Archive, Trash2, AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Project, Attribute, NotificationItem } from '../../types';
+import { Project, Attribute, NotificationItem, Habit } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { SessionHistoryModal } from './components/SessionHistoryModal';
 import { SessionRewardModal } from './components/SessionRewardModal';
@@ -15,7 +15,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     projects: Project[], 
     attributes: Attribute[], 
     onCompleteSession: (id: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void, 
-    onOpenProjectModal: () => void, 
+    onOpenProjectModal: (project?: Project) => void, 
     setFocusMode: (attrId: string | null) => void, 
     onUpdateProject: (p: Project) => void,
     addNotification: (n: NotificationItem) => void,
@@ -66,6 +66,17 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
              }
         };
     }, [detailProject, onToggleFullScreen]);
+
+    // 3. Sync detailProject with updated projects list (Fix for Edit not showing changes)
+    useEffect(() => {
+        if (detailProject) {
+            const updated = projects.find(p => p.id === detailProject.id);
+            // Only update if the reference changed (meaning data changed)
+            if (updated && updated !== detailProject) {
+                setDetailProject(updated);
+            }
+        }
+    }, [projects, detailProject]);
 
     const lastTickRef = React.useRef<number>(0);
     const isCompletingRef = React.useRef(false);
@@ -118,7 +129,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 setTotalDuration(session.totalDuration);
                 setSelectedProjectId(session.projectId);
                 setMode(session.mode);
-                setFocusMode(session.attributeId);
+                setFocusMode(session.attributeId || 'FOCUS');
                 
                 setIsActive(session.isActive);
                 setIsPaused(session.isPaused);
@@ -140,7 +151,7 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 totalDuration,
                 timeLeft, // Snapshot
                 viewState,
-                attributeId: projects.find(p => p.id === selectedProjectId)?.attribute,
+                attributeId: projects.find(p => p.id === selectedProjectId)?.attribute || 'FOCUS',
                 lastUpdated: now,
                 // Critical Anchors for Background Calculation
                 targetTime: mode === 'POMO' ? now + (timeLeft * 1000) : null,
@@ -183,7 +194,8 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         const duration = project ? project.pomoDuration * 60 : 25 * 60;
         setTimeLeft(duration);
         setTotalDuration(duration);
-        setFocusMode(project?.attribute || null);
+        setFocusMode(project?.attribute || 'FOCUS');
+        setMode('POMO'); // Ensure we start in POMO mode to avoid Stopwatch inheriting Pomo time
         setViewState('TIMER');
         setIsActive(true);
         setIsPaused(false);
@@ -193,19 +205,16 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
         if (initialProjectId) {
             // startSession(initialProjectId); // Don't auto-start
             const project = projects.find((p) => p.id === initialProjectId);
-            if(project) {
+            // Fix: Only initialize if not already selected (prevents overwriting state on data syncs/refocus)
+            if(project && selectedProjectId !== initialProjectId) {
                  setSelectedProjectId(initialProjectId);
                  const duration = project.pomoDuration * 60;
                  setTimeLeft(duration);
                  setTotalDuration(duration);
-                 // setFocusMode(project.attribute); // Don't switch mode immediately? User might just want to see it selected
-                 // Actually, if they clicked "Focus" on a specific project, maybe they DO want to start?
-                 // User said: "CUANDO ENTRO A LA SECCION ME PONE DE FRENTE ADENTRO DE UN POMODORO. ARREGLA ESO"
-                 // So we should probably just select it but stay in LIST view, or maybe not even select it?
-                 // Let's just NOT start the session.
+                 // setFocusMode(project.attribute); 
             }
         }
-    }, [initialProjectId, projects]);
+    }, [initialProjectId, projects, selectedProjectId]);
 
     const stopSession = () => {
         setIsActive(false); setIsPaused(false); setViewState('LIST');
@@ -388,6 +397,39 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
     const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
     const dashOffset = circumference * (1 - progress);
 
+    const handleDeleteProjectById = (projectId: string) => {
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+            onUpdateProject({ ...project, deleted: true });
+            setDetailProject(null); // Close detail view
+            if (onToggleFullScreen) onToggleFullScreen(false);
+            addNotification({ type: 'SYSTEM', label: t('focus.notifications.projectDeleted'), icon: Trash2, color: '#ef4444' });
+        }
+    };
+
+    const handleArchiveProject = (item: Project | Habit) => {
+        // Cast to Project since we are in FocusView
+        const project = item as Project;
+        const newArchivedState = !project.archived;
+        onUpdateProject({ ...project, archived: newArchivedState });
+        
+        // Update local detail state if open
+        if (detailProject && detailProject.id === project.id) {
+            setDetailProject({ ...project, archived: newArchivedState });
+        }
+        
+        addNotification({ 
+            type: 'SYSTEM', 
+            label: newArchivedState ? 'Proyecto Archivado' : 'Proyecto Restaurado', 
+            icon: Archive, 
+            color: '#f59e0b' 
+        });
+    };
+
+    const handleEditProject = (item: Project | Habit) => {
+        onOpenProjectModal(item as Project);
+    };
+
     return (
         <div className="relative w-full h-full font-sans flex flex-col">
             <style>{`
@@ -559,12 +601,17 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                                     e.stopPropagation();
                                     startSession(p.id);
                                 }}
-                                onClick={(p) => setDetailProject(p)}
+                                onClick={(p) => {
+                                    setDetailProject(p);
+                                    if (onToggleFullScreen) {
+                                        onToggleFullScreen(true);
+                                    }
+                                }}
                             />
                         )
                     })}
                     {!showArchived && (
-                        <button onClick={onOpenProjectModal} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
+                        <button onClick={() => onOpenProjectModal()} className="rounded-[2rem] p-5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all h-52 group active:scale-95">
                         <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors"><Plus size={24} /></div>
                         <span className="text-[10px] font-bold uppercase tracking-widest">{t('focus.newFlow')}</span>
                     </button>
@@ -574,7 +621,15 @@ export const FocusView = React.memo(({ projects, attributes, onCompleteSession, 
                 <HabitDetailView 
                     project={detailProject} 
                     attributeColor={detailProject ? attributeById.get(detailProject.attribute)?.color : undefined}
-                    onClose={() => setDetailProject(null)} 
+                    onClose={() => {
+                        setDetailProject(null);
+                        if (onToggleFullScreen) {
+                            onToggleFullScreen(false);
+                        }
+                    }}
+                    onEdit={handleEditProject}
+                    onArchive={handleArchiveProject}
+                    onDelete={(id) => handleDeleteProjectById(id)}
                 />
             </div>
             </motion.div>

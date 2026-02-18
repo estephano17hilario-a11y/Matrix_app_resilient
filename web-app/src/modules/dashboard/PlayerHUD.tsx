@@ -131,16 +131,16 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   return (
     <GlassPanel className={cn("p-3 flex flex-col gap-2", className)}>
       {/* SYSTEM METRICS - TRAIT ANALYSIS */}
-      <div className="flex flex-col gap-0">
+      <div className="flex flex-col gap-2">
          <div className="flex items-center justify-between px-1">
-             <div className="flex flex-col">
-                <h3 className="text-[9px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
-                    <Sparkles size={10} className="text-indigo-400" /> System Metrics
+             <div className="flex items-center gap-2">
+                <h3 className="text-[10px] font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-indigo-400" /> Neural Stats
                 </h3>
              </div>
             
             {/* CHART TOGGLE */}
-            <div className="flex bg-white/5 p-0.5 rounded-md border border-white/5 scale-75 origin-right">
+            <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5">
                 <button 
                     onClick={() => setChartMode('RADAR')}
                     className={cn(
@@ -148,7 +148,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                         chartMode === 'RADAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
                     )}
                 >
-                    <Hexagon size={12} />
+                    <Hexagon size={14} />
                 </button>
                 <button 
                     onClick={() => setChartMode('BAR')}
@@ -157,7 +157,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                         chartMode === 'BAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
                     )}
                 >
-                    <BarChart3 size={12} />
+                    <BarChart3 size={14} />
                 </button>
             </div>
          </div>
