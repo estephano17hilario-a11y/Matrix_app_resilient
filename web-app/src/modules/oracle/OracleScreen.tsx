@@ -17,42 +17,27 @@ function cn(...inputs: ClassValue[]) {
 const TheVoid = () => (
   <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#020204]">
     {/* Orbs - Replaced heavy blur with radial gradients */}
-    <motion.div 
-      animate={{ 
-        scale: [1, 1.2, 1],
-        rotate: [0, 90, 0],
-        opacity: [0.3, 0.4, 0.3]
-      }}
-      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+    <div 
       className="absolute top-[-20%] left-[-10%] w-[100vw] h-[100vw] rounded-full"
       style={{ 
         background: 'radial-gradient(circle, #4f46e5 0%, transparent 70%)',
+        opacity: 0.35,
         transform: 'translateZ(0)'
       }}
     />
-    <motion.div 
-      animate={{ 
-        scale: [1, 1.1, 1],
-        x: [0, 100, 0],
-        opacity: [0.2, 0.3, 0.2]
-      }}
-      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+    <div 
       className="absolute bottom-[-10%] right-[-20%] w-[80vw] h-[80vw] rounded-full"
       style={{ 
         background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
+        opacity: 0.25,
         transform: 'translateZ(0)'
       }}
     />
-    <motion.div 
-      animate={{ 
-        scale: [1, 1.3, 1],
-        y: [0, -50, 0],
-        opacity: [0.15, 0.25, 0.15]
-      }}
-      transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+    <div 
       className="absolute top-[40%] left-[30%] w-[60vw] h-[60vw] rounded-full"
       style={{ 
         background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)',
+        opacity: 0.2,
         transform: 'translateZ(0)'
       }}
     />

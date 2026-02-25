@@ -7,10 +7,14 @@ import { formatDateRange, getStartOfWeek } from '../../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
+import { useTranslation } from 'react-i18next';
 import { DAILY_LIMITS } from '../../dashboard/constants';
+import { FocusLimits } from '../FocusLimits';
 
-export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }: { projects: Project[], attributes: Attribute[], isPro?: boolean, onShowPro?: () => void }) => {
+export const FocusStats = React.memo(({ projects, attributes }: { projects: Project[], attributes: Attribute[] }) => {
     const { user } = useLux();
+    const dailyLimits = user?.dailyLimits || { date: '', taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+    const { t } = useTranslation();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
     const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
@@ -47,7 +51,13 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
         return 'TOTAL';
     }, [filterMode, attributes, viewMode]);
 
-    const stats = useMemo(() => generateFocusData(projects, attributes, currentDate, timeRange, filterMode, groupMode), [projects, attributes, currentDate, timeRange, filterMode, groupMode]);
+    const stats = useMemo(() => {
+        const data = generateFocusData(projects, attributes, currentDate, timeRange, filterMode, groupMode);
+        // Debug logging for stats generation
+        const totalMinutes = data.datasets.reduce((acc, ds) => acc + ds.data.reduce((a, b) => a + b, 0), 0);
+        console.log(`📊 FocusStats Generated: Range=${timeRange}, Total=${totalMinutes}m, Projects=${projects.length}`);
+        return data;
+    }, [projects, attributes, currentDate, timeRange, filterMode, groupMode]);
     
     const dailyGoalMinutes = useMemo(() => {
         if (timeRange !== 'DAY') return 0;
@@ -143,13 +153,8 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     <div className="flex flex-col min-w-0">
                         <div className="flex flex-col min-w-0">
                             <span className={`${hoursFontSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter transition-all duration-300 whitespace-nowrap leading-none`}>{formattedHours}</span>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-col gap-0">
                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
-                                {timeRange === 'DAY' && (
-                                    <span className="text-[9px] font-mono font-medium text-white/20 border border-white/10 px-1 rounded bg-white/5">
-                                        / {DAILY_LIMITS.FOCUS.MAX_HOURS}h MAX
-                                    </span>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -292,7 +297,7 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                                                 className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
                                             >
                                                 <Icon size={14} style={{ color: isActive ? 'black' : attr.color }} /> 
-                                                <span className="truncate">{attr.label.toUpperCase()}</span>
+                                                <span className="truncate">{t(attr.label, attr.label).toUpperCase()}</span>
                                             </button>
                                         );
                                     })}
@@ -347,6 +352,13 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full -translate-x-full animate-[shimmer_1.5s_infinite]" />
                         </motion.div>
                     </div>
+                    
+                    {/* BIO-LIMIT INDICATOR (Discrete) */}
+                    <div className="flex justify-end mt-1">
+                        <span className={`text-[8px] font-mono ${parseFloat(stats.totalHours) >= DAILY_LIMITS.FOCUS.MAX_HOURS ? 'text-red-500 font-bold' : 'text-white/20'}`}>
+                            BIO-LIMIT: {parseFloat(stats.totalHours).toFixed(1)}/{DAILY_LIMITS.FOCUS.MAX_HOURS}h
+                        </span>
+                    </div>
                 </div>
 
                 {/* CHART AREA */}
@@ -361,6 +373,11 @@ export const FocusStats = React.memo(({ projects, attributes, isPro, onShowPro }
                     yTicks={yTicks}
                     yTickFormatter={formatMinutes}
                 />
+            </div>
+            
+            {/* LIMITS - OUTSIDE CHART - BELOW */}
+            <div className="mt-2 px-2">
+                    <FocusLimits dailyLimits={dailyLimits} />
             </div>
         </div>
     );

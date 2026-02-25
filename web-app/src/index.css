@@ -285,6 +285,15 @@
   }
 }
 
+  /* HIDE SCROLLBAR BUT KEEP FUNCTIONALITY */
+  .no-scrollbar::-webkit-scrollbar {
+      display: none;
+  }
+  .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
+
 @layer components {
   /* 
    * MATERIALITY: "HYPER-GLASS" (PHYSICALLY BASED UI)

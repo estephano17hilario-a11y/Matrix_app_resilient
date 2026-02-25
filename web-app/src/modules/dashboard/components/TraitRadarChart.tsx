@@ -186,18 +186,11 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 style={{ overflow: 'visible' }}
             >
                 <defs>
-                    <radialGradient id="radarGradient" cx="50%" cy="50%" r="45%" fx="50%" fy="50%">
-                        <stop offset="0%" stopColor="rgba(255, 255, 255, 0.2)" />
-                        <stop offset="100%" stopColor="rgba(255, 255, 255, 0)" />
+                    <radialGradient id="radarGradient" cx="50%" cy="50%" r="65%" fx="50%" fy="50%">
+                        <stop offset="0%" stopColor="rgba(100, 116, 139, 0.1)" />
+                        <stop offset="100%" stopColor="rgba(100, 116, 139, 0.05)" />
                     </radialGradient>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                    {/* Dynamic Gradients for Perimeter Segments - REMOVED (Lines are now white) */}
+                    {/* OPTIMIZATION: Removed SVG Filter "glow" for GPU performance */}
                 </defs>
 
                 {/* Grid Web - WHITE & VISIBLE (Reference Lines) */}
@@ -234,33 +227,26 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 <motion.path
                     initial={{ d: chartData.map((_, i) => `${i === 0 ? 'M' : 'L'} ${CENTER} ${CENTER}`).join(" ") + " Z", opacity: 0 }}
                     animate={{ d: polygonPath, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 40, damping: 10 }}
-                    fill="#ffffff" 
-                    fillOpacity="0.2" // 20% Opacity (Ghost Glass)
-                    stroke="none"
-                    filter="url(#glow)"
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    fill="rgba(255, 255, 255, 0.5)" // White fill 50%
+                    stroke="rgba(255, 255, 255, 0.4)" // Slightly brighter
+                    strokeWidth="1.5"
                 />
 
-                {/* Data Perimeter - THIN GRADIENT WIREFRAME (CEO Precision) */}
-                {chartData.map((p, i) => {
-                    const nextP = chartData[(i + 1) % chartData.length];
-                    return (
-                        <motion.line
-                            key={`perim-${i}`}
-                            x1={p.valuePoint.x}
-                            y1={p.valuePoint.y}
-                            x2={nextP.valuePoint.x}
-                            y2={nextP.valuePoint.y}
-                            stroke="#ffffff"
-                            strokeWidth="0.8"
-                            strokeOpacity="1"
-                            strokeLinecap="round"
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 1, x1: p.valuePoint.x, y1: p.valuePoint.y, x2: nextP.valuePoint.x, y2: nextP.valuePoint.y }}
-                            transition={{ type: "spring", stiffness: 40, damping: 10 }}
-                        />
-                    );
-                })}
+                {/* Data Perimeter - OPTIMIZED SINGLE PATH (Better Performance than many lines) */}
+                <motion.path
+                    d={polygonPath}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                    strokeOpacity="0.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1, d: polygonPath }}
+                    transition={{ type: "spring", stiffness: 40, damping: 10 }}
+                    style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} // Fake Glow
+                />
 
                 {/* Data Points - JEWELS (Subtle Gradient Tips) */}
                 {chartData.map((p, i) => (
@@ -321,10 +307,11 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                             )}
                         >
                             <div 
-                                className="w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-md border shadow-lg z-10 shrink-0"
+                                className="w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm z-10 shrink-0"
                                 style={{ 
-                                    backgroundColor: `${item.color}15`,
-                                    borderColor: `${item.color}30`,
+                                    backgroundColor: `${item.color}20`, // Slightly more opacity to compensate for no blur
+                                    borderColor: `${item.color}40`,
+                                    // backdropFilter: 'blur(8px)' // REMOVED: Expensive
                                 }}
                             >
                                 <Icon size={14} style={{ color: item.color }} />
@@ -338,7 +325,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                             )}>
                                 <span 
                                     className={cn(
-                                        "font-bold uppercase drop-shadow-md leading-none mb-0.5",
+                                        "font-bold uppercase drop-shadow-sm leading-none mb-0.5",
                                         getLabelClassName(labelText)
                                     )}
                                     style={{ color: item.color }}

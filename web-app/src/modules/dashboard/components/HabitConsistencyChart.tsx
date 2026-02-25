@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval } from 'date-fns';
+import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
@@ -63,10 +63,43 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     // --- 1. DATA CALCULATION ---
     const { chartData, stats, trend, todayStats, dateRangeLabel } = useMemo(() => {
         const activeHabits = habits.filter(h => !h.archived);
-        const totalHabits = activeHabits.length;
         const today = new Date();
         const viewDate = currentDate;
         const todayStr = format(today, 'yyyy-MM-dd');
+
+        // Helper to get active habits count for a specific date
+        const getDailyTotal = (date: Date) => {
+            // Normalize compare date to start of day timestamp for strict comparison
+            const compareTime = new Date(date).setHours(0, 0, 0, 0);
+
+             return activeHabits.filter(h => {
+                let habitStartTime: number;
+
+                if (h.createdAt) {
+                    habitStartTime = new Date(h.createdAt).setHours(0, 0, 0, 0);
+                } else {
+                    // 🛡️ LEGACY FIX: If no createdAt, infer from history
+                    if (h.history && h.history.length > 0) {
+                        // Sort history to find the first completion
+                        const dates = h.history.map(d => new Date(d).getTime());
+                        const firstCompletion = new Date(Math.min(...dates));
+                        habitStartTime = firstCompletion.setHours(0, 0, 0, 0);
+                    } else {
+                        // If no history and no createdAt, assume it's brand new (today)
+                        // This prevents empty new habits from polluting past stats
+                        // We use Date.now() but normalized to start of day
+                        habitStartTime = new Date().setHours(0, 0, 0, 0);
+                    }
+                }
+                
+                // STRICT COMPARISON:
+                // If habit was created TODAY (habitStartTime), and we compare to YESTERDAY (compareTime)
+                // Today <= Yesterday is FALSE. Correct.
+                return habitStartTime <= compareTime;
+            }).length;
+        };
+
+        const currentTotalHabits = activeHabits.length;
 
         let data: any[] = [];
         let prevPeriodAvg = 0;
@@ -94,22 +127,24 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
         // Today's Stats
         const todayCount = getCompletionCount(todayStr);
-        const todayPercent = totalHabits > 0 ? Math.round((todayCount / totalHabits) * 100) : 0;
+        const todayTotal = getDailyTotal(today);
+        const todayPercent = todayTotal > 0 ? Math.round((todayCount / todayTotal) * 100) : 0;
 
         if (timeframe === 'WEEK') {
-            const start = viewDate;
+            const start = startOfWeek(viewDate, { weekStartsOn: 1 });
             data = Array.from({ length: 7 }, (_, i) => {
                 const date = addDays(start, i);
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
-                const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+                const dailyTotal = getDailyTotal(date);
+                const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
                 const isFutureDate = isFuture(date) && !isSameDay(date, today);
                 
                 return {
                     date,
                     dateStr,
                     count,
-                    total: totalHabits,
+                    total: dailyTotal,
                     percent,
                     label: format(date, 'EEE', { locale: es }).charAt(0).toUpperCase(),
                     fullLabel: format(date, 'EEEE d', { locale: es }),
@@ -122,7 +157,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             for (let i = 1; i <= 7; i += 1) {
                 const d = subDays(start, i);
                 const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
-                prevSum += totalHabits > 0 ? (c / totalHabits) : 0;
+                const dt = getDailyTotal(d);
+                prevSum += dt > 0 ? (c / dt) : 0;
             }
             prevPeriodAvg = (prevSum / 7) * 100;
 
@@ -135,7 +171,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             data = days.map((date) => {
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
-                const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+                const dailyTotal = getDailyTotal(date);
+                const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
                 const dayNum = date.getDate();
                 const isFutureDate = isFuture(date) && !isSameDay(date, today);
 
@@ -143,7 +180,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     date,
                     dateStr,
                     count,
-                    total: totalHabits,
+                    total: dailyTotal,
                     percent,
                     label: [1, 7, 14, 21, 28].includes(dayNum) ? dayNum.toString() : '',
                     fullLabel: format(date, 'd MMM', { locale: es }),
@@ -160,7 +197,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
              let prevSum = 0;
              daysPrev.forEach(d => {
                  const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
-                 prevSum += totalHabits > 0 ? (c / totalHabits) : 0;
+                 const dt = getDailyTotal(d);
+                 prevSum += dt > 0 ? (c / dt) : 0;
              });
              prevPeriodAvg = (prevSum / daysPrev.length) * 100;
 
@@ -170,8 +208,16 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             data = Array.from({ length: 12 }, (_, i) => {
                 const date = addMonths(start, i);
                 const monthStr = format(date, 'yyyy-MM');
-                const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                const totalPossible = totalHabits * daysInMonth;
+                const daysInMonth = eachDayOfInterval({
+                    start: startOfMonth(date),
+                    end: endOfMonth(date)
+                });
+                
+                let totalPossible = 0;
+                daysInMonth.forEach(d => {
+                    totalPossible += getDailyTotal(d);
+                });
+
                 const totalCompletedInMonth = completionByMonth.get(monthStr) || 0;
 
                 const percent = totalPossible > 0 ? Math.round((totalCompletedInMonth / totalPossible) * 100) : 0;
@@ -204,9 +250,11 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         
         let currentStreak = 0;
         for (let i = 365; i >= 1; i -= 1) {
-            const dateStr = format(subDays(today, i), 'yyyy-MM-dd');
+            const d = subDays(today, i);
+            const dateStr = format(d, 'yyyy-MM-dd');
             const count = getCompletionCount(dateStr);
-            const percent = totalHabits > 0 ? Math.round((count / totalHabits) * 100) : 0;
+            const dailyTotal = getDailyTotal(d);
+            const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
             const required = getRequiredPercentForDay(currentStreak + 1);
             if (percent >= required) {
                 currentStreak += 1;
@@ -220,7 +268,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             currentStreak += 1;
         }
 
-        const minForStreak = Math.ceil((totalHabits * requiredToday) / 100);
+        const minForStreak = Math.ceil((todayTotal * requiredToday) / 100);
 
         const trendValue = currentAvg - Math.round(prevPeriodAvg);
 
@@ -246,13 +294,13 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 average: currentAvg,
                 best: bestDay,
                 streak: currentStreak,
-                totalHabits
+                totalHabits: currentTotalHabits
             },
             trend: trendValue,
             dateRangeLabel: rangeLabel,
             todayStats: {
                 count: todayCount,
-                total: totalHabits,
+                total: todayTotal,
                 percent: todayPercent,
                 minForStreak,
                 requiredToday
@@ -389,8 +437,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 {/* Horizontal Guidelines */}
                 <div className="absolute inset-x-0 top-3 bottom-6 flex flex-col justify-between pointer-events-none">
                     {[100, 50, 0].map((val) => (
-                        <div key={val} className="w-full border-t border-white/5 relative h-0">
-                            <span className="absolute top-1/2 -translate-y-1/2 -left-0 text-[9px] text-zinc-700 font-mono">{val}%</span>
+                        <div key={val} className="w-full h-px bg-white/5 relative">
+                            <span className="absolute top-1/2 -translate-y-1/2 -left-3 text-[9px] text-zinc-700 font-mono">{val}%</span>
                         </div>
                     ))}
                 </div>
@@ -446,9 +494,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 animate={{ scaleY: Math.max(data.percent, 4) / 100 }}
                                 transition={{ 
                                     type: "spring", 
-                                    stiffness: 180, 
-                                    damping: 24, 
-                                    delay: i * 0.03 
+                                    stiffness: 250, 
+                                    damping: 20, 
+                                    delay: i * 0.02 
                                 }}
                                 style={{ 
                                     height: '100%',

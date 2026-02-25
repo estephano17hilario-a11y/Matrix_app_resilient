@@ -1,5 +1,5 @@
 import { Target, Dumbbell, Brain, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Zap, Feather } from 'lucide-react';
-import { GAMIFICATION_CONFIG } from '@/config/gamification';
+import { GAMIFICATION_CONFIG } from '../../config/gamification';
 
 export const TRAITS_LIST = [
   { id: 'DISCIPLINA', label: 'traits.DISCIPLINA', color: '#3b82f6', icon: Target, desc: 'Capacidad de mantener el rumbo' },
@@ -19,8 +19,8 @@ export const TRAITS_LIST = [
 export const DAILY_LIMITS = {
   TASKS: {
     XP: GAMIFICATION_CONFIG.MAX_DAILY_TASK_XP,
-    TRAIT_POINTS: GAMIFICATION_CONFIG.MAX_DAILY_TASK_XP, // Assuming same limit for simplicity or strictly 200
-    GOLD: 999999 // No strict limit on gold mentioned in caps, only XP/TP
+    TRAIT_POINTS: GAMIFICATION_CONFIG.MAX_DAILY_TASK_XP,
+    GOLD: GAMIFICATION_CONFIG.MAX_DAILY_TASK_GOLD
   },
   HABITS: {
     MAX_COUNT: GAMIFICATION_CONFIG.HABITS.COGNITIVE_LOAD_LIMIT // 12

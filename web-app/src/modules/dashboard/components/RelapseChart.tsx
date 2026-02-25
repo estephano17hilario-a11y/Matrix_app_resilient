@@ -66,6 +66,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({ badHabits }) => {
                     <Tooltip 
                         contentStyle={{ backgroundColor: '#000000cc', borderRadius: '8px', border: '1px solid #ffffff20' }}
                         itemStyle={{ color: '#f43f5e' }}
+                        animationDuration={400}
                     />
                     <Ar 
                         type="monotone" 
@@ -74,6 +75,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({ badHabits }) => {
                         fillOpacity={1} 
                         fill="url(#colorCount)" 
                         strokeWidth={2}
+                        animationDuration={500}
                     />
                 </AChart>
             </RContainer>

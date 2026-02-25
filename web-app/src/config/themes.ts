@@ -1,4 +1,4 @@
-export type ThemeCategory = 'orbs' | 'minimal' | 'nature' | 'flow';
+export type ThemeCategory = 'orbs' | 'minimal' | 'nature' | 'flow' | 'holo';
 
 export type ThemeId = 
   | 'ether' | 'matrix' | 'digital_rain' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' 
@@ -6,7 +6,8 @@ export type ThemeId =
   | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' 
   | 'spotlight' | 'nebula' | 'aurora' | 'amy' | 'modern_dark' | 'modern_light' 
   | 'luxury' | 'graphite' | 'simple_dark'
-  | 'midnight_flow' | 'titanium_flow' | 'velvet_flow' | 'oceanic_flow' | 'phantom_flow' | 'ember_flow';
+  | 'midnight_flow' | 'titanium_flow' | 'velvet_flow' | 'oceanic_flow' | 'phantom_flow' | 'ember_flow'
+  | 'holo_spectrum' | 'holo_vision' | 'holo_midnight' | 'holo_blush' | 'holo_frost';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -72,7 +73,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'sunset',
     name: 'Sunset',
     description: 'Solar warmth',
-    category: 'nature',
+    category: 'flow',
     colors: {
       bgDepth: '25 10 10', // Deep reddish brown
       primaryGlow: '255 80 0', // Bright Orange
@@ -128,7 +129,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'revolut',
     name: 'Revolut',
     description: 'Fintech Ultra',
-    category: 'minimal',
+    category: 'orbs',
     colors: {
       bgDepth: '5 5 15', // Dark Navy
       primaryGlow: '255 255 255',
@@ -142,7 +143,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'cupertino',
     name: 'Cupertino',
     description: 'California Dream',
-    category: 'minimal',
+    category: 'orbs',
     colors: {
       bgDepth: '0 40 60', // Deep Teal
       primaryGlow: '0 220 255', // Cyan
@@ -240,7 +241,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'dorado',
     name: 'Dorado',
     description: 'Golden Hour',
-    category: 'nature',
+    category: 'flow',
     colors: {
       bgDepth: '30 20 5', // Dark Gold/Brown
       primaryGlow: '255 200 0', // Gold
@@ -282,7 +283,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'amy',
     name: 'Amy',
     description: 'Nature & Serenity',
-    category: 'nature',
+    category: 'flow',
     colors: {
       bgDepth: '5 20 18', // Much darker/subtler Jungle Green (Less overwhelming)
       primaryGlow: '52 211 153', // Emerald-400 (Kept Bright)
@@ -383,7 +384,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'luxury',
     name: 'Luxury',
     description: 'Gold & Velvet',
-    category: 'nature',
+    category: 'flow',
     colors: {
       bgDepth: '15 10 5', // Deep Brown/Black
       primaryGlow: '255 215 0', // Gold
@@ -504,5 +505,76 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       textPrimary: '255 240 230',
     },
     gradient: 'linear-gradient(135deg, #3E0E0E 0%, #752814 100%)',
+  },
+  // HOLO CATEGORY - Based on VisionOS/Holo Aesthetic
+  holo_spectrum: {
+    id: 'holo_spectrum',
+    name: 'Holo Spectrum',
+    description: 'Prismatic Blur',
+    category: 'holo',
+    colors: {
+      bgDepth: '10 0 20', // Deep Indigo-Black
+      primaryGlow: '255 0 255', // Magenta
+      secondaryGlow: '0 255 255', // Cyan
+      glassTint: '200 200 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'linear-gradient(135deg, #ff00ff 0%, #00ffff 100%)',
+  },
+  holo_vision: {
+    id: 'holo_vision',
+    name: 'Holo Vision',
+    description: 'Future Focus',
+    category: 'holo',
+    colors: {
+      bgDepth: '0 10 5', // Deep Black-Green
+      primaryGlow: '16 185 129', // Emerald
+      secondaryGlow: '20 184 166', // Teal
+      glassTint: '180 255 240',
+      textPrimary: '240 255 250',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #10b981 0%, #14b8a6 100%)',
+  },
+  holo_midnight: {
+    id: 'holo_midnight',
+    name: 'Holo Midnight',
+    description: 'Deep Space',
+    category: 'holo',
+    colors: {
+      bgDepth: '2 6 23', // Deep Slate
+      primaryGlow: '59 130 246', // Blue
+      secondaryGlow: '99 102 241', // Indigo
+      glassTint: '200 200 255',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+  },
+  holo_blush: {
+    id: 'holo_blush',
+    name: 'Holo Blush',
+    description: 'Soft Radiance',
+    category: 'holo',
+    colors: {
+      bgDepth: '20 5 5', // Deep Red-Brown
+      primaryGlow: '236 72 153', // Pink
+      secondaryGlow: '249 115 22', // Orange
+      glassTint: '255 220 230',
+      textPrimary: '255 245 245',
+    },
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+  },
+  holo_frost: {
+    id: 'holo_frost',
+    name: 'Holo Frost',
+    description: 'Icy Clarity',
+    category: 'holo',
+    colors: {
+      bgDepth: '15 23 42', // Deep Cool Gray
+      primaryGlow: '14 165 233', // Sky
+      secondaryGlow: '255 255 255', // White
+      glassTint: '230 250 255',
+      textPrimary: '240 250 255',
+    },
+    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #ffffff 100%)',
   },
 };

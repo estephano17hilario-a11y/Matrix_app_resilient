@@ -4,6 +4,7 @@ import { persistenceService } from '../../../services/persistenceService';
 import { useAuth } from '../../../context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
 import { db, doc, getDoc, updateDoc } from '../../../services/firebase';
+import { toLocalISOString } from '../../../utils/dateUtils';
 
 export const useNotesLogic = () => {
     const { user, profile } = useAuth();
@@ -20,8 +21,8 @@ export const useNotesLogic = () => {
             persistenceService.notes.getAll(user.uid),
             persistenceService.journal.getAll(user.uid)
         ]).then(([fetchedNotes, fetchedJournal]) => {
-            setNotes(fetchedNotes);
-            setJournalEntries(fetchedJournal);
+            setNotes(fetchedNotes ?? []);
+            setJournalEntries(fetchedJournal ?? []);
             setIsLoading(false);
         }).catch(err => {
             console.error("Failed to load notes data:", err);
@@ -57,7 +58,7 @@ export const useNotesLogic = () => {
             getDoc(userRef).then(snap => {
                 if (snap.exists()) {
                     const data = snap.data();
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = toLocalISOString(new Date());
                     let limits = data.dailyLimits || {};
                     
                     if (limits.date !== today) {
@@ -113,7 +114,7 @@ export const useNotesLogic = () => {
             getDoc(userRef).then(snap => {
                 if (snap.exists()) {
                     const data = snap.data();
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = toLocalISOString(new Date());
                     let limits = data.dailyLimits || {};
                     
                     if (limits.date !== today) {

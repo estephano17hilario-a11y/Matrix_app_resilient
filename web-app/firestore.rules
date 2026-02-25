@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- FUNCIONES DE AYUDA ---
+    
+    // Verifica si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Verifica si el usuario es dueño del documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Verifica que no se esté intentando borrar físicamente (Soft Delete Enforcement)
+    // Para robustez bancaria, NUNCA permitimos delete() desde el cliente.
+    function isNotDelete() {
+      return request.method != 'delete';
+    }
+    
+    // Valida tipos de datos básicos para evitar corrupción
+    function isValidString(text, maxLen) {
+      return text is string && text.size() <= maxLen;
+    }
+    
+    function isValidNumber(num) {
+      return num is number;
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    // Colección de Usuarios (Root)
+    match /users/{userId} {
+      // El usuario puede leer y escribir su propio documento
+      allow read, create, update: if isOwner(userId);
+      // NADIE puede borrar un usuario desde el cliente (requiere Admin SDK)
+      allow delete: if false; 
+
+      // Subcolecciones del Usuario (Quests, Habits, etc.)
+      match /{document=**} {
+        allow read, create, update: if isOwner(userId);
+        // Bloqueamos delete físico para forzar Soft Delete
+        allow delete: if false; 
+      }
+      
+      // Reglas específicas para validación de datos (Opcional pero recomendado)
+      // match /quests/{questId} {
+      //   allow create, update: if isOwner(userId) 
+      //     && isValidString(request.resource.data.title, 100);
+      // }
+    }
+    
+    // Auditoría (Solo escritura, nadie puede borrar ni editar logs)
+    match /audit_logs/{logId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read: if false; // Solo accesible por Admin SDK o consola
+      allow update, delete: if false; // Los logs son inmutables
+    }
+
+    // Bloquear acceso a todo lo demás por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

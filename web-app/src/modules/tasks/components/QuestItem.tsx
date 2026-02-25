@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2, Edit2, Target } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap } from 'lucide-react';
 import { Quest, Attribute, Project } from '../../../types';
+import { SmartProject } from '../../../types/SmartGoal';
 import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
+import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 
 interface QuestItemProps {
   quest: Quest;
   attribute?: Attribute;
   project?: Project;
+  smartProject?: SmartProject;
   onComplete: (e: React.MouseEvent, q: Quest) => void;
   onDelete?: (id: string) => void;
   onEdit?: (quest: Quest) => void;
@@ -17,37 +20,52 @@ interface QuestItemProps {
   isLite?: boolean;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, project, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, project, smartProject, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
   const [expanded, setExpanded] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [isSubtasksComplete, setIsSubtasksComplete] = useState(false);
   const Icon = attribute?.icon;
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!quest.completed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+
+      // Coins
+      if (coins > 0) {
+        triggerFlyingIcon(rect, "gold-counter-pill", <Coins size={24} className="text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,1)]" />, 0);
+      }
+      
+      // XP
+      triggerFlyingIcon(rect, "xp-bar-container", <Zap size={24} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,1)]" />, 0.15);
+      
+      // Trait
+      if (attribute && Icon) {
+        triggerFlyingIcon(rect, "xp-bar-container", <Icon size={24} style={{ color: themeColor }} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />, 0.3);
+      }
+
       setIsCompleting(true);
       // Wait for animation to float up before actually completing
       setTimeout(() => {
         onComplete(e, quest);
         // We don't reset isCompleting to prevent flickering before unmount
-      }, 600); 
+      }, 800); 
     } else {
       onComplete(e, quest);
     }
   };
 
   const difficultyColors: Record<string, string> = {
-    S: 'text-purple-500 border-purple-500/20 bg-purple-500/5',
-    A: 'text-rose-500 border-rose-500/20 bg-rose-500/5',
-    B: 'text-yellow-400 border-yellow-400/20 bg-yellow-400/5',
-    C: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/5', 
+    S: 'text-purple-300 border-purple-500/30 bg-purple-500/10',
+    A: 'text-rose-300 border-rose-500/30 bg-rose-500/10',
+    B: 'text-orange-300 border-orange-500/30 bg-orange-500/10',
+    C: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10', 
   };
 
   const diffColor = difficultyColors[quest.difficulty] || 'text-slate-400 border-slate-400/20';
   const xp = quest.xpReward;
   const coins = quest.gold || 0;
   const isSmart = quest.isSmartQuest;
+  const themeColor = attribute?.color || '#ffffff';
 
   const Container: any = isLite ? 'div' : motion.div;
 
@@ -55,228 +73,220 @@ export const QuestItem = React.memo(({ quest, attribute, project, onComplete, on
     <Container
       {...(isLite ? {} : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 } })}
       className={cn(
-        "relative rounded-[1.25rem] transition-all duration-300 mb-3 group",
-        expanded ? "z-10 ring-1 ring-white/10" : "hover:bg-white/5",
-        isSmart && "ring-1 ring-indigo-500/30 shadow-[0_0_15px_-5px_rgba(99,102,241,0.2)]"
+        "relative rounded-[1.25rem] transition-all duration-300 mb-3 group overflow-hidden",
+        expanded ? "z-10" : "hover:z-10"
       )}
       style={{ 
-        contentVisibility: 'auto',
-        containIntrinsicSize: '100px',
-        padding: '1px', 
-        background: isSubtasksComplete
-            ? `linear-gradient(145deg, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.1) 40%, transparent 100%)`
-            : isSmart 
-            ? `linear-gradient(145deg, ${attribute?.color || '#333'}40 0%, rgba(99,102,241,0.1) 40%, transparent 100%)`
-            : `linear-gradient(145deg, ${attribute?.color || '#333'}20 0%, rgba(255,255,255,0.05) 40%, transparent 100%)` 
+        // VisionOS "Hyper-Glass" Base
+        background: 'rgba(20, 20, 25, 0.6)', // Slightly darker for contrast
+        backdropFilter: 'blur(12px)', // Safe blur limit (max 16px)
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: expanded 
+            ? `0 0 0 1px ${themeColor}40, 0 20px 40px -10px rgba(0,0,0,0.5)` // Active state glow
+            : `inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)` // Idle state
       }}
     >
+      {/* Dynamic Attribute Glow Gradient (Top Left) */}
       <div 
-        className="relative rounded-[1.2rem] overflow-hidden"
-        style={{
-            background: isSubtasksComplete
-                ? `linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(18, 18, 22, 0.95) 100%)`
-                : attribute?.color 
-                ? `linear-gradient(180deg, ${attribute.color}15 0%, rgba(18, 18, 22, 0.95) 100%)` 
-                : 'rgba(18, 18, 22, 0.95)'
-        }}
+        className="absolute -top-10 -left-10 w-40 h-40 rounded-full opacity-20 pointer-events-none blur-3xl transition-opacity duration-500"
+        style={{ background: themeColor }}
+      />
+      
+      {/* Smart Quest Special Glow */}
+      {isSmart && (
+         <div 
+            className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full opacity-10 pointer-events-none blur-3xl"
+            style={{ background: '#6366f1' }} // Indigo
+         />
+      )}
+
+      <div 
+        className="relative z-10 p-3 cursor-pointer" 
+        onClick={() => setExpanded(!expanded)}
       >
-        {isSmart && (
-            <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+        <div className="flex items-center gap-3.5">
+          {/* VISIONOS CHECKBOX / ICON CONTAINER */}
+          <button 
+            onClick={handleComplete} 
+            disabled={isCompleting}
+            className={cn(
+              "w-12 h-12 rounded-[1rem] flex items-center justify-center shrink-0 transition-all duration-300 relative overflow-hidden group/icon",
+              quest.completed ? "bg-emerald-500/20" : "bg-white/5 hover:bg-white/10"
+            )}
+            style={{
+                borderColor: quest.completed ? 'transparent' : 'rgba(255,255,255,0.1)',
+                borderWidth: '1px',
+                boxShadow: quest.completed 
+                    ? `inset 0 0 15px rgba(16,185,129,0.2)` 
+                    : 'inset 0 1px 0 0 rgba(255,255,255,0.05)'
+            }}
+          >
+             {/* Background glow for icon */}
+             {!quest.completed && (
                 <div 
-                    className="w-24 h-24 rounded-full" 
-                    style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.5) 0%, transparent 70%)' }}
+                    className="absolute inset-0 opacity-0 group-hover/icon:opacity-20 transition-opacity duration-300" 
+                    style={{ background: themeColor }}
                 />
+             )}
+
+             {quest.completed ? (
+                <motion.div 
+                    initial={{ scale: 0.5, opacity: 0 }} 
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                >
+                    <CheckCircle2 size={22} strokeWidth={3} />
+                </motion.div>
+             ) : (
+                 Icon ? (
+                    <Icon 
+                        size={20} 
+                        style={{ color: themeColor }} 
+                        className="opacity-90 group-hover/icon:scale-110 transition-transform duration-300 drop-shadow-lg"
+                        strokeWidth={2}
+                    />
+                 ) : (
+                    <div className={cn("w-3.5 h-3.5 rounded-full border-2", isSmart ? "border-indigo-400" : "border-white/20")} />
+                 )
+             )}
+          </button>
+          
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex justify-between items-start">
+              <h3 className={cn(
+                "text-[15px] font-semibold truncate pr-2 leading-tight tracking-tight transition-all duration-300",
+                quest.completed ? "text-white/30 line-through" : "text-white/95 drop-shadow-md"
+              )}>
+                {quest.title}
+              </h3>
             </div>
-        )}
-        <div 
-          className="relative z-10 p-4 cursor-pointer" 
-          onClick={() => setExpanded(!expanded)}
-        >
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={handleComplete} 
-              className={cn(
-                "w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 active:scale-90",
-                quest.completed 
-                  ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-95" 
-                  : isSmart 
-                    ? "bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-500/20"
-                    : "bg-white/5 border border-white/10 hover:border-theme-avatar/50 hover:bg-theme-avatar/10"
-              )}
-            >
-              {quest.completed ? (
-                <CheckCircle2 size={20} strokeWidth={3.5} />
-              ) : (
-                <div className={cn("w-3 h-3 rounded-full", isSmart ? "bg-indigo-400/40" : "bg-white/20")} />
-              )}
-            </button>
             
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start mb-1">
-                <h3 className={cn(
-                  "text-[15px] font-bold truncate pr-2 leading-tight tracking-tight transition-colors",
-                  quest.completed ? "text-slate-500 line-through" : "text-white"
-                )}>
-                  {quest.title}
-                </h3>
-                <div className="flex items-center gap-2">
-                    {isSmart && (
-                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                            SMART
+            <div className="flex items-center gap-2 mt-1">
+                 {/* Trait Badge (Glass Capsule) */}
+                {attribute && (
+                    <div 
+                        className="flex items-center gap-1 px-1.5 py-[2px] rounded-md bg-white/5 border border-white/5"
+                        style={{ borderColor: `${themeColor}20` }}
+                    >
+                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-90" style={{ color: themeColor }}>
+                            {smartProject ? smartProject.mainGoal : attribute.label}
                         </span>
-                    )}
-                    <span className={cn("text-[9px] px-1.5 py-0.5 rounded-[4px] font-black border uppercase tracking-wide", diffColor)}>
-                      {quest.difficulty}
-                    </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {attribute && Icon && (
-                  <div className="flex items-center gap-1.5">
-                    <Icon size={12} style={{ color: attribute.color }} strokeWidth={2.5} />
-                    <span className="text-[11px] font-bold tracking-wide" style={{ color: attribute.color }}>
-                      {attribute.label}
-                    </span>
-                  </div>
+                    </div>
                 )}
-                <AnimatePresence>
-                  {(expanded || isSmart) && (
-                     <motion.div 
-                        initial={{ opacity: 0, x: -5 }} 
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-2 text-[10px] font-medium"
-                     >
-                        <span className="text-emerald-400">+{Math.floor(xp)} XP</span>
-                        {coins > 0 && <span className="text-yellow-400">+{coins} G</span>}
-                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-            
-            {/* EDIT BUTTON (Visible on Expand or Hover) */}
-            {onEdit && (
-                <button
-                    onClick={(e) => { e.stopPropagation(); onEdit(quest); }}
-                    className={cn(
-                        "p-2 rounded-lg text-white/20 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors",
-                        expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    )}
-                >
-                    <Edit2 size={16} />
-                </button>
-            )}
-
-            {/* DELETE BUTTON (Visible on Expand or Hover) - Allowed for all tasks */}
-            {onDelete && (
-                <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(quest.id); }}
-                    className={cn(
-                        "p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors",
-                        expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    )}
-                >
-                    <Trash2 size={16} />
-                </button>
-            )}
-
-            <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono text-white/30 tracking-widest">
-                    {expanded ? '2/2' : '1/2'}
+                
+                {/* Difficulty Badge */}
+                <span className={cn("text-[9px] px-1.5 py-[2px] rounded-md font-bold border uppercase tracking-wide opacity-80", diffColor)}>
+                    {quest.difficulty}
                 </span>
-                <ChevronDown 
-                  size={16} 
-                  className={cn(
-                    "text-white/20 transition-transform duration-300",
-                    expanded ? "rotate-180 text-white/60" : ""
-                  )} 
-                />
+
+                {isSmart && (
+                    <span className="text-[9px] font-black text-indigo-300 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-[2px] rounded border border-indigo-500/20">
+                        SMART
+                    </span>
+                )}
             </div>
           </div>
+          
+          {/* RIGHT SIDE: Rewards & Actions */}
+          <div className="flex items-center gap-3">
+             <AnimatePresence mode="wait">
+                {(expanded || isSmart) && !quest.completed && (
+                     <motion.div 
+                        initial={{ opacity: 0, x: 10 }} 
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="flex flex-col items-end gap-0.5 text-[10px] font-mono font-medium"
+                     >
+                        <span className="text-emerald-400 drop-shadow-sm">+{Math.floor(xp)} XP</span>
+                        {coins > 0 && <span className="text-yellow-400 drop-shadow-sm">+{coins} G</span>}
+                     </motion.div>
+                )}
+             </AnimatePresence>
 
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ opacity: 0, scaleY: 0 }}
-                animate={{ opacity: 1, scaleY: 1 }}
-                exit={{ opacity: 0, scaleY: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="overflow-hidden origin-top"
-              >
-                <div className="pt-4 pb-1">
-                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-3" />
-                  
-                  {project && onFocusProject && (
-                      <button 
-                          onClick={(e) => { e.stopPropagation(); onFocusProject(project.id); }}
-                          className="w-full flex items-center justify-center gap-2 py-2 mb-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-xs uppercase tracking-widest hover:bg-indigo-500/20 transition-colors"
-                      >
-                          <Target size={14} />
-                          Focus Mode
-                      </button>
-                  )}
+             <div className={cn(
+                 "flex items-center gap-1 transition-all duration-300",
+                 expanded ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+             )}>
+                {/* EDIT */}
+                {onEdit && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(quest); }}
+                        className="p-1.5 rounded-lg text-white/40 hover:text-indigo-300 hover:bg-white/5 transition-colors"
+                    >
+                        <Edit2 size={14} />
+                    </button>
+                )}
 
-                  {quest.description && (
-                    <div className="text-[13px] text-slate-400 leading-relaxed px-1 font-medium mb-3">
-                      "{quest.description}"
-                    </div>
-                  )}
+                {/* DELETE */}
+                {onDelete && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(quest.id); }}
+                        className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-white/5 transition-colors"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                )}
+             </div>
 
-                  <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} onCompletionChange={setIsSubtasksComplete} />
-
-                  {quest.deadline && (
-                     <div className={cn(
-                        "text-right mt-2 font-mono",
-                        isSmart ? "text-xs font-bold text-indigo-400" : "text-[10px] text-rose-400"
-                     )}>
-                        {isSmart ? `TARGET: ${quest.deadline}` : `DUE: ${quest.deadline}`}
-                     </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+             <ChevronDown 
+                size={16} 
+                className={cn(
+                "text-white/20 transition-transform duration-300",
+                expanded ? "rotate-180 text-white/60" : ""
+                )} 
+            />
+          </div>
         </div>
-      </div>
 
-      {/* FLOATING REWARDS ANIMATION */}
-      {!isLite && (
         <AnimatePresence>
-          {isCompleting && (
-              <motion.div
-                  className="absolute left-10 top-0 z-50 pointer-events-none flex flex-col items-start gap-1"
-                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                  animate={{ 
-                      opacity: [0, 1, 1, 0], 
-                      y: -100, 
-                      scale: 1 
-                  }}
-                  transition={{ duration: 1.2, ease: "easeOut" }}
-              >
-                  <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                      <span className="text-emerald-400 font-black text-sm">+{Math.floor(xp)} XP</span>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-4 pb-1 pl-[3.75rem]"> {/* Indent to align with text */}
+                
+                {/* Description */}
+                {quest.description && (
+                  <div className="text-[13px] text-white/60 leading-relaxed font-medium mb-4 border-l-2 border-white/10 pl-3">
+                    {quest.description}
                   </div>
-                  
-                  {attribute && (
-                      <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-white/10"
-                           style={{ borderColor: `${attribute.color}40`, boxShadow: `0 0 15px ${attribute.color}30` }}>
-                          <Icon size={12} style={{ color: attribute.color }} />
-                          <span style={{ color: attribute.color }} className="font-bold text-sm">
-                              +{Math.floor(xp)} {attribute.label}
-                          </span>
-                      </div>
-                  )}
+                )}
 
-                  {coins > 0 && (
-                      <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-                          <span className="text-yellow-400 font-bold text-sm">+{coins} G</span>
-                      </div>
-                  )}
-              </motion.div>
+                {project && onFocusProject && (
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            onFocusProject(project.id); 
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 mb-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-500/20 transition-colors"
+                    >
+                        <Target size={12} />
+                        Focus Mode
+                    </button>
+                )}
+
+                <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} />
+
+                {quest.deadline && (
+                   <div className={cn(
+                      "flex items-center gap-2 mt-3 font-mono text-[10px]",
+                      isSmart ? "text-indigo-400" : "text-rose-400"
+                   )}>
+                      <span className="opacity-50 uppercase tracking-widest">Deadline</span>
+                      <span className="font-bold">{quest.deadline}</span>
+                   </div>
+                )}
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
-      )}
+      </div>
+
+
     </Container>
   );
 });

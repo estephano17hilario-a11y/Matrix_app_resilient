@@ -4,8 +4,7 @@ import {
   Sliders, 
   Eye, 
   EyeOff,
-  Dock,
-  ArrowLeftRight
+  Dock
 } from 'lucide-react';
 import { cn } from '../../../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -15,17 +14,13 @@ interface SystemSectionProps {
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
-  stickyHud?: boolean;
-  onUpdateStickyHud?: (sticky: boolean) => void;
 }
 
 export const SystemSection = ({
   habitSectionControl,
   onUpdateHabitSectionControl,
   allowDockSectionSwitch,
-  onUpdateAllowDockSectionSwitch,
-  stickyHud,
-  onUpdateStickyHud
+  onUpdateAllowDockSectionSwitch
 }: SystemSectionProps) => {
   const { i18n } = useTranslation();
 
@@ -162,32 +157,6 @@ export const SystemSection = ({
                 <div className={cn(
                   "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
                   allowDockSectionSwitch ? "translate-x-5" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-
-             <div className="h-px bg-white/5" />
-
-            {/* Sticky HUD */}
-            <div className="flex items-center justify-between">
-               <div className="space-y-1">
-                 <span className="text-white font-medium flex items-center gap-2">
-                  <ArrowLeftRight size={16} className="text-emerald-400" />
-                  Sticky HUD
-                </span>
-                <p className="text-xs text-white/40">Keep stats visible on scroll</p>
-              </div>
-              
-              <button 
-                onClick={() => onUpdateStickyHud?.(!stickyHud)}
-                className={cn(
-                  "w-12 h-7 rounded-full transition-colors relative shrink-0",
-                  stickyHud ? "bg-emerald-500" : "bg-white/10"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
-                  stickyHud ? "translate-x-5" : "translate-x-0"
                 )} />
               </button>
             </div>

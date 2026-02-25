@@ -18,7 +18,8 @@ const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
   obstacles: [],
   coachingTone: "Stoic",
-  completedAt: Date.now()
+  completedAt: Date.now(),
+  language: 'en'
 };
 
 interface AuthContextType {
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         PersistenceService.clearUserCache(user.uid);
       }
       PersistenceService.clearSession();
+      sessionStorage.setItem('MATRIX_INTENTIONAL_LOGOUT', 'true');
       
       try {
           await Promise.race([
@@ -123,14 +125,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         if (!currentUser) {
           // LOGOUT / NO SESSION
-          setUser(null);
           
-          // ZOMBIE MODE CHECK
+          // Check if this was an intentional logout
+          const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
+          
+          if (isIntentionalLogout) {
+             console.log("👋 MATRIX: Intentional Logout Detected.");
+             setUser(null);
+             setProfile(null);
+             sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
+             setIsLoading(false);
+             return;
+          }
+
+          // ZOMBIE MODE CHECK (For Refresh / Offline)
           const cached = PersistenceService.getProfile();
           if (!cached) {
+              setUser(null);
               setProfile(null);
           } else {
               console.log("ℹ️ MATRIX: User is null but Profile exists. Entering Zombie/Offline Mode.");
+              setProfile(cached);
+              // Create synthetic user to keep app alive and allow Dashboard hydration
+              setUser({
+                  uid: cached.uid,
+                  email: cached.email,
+                  displayName: cached.displayName,
+                  photoURL: cached.photoURL,
+                  emailVerified: true,
+                  isAnonymous: false,
+                  metadata: {},
+                  providerData: [],
+                  refreshToken: '',
+                  tenantId: null,
+                  delete: async () => {},
+                  getIdToken: async () => '',
+                  getIdTokenResult: async () => ({} as any),
+                  reload: async () => {},
+                  toJSON: () => ({}),
+                  phoneNumber: null,
+                  providerId: 'firebase'
+              } as User);
           }
           
           setIsLoading(false); 

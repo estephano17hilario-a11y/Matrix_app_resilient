@@ -11,6 +11,7 @@ interface AchievementToastProps {
 
 export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement, onClose }) => {
   const { t } = useTranslation();
+  const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
   
   useEffect(() => {
     if (achievement) {
@@ -25,28 +26,29 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
   }, [achievement, onClose]);
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence mode="popLayout">
       {achievement && (
         <motion.div
-          initial={{ y: -150, opacity: 0, scale: 0.8 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -150, opacity: 0, scale: 0.8 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25, mass: 1.2 }}
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[10000] flex justify-center pointer-events-none w-full max-w-sm px-4"
+          layout
+          initial={{ y: -50, opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+          animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          exit={{ scale: 0.9, opacity: 0, filter: 'blur(10px)', transition: { duration: 0.2 } }}
+          transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+          className="w-full flex justify-center pointer-events-none p-2"
         >
-          {/* Hyper-Glass Capsule */}
           <div className="
             relative
-            flex items-center gap-4 px-6 py-4
-            bg-[#050505]/95 backdrop-blur-md
-            border border-white/20
+            flex items-center gap-4 px-5 py-4
+            bg-[#050505]/80 backdrop-blur-xl
+            border border-emerald-500/20
             rounded-2xl
-            shadow-[0_0_50px_rgba(16,185,129,0.25)]
+            shadow-[0_8px_32px_rgba(0,0,0,0.5)]
             pointer-events-auto
             overflow-hidden
+            w-full max-w-sm
+            group
           ">
-            {/* Inner Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-50" />
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-30 group-hover:opacity-50 transition-opacity" />
             
             {/* Icon Container with Glow */}
             <div className="
@@ -60,17 +62,16 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
               <achievement.icon className="relative w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             </div>
             
-            {/* Text Content */}
-            <div className="relative z-10 flex flex-col min-w-[180px]">
+            <div className="relative z-10 flex flex-col min-w-0 flex-1">
               <span className="text-[10px] font-bold tracking-[0.2em] text-emerald-400 uppercase mb-1 drop-shadow-sm">
                 {t('achievements.unlocked')}
               </span>
               <div className="flex items-start justify-between gap-3">
-                <span className="text-base font-bold text-white leading-none tracking-tight drop-shadow-md">
+                <span className="text-base font-bold text-white leading-tight tracking-tight drop-shadow-md flex-1 min-w-0 line-clamp-2">
                   {t(achievement.title)}
                 </span>
                 <span className="
-                    flex items-center justify-center self-start
+                    flex items-center justify-center self-start shrink-0
                     text-xs font-mono font-bold text-emerald-300 leading-none
                     bg-emerald-950/50 px-2 py-1 rounded-md 
                     border border-emerald-500/30
@@ -84,6 +85,6 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body
+    notificationRoot || document.body
   );
 };

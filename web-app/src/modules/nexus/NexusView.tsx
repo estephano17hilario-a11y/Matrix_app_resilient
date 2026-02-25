@@ -28,6 +28,7 @@ export const NexusView: React.FC<{
   onAddQuest?: (date: Date, smartProjectId?: string) => void;
   onClose?: () => void;
   onSelectProject?: (projectId: string | null) => void;
+  onStartFocusProject?: (payload: { projectId?: string | null; smartProjectId?: string | null }) => void;
 }> = ({ 
   onToggleImmersive, 
   onOpenProjectModal, 
@@ -47,7 +48,8 @@ export const NexusView: React.FC<{
   onDeleteSmartProject,
   onAddQuest,
   onClose,
-  onSelectProject
+  onSelectProject,
+  onStartFocusProject
 }) => {
   const { user } = useLux();
   const { t } = useTranslation();
@@ -201,6 +203,7 @@ export const NexusView: React.FC<{
                 }
             }}
             onAddQuest={() => onAddQuest?.(new Date(), selectedProject.id)}
+            onStartFocusProject={onStartFocusProject}
           />
         )}
       </AnimatePresence>

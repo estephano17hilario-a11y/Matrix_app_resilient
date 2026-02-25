@@ -96,10 +96,10 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
                         }
 
                         const newData = { 
-                            uid: snapshot.id, 
                             ...data,
                             ...(normalized || {}),
-                            stats: safeStats
+                            stats: safeStats,
+                            uid: snapshot.id
                         } as UserData;
                         const updateTime = snapshot.updateTime?.toMillis() ?? 0;
                         if (lastUpdateTimeRef.current !== updateTime || lastSnapshotUidRef.current !== snapshot.id) {

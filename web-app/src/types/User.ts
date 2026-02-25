@@ -60,7 +60,6 @@ export interface UserProfile {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   allowDockSectionSwitch?: boolean;
-  stickyHud?: boolean;
   
   // Rate Limiting
   traitChanges?: {
@@ -68,12 +67,16 @@ export interface UserProfile {
     weekStart: number;
   };
 
+  // Trait History
+  archivedTraits?: Record<string, { level: number, xp: number, maxXp: number }>;
+
   // Onboarding Data
   onboarding?: {
     successDefinition: string;
     obstacles: string[];
     coachingTone: string;
     completedAt: number;
+    language?: string;
   };
   
   // Internal State Flags

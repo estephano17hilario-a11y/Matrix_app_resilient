@@ -1,535 +1,389 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Loader2, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, type Transition } from 'framer-motion';
+import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { 
   auth, 
   db, 
-  configStatus,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  updateProfile,
   doc,
   setDoc,
-  getRedirectResult
+  getRedirectResult,
+  updateProfile
 } from '../../services/firebase';
-import { loginWithGoogle, loginAsGuest } from '../../services/firebaseService';
-import { isNetworkAvailable, retryOperation } from '../../utils/networkUtils';
 import { AuthLayout } from './components/AuthLayout';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
 
+// --- TYPES & CONSTANTS ---
+type AuthViewMode = 'LANDING' | 'LOGIN' | 'REGISTER_LANG' | 'REGISTER_CREDENTIALS';
+
+const SPRING_CONFIG: Transition = { type: 'spring', stiffness: 300, damping: 30, mass: 0.8 };
+
+// --- SUB-COMPONENTS ---
+
+// 1. LANDING VIEW
+const LandingView = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => void }) => {
+  const { t } = useTranslation();
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={SPRING_CONFIG}
+      className="flex flex-col items-center justify-center w-full space-y-8"
+    >
+      <div className="text-center space-y-2">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-indigo-300 mb-4 backdrop-blur-md shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+        >
+          <Sparkles className="w-3 h-3 animate-pulse" />
+          <span>Lux OS 2.0</span>
+        </motion.div>
+        
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 drop-shadow-sm">
+          Lux
+        </h1>
+        <p className="text-white/40 font-medium tracking-wide text-sm md:text-base max-w-xs mx-auto">
+          {t('auth.landing.subtitle', 'Gamify Your Life')}
+        </p>
+      </div>
+
+      <div className="w-full max-w-xs space-y-6">
+        {/* BIG START BUTTON */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onStart}
+          className="group relative w-full h-20 flex items-center justify-center gap-3 bg-white text-black rounded-2xl font-bold text-xl tracking-tight shadow-[0_0_20px_rgba(255,255,255,0.3)] overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.6)]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <Play className="w-6 h-6 fill-current transition-transform group-hover:translate-x-1" />
+          <span>{t('auth.landing.start', 'EMPEZAR')}</span>
+        </motion.button>
+
+        {/* LOGIN LINK */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-white/20 text-xs uppercase tracking-widest">Or</span>
+          <button 
+            onClick={onLogin}
+            className="text-white/50 hover:text-white text-sm font-medium transition-colors flex items-center gap-2 py-2 px-4 rounded-lg hover:bg-white/5"
+          >
+            <span>{t('auth.landing.login', 'Ya tengo cuenta')}</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// 2. LANGUAGE SELECTION
+const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: () => void, onBack: () => void, currentLang: string, onChangeLang: (l: string) => void }) => {
+  const { t } = useTranslation();
+  const languages = [
+    { 
+      code: 'en', 
+      label: t('onboarding.language.en.name', 'English'), 
+      sub: t('onboarding.language.en.region', 'International') 
+    },
+    { 
+      code: 'es', 
+      label: t('onboarding.language.es.name', 'Español'), 
+      sub: t('onboarding.language.es.region', 'Latam / España') 
+    },
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={SPRING_CONFIG}
+      className="w-full max-w-sm"
+    >
+      <div className="flex items-center justify-between mb-8">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-xl font-bold text-white">{t('onboarding.language.title', 'Select Language')}</h2>
+        <div className="w-9" /> {/* Spacer */}
+      </div>
+
+      <div className="space-y-3">
+        {languages.map((lang) => (
+          <button
+            key={lang.code}
+            onClick={() => {
+              onChangeLang(lang.code);
+              // Small delay for visual feedback
+              setTimeout(onNext, 150);
+            }}
+            className={`w-full p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${
+              currentLang === lang.code 
+                ? 'bg-white/10 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="text-left">
+              <div className={`font-bold text-lg ${currentLang === lang.code ? 'text-white' : 'text-white/70'}`}>
+                {lang.label}
+              </div>
+              <div className="text-xs text-white/30 font-medium tracking-wide">
+                {lang.sub}
+              </div>
+            </div>
+            {currentLang === lang.code && (
+              <motion.div layoutId="check" className="text-indigo-400">
+                <Sparkles className="w-5 h-5" />
+              </motion.div>
+            )}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+// 4. MAIN VIEW COMPONENT
 export const AuthView = () => {
   const { t, i18n } = useTranslation();
-  // FORCE DEFAULT TO LOGIN (true)
-  const [isLogin, setIsLogin] = useState(true);
-  const [isGuestMode, setIsGuestMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [shake, setShake] = useState(0);
-  const emailRef = useRef<HTMLInputElement>(null);
-
-  // RESET TO LOGIN ON MOUNT
-  // Whenever this component is remounted (e.g. after logout), it will start at Login
-  useEffect(() => {
-      setIsLogin(true);
-  }, []);
-
+  const [view, setView] = useState<AuthViewMode>('LANDING');
+  
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const normalizeEmail = (value: string) => value.trim().toLowerCase();
-  const normalizeName = (value: string) => value.trim();
-  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  const resolveAuthErrorMessage = useCallback((err: any) => {
-    const code = err?.code;
-    const msg = err?.message || '';
+  // Validation State
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isPasswordValid = password.length >= 6;
+  const isNameValid = name.trim().length >= 2;
+  const isConfirmValid = confirmPassword === password && confirmPassword.length > 0;
 
-    if (code === 'auth/operation-not-allowed') return t('auth.errors.authDisabled');
-    if (code === 'auth/network-request-failed') return t('auth.errors.network');
-    if (code === 'auth/invalid-email') return t('auth.errors.invalidEmail');
-    if (code === 'auth/user-not-found') return t('auth.errors.userNotFound');
-    if (code === 'auth/wrong-password') return t('auth.errors.wrongPassword');
-    if (code === 'auth/email-already-in-use') return t('auth.errors.emailInUse');
-    if (code === 'auth/weak-password') return t('auth.errors.weakPassword');
-    if (code === 'auth/too-many-requests') return t('auth.errors.tooManyRequests');
-    if (code === 'auth/unauthorized-domain') return t('auth.errors.unauthorizedDomain');
-    if (code === 'auth/insecure-context') return t('auth.errors.insecureContext');
-    if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request') return t('auth.errors.popupBlocked');
-    if (code === 'auth/popup-closed-by-user') return t('auth.errors.popupClosed');
-    
-    // TIMEOUT HANDLING
-    if (msg.includes('TIMEOUT')) return "Connection too slow. Please check your internet.";
-
-    // SPECIFIC HINT FOR PREVIEW ENVIRONMENTS
-    if (code === 'auth/network-request-failed' && window.self !== window.top) {
-        return "Network Error in Preview Mode. Please open in external browser.";
-    }
-
-    return msg.replace('Firebase: ', '') || t('auth.errors.generic');
-  }, [t]);
-
-  // AUTO-FOCUS
+  // Initialize
   useEffect(() => {
-    if (emailRef.current) {
-      emailRef.current.focus();
-    }
-  }, [isLogin]);
-
-  useEffect(() => {
-    let active = true;
-    const run = async () => {
-      if (!configStatus.isValid) return;
-      try {
-        // DETECT IF RETURNING FROM REDIRECT
-        // If we are just mounting, we might be coming back from Google.
-        // We set loading true tentatively to avoid flickering if a user is found immediately.
-        
-        // This call is lightweight if no redirect happened.
-        const result = await getRedirectResult(auth);
-        
-        if (result?.user) {
-             console.log("✅ Redirect Login Detected:", result.user.uid);
-             if (!active) return;
-             // The AuthContext will pick this up via onAuthStateChanged
-             // We just keep loading to avoid UI flicker
-             setIsLoading(true);
+    // Check if we have a redirect result pending
+    const checkRedirect = async () => {
+        try {
+            const result = await getRedirectResult(auth);
+            if (result?.user) setIsLoading(true);
+        } catch (e) {
+            console.error(e);
         }
-      } catch (err: any) {
-        if (!active) return;
-        console.error("Redirect Result Error:", err);
-        setError(resolveAuthErrorMessage(err));
-        setShake(prev => prev + 1);
-        setIsLoading(false); // Stop loading if error
-      }
     };
-    run();
-    return () => {
-      active = false;
-    };
-  }, [resolveAuthErrorMessage]);
-
-  const handleGoogleLogin = async () => {
-    if (!configStatus.isValid) {
-      const missing = configStatus.missingKeys?.join(', ') || 'Firebase config inválida';
-      setError(`Faltan variables de Firebase: ${missing}`);
-      setShake(prev => prev + 1);
-      return;
-    }
-    
-    const online = await isNetworkAvailable();
-    if (!online) {
-      setError(t('auth.errors.network') || "No internet connection detected");
-      setShake(prev => prev + 1);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await loginWithGoogle();
-      if (result === null) {
-        setIsLoading(true);
-        return;
-      }
-      setIsLoading(false);
-    } catch (err: any) {
-      console.error("Google Login Failed:", err);
-      setError(resolveAuthErrorMessage(err));
-      setShake(prev => prev + 1);
-      setIsLoading(false); // Only turn off loading if we actually failed/threw
-    } 
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Auth Submit:", { isLogin, email, name: isLogin ? 'N/A' : name });
-    
-    // FAST VALIDATION
-    const normalizedEmail = normalizeEmail(email);
-    const normalizedName = normalizeName(name);
-
-    if (isGuestMode) {
-        if (!normalizedName) {
-            setError(t('auth.errors.nameRequired') || "Name is required");
-            setShake(s => s + 1);
-            return;
-        }
-    } else {
-        if (!normalizedEmail || !password) {
-            setError(t('auth.errors.required') || "Email and password are required");
-            setShake(s => s + 1);
-            return;
-        }
-
-        if (!isValidEmail(normalizedEmail)) {
-            setError(t('auth.errors.invalidEmail'));
-            setShake(s => s + 1);
-            return;
-        }
-
-        if (!isLogin) {
-            if (!normalizedName) {
-                setError(t('auth.errors.nameRequired') || "Name is required");
-                setShake(s => s + 1);
-                return;
-            }
-            if (password !== confirmPassword) {
-                setError(t('auth.errors.passwordMismatch'));
-                setShake(s => s + 1);
-                return;
-            }
-        }
-    }
-
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      if (!configStatus.isValid) {
-        const missing = configStatus.missingKeys?.join(', ') || 'Firebase config inválida';
-        throw new Error(`Faltan variables de Firebase: ${missing}`);
-      }
-
-      // 1. NETWORK CHECK
-      const online = await isNetworkAvailable();
-      if (!online) {
-        // If we are in an iframe (preview mode), the check might be strict.
-        const isIframe = window.self !== window.top;
-        if (isIframe) {
-           console.warn("⚠️ Running in Iframe/Preview - Network might be restricted.");
-        }
-        throw new Error(t('auth.errors.network') || "No internet connection detected");
-      }
-
-      if (isGuestMode) {
-        // GUEST LOGIN
-        console.log("Attempting Guest Login...");
-        await retryOperation(() => loginAsGuest(normalizedName));
-        console.log("Guest Login successful");
-      } else if (isLogin) {
-        // LOGIN
-        console.log("Attempting login...");
-        await retryOperation(() => signInWithEmailAndPassword(auth, normalizedEmail, password));
-        console.log("Login successful");
-      } else {
-        // REGISTER
-        console.log("Attempting registration...");
-        if (password.length < 6) {
-          throw new Error(t('auth.errors.passwordLength'));
-        }
-        
-        const userCredential = await retryOperation(() => createUserWithEmailAndPassword(auth, normalizedEmail, password));
-        console.log("User created:", userCredential.user.uid);
-        
-        // Update Profile with Name
-        if (normalizedName) {
-          console.log("Updating profile with name:", normalizedName);
-          // Fire and forget name updates to keep UI moving
-          updateProfile(userCredential.user, { displayName: normalizedName });
-          setDoc(doc(db, 'users', userCredential.user.uid), {
-            displayName: normalizedName,
-            email: normalizedEmail
-          }, { merge: true }).catch(e => console.warn("Background sync failed", e));
-        }
-      }
-    } catch (err: any) {
-      console.error("Auth Error:", err);
-
-      setError(resolveAuthErrorMessage(err));
-      setShake(prev => prev + 1);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ULTRA-FAST SPRING PHYSICS
-  const springConfig = { type: "spring" as const, stiffness: 500, damping: 40, mass: 0.5 };
-
-  const toggleMode = () => {
-    if (isGuestMode) {
-        setIsGuestMode(false);
-        setIsLogin(true);
-    } else {
-        setIsLogin(!isLogin);
-    }
-    setError(null);
-    setShake(0);
-  };
-
-  const toggleGuestMode = () => {
-      setIsGuestMode(true);
-      setIsLogin(false); // Guest mode is technically a "register" flow but anonymous
-      setError(null);
-      setShake(0);
-  };
+    checkRedirect();
+  }, []);
 
   const changeLanguage = (lang: string) => {
-    console.log("Changing language to:", lang);
     i18n.changeLanguage(lang);
     localStorage.setItem('i18nextLng', lang);
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid) {
+        return setError(t('auth.errors.required', 'Please fill all fields'));
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Update Profile Name
+        await updateProfile(userCred.user, { displayName: name });
+
+        // Save language preference immediately
+        await setDoc(doc(db, 'users', userCred.user.uid), {
+            onboarding: {
+                language: i18n.language,
+                completedAt: null // Explicitly null to trigger OnboardingFlow
+            },
+            email: email,
+            displayName: name,
+            updatedAt: Date.now()
+        }, { merge: true });
+        
+        // App.tsx will detect user and switch to OnboardingFlow
+    } catch (err: any) {
+        console.error(err);
+        setError(err.message);
+        setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return setError(t('auth.errors.required'));
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // Success handled by auth state listener
+    } catch (err: any) {
+        setError(err.message);
+        setIsLoading(false);
+    }
+  };
+
   return (
     <AuthLayout>
-      {/* BACKGROUND EFFECT FOR AUTH (Same as Avatar Selector) */}
-      <div className="fixed inset-0 -z-10 bg-[#020204]">
-          {/* 1. Global Tint (Subtle Color Wash) */}
-          <div 
-              className="absolute inset-0 transition-colors duration-700"
-              style={{ 
-                  backgroundColor: '#4f46e5', // Indigo Default for Auth
-                  opacity: 0.15 
-              }}
-          />
-
-          {/* 2. The "Gradient" Overlay (Darkness from bottom/top) */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#020204]/60 to-[#020204]" />
-
-          {/* 3. The Radial Aura (Centered Glow) */}
-          <div 
-             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] opacity-40 pointer-events-none blur-lg"
-             style={{ 
-                 background: `radial-gradient(circle, #4f46e5 0%, transparent 70%)` 
-             }}
-          />
-      </div>
-
-      <motion.div
-        animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
-        transition={{ duration: 0.3 }}
-      >
-        <GlassCard className="p-8 backdrop-blur-lg bg-black/40 border-white/10 relative overflow-hidden">
-          
-          {/* Language Selector */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
-            <Globe className="w-3 h-3 text-white/40" />
-            <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
-              <button
-                type="button"
-                onClick={() => changeLanguage('es')}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${
-                  i18n.language.startsWith('es') 
-                    ? 'bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'text-white/40 hover:text-white/80'
-                }`}
-              >
-                ES
-              </button>
-              <button
-                type="button"
-                onClick={() => changeLanguage('en')}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${
-                  i18n.language.startsWith('en') 
-                    ? 'bg-indigo-500/80 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'text-white/40 hover:text-white/80'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center mb-8 pt-4">
-            <motion.h1 
-              key={isGuestMode ? "guest-title" : (isLogin ? "login-title" : "register-title")}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={springConfig}
-              className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-indigo-400 tracking-tight text-center"
-            >
-              {isGuestMode ? "Modo Invitado" : (isLogin ? t('auth.login.title') : t('auth.register.title'))}
-            </motion.h1>
-            <motion.p 
-              className="text-white/40 text-sm mt-2 font-medium tracking-wide text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-            >
-              {isGuestMode 
-                ? "Sin registro. Tus datos se guardan en este dispositivo." 
-                : (isLogin ? t('auth.login.subtitle') : t('auth.register.subtitle'))}
-            </motion.p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {(isGuestMode || !isLogin) && (
-                <motion.div
-                  key="name-field"
-                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, height: "auto", scale: 1 }}
-                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                  transition={springConfig}
-                >
-                  <AuthInput 
-                    icon={User} 
-                    type="text" 
-                    placeholder={t('auth.fields.name')} 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required={!isLogin || isGuestMode}
-                  />
-                </motion.div>
-              )}
-
-              {!isGuestMode && (
-                <>
-                  <motion.div layout key="email-field" transition={springConfig}>
-                    <AuthInput 
-                      ref={emailRef}
-                      icon={Mail} 
-                      type="email" 
-                      placeholder={t('auth.fields.email')} 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </motion.div>
-
-                  <motion.div layout key="password-field" transition={springConfig}>
-                    <AuthInput 
-                      icon={Lock} 
-                      type="password" 
-                      placeholder={t('auth.fields.password')} 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </motion.div>
-                </>
-              )}
-
-              {!isLogin && !isGuestMode && (
-                <motion.div
-                  key="confirm-password-field"
-                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, height: "auto", scale: 1 }}
-                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                  transition={springConfig}
-                >
-                  <AuthInput 
-                    icon={Lock} 
-                    type="password" 
-                    placeholder={t('auth.fields.confirmPassword')} 
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required={!isLogin}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* OPTIMIZED BACKGROUND (CSS Gradients instead of heavy blurs) */}
+        <div className="fixed inset-0 -z-10 bg-[#020204] overflow-hidden">
+            {/* Top Left Gradient */}
+            <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20"
+                 style={{ background: 'radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, transparent 70%)', transform: 'translateZ(0)' }} 
+            />
             
-            {/* Error Message */}
-            <AnimatePresence mode="popLayout">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={springConfig}
-                  className="flex flex-col gap-2"
-                >
-                    <div className="text-red-400 text-xs text-center font-mono bg-red-950/30 p-2 rounded-lg border border-red-500/20">
-                      {error}
-                    </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Bottom Right Gradient */}
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-15"
+                 style={{ background: 'radial-gradient(circle, rgba(147, 51, 234, 0.4) 0%, transparent 70%)', transform: 'translateZ(0)' }}
+            />
 
-            {/* Action Button */}
-            <motion.button
-              type="submit"
-              disabled={isLoading}
-              layout
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              transition={springConfig}
-              className={`w-full relative group overflow-hidden rounded-xl font-bold py-4 text-lg shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] transition-all duration-300 ${
-                  isGuestMode 
-                    ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:shadow-emerald-500/40' 
-                    : 'bg-white text-black'
-              }`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              <span className="flex items-center justify-center gap-2">
-                {isLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5" />
-                ) : (
-                  <>
-                    {isGuestMode ? "Entrar como Invitado" : (isLogin ? t('auth.login.button') : t('auth.register.button'))}
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </span>
-            </motion.button>
-          </form>
+            {/* Noise Texture */}
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        </div>
 
-          {/* Toggle Mode */}
-          <motion.div layout className="mt-8 relative flex items-center justify-center mb-6" transition={springConfig}>
-            <div className="absolute inset-0 flex items-center">
-               <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </div>
-            <div className="relative bg-black/40 px-4 text-sm text-gray-400">
-              {t('auth.orContinue')}
-            </div>
-          </motion.div>
-
-          <motion.button
-            layout
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={springConfig}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-             {isLoading ? ( 
-                 <Loader2 className="w-5 h-5 animate-spin text-white/60" />
-              ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-             )}
-            <span className="text-white font-medium">
-                {isLoading ? t('common.loading', 'Conectando...') : t('auth.google')}
-            </span>
-          </motion.button>
-
-          <motion.div layout className="mt-6 text-center flex flex-col gap-3" transition={springConfig}>
-            {!isGuestMode && (
-                <button 
-                  onClick={toggleGuestMode}
-                  className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors duration-300 font-medium"
-                >
-                  Entrar como Invitado (sin registro)
-                </button>
+        <AnimatePresence mode="wait">
+            {view === 'LANDING' && (
+                <LandingView 
+                    key="landing"
+                    onStart={() => setView('REGISTER_LANG')}
+                    onLogin={() => setView('LOGIN')}
+                />
             )}
 
-            <button 
-              onClick={toggleMode}
-              className="text-sm text-white/60 hover:text-white transition-colors duration-300 font-medium"
-            >
-              {isGuestMode ? (
-                 <span>¿Ya tienes cuenta? <span className="text-indigo-400 hover:underline">Iniciar Sesión</span></span>
-              ) : (
-                 isLogin ? (
-                    <span>{t('auth.login.footer')} <span className="text-indigo-400 hover:underline">{t('auth.login.footerAction')}</span></span>
-                 ) : (
-                    <span>{t('auth.register.footer')} <span className="text-indigo-400 hover:underline">{t('auth.register.footerAction')}</span></span>
-                 )
-              )}
-            </button>
-          </motion.div>
+            {view === 'REGISTER_LANG' && (
+                <LanguageView 
+                    key="lang"
+                    currentLang={i18n.language}
+                    onChangeLang={changeLanguage}
+                    onNext={() => setView('REGISTER_CREDENTIALS')}
+                    onBack={() => setView('LANDING')}
+                />
+            )}
 
-        </GlassCard>
-      </motion.div>
+            {(view === 'REGISTER_CREDENTIALS' || view === 'LOGIN') && (
+                <motion.div
+                    key="auth-form"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={SPRING_CONFIG}
+                    className="w-full max-w-sm"
+                >
+                    <GlassCard className="p-8 backdrop-blur-md bg-black/40 border-white/10">
+                        <div className="flex items-center mb-6">
+                            <button 
+                                onClick={() => setView(view === 'LOGIN' ? 'LANDING' : 'REGISTER_LANG')}
+                                className="mr-4 text-white/50 hover:text-white transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-xl font-bold text-white">
+                                {view === 'LOGIN' ? t('auth.login.title', 'Login') : t('auth.register.title', 'Create Account')}
+                            </h2>
+                        </div>
+
+                        <form onSubmit={view === 'LOGIN' ? handleLogin : handleRegister} className="space-y-4">
+                            {view === 'REGISTER_CREDENTIALS' && (
+                                <AuthInput 
+                                    icon={User}
+                                    label={t('auth.fields.name', 'Name')}
+                                    type="text"
+                                    placeholder="Neo"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    isValid={isNameValid}
+                                    showValidation={name.length > 0}
+                                />
+                            )}
+
+                            <AuthInput 
+                                icon={Mail}
+                                label={t('auth.fields.email', 'Email')}
+                                type="email"
+                                placeholder="neo@matrix.com"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                isValid={isEmailValid}
+                                showValidation={email.length > 0}
+                            />
+                            
+                            <AuthInput 
+                                icon={Lock}
+                                label={t('auth.fields.password', 'Password')}
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                isValid={isPasswordValid}
+                                showValidation={password.length > 0}
+                            />
+
+                            {view === 'REGISTER_CREDENTIALS' && (
+                                <AuthInput 
+                                    icon={Lock}
+                                    label={t('auth.fields.confirmPassword', 'Confirm Password')}
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    isValid={isConfirmValid}
+                                    showValidation={confirmPassword.length > 0}
+                                    error={confirmPassword.length > 0 && !isConfirmValid ? t('auth.errors.passwordMismatch', 'Passwords do not match') : undefined}
+                                />
+                            )}
+                            
+                            {error && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="text-red-400 text-xs p-2 bg-red-500/10 border border-red-500/20 rounded-lg"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="submit"
+                                disabled={isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))}
+                                className={`
+                                    w-full h-12 mt-6 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2
+                                    ${isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))
+                                        ? 'bg-gray-800 text-white/30 cursor-not-allowed shadow-none' 
+                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                                    }
+                                `}
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin text-white/70" />
+                                ) : (
+                                    <>
+                                        <span>{view === 'LOGIN' ? t('auth.login.button', 'Enter Matrix') : t('auth.register.button', 'Initialize System')}</span>
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </motion.button>
+                        </form>
+                    </GlassCard>
+                </motion.div>
+            )}
+        </AnimatePresence>
     </AuthLayout>
   );
 };

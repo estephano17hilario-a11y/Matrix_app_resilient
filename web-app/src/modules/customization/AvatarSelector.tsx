@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AVAILABLE_AVATARS } from '../../config/avatars';
 import { useAuth } from '../../context/AuthContext';
 import { doc, setDoc, db } from '../../services/firebase';
@@ -10,6 +11,7 @@ interface AvatarSelectorProps {
 
 export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
   const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | undefined>(profile?.avatarId);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -71,20 +73,20 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
   return (
     <div className="w-full">
       {/* Grid Layout - Clean & Full Visibility */}
-      {/* Increased column density (3 on mobile, 4 on sm, 5 on md) to fit more in "one zone" */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+      {/* Adjusted columns for better visibility on mobile: 3 cols base instead of 4 */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 items-start max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         {AVAILABLE_AVATARS.map((avatar) => (
           <AvatarSelectorCard
             key={avatar.id}
             id={avatar.id}
-            name={avatar.name}
+            name={t(`avatars.${avatar.id}`, avatar.name)}
             rarity={avatar.rarity}
             imageUrl={avatar.path}
             themeColor={avatar.themeColor}
             isSelected={selectedId === avatar.id}
             onClick={handleSelect}
-            // Overriding aspect ratio to be slightly shorter (4:5 instead of 9:16) for better visibility
-            className="aspect-[4/5]" 
+            // Aspect ratio optimized for visibility
+            className="aspect-[3/4]" 
           />
         ))}
       </div>

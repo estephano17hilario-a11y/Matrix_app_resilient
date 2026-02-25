@@ -26,6 +26,16 @@
       "title": "Configurando Realidad..."
     }
   },
+  "avatars": {
+    "avatar_cafe_programadora": "Coder del Café",
+    "avatar_ceo_ajedrez": "CEO Estratega",
+    "avatar_chica_mariposa": "Efecto Mariposa",
+    "avatar_chico_azul": "El Erudito",
+    "avatar_chico_combatiente": "Luchador Callejero",
+    "avatar_chico_vino": "El Conocedor",
+    "avatar_chico_sueno": "Caminante de Sueños",
+    "avatar_rojo_psicopata": "Agente del Caos"
+  },
   "auth": {
     "login": {
       "title": "Bienvenido de nuevo",
@@ -357,6 +367,7 @@
     "complete": "Completar",
     "loading": "Cargando...",
     "error": "Error",
+    "selectAtLeast": "Selecciona al menos {{count}}",
     "time": {
         "years": "Años",
         "months": "Meses",
@@ -485,6 +496,7 @@
     "newFlow": "Nuevo Flow",
     "stop": "Detener",
     "archived": {
+        "title": "Proyectos Archivados",
         "subtitle": "Proyectos Restaurables",
         "restore": "Restaurar",
         "empty": "No hay proyectos archivados"

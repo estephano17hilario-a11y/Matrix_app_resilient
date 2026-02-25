@@ -18,7 +18,6 @@ interface StatsHeaderProps {
   onShowStore: () => void;
   onShowPro?: () => void;
   onShowSettings?: () => void;
-  onToggleProfile?: () => void;
   displayName?: string | null;
   email?: string | null;
   currentView?: string;
@@ -28,9 +27,10 @@ interface StatsHeaderProps {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onUpdateLevel?: (newLevel: number) => void;
   dailyLimits?: any; // Using any temporarily to avoid deep type imports if not needed, but better to use DailyLimits
+  onNavigate?: (view: string) => void;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowSettings, onToggleProfile, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel, dailyLimits }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowSettings, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel, dailyLimits, onNavigate }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -47,12 +47,9 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                 className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
             >
                 {shouldShowAvatar && (
-                  <div onClick={() => {
-                     // If clicking on level badge (propagated), stop it?
-                     // Actually, let AvatarWidget handle its internal clicks.
-                     // The parent onClick toggles profile.
-                     // If we click level, we don't want to toggle profile.
-                     onToggleProfile && onToggleProfile();
+                  <div onClick={(e) => {
+                     // Prevent navigation when clicking the avatar container
+                     e.stopPropagation();
                   }}>
                     <AvatarWidget 
                       level={level} 
@@ -70,6 +67,7 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                       onUpdateLevel={onUpdateLevel}
                       isHabitsCompleted={isHabitsCompleted}
                       dailyLimits={dailyLimits}
+                      onNavigate={onNavigate}
                     />
                   </div>
                 )}

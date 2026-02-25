@@ -10,7 +10,8 @@ import {
   Droplets, 
   Layout, 
   Sparkles,
-  Monitor
+  Monitor,
+  Layers
 } from 'lucide-react';
 
 interface VisualsSectionProps {
@@ -29,6 +30,7 @@ const CATEGORY_CONFIG: Record<ThemeCategory, { label: string; icon: React.Elemen
   minimal: { label: 'Minimalist', icon: Layout, color: 'text-slate-400' },
   nature: { label: 'Organic Nature', icon: Leaf, color: 'text-emerald-400' },
   flow: { label: 'Fluid Flow', icon: Droplets, color: 'text-cyan-400' },
+  holo: { label: 'Holographic', icon: Layers, color: 'text-fuchsia-400' },
 };
 
 export const VisualsSection = ({
@@ -48,7 +50,8 @@ export const VisualsSection = ({
       orbs: [],
       minimal: [],
       nature: [],
-      flow: []
+      flow: [],
+      holo: []
     };
     
     Object.values(THEMES).forEach(theme => {
@@ -75,18 +78,18 @@ export const VisualsSection = ({
   };
 
   return (
-    <div className="space-y-10 pb-20">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Monitor className="text-cyan-400" size={32} />
+    <div className="space-y-12 pb-24 max-w-5xl mx-auto">
+      <div className="space-y-4">
+        <h2 className="text-4xl font-bold text-white tracking-tight flex items-center gap-4">
+            <Monitor className="text-cyan-400" size={36} />
             Visual Core
         </h2>
-        <p className="text-white/40 text-lg max-w-2xl">
-          Customize your reality interface. High-performance rendering engine.
+        <p className="text-white/40 text-lg max-w-2xl leading-relaxed">
+          Customize your reality interface. High-performance rendering engine designed for focus and clarity.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* LEFT COLUMN: THEME SELECTOR (Takes 2 cols) */}
         <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center gap-3 text-white/60 font-mono text-sm uppercase tracking-wider">

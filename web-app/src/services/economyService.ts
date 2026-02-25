@@ -50,20 +50,17 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
       };
 
       // APPLY EFFECTS IMMEDIATELY OR UNLOCK ITEM
-      if (item.category === 'power_up' && item.effect) {
-          // If it's a consumable power-up, add to INVENTORY instead of applying immediately?
-          // OR apply immediately if it's "Instant".
-          // For now, let's assume potions are added to inventory if they are bought in bulk,
-          // but here the store seems to be "Instant Use" or "Unlock".
-          // BUT the user wants Inventory. So let's change behavior:
-          // PowerUps go to Inventory. Themes go to Unlocked.
-          
+      if (item.category === 'power_up') {
+          // PowerUps go to Inventory
           const currentInventory = (userData.inventory || []) as InventoryItem[];
           const existingItemIndex = currentInventory.findIndex((i: InventoryItem) => i.itemId === item.id);
           
           let newInventory = [...currentInventory];
           if (existingItemIndex >= 0) {
-              newInventory[existingItemIndex].quantity += 1;
+              newInventory[existingItemIndex] = {
+                  ...newInventory[existingItemIndex],
+                  quantity: newInventory[existingItemIndex].quantity + 1
+              };
           } else {
               newInventory.push({
                   itemId: item.id,
@@ -113,8 +110,11 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
             
             // 1. Remove from inventory
             const newInventory = [...inventory];
-            newInventory[itemIndex].quantity -= 1;
-            if (newInventory[itemIndex].quantity === 0) {
+            const item = newInventory[itemIndex];
+            
+            if (item.quantity > 1) {
+                newInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
+            } else {
                 newInventory.splice(itemIndex, 1);
             }
             
@@ -126,8 +126,10 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
                 switch (effect.type) {
                     case 'heal':
                         const currentHp = stats.hp || 0;
-                        const maxHp = stats.maxHp || 100;
+                        // 🛡️ RECOVERED LOGIC: Force Max HP to 100 as per user request
+                        const maxHp = 100; 
                         updates["stats.hp"] = Math.min(maxHp, currentHp + effect.value);
+                        updates["stats.maxHp"] = maxHp; // Sync DB to new rule
                         break;
                     case 'xp_boost':
                         updates["stats.xp"] = (stats.xp || 0) + effect.value;

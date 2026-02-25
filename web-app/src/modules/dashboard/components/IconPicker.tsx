@@ -343,16 +343,23 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                 
                                 {/* Scroll Indicator Bubble */}
                                 <AnimatePresence>
-                                    {showScrollIndicator && (displayedIcons.length > 20 || activeTab === 'colors') && (
+                                    {showScrollIndicator && (activeTab === 'colors' || filteredIcons.length > 12) && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
-                                            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+                                            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                                            className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none"
                                         >
-                                            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-full p-2 shadow-xl animate-bounce">
-                                                <ArrowDown size={16} className="text-white" />
-                                            </div>
+                                            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
+                                            <motion.div
+                                                animate={{ y: 6 }}
+                                                transition={{ type: 'spring', stiffness: 300, damping: 20, repeat: Infinity, repeatType: 'reverse' }}
+                                                className="relative mx-auto mb-3 w-fit rounded-full px-3 py-2 border border-white/20 bg-black/60 shadow-md flex items-center gap-2"
+                                            >
+                                                <ArrowDown size={16} className="text-white/90" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Desliza</span>
+                                            </motion.div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

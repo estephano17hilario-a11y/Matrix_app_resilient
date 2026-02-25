@@ -1,10 +1,10 @@
 import React from 'react';
 import { Heart, Zap, Flame, Coins } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { DailyLimitsHUD } from './DailyLimitsHUD';
 import { DailyLimits } from '@/types/User';
 import { GoldCounter } from '@/modules/store/components/GoldCounter';
 import { getAvatarPath, getAvatarConfig } from '@/config/avatars';
+import { calculateXpForLevel } from '@/utils/leveling';
 
 interface AvatarWidgetProps {
   level: number;
@@ -22,6 +22,7 @@ interface AvatarWidgetProps {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onUpdateLevel?: (newLevel: number) => void;
   isHabitsCompleted?: boolean;
+  onNavigate?: (view: string) => void;
 }
 
 const MiniLiquidBar = ({  value, 
@@ -87,7 +88,7 @@ const MiniLiquidBar = ({  value,
 
 import { StreakStatusModal } from './StreakStatusModal';
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, avatarId, avatarShape = 'CIRCLE', onUpdateLevel, isHabitsCompleted = false }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', onUpdateLevel, isHabitsCompleted = false, onNavigate }: AvatarWidgetProps) => {
     const [showStreakModal, setShowStreakModal] = React.useState(false);
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
@@ -100,6 +101,23 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     const auraStyle = themeColor ? {
         boxShadow: `0 0 25px -5px ${themeColor}`,
     } : {};
+
+    // Calculate relative XP for display
+    // If xp is cumulative, subtract base XP for current level
+    // Special Case: Level 1 starts at 0 XP for UI purposes, even if formula says 20
+    const currentLevelBaseXp = level === 1 ? 0 : calculateXpForLevel(level);
+    // If XP is less than base (e.g. data migration or error), clamp to 0
+    // If XP is greater than nextXp (e.g. ready to level up), clamp to nextXp
+    const relativeXp = Math.max(0, xp - currentLevelBaseXp);
+    const relativeNextXp = Math.max(1, nextXp - currentLevelBaseXp);
+
+    // 🛡️ NAME LOGIC: If displayName is an email, extract username. If missing, use email username.
+    const formattedName = React.useMemo(() => {
+        if (displayName && !displayName.includes('@')) return displayName;
+        if (displayName && displayName.includes('@')) return displayName.split('@')[0];
+        if (email) return email.split('@')[0];
+        return 'Neo';
+    }, [displayName, email]);
 
     return (
     <>
@@ -142,44 +160,39 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
 
         {/* STATS COLUMN - PREMIUM APPLE STYLE */}
         <div className="flex flex-col gap-2 relative">
-             {/* DAILY LIMITS HUD - POSITIONED ABOVE (Adjusted Z-Index & Position) */}
-             {dailyLimits && (
-                <div className="absolute -top-32 -right-4 w-40 z-[100] pointer-events-none">
-                    <DailyLimitsHUD limits={dailyLimits} />
-                </div>
-             )}
 
             {/* HEADER: NAME + STREAK */}
             <div className="flex items-center justify-between min-w-[180px]">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-white tracking-tight drop-shadow-md">
-                        {displayName || 'Neo'}
+                        {formattedName}
                     </span>
-                    {streak > 0 && (
-                        <div 
-                            onClick={() => setShowStreakModal(true)}
-                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 cursor-pointer hover:bg-white/10 ${
-                            isHabitsCompleted 
-                                ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
-                                : "bg-white/5 border-white/10"
-                        }`}>
-                            <Flame 
-                                size={10} 
-                                className={`transition-all duration-500 ${
-                                    isHabitsCompleted 
-                                        ? "text-orange-400 fill-orange-400 animate-pulse drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]" 
-                                        : "text-white/20 fill-none"
-                                }`} 
-                            />
-                            <span className={`text-[9px] font-mono font-bold transition-colors duration-500 ${
-                                isHabitsCompleted ? "text-orange-400" : "text-white/40"
-                            }`}>{streak}</span>
-                        </div>
-                    )}
+                    <div 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowStreakModal(true);
+                        }}
+                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 cursor-pointer hover:bg-white/10 ${
+                        isHabitsCompleted 
+                            ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
+                            : "bg-white/5 border-white/10"
+                    }`}>
+                        <Flame 
+                            size={10} 
+                            className={`transition-all duration-500 ${
+                                isHabitsCompleted 
+                                    ? "text-orange-400 fill-orange-400 animate-pulse drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]" 
+                                    : "text-white/20 fill-none"
+                            }`} 
+                        />
+                        <span className={`text-[9px] font-mono font-bold transition-colors duration-500 ${
+                            isHabitsCompleted ? "text-orange-400" : "text-white/40"
+                        }`}>{streak}</span>
+                    </div>
                 </div>
                 
                 {/* Gold Pill - Premium Look */}
-                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.3)]">
+                <div id="gold-counter-pill" className="flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.3)]">
                     <Coins size={12} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                     <span className="text-xs font-mono font-bold text-amber-300">
                         <GoldCounter value={gold} />
@@ -189,8 +202,12 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
 
             {/* BARS - REFINED (Restored Numbers) */}
             <div className="flex flex-col gap-1.5">
-                 <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
-                 <MiniLiquidBar value={xp} max={nextXp} color="xp" icon={Zap} />
+                 <div id="health-bar-container">
+                    <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
+                 </div>
+                 <div id="xp-bar-container">
+                    <MiniLiquidBar value={relativeXp} max={relativeNextXp} color="xp" icon={Zap} />
+                 </div>
             </div>
         </div>
     </div>
@@ -199,7 +216,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             isOpen={showStreakModal}
             onClose={() => setShowStreakModal(false)}
             dailyLimits={dailyLimits}
-            streak={streak}
+            onNavigate={onNavigate}
         />
     )}
     </>

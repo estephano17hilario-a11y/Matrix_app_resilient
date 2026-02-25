@@ -91,6 +91,22 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
         >
             <div className="absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
 
+            {/* Streak Badge */}
+            {habit.streak > 0 && (
+                <div className={cn(
+                    "absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors",
+                    habit.completedToday
+                        ? "bg-orange-500/10 border-orange-500/20 text-orange-400 shadow-[0_0_10px_-4px_rgba(249,115,22,0.5)]"
+                        : "bg-[#0b0b0d]/80 border-white/10 text-zinc-400"
+                )}>
+                    <Flame size={12} className={cn(
+                        "transition-colors",
+                        habit.completedToday ? "fill-orange-400" : "fill-zinc-500 text-zinc-500"
+                    )} />
+                    <span className="text-[11px] font-bold font-mono tracking-tight">{habit.streak}</span>
+                </div>
+            )}
+
             <div className="absolute top-4 right-4 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {onEdit && (
                     <button

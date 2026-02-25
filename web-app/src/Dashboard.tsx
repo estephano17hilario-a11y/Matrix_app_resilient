@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowUp, Target, ListTodo } from 'lucide-react';
+import { ArrowUp, Target, ListTodo, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,7 @@ import { BadHabitWizard } from './modules/dashboard/components/BadHabitWizard';
 import { RelapseModal } from './modules/dashboard/components/RelapseModal';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
-import { Quest, Habit, BadHabit } from './types';
+import { Quest, Habit, BadHabit, Project } from './types';
 import { persistenceService } from './services/persistenceService';
 import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
@@ -39,9 +39,10 @@ const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => (
 const NexusView = lazy(() => import('./modules/nexus').then(m => ({ default: m.NexusView })));
 const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
 const StrategicMapView = lazy(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
-const SettingsView = lazy(() => import('./modules/dashboard/settings/SettingsHub').then(m => ({ default: m.SettingsHub })));
+const SettingsView = lazy(() => import('./modules/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
 const ProUpgradeModal = lazy(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
 const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
+const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
 
 const SuspenseFallback = () => (
     <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -263,6 +264,8 @@ export default function Dashboard() {
         handleFocusModeChange,
         addNotification,
         handleCompleteSession,
+        handleAddManualSession,
+        handleDeleteSession,
         completeQuest,
         handleHabitClick,
         handleToggleHabitDay,
@@ -273,6 +276,7 @@ export default function Dashboard() {
         handleHabitConfirm,
         handleHabitUpdate,
         handleProjectConfirm,
+        handleDeleteProject,
         handleUpdateProject,
         handleUpdateSmartProject,
         handleAddNote,
@@ -296,17 +300,17 @@ export default function Dashboard() {
         updateHabitSectionControl,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
-        stickyHud,
-        updateStickyHud
+        dailyLimits
     } = useDashboardLogic();
 
     const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
-    // 🛡️ RECOVERED LOGIC: Calculate Max Health locally to avoid hook return type issues
-    const maxHealth = 100 + (player.level - 1) * 10;
+    // 🛡️ RECOVERED LOGIC: Fixed Max Health to 100 as per user request
+    const maxHealth = 100;
 
     const [isNexusImmersive, setIsNexusImmersive] = useState(false);
     const [isFullScreenFocus, setIsFullScreenFocus] = useState(false);
+    const [isNotesStatsOpen, setIsNotesStatsOpen] = useState(false);
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
@@ -338,7 +342,17 @@ export default function Dashboard() {
         }
     }, [currentView]);
 
-    const smartProject = smartProjects.find(p => p.id === activeSmartProjectId) || (smartProjects.length > 0 ? smartProjects[0] : null);
+    useEffect(() => {
+        if (currentView !== 'NOTES' && isNotesStatsOpen) {
+            setIsNotesStatsOpen(false);
+        }
+    }, [currentView, isNotesStatsOpen]);
+
+    // SMART PROJECT SELECTION
+    // FIX: Do not default to the first project if activeSmartProjectId is null
+    const smartProject = activeSmartProjectId 
+        ? smartProjects.find(p => p.id === activeSmartProjectId) || null
+        : null;
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const isProModalOpen = activeModal === 'PRO';
     const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);
@@ -349,11 +363,116 @@ export default function Dashboard() {
     const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [focusTargetProjectId, setFocusTargetProjectId] = useState<string | null>(null);
+    const [focusOpenArchived, setFocusOpenArchived] = useState(false);
+    
+    // PERSIST FOCUS PROJECT ID
+    const [focusAutoStartProjectId, setFocusAutoStartProjectId] = useState<string | null>(() => {
+        try {
+            if (typeof window !== 'undefined') {
+                return localStorage.getItem('matrix_focus_project_id') || null;
+            }
+        } catch (e) { console.error("LS Error", e); }
+        return null;
+    });
 
-    const handleFocusProject = (projectId: string) => {
-        setFocusTargetProjectId(projectId);
+    useEffect(() => {
+        if (focusAutoStartProjectId) {
+            localStorage.setItem('matrix_focus_project_id', focusAutoStartProjectId);
+        } else {
+            localStorage.removeItem('matrix_focus_project_id');
+        }
+    }, [focusAutoStartProjectId]);
+
+    const [forceFocusOpen, setForceFocusOpen] = useState(false);
+
+    // FIX: Lift Focus State to Dashboard
+    const handleExitFocusSession = useCallback(() => {
+        setFocusTargetProjectId(null);
+        setFocusAutoStartProjectId(null);
+        setForceFocusOpen(false);
+        handleFocusModeChange(null);
+    }, [handleFocusModeChange]);
+
+    const handleFocusProject = useCallback((projectId: string | null) => {
+        const target = projectId ? projects.find(p => p.id === projectId) : undefined;
+        
+        if (projectId && !target) {
+            console.error("❌ Dashboard: Target project not found for focus", projectId);
+            addNotification({ 
+                type: 'SYSTEM', 
+                label: 'Project not found', 
+                icon: AlertTriangle, 
+                color: '#ef4444' 
+            });
+            return;
+        }
+
+        console.log("⚡ Dashboard: handleFocusProject", { projectId, target, allProjects: projects.length });
+        setFocusTargetProjectId(target ? projectId : null);
+        setFocusOpenArchived(!!target?.archived);
         setCurrentView('FOCUS');
-    };
+        setIsDockOpen(false);
+        setForceFocusOpen(true);
+        handleFocusModeChange(target?.attribute || 'FOCUS');
+    }, [projects, handleFocusModeChange, addNotification]);
+
+    const handleStartFocusProjectFromNexus = useCallback((payload: { projectId?: string | null; smartProjectId?: string | null } | null) => {
+        const explicitProjectId = payload?.projectId ?? null;
+        let target = explicitProjectId ? projects.find(p => p.id === explicitProjectId) : undefined;
+        
+        if (explicitProjectId && !target) {
+             // Try to recover if smartProjectId is present
+             if (payload?.smartProjectId) {
+                target = projects.find(p => p.smartProjectId === payload.smartProjectId);
+             }
+             
+             if (!target) {
+                console.warn("⚠️ Dashboard: Nexus requested missing project", payload);
+                addNotification({ 
+                    type: 'SYSTEM', 
+                    label: 'Project Link Broken', 
+                    icon: AlertTriangle, 
+                    color: '#f59e0b' 
+                });
+                return;
+             }
+        }
+
+        if (!target && payload?.smartProjectId) {
+            target = projects.find(p => p.smartProjectId === payload.smartProjectId);
+        }
+        
+        const resolvedProjectId = target?.id ?? null;
+        setFocusAutoStartProjectId(resolvedProjectId);
+        setFocusTargetProjectId(resolvedProjectId);
+        setFocusOpenArchived(!!target?.archived);
+        setCurrentView('FOCUS');
+        setIsDockOpen(false);
+        setIsNexusImmersive(false);
+        setActiveSmartProjectId(null);
+        setForceFocusOpen(true);
+        handleFocusModeChange(target?.attribute || 'FOCUS');
+        
+        if (!target) {
+            setModalInitialContext(payload?.smartProjectId ? { smartProjectId: payload.smartProjectId } : null);
+            setActiveModal('PROJECT');
+        }
+    }, [handleFocusModeChange, projects, addNotification]);
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<{ projectId?: string | null; smartProjectId?: string | null }>).detail ?? null;
+            handleStartFocusProjectFromNexus(detail);
+        };
+        window.addEventListener('matrix:focus', handler);
+        return () => window.removeEventListener('matrix:focus', handler);
+    }, [handleStartFocusProjectFromNexus]);
+
+    useEffect(() => {
+        if (forceFocusOpen && currentView !== 'FOCUS') {
+            setCurrentView('FOCUS');
+        }
+    }, [forceFocusOpen, currentView]);
 
     const handleOpenNexus = (smartProjectId: string) => {
         setActiveSmartProjectId(smartProjectId);
@@ -395,11 +514,48 @@ export default function Dashboard() {
         });
     };
 
+    const handleDeleteProjectRequest = useCallback((projectId: string) => {
+        const targetProject = projects.find(p => p.id === projectId);
+        const title = targetProject?.title || 'este proyecto';
+        setConfirmationModal({
+            isOpen: true,
+            title: t('projects.deleteTitle', '¿Eliminar Proyecto?'),
+            message: t('projects.deleteConfirm', `Estás a punto de eliminar "${title}". Esta acción no se puede deshacer.`),
+            confirmText: t('common.delete', 'Eliminar'),
+            variant: 'danger',
+            onConfirm: () => {
+                handleDeleteProject(projectId);
+                setActiveModal(null);
+                setModalInitialContext(null);
+                setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+            },
+        });
+    }, [handleDeleteProject, projects, t]);
+
     useEffect(() => {
         if (currentView !== 'FOCUS') {
             handleFocusModeChange(null);
         }
     }, [currentView, handleFocusModeChange]);
+
+    useEffect(() => {
+        if (currentView !== 'FOCUS' && focusOpenArchived) {
+            setFocusOpenArchived(false);
+        }
+    }, [currentView, focusOpenArchived]);
+
+    useEffect(() => {
+        // Only clear if we are NOT in FOCUS view AND NOT in POMODORO view
+        // Because POMODORO view needs this ID to initialize
+        if (currentView !== 'FOCUS' && currentView !== 'POMODORO' && focusAutoStartProjectId) {
+            setFocusAutoStartProjectId(null);
+        }
+    }, [currentView, focusAutoStartProjectId]);
+
+    const handleStartPomodoro = (projectId: string) => {
+        setFocusAutoStartProjectId(projectId);
+        setCurrentView('POMODORO');
+    };
 
     const handleOpenSmartTaskCreator = (date: Date, smartProjectId?: string) => {
         const targetProject = smartProjectId ? smartProjects.find(p => p.id === smartProjectId) : smartProject;
@@ -423,6 +579,11 @@ export default function Dashboard() {
         setEditingHabit(habit);
         setActiveModal('HABIT');
     };
+
+    const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
+        await handleProjectConfirm(data);
+        setModalInitialContext(null);
+    }, [handleProjectConfirm]);
 
     const handleQuestModalClose = () => {
         setActiveModal(null);
@@ -543,10 +704,19 @@ export default function Dashboard() {
 
     const handleDockViewChange = (view: string) => {
         setIsNexusImmersive(false);
+        setFocusOpenArchived(false);
+        if (view !== 'FOCUS') {
+            setForceFocusOpen(false);
+        }
 
         if (view === 'STRATEGY') {
             setCurrentView('TASKS');
             setTaskViewMode('STRATEGY');
+            return;
+        }
+
+        if (view === 'POMODORO') {
+            setCurrentView('POMODORO');
             return;
         }
 
@@ -586,6 +756,10 @@ export default function Dashboard() {
     const activeHabits = habits.filter(h => !h.archived);
     const isHabitsCompleted = activeHabits.length > 0 && activeHabits.every(h => h.completedToday);
 
+    const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false); // State to track detail view
+
+    const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
+
     return (
         <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
             <GlobalStyles />
@@ -597,27 +771,43 @@ export default function Dashboard() {
                 />
             </Suspense>
 
-            {createPortal(
-                <div className="fixed top-4 left-0 right-0 z-[10000] flex flex-col items-center gap-2 pointer-events-none px-4">
-                    <AnimatePresence>
-                        {notifications.map(n => {
-                            const NotifIcon = n.icon;
-                            return (
-                                <motion.div 
-                                    key={n.id}
-                                    initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                                    className="backdrop-blur-md border border-yellow-500/50 bg-yellow-950/85 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[280px]"
-                                >
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5" style={{ color: n.color }}><NotifIcon size={16} /></div>
-                                    <div className="flex-1"><p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{n.label} LEVEL UP</p><div className="flex items-center gap-2 text-sm font-black text-white"><span>{n.fromLevel}</span><ArrowUp size={12} className="text-green-400" /><span style={{ color: n.color }}>{n.toLevel}</span></div></div>
-                                </motion.div>
-                            )
-                        })}
-                    </AnimatePresence>
-                </div>,
-                document.body
+            {notificationRoot && createPortal(
+                <AnimatePresence mode="popLayout">
+                    {notifications.map(n => {
+                        const NotifIcon = n.icon;
+                        return (
+                            <motion.div 
+                                layout
+                                key={n.id}
+                                initial={{ opacity: 0, scale: 0.9, y: -40, filter: 'blur(12px)' }}
+                                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, scale: 0.95, filter: 'blur(8px)', transition: { duration: 0.2, ease: "backIn" } }}
+                                transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
+                                className="relative overflow-hidden backdrop-blur-2xl border border-yellow-500/20 bg-[#0a0a0a]/95 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
+                                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+                                
+                                <div className="relative w-11 h-11 rounded-xl flex items-center justify-center bg-yellow-500/10 border border-yellow-500/20 shadow-[inset_0_0_10px_rgba(234,179,8,0.1)]" style={{ color: n.color }}>
+                                    <div className="absolute inset-0 bg-yellow-400/20 blur-lg rounded-full animate-pulse opacity-50" />
+                                    <NotifIcon size={20} className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" strokeWidth={2} />
+                                </div>
+                                
+                                <div className="flex-1 relative z-10">
+                                    <p className="text-[10px] font-bold text-yellow-500/80 uppercase tracking-[0.15em] mb-1 drop-shadow-sm">{t(n.label, n.label)} LEVEL UP</p>
+                                    <div className="flex items-center gap-3 text-xl font-black text-white leading-none tracking-tight">
+                                        <span className="text-white/40 font-mono text-lg">{n.fromLevel}</span>
+                                        <ArrowUp size={14} className="text-yellow-400 animate-bounce drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" strokeWidth={3} />
+                                        <span className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]">{n.toLevel}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-yellow-500/5 to-transparent pointer-events-none" />
+                            </motion.div>
+                        )
+                    })}
+                </AnimatePresence>,
+                notificationRoot
             )}
 
             {/* SCROLLABLE CONTENT LAYER */}
@@ -631,7 +821,7 @@ export default function Dashboard() {
                 <ParticleLayer particles={particles} />
 
                 {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
-                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && currentView !== 'STREAK' && (
+                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && currentView !== 'POMODORO' && (
                     <>
                         <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
                             <div className="max-w-md mx-auto px-4 sm:px-6">
@@ -648,7 +838,6 @@ export default function Dashboard() {
                                     onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
                                     onShowPro={() => setIsProModalOpen(true)}
                                     onShowSettings={() => setIsSettingsOpen(true)}
-                                    onToggleProfile={() => setIsSettingsOpen(true)}
                                     displayName={user?.displayName}
                                     email={user?.email}
                                     currentView={currentView}
@@ -657,16 +846,19 @@ export default function Dashboard() {
                                     avatarShape={avatarShape}
                                     onUpdateLevel={updatePlayerLevel}
                                     isHabitsCompleted={isHabitsCompleted}
-                                    dailyLimits={user?.dailyLimits}
+                                    dailyLimits={dailyLimits}
+                                    onNavigate={handleDockViewChange}
                                 />
                             </div>
                         </div>
+
+
 
                         {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
                         {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
                              <div className={cn(
                                 "px-4 sm:px-6 max-w-md mx-auto mt-2 mb-6",
-                                stickyHud ? "sticky top-4 z-[300]" : "relative z-[290]"
+                                "relative z-[290]"
                              )}>
                                 <PlayerHUD 
                                     attributes={attributes}
@@ -685,27 +877,7 @@ export default function Dashboard() {
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
                             <div className="flex flex-col gap-6 h-full">
-                                {/* VIEW TOGGLE */}
-                                {(!isNexusImmersive && habitSectionControl === 'VISIBLE') && (
-                                    <div className="flex items-center justify-center gap-4 mb-1 -mt-2">
-                                        <div className="flex p-1 rounded-full backdrop-blur-md bg-white/5 border border-white/10 shadow-lg">
-                                            <button 
-                                                onClick={() => setTaskViewMode('LIST')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'LIST' ? 'bg-theme-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                            >
-                                                <ListTodo size={14} />
-                                                {t('dashboard.tasks')}
-                                            </button>
-                                            <button 
-                                                onClick={() => setTaskViewMode('STRATEGY')}
-                                                className={`flex items-center gap-2 px-6 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${taskViewMode === 'STRATEGY' ? 'bg-theme-avatar text-white shadow-lg' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                                            >
-                                                <Target size={14} />
-                                                {t('dashboard.strategy')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+
 
 
 
@@ -715,6 +887,7 @@ export default function Dashboard() {
                                         <TaskList 
                                             quests={quests} 
                                             attributes={attributes} 
+                                            smartProjects={smartProjects}
                                             onCompleteQuest={completeQuest} 
                                             onDeleteQuest={handleDeleteQuest} 
                                             onEditQuest={handleEditQuest}
@@ -722,7 +895,7 @@ export default function Dashboard() {
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
                                             onOpenNexus={handleOpenNexus}
-                                            dailyLimits={user?.dailyLimits}
+                                            dailyLimits={dailyLimits}
                                         />
                                     </>
                                 ) : (
@@ -833,29 +1006,33 @@ export default function Dashboard() {
                         )}
 
                         {/* FOCUS */}
-                        {(loadedViews.has('FOCUS') || currentView === 'FOCUS') && (
-                            <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0 relative flex-1">
-                                <Suspense fallback={<SuspenseFallback />}>
-                                    <FocusView 
-                                        projects={projects} 
-                                        attributes={attributes} 
-                                        onCompleteSession={handleCompleteSession} 
-                                        onOpenProjectModal={(project) => {
-                                            if (project) setModalInitialContext(project);
-                                            setActiveModal('PROJECT');
-                                        }} 
-                                        setFocusMode={handleFocusModeChange} 
-                                        onUpdateProject={handleUpdateProject}
-                                        addNotification={addNotification}
-                                        initialProjectId={focusTargetProjectId}
-                                        onShowPro={() => setActiveModal('PRO')}
-                                        isPro={user?.plan === 'PRO'}
-                                        onToggleFullScreen={setIsFullScreenFocus}
-                                        isActive={currentView === 'FOCUS'}
-                                    />
-                                </Suspense>
-                            </ViewContainer>
-                        )}
+                        <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0 relative flex-1">
+                            <Suspense fallback={<SuspenseFallback />}>
+                                <FocusView 
+                                    projects={projects} 
+                                    attributes={attributes} 
+                                    onCompleteSession={handleCompleteSession} 
+                                    onAddManualSession={handleAddManualSession}
+                                    onDeleteSession={handleDeleteSession}
+                                    onDeleteProject={handleDeleteProject}
+                                    onOpenProjectModal={(project) => {
+                                        setModalInitialContext(project || null);
+                                        setActiveModal('PROJECT');
+                                    }} 
+                                    onUpdateProject={handleUpdateProject}
+                                    initialProjectId={focusTargetProjectId}
+                                    autoStartProjectId={focusAutoStartProjectId}
+                                    onAutoStartConsumed={() => setFocusAutoStartProjectId(null)}
+                                    openArchived={focusOpenArchived}
+                                    onToggleFullScreen={setIsFullScreenFocus}
+                                    isActive={currentView === 'FOCUS'}
+                                    onExitSession={handleExitFocusSession}
+                                    onSelectProject={handleFocusProject}
+                                    onStartFocus={handleStartPomodoro}
+                                    onDetailViewChange={setIsProjectDetailOpen}
+                                />
+                            </Suspense>
+                        </ViewContainer>
 
                         {/* NOTES */}
                         {(loadedViews.has('NOTES') || currentView === 'NOTES') && (
@@ -868,6 +1045,7 @@ export default function Dashboard() {
                                         onShowPro={() => setActiveModal('PRO')}
                                         currentSubView={noteViewMode}
                                         sectionControl={habitSectionControl}
+                                        onStatsOpenChange={setIsNotesStatsOpen}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -917,9 +1095,11 @@ export default function Dashboard() {
                                             setCurrentView('TASKS');
                                             setIsNexusImmersive(false);
                                             setActiveSmartProjectId(null);
+                                            setForceFocusOpen(false);
                                         }}
                                         onSelectProject={(id) => setActiveSmartProjectId(id)}
                                         onAddQuest={handleOpenSmartTaskCreator}
+                                        onStartFocusProject={handleStartFocusProjectFromNexus}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -979,10 +1159,13 @@ export default function Dashboard() {
                     <Dock 
                         currentView={currentView} 
                         onChangeView={handleDockViewChange} 
-                        onOpenModal={setActiveModal} 
+                        onOpenModal={(modal) => {
+                            setModalInitialContext(null);
+                            setActiveModal(modal);
+                        }} 
                         isOpen={isDockOpen} 
                         onToggle={setIsDockOpen} 
-                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus}
+                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO'}
                         dashboardStyle={dashboardStyle}
                     />
                     
@@ -1023,11 +1206,13 @@ export default function Dashboard() {
                         initialData={editingHabit || modalInitialContext || undefined}
                     />
                     <ProjectModal 
+                        key={modalInitialContext?.id || (activeModal === 'PROJECT' ? 'new-project' : 'closed')}
                         isOpen={activeModal === 'PROJECT'} 
                         onClose={() => { setActiveModal(null); setModalInitialContext(null); }} 
                         attributes={attributes} 
                         smartProjects={smartProjects} 
-                        onConfirm={handleProjectConfirm} 
+                        onConfirm={handleProjectConfirmAndReset} 
+                        onDelete={handleDeleteProjectRequest}
                         initialData={modalInitialContext || undefined}
                     />
 
@@ -1114,8 +1299,24 @@ export default function Dashboard() {
                                 onUpdateHabitSectionControl={updateHabitSectionControl}
                                 allowDockSectionSwitch={allowDockSectionSwitch}
                                 onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
-                                stickyHud={stickyHud}
-                                onUpdateStickyHud={updateStickyHud}
+                            />
+                        </Suspense>
+                    )}
+                </AnimatePresence>
+
+                {/* POMODORO OVERLAY - Root Level */}
+                <AnimatePresence>
+                    {currentView === 'POMODORO' && (
+                        <Suspense fallback={<div className="fixed inset-0 z-[500] bg-black" />}>
+                            <PomodoroView 
+                                projects={projects}
+                                attributes={attributes}
+                                onExit={() => setCurrentView('TASKS')}
+                                onCompleteSession={handleCompleteSession}
+                                onUpdateProject={handleUpdateProject}
+                                onDeleteSession={handleDeleteSession}
+                                onAddManualSession={handleAddManualSession}
+                                initialProjectId={focusAutoStartProjectId}
                             />
                         </Suspense>
                     )}

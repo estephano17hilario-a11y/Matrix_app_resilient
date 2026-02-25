@@ -14,6 +14,12 @@ export const sanitizeFirestoreData = (data: any): any => {
         if (typeof value === 'function') continue;
         if (typeof value === 'symbol') continue;
         
+        // Handle Date objects (Pass through to Firestore)
+        if (value instanceof Date) {
+            sanitized[key] = value;
+            continue;
+        }
+
         // Specific exclusions for UI components
         if (key === 'icon') continue; 
 

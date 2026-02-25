@@ -15,6 +15,7 @@ import { cn } from '../../../../utils/cn';
 import { Attribute } from '../../../../types';
 import { TRAITS_LIST } from '../../constants';
 import { GlassInput } from '../../../../components/ui/GlassInput';
+import { useTranslation } from 'react-i18next';
 
 interface NeuralSectionProps {
   defaultChartMode: 'RADAR' | 'BAR';
@@ -37,12 +38,13 @@ export const NeuralSection = ({
   onAddAttribute,
   onRemoveAttribute
 }: NeuralSectionProps) => {
+  const { t } = useTranslation();
   const [editingTraitId, setEditingTraitId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ label: string; color: string }>({ label: '', color: '' });
 
   const startEditing = (attr: Attribute) => {
     setEditingTraitId(attr.id);
-    setEditForm({ label: attr.label, color: attr.color });
+    setEditForm({ label: t(attr.label, attr.label), color: attr.color });
   };
 
   const saveEditing = () => {
@@ -191,7 +193,7 @@ export const NeuralSection = ({
                              className="w-3 h-3 rounded-full shadow-[0_0_10px]"
                              style={{ backgroundColor: attr.color, boxShadow: `0 0 10px ${attr.color}` }}
                           />
-                          <span className="font-medium text-white">{attr.label}</span>
+                         <span className="font-medium text-white">{t(attr.label, attr.label)}</span>
                           <span className="text-xs text-white/30 font-mono">Lvl {attr.level}</span>
                        </div>
 
@@ -219,7 +221,7 @@ export const NeuralSection = ({
              {/* Add New Attribute */}
              {availableTraits.length > 0 && (
                 <div className="pt-2">
-                   <h4 className="text-xs font-bold text-white/40 mb-2 uppercase">Available Modules</h4>
+                   <h4 className="text-xs font-bold text-white/40 mb-2 uppercase">{t('settings.availableTraits', 'Available Traits')}</h4>
                    <div className="flex flex-wrap gap-2">
                       {availableTraits.map(trait => (
                          <button
@@ -228,7 +230,7 @@ export const NeuralSection = ({
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 text-xs font-medium text-white/60 transition-all"
                          >
                             <Plus size={12} />
-                            {trait.label}
+                            {t(trait.label, trait.label)}
                          </button>
                       ))}
                    </div>

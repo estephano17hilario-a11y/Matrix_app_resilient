@@ -27,6 +27,7 @@ interface NotesViewProps {
     onShowPro?: () => void;
     currentSubView?: 'NOTES' | 'JOURNAL';
     sectionControl?: 'VISIBLE' | 'HIDDEN';
+    onStatsOpenChange?: (isOpen: boolean) => void;
 }
 
 const getEntryTitle = (blocks: NoteBlock[]) => {
@@ -45,7 +46,7 @@ const WigglyLine = () => (
     </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE' }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange }: NotesViewProps) => {
     const { t, i18n } = useTranslation();
     const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
@@ -70,6 +71,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const [showStats, setShowStats] = useState(false);
     const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
     const [moodSplash, setMoodSplash] = useState<string | null>(null);
+
+    useEffect(() => {
+        onStatsOpenChange?.(showStats);
+    }, [showStats, onStatsOpenChange]);
     const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
     const themeColorMap = useMemo(() => new Map(NOTE_THEMES.map(t => [t.id, t.color])), []);
     const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
@@ -157,7 +162,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             <div className={`transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
                 <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
                     <div className="w-8" />
-                    {sectionControl === 'VISIBLE' && (
+                    {sectionControl === 'VISIBLE' && !showStats && (
                         <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
                             <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
                                 subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
@@ -178,8 +183,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                         {visibleItems.map((item) => {
                                             if (item.type === 'create') {
                                                 return (
-                                                    <button key="create-note" onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/40">
-                                                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-white/80" strokeWidth={1.5} /></div>
+                                                    <button key="create-note" onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25">
+                                                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
                                                         <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
                                                     </button>
                                                 );
@@ -204,8 +209,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/40">
-                                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-white/80" strokeWidth={1.5} /></div>
+                                <button onClick={createNote} className="w-full h-[260px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25">
+                                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
                                     <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
                                 </button>
                                 {notes.map((note) => {

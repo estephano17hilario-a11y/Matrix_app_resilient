@@ -72,6 +72,7 @@ export interface Habit {
   impact?: number;
   customColor?: string;
   archived?: boolean;
+  createdAt?: number;
 }
 
 export interface BadHabit {
@@ -111,6 +112,8 @@ export interface Project {
   archived?: boolean;
   deleted?: boolean;
   smartProjectId?: string;
+  createdAt?: number;
+  lastSessionDate?: string;
 }
 
 export interface Session {
@@ -118,6 +121,8 @@ export interface Session {
   type: 'POMO' | 'STOPWATCH';
   duration: number;
   date: string;
+  xpEarned?: number;
+  goldEarned?: number;
 }
 
 export interface NoteBlock {

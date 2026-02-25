@@ -1,12 +1,9 @@
 import { 
   UserCircle, 
-  ShieldCheck, 
   LogOut, 
-  Zap, 
   Mail,
   Fingerprint
 } from 'lucide-react';
-import { cn } from '../../../../utils/cn';
 import { useAuth } from '../../../../context/AuthContext';
 
 interface AccountSectionProps {
@@ -16,7 +13,6 @@ interface AccountSectionProps {
 }
 
 export const AccountSection = ({
-  onShowPro,
   isPro,
   onClose
 }: AccountSectionProps) => {
@@ -99,50 +95,13 @@ export const AccountSection = ({
         {/* SUBSCRIPTION & ACTIONS */}
         <div className="space-y-6">
           <div className="flex items-center gap-3 text-white/60 font-mono text-sm uppercase tracking-wider">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
-            Clearance Level
+            <div className="w-2 h-2 rounded-full bg-red-400" />
+            Session Control
           </div>
 
           <div className="space-y-4">
-             {/* Plan Status */}
-             <div className={cn(
-                "p-6 rounded-2xl border flex flex-col gap-4 transition-all",
-                isPro 
-                  ? "bg-gradient-to-br from-amber-500/10 to-orange-600/10 border-amber-500/30" 
-                  : "bg-white/5 border-white/10"
-             )}>
-                <div className="flex items-start justify-between">
-                   <div className="flex items-center gap-4">
-                      <div className={cn(
-                         "p-3 rounded-xl",
-                         isPro ? "bg-amber-500/20 text-amber-400" : "bg-white/10 text-white/40"
-                      )}>
-                         {isPro ? <Zap size={24} /> : <ShieldCheck size={24} />}
-                      </div>
-                      <div>
-                         <h4 className="text-lg font-bold text-white">
-                            {isPro ? 'Lux Architect' : 'Standard Resident'}
-                         </h4>
-                         <p className="text-sm text-white/50">
-                            {isPro ? 'Full system access granted.' : 'Limited system access.'}
-                         </p>
-                      </div>
-                   </div>
-                </div>
-
-                {!isPro && (
-                   <button 
-                     onClick={onShowPro}
-                     className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                   >
-                      <Zap size={16} />
-                      Upgrade to PRO
-                   </button>
-                )}
-             </div>
-
              {/* Danger Zone */}
-             <div className="pt-6 border-t border-white/5">
+             <div className="pt-0">
                 <button 
                   onClick={handleLogout}
                   className="w-full py-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 font-bold transition-all flex items-center justify-center gap-2 group"
@@ -153,7 +112,6 @@ export const AccountSection = ({
              </div>
           </div>
         </div>
-
       </div>
     </div>
   );

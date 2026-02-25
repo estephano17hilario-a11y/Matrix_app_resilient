@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2 } from 'lucide-react';
 import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
-import { calculateTaskRewards, Difficulty } from '../../../utils/rewardCalculator';
+import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 
-export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, initialData?: Partial<Project> }) => {
+export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
 
@@ -87,27 +87,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';
     const hasColorSource = !!attrId;
     const SelectedIcon = selectedAttr?.icon || Briefcase;
-    const activeLabel = selectedAttr?.label || 'Trait';
-
-    const difficultyMap: Record<number, Difficulty> = {
-        1: 'C',
-        2: 'B',
-        3: 'A',
-        4: 'S'
-    };
-    const difficulty = difficultyMap[impact] || 'C';
-
-    const prediction = useMemo(() => {
-        return calculateTaskRewards(difficulty);
-    }, [difficulty]);
-
-    const toggleDay = (dayIndex: number) => {
-        setWorkingDays(prev => 
-            prev.includes(dayIndex) 
-                ? prev.filter(d => d !== dayIndex)
-                : [...prev, dayIndex].sort()
-        );
-    };
+    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label) : t('modals.project.traitDefault', 'Trait');
 
     const calculatedDailyGoal = useMemo(() => {
         if (goalFreq === 'DAILY') return goalTarget;
@@ -124,14 +104,29 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         return Math.round(daily * 10) / 10;
     }, [goalTarget, goalFreq, workingDays]);
 
+    const prediction = useMemo(() => {
+        return calculateTaskRewards(calculatedDailyGoal * 60);
+    }, [calculatedDailyGoal]);
+
+    const toggleDay = (dayIndex: number) => {
+        setWorkingDays(prev => 
+            prev.includes(dayIndex) 
+                ? prev.filter(d => d !== dayIndex)
+                : [...prev, dayIndex].sort()
+        );
+    };
+
     const handleConfirm = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
         
         try {
+            const isUpdate = !!initialData?.id;
+            console.log(`[ProjectModal] Confirming. Mode: ${isUpdate ? 'UPDATE' : 'CREATE'}`, { initialData });
+
             // Optimistic UI: 0ms delay
             await onConfirm({ 
-                id: initialData?.id,
+                id: isUpdate ? initialData!.id : undefined,
                 title, 
                 description: desc, 
                 attribute: attrId, 
@@ -267,7 +262,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 {attrId ? (
                                                     <>
                                                         <SelectedIcon size={18} style={{ color: selectedAttr?.color || '#3b82f6' }} />
-                                                        <span className="text-xs font-bold text-white">{selectedAttr?.label}</span>
+                                                        <span className="text-xs font-bold text-white">{selectedAttr ? t(selectedAttr.label, selectedAttr.label) : ''}</span>
                                                     </>
                                                 ) : (
                                                     <>
@@ -312,7 +307,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                                             "text-xs font-bold",
                                                                             isSelected ? "text-white" : "text-slate-400"
                                                                         )}>
-                                                                            {t(`traits.${attr.id.toLowerCase()}.label`)}
+                                                                            {t(attr.label, attr.label)}
                                                                         </span>
                                                                     </button>
                                                                 )
@@ -348,15 +343,15 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                         )}>
                             <button 
                                 onClick={() => handleBlockChange(2)}
-                                className="w-full flex items-center justify-between p-4"
+                                className="w-full flex items-center justify-between p-3"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 2 ? "bg-white text-black" : isBlock2Valid && expandedBlock > 2 ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock2Valid && expandedBlock !== 2 ? <CheckCircle2 size={14} /> : "2"}
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>OBJETIVOS</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>OBJETIVOS</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -366,24 +361,24 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="px-4 pb-4 space-y-4"
+                                        className="px-3 pb-3 space-y-3"
                                     >
-                                        <div className="flex items-center gap-2 mb-1"><Target size={16} className="text-cyan-400" /><span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.project.goalCalculation')}</span></div>
+                                        <div className="flex items-center gap-2 mb-1"><Target size={14} className="text-cyan-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.goalCalculation')}</span></div>
                                         
                                         <div className="flex justify-between items-center bg-black/20 rounded-xl p-1">
                                             {['DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
-                                                <button key={f} onClick={() => setGoalFreq(f)} className={`flex-1 py-2 rounded-lg text-[9px] font-black transition-all ${goalFreq === f ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}>{t(`modals.project.frequencies.${f}`)}</button>
+                                                <button key={f} onClick={() => setGoalFreq(f)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${goalFreq === f ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}>{t(`modals.project.frequencies.${f}`)}</button>
                                             ))}
                                         </div>
 
                                         {/* Goal Input */}
-                                        <div className="flex items-center justify-between px-2 bg-black/20 rounded-xl py-2">
-                                            <button onClick={() => setGoalTarget(Math.max(1, goalTarget - 1))} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronDown size={14} /></button>
+                                        <div className="flex items-center justify-between px-2 bg-black/20 rounded-xl py-1.5">
+                                            <button onClick={() => setGoalTarget(Math.max(1, goalTarget - 1))} className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronDown size={14} /></button>
                                             <div className="text-center">
-                                                <span className="text-2xl font-black text-white font-mono">{goalTarget}</span>
-                                                <span className="text-xs font-bold text-slate-500 ml-1">{t('modals.project.hrs')} / {goalFreq === 'DAILY' ? t('modals.project.day') : goalFreq === 'WEEKLY' ? t('modals.project.week') : t('modals.project.month')}</span>
+                                                <span className="text-xl font-black text-white font-mono">{goalTarget}</span>
+                                                <span className="text-[10px] font-bold text-slate-500 ml-1">{t('modals.project.hrs')} / {goalFreq === 'DAILY' ? t('modals.project.day') : goalFreq === 'WEEKLY' ? t('modals.project.week') : t('modals.project.month')}</span>
                                             </div>
-                                            <button onClick={() => setGoalTarget(Math.min(100, goalTarget + 1))} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronUp size={14} /></button>
+                                            <button onClick={() => setGoalTarget(Math.min(100, goalTarget + 1))} className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronUp size={14} /></button>
                                         </div>
 
                                         {/* Working Days Selector (Only if not Daily) */}
@@ -391,14 +386,14 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <div className="animate-in slide-in-from-top-2 pt-2 border-t border-white/5">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Calendar size={12} className="text-slate-400" />
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.project.workingDays')}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.workingDays')}</span>
                                                 </div>
                                                 <div className="flex justify-between gap-1">
                                                     {DAYS.map((d, i) => (
                                                         <button 
                                                             key={i} 
                                                             onClick={() => toggleDay(i)}
-                                                            className={`w-8 h-8 rounded-lg text-[10px] font-bold transition-all ${workingDays.includes(i) ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                            className={`w-7 h-7 rounded-lg text-[9px] font-bold transition-all ${workingDays.includes(i) ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
                                                         >
                                                             {d}
                                                         </button>
@@ -406,22 +401,22 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 </div>
                                                 
                                                 {/* Calculated Result */}
-                                                <div className="mt-3 bg-cyan-500/10 rounded-xl p-3 flex items-center gap-3 border border-cyan-500/20">
-                                                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                                        <Calculator size={16} />
+                                                <div className="mt-2 bg-cyan-500/10 rounded-xl p-2.5 flex items-center gap-3 border border-cyan-500/20">
+                                                    <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                                        <Calculator size={14} />
                                                     </div>
                                                     <div>
-                                                        <div className="text-[10px] font-bold text-cyan-200 uppercase">{t('modals.project.dailyTarget')}</div>
-                                                        <div className="text-sm font-black text-white"><span className="font-mono">{calculatedDailyGoal}</span> {t('modals.project.hours')} <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span></div>
+                                                        <div className="text-[9px] font-bold text-cyan-200 uppercase">{t('modals.project.dailyTarget')}</div>
+                                                        <div className="text-xs font-black text-white"><span className="font-mono">{calculatedDailyGoal}</span> {t('modals.project.hours')} <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span></div>
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
 
                                         {/* Impact - MOVED FROM BLOCK 3 */}
-                                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center gap-4">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase w-12 shrink-0">{t('modals.project.impact')}</span>
-                                            <div className="flex-1 h-8 bg-black/30 rounded-full relative p-1 flex gap-1">
+                                        <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 flex items-center gap-3">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase w-10 shrink-0">{t('modals.project.impact')}</span>
+                                            <div className="flex-1 h-7 bg-black/30 rounded-full relative p-1 flex gap-1">
                                                 {[1,2,3,4].map(lvl => (
                                                     <button key={lvl} onClick={() => setImpact(lvl)} className={`flex-1 rounded-full transition-all duration-300 ${impact >= lvl ? lvl === 1 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : lvl === 2 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : lvl === 3 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'bg-white/5'}`} />
                                                 ))}
@@ -432,7 +427,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <button 
                                                 onClick={() => isBlock2Valid && handleBlockChange(3)}
                                                 disabled={!isBlock2Valid}
-                                                className="px-6 py-2 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+                                                className="px-5 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                                             >
                                                 Siguiente
                                             </button>
@@ -451,15 +446,15 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                         )}>
                             <button 
                                 onClick={() => handleBlockChange(3)}
-                                className="w-full flex items-center justify-between p-4"
+                                className="w-full flex items-center justify-between p-3"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 3 ? "bg-white text-black" : isBlock3Valid ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         3
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -469,34 +464,34 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="px-4 pb-4 space-y-4"
+                                        className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Pomodoro */}
-                                        <div className="bg-black/20 rounded-xl p-3 border border-white/5">
-                                            <div className="flex items-center gap-2 mb-2"><Hourglass size={16} className="text-yellow-400" /><span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.project.pomodoro')}</span></div>
+                                        <div className="bg-black/20 rounded-xl p-2.5 border border-white/5">
+                                            <div className="flex items-center gap-2 mb-2"><Hourglass size={14} className="text-yellow-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.pomodoro')}</span></div>
                                             <div className="flex gap-1 mb-2">
                                                 {[25, 45, 60].map(t => (
-                                                    <button key={t} onClick={() => setPomoDuration(t)} className={`flex-1 py-1 rounded-md text-[10px] font-bold font-mono border transition-all ${pomoDuration === t ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-transparent border-white/10 text-slate-500'}`}>{t}</button>
+                                                    <button key={t} onClick={() => setPomoDuration(t)} className={`flex-1 py-0.5 rounded-md text-[9px] font-bold font-mono border transition-all ${pomoDuration === t ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-transparent border-white/10 text-slate-500'}`}>{t}</button>
                                                 ))}
                                             </div>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-slate-500 font-bold">{t('modals.project.custom')}:</span><input type="number" value={pomoDuration} onChange={(e) => setPomoDuration(parseInt(e.target.value) || 25)} className="w-12 bg-transparent border-b border-white/20 text-white font-mono text-sm text-center focus:border-white outline-none" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 font-bold">{t('modals.project.custom')}:</span><input type="number" value={pomoDuration} onChange={(e) => setPomoDuration(parseInt(e.target.value) || 25)} className="w-10 bg-transparent border-b border-white/20 text-white font-mono text-xs text-center focus:border-white outline-none" /></div>
                                         </div>
 
                                         {/* Reminder */}
-                                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 group">
-                                            <div className="flex items-center gap-2 mb-1"><Bell size={16} className="text-purple-400" /><span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.project.alert')}</span></div>
-                                            <input type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} className="bg-transparent text-2xl font-black text-white outline-none w-full z-10 relative" />
-                                            {!reminder && <span className="absolute left-7 bottom-7 text-sm font-bold text-white/20 pointer-events-none">{t('modals.project.off')}</span>}
+                                        <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 group">
+                                            <div className="flex items-center gap-2 mb-1"><Bell size={14} className="text-purple-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.alert')}</span></div>
+                                            <input type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} className="bg-transparent text-xl font-black text-white outline-none w-full z-10 relative" />
+                                            {!reminder && <span className="absolute left-6 bottom-6 text-xs font-bold text-white/20 pointer-events-none">{t('modals.project.off')}</span>}
                                         </div>
 
                                         {/* Smart Project Link - MOVED HERE */}
                                         {smartProjects && smartProjects.length > 0 && (
                                             <div className="bg-black/20 rounded-xl p-2 px-3 border border-white/5 flex items-center gap-3">
-                                                <Target size={16} className="text-indigo-400 shrink-0" />
+                                                <Target size={14} className="text-indigo-400 shrink-0" />
                                                 <select 
                                                     value={smartProjectId} 
                                                     onChange={(e) => setSmartProjectId(e.target.value)} 
-                                                    className="w-full bg-transparent text-xs font-medium text-white outline-none appearance-none cursor-pointer"
+                                                    className="w-full bg-transparent text-[10px] font-medium text-white outline-none appearance-none cursor-pointer"
                                                 >
                                                     <option value="" className="bg-[#1c1c1e] text-white/50">{t('modals.habit.linkToProject') || "Link to Smart Project (Optional)"}</option>
                                                     {smartProjects.map(p => (
@@ -527,22 +522,32 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             )}
                                         </AnimatePresence>
 
-                                        <div className="pt-2">
+                                        <div className="pt-2 space-y-2">
+                                            {initialData?.id && onDelete && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDelete(initialData.id as string)}
+                                                    disabled={isSubmitting}
+                                                    className="w-full h-10 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 font-bold text-xs uppercase tracking-widest hover:bg-red-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {t('common.delete', 'Eliminar')}
+                                                </button>
+                                            )}
                                             <button 
                                                 onClick={handleConfirm} 
-                                                disabled={!title || !attrId || isSubmitting || !reminder} 
-                                                className={`w-full h-12 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting || !reminder) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                                                disabled={!title || !attrId || isSubmitting} 
+                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
                                                 style={{
-                                                    background: (!title || !attrId || isSubmitting || !reminder) 
+                                                    background: (!title || !attrId || isSubmitting) 
                                                         ? undefined 
                                                         : `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
-                                                    boxShadow: (!title || !attrId || isSubmitting || !reminder) 
+                                                    boxShadow: (!title || !attrId || isSubmitting) 
                                                         ? undefined 
                                                         : `0 8px 20px -4px ${activeColor}60, inset 0 1px 0 0 rgba(255,255,255,0.3)`
                                                 }}
                                             >
                                                 {isSubmitting ? (
-                                                    <Loader2 size={16} className="animate-spin" />
+                                                    <Loader2 size={14} className="animate-spin" />
                                                 ) : (
                                                     <>
                                                         {initialData ? t('modals.project.update') : t('modals.project.create')}

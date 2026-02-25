@@ -76,15 +76,15 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
         : [1, 2, 4, 8];
 
     return (
-        <div className="w-full bg-[#0a0a0a] rounded-[1.5rem] border border-white/10 p-4 overflow-hidden relative group">
+        <div className="w-full bg-[#0a0a0a] rounded-xl border border-white/10 p-3 overflow-hidden relative group">
             {/* Ambient Glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
             
-            <div className="relative z-10 flex flex-col gap-5">
+            <div className="relative z-10 flex flex-col gap-3">
                 {/* Header & Toggle */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-slate-400">
-                        <div className="p-1.5 rounded-md bg-white/5">
+                        <div className="p-1 rounded-md bg-white/5">
                             <Clock size={12} className="text-indigo-400" />
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Duración Estimada</span>
@@ -96,7 +96,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                                 key={m}
                                 onClick={() => handleModeChange(m)}
                                 className={cn(
-                                    "px-3 py-1 rounded-md text-[9px] font-black tracking-wider transition-all",
+                                    "px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider transition-all",
                                     mode === m 
                                         ? "bg-white/15 text-white shadow-sm" 
                                         : "text-slate-600 hover:text-slate-400"
@@ -113,12 +113,12 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                     <motion.button 
                         whileTap={{ scale: 0.9 }}
                         onClick={handleDecrement}
-                        className="w-12 h-12 rounded-2xl bg-[#141416] border border-white/5 flex items-center justify-center text-white/30 hover:bg-white/5 hover:text-white hover:border-white/20 transition-all shadow-lg shadow-black/20"
+                        className="w-10 h-10 rounded-xl bg-[#141416] border border-white/5 flex items-center justify-center text-white/30 hover:bg-white/5 hover:text-white hover:border-white/20 transition-all shadow-lg shadow-black/20"
                     >
-                        <Minus size={20} />
+                        <Minus size={16} />
                     </motion.button>
 
-                    <div className="flex-1 flex flex-col items-center justify-center h-16 relative">
+                    <div className="flex-1 flex flex-col items-center justify-center h-12 relative">
                         <AnimatePresence mode='popLayout'>
                             <motion.div 
                                 key={`${mode}-${displayValue}`}
@@ -128,10 +128,10 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                 className="flex items-baseline gap-1 absolute"
                             >
-                                <span className="text-5xl font-black text-white tracking-tighter drop-shadow-2xl">
+                                <span className="text-4xl font-black text-white tracking-tighter drop-shadow-2xl">
                                     {displayValue}
                                 </span>
-                                <span className="text-sm text-white/30 font-bold uppercase tracking-widest">
+                                <span className="text-xs text-white/30 font-bold uppercase tracking-widest">
                                     {mode === 'MINUTES' ? 'min' : 'hrs'}
                                 </span>
                             </motion.div>
@@ -141,9 +141,9 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                     <motion.button 
                         whileTap={{ scale: 0.9 }}
                         onClick={handleIncrement}
-                        className="w-12 h-12 rounded-2xl bg-[#141416] border border-white/5 flex items-center justify-center text-white/30 hover:bg-white/5 hover:text-white hover:border-white/20 transition-all shadow-lg shadow-black/20"
+                        className="w-10 h-10 rounded-xl bg-[#141416] border border-white/5 flex items-center justify-center text-white/30 hover:bg-white/5 hover:text-white hover:border-white/20 transition-all shadow-lg shadow-black/20"
                     >
-                        <Plus size={20} />
+                        <Plus size={16} />
                     </motion.button>
                 </div>
 
@@ -156,7 +156,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                                 key={preset}
                                 onClick={() => handlePreset(preset)}
                                 className={cn(
-                                    "py-2.5 rounded-xl text-[10px] font-bold transition-all border",
+                                    "py-1.5 rounded-lg text-[10px] font-bold transition-all border",
                                     isActive
                                         ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300 shadow-[0_0_15px_-3px_rgba(99,102,241,0.3)]"
                                         : "bg-[#141416] border-white/5 text-slate-500 hover:bg-white/5 hover:text-slate-300"

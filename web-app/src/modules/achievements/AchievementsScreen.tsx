@@ -49,6 +49,7 @@ const TraitFilterPill = ({
   isActive: boolean;
   onClick: () => void;
 }) => {
+  const { t } = useTranslation();
   const Icon = TRAIT_ICONS[traitId];
   
   return (
@@ -62,7 +63,7 @@ const TraitFilterPill = ({
       `}
     >
       {Icon && <Icon size={12} className={isActive ? "text-black" : "text-white/50"} />}
-      <span>{traitId}</span>
+      <span>{t(`traits.${traitId}`, traitId)}</span>
     </button>
   );
 };

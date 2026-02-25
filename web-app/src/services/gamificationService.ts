@@ -1,6 +1,7 @@
 import { doc, runTransaction, db } from "./firebase";
 import { GamificationEngine, TaskType } from "./gamificationEngine";
 import { UserStats, DailyLimits } from "../types/User";
+import { toLocalISOString } from "../utils/dateUtils";
 
 /**
  * SERVICE: Gamification (DB + Logic Integration)
@@ -25,7 +26,7 @@ export const GamificationService = {
         const userData = userDoc.data();
         const stats: UserStats = userData.stats || { xp: 0, gold: 0, level: 1, hp: 100, streak: 0 };
         let dailyLimits: DailyLimits = userData.dailyLimits || { 
-          date: new Date().toISOString().split('T')[0], 
+          date: toLocalISOString(new Date()), 
           taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
           habitsCompleted: 0, focusSeconds: 0 
         };
@@ -65,7 +66,7 @@ export const GamificationService = {
         const userData = userDoc.data();
         const stats: UserStats = userData.stats || { xp: 0, gold: 0, level: 1, hp: 100, streak: 0 };
         let dailyLimits: DailyLimits = userData.dailyLimits || { 
-          date: new Date().toISOString().split('T')[0], 
+          date: toLocalISOString(new Date()), 
           taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
           habitsCompleted: 0, focusSeconds: 0 
         };
@@ -105,7 +106,7 @@ export const GamificationService = {
         const userData = userDoc.data();
         const stats: UserStats = userData.stats || { xp: 0, gold: 0, level: 1, hp: 100, streak: 0 };
         let dailyLimits: DailyLimits = userData.dailyLimits || { 
-          date: new Date().toISOString().split('T')[0], 
+          date: toLocalISOString(new Date()), 
           taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
           habitsCompleted: 0, focusSeconds: 0 
         };

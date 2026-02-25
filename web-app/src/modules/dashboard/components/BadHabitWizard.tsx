@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame } from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 interface BadHabitWizardProps {
     isOpen: boolean;
@@ -47,6 +48,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     onConfirm,
     attributes
 }) => {
+    const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0);
     
@@ -277,7 +279,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                     <Zap size={18} />
                                                                 </div>
                                                                 <span className={`text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
-                                                                    {attr.label}
+                                                                    {t(attr.label, attr.label)}
                                                                 </span>
                                                             </div>
                                                         </motion.button>

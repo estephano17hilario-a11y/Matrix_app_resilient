@@ -111,7 +111,9 @@ export const useSmartTaskLogic = () => {
           startDate: Timestamp.fromDate(finalStart),
           dueDate: Timestamp.fromDate(finalEnd),
           isCompleted: false,
-          reward: { xp: 500 / (index + 1), coins: 100 },
+          // FIXED: User requested "Hard" difficulty rewards for all smart tasks
+          // Matches 'A' difficulty in rewardCalculator.ts
+          reward: { xp: 40, coins: 25 },
           parentId: currentNode.id,
           children: [],
           placeholder: false,

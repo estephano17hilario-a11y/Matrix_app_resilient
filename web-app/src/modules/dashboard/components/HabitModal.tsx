@@ -4,7 +4,7 @@ import * as LucideIcons from 'lucide-react';
 import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
-import { calculateTaskRewards, Difficulty } from '../../../utils/rewardCalculator';
+import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { IconPicker } from './IconPicker';
@@ -110,17 +110,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const TraitIcon = selectedAttr?.icon || Star;
     const activeLabel = selectedAttr?.label || 'Trait';
 
-    const difficultyMap: Record<number, Difficulty> = {
-        1: 'C',
-        2: 'B',
-        3: 'A',
-        4: 'S'
-    };
-    const difficulty = difficultyMap[impact] || 'C';
-
     const prediction = useMemo(() => {
-        return calculateTaskRewards(difficulty, null, estimatedTime);
-    }, [difficulty, estimatedTime]);
+        return calculateTaskRewards(estimatedTime);
+    }, [estimatedTime]);
 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
@@ -181,7 +173,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative z-10 w-full max-w-[400px]"
+                className="relative z-10 w-full max-w-[360px]"
             >
                 <div 
                     className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
@@ -193,20 +185,20 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     }}
                 >
                     {/* Header */}
-                    <div className="flex justify-between items-center p-6 pb-2 shrink-0">
+                    <div className="flex justify-between items-center p-5 pb-2 shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: activeColor }}>
-                                <SelectedIcon size={20} className="text-white" />
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: activeColor }}>
+                                <SelectedIcon size={18} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white tracking-tight leading-none">{initialData ? 'Editar Hábito' : 'Nuevo Hábito'}</h2>
+                                <h2 className="text-lg font-black text-white tracking-tight leading-none">{initialData ? 'Editar Hábito' : 'Nuevo Hábito'}</h2>
                                 <p className="text-[10px] font-medium text-white/40 mt-1 uppercase tracking-wider">Protocolo de Vida</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
                     </div>
 
-                    <div ref={scrollContainerRef} className="overflow-y-auto no-scrollbar p-4 space-y-3">
+                    <div ref={scrollContainerRef} className="overflow-y-auto no-scrollbar p-3 space-y-2">
                         
                         {/* BLOCK 1: IDENTIDAD */}
                         <div className={cn(
@@ -217,15 +209,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         )}>
                             <button 
                                 onClick={() => handleBlockChange(1)}
-                                className="w-full flex items-center justify-between p-4"
+                                className="w-full flex items-center justify-between p-3"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 1 ? "bg-white text-black" : isBlock1Valid ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock1Valid && expandedBlock !== 1 ? <CheckCircle2 size={14} /> : "1"}
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>IDENTIDAD</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>IDENTIDAD</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
                             
                             <AnimatePresence initial={false}>
@@ -234,7 +226,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="px-4 pb-4 space-y-3"
+                                        className="px-3 pb-3 space-y-2"
                                     >
                                         {/* Title */}
                                         <div className="bg-black/20 rounded-xl p-1 border border-white/5 focus-within:border-white/20 transition-all">
@@ -243,7 +235,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 value={title} 
                                                 onChange={(e) => setTitle(e.target.value)} 
                                                 placeholder="Nombre del Protocolo..." 
-                                                className="w-full h-10 bg-transparent px-3 text-sm font-bold text-white placeholder:text-white/20 outline-none" 
+                                                className="w-full h-9 bg-transparent px-3 text-xs font-bold text-white placeholder:text-white/20 outline-none" 
                                             />
                                         </div>
 
@@ -254,7 +246,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 value={desc} 
                                                 onChange={(e) => setDesc(e.target.value)} 
                                                 placeholder="Descripción (Requerida)..." 
-                                                className="w-full h-10 bg-transparent px-3 text-sm font-medium text-slate-300 placeholder:text-white/20 outline-none" 
+                                                className="w-full h-9 bg-transparent px-3 text-xs font-medium text-slate-300 placeholder:text-white/20 outline-none" 
                                             />
                                         </div>
 
@@ -263,22 +255,22 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <div 
                                                 onClick={() => setAttrPickerOpen(!isAttrPickerOpen)} 
                                                 className={cn(
-                                                    "w-full h-12 rounded-xl border flex items-center px-3 gap-3 cursor-pointer transition-all relative",
+                                                    "w-full h-10 rounded-xl border flex items-center px-3 gap-3 cursor-pointer transition-all relative",
                                                     attrId ? "bg-white/5 border-white/10" : "bg-black/20 border-dashed border-white/10 hover:border-white/30"
                                                 )}
                                             >
                                                 {attrId ? (
                                                     <>
-                                                        <TraitIcon size={18} style={{ color: selectedAttr?.color || '#3b82f6' }} />
-                                                        <span className="text-xs font-bold text-white">{selectedAttr?.label}</span>
+                                                        <TraitIcon size={16} style={{ color: selectedAttr?.color || '#3b82f6' }} />
+                                                        <span className="text-xs font-bold text-white">{selectedAttr ? t(selectedAttr.label, selectedAttr.label) : ''}</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Plus size={18} className="text-white/30" />
+                                                        <Plus size={16} className="text-white/30" />
                                                         <span className="text-xs font-bold text-white/30">Seleccionar Rasgo</span>
                                                     </>
                                                 )}
-                                                <ChevronDown size={16} className={cn("ml-auto transition-transform text-white/30", isAttrPickerOpen && "rotate-180")} />
+                                                <ChevronDown size={14} className={cn("ml-auto transition-transform text-white/30", isAttrPickerOpen && "rotate-180")} />
                                             </div>
 
                                             <AnimatePresence>
@@ -311,11 +303,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                         <div className="w-8 h-8 rounded-full flex items-center justify-center bg-black/40">
                                                                             <Icon size={16} style={{ color: attr.color }} />
                                                                         </div>
-                                                                        <span className={cn(
+                                                                    <span className={cn(
                                                                             "text-xs font-bold",
                                                                             isSelected ? "text-white" : "text-slate-400"
                                                                         )}>
-                                                                            {attr.label}
+                                                                        {t(attr.label, attr.label)}
                                                                         </span>
                                                                     </button>
                                                                 )
@@ -360,15 +352,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         )}>
                             <button 
                                 onClick={() => handleBlockChange(2)}
-                                className="w-full flex items-center justify-between p-4"
+                                className="w-full flex items-center justify-between p-3"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 2 ? "bg-white text-black" : isBlock2Valid && expandedBlock > 2 ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock2Valid && expandedBlock > 2 ? <CheckCircle2 size={14} /> : "2"}
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>MECÁNICA</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>MECÁNICA</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -377,7 +369,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="px-4 pb-4 space-y-4"
+                                        className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Frequency */}
                                         <div className="bg-black/20 rounded-xl p-1 flex">
@@ -386,7 +378,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                     key={f} 
                                                     onClick={() => setFreq(f)} 
                                                     className={cn(
-                                                        "flex-1 py-2 rounded-lg text-[10px] font-black tracking-wide transition-all",
+                                                        "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all",
                                                         freq === f ? "bg-white/10 text-white shadow-sm border border-white/10" : "text-slate-500 hover:text-white"
                                                     )}
                                                 >
@@ -397,16 +389,24 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         
                                         {freq === 'WEEKLY' && (
                                             <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
-                                                {['S','M','T','W','T','F','S'].map((day, i) => (
+                                                {[
+                                                    { label: 'L', index: 1 },
+                                                    { label: 'M', index: 2 },
+                                                    { label: 'X', index: 3 },
+                                                    { label: 'J', index: 4 },
+                                                    { label: 'V', index: 5 },
+                                                    { label: 'S', index: 6 },
+                                                    { label: 'D', index: 0 }
+                                                ].map(({ label, index }) => (
                                                     <button 
-                                                        key={i} 
-                                                        onClick={() => setWeekDays(prev => prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i])} 
+                                                        key={index} 
+                                                        onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
                                                         className={cn(
-                                                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all border",
-                                                            weekDays.includes(i) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                            "w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold transition-all border",
+                                                            weekDays.includes(index) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
                                                         )}
                                                     >
-                                                        {day}
+                                                        {label}
                                                     </button>
                                                 ))}
                                             </div>
@@ -416,15 +416,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         <div className="grid grid-cols-1 gap-2">
                                             <button 
                                                 onClick={() => setLogic(t => t === 'BOOLEAN' ? 'QUANTITY' : t === 'QUANTITY' ? 'CHECKLIST' : 'BOOLEAN')} 
-                                                className="bg-black/20 rounded-xl p-3 flex items-center justify-between group hover:bg-black/30 transition-colors border border-white/5"
+                                                className="bg-black/20 rounded-xl p-2.5 flex items-center justify-between group hover:bg-black/30 transition-colors border border-white/5"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", logic === 'BOOLEAN' ? "bg-green-500/20 text-green-400" : logic === 'QUANTITY' ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400")}>
-                                                        {logic === 'BOOLEAN' ? <CheckCircle2 size={16} /> : logic === 'QUANTITY' ? <Hash size={16} /> : <List size={16} />}
+                                                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", logic === 'BOOLEAN' ? "bg-green-500/20 text-green-400" : logic === 'QUANTITY' ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400")}>
+                                                        {logic === 'BOOLEAN' ? <CheckCircle2 size={14} /> : logic === 'QUANTITY' ? <Hash size={14} /> : <List size={14} />}
                                                     </div>
                                                     <div className="text-left">
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase block">{t('modals.habit.logic')}</span>
-                                                        <span className="text-sm font-bold text-white capitalize">{t(`modals.habit.logics.${logic}`)}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('modals.habit.logic')}</span>
+                                                        <span className="text-xs font-bold text-white capitalize">{t(`modals.habit.logics.${logic}`)}</span>
                                                     </div>
                                                 </div>
                                                 <ChevronDown size={14} className="text-white/30" />
@@ -462,8 +462,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
                                         {/* Impact */}
                                         <div className="space-y-2">
-                                            <span className="text-[10px] font-bold text-white/30 uppercase pl-1">Impacto Positivo</span>
-                                            <div className="h-10 bg-black/30 rounded-full p-1 flex gap-1">
+                                            <span className="text-[9px] font-bold text-white/30 uppercase pl-1">Impacto Positivo</span>
+                                            <div className="h-8 bg-black/30 rounded-full p-1 flex gap-1">
                                                 {[1,2,3,4].map(lvl => (
                                                     <button 
                                                         key={lvl} 
@@ -485,7 +485,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         <div className="pt-2 flex justify-end">
                                             <button 
                                                 onClick={() => isBlock2Valid && handleBlockChange(3)}
-                                                className="px-6 py-2 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                                                className="px-5 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
                                             >
                                                 Siguiente
                                             </button>
@@ -504,15 +504,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         )}>
                             <button 
                                 onClick={() => handleBlockChange(3)}
-                                className="w-full flex items-center justify-between p-4"
+                                className="w-full flex items-center justify-between p-3"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 3 ? "bg-white text-black" : (isBlock3Valid || initialData) ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {expandedBlock === 3 ? "3" : (isBlock3Valid || initialData) ? <CheckCircle2 size={14} /> : "3"}
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -521,15 +521,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="px-4 pb-4 space-y-4"
+                                        className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Estimated Time */}
                                         <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />
 
                                         {/* Reminder */}
-                                        <div className="bg-black/20 rounded-xl p-3 flex items-center justify-between border border-white/5 group">
+                                        <div className="bg-black/20 rounded-xl p-2.5 flex items-center justify-between border border-white/5 group">
                                             <div className="flex items-center gap-2">
-                                                <AlertCircle size={16} className="text-orange-400" />
+                                                <AlertCircle size={14} className="text-orange-400" />
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.habit.alert') || "Alerta"}</span>
                                             </div>
                                             <div className="relative">
@@ -537,9 +537,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                     type="time" 
                                                     value={reminder} 
                                                     onChange={(e) => setReminder(e.target.value)} 
-                                                    className="bg-transparent text-sm font-bold text-white outline-none w-24 text-right cursor-pointer z-10 relative" 
+                                                    className="bg-transparent text-xs font-bold text-white outline-none w-24 text-right cursor-pointer z-10 relative" 
                                                 />
-                                                {!reminder && <span className="absolute right-0 top-0 text-sm font-bold text-white/20 pointer-events-none">OFF</span>}
+                                                {!reminder && <span className="absolute right-0 top-0 text-xs font-bold text-white/20 pointer-events-none">OFF</span>}
                                             </div>
                                         </div>
 
@@ -548,13 +548,13 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <button 
                                                 onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
                                                 className={cn(
-                                                    "w-full bg-black/20 rounded-xl p-3 flex items-center justify-between border border-white/5 transition-colors",
+                                                    "w-full bg-black/20 rounded-xl p-2.5 flex items-center justify-between border border-white/5 transition-colors",
                                                     projectId ? "border-indigo-500/30 bg-indigo-500/5" : "hover:bg-black/30"
                                                 )}
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <Target size={16} className={projectId ? "text-indigo-400" : "text-slate-500"} />
-                                                    <span className={cn("text-[10px] font-bold uppercase", projectId ? "text-indigo-300" : "text-slate-400")}>
+                                                    <Target size={14} className={projectId ? "text-indigo-400" : "text-slate-500"} />
+                                                    <span className={cn("text-[9px] font-bold uppercase", projectId ? "text-indigo-300" : "text-slate-400")}>
                                                         {projectId ? projects.find(p => p.id === projectId)?.title : "Vincular Proyecto (Opcional)"}
                                                     </span>
                                                 </div>
@@ -598,7 +598,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     </div>
 
                     {/* Footer / Create Button */}
-                    <div className="p-4 mt-auto border-t border-white/5 flex flex-col gap-3">
+                    <div className="p-3 mt-auto border-t border-white/5 flex flex-col gap-3">
                         {/* Stats Preview - Shows when valid AND reminder set (Alarm) */}
                         <AnimatePresence>
                             {canSubmit && reminder && (
@@ -610,20 +610,20 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 >
                                     {/* XP */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                                        <Zap size={12} className="text-yellow-400" />
-                                        <span className="text-[10px] font-black text-white">{prediction.xp} XP</span>
+                                        <Zap size={10} className="text-yellow-400" />
+                                        <span className="text-[9px] font-black text-white">{prediction.xp} XP</span>
                                     </div>
                                     
                                     {/* Gold */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                                        <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" />
-                                        <span className="text-[10px] font-black text-white">{prediction.coins} G</span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" />
+                                        <span className="text-[9px] font-black text-white">{prediction.coins} G</span>
                                     </div>
 
                                     {/* Trait XP */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
-                                        <TraitIcon size={12} style={{ color: selectedAttr?.color || '#3b82f6' }} />
-                                        <span className="text-[10px] font-black text-white">+{prediction.traitXp} {activeLabel}</span>
+                                        <TraitIcon size={10} style={{ color: selectedAttr?.color || '#3b82f6' }} />
+                                        <span className="text-[9px] font-black text-white">+{prediction.traitXp} {activeLabel}</span>
                                     </div>
                                 </motion.div>
                             )}
@@ -632,7 +632,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <button 
                             disabled={!canSubmit || isSubmitting}
                             onClick={handleConfirm}
-                            className={`w-full h-12 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
                             style={{
                                 background: (!canSubmit || isSubmitting) 
                                     ? undefined 
@@ -643,7 +643,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             }}
                         >
                             {isSubmitting ? (
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
                             ) : (
                                 initialData ? t('modals.habit.update') : t('modals.habit.create')
                             )}

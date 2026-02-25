@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, ChevronRight, Pause } from 'lucide-react';
+import { ChevronRight, Zap } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 
@@ -54,16 +54,21 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
         />
 
       <div className="relative flex items-center gap-5">
-        {/* Left: Big Play Button */}
+        {/* Left: Enter/Focus Button (Not Play) */}
         <button 
             onClick={(e) => {
+                // DEBUG: Remove in production if annoying, but needed to verify click
+                console.log("👆 ProjectSimpleItem: Enter Clicked", project.id);
                 e.stopPropagation();
+                e.preventDefault(); 
                 onStartSession(e, project);
             }}
+            onMouseDown={(e) => e.stopPropagation()} 
+            onMouseUp={(e) => e.stopPropagation()}
             className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg shrink-0",
+                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg shrink-0 group/btn relative z-50 cursor-pointer",
                 isActive 
-                    ? "animate-pulse" 
+                    ? "animate-pulse ring-2 ring-white/50" 
                     : "hover:scale-105 active:scale-95"
             )}
             style={{ 
@@ -72,9 +77,12 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
             }}
         >
             {isActive ? (
-                <Pause size={28} className="text-white fill-white" strokeWidth={0} />
+                <div className="relative pointer-events-none">
+                    <div className="absolute inset-0 animate-ping opacity-50 rounded-full bg-white" />
+                    <Zap size={28} className="text-white fill-white relative z-10" strokeWidth={0} />
+                </div>
             ) : (
-                <Play size={28} className="text-white fill-white ml-1" strokeWidth={0} />
+                <Zap size={28} className="text-white fill-white group-hover/btn:scale-110 transition-transform pointer-events-none" strokeWidth={0} />
             )}
         </button>
         

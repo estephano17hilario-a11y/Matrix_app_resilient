@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { User } from 'lucide-react';
 
 // Utility for dynamic classes
 function cn(...inputs: ClassValue[]) {
@@ -31,6 +32,8 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
   onClick,
   className,
 }) => {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <motion.div
       className={cn(
@@ -95,23 +98,27 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
         }}
       >
         {/* Layer 1: Image (Hardware Accelerated) */}
-        <div className="w-full h-full bg-gray-800 relative">
-          <motion.img 
-            src={imageUrl} 
-            alt={name}
-            loading="lazy"
-            decoding="async"
-            // object-top ensures that when aspect ratio is constrained (e.g. 4:5), we don't cut off the head
-            className="w-full h-full object-cover object-top will-change-transform"
-            variants={{
-              hover: { scale: 1.05 },
-            }}
-            transition={{ duration: 0.4 }}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement?.classList.add('fallback-avatar');
-            }}
-          />
+        <div className="w-full h-full bg-gray-800 relative flex items-center justify-center">
+          {!imgError ? (
+            <motion.img 
+              src={imageUrl} 
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              // object-top ensures that when aspect ratio is constrained (e.g. 4:5), we don't cut off the head
+              className="w-full h-full object-cover object-[50%_12%] will-change-transform"
+              variants={{
+                hover: { scale: 1.05 },
+              }}
+              transition={{ duration: 0.4 }}
+              onError={() => setImgError(true)}
+            />
+          ) : (
+             <div className="flex flex-col items-center justify-center text-white/20 gap-2 p-4 text-center">
+                <User size={32} strokeWidth={1.5} />
+                <span className="text-[10px] font-mono uppercase tracking-widest opacity-50">No Signal</span>
+             </div>
+          )}
         </div>
 
         {/* Layer 2: Gradient Overlay (Static) */}

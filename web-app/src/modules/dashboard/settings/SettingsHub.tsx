@@ -44,8 +44,6 @@ interface SettingsHubProps {
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
-  stickyHud?: boolean;
-  onUpdateStickyHud?: (sticky: boolean) => void;
 }
 
 type SectionId = 'VISUALS' | 'SYSTEM' | 'NEURAL' | 'ACCOUNT';
@@ -65,7 +63,7 @@ export const SettingsHub = (props: SettingsHubProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-lg"
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-8 sm:p-16 md:p-24 bg-black/80 backdrop-blur-lg"
     >
       {/* MAIN CONTAINER - THE HUB */}
       <motion.div 
@@ -73,19 +71,38 @@ export const SettingsHub = (props: SettingsHubProps) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full max-w-6xl h-[95vh] sm:h-[85vh] flex flex-col sm:flex-row overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#050505]/95"
+        className="w-[95%] md:w-[85%] lg:w-[75%] max-w-4xl h-[85vh] sm:h-[80vh] max-h-[800px] flex flex-col sm:flex-row overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#050505]/95"
       >
         
         {/* SIDEBAR NAVIGATION - "THE RAIL" */}
-        <div className="w-full sm:w-64 h-auto sm:h-full flex flex-row sm:flex-col border-b sm:border-b-0 sm:border-r border-white/5 bg-black/20 relative z-20 shrink-0">
-          <div className="p-4 sm:p-6 border-r sm:border-r-0 sm:border-b border-white/5 flex items-center gap-3 shrink-0">
+        <div className="w-full sm:w-64 h-auto sm:h-full flex flex-col sm:flex-col border-b sm:border-b-0 sm:border-r border-white/5 bg-black/20 relative z-20 shrink-0">
+          
+          {/* MOBILE HEADER: LOGO + CLOSE */}
+          <div className="flex sm:hidden items-center justify-between p-4 border-b border-white/5 shrink-0">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                   <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                </div>
+                <span className="font-bold text-white tracking-widest text-sm">CONFIG_HUB</span>
+             </div>
+             <button 
+               onClick={props.onClose}
+               className="p-2 rounded-lg bg-white/5 text-white/60 border border-white/10 active:scale-95 transition-all"
+             >
+               <X size={18} />
+             </button>
+          </div>
+
+          {/* DESKTOP HEADER: LOGO */}
+          <div className="hidden sm:flex p-6 border-b border-white/5 items-center gap-3 shrink-0">
              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
              </div>
-             <span className="hidden sm:block font-bold text-white tracking-widest text-sm">CONFIG_HUB</span>
+             <span className="font-bold text-white tracking-widest text-sm">CONFIG_HUB</span>
           </div>
 
-          <div className="flex-1 flex flex-row sm:flex-col p-2 sm:py-6 sm:px-3 gap-2 overflow-x-auto sm:overflow-visible no-scrollbar">
+          {/* NAV ITEMS */}
+          <div className="w-full sm:flex-1 flex flex-row sm:flex-col p-2 sm:py-6 sm:px-3 gap-2 overflow-x-auto sm:overflow-visible no-scrollbar">
             {navItems.map((item) => {
               const isActive = activeSection === item.id;
               return (
@@ -115,6 +132,7 @@ export const SettingsHub = (props: SettingsHubProps) => {
                     )} />
                   </div>
                   
+                  {/* Label - Visible on Desktop, Hidden on Mobile unless we want labels? keeping hidden to save space */}
                   <div className="hidden sm:flex flex-col items-start relative z-10">
                     <span className={cn(
                       "text-sm font-medium transition-colors duration-300",
@@ -146,13 +164,14 @@ export const SettingsHub = (props: SettingsHubProps) => {
             })}
           </div>
 
-          <div className="p-2 sm:p-4 border-l sm:border-l-0 sm:border-t border-white/5 shrink-0">
+          {/* DESKTOP FOOTER: CLOSE */}
+          <div className="hidden sm:block p-4 border-t border-white/5 shrink-0">
             <button 
               onClick={props.onClose}
               className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all"
             >
               <X size={18} />
-              <span className="hidden sm:block text-sm font-bold">CLOSE</span>
+              <span className="text-sm font-bold">CLOSE</span>
             </button>
           </div>
         </div>
@@ -172,7 +191,7 @@ export const SettingsHub = (props: SettingsHubProps) => {
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
           </div>
 
-          <div className="relative z-10 h-full overflow-y-auto custom-scrollbar p-6 sm:p-12">
+          <div className="relative z-10 h-full overflow-y-auto custom-scrollbar p-8 sm:p-16">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSection}

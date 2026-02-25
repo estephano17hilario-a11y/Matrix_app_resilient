@@ -21,6 +21,7 @@ interface MissionHUDProps {
   onAddHabit?: () => void;
   onDeleteProject?: () => void;
   onAddQuest?: (date: Date) => void;
+  onStartFocusProject?: (payload: { projectId?: string | null; smartProjectId?: string | null }) => void;
 }
 
 export const MissionHUD: React.FC<MissionHUDProps> = ({
@@ -36,7 +37,8 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
   onAddProject,
   onAddHabit,
   onDeleteProject,
-  onAddQuest
+  onAddQuest,
+  onStartFocusProject
 }) => {
   const [activeTimer, setActiveTimer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -78,6 +80,12 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
   };
 
   const handleStartFocus = () => {
+      window.dispatchEvent(new CustomEvent('matrix:focus', { detail: { projectId: linkedFocusProject?.id ?? null, smartProjectId: project.id } }));
+      if (onStartFocusProject) {
+          onStartFocusProject({ projectId: linkedFocusProject?.id ?? null, smartProjectId: project.id });
+          onClose();
+          return;
+      }
       setActiveTimer(!activeTimer);
   };
 
@@ -123,7 +131,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
           
           {/* --- SECTION 1: DIRECTIVES (TASKS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/95 py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-md py-2 z-20 border-b border-white/5">
                   <Target size={14} className="text-cyan-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Directives</h3>
                   <span className="ml-auto text-[10px] font-bold text-white/20 bg-white/5 px-2 py-0.5 rounded-full">{quests.length} ACTIVE</span>
@@ -157,6 +165,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
                       <QuestItem 
                         key={quest.id}
                         quest={quest}
+                        smartProject={project}
                         onComplete={(_e, q) => onCompleteQuest(q.id)}
                       />
                   ))}
@@ -174,7 +183,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
 
           {/* --- SECTION 2: RITUALS (HABITS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/80 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-md py-2 z-20 border-b border-white/5">
                   <Zap size={14} className="text-purple-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Rituals</h3>
                   <button onClick={onAddHabit} className="ml-auto w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">

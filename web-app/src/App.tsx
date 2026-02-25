@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
+import { RewardProvider } from '@/modules/rewards/context/RewardContext';
+import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,7 +33,7 @@ const AppRoutes = () => {
 
     // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
     const canEnterLux = !!user || !!profile;
-    const shouldShowLoading = isLoading && !profile;
+    const shouldShowLoading = (isLoading && !profile) || (user && (!profile || profile.isSkeleton));
 
     if (shouldShowLoading) {
       return (
@@ -89,9 +91,12 @@ const AppRoutes = () => {
       >
         <LuxProvider userId={user?.uid || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
-            <Suspense fallback={null}>
-              <Dashboard />
-            </Suspense>
+            <RewardProvider>
+              <Suspense fallback={null}>
+                <Dashboard />
+              </Suspense>
+              <RewardOverlay />
+            </RewardProvider>
           </EconomyProvider>
         </LuxProvider>
       </motion.div>
@@ -100,6 +105,10 @@ const AppRoutes = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#020204]">
+      <div
+        id="notification-stack-root"
+        className="fixed top-4 left-0 right-0 z-[10000] flex flex-col items-center gap-2 pointer-events-none px-4"
+      />
       {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
       <div className="fixed inset-0 z-0">
         <AuroraBackground />

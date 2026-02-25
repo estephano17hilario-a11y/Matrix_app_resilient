@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, Archive, ChevronLeft } from 'lucide-react';
+import { Skull, Archive, ChevronLeft, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
@@ -215,8 +215,17 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             animate="animate"
                             exit="exit"
                             transition={transitionConfig}
-                            className="w-full grid gap-3"
+                            className="w-full grid gap-3 relative"
                         >
+                            {/* Floating Mini Action */}
+                            <button
+                                onClick={onCreateBadHabit}
+                                className="absolute -top-8 right-0 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all hover:scale-105 active:scale-95"
+                            >
+                                <Plus size={12} strokeWidth={3} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Nuevo</span>
+                            </button>
+
                             {/* Relapse History Chart */}
                             <div className="col-span-full">
                                 <RelapseChart badHabits={badHabits} />

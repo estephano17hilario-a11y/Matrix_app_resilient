@@ -1,6 +1,6 @@
 import React from 'react';
-import { Crosshair, Plus, Infinity as InfinityIcon, Target, Trophy, ClipboardList, Flame, ChevronDown, Brain, Map as MapIcon, ShoppingBag, Zap, Activity } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Crosshair, Plus, Target, ClipboardList, Brain, Map as MapIcon, ShoppingBag, Trophy, ChevronDown, Activity, Flame } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' }) => {
@@ -62,7 +62,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                         </button>
                         
                         {[
-                            { id: 'HABIT', label: 'Habit', icon: InfinityIcon, color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/20', action: () => handleModal('HABIT') },
+                            { id: 'HABIT', label: 'Habit', icon: Flame, color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/20', action: () => handleModal('HABIT') },
                             { id: 'PROJECT', label: 'Focus', icon: Target, color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/20', action: () => handleModal('PROJECT') },
                             { id: 'STRATEGY', label: 'Map', icon: MapIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/20', border: 'border-indigo-500/20', action: () => handleView('STRATEGY') },
                             { id: 'STORE', label: 'Store', icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/20', action: () => handleView('STORE') }
@@ -101,7 +101,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                         >
                             <div className={`relative transition-all duration-300 ${currentView === 'HABITS' ? 'text-cyan-400 scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
                                 {currentView === 'HABITS' && <div className="absolute inset-0 bg-cyan-400/20 rounded-full blur-md" />}
-                                <Zap size={22} strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
+                                <Flame size={22} strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
                             </div>
                             <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'HABITS' ? 'text-white' : 'text-white/30'}`}>HABITS</span>
                         </button>
@@ -197,7 +197,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
                     </button>
                     <button onClick={() => { handleModal('HABIT'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
-                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><InfinityIcon size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.habit')}</span>
+                       <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(6,182,212,0.1)]"><Flame size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.habit')}</span>
                     </button>
                     <button onClick={() => { handleModal('PROJECT'); }} className="col-span-1 h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm">
                        <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.1)]"><Target size={18} /></div><span className="text-white/90 font-bold text-[11px] tracking-tight">{t('dock.focus')}</span>

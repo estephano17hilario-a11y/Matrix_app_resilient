@@ -4,62 +4,77 @@ import {
   doc,
   getDocs,
   setDoc,
-  deleteDoc,
   query,
   getDoc,
   Firestore,
-  QueryConstraint
+  QueryConstraint,
+  serverTimestamp
 } from './firebase';
 import { Quest, Habit, Note, JournalEntry, Attribute, Project, BadHabit } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
+import { AuditLogger } from './auditService';
 
 // Generic helper for subcollection CRUD
-const createSubCollectionService = <T extends { id: string }>(collectionName: string) => ({
-  getAll: async (userId: string): Promise<T[]> => {
+const createSubCollectionService = <T extends { id: string, deleted?: boolean }>(collectionName: string) => ({
+  getAll: async (userId: string): Promise<T[] | null> => {
     try {
       const ref = collection(db as Firestore, 'users', userId, collectionName);
+      // FETCH ALL + CLIENT FILTER (Safest for mixed legacy data without composite indexes)
       const snapshot = await getDocs(ref);
-      // Ensure doc.id takes precedence over any 'id' in data
-      return snapshot.docs.map(doc => ({ ...doc.data() as object, id: doc.id } as T));
+      
+      return snapshot.docs
+        .map(doc => ({ ...doc.data() as object, id: doc.id } as T))
+        .filter(item => !item.deleted); // SOFT DELETE FILTER
     } catch (error) {
       console.error(`Error fetching ${collectionName}:`, error);
-      return [];
+      return null;
     }
   },
 
   // Optimized Fetch with Query Constraints
-  getFiltered: async (userId: string, constraints: QueryConstraint[]): Promise<T[]> => {
+  getFiltered: async (userId: string, constraints: QueryConstraint[]): Promise<T[] | null> => {
     try {
         const ref = collection(db as Firestore, 'users', userId, collectionName);
+        // Add Soft Delete constraint automatically
+        // Note: This might require an index if combined with other filters.
+        // For robustness, we apply client-side filtering as a fallback.
         const q = query(ref, ...constraints);
         const snapshot = await getDocs(q);
-        // Ensure doc.id takes precedence over any 'id' in data
-        return snapshot.docs.map(doc => ({ ...doc.data() as object, id: doc.id } as T));
+        
+        return snapshot.docs
+            .map(doc => ({ ...doc.data() as object, id: doc.id } as T))
+            .filter(item => !item.deleted); // SOFT DELETE FILTER
     } catch (error) {
         console.error(`Error fetching filtered ${collectionName}:`, error);
-        return [];
+        return null;
     }
   },
   
   // SAVE = UPSERT (Create or Merge)
   save: async (userId: string, item: T): Promise<void> => {
     try {
-      if (!item.id) {
+      let targetId = item.id;
+      if (!targetId) {
           console.warn(`[Persistence] Attempted to save ${collectionName} without ID. Generating one.`);
-          // Create a new reference with auto-generated ID if missing
-          // Use a simple random ID generator to avoid dependency issues
-          const newId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-          const ref = doc(db as Firestore, 'users', userId, collectionName, newId);
-          const cleanItem = sanitizeFirestoreData({ ...item, id: newId });
-          await setDoc(ref, cleanItem, { merge: true });
-          return;
+          targetId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       }
-      const ref = doc(db as Firestore, 'users', userId, collectionName, item.id);
-      const cleanItem = sanitizeFirestoreData(item);
+
+      const ref = doc(db as Firestore, 'users', userId, collectionName, targetId);
+      const cleanItem = sanitizeFirestoreData({ ...item, id: targetId });
+      
+      // Ensure we don't accidentally revive a deleted item unless explicit?
+      // For now, saving revives it.
+      if (cleanItem.deleted) delete cleanItem.deleted; 
+
       await setDoc(ref, cleanItem, { merge: true });
+      
+      // AUDIT LOG
+      AuditLogger.log(item.id ? 'UPDATE' : 'CREATE', collectionName, targetId, { userId });
+      
     } catch (error) {
       console.error(`Error saving ${collectionName}:`, error);
+      AuditLogger.log('ERROR', collectionName, item.id || 'unknown', { error: String(error) });
       throw error;
     }
   },
@@ -73,18 +88,36 @@ const createSubCollectionService = <T extends { id: string }>(collectionName: st
       const ref = doc(db as Firestore, 'users', userId, collectionName, itemId);
       const cleanData = sanitizeFirestoreData(data);
       await setDoc(ref, cleanData, { merge: true });
+
+      // AUDIT LOG
+      AuditLogger.log('UPDATE', collectionName, itemId, { changes: Object.keys(data) });
+
     } catch (error) {
       console.error(`Error updating ${collectionName}:`, error);
+      AuditLogger.log('ERROR', collectionName, itemId, { error: String(error) });
       throw error;
     }
   },
 
+  // SOFT DELETE IMPLEMENTATION
   delete: async (userId: string, itemId: string): Promise<void> => {
     try {
       const ref = doc(db as Firestore, 'users', userId, collectionName, itemId);
-      await deleteDoc(ref);
+      
+      // DO NOT DELETE PHYSICALLY. MARK AS DELETED.
+      // await deleteDoc(ref); 
+      
+      await setDoc(ref, { 
+          deleted: true, 
+          deletedAt: serverTimestamp() 
+      }, { merge: true });
+
+      // AUDIT LOG
+      AuditLogger.log('SOFT_DELETE', collectionName, itemId, { userId });
+
     } catch (error) {
       console.error(`Error deleting ${collectionName}:`, error);
+      AuditLogger.log('ERROR', collectionName, itemId, { error: String(error) });
       throw error;
     }
   }

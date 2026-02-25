@@ -26,6 +26,16 @@
       "title": "Configuring Reality..."
     }
   },
+  "avatars": {
+    "avatar_cafe_programadora": "Coffee Coder",
+    "avatar_ceo_ajedrez": "Mastermind CEO",
+    "avatar_chica_mariposa": "Butterfly Effect",
+    "avatar_chico_azul": "The Scholar",
+    "avatar_chico_combatiente": "Street Fighter",
+    "avatar_chico_vino": "The Connoisseur",
+    "avatar_chico_sueno": "Dream Walker",
+    "avatar_rojo_psicopata": "Chaos Agent"
+  },
   "auth": {
     "login": {
       "title": "Welcome Back",
@@ -352,6 +362,7 @@
     "complete": "Complete",
     "loading": "Loading...",
     "error": "Error",
+    "selectAtLeast": "Select at least {{count}}",
     "time": {
         "years": "Years",
         "months": "Months",
@@ -480,6 +491,7 @@
     "newFlow": "New Flow",
     "stop": "Stop",
     "archived": {
+        "title": "Archived Projects",
         "subtitle": "Restorable Projects",
         "restore": "Restore",
         "empty": "No archived projects"

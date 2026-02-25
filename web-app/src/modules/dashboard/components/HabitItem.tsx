@@ -80,7 +80,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const Wrapper: React.ElementType = reduceMotion ? 'div' : motion.div;
 
-  const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: '120px' };
+  const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto', containIntrinsicSize: '100px' };
 
   const handleWrapperClick = () => {
     if (habit.type === 'CHECKLIST') {
@@ -142,20 +142,29 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
       <div className="relative flex items-start gap-3">
         <div 
-          className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/5"
+          className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0 border border-white/5"
           style={{ backgroundColor: `${baseColor}20` }}
         >
           {attribute && Icon && (
-            <Icon size={20} style={{ color: baseColor }} strokeWidth={2} />
+            <Icon size={18} style={{ color: baseColor }} strokeWidth={2} />
           )}
         </div>
         
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-          <h4 className="text-white font-bold text-[16px] leading-tight tracking-tight truncate flex items-center gap-2">
+          <h4 className="text-white font-bold text-[15px] leading-tight tracking-tight truncate flex items-center gap-2">
             {habit.title}
             {habit.streak > 0 && (
-                <span className="text-[10px] text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 border border-orange-500/20">
-                    <Flame size={10} className="fill-orange-400" /> {habit.streak}
+                <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 border transition-colors",
+                    habit.completedToday 
+                        ? "text-orange-400 bg-orange-500/10 border-orange-500/20" 
+                        : "text-zinc-400 bg-zinc-800/50 border-white/5"
+                )}>
+                    <Flame size={10} className={cn(
+                        "transition-colors",
+                        habit.completedToday ? "fill-orange-400" : "fill-zinc-500 text-zinc-500"
+                    )} /> 
+                    {habit.streak}
                 </span>
             )}
           </h4>
@@ -234,12 +243,12 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 h-12">
+        <div className="flex items-center gap-3 h-10">
             <LiquidProgressCircle
                 percentage={percentage}
                 color={baseColor}
                 isCompleted={habit.completedToday}
-                size={40}
+                size={36}
                 onClick={(e) => {
                     e.stopPropagation();
                     if (habit.type === 'QUANTITY' && onUpdate) {

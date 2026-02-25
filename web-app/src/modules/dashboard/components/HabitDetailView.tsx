@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Share2, Crown, MoreVertical, Edit2, Archive, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, Crown, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Zap } from 'lucide-react';
 import { Habit, Project } from '../../../types';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachWeekOfInterval, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { HabitGoalChart } from './HabitGoalChart';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 interface HabitDetailViewProps {
     habit?: Habit | null;
@@ -16,9 +17,20 @@ interface HabitDetailViewProps {
     onEdit?: (item: Habit | Project) => void;
     onDelete?: (itemId: string) => void;
     onArchive?: (item: Habit | Project) => void;
+    onStartFocus?: () => void;
 }
 
-type TimeRange = 'TODAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | 'YEAR' | 'TOTAL';
+type TimeRange = 'TODAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+
+const ALL_RANGES: { value: TimeRange; label: string }[] = [
+    { value: 'TODAY', label: 'Hoy' },
+    { value: 'WEEK', label: 'Semana' },
+    { value: '8_WEEKS', label: '8 Semanas' },
+    { value: 'MONTH', label: 'Mes' },
+    { value: '3_MONTHS', label: '3 Meses' },
+    { value: 'YEAR', label: 'Año' },
+    { value: 'TOTAL', label: 'Total' }
+];
 
 // --- HELPERS ---
 const formatDuration = (minutes: number) => {
@@ -32,6 +44,40 @@ const formatValue = (value: number, type: Habit['type'] | undefined, unit: strin
     if (isDuration) return formatDuration(value);
     if (type === 'BOOLEAN' || type === 'SIMPLE') return `${value}`;
     return `${value} ${unit}`;
+};
+
+const FormattedValue = ({ value, type, unit, isDuration, className }: { value: number, type: Habit['type'] | undefined, unit: string, isDuration: boolean, className?: string }) => {
+    if (isDuration) {
+        const h = Math.floor(value / 60);
+        const m = Math.round(value % 60);
+        
+        if (h === 0) {
+             return (
+                <div className={cn("flex items-baseline whitespace-nowrap", className)}>
+                    <span>{m}</span>
+                    <span className="text-[0.6em] font-medium text-white/50 ml-0.5">m</span>
+                </div>
+            );
+        }
+
+        return (
+            <div className={cn("flex items-baseline whitespace-nowrap", className)}>
+                <span>{h}</span>
+                <span className="text-[0.6em] font-medium text-white/50 ml-0.5 mr-1.5">h</span>
+                <span className="text-[0.8em] text-white/80">{m.toString().padStart(2, '0')}</span>
+                <span className="text-[0.5em] font-medium text-white/50 ml-0.5">m</span>
+            </div>
+        );
+    }
+    
+    if (type === 'BOOLEAN' || type === 'SIMPLE') return <span className={className}>{value}</span>;
+    
+    return (
+        <div className={cn("flex items-baseline whitespace-nowrap", className)}>
+             <span>{value}</span>
+             {unit && <span className="text-[0.5em] font-medium text-white/50 ml-1">{unit}</span>}
+        </div>
+    );
 };
 
 // --- ANIMATION VARIANTS ---
@@ -63,16 +109,34 @@ const barVariants: Variants = {
     }
 };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, onStartFocus }) => {
     const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
 
     const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
+    const [pinnedRanges, setPinnedRanges] = useState<TimeRange[]>(['TODAY', 'WEEK', 'MONTH']);
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    
 
     const handleTabClick = (tabValue: TimeRange) => {
+        // If clicking on a tab that is not in pinned ranges (from config menu),
+        // we might want to swap it into the pinned list or just set it active.
+        // User requested: "3 pinned + 1 config".
+        // Let's assume selecting from config just sets it active.
+        // But visually, the user wants 3 slots + "+".
+        // So if I select "YEAR", it should probably replace the last slot or be visible?
+        // Let's implement logic: if not pinned, replace the 3rd slot.
+        if (!pinnedRanges.includes(tabValue)) {
+             setPinnedRanges(prev => {
+                 const newPinned = [...prev];
+                 newPinned[2] = tabValue; // Replace 3rd slot
+                 return newPinned;
+             });
+        }
+
         if (timeRange === tabValue) {
             // For ranges that support date selection, open modal
             if (['WEEK', 'MONTH', 'YEAR'].includes(tabValue)) {
@@ -85,6 +149,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 setCurrentDate(new Date());
             }
         }
+        setIsConfigOpen(false);
     };
 
     const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +205,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         // Prepare session/history data
         let sessionEntries: any[] = [];
         if (project && project.sessions) {
-            sessionEntries = project.sessions.map(s => ({ ...s, dateObj: new Date(s.date) }));
+            sessionEntries = project.sessions
+                .map(s => ({ ...s, dateObj: new Date(s.date) }))
+                .filter(s => !isNaN(s.dateObj.getTime()));
         }
 
         const goalTargetMinutes = project?.goalTarget || 0;
@@ -282,6 +349,36 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 };
             });
 
+        } else if (timeRange === '3_MONTHS') {
+            end = endOfMonth(currentDate);
+            start = subMonths(startOfMonth(end), 2); // Current + 2 prev = 3 months
+            const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+            
+            calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 13; // Approx 13 weeks
+
+            dataPoints = weeks.map(weekStart => {
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                let weeklyValue = 0;
+                
+                if (project) {
+                    weeklyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: weekStart, end: weekEnd }) ? acc + (s.duration / 60) : acc, 0);
+                } else if (habit) {
+                    const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+                    daysInWeek.forEach(day => {
+                        const dateStr = format(day, 'yyyy-MM-dd');
+                        const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
+                        weeklyValue += completions * baseValue;
+                    });
+                }
+
+                return {
+                    label: format(weekStart, 'd/M'),
+                    value: weeklyValue,
+                    isToday: isWithinInterval(new Date(), { start: weekStart, end: weekEnd }),
+                    date: weekStart
+                };
+            });
+
         } else if (timeRange === 'YEAR') {
             start = startOfYear(currentDate);
             end = endOfYear(currentDate);
@@ -400,6 +497,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         } else if (timeRange === 'MONTH') {
             rangeLabel = format(start, 'MMMM yyyy', { locale: es });
             rangeLabel = rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1);
+        } else if (timeRange === '3_MONTHS') {
+            rangeLabel = `${format(start, 'MMM')} - ${format(end, 'MMM yyyy', { locale: es })}`;
+            rangeLabel = rangeLabel.charAt(0).toUpperCase() + rangeLabel.slice(1);
         } else if (timeRange === 'YEAR') {
             rangeLabel = format(start, 'yyyy');
         } else if (timeRange === 'TOTAL') {
@@ -501,10 +601,15 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         {habit?.title || project?.title}
                     </h2>
 
-                    <div className="relative">
+                    <div className="relative flex items-center gap-1 z-50">
+
+
                         <button 
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="text-blue-400 active:opacity-70 transition-opacity p-2 -mr-2"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMenuOpen(!isMenuOpen);
+                            }}
+                            className="text-blue-400 active:opacity-70 transition-opacity p-3 -mr-2 hover:bg-white/5 rounded-full"
                         >
                             <MoreVertical size={24} />
                         </button>
@@ -515,7 +620,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                    className="absolute right-0 top-full mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+                                    className="absolute right-0 top-full mt-2 w-48 bg-[#09090b]/90 backdrop-blur-lg border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100]"
                                 >
                                     {onEdit && (
                                         <button 
@@ -546,8 +651,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     {onDelete && (
                                         <button 
                                             onClick={() => {
-                                                setIsDeleteConfirmOpen(true);
                                                 setIsMenuOpen(false);
+                                                setShowDeleteConfirmation(true);
                                             }}
                                             className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors border-t border-white/5"
                                         >
@@ -562,7 +667,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-4 pb-20 scrollbar-hide">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pt-0 pb-20 space-y-4 scrollbar-hide">
                     
                     <motion.div
                         variants={containerVariants}
@@ -570,6 +675,149 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         animate="visible"
                         className="space-y-4 max-w-md mx-auto"
                     >
+                        <motion.div variants={itemVariants} className="space-y-2">
+                            {/* Global Time Range Tabs - NEW CONFIGURATION ZONE */}
+                            <div className="flex flex-col items-center gap-4 mb-2 relative z-50">
+                                {/* Pinned Ranges + Config Button */}
+                                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-lg relative">
+                                    <AnimatePresence mode="popLayout">
+                                        {pinnedRanges.map((range) => {
+                                            const isActive = timeRange === range;
+                                            const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                            
+                                            return (
+                                                <motion.button
+                                                    key={range}
+                                                    layoutId={`tab-${range}`}
+                                                    onClick={() => handleTabClick(range)}
+                                                    className={cn(
+                                                        "px-4 py-2 rounded-xl text-[11px] font-bold transition-all relative overflow-hidden",
+                                                        isActive 
+                                                            ? "bg-white text-black shadow-lg scale-105 z-10" 
+                                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                    )}
+                                                >
+                                                    <span className="relative z-10">{label}</span>
+                                                    {isActive && (
+                                                        <motion.div
+                                                            layoutId="activeTab"
+                                                            className="absolute inset-0 bg-white"
+                                                            initial={false}
+                                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                        />
+                                                    )}
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+
+                                    {/* Divider */}
+                                    <div className="w-[1px] h-4 bg-white/10 mx-1" />
+
+                                    {/* Config Button (+) */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsConfigOpen(!isConfigOpen)}
+                                            className={cn(
+                                                "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+                                                isConfigOpen 
+                                                    ? "bg-white/20 text-white rotate-45" 
+                                                    : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                                            )}
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+
+                                        {/* Dropdown Menu (VisionOS Style) */}
+                                        <AnimatePresence>
+                                            {isConfigOpen && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(10px)" }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(10px)" }}
+                                                    className="absolute right-0 top-full mt-3 w-48 bg-[#1a1a1a]/90 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] p-1.5"
+                                                >
+                                                    <div className="flex flex-col gap-0.5">
+                                                        {ALL_RANGES.map((option) => {
+                                                            const isPinned = pinnedRanges.includes(option.value);
+                                                            const isSelected = timeRange === option.value;
+                                                            
+                                                            return (
+                                                                <button
+                                                                    key={option.value}
+                                                                    onClick={() => handleTabClick(option.value)}
+                                                                    className={cn(
+                                                                        "w-full px-3 py-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between group transition-all",
+                                                                        isSelected 
+                                                                            ? "bg-white text-black shadow-md" 
+                                                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                                    )}
+                                                                >
+                                                                    <span>{option.label}</span>
+                                                                    {isSelected && <Check size={14} className="text-black" />}
+                                                                    {isPinned && !isSelected && (
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                {/* Date Navigation */}
+                                <div className="flex items-center justify-center gap-6">
+                                    <button 
+                                        onClick={() => {
+                                            if (timeRange === 'TODAY') setCurrentDate(d => subDays(d, 1));
+                                            if (timeRange === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
+                                            if (timeRange === '8_WEEKS') setCurrentDate(d => subWeeks(d, 8));
+                                            if (timeRange === 'MONTH') setCurrentDate(d => subMonths(d, 1));
+                                            if (timeRange === '3_MONTHS') setCurrentDate(d => subMonths(d, 3));
+                                            if (timeRange === 'YEAR') setCurrentDate(d => subYears(d, 1));
+                                        }}
+                                        disabled={timeRange === 'TOTAL'}
+                                        className={cn(
+                                            "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90",
+                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+                                        )}
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    
+                                    <motion.span 
+                                        key={dateRangeLabel}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-xs font-bold text-zinc-300 tracking-wider uppercase bg-white/5 px-4 py-1.5 rounded-full border border-white/5 shadow-sm"
+                                    >
+                                        {dateRangeLabel}
+                                    </motion.span>
+
+                                    <button 
+                                        onClick={() => {
+                                            if (timeRange === 'TODAY') setCurrentDate(d => addDays(d, 1));
+                                            if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
+                                            if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, 8));
+                                            if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, 1));
+                                            if (timeRange === '3_MONTHS') setCurrentDate(d => addMonths(d, 3));
+                                            if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, 1));
+                                        }}
+                                        disabled={timeRange === 'TOTAL'}
+                                        className={cn(
+                                            "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90",
+                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
+                                        )}
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+
                         {/* 1. MAIN STATS CARD */}
                         <motion.div 
                             variants={itemVariants} 
@@ -582,79 +830,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             />
                             
                             <div className="flex flex-col gap-4">
-                                {/* Global Time Range Tabs */}
-                                <div className="flex overflow-x-auto scrollbar-hide bg-black/40 p-1 rounded-full self-center border border-white/5 max-w-full">
-                                    {[
-                                        { value: 'TODAY', label: 'Hoy' },
-                                        { value: 'WEEK', label: 'Semana' },
-                                        { value: '8_WEEKS', label: '8 Semanas' },
-                                        { value: 'MONTH', label: 'Mes' },
-                                        { value: 'YEAR', label: 'Año' },
-                                        { value: 'TOTAL', label: 'Total' }
-                                    ].map((tab) => (
-                                        <button
-                                            key={tab.value}
-                                            onClick={() => handleTabClick(tab.value as TimeRange)}
-                                            className={cn(
-                                                "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all relative whitespace-nowrap flex-shrink-0",
-                                                timeRange === tab.value 
-                                                    ? "text-white" 
-                                                    : "text-zinc-500 hover:text-zinc-300"
-                                            )}
-                                        >
-                                            {timeRange === tab.value && (
-                                                <motion.div
-                                                    layoutId="scopeTab"
-                                                    className="absolute inset-0 bg-white/10 rounded-full shadow-sm border border-white/5"
-                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                                />
-                                            )}
-                                            <span className="relative z-10">{tab.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Date Navigation */}
-                                <div className="flex items-center justify-center gap-4 mt-1">
-                                    <button 
-                                        onClick={() => {
-                                            if (timeRange === 'TODAY') setCurrentDate(d => subDays(d, 1));
-                                            if (timeRange === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
-                                            if (timeRange === '8_WEEKS') setCurrentDate(d => subWeeks(d, 8));
-                                            if (timeRange === 'MONTH') setCurrentDate(d => subMonths(d, 1));
-                                            if (timeRange === 'YEAR') setCurrentDate(d => subYears(d, 1));
-                                        }}
-                                        disabled={timeRange === 'TOTAL'}
-                                        className={cn(
-                                            "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
-                                        )}
-                                    >
-                                        <ChevronLeft size={14} />
-                                    </button>
-                                    
-                                    <span className="text-[11px] font-medium text-zinc-400 tracking-wide uppercase">
-                                        {dateRangeLabel}
-                                    </span>
-
-                                    <button 
-                                        onClick={() => {
-                                            if (timeRange === 'TODAY') setCurrentDate(d => addDays(d, 1));
-                                            if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
-                                            if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, 8));
-                                            if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, 1));
-                                            if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, 1));
-                                        }}
-                                        disabled={timeRange === 'TOTAL'}
-                                        className={cn(
-                                            "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
-                                        )}
-                                    >
-                                        <ChevronRight size={14} />
-                                    </button>
-                                </div>
-
                                 {/* Big Number */}
                                 <div className="text-center py-2">
                                     <motion.div 
@@ -702,7 +877,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                         <span className="text-[13px] text-zinc-400">Trabajado en este período</span>
                                     </div>
                                     <div className="text-2xl font-bold text-white tracking-tight ml-4">
-                                        {formatValue(summaryValue, habit?.type, unitLabel, isTimeBased)}
+                                        <FormattedValue value={summaryValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} />
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -711,7 +886,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                         <span className="text-[13px] text-zinc-400">Meta estimada</span>
                                     </div>
                                     <div className="text-2xl font-bold text-white tracking-tight mr-4">
-                                        {formatValue(goalValue, habit?.type, unitLabel, isTimeBased)}
+                                        <FormattedValue value={goalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-end" />
                                     </div>
                                 </div>
                             </div>
@@ -746,13 +921,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 <div className="text-center">
                                     <div className="text-zinc-500 text-xs font-medium mb-1">Total</div>
                                     <div className="text-2xl font-bold text-white tracking-tight">
-                                        {formatValue(totalValue, habit?.type, unitLabel, isTimeBased)}
+                                        <FormattedValue value={totalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
                                 </div>
                                 <div className="text-center">
                                     <div className="text-zinc-500 text-xs font-medium mb-1">Promedio</div>
                                     <div className="text-2xl font-bold text-white tracking-tight">
-                                        {formatValue(averageValue, habit?.type, unitLabel, isTimeBased)}
+                                        <FormattedValue value={averageValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
                                 </div>
                             </div>
@@ -773,27 +948,46 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     <div className="w-full h-[1px] bg-white/5" />
                                 </div>
 
-                                {chartData.map((data: any, i: number) => (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-3 z-10 h-full justify-end group cursor-pointer pb-6">
-                                        <div className="w-full max-w-[32px] h-[85%] relative flex items-end">
-                                            {data.value > 0 && (
-                                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
-                                                    {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
-                                                </div>
-                                            )}
-                                            <motion.div 
-                                                variants={barVariants}
-                                                style={{ 
-                                                    height: `${(data.value / maxChartValue) * 100}%`, 
-                                                    originY: 1,
-                                                    backgroundColor: data.isToday ? themeColor : `${themeColor}99` // 60% opacity
-                                                }}
-                                                className="w-full rounded-t-[4px] relative overflow-hidden"
-                                            />
+                                {chartData.map((data: any, i: number) => {
+                                    // Smart Label Visibility to prevent overlap
+                                    let showLabel = true;
+                                    if (timeRange === 'TODAY') {
+                                        showLabel = i % 4 === 0; // 00:00, 04:00, ...
+                                    } else if (timeRange === '3_MONTHS') {
+                                        showLabel = i % 2 === 0; // Every 2 weeks
+                                    } else if (timeRange === 'YEAR') {
+                                        showLabel = i % 2 === 0; // Every 2 months (Jan, Mar, May...)
+                                    } else if (timeRange === '8_WEEKS') {
+                                        showLabel = i % 2 === 0;
+                                    }
+
+                                    return (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-3 z-10 h-full justify-end group cursor-pointer pb-6">
+                                            <div className="w-full max-w-[32px] h-[85%] relative flex items-end">
+                                                {data.value > 0 && (
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
+                                                        {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
+                                                    </div>
+                                                )}
+                                                <motion.div 
+                                                    variants={barVariants}
+                                                    style={{ 
+                                                        height: `${(data.value / maxChartValue) * 100}%`, 
+                                                        originY: 1,
+                                                        backgroundColor: data.isToday ? themeColor : `${themeColor}99` // 60% opacity
+                                                    }}
+                                                    className="w-full rounded-t-[4px] relative overflow-hidden"
+                                                />
+                                            </div>
+                                            <span className={cn(
+                                                "absolute bottom-0 text-[10px] font-bold uppercase text-zinc-500 truncate w-full text-center transition-opacity duration-200",
+                                                showLabel ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                            )}>
+                                                {data.label}
+                                            </span>
                                         </div>
-                                        <span className="absolute bottom-0 text-[10px] font-bold uppercase text-zinc-500 truncate w-full text-center">{data.label}</span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </motion.div>
 
@@ -829,55 +1023,21 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             </motion.div>
 
             {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-                {isDeleteConfirmOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-                    >
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-2xl"
-                        >
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
-                                    <AlertTriangle size={24} />
-                                </div>
-                                
-                                <h3 className="text-lg font-bold text-white">¿Eliminar {habit ? 'Hábito' : 'Proyecto'}?</h3>
-                                <p className="text-sm text-zinc-400">
-                                    Esta acción no se puede deshacer. Se perderá todo el progreso y las estadísticas asociadas.
-                                </p>
-
-                                <div className="flex gap-3 w-full mt-4">
-                                    <button 
-                                        onClick={() => setIsDeleteConfirmOpen(false)}
-                                        className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-medium hover:bg-zinc-700 transition-colors"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            if (onDelete && (habit?.id || project?.id)) {
-                                                onDelete((habit?.id || project?.id)!);
-                                            }
-                                            setIsDeleteConfirmOpen(false);
-                                            onClose();
-                                        }}
-                                        className="flex-1 py-3 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 font-bold hover:bg-red-500/20 transition-colors"
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <ConfirmationModal 
+                isOpen={showDeleteConfirmation}
+                onClose={() => setShowDeleteConfirmation(false)}
+                onConfirm={() => {
+                    const targetId = habit?.id || project?.id;
+                    if (targetId && onDelete) {
+                        onDelete(targetId);
+                        onClose();
+                    }
+                }}
+                title={habit ? '¿Eliminar Hábito?' : '¿Eliminar Proyecto?'}
+                message={`Estás a punto de eliminar "${habit?.title || project?.title}". Esta acción no se puede deshacer.`}
+                confirmText="Eliminar"
+                variant="danger"
+            />
 
             <DateSelectionModal 
                 isOpen={isDateModalOpen}

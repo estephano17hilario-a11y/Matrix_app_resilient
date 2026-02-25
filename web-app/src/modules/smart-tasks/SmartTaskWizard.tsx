@@ -28,7 +28,9 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
     isPro = false
 }) => {
   const { t } = useTranslation();
-  const traits = availableTraits || TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: 100 }));
+  const traits = availableTraits && availableTraits.length > 0
+    ? availableTraits
+    : TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: 100 }));
   
   // Check Limit
   const isLimitReached = !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_TASKS;
@@ -91,13 +93,13 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Protocol Limit Reached</h2>
                 <p className="text-white/60 mb-8">
-                    Free initiates are limited to 3 active Smart Tasks. Complete existing tasks or upgrade to Lux PRO for unlimited access.
+                    System capacity reached. Maximum {FREE_LIMITS.ACTIVE_TASKS} active Smart Tasks. Complete existing tasks to continue.
                 </p>
                 <button 
-                    onClick={onCancel} // In a real scenario, this might trigger the PRO modal
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:scale-105 transition-transform"
+                    onClick={onCancel}
+                    className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-all"
                 >
-                    Upgrade to PRO
+                    Understood
                 </button>
             </div>
         </div>

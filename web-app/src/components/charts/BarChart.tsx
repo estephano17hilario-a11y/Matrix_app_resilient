@@ -135,29 +135,41 @@ export const BarChart = React.memo(({
                     >
                         {/* Bars Container */}
                         <div className="absolute top-2 bottom-4 left-0 right-0 px-0.5">
-                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'}`}>
+                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'}`} style={{ perspective: '700px' }}>
                                 {datasets.map((ds, idx) => {
                                     const val = ds.data[i];
                                     const h = (val / maxValue);
-                                    const isTopSegment = !stacked || idx === datasets.length - 1;
+                                    
+                                    // Calculate if this is the top visible segment for stacked charts
+                                    // We need to know which is the highest index that has value > 0 for this column
+                                    const isTopVisible = stacked 
+                                        ? idx === datasets.reduce((last, d, currIdx) => (d.data[i] > 0 ? currIdx : last), -1)
+                                        : true; // Non-stacked always gets rounded top
+
+                                    // Minimum rounding as requested (2px)
+                                    const roundingClass = stacked
+                                        ? (isTopVisible ? 'rounded-t-[2px]' : 'rounded-none')
+                                        : 'rounded-t-[2px]';
+
+                                    // const isTopSegment = !stacked || idx === datasets.length - 1;
+                                    
                                     return (
                                         <div 
                                             key={idx} 
                                             className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
-                                            style={stacked ? { height: `${h * 100}%`, perspective: '700px' } : { perspective: '700px' }}
+                                            style={stacked ? { height: `${h * 100}%` } : { }}
                                         >
                                              <div 
-                                                className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
+                                                className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${roundingClass} rounded-b-none ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
                                                 style={{ 
                                                     height: stacked ? '100%' : `${h * 100}%`,
                                                     transformStyle: 'preserve-3d',
                                                 }}
                                              >
-                                                <div className={`absolute inset-0 ${stacked ? 'first:rounded-b-none last:rounded-t-md' : 'rounded-t-xl rounded-b-none'} border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
-                                                {isTopSegment && (
-                                                    <div className={`absolute top-0 left-0 right-0 h-[6px] ${stacked ? 'last:rounded-t-md' : 'rounded-t-xl'} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
+                                                <div className={`absolute inset-0 ${roundingClass} rounded-b-none border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
+                                                {isTopVisible && (
+                                                    <div className={`absolute top-0 left-0 right-0 h-[6px] ${roundingClass} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
                                                 )}
-                                                <div className="absolute top-0 right-0 w-[6px] h-full border border-white/10" style={{ background: ds.color, transform: 'rotateY(-90deg)', transformOrigin: 'right' }} />
                                              </div>
                                         </div>
                                     );

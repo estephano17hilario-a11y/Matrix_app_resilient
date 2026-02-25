@@ -1,6 +1,7 @@
 import { UserStats, DailyLimits } from '../types/User';
 import { GAMIFICATION_CONFIG } from '../config/gamification';
-import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
+import { calculateLevelFromXp } from '../utils/leveling';
+import { toLocalISOString } from '../utils/dateUtils';
 
 export type TaskType = 'LIGHT' | 'MID' | 'EPIC';
 
@@ -16,7 +17,7 @@ export interface RewardResult {
 export class GamificationEngine {
   
   static checkAndResetDailyLimits(dailyLimits: DailyLimits): DailyLimits {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISOString(new Date());
     if (dailyLimits.date !== today) {
       return {
         date: today,
@@ -88,6 +89,10 @@ export class GamificationEngine {
       // I will implement strictly as requested: check if limit is reached BEFORE adding.
     }
 
+    const currentTaskGold = dailyLimits.taskGold || 0;
+    const maxTaskGold = GAMIFICATION_CONFIG.MAX_DAILY_TASK_GOLD;
+    const remainingGold = Math.max(0, maxTaskGold - currentTaskGold);
+
     // 3. RNG (Critical Hit)
     const rand = Math.random();
     let isCritical = false;
@@ -100,6 +105,12 @@ export class GamificationEngine {
         finalTP = Math.floor(finalTP * GAMIFICATION_CONFIG.CRITICAL_MULTIPLIER);
       }
       finalCoins = Math.floor(finalCoins * GAMIFICATION_CONFIG.CRITICAL_MULTIPLIER);
+    }
+
+    if (remainingGold <= 0) {
+      finalCoins = 0;
+    } else if (finalCoins > remainingGold) {
+      finalCoins = remainingGold;
     }
 
     // 4. Update State
@@ -269,9 +280,17 @@ export class GamificationEngine {
     // "Entero. Nunca decrece."
     // So we floor/ceil at the end.
     
-    const finalXp = Math.floor(totalXp);
-    const finalTp = Math.floor(totalTp);
-    const finalCoins = Math.floor(totalCoins);
+    // FIX: Use Math.round to match frontend logic and be fair
+    let finalXp = Math.round(totalXp);
+    let finalTp = Math.round(totalTp);
+    let finalCoins = Math.round(totalCoins);
+
+    // Minimum Reward Fix (Ensure >1 min sessions give at least 1 point)
+    if (durationMinutes >= 1) {
+        if (finalXp < 1 && baseXpPerMinute > 0) finalXp = 1;
+        if (finalTp < 1 && baseTpPerMinute > 0) finalTp = 1;
+        if (finalCoins < 1 && baseCoinsPerMinute > 0) finalCoins = 1;
+    }
 
     // 4. Update State
     const newStats = { ...stats };

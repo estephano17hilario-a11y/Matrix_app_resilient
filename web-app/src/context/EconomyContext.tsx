@@ -20,7 +20,7 @@ const STORE_ITEMS: StoreItem[] = [
     id: 'potion_hp_small',
     name: 'store.items.potion_hp_small.name',
     description: 'store.items.potion_hp_small.desc',
-    price: 150,
+    price: 500,
     category: 'power_up',
     iconName: 'Zap',
     effect: { type: 'heal', value: 20 }
