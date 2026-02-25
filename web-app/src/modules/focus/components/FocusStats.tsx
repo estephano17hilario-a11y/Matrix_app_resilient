@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Target, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Layers, Plus, Check } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
-import { formatDateRange, getStartOfWeek } from '../../../utils/dateUtils';
+import { 
+    format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
+    subWeeks, addWeeks, subMonths, addMonths, addYears, addDays 
+} from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '../../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
@@ -11,13 +16,29 @@ import { useTranslation } from 'react-i18next';
 import { DAILY_LIMITS } from '../../dashboard/constants';
 import { FocusLimits } from '../FocusLimits';
 
+type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+
+const ALL_RANGES: { value: TimeRange; label: string }[] = [
+    { value: 'DAY', label: 'Hoy' },
+    { value: 'WEEK', label: 'Semana' },
+    { value: '8_WEEKS', label: '8 Semanas' },
+    { value: 'MONTH', label: 'Mes' },
+    { value: '3_MONTHS', label: '3 Meses' },
+    { value: 'YEAR', label: 'Año' },
+    { value: 'TOTAL', label: 'Total' }
+];
+
 export const FocusStats = React.memo(({ projects, attributes }: { projects: Project[], attributes: Attribute[] }) => {
     const { user } = useLux();
     const dailyLimits = user?.dailyLimits || { date: '', taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
     const { t } = useTranslation();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
-    const [timeRange, setTimeRange] = useState<'DAY' | 'WEEK' | 'MONTH' | 'YEAR'>('DAY');
+    
+    const [timeRange, setTimeRange] = useState<TimeRange>('DAY');
+    const [pinnedRanges, setPinnedRanges] = useState<TimeRange[]>(['DAY', 'WEEK', 'MONTH']);
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
     const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | null>(null);
@@ -28,6 +49,18 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
     useEffect(() => {
         setCurrentDate(new Date());
     }, [timeRange]);
+
+    const handleTabClick = (range: TimeRange) => {
+        setTimeRange(range);
+        if (!pinnedRanges.includes(range)) {
+            if (pinnedRanges.length >= 3) {
+                setPinnedRanges([range, ...pinnedRanges.slice(0, 2)]);
+            } else {
+                setPinnedRanges([range, ...pinnedRanges]);
+            }
+        }
+        setIsConfigOpen(false);
+    };
 
     const activeFilterColor = useMemo(() => {
         if (filterMode === 'GLOBAL') return avatarColor;
@@ -87,40 +120,40 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
         return 'text-3xl';
     }, [formattedHours]);
 
-    const getRangeStart = (d: Date) => {
-        const date = new Date(d);
+    const dateRangeLabel = useMemo(() => {
+        let start: Date, end: Date;
         if (timeRange === 'DAY') {
-            date.setHours(0, 0, 0, 0);
-            return date;
+            return format(currentDate, 'd MMMM yyyy', { locale: es });
+        } else if (timeRange === 'WEEK') {
+            start = startOfWeek(currentDate, { weekStartsOn: 1 });
+            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
+        } else if (timeRange === '8_WEEKS') {
+            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            start = subWeeks(end, 7);
+            start = startOfWeek(start, { weekStartsOn: 1 });
+            return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
+        } else if (timeRange === 'MONTH') {
+            start = startOfMonth(currentDate);
+            return format(start, 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase());
+        } else if (timeRange === '3_MONTHS') {
+            end = endOfMonth(currentDate);
+            start = subMonths(startOfMonth(end), 2);
+            return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy', { locale: es })}`;
+        } else if (timeRange === 'YEAR') {
+            return format(currentDate, 'yyyy');
+        } else {
+             return 'Histórico Completo';
         }
-        if (timeRange === 'WEEK') return getStartOfWeek(date);
-        if (timeRange === 'MONTH') {
-            date.setDate(1);
-            date.setHours(0, 0, 0, 0);
-            return date;
-        }
-        date.setMonth(0, 1);
-        date.setHours(0, 0, 0, 0);
-        return date;
-    };
-
-    const canNavigateForward = useMemo(() => {
-        const nextDate = new Date(currentDate);
-        if (timeRange === 'DAY') nextDate.setDate(nextDate.getDate() + 1);
-        else if (timeRange === 'WEEK') nextDate.setDate(nextDate.getDate() + 7);
-        else if (timeRange === 'MONTH') nextDate.setMonth(nextDate.getMonth() + 1);
-        else nextDate.setFullYear(nextDate.getFullYear() + 1);
-        return getRangeStart(nextDate).getTime() <= getRangeStart(new Date()).getTime();
-    }, [currentDate, timeRange]);
+    }, [timeRange, currentDate]);
 
     const navigateDate = (dir: -1 | 1) => {
-        const newDate = new Date(currentDate);
-        if (timeRange === 'DAY') newDate.setDate(newDate.getDate() + dir);
-        else if (timeRange === 'WEEK') newDate.setDate(newDate.getDate() + (dir * 7));
-        else if (timeRange === 'MONTH') newDate.setMonth(newDate.getMonth() + dir);
-        else newDate.setFullYear(newDate.getFullYear() + dir);
-        if (dir === 1 && getRangeStart(newDate).getTime() > getRangeStart(new Date()).getTime()) return;
-        setCurrentDate(newDate);
+        if (timeRange === 'DAY') setCurrentDate(d => addDays(d, dir));
+        else if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, dir));
+        else if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, dir * 8));
+        else if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, dir));
+        else if (timeRange === '3_MONTHS') setCurrentDate(d => addMonths(d, dir * 3));
+        else if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, dir));
     };
 
     const { chartMax, yTicks } = useMemo(() => {
@@ -149,44 +182,102 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
                  
                 {/* HEADER ROW: Stats & Time Range */}
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 z-10 min-h-[42px]">
+                <div className="flex justify-between items-start z-50 min-h-[42px] relative">
                     <div className="flex flex-col min-w-0">
-                        <div className="flex flex-col min-w-0">
-                            <span className={`${hoursFontSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter transition-all duration-300 whitespace-nowrap leading-none`}>{formattedHours}</span>
-                            <div className="flex flex-col gap-0">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
-                            </div>
+                        <span className={`${hoursFontSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter transition-all duration-300 whitespace-nowrap leading-none`}>{formattedHours}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
+                    </div>
+
+                    {/* NEW CONFIGURABLE TIME RANGE TABS */}
+                    <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg relative">
+                        <AnimatePresence mode="popLayout">
+                            {pinnedRanges.map((range) => {
+                                const isActive = timeRange === range;
+                                const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                
+                                return (
+                                    <motion.button
+                                        key={range}
+                                        layoutId={`tab-${range}`}
+                                        onClick={() => handleTabClick(range)}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
+                                            isActive 
+                                                ? "bg-white text-black shadow-lg scale-105 z-10" 
+                                                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                        )}
+                                    >
+                                        <span className="relative z-10">{label}</span>
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="activeTab"
+                                                className="absolute inset-0 bg-white"
+                                                initial={false}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </AnimatePresence>
+
+                        <div className="w-[1px] h-3 bg-white/10 mx-0.5" />
+
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsConfigOpen(!isConfigOpen)}
+                                className={cn(
+                                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                                    isConfigOpen 
+                                        ? "bg-white/20 text-white rotate-45" 
+                                        : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                                )}
+                            >
+                                <Plus size={14} />
+                            </button>
+
+                            <AnimatePresence>
+                                {isConfigOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                        className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
+                                    >
+                                        <div className="flex flex-col gap-0.5">
+                                            {ALL_RANGES.map((option) => {
+                                                const isPinned = pinnedRanges.includes(option.value);
+                                                const isSelected = timeRange === option.value;
+                                                
+                                                return (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => handleTabClick(option.value)}
+                                                        className={cn(
+                                                            "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
+                                                            isSelected 
+                                                                ? "bg-white text-black shadow-md" 
+                                                                : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                        )}
+                                                    >
+                                                        <span>{option.label}</span>
+                                                        {isSelected && <Check size={12} className="text-black" />}
+                                                        {isPinned && !isSelected && (
+                                                            <div className="w-1 h-1 rounded-full bg-zinc-600" />
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
-
-                    <div className="flex items-center justify-end flex-shrink-0">
-                        <div className="flex items-center gap-0.5 bg-black/40 p-0.5 rounded-lg border border-white/5 shadow-sm flex-nowrap origin-right">
-                        {['DAY', 'WEEK', 'MONTH', 'YEAR'].map((range) => {
-                            return (
-                                <button 
-                                    key={range} 
-                                    onClick={() => { 
-                                        setTimeRange(range as 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'); 
-                                    }} 
-                                    className={`relative px-2.5 py-1 rounded-md text-[9px] font-bold transition-all duration-300 z-10 flex items-center gap-1 whitespace-nowrap ${timeRange === range ? 'text-white' : 'text-slate-500 hover:text-white'}`}
-                                >
-                                    {timeRange === range && (
-                                        <motion.div 
-                                            layoutId="activeRange"
-                                            className="absolute inset-0 bg-white/10 rounded-md shadow-sm border border-white/10"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                    {range}
-                                </button>
-                            );
-                        })}
-                    </div>
                 </div>
-            </div>
 
                 {/* NEW FILTER CONTROLS ROW */}
-                <div className="flex flex-col gap-1 z-20">
+                <div className="flex flex-col gap-1 z-20 mt-2">
                     <div className="flex items-center gap-1 w-full overflow-hidden">
                         {/* 1. Date Navigation - Compact Left */}
                         <div className="flex items-center justify-between gap-1 bg-black/20 p-0.5 rounded-lg border border-white/5 flex-shrink-0 min-w-[120px] max-w-[140px]">
@@ -204,12 +295,12 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
                                         transition={{ type: "spring", stiffness: 500, damping: 25, mass: 0.5 }}
                                         className="text-[9px] font-bold text-white text-center absolute whitespace-nowrap"
                                     >
-                                        {formatDateRange(currentDate, timeRange)}
+                                        {dateRangeLabel}
                                     </motion.span>
                                 </AnimatePresence>
                             </div>
 
-                            <button onClick={() => navigateDate(1)} disabled={!canNavigateForward} className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${canNavigateForward ? 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white active:scale-90 border-white/5' : 'bg-white/5 text-slate-600 border-white/5 opacity-50 cursor-not-allowed'}`}>
+                            <button onClick={() => navigateDate(1)} disabled={timeRange === 'TOTAL'} className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${timeRange === 'TOTAL' ? 'bg-white/5 text-slate-600 border-white/5 opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white active:scale-90 border-white/5'}`}>
                                 <ChevronRight size={12} />
                             </button>
                         </div>

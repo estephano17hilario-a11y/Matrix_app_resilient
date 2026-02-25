@@ -489,31 +489,16 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 transition={{ duration: 0.2 }}
                             />
 
-                            <motion.div
-                                initial={{ scaleY: 0 }}
-                                animate={{ scaleY: Math.max(data.percent, 4) / 100 }}
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 250, 
-                                    damping: 20, 
-                                    delay: i * 0.02 
-                                }}
+                            <div
+                                className="w-full rounded-t-lg transition-all duration-500 origin-bottom"
                                 style={{ 
-                                    height: '100%',
-                                    background: data.isCurrent 
-                                        ? `linear-gradient(to top, ${themeColor}, ${themeColor})` 
-                                        : `linear-gradient(to top, #3f3f46, #52525b)`, // zinc-700 to zinc-600
-                                    boxShadow: data.isCurrent ? `0 0 20px ${themeColor}4d` : 'none', // 30% opacity
-                                    opacity: data.isCurrent ? 1 : 0.6
+                                    height: `${Math.max(data.percent, 4)}%`,
+                                    backgroundColor: data.percent >= 80 ? '#10b981' : `${themeColor}CC`,
+                                    boxShadow: data.isCurrent ? `0 0 15px ${themeColor}40` : 'none',
+                                    opacity: data.isCurrent ? 1 : 0.6,
+                                    borderTop: data.isCurrent ? '1px solid rgba(255,255,255,0.4)' : 'none'
                                 }}
-                                className={cn(
-                                    "w-full rounded-t-sm relative overflow-hidden transition-all duration-300 origin-bottom",
-                                    !data.isCurrent && "hover:opacity-100"
-                                )}
-                            >
-                                {/* Glass Reflection */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
-                            </motion.div>
+                            />
                         </div>
 
                         {/* Label & Ticks */}

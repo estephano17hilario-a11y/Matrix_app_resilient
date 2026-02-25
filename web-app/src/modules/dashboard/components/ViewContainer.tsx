@@ -1,31 +1,90 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 
 interface ViewContainerProps {
     isActive: boolean;
     children: React.ReactNode;
     className?: string;
     id?: string;
+    variant?: 'default' | 'minimal';
 }
 
-export const ViewContainer = React.memo(({ isActive, children, className = "", id }: ViewContainerProps) => {
+export const ViewContainer = React.memo(({ isActive, children, className = "", id, variant = 'default' }: ViewContainerProps) => {
+    
+    const variants: Record<string, Variants> = {
+        default: {
+            active: { 
+                display: "block",
+                opacity: 1, 
+                scale: 1, 
+                filter: "blur(0px)",
+                y: 0,
+                zIndex: 10,
+                transition: { 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 30, 
+                    mass: 0.8
+                }
+            },
+            inactive: { 
+                opacity: 0, 
+                scale: 0.95, 
+                filter: "blur(12px)",
+                y: 20,
+                zIndex: 0,
+                transition: { 
+                    duration: 0.3,
+                    ease: [0.32, 0.72, 0, 1]
+                },
+                transitionEnd: {
+                    display: "none"
+                }
+            }
+        },
+        minimal: {
+            active: { 
+                display: "block",
+                opacity: 1, 
+                scale: 1, 
+                filter: "blur(0px)",
+                y: 0,
+                zIndex: 20, // Higher priority
+                transition: { 
+                    duration: 0.15,
+                    ease: "circOut"
+                }
+            },
+            inactive: { 
+                opacity: 0, 
+                scale: 1, 
+                filter: "blur(0px)",
+                y: 0,
+                zIndex: 0,
+                transition: { 
+                    duration: 0.1,
+                    ease: "circIn"
+                },
+                transitionEnd: {
+                    display: "none"
+                }
+            }
+        }
+    };
+
     return (
-        <div 
+        <motion.div 
             id={id} 
-            className={`${className} w-full h-full`}
-            style={{ 
-                display: isActive ? 'block' : 'none',
+            className={`${className} w-full h-full absolute inset-0`}
+            initial={false}
+            animate={isActive ? "active" : "inactive"}
+            variants={variants[variant as keyof typeof variants]}
+            style={{
+                willChange: "transform, opacity, filter"
             }}
         >
-            <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ type: "spring", stiffness: 350, damping: 25, mass: 1 }}
-                className="w-full h-full"
-            >
-                {children}
-            </motion.div>
-        </div>
+            {children}
+        </motion.div>
     );
 }, (prev, next) => {
     // Custom comparison for performance

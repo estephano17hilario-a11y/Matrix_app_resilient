@@ -15,6 +15,7 @@ import { FREE_LIMITS } from '@/config/limits';
 import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
+import { TransactionService } from '@/services/transactionService';
 import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs } from '@/services/firebase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
@@ -1329,12 +1330,8 @@ export const useDashboardLogic = () => {
         // 🛡️ SKELETON PROTECTION: Don't save if we are in skeleton mode
         if (user?.uid && !user.isSkeleton) {
             console.log(`[REWARD] Saving stats: Level ${newStats.level}, XP ${newStats.xp}, Gold ${newStats.gold}`);
-            setDoc(doc(db, 'users', user.uid), {
-                'stats.level': newStats.level,
-                'stats.xp': newStats.xp,
-                'stats.gold': newStats.gold,
-                'stats.nextXp': newStats.nextXp
-            }, { merge: true }).catch(err => console.error("Error saving player stats:", err));
+            TransactionService.awardExperience(user.uid, Math.floor(reward.xp), Math.floor(reward.gold))
+                .catch(err => console.error("Error saving player stats:", err));
         }
     }, [calculateNextXp, user, player]); // Added player dependency
 

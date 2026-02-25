@@ -150,7 +150,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 z-[500] bg-black/60 flex flex-col backdrop-blur-xl"> {/* More transparency: 60% opacity + lighter blur */}
+        <div className="fixed inset-0 z-[500] bg-black/60 flex flex-col backdrop-blur-lg"> {/* More transparency: 60% opacity + lighter blur */}
             <div className="flex-1 relative">
                 <ActiveSessionView
                     project={activeProject}

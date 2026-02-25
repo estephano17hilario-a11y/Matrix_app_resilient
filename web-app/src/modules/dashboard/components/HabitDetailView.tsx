@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Share2, Crown, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, Crown, MoreVertical, Edit2, Archive, Trash2, Plus, Check } from 'lucide-react';
 import { Habit, Project } from '../../../types';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachWeekOfInterval, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -109,7 +110,7 @@ const barVariants: Variants = {
     }
 };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, onStartFocus }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive }) => {
     const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
 
     const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
@@ -572,15 +573,15 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
     if (!activeItem) return null;
 
-    return (
-        <AnimatePresence>
+    return createPortal(
+        <AnimatePresence mode="wait">
             <motion.div
-                key="fullscreen-habit-view"
+                key={`detail-${activeItem.id}`}
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed inset-0 z-[100] bg-[#000000] text-white flex flex-col overflow-hidden"
+                className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
             >
                 {/* Background Atmosphere */}
                 <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] bg-cyan-500/10 blur-lg rounded-full pointer-events-none" />
@@ -667,7 +668,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pt-0 pb-20 space-y-4 scrollbar-hide">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pt-0 pb-20 space-y-4 scrollbar-hide overscroll-contain">
                     
                     <motion.div
                         variants={containerVariants}
@@ -679,7 +680,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             {/* Global Time Range Tabs - NEW CONFIGURATION ZONE */}
                             <div className="flex flex-col items-center gap-4 mb-2 relative z-50">
                                 {/* Pinned Ranges + Config Button */}
-                                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-lg relative">
+                                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg relative">
                                     <AnimatePresence mode="popLayout">
                                         {pinnedRanges.map((range) => {
                                             const isActive = timeRange === range;
@@ -691,7 +692,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                     layoutId={`tab-${range}`}
                                                     onClick={() => handleTabClick(range)}
                                                     className={cn(
-                                                        "px-4 py-2 rounded-xl text-[11px] font-bold transition-all relative overflow-hidden",
+                                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
                                                         isActive 
                                                             ? "bg-white text-black shadow-lg scale-105 z-10" 
                                                             : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -712,30 +713,30 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     </AnimatePresence>
 
                                     {/* Divider */}
-                                    <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                                    <div className="w-[1px] h-3 bg-white/10 mx-0.5" />
 
                                     {/* Config Button (+) */}
                                     <div className="relative">
                                         <button
                                             onClick={() => setIsConfigOpen(!isConfigOpen)}
                                             className={cn(
-                                                "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+                                                "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
                                                 isConfigOpen 
                                                     ? "bg-white/20 text-white rotate-45" 
                                                     : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
                                             )}
                                         >
-                                            <Plus size={16} />
+                                            <Plus size={14} />
                                         </button>
 
                                         {/* Dropdown Menu (VisionOS Style) */}
                                         <AnimatePresence>
                                             {isConfigOpen && (
                                                 <motion.div
-                                                    initial={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(10px)" }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
-                                                    exit={{ opacity: 0, scale: 0.9, y: 10, filter: "blur(10px)" }}
-                                                    className="absolute right-0 top-full mt-3 w-48 bg-[#1a1a1a]/90 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] p-1.5"
+                                                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                                    className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
                                                 >
                                                     <div className="flex flex-col gap-0.5">
                                                         {ALL_RANGES.map((option) => {
@@ -747,16 +748,16 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                                     key={option.value}
                                                                     onClick={() => handleTabClick(option.value)}
                                                                     className={cn(
-                                                                        "w-full px-3 py-2.5 rounded-xl text-left text-xs font-bold flex items-center justify-between group transition-all",
+                                                                        "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
                                                                         isSelected 
                                                                             ? "bg-white text-black shadow-md" 
                                                                             : "text-zinc-400 hover:text-white hover:bg-white/5"
                                                                     )}
                                                                 >
                                                                     <span>{option.label}</span>
-                                                                    {isSelected && <Check size={14} className="text-black" />}
+                                                                    {isSelected && <Check size={12} className="text-black" />}
                                                                     {isPinned && !isSelected && (
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                                                                        <div className="w-1 h-1 rounded-full bg-zinc-600" />
                                                                     )}
                                                                 </button>
                                                             );
@@ -1046,6 +1047,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 mode={['WEEK', 'MONTH', 'YEAR'].includes(timeRange) ? (timeRange as DateSelectionMode) : 'WEEK'}
                 currentDate={currentDate}
             />
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };

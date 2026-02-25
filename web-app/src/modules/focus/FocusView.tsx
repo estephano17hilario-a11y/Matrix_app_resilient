@@ -96,7 +96,7 @@ export const FocusView = React.memo(({
     }
 
     return (
-        <div className="relative w-full h-full font-sans flex flex-col p-4 overflow-y-auto">
+        <div className="relative w-full font-sans flex flex-col p-4">
             {/* Stats - Always Visible (General Graph + Stops + Specific Graphics) */}
             <div className="relative z-10 mb-2">
                 <FocusStats projects={projects} attributes={attributes} />

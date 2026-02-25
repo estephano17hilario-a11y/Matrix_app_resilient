@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowUp, Target, ListTodo, AlertTriangle } from 'lucide-react';
+import { ArrowUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -783,7 +783,7 @@ export default function Dashboard() {
                                 animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
                                 exit={{ opacity: 0, scale: 0.95, filter: 'blur(8px)', transition: { duration: 0.2, ease: "backIn" } }}
                                 transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
-                                className="relative overflow-hidden backdrop-blur-2xl border border-yellow-500/20 bg-[#0a0a0a]/95 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+                                className="relative overflow-hidden backdrop-blur-md border border-yellow-500/20 bg-[#0a0a0a]/95 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
                                 <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
@@ -810,8 +810,20 @@ export default function Dashboard() {
                 notificationRoot
             )}
 
-            {/* SCROLLABLE CONTENT LAYER */}
-            <div ref={scrollContainerRef} className="absolute inset-0 z-10 w-full h-full overflow-y-auto overflow-x-hidden scroll-smooth">
+            {/* SCROLLABLE CONTENT LAYER - OPTIMIZED: Added will-change and contain for high-speed scrolling */}
+            <div 
+                ref={scrollContainerRef} 
+                className={cn(
+                    "absolute inset-0 z-10 w-full h-full overflow-x-hidden scroll-smooth",
+                    (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen || isNexusImmersive) 
+                        ? "overflow-y-hidden" 
+                        : "overflow-y-auto"
+                )}
+                style={{ 
+                    willChange: 'scroll-position',
+                    contain: 'size layout style' 
+                }}
+            >
                 <AchievementToast 
                     achievement={lastAchievement} 
                     onClose={() => setLastAchievement(null)} 
@@ -1006,7 +1018,7 @@ export default function Dashboard() {
                         )}
 
                         {/* FOCUS */}
-                        <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0 relative flex-1">
+                        <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0" variant="minimal">
                             <Suspense fallback={<SuspenseFallback />}>
                                 <FocusView 
                                     projects={projects} 
@@ -1062,7 +1074,7 @@ export default function Dashboard() {
 
                         {/* STORE */}
                         {(loadedViews.has('STORE') || currentView === 'STORE') && (
-                            <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <StoreScreen onNavigate={(view) => setCurrentView(view)} />
                                 </Suspense>
@@ -1071,7 +1083,7 @@ export default function Dashboard() {
 
                         {/* NEXUS */}
                         {(loadedViews.has('NEXUS') || currentView === 'NEXUS') && (
-                            <ViewContainer isActive={currentView === 'NEXUS'} id="NEXUS" className="h-full pt-0 relative flex-1">
+                            <ViewContainer isActive={currentView === 'NEXUS'} id="NEXUS" className="h-full pt-0">
                                 <Suspense fallback={<SuspenseFallback />}>
                                     <NexusView 
                                         onToggleImmersive={handleToggleImmersive}
@@ -1156,18 +1168,21 @@ export default function Dashboard() {
                         </AnimatePresence>
                     </div>
 
-                    <Dock 
-                        currentView={currentView} 
-                        onChangeView={handleDockViewChange} 
-                        onOpenModal={(modal) => {
-                            setModalInitialContext(null);
-                            setActiveModal(modal);
-                        }} 
-                        isOpen={isDockOpen} 
-                        onToggle={setIsDockOpen} 
-                        isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO'}
-                        dashboardStyle={dashboardStyle}
-                    />
+                    {typeof document !== 'undefined' && createPortal(
+                        <Dock 
+                            currentView={currentView} 
+                            onChangeView={handleDockViewChange} 
+                            onOpenModal={(modal) => {
+                                setModalInitialContext(null);
+                                setActiveModal(modal);
+                            }} 
+                            isOpen={isDockOpen} 
+                            onToggle={setIsDockOpen} 
+                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO'}
+                            dashboardStyle={dashboardStyle}
+                        />,
+                        document.body
+                    )}
                     
                     {/* --- GLOBAL BLUR BACKDROP (APPLE INTELLIGENCE MODE) --- */}
                     <AnimatePresence>
@@ -1311,7 +1326,7 @@ export default function Dashboard() {
                             <PomodoroView 
                                 projects={projects}
                                 attributes={attributes}
-                                onExit={() => setCurrentView('TASKS')}
+                                onExit={() => setCurrentView('FOCUS')}
                                 onCompleteSession={handleCompleteSession}
                                 onUpdateProject={handleUpdateProject}
                                 onDeleteSession={handleDeleteSession}

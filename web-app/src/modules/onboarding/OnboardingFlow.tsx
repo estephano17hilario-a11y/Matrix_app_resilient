@@ -10,13 +10,12 @@ import { PersistenceService } from '../../services/persistence';
 import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
-import { ThemeId, THEMES } from '../../config/themes';
 
 // Modified steps: Removed 'intro' and 'language' as they are now pre-auth
 type Step = 'avatar' | 'traits' | 'saving';
 
 export function OnboardingFlow() {
-  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
+  const { user, profile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
   const lockedTraitId = 'DISCIPLINA';
   
@@ -27,25 +26,32 @@ export function OnboardingFlow() {
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
   const traitsScrollRef = useRef<HTMLDivElement | null>(null);
-  const isTraitsStep = step === 'traits' || (step === 'avatar' && !!selectedAvatarId);
-  const [traitThemeId] = useState<ThemeId>(() => {
-    const ids = Object.keys(THEMES) as ThemeId[];
-    return ids[Math.floor(Math.random() * ids.length)];
-  });
-  const traitTheme = THEMES[traitThemeId];
-  const traitBackground = traitTheme?.bgStyle || traitTheme?.gradient || 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 100%)';
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Explicit step management - No complex derived states
+  const isTraitsStep = step === 'traits';
 
-  // Initialize language from profile or i18n, but we don't need a step for it anymore
-  // We will preserve the existing language in the final save
+  // Cleanup safety timer on unmount
+  useEffect(() => {
+    return () => {
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initialize language from profile or i18n
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'en';
 
-  const handleNext = () => {
-    // If we are in the traits step (which includes avatar selected state),
-    // we should proceed to submit. The button is only visible when isTraitsStep is true.
-    if (isTraitsStep) {
-      handleSubmit();
-    } else if (step === 'avatar') {
-      setStep('traits');
+  const handleNext = async () => {
+    console.log('[Onboarding] handleNext triggered', { step, selectedTraits, userId: user?.uid });
+    
+    if (step === 'traits') {
+      if (selectedTraits.length < 3) {
+         // Fallback validation (button should be disabled anyway)
+         return;
+      }
+      await handleSubmit();
     }
   };
 
@@ -69,89 +75,110 @@ export function OnboardingFlow() {
 
   const handleSubmit = async () => {
     const userId = user?.uid || profile?.uid;
-    console.log('[Onboarding] Submitting traits for user:', userId);
+    
     if (!userId) {
-      alert(t('auth.errors.generic'));
+      console.error('[Onboarding] No user ID found');
+      alert("Authentication Error: User ID missing. Please refresh.");
       return;
     }
-    
-    // Immediately set saving state to show spinner
+
+    // 1. VISUAL FEEDBACK: INSTANT
     setStep('saving');
+
+    // 2. FAILSAFE: Set reload timer BEFORE anything else
+    // If we haven't unmounted (switched to Dashboard) in 2s, something is wrong.
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    safetyTimerRef.current = setTimeout(() => {
+        console.warn("[Onboarding] Navigation stuck, forcing reload...");
+        window.location.reload();
+    }, 2000);
+
+    // 3. OPTIMISTIC UPDATE: The Critical Path
+    // We execute this synchronously to trigger React render cycle immediately
     const completionTs = Date.now();
     
-    // Optimistic Update
-    if (profile) {
-      const baseOnboarding = profile.onboarding || {
-        successDefinition: "Becoming the One",
-        obstacles: [],
-        coachingTone: "Stoic",
-        completedAt: 0,
-        language: currentLanguage
-      };
-      updateProfileLocally({
-        onboarding: { ...baseOnboarding, completedAt: completionTs },
-        avatarId: selectedAvatarId ?? profile.avatarId
-      });
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('lux_last_view', 'TASKS');
-      localStorage.setItem('matrix_last_view', 'TASKS');
-    }
+    const updatedOnboarding = {
+       ...(profile?.onboarding || {
+         successDefinition: "Becoming the One",
+         obstacles: [],
+         coachingTone: "Stoic",
+         language: currentLanguage
+       }),
+       completedAt: completionTs,
+       language: currentLanguage
+    };
+
+    const localUpdates = {
+       onboarding: updatedOnboarding,
+       avatarId: selectedAvatarId ?? profile?.avatarId
+    };
+
+    console.log("[Onboarding] ⚡ INSTANT UPDATE TRIGGERED", localUpdates);
     
-    try {
-      const userRef = doc(db, "users", userId);
-      
-      // 1. Save Onboarding Data
-      await setDoc(userRef, {
-        avatarId: selectedAvatarId,
-        onboarding: {
-          completedAt: completionTs,
-          language: currentLanguage // Preserve language
-        },
-        archetype: 'NEO',
-        updatedAt: Date.now()
-      }, { merge: true });
-
-      // 2. Save Selected Attributes
-      const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
-          const trait = TRAITS_LIST.find(t => t.id === id);
-          if (!trait) return acc;
-          acc.push({
-              id: trait.id,
-              label: trait.label,
-              level: 1,
-              xp: 0,
-              maxXp: 100,
-              color: trait.color,
-              icon: trait.icon 
-          });
-          return acc;
-      }, []);
-
-      PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
-
-      await Promise.all(attributesToSave.map(attr => 
-          persistenceService.attributes.save(userId, attr)
-      ));
-      
-      if (user) {
-        await refreshProfile();
-      }
-      
-    } catch (error) {
-      console.error("Error saving onboarding:", error);
-      try {
-        if (user) {
-          await refreshProfile();
-        } else if (!profile) {
-          setStep('traits');
-          alert("Error saving data. Please check your connection.");
-        }
-      } catch (e) {
-        setStep('traits');
-        alert("Error saving data. Please check your connection.");
-      }
+    // This triggers AuthContext -> App.tsx re-render -> Dashboard mount
+    if (profile) {
+       updateProfileLocally(localUpdates);
     }
+
+    // 4. HEAVY LIFTING: Defer to next tick to unblock UI thread
+    // This allows the App to switch views while we save in background
+    setTimeout(async () => {
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('lux_last_view', 'TASKS');
+                localStorage.setItem('matrix_last_view', 'TASKS');
+            }
+            
+            const userRef = doc(db, "users", userId);
+            
+            // Fire & Forget Firebase Save
+            const savePromise = setDoc(userRef, {
+                avatarId: selectedAvatarId,
+                onboarding: updatedOnboarding,
+                archetype: 'NEO',
+                updatedAt: Date.now()
+            }, { merge: true });
+
+            // Fire & Forget Attributes Save
+            const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
+                const trait = TRAITS_LIST.find(t => t.id === id);
+                if (!trait) return acc;
+                acc.push({
+                    id: trait.id,
+                    label: trait.label,
+                    level: 1,
+                    xp: 0,
+                    maxXp: 100,
+                    color: trait.color,
+                    icon: trait.icon 
+                });
+                return acc;
+            }, []);
+
+            // Local Persistence (Sync but fast enough usually, deferred now)
+            PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
+
+            // Background Firebase Attributes
+            const attrPromises = attributesToSave.map(attr => 
+                persistenceService.attributes.save(userId, attr)
+            );
+
+            // We await for debugging, but user is already gone hopefully
+            await Promise.all([savePromise, ...attrPromises]);
+            console.log("[Onboarding] ✅ Background save complete");
+            
+            // If user is somehow still here (optimistic update failed?), refresh might help
+            if (user) {
+                // await refreshProfile(); // Optional: might cause re-renders
+            }
+
+        } catch (error) {
+            console.error("[Onboarding] ❌ Background save failed:", error);
+            // We do NOT revert UI here because the user might already be in Dashboard
+            // and we don't want to yank them back.
+            // Just log it. The local state is what matters for session.
+        }
+    }, 0);
   };
 
   useEffect(() => {
@@ -213,7 +240,7 @@ export function OnboardingFlow() {
                 className="absolute inset-0 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50 pointer-events-auto"
                 style={{ opacity: 1, visibility: 'visible' }}
               >
-                <div className="min-h-full w-full flex flex-col items-center justify-center max-w-4xl mx-auto px-4 py-24">
+                <div className="min-h-full w-full flex flex-col items-center justify-start max-w-4xl mx-auto px-4 py-24">
                   <div className="text-center mb-10 flex-shrink-0 max-w-2xl mx-auto px-4">
                       <motion.div
                         initial={{ opacity: 1, y: 0 }}
@@ -251,9 +278,8 @@ export function OnboardingFlow() {
                               </button>
                           </div>
                       ) : (
-                      <div className="relative rounded-3xl border border-white/10 bg-black/40 p-4 sm:p-6 overflow-hidden">
-                        <div className="absolute inset-0 opacity-50" style={{ background: traitBackground }} />
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+                      <div className="relative rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-md">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-3xl" />
                         <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                           {TRAITS_LIST.map((trait, index) => {
                               const isSelected = selectedTraits.includes(trait.id);
@@ -389,28 +415,43 @@ export function OnboardingFlow() {
         </div>
 
         <AnimatePresence>
-          {isTraitsStep && (
+          {step === 'traits' && (
             <motion.div
               key="traits-action"
-              initial={{ y: 80, opacity: 0 }}
+              initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className="fixed bottom-8 left-0 right-0 flex justify-center z-[100] pointer-events-none"
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-[9999] pointer-events-none bg-gradient-to-t from-black/80 to-transparent"
             >
               <motion.button
-                onClick={handleNext}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
                 disabled={selectedTraits.length < 3}
-                whileTap={{ scale: 0.95 }}
-                className={`group pointer-events-auto cursor-pointer relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border ${
-                  selectedTraits.length < 3
-                    ? 'bg-white/60 text-black/60 border-white/30 cursor-not-allowed'
-                    : 'bg-white text-black border-white/80 shadow-md hover:shadow-lg'
-                }`}
+                whileHover={selectedTraits.length >= 3 ? { scale: 1.05 } : {}}
+                whileTap={selectedTraits.length >= 3 ? { scale: 0.95 } : {}}
+                className={`
+                  pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border shadow-2xl
+                  ${selectedTraits.length < 3
+                    ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
+                    : 'bg-white text-black border-white/50 shadow-indigo-500/20 hover:shadow-indigo-500/40'
+                  }
+                `}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <span>{t('common.continue', 'Continuar')}</span>
-                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                {/* Glow Effect */}
+                {selectedTraits.length >= 3 && (
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                )}
+                
+                <span>
+                  {t('common.continue', 'Continuar')} 
+                  {selectedTraits.length > 0 && selectedTraits.length < 3 && (
+                    <span className="ml-1 opacity-60 text-sm">({selectedTraits.length}/3)</span>
+                  )}
+                </span>
+                <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.length >= 3 ? 'group-hover:translate-x-1' : ''}`} />
               </motion.button>
             </motion.div>
           )}

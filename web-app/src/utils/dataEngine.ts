@@ -1,11 +1,17 @@
-import { getStartOfWeek } from './dateUtils';
+import { 
+    startOfWeek, endOfWeek, subWeeks, eachWeekOfInterval, 
+    startOfMonth, endOfMonth, subMonths, eachMonthOfInterval,
+    startOfYear, endOfYear, format, differenceInDays,
+    eachDayOfInterval, eachHourOfInterval
+} from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Project, Attribute } from '../types';
 
 export const generateFocusData = (
     projects: Project[],
     attributes: Attribute[],
     date: Date, 
-    range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR', 
+    range: 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL', 
     contextId: string = 'GLOBAL',
     groupMode: 'TOTAL' | 'ATTRIBUTE' | 'PROJECT' = 'TOTAL'
 ) => {
@@ -13,89 +19,130 @@ export const generateFocusData = (
   let max = 0;
   let totalMinutes = 0;
 
-  // Initialize buckets for aggregation
-  // Structure: Map<SegmentId, number[]> where number[] is the buckets
-  const segmentBuckets = new Map<string, number[]>();
+  // 1. Determine Range & Buckets
+  let buckets: { start: Date, end: Date, label: string }[] = [];
   
-  // Helper to get or create bucket for a segment
-  const getBuckets = (id: string, size: number) => {
+  const startOfDay = new Date(date); startOfDay.setHours(0,0,0,0);
+  const endOfDay = new Date(date); endOfDay.setHours(23,59,59,999);
+  
+  if (range === 'DAY') {
+      const hours = eachHourOfInterval({ start: startOfDay, end: endOfDay });
+      buckets = hours.map(h => ({
+          start: h,
+          end: new Date(h.getTime() + 3600000 - 1),
+          label: format(h, 'HH') + 'h'
+      }));
+  } else if (range === 'WEEK') {
+      const start = startOfWeek(date, { weekStartsOn: 1 });
+      const end = endOfWeek(date, { weekStartsOn: 1 });
+      const days = eachDayOfInterval({ start, end });
+      buckets = days.map(d => ({
+          start: d,
+          end: new Date(d.getTime() + 86400000 - 1),
+          label: format(d, 'EEE', { locale: es }).slice(0, 1).toUpperCase()
+      }));
+  } else if (range === '8_WEEKS') {
+      const end = endOfWeek(date, { weekStartsOn: 1 });
+      const start = subWeeks(end, 7);
+      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+      buckets = weeks.map(w => ({
+          start: w,
+          end: endOfWeek(w, { weekStartsOn: 1 }),
+          label: format(w, 'd/M')
+      }));
+  } else if (range === 'MONTH') {
+      const start = startOfMonth(date);
+      const end = endOfMonth(date);
+      const days = eachDayOfInterval({ start, end });
+      buckets = days.map(d => ({
+          start: d,
+          end: new Date(d.getTime() + 86400000 - 1),
+          label: format(d, 'd')
+      }));
+  } else if (range === '3_MONTHS') {
+      const end = endOfMonth(date);
+      const start = subMonths(startOfMonth(end), 2);
+      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+      buckets = weeks.map(w => ({
+          start: w,
+          end: endOfWeek(w, { weekStartsOn: 1 }),
+          label: format(w, 'd/M')
+      }));
+  } else if (range === 'YEAR') {
+      const start = startOfYear(date);
+      const end = endOfYear(date);
+      const months = eachMonthOfInterval({ start, end });
+      buckets = months.map(m => ({
+          start: m,
+          end: endOfMonth(m),
+          label: format(m, 'MMM', { locale: es }).slice(0, 3).toUpperCase()
+      }));
+  } else {
+      // TOTAL
+      let minDate = new Date();
+      if (projects.some(p => p.sessions && p.sessions.length > 0)) {
+          projects.forEach(p => {
+              if (p.sessions) {
+                  p.sessions.forEach(s => {
+                      const d = new Date(s.date);
+                      if (d < minDate) minDate = d;
+                  });
+              }
+          });
+      }
+      const start = startOfWeek(minDate, { weekStartsOn: 1 });
+      const end = new Date();
+      const daysDiff = differenceInDays(end, start);
+      
+      if (daysDiff > 365) {
+          const months = eachMonthOfInterval({ start, end });
+          buckets = months.map(m => ({
+              start: m,
+              end: endOfMonth(m),
+              label: format(m, 'MMM yyyy', { locale: es })
+          }));
+      } else {
+          const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+          buckets = weeks.map(w => ({
+              start: w,
+              end: endOfWeek(w, { weekStartsOn: 1 }),
+              label: format(w, 'd/M')
+          }));
+      }
+  }
+
+  labels.push(...buckets.map(b => b.label));
+  const bucketSize = buckets.length;
+
+  // Initialize Buckets
+  const segmentBuckets = new Map<string, number[]>();
+  const getBuckets = (id: string) => {
       if (!segmentBuckets.has(id)) {
-          segmentBuckets.set(id, new Array(size).fill(0));
+          segmentBuckets.set(id, new Array(bucketSize).fill(0));
       }
       return segmentBuckets.get(id)!;
   };
 
-  // 1. Define Labels & Bucket Size
-  let bucketSize = 0;
-  if (range === 'DAY') {
-    bucketSize = 12; // 0h, 2h, ... 22h
-    for (let i = 0; i <= 22; i += 2) labels.push(`${i}h`);
-  } else if (range === 'WEEK') {
-      bucketSize = 7;
-      labels.push('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
-  } else if (range === 'MONTH') {
-      bucketSize = 5;
-      labels.push('W1', 'W2', 'W3', 'W4', 'W5');
-  } else if (range === 'YEAR') {
-      bucketSize = 12;
-      labels.push('J','F','M','A','M','J','J','A','S','O','N','D');
-  }
-
-  // 2. Filter & Aggregate Sessions
-  const startOfDay = new Date(date); startOfDay.setHours(0,0,0,0);
-  const endOfDay = new Date(date); endOfDay.setHours(23,59,59,999);
-  
-  const startOfWeek = getStartOfWeek(date);
-  const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-  const month = date.getMonth();
-  const year = date.getFullYear();
-
+  // 2. Aggregate Data
   projects.forEach(p => {
-     // Filter by Context
      if (contextId === 'GLOBAL' || p.id === contextId || p.attribute === contextId) {
          if (p.sessions) {
              p.sessions.forEach(s => {
                 const sDate = new Date(s.date);
-                let bucketIndex = -1;
+                
+                // Find matching bucket
+                const bucketIndex = buckets.findIndex(b => sDate >= b.start && sDate <= b.end);
 
-                // Determine Bucket Index
-                if (range === 'DAY') {
-                    if (sDate >= startOfDay && sDate <= endOfDay) {
-                        bucketIndex = Math.floor(sDate.getHours() / 2);
-                        if (bucketIndex >= 12) bucketIndex = 11;
-                    }
-                } else if (range === 'WEEK') {
-                    if (sDate >= startOfWeek && sDate < endOfWeek) {
-                        const diffTime = sDate.getTime() - startOfWeek.getTime();
-                        bucketIndex = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    }
-                } else if (range === 'MONTH') {
-                    if (sDate.getMonth() === month && sDate.getFullYear() === year) {
-                        const day = sDate.getDate();
-                        bucketIndex = Math.floor((day - 1) / 7);
-                        if (bucketIndex > 4) bucketIndex = 4;
-                    }
-                } else if (range === 'YEAR') {
-                    if (sDate.getFullYear() === year) {
-                        bucketIndex = sDate.getMonth();
-                    }
-                }
-
-                if (bucketIndex !== -1 && bucketIndex < bucketSize) {
+                if (bucketIndex !== -1) {
                     const minutes = Math.floor(s.duration / 60);
                     totalMinutes += minutes;
 
-                    // Determine Segment
                     let segmentId = 'total';
-                    if (groupMode === 'ATTRIBUTE') {
-                        segmentId = p.attribute;
-                    } else if (groupMode === 'PROJECT') {
-                        segmentId = p.id;
-                    }
+                    if (groupMode === 'ATTRIBUTE') segmentId = p.attribute;
+                    else if (groupMode === 'PROJECT') segmentId = p.id;
 
-                    const buckets = getBuckets(segmentId, bucketSize);
-                    buckets[bucketIndex] += minutes;
+                    const b = getBuckets(segmentId);
+                    b[bucketIndex] += minutes;
                 }
              });
          }
@@ -131,9 +178,7 @@ export const generateFocusData = (
               const proj = projects.find(p => p.id === id);
               if (proj) {
                   const attr = attributes.find(a => a.id === proj.attribute);
-                  color = attr ? attr.color : '#6366f1'; // Use attribute color for project or distinct? 
-                  // If multiple projects have same attribute, colors will clash. 
-                  // Maybe adjust opacity or brightness? For now use attribute color.
+                  color = attr ? attr.color : '#6366f1'; 
                   label = proj.title;
               }
           }

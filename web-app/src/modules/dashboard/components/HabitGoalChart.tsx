@@ -117,25 +117,9 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
         const validIndices = [0];
         
         dataPoints.forEach((p, i) => {
-            // For TODAY view (where start and end date are same day, or very close)
-            // We might want to show all points if they represent hours of today?
-            // BUT usually dataPoints are daily buckets.
-            
-            // If the view is "Day", dataPoints might be hourly? 
-            // Assuming dataPoints are Days for now as per typical Habit usage.
-            
-            // Logic:
-            // If point.date < now (Past days) -> Show fully
-            // If point.date is TODAY -> Show fully (as it contains data up to now)
-            // If point.date > now (Future) -> Hide
-            
             const pointDate = new Date(p.date);
-            pointDate.setHours(0,0,0,0);
-            
-            const today = new Date(now);
-            today.setHours(0,0,0,0);
-            
-            if (pointDate <= today) {
+            // Compare full timestamps to handle both Daily (00:00) and Hourly points
+            if (pointDate <= now) {
                  validIndices.push(i + 1);
             }
         });

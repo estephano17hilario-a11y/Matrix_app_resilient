@@ -16,9 +16,9 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
             style={{ willChange: 'transform, opacity' }}
         />
         
-        {/* Bottom-Right Orb (Purple) */}
+        {/* Bottom-Right Orb (Pink) */}
         <div 
-            className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/25 rounded-full blur-[100px] animate-pulse-slow pointer-events-none" 
+            className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-pink-600/25 rounded-full blur-[100px] animate-pulse-slow pointer-events-none" 
             style={{ animationDelay: '1s', willChange: 'transform, opacity' }} 
         />
 

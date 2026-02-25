@@ -74,7 +74,7 @@ export const SettingsModal = () => {
           </div>
 
           {/* SCROLLABLE CONTENT */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar overscroll-contain">
             <div className="p-4 md:p-8 md:pr-16 min-h-full pb-24 md:pb-8">
               <Suspense fallback={<LoadingSpinner />}>
                 <AnimatePresence mode="wait">

@@ -43,110 +43,96 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
   useEffect(() => {
     isMounted.current = true;
     
-    // Reset if userId changes and we don't have matching cache
-    if (userId && user?.uid !== userId) {
-        lastUpdateTimeRef.current = null;
-        lastSnapshotUidRef.current = null;
+    // 1. Validate Input
+    if (!userId) {
+        setUser(null);
+        setLoading(false);
+        return;
+    }
+
+    // 2. Handle Cache (Instant Boot)
+    // Only if current user state doesn't match requested userId (or first load)
+    if (user?.uid !== userId) {
         const cached = PersistenceService.getProfile(userId);
         if (cached && cached.uid === userId) {
-            setUser({ ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData);
-            setLoading(false);
+             setUser({ ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData);
+             setLoading(false); // Optimistic load
         } else {
-            setLoading(true);
-            setUser(null);
+             setLoading(true);
+             setUser(null);
         }
     }
 
-    const connectToLux = async () => {
-        if (!userId) {
-            setLoading(false);
-            return;
-        }
+    // 3. Setup Subscription
+    if (!configStatus.isValid) {
+        console.warn("Lux Data: No Valid Config (Phantom Mode).");
+        setLoading(false);
+        return;
+    }
 
-        if (!configStatus.isValid) {
-            console.warn("Lux Data: No Valid Config (Phantom Mode).");
-            setLoading(false);
-            return;
-        }
+    console.log(`📡 LUX: Stabilizing uplink for [${userId}]...`);
+    
+    let unsubscribe: () => void = () => {};
 
-        if (!isMounted.current) return;
+    try {
+        const userRef = doc(db, 'users', userId);
+        unsubscribe = onSnapshot(
+            userRef, 
+            { includeMetadataChanges: true },
+            (snapshot: any) => {
+                if (!isMounted.current) return;
 
-        try {
-            console.log(`📡 LUX: Stabilizing uplink for [${userId}]...`);
-            const userRef = doc(db, 'users', userId);
+                const pending = snapshot.metadata?.hasPendingWrites || false;
+                setIsSyncing(pending);
 
-            unsubscribeRef.current = onSnapshot(
-                userRef, 
-                { includeMetadataChanges: true },
-                (snapshot: any) => {
-                    if (!isMounted.current) return;
-
-                    // Sync Status Check
-                    const pending = snapshot.metadata?.hasPendingWrites || false;
-                    setIsSyncing(pending);
-
-                    if (snapshot.exists()) {
-                        const data = snapshot.data();
-                        const normalized = normalizeUserProfile({ uid: snapshot.id, ...data });
-                        const safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
-                        
-                        // ⚡ OVERRIDE: Global PRO
-                        if (ENABLE_GLOBAL_PRO) {
-                            data.plan = 'PRO';
-                        }
-
-                        const newData = { 
-                            ...data,
-                            ...(normalized || {}),
-                            stats: safeStats,
-                            uid: snapshot.id
-                        } as UserData;
-                        const updateTime = snapshot.updateTime?.toMillis() ?? 0;
-                        if (lastUpdateTimeRef.current !== updateTime || lastSnapshotUidRef.current !== snapshot.id) {
-                            lastUpdateTimeRef.current = updateTime;
-                            lastSnapshotUidRef.current = snapshot.id;
-                            setUser(newData);
-                            PersistenceService.saveProfile(newData);
-                        }
-                        
-                        setError(null);
-                    } else {
-                        console.log("⚠️ LUX: User profile pending creation.");
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    const normalized = normalizeUserProfile({ uid: snapshot.id, ...data });
+                    const safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
+                    
+                    // ⚡ OVERRIDE: Global PRO
+                    if (ENABLE_GLOBAL_PRO) {
+                        data.plan = 'PRO';
                     }
+
+                    const newData = { 
+                        ...data,
+                        ...(normalized || {}),
+                        stats: safeStats
+                    } as UserData;
+
+                    // Only update if data changed (Deep check optional, but React handles shallow well)
+                    setUser(newData);
                     setLoading(false);
-                },
-                (err: FirestoreError) => {
-                    if (!isMounted.current) return;
-                    console.error("❌ LUX UPLINK ERROR:", err);
-                    // Silently handle abortions to keep UI clean
-                    if (err.message.includes("Aborted") || err.code === 'unavailable' || err.code === 'resource-exhausted') {
-                         console.warn("⚠️ LUX: Connection unstable (retrying silently)...");
-                    } else if (err.code === 'permission-denied') {
-                        console.error("⛔ LUX: Access Denied. Check your Neural Link (Security Rules).");
-                        setError("Access Denied: Neural Link blocked.");
-                    } else {
-                        console.error("❌ LUX UPLINK ERROR:", err);
-                        setError(err.message);
-                    }
+                    setError(null);
+
+                    // Update Cache
+                    PersistenceService.saveProfile(newData);
+                } else {
+                    console.warn(`User [${userId}] not found in Matrix.`);
+                    // Only clear if we are sure it's not just a connection blip?
+                    // Snapshot exists=false means the doc is genuinely missing or we don't have permission.
+                    setUser(null);
                     setLoading(false);
                 }
-            );
-        } catch (e) {
-            console.error("Connection failed:", e);
-            setLoading(false);
-        }
-    };
+            },
+            (err: any) => {
+                console.error("Lux Data Sync Error:", err);
+                setError(err.message);
+                setLoading(false);
+            }
+        );
+    } catch (e: any) {
+        console.error("Failed to setup Lux subscription:", e);
+        setError(e.message);
+        setLoading(false);
+    }
 
-    connectToLux();
-
+    // 4. Cleanup
     return () => {
         isMounted.current = false;
-        if (unsubscribeRef.current) {
-            console.log("🔌 LUX: Terminating uplink.");
-            unsubscribeRef.current();
-        }
+        if (unsubscribe) unsubscribe();
     };
-
   }, [userId]);
 
   return { user, loading, error, isSyncing };

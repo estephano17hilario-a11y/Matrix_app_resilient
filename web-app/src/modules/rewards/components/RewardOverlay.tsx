@@ -182,7 +182,7 @@ export const RewardOverlay: React.FC = () => {
           className="w-72 pointer-events-auto p-2"
         >
           <div className="relative group">
-            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300 group-hover:border-white/20">
+            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-[#0a0a0a]/90 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300 group-hover:border-white/20">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none opacity-50" />
             </div>
 

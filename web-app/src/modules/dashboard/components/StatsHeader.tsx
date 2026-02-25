@@ -39,7 +39,9 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
         isCompact 
             ? 'mt-0 mb-0' 
             : 'mt-6'
-    } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
+    } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+    style={{ contain: 'layout style', willChange: 'opacity' }}
+    >
         <div className={`flex items-center gap-4 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Avatar Widget - MOVED FIRST */}
             <div 

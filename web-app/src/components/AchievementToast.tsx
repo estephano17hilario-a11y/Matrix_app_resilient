@@ -39,7 +39,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           <div className="
             relative
             flex items-center gap-4 px-5 py-4
-            bg-[#050505]/80 backdrop-blur-xl
+            bg-[#050505]/80 backdrop-blur-md
             border border-emerald-500/20
             rounded-2xl
             shadow-[0_8px_32px_rgba(0,0,0,0.5)]

@@ -78,25 +78,24 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
       )}
       style={{ 
         // VisionOS "Hyper-Glass" Base
-        background: 'rgba(20, 20, 25, 0.6)', // Slightly darker for contrast
-        backdropFilter: 'blur(12px)', // Safe blur limit (max 16px)
+        background: 'rgba(20, 20, 25, 0.7)', // Slightly darker for better contrast and less blur need
         border: '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: expanded 
             ? `0 0 0 1px ${themeColor}40, 0 20px 40px -10px rgba(0,0,0,0.5)` // Active state glow
             : `inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)` // Idle state
       }}
     >
-      {/* Dynamic Attribute Glow Gradient (Top Left) */}
+      {/* Dynamic Attribute Glow Gradient (Top Left) - OPTIMIZED: Using radial gradient for zero GPU blur cost */}
       <div 
-        className="absolute -top-10 -left-10 w-40 h-40 rounded-full opacity-20 pointer-events-none blur-3xl transition-opacity duration-500"
-        style={{ background: themeColor }}
+        className="absolute inset-0 opacity-10 pointer-events-none transition-opacity duration-500"
+        style={{ background: `radial-gradient(circle at 0% 0%, ${themeColor}, transparent 70%)` }}
       />
       
-      {/* Smart Quest Special Glow */}
+      {/* Smart Quest Special Glow - OPTIMIZED */}
       {isSmart && (
          <div 
-            className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full opacity-10 pointer-events-none blur-3xl"
-            style={{ background: '#6366f1' }} // Indigo
+            className="absolute inset-0 opacity-5 pointer-events-none"
+            style={{ background: `radial-gradient(circle at 100% 100%, #6366f1, transparent 70%)` }}
          />
       )}
 

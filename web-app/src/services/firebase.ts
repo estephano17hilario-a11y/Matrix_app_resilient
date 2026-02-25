@@ -100,51 +100,47 @@ if (isConfigValid) {
         console.warn("⚠️ MATRIX CORE: Failed to set Auth Persistence:", err);
     });
 
-    try {
-        messaging = getMessaging(app);
-    } catch (e) {
-        console.warn("⚠️ MATRIX CORE: Firebase Messaging not supported in this environment.", e);
-    }
+    // 💾 OFFLINE-FIRST: Enable Multi-Tab Persistence
+    // This is critical for the "Matrix" experience (Zero Latency)
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager()
             })
         });
-        console.log("🔥 MATRIX CORE: Firestore connected with Persistence.");
-    } catch (e: any) {
-        if (e.code === 'failed-precondition' || e.code === 'unimplemented') {
-            console.warn("⚠️ MATRIX CORE: Persistence unavailable, falling back to memory cache.");
-            try {
-                db = getFirestore(app);
-            } catch {
-                db = initializeFirestore(app, {
-                    localCache: persistentLocalCache({})
-                });
-            }
-        } else if (e.message && e.message.includes('already exists')) {
-             db = getFirestore(app);
-        } else {
-            console.error("🔥 MATRIX CORE: Firestore Init Failed", e);
-            try {
-                 db = getFirestore(app);
-            } catch (finalErr) {
-                 console.error("☠️ FATAL: Could not initialize Firestore.", finalErr);
-                 throw e;
-            }
+        console.log("💎 MATRIX: Offline Persistence Enabled (Multi-Tab)");
+    } catch (err: any) {
+        // Fallback if already initialized or error
+        if (err.code === 'failed-precondition') {
+            console.warn("⚠️ MATRIX: Multiple tabs open, persistence enabled in first tab only.");
+        } else if (err.code === 'unimplemented') {
+            console.warn("⚠️ MATRIX: Browser doesn't support persistence.");
         }
+        // Fallback to default
+        db = getFirestore(app); 
     }
+
+    // 🔔 MESSAGING (Optional)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        messaging = getMessaging(app);
+      } catch (e) {
+        console.warn("⚠️ MATRIX: Messaging not supported in this environment.");
+      }
+    }
+
   } catch (error) {
-    console.error("❌ CRITICAL: Firebase failed to load.", error);
-    app = undefined as unknown as FirebaseApp;
-    auth = undefined as unknown as Auth;
-    db = undefined as unknown as Firestore;
+    console.error("❌ MATRIX CORE: Initialization Failed", error);
+    // Phantom Mode Fallback (prevents crash)
+    app = {} as any;
+    auth = {} as any;
+    db = {} as any;
   }
 } else {
-  console.warn("⚠️ MATRIX CORE: Running in Config-Less Mode.");
-  app = undefined as unknown as FirebaseApp;
-  auth = undefined as unknown as Auth;
-  db = undefined as unknown as Firestore;
+  console.warn("⚠️ MATRIX: Running in Phantom Mode (No Config)");
+  app = {} as any;
+  auth = {} as any;
+  db = {} as any;
 }
 
 export { app, auth, db, messaging, getToken, onMessage };
