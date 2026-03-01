@@ -88,7 +88,7 @@ const MiniLiquidBar = ({  value,
 
 import { StreakStatusModal } from './StreakStatusModal';
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', onUpdateLevel, isHabitsCompleted = false, onNavigate }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, onNavigate }: AvatarWidgetProps) => {
     const [showStreakModal, setShowStreakModal] = React.useState(false);
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);

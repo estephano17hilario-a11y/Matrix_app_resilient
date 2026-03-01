@@ -103,6 +103,7 @@ export interface Project {
   title: string;
   description: string;
   attribute: string;
+  color?: string; // Optional UI color override
   goalTarget: number;
   goalFrequency: string;
   uiFrequency?: string; // Stores the user's selected frequency (WEEKLY, MONTHLY, etc) for UI restoration
