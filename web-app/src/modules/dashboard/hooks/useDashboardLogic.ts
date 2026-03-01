@@ -2470,6 +2470,7 @@ export const useDashboardLogic = () => {
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp }));
             }
 
+            let traitUpdate: any = undefined;
             if (rewardTraitXp !== 0 && quest.attribute) {
                  const attrIndex = attributes.findIndex(a => a.id === quest.attribute);
                  if (attrIndex !== -1) {
@@ -2491,6 +2492,8 @@ export const useDashboardLogic = () => {
                     const newAttributes = [...attributes];
                     newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                     setAttributes(newAttributes);
+                    
+                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
                  }
             }
 
@@ -2512,7 +2515,7 @@ export const useDashboardLogic = () => {
                 
                 if (rewardXp > 0 || rewardGold > 0) {
                     // Trigger reward UI
-                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level });
+                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level }, traitUpdate);
                 }
             } else {
                  const today = toLocalISOString(new Date());
@@ -2696,27 +2699,15 @@ export const useDashboardLogic = () => {
             return;
         }
 
-        // 4. ATOMIC BATCH WRITE
+        // 4. ATOMIC TRANSACTION (Reinforced Logic)
         try {
-            const batch = writeBatch(db);
-            const userRef = doc(db, 'users', userId);
-            const habitRef = doc(db, 'users', userId, 'habits', habit.id);
-            
             // New Vars for Reward Overlay
             let finalXp = player.xp;
             let finalLevel = player.level;
             let finalGold = player.gold;
-            let traitUpdate = undefined;
+            let traitUpdate: any = undefined;
 
-            // A. Update Habit
-            batch.update(habitRef, {
-                completedToday: newHabit.completedToday,
-                streak: newHabit.streak,
-                totalCompletions: newHabit.totalCompletions,
-                history: newHabit.history
-            });
-
-            // B. Update Player Stats (XP & Gold)
+            // A. Update Player Stats (XP & Gold)
             if (rewardXp !== 0 || rewardGold !== 0) {
                 let newXp = player.xp + rewardXp;
                 let newGold = player.gold + rewardGold;
@@ -2731,14 +2722,6 @@ export const useDashboardLogic = () => {
                 
                 // Update Local Player
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp }));
-                
-                // Add to Batch
-                batch.update(userRef, {
-                    'stats.xp': newXp,
-                    'stats.gold': newGold,
-                    'stats.level': newLevel,
-                    'stats.nextXp': newNextXp
-                });
                 
                 finalXp = newXp;
                 finalLevel = newLevel;
@@ -2768,14 +2751,6 @@ export const useDashboardLogic = () => {
                     const newAttributes = [...attributes];
                     newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                     setAttributes(newAttributes);
-
-                    // Add to Batch
-                    const attrRef = doc(db, 'users', userId, 'attributes', attr.id);
-                    batch.set(attrRef, { 
-                        xp: newAttrXp, 
-                        level: newAttrLevel, 
-                        maxXp: newAttrMaxXp 
-                    }, { merge: true });
                     
                     traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
                  }
@@ -2794,9 +2769,6 @@ export const useDashboardLogic = () => {
                 
                 // Update Local Limits
                 setDailyLimits(newLimits);
-                
-                // Add to Batch
-                batch.update(userRef, { dailyLimits: newLimits });
                 
                 // Trigger Reward Overlay (Only for gains)
                 if (rewardXp > 0 || rewardGold > 0) {
@@ -2817,13 +2789,23 @@ export const useDashboardLogic = () => {
                 
                 // Update Local Limits
                 setDailyLimits(newLimits);
-                
-                // Add to Batch
-                batch.update(userRef, { dailyLimits: newLimits });
             }
 
-            // COMMIT
-            await batch.commit();
+            // COMMIT VIA TRANSACTION SERVICE
+            await TransactionService.toggleHabitCompletion(
+                userId,
+                habit.id,
+                newHabit.completedToday,
+                rewardXp,
+                rewardGold,
+                rewardTraitXp,
+                {
+                    completedToday: newHabit.completedToday,
+                    streak: newHabit.streak,
+                    totalCompletions: newHabit.totalCompletions,
+                    history: newHabit.history
+                }
+            );
             console.log("✅ HABIT ATOMIC SYNC SUCCESS");
 
         } catch (err) {

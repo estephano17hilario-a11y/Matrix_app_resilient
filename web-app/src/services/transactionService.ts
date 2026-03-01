@@ -1,6 +1,6 @@
 import { db, runTransaction, doc, serverTimestamp, increment } from './firebase';
 import { UserStats, UserProfile, DailyLimits } from '../types/User';
-import { Quest, Attribute } from '../types';
+import { Quest, Attribute, Habit } from '../types';
 import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
 import { toLocalISOString } from '../utils/dateUtils';
 
@@ -42,7 +42,13 @@ export const TransactionService = {
                 }
 
                 const stats = userData.stats;
-                const dailyLimits = userData.dailyLimits || { date: toLocalISOString(new Date()), taskXp: 0, taskGold: 0, taskTraitPoints: 0, tasksCompleted: 0 };
+                const dailyLimits = userData.dailyLimits || { 
+                    date: toLocalISOString(new Date()), 
+                    taskXp: 0, 
+                    taskGold: 0, 
+                    taskTraitPoints: 0, 
+                    tasksCompleted: 0
+                } as DailyLimits;
 
                 // 3. CALCULATE NEW STATS
                 // Determine direction: +1 for completion, -1 for un-completion
@@ -157,6 +163,134 @@ export const TransactionService = {
             });
         } catch (e) {
             console.error("❌ QUEST TRANSACTION FAILED:", e);
+            throw e;
+        }
+    },
+
+    /**
+     * Atomically toggles a Habit completion status and updates all related stats.
+     */
+    toggleHabitCompletion: async (userId: string, habitId: string, isCompleted: boolean, rewardXp: number, rewardGold: number, rewardTraitXp: number, habitUpdates: any) => {
+        const userRef = doc(db, 'users', userId);
+        const habitRef = doc(db, 'users', userId, 'habits', habitId);
+
+        try {
+            return await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                const habitDoc = await transaction.get(habitRef);
+
+                if (!userDoc.exists()) throw new Error("User not found");
+                if (!habitDoc.exists()) throw new Error("Habit not found");
+
+                const userData = userDoc.data() as UserProfile;
+                const habitData = habitDoc.data() as Habit;
+
+                // Validate
+                if (isCompleted && habitData.completedToday) throw new Error("Habit already completed today");
+                if (!isCompleted && !habitData.completedToday) throw new Error("Habit not completed today");
+
+                const stats = userData.stats;
+                const dailyLimits = userData.dailyLimits || { 
+                    date: toLocalISOString(new Date()), 
+                    taskXp: 0, 
+                    taskGold: 0, 
+                    taskTraitPoints: 0, 
+                    habitsCompleted: 0,
+                    focusSeconds: 0,
+                    tasksCompleted: 0,
+                    habitXp: 0,
+                    habitGold: 0,
+                    habitTraitPoints: 0
+                } as DailyLimits;
+
+                // Stats Update
+                const multiplier = isCompleted ? 1 : -1; // Usually 1, but passed rewards might be negative if reverting?
+                // Wait, logic in useDashboardLogic calculates negative rewards for reversal.
+                // So we just ADD the reward (which might be negative).
+                
+                let newXp = (stats.xp || 0) + rewardXp;
+                let newGold = (stats.gold || 0) + rewardGold;
+                
+                if (newXp < 0) newXp = 0;
+                if (newGold < 0) newGold = 0;
+
+                const newLevel = calculateLevelFromXp(newXp);
+                const newNextXp = calculateNextLevelXp(newLevel);
+
+                // Attribute Update
+                let attributeUpdate = null;
+                if (habitData.attribute) {
+                    const attrRef = doc(db, 'users', userId, 'attributes', habitData.attribute);
+                    const attrDoc = await transaction.get(attrRef);
+                    
+                    if (attrDoc.exists()) {
+                        const attrData = attrDoc.data() as Attribute;
+                        let newAttrXp = (attrData.xp || 0) + rewardTraitXp; // rewardTraitXp handles sign
+                        let newAttrLevel = attrData.level;
+                        let newAttrMaxXp = attrData.maxXp;
+
+                        if (rewardTraitXp > 0) {
+                            while (newAttrXp >= newAttrMaxXp) {
+                                newAttrXp -= newAttrMaxXp;
+                                newAttrLevel += 1;
+                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            }
+                        } else {
+                            newAttrXp = Math.max(0, newAttrXp);
+                        }
+
+                        attributeUpdate = {
+                            ref: attrRef,
+                            data: { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }
+                        };
+                    }
+                }
+
+                // Limits Update
+                const today = toLocalISOString(new Date());
+                let newLimits = { ...dailyLimits };
+                if (newLimits.date !== today) {
+                    newLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, tasksCompleted: 0 };
+                }
+
+                if (isCompleted) {
+                    newLimits.habitsCompleted = (newLimits.habitsCompleted || 0) + 1;
+                    newLimits.habitXp = (newLimits.habitXp || 0) + rewardXp;
+                    newLimits.habitGold = (newLimits.habitGold || 0) + rewardGold;
+                    newLimits.habitTraitPoints = (newLimits.habitTraitPoints || 0) + rewardTraitXp;
+                } else {
+                    if (newLimits.date === dailyLimits.date) {
+                         newLimits.habitsCompleted = Math.max(0, (newLimits.habitsCompleted || 0) - 1);
+                         // Revert rewards (assuming rewards passed are negative for reversal)
+                         // Wait, if passed rewards are negative, we ADD them to revert stats, but for limits tracking?
+                         // Limits usually track POSITIVE accumulation. Reverting should subtract ABS value.
+                         // But if rewardXp is -50, adding it reduces stats.
+                         // For limits, we want to reduce the "gained today" amount.
+                         // So adding negative value is correct if limits track "net gain".
+                         newLimits.habitXp = Math.max(0, (newLimits.habitXp || 0) + rewardXp);
+                         newLimits.habitGold = Math.max(0, (newLimits.habitGold || 0) + rewardGold);
+                         newLimits.habitTraitPoints = Math.max(0, (newLimits.habitTraitPoints || 0) + rewardTraitXp);
+                    }
+                }
+
+                // Commit
+                transaction.update(habitRef, habitUpdates);
+                transaction.update(userRef, {
+                    'stats.xp': newXp,
+                    'stats.gold': newGold,
+                    'stats.level': newLevel,
+                    'stats.nextXp': newNextXp,
+                    'dailyLimits': newLimits
+                });
+
+                if (attributeUpdate) {
+                    transaction.update(attributeUpdate.ref, attributeUpdate.data);
+                }
+
+                return { newXp, newGold, newLevel, newLimits };
+            });
+        } catch (e) {
+            console.error("❌ HABIT TRANSACTION FAILED:", e);
             throw e;
         }
     },

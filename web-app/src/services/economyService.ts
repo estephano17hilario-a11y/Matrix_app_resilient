@@ -1,4 +1,5 @@
 import { db, doc, runTransaction, Transaction } from "./firebase";
+import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
 
 export interface InventoryItem {
   itemId: string;
@@ -132,10 +133,16 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
                         updates["stats.maxHp"] = maxHp; // Sync DB to new rule
                         break;
                     case 'xp_boost':
-                        updates["stats.xp"] = (stats.xp || 0) + effect.value;
+                        const newXp = (stats.xp || 0) + effect.value;
+                        updates["stats.xp"] = newXp;
+                        // Recalculate level
+                        const newLevel = calculateLevelFromXp(newXp);
+                        updates["stats.level"] = newLevel;
+                        updates["stats.nextXp"] = calculateNextLevelXp(newLevel);
                         break;
                     case 'restore_streak':
-                        updates["stats.currentStreak"] = (stats.currentStreak || 0) + effect.value;
+                        const currentStreak = stats.streak || 0;
+                        updates["stats.streak"] = currentStreak + (effect.value || 1);
                         break;
                     case 'freeze_streak':
                         const now = new Date();
