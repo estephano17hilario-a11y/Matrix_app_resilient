@@ -182,7 +182,7 @@ export default function OracleScreen() {
       <TheVoid />
       
       {/* Header */}
-      <header className="relative z-10 p-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
+      <header className="relative z-10 p-6 flex items-center justify-between border-b border-white/5 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <Sparkles className="w-5 h-5 text-white" />
@@ -210,7 +210,7 @@ export default function OracleScreen() {
       </main>
 
       {/* Input Area */}
-      <footer className="relative z-20 p-6 pb-8 backdrop-blur-lg border-t border-white/5">
+      <footer className="relative z-20 p-6 pb-8 backdrop-blur-sm border-t border-white/5">
         <InputField onSend={handleSend} isLoading={isLoading} />
       </footer>
     </div>

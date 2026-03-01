@@ -14,7 +14,7 @@ export const SettingsSidebar = () => {
   const { activeTab, setActiveTab, logout } = useSettings();
 
   return (
-    <div className="w-full md:w-64 h-auto md:h-full border-b md:border-b-0 md:border-r border-white/5 bg-black/40 backdrop-blur-md md:bg-black/20 flex flex-row md:flex-col p-1 md:p-6 gap-1 md:space-y-8 z-20 shrink-0 overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory">
+    <div className="w-full md:w-64 h-auto md:h-full border-b md:border-b-0 md:border-r border-white/5 bg-black/50 md:bg-black/30 flex flex-row md:flex-col p-1 md:p-6 gap-1 md:space-y-8 z-20 shrink-0 overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory">
       
       {/* HEADER - Desktop Only */}
       <div className="hidden md:flex items-center gap-3 px-2">

@@ -153,6 +153,27 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         ).join(" ") + " Z";
     }, [chartData]);
 
+    // 4. DYNAMIC HEIGHT CALCULATION
+    const chartHeight = useMemo(() => {
+        if (chartData.length < 3) return CONTAINER_SIZE;
+        
+        let maxY = 0;
+        chartData.forEach(p => {
+             // Icon center is p.iconPoint.y. Radius ~16px.
+             let bottom = p.iconPoint.y + 16;
+             
+             // If label is at bottom, add extra space for text
+             if (p.alignment === 'bottom') {
+                 bottom += 24; // Approx text height
+             }
+             
+             if (bottom > maxY) maxY = bottom;
+        });
+
+        // Add padding (10px) and clamp
+        return Math.min(Math.max(maxY + 10, CONTAINER_SIZE * 0.5), CONTAINER_SIZE);
+    }, [chartData]);
+
     const gridLevels = [0.33, 0.66, 1];
 
     if (attributes.length < 3) return null;
@@ -162,10 +183,10 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         // Added mx-auto for safety.
         // WRAPPER: Handles the scaled size footprint
         <div 
-            className={cn("relative flex items-center justify-center select-none mx-auto", className)} 
+            className={cn("relative flex items-start justify-center select-none mx-auto", className)} 
             style={{ 
                 width: CONTAINER_SIZE * scale, 
-                height: CONTAINER_SIZE * scale 
+                height: chartHeight * scale 
             }}
         >
             {/* INNER: The actual chart, scaled */}
@@ -173,7 +194,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 width: CONTAINER_SIZE,
                 height: CONTAINER_SIZE,
                 transform: `scale(${scale})`,
-                transformOrigin: 'center center',
+                transformOrigin: 'top center',
                 position: 'relative' // Keeps it centered in the flex parent
             }}>
             

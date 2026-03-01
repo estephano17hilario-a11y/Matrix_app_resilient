@@ -8,16 +8,10 @@ interface FocusLimitsProps {
 }
 
 export const FocusLimits: React.FC<FocusLimitsProps> = ({ dailyLimits }) => {
-  const maxHours = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_HOURS;
-  const baseHourly = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY;
-
-  // Theoretical Max Rewards (Base Calculation)
-  // XP: 20/hr * 16hr = 320
-  const maxXP = maxHours * baseHourly.XP;
-  // TP: 25/hr * 16hr = 400
-  const maxTP = maxHours * baseHourly.TP;
-  // Coins: 10/hr * 16hr = 160
-  const maxCoins = maxHours * baseHourly.COINS;
+  // Use Explicit Limits for Synergy
+  const maxXP = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_XP;
+  const maxTP = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_TP;
+  const maxCoins = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_GOLD;
 
   const currentXP = dailyLimits?.focusXp || 0;
   const currentTP = dailyLimits?.focusTraitPoints || 0;

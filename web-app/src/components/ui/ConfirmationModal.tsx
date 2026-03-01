@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 
@@ -9,7 +10,7 @@ interface ConfirmationModalProps {
     title: string;
     message: string;
     confirmText?: string;
-    cancelText?: string;
+    cancelText?: string | null;
     variant?: 'danger' | 'warning' | 'info';
 }
 
@@ -24,6 +25,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     variant = 'danger'
 }) => {
     if (!isOpen) return null;
+
+    if (typeof document === 'undefined') return null;
 
     const variantStyles = {
         danger: {
@@ -49,8 +52,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         }
     }[variant];
 
-    return (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -78,13 +81,15 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         {message}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-3 w-full">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors border border-white/5"
-                        >
-                            {cancelText}
-                        </button>
+                    <div className={`grid ${cancelText ? 'grid-cols-2' : 'grid-cols-1'} gap-3 w-full`}>
+                        {cancelText && (
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors border border-white/5"
+                            >
+                                {cancelText}
+                            </button>
+                        )}
                         <button
                             onClick={() => {
                                 onConfirm();
@@ -97,6 +102,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     </div>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 };

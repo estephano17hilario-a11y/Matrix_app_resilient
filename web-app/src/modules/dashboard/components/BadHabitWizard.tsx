@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame } from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
@@ -9,6 +10,7 @@ interface BadHabitWizardProps {
     onClose: () => void;
     onConfirm: (data: Partial<BadHabit>) => void;
     attributes: Attribute[];
+    isFirstIdentify?: boolean;
 }
 
 // --- OPTIMIZED AURORA BACKGROUND (Zero Cost) ---
@@ -46,7 +48,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    attributes
+    attributes,
+    isFirstIdentify
 }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
@@ -58,6 +61,20 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [reason, setReason] = useState('');
     const [impactLevel, setImpactLevel] = useState(3);
     const [timeIndex, setTimeIndex] = useState(4); // Default to 1 hour (index 4 -> 60min)
+    const [inputMode, setInputMode] = useState<'LIST' | 'CUSTOM'>('CUSTOM');
+    const [viceList, setViceList] = useState<string[]>([
+        'Procrastinación',
+        'Redes sociales',
+        'Pornografía',
+        'Azúcar',
+        'Comida chatarra',
+        'Tabaco',
+        'Alcohol',
+        'Videojuegos',
+        'Compras impulsivas',
+        'Desvelarse'
+    ]);
+    const [listDraft, setListDraft] = useState('');
 
     // Calculated Penalties
     const [penalties, setPenalties] = useState({ hp: 0, xp: 0, gold: 0 });
@@ -75,7 +92,21 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [isOpen]);
+        setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
+        setViceList([
+            'Procrastinación',
+            'Redes sociales',
+            'Pornografía',
+            'Azúcar',
+            'Comida chatarra',
+            'Tabaco',
+            'Alcohol',
+            'Videojuegos',
+            'Compras impulsivas',
+            'Desvelarse'
+        ]);
+        setListDraft('');
+    }, [isOpen, isFirstIdentify]);
 
     const getMinutesFromIndex = (index: number) => {
         if (index <= 8) return (index + 1) * 15; // 15, 30, 45, 60, 75, 90, 105, 120, 135
@@ -150,6 +181,23 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         onClose();
     };
 
+    const handleAddListItems = () => {
+        const items = listDraft
+            .split(/[\n,]+/)
+            .map(item => item.trim())
+            .filter(Boolean);
+        if (items.length === 0) return;
+        setViceList(prev => {
+            const existing = new Set(prev.map(item => item.toLowerCase()));
+            const merged = [...prev];
+            items.forEach(item => {
+                if (!existing.has(item.toLowerCase())) merged.push(item);
+            });
+            return merged;
+        });
+        setListDraft('');
+    };
+
     const isStepValid = () => {
         if (step === 1) return title.length > 2 && attribute;
         if (step === 2) return reason.length > 5;
@@ -158,7 +206,9 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans">
@@ -178,17 +228,17 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={springConfig}
-                        className="relative w-full max-w-lg bg-[#0f0f11] rounded-[32px] shadow-2xl overflow-hidden border border-white/10 ring-1 ring-white/5"
+                        className="relative w-full max-w-lg bg-[#0f0f11] rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-hidden border border-white/10 ring-1 ring-white/5 max-h-[90vh] flex flex-col"
                     >
                         {/* Fake Glass Highlights */}
                         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-100" />
                         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
                         <AmbientBackground />
 
-                        <div className="relative flex flex-col min-h-[580px]">
+                        <div className="relative flex flex-col h-full overflow-hidden">
                             
                             {/* Header - Apple Style */}
-                            <div className="px-8 pt-8 pb-2 flex justify-between items-center z-10">
+                            <div className="px-5 pt-5 pb-2 sm:px-8 sm:pt-8 flex justify-between items-center z-10 shrink-0">
                                 <div>
                                     <motion.div 
                                         initial={{ opacity: 0, x: -10 }}
@@ -217,7 +267,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                             </div>
 
                             {/* Minimal Progress */}
-                            <div className="px-8 mt-4 mb-8">
+                            <div className="px-5 sm:px-8 mt-3 mb-4 shrink-0">
                                 <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
                                     <motion.div 
                                         initial={{ width: "33%" }}
@@ -229,7 +279,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                             </div>
 
                             {/* Content Area */}
-                            <div className="flex-1 px-8 relative overflow-hidden">
+                            <div className="flex-1 px-5 sm:px-8 relative overflow-hidden min-h-0">
                                 <AnimatePresence initial={false} custom={direction} mode="wait">
                                     {step === 1 && (
                                         <motion.div
@@ -240,10 +290,77 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-8 h-full"
+                                            className="space-y-4 sm:space-y-8 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
                                         >
-                                            <div className="space-y-4">
-                                                <label className="text-sm font-medium text-white/60 ml-1">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Modo</span>
+                                                    <div className="flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/10">
+                                                        <button
+                                                            onClick={() => setInputMode('LIST')}
+                                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${
+                                                                inputMode === 'LIST'
+                                                                    ? 'bg-white/10 text-white'
+                                                                    : 'text-white/40 hover:text-white/70'
+                                                            }`}
+                                                        >
+                                                            Lista
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setInputMode('CUSTOM')}
+                                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${
+                                                                inputMode === 'CUSTOM'
+                                                                    ? 'bg-white/10 text-white'
+                                                                    : 'text-white/40 hover:text-white/70'
+                                                            }`}
+                                                        >
+                                                            Manual
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {inputMode === 'LIST' && (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                value={listDraft}
+                                                                onChange={(e) => setListDraft(e.target.value)}
+                                                                placeholder="Agrega vicios (coma o salto de línea)"
+                                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 transition-all"
+                                                            />
+                                                            <button
+                                                                onClick={handleAddListItems}
+                                                                disabled={!listDraft.trim()}
+                                                                className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                                                    listDraft.trim()
+                                                                        ? 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
+                                                                        : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
+                                                                }`}
+                                                            >
+                                                                Agregar
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[80px] sm:max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
+                                                            {viceList.map(item => (
+                                                                <button
+                                                                    key={item}
+                                                                    onClick={() => setTitle(item)}
+                                                                    className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold transition-all border ${
+                                                                        title === item
+                                                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
+                                                                            : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:border-white/20'
+                                                                    }`}
+                                                                >
+                                                                    {item}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-3 sm:space-y-4">
+                                                <label className="text-xs sm:text-sm font-medium text-white/60 ml-1">
                                                     ¿Qué hábito deseas eliminar?
                                                 </label>
                                                 <div className="relative group">
@@ -251,34 +368,34 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                         value={title}
                                                         onChange={(e) => setTitle(e.target.value)}
                                                         placeholder="Ej: Fumar, TikTok..."
-                                                        className="w-full bg-transparent border-b-2 border-white/10 px-2 py-4 text-3xl font-bold text-white placeholder-white/10 focus:outline-none focus:border-rose-500 transition-colors"
+                                                        className="w-full bg-transparent border-b-2 border-white/10 px-1 py-2 sm:px-2 sm:py-4 text-xl sm:text-3xl font-bold text-white placeholder-white/10 focus:outline-none focus:border-rose-500 transition-colors"
                                                         autoFocus
                                                     />
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <label className="text-sm font-medium text-white/60 ml-1">
+                                            <div className="space-y-3 sm:space-y-4">
+                                                <label className="text-xs sm:text-sm font-medium text-white/60 ml-1">
                                                     Afecta a tu atributo:
                                                 </label>
-                                                <div className="grid grid-cols-2 gap-3 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div className="grid grid-cols-2 gap-2 sm:gap-3 max-h-[180px] sm:max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
                                                     {attributes.map(attr => (
                                                         <motion.button
                                                             key={attr.id}
                                                             whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={() => setAttribute(attr.id)}
-                                                            className={`relative p-4 rounded-xl border text-left transition-all duration-200 group ${
+                                                            className={`relative p-2.5 sm:p-4 rounded-xl border text-left transition-all duration-200 group ${
                                                                 attribute === attr.id 
                                                                 ? 'bg-rose-500/10 border-rose-500/50 ring-1 ring-rose-500/20' 
                                                                 : 'bg-white/5 border-white/5 hover:border-white/10'
                                                             }`}
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`p-2 rounded-lg transition-colors ${attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/5 text-white/40 group-hover:bg-white/10'}`}>
-                                                                    <Zap size={18} />
+                                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                                <div className={`p-1.5 sm:p-2 rounded-lg transition-colors ${attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/5 text-white/40 group-hover:bg-white/10'}`}>
+                                                                    <Zap size={14} className="sm:w-[18px] sm:h-[18px]" />
                                                                 </div>
-                                                                <span className={`text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
+                                                                <span className={`text-xs sm:text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
                                                                     {t(attr.label, attr.label)}
                                                                 </span>
                                                             </div>
@@ -298,7 +415,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-6 h-full"
+                                            className="space-y-6 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
                                         >
                                             <div className="space-y-3">
                                                 <label className="text-sm font-medium text-white/60 ml-1">
@@ -414,16 +531,16 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                             </div>
 
                             {/* Footer / Navigation */}
-                            <div className="p-8 pt-4 flex justify-between items-center bg-gradient-to-t from-[#0f0f11] to-transparent">
+                            <div className="p-5 sm:p-8 pt-4 flex justify-between items-center bg-gradient-to-t from-[#0f0f11] to-transparent shrink-0">
                                 {step > 1 ? (
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleBack}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                                        className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors"
                                     >
-                                        <ChevronLeft size={20} />
-                                        <span className="font-medium">Atrás</span>
+                                        <ChevronLeft size={18} className="sm:w-[20px] sm:h-[20px]" />
+                                        <span className="font-medium text-xs sm:text-base">Atrás</span>
                                     </motion.button>
                                 ) : <div />}
 
@@ -433,21 +550,22 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                     onClick={handleNext}
                                     disabled={!isStepValid()}
                                     className={`
-                                        flex items-center gap-2 px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-all
+                                        flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-bold text-sm sm:text-lg shadow-lg transition-all
                                         ${isStepValid() 
                                             ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-rose-900/20' 
                                             : 'bg-white/10 text-white/20 cursor-not-allowed'}
                                     `}
                                 >
                                     <span>{step === 3 ? 'Activar Protocolo' : 'Continuar'}</span>
-                                    {step < 3 && <ChevronRight size={20} />}
-                                    {step === 3 && <ShieldAlert size={20} />}
+                                    {step < 3 && <ChevronRight size={18} className="sm:w-[20px] sm:h-[20px]" />}
+                                    {step === 3 && <ShieldAlert size={18} className="sm:w-[20px] sm:h-[20px]" />}
                                 </motion.button>
                             </div>
                         </div>
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };

@@ -145,10 +145,11 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className="relative z-10"
                     >
                         <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-2xl space-y-4 mt-2">
                             

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
@@ -70,7 +70,7 @@ const ConfirmationModal = ({
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                        className="relative w-full max-w-sm bg-[#1c1c1e] border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden"
+                        className="relative w-full max-w-sm bg-[#1c1c1e] border border-white/10 rounded-3xl p-6 shadow-md shadow-indigo-500/10 overflow-hidden"
                     >
                         {/* Background Glow - Optimized */}
                         <div 
@@ -128,18 +128,20 @@ const StoreContent = ({ }: StoreScreenProps) => {
   
   // Generate Filters based on items
   // We want: All, Power Ups, Themes
-  const filters = [
+  const filters = useMemo(() => ([
       { id: 'all', label: 'store.filters.all' },
       { id: 'power_up', label: 'store.filters.power_up' },
       { id: 'theme', label: 'store.filters.theme' }
-  ];
+  ]), []);
 
-  const filteredItems = storeItems.filter(item => {
-      if (activeFilter === 'all') return true;
-      if (item.category === activeFilter) return true;
-      if (item.subCategory === activeFilter) return true;
-      return false;
-  });
+  const filteredItems = useMemo(() => {
+      return storeItems.filter(item => {
+          if (activeFilter === 'all') return true;
+          if (item.category === activeFilter) return true;
+          if (item.subCategory === activeFilter) return true;
+          return false;
+      });
+  }, [storeItems, activeFilter]);
 
   const initiatePurchase = (item: StoreItem) => {
       setItemToBuy(item);
@@ -217,14 +219,12 @@ const StoreContent = ({ }: StoreScreenProps) => {
 
         {/* Grid */}
         <motion.div 
-            layout
             className="grid grid-cols-1 gap-3"
         >
-            <AnimatePresence mode='popLayout'>
+            <AnimatePresence initial={false}>
                 {/* Ad Shard - Only when Power Ups or All are selected */}
                 {(activeFilter === 'all' || activeFilter === 'power_up') && (
                     <motion.div
-                        layout
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}

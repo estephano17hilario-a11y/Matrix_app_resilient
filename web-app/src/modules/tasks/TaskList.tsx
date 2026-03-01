@@ -1,14 +1,16 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X, Coins, ChevronDown } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
 import { DailyLimits } from '../../types/User';
 import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
-import { isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { DateSelectionModal } from '../dashboard/components/DateSelectionModal';
+import { es } from 'date-fns/locale';
 
 interface TaskListProps {
   quests: Quest[];
@@ -24,44 +26,70 @@ interface TaskListProps {
   onOpenNexus?: (smartProjectId: string) => void;
 }
 
+// Optimization: Memoized Item Wrapper
+const MemoizedQuestItem = React.memo(QuestItem);
+
 export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus, dailyLimits }) => {
   const { t } = useTranslation();
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH'>('ALL');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+
   const [traitFilter, setTraitFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>('all');
   const [hideCompleted, setHideCompleted] = useState<boolean>(true);
   const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(true);
 
+  // Optimization: Memoize maps only when inputs change
   const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
   const projectMap = useMemo(() => new Map((projects || []).map(project => [project.id, project])), [projects]);
   const smartProjectMap = useMemo(() => new Map((smartProjects || []).map(project => [project.id, project])), [smartProjects]);
 
-  const filteredQuests = useMemo(() => quests.filter(quest => {
-    if (hideCompleted && quest.completed) return false;
+  // Optimization: Stable date references for filtering to avoid re-calculating on every render if not needed
+  const dateRange = useMemo(() => {
+    if (timeframe === 'ALL') return null;
+    const start = startOfDay(currentDate);
+    if (timeframe === 'DAY') return { start, end: start }; // Same day comparison
+    if (timeframe === 'WEEK') return { start: startOfWeek(start, { weekStartsOn: 1 }), end: endOfWeek(start, { weekStartsOn: 1 }) };
+    return { start: start, month: start.getMonth(), year: start.getFullYear() }; // Month check
+  }, [timeframe, currentDate]);
 
-    if (dateFilter !== 'all') {
-      if (!quest.deadline) return false;
-      const date = parseISO(quest.deadline);
-      if (dateFilter === 'today' && !isToday(date)) return false;
-      if (dateFilter === 'week' && !isThisWeek(date)) return false;
-      if (dateFilter === 'month' && !isThisMonth(date)) return false;
-    }
+  const filteredQuests = useMemo(() => {
+    return quests.filter(quest => {
+      // Fast check: Completion status
+      if (hideCompleted && quest.completed) return false;
 
-    if (traitFilter !== 'all' && quest.attribute !== traitFilter) return false;
+      // Filter by Timeframe - Optimization: reduce date parsing
+      if (timeframe !== 'ALL' && dateRange) {
+        if (!quest.deadline) return false;
+        const qDate = new Date(quest.deadline); // Native Date is faster than parseISO often
+        
+        if (timeframe === 'DAY') {
+            if (!isSameDay(qDate, dateRange.start as Date)) return false;
+        } else if (timeframe === 'WEEK') {
+            if (!isWithinInterval(qDate, { start: (dateRange as any).start, end: (dateRange as any).end })) return false;
+        } else if (timeframe === 'MONTH') {
+             if (qDate.getMonth() !== (dateRange as any).month || qDate.getFullYear() !== (dateRange as any).year) return false;
+        }
+      }
 
-    if (typeFilter === 'smart' && !quest.isSmartQuest) return false;
-    if (typeFilter === 'normal' && quest.isSmartQuest) return false;
+      // Fast checks: strings/enums
+      if (traitFilter !== 'all' && quest.attribute !== traitFilter) return false;
+      if (typeFilter === 'smart' && !quest.isSmartQuest) return false;
+      if (typeFilter === 'normal' && quest.isSmartQuest) return false;
+      if (difficultyFilter !== 'all' && quest.difficulty !== difficultyFilter) return false;
 
-    if (difficultyFilter !== 'all' && quest.difficulty !== difficultyFilter) return false;
+      return true;
+    });
+  }, [quests, hideCompleted, timeframe, dateRange, traitFilter, typeFilter, difficultyFilter]);
 
-    return true;
-  }), [quests, hideCompleted, dateFilter, traitFilter, typeFilter, difficultyFilter]);
-
+  // Optimization: Separate sorting from filtering to memoize efficiently
   const sortedQuests = useMemo(() => {
+    // Create a new array to avoid mutating the filtered one (though filter returns new array, sort mutates)
     const list = [...filteredQuests];
     return list.sort((a, b) => {
       if (a.completed === b.completed) {
@@ -73,22 +101,133 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
         if (!a.deadline && b.deadline) return 1;
 
         const difficultyRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
-        const diffA = difficultyRank[a.difficulty] || 0;
-        const diffB = difficultyRank[b.difficulty] || 0;
+        const diffA = difficultyRank[a.difficulty as keyof typeof difficultyRank] || 0;
+        const diffB = difficultyRank[b.difficulty as keyof typeof difficultyRank] || 0;
         return diffB - diffA;
       }
       return a.completed ? 1 : -1;
     });
   }, [filteredQuests]);
 
-  const activeCount = useMemo(() => filteredQuests.filter(q => !q.completed).length, [filteredQuests]);
-  const activeFiltersCount = useMemo(() => [
-    dateFilter !== 'all',
+  // Date Label Logic
+  const dateRangeLabel = useMemo(() => {
+      if (timeframe === 'ALL') return t('tasks.all', 'All Time');
+      if (timeframe === 'DAY') return format(currentDate, 'EEEE d MMM', { locale: es });
+      if (timeframe === 'WEEK') {
+          const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+          const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+          return `${format(start, 'd MMM').toUpperCase()} - ${format(end, 'd MMM', { locale: es }).toUpperCase()}`;
+      }
+      if (timeframe === 'MONTH') {
+          const monthName = format(currentDate, 'MMMM', { locale: es });
+          return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${format(currentDate, 'yyyy')}`;
+      }
+      return '';
+  }, [timeframe, currentDate, t]);
+
+  const handleNext = useCallback(() => {
+    if (timeframe === 'DAY') setCurrentDate(d => addDays(d, 1));
+    if (timeframe === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
+    if (timeframe === 'MONTH') setCurrentDate(d => addMonths(d, 1));
+  }, [timeframe]);
+
+  const handlePrev = useCallback(() => {
+    if (timeframe === 'DAY') setCurrentDate(d => subDays(d, 1));
+    if (timeframe === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
+    if (timeframe === 'MONTH') setCurrentDate(d => subMonths(d, 1));
+  }, [timeframe]);
+
+  const handleDateSelect = useCallback((date: Date) => {
+      setCurrentDate(date);
+      if (timeframe === 'ALL') setTimeframe('WEEK');
+  }, [timeframe]);
+
+  const activeCount = filteredQuests.length; // Approximate active count based on view
+  const activeFiltersCount = [
+    timeframe !== 'ALL',
     traitFilter !== 'all',
     typeFilter !== 'all',
     difficultyFilter !== 'all',
-    !hideCompleted // Count only if we are SHOWING completed tasks (deviation from default)
-  ].filter(Boolean).length, [dateFilter, traitFilter, typeFilter, difficultyFilter, hideCompleted]);
+    !hideCompleted 
+  ].filter(Boolean).length;
+
+  // Refs for Camera Movement
+  const headerRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showFilters) {
+      setTimeout(() => {
+        filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } else {
+      headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [showFilters]);
+
+  const resetFilters = useCallback(() => {
+      setTimeframe('ALL');
+      setCurrentDate(new Date());
+      setTraitFilter('all');
+      setTypeFilter('all');
+      setDifficultyFilter('all');
+      setHideCompleted(true);
+  }, []);
+
+  // VIRTUALIZATION LOGIC
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const ITEM_ESTIMATE = 160; // Reduced slightly to ensure density
+  const OVERSCAN = 5;
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(600); // Default estimate
+
+  // Only virtualize if list is long enough
+  const isVirtualized = sortedQuests.length > 20;
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    // Use requestAnimationFrame to debounce state updates
+    requestAnimationFrame(() => {
+      setScrollTop(target.scrollTop);
+    });
+  }, []);
+
+  // Measure viewport on mount/resize
+  useLayoutEffect(() => {
+    const el = listContainerRef.current;
+    if (!el) return;
+    
+    const measure = () => setViewportHeight(el.clientHeight);
+    measure();
+    
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { virtualItems, paddingTop, paddingBottom } = useMemo(() => {
+    if (!isVirtualized) {
+      return { 
+        virtualItems: sortedQuests, 
+        totalHeight: 'auto', 
+        paddingTop: 0, 
+        paddingBottom: 0 
+      };
+    }
+
+    const totalHeightVal = sortedQuests.length * ITEM_ESTIMATE;
+    const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_ESTIMATE) - OVERSCAN);
+    const endIndex = Math.min(
+      sortedQuests.length,
+      Math.ceil((scrollTop + viewportHeight) / ITEM_ESTIMATE) + OVERSCAN
+    );
+
+    const virtualItems = sortedQuests.slice(startIndex, endIndex);
+    const paddingTop = startIndex * ITEM_ESTIMATE;
+    const paddingBottom = Math.max(0, totalHeightVal - (endIndex * ITEM_ESTIMATE));
+
+    return { virtualItems, totalHeight: totalHeightVal, paddingTop, paddingBottom };
+  }, [sortedQuests, scrollTop, viewportHeight, isVirtualized]);
 
   const safeTaskXp = Math.max(0, Number(dailyLimits?.taskXp || 0));
   const safeTaskTraitPoints = Math.max(0, Number(dailyLimits?.taskTraitPoints || 0));
@@ -98,41 +237,11 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
   const maxTaskGold = DAILY_LIMITS.TASKS.GOLD;
   const maxGoldLabel = maxTaskGold >= 999999 ? '∞' : Math.round(maxTaskGold).toString();
 
-  // Refs for Camera Movement
-  const headerRef = useRef<HTMLDivElement>(null);
-  const filtersRef = useRef<HTMLDivElement>(null);
-  const isMounted = useRef(false);
-
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
-    }
-
-    if (showFilters) {
-      // Camera Down: Focus on filters
-      setTimeout(() => {
-        filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    } else {
-      // Camera Up: Return to header
-      headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [showFilters]);
-
-  const resetFilters = () => {
-      setDateFilter('all');
-      setTraitFilter('all');
-      setTypeFilter('all');
-      setDifficultyFilter('all');
-      setHideCompleted(true);
-  };
-
   return (
-    <div className="flex flex-col gap-6 h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col gap-3 h-full w-full">
       
-      {/* HEADER GROUP (Fixed) */}
-      <div className="flex-none z-30 bg-transparent pt-2 pb-2 -mx-2 px-2">
+      {/* HEADER GROUP */}
+      <div className="flex-none pt-2 pb-2 -mx-2 px-2 border-b border-white/5 transition-all duration-300">
           {dailyLimits && (
             <div className="px-1 mb-2">
               <div className="flex items-center justify-between mb-1">
@@ -152,13 +261,13 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
               <AnimatePresence initial={false}>
                 {isDailyCapsOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -4, scaleY: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                    exit={{ opacity: 0, y: -4, scaleY: 0.98 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="origin-top rounded-xl bg-transparent px-2 py-2"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
                   >
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 py-2">
                       <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1 text-[9px] font-bold text-cyan-300 uppercase tracking-wider">
@@ -169,10 +278,11 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                         </div>
                         <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
                           <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${maxTaskXp > 0 ? Math.min(100, (safeTaskXp / maxTaskXp) * 100) : 0}%` }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400"
+                            className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 origin-left"
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: maxTaskXp > 0 ? Math.min(1, safeTaskXp / maxTaskXp) : 0 }}
+                            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                            style={{ width: '100%' }}
                           />
                         </div>
                       </div>
@@ -185,11 +295,12 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                           <span className="text-[9px] font-mono text-white/60 tabular-nums">{Math.round(safeTaskTraitPoints)}/{maxTaskTraitPoints}</span>
                         </div>
                         <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${maxTaskTraitPoints > 0 ? Math.min(100, (safeTaskTraitPoints / maxTaskTraitPoints) * 100) : 0}%` }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="h-full bg-gradient-to-r from-fuchsia-400 to-violet-400"
+                           <motion.div
+                            className="h-full bg-gradient-to-r from-fuchsia-400 to-violet-400 origin-left"
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: maxTaskTraitPoints > 0 ? Math.min(1, safeTaskTraitPoints / maxTaskTraitPoints) : 0 }}
+                            transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
+                            style={{ width: '100%' }}
                           />
                         </div>
                       </div>
@@ -202,21 +313,13 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                           <span className="text-[9px] font-mono text-white/60 tabular-nums">{Math.round(safeTaskGold)}/{maxGoldLabel}</span>
                         </div>
                         <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${maxTaskGold > 0 ? Math.min(100, (safeTaskGold / maxTaskGold) * 100) : 0}%` }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="h-full bg-gradient-to-r from-amber-400 to-yellow-300"
+                           <div
+                            className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 origin-left transition-all duration-500"
+                            style={{ width: `${maxTaskGold > 0 ? Math.min(100, (safeTaskGold / maxTaskGold) * 100) : 0}%` }}
                           />
                         </div>
                       </div>
                     </div>
-                    {safeTaskXp >= maxTaskXp && (
-                      <div className="mt-1 flex items-center gap-1 text-[9px] font-medium text-emerald-400/80">
-                        <CheckCircle2 size={10} />
-                        Límite de XP alcanzado. Solo ganarás Coins.
-                      </div>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -225,7 +328,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
           {/* ACTIVE MISSIONS HEADER */}
           <div ref={headerRef} className="scroll-mt-24 px-1">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">
                 {t('dashboard.activeMissions')}
               </h2>
@@ -268,17 +371,10 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
               </div>
             </div>
 
-            {/* FILTERS PANEL */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ opacity: 0, scaleY: 0 }}
-                  animate={{ opacity: 1, scaleY: 1 }}
-                  exit={{ opacity: 0, scaleY: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="overflow-hidden origin-top"
-                >
-                  <div ref={filtersRef} className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
+            {/* FILTERS PANEL - Simplified Animation */}
+            {showFilters && (
+                <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div ref={filtersRef} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
                     
                     {/* Reset Button */}
                     <button 
@@ -294,26 +390,65 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                         <Calendar size={10} />
                         {t('tasks.filterDate', 'Timeline')}
                       </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { id: 'all', label: t('tasks.all', 'All') },
-                          { id: 'today', label: t('tasks.today', 'Today') },
-                          { id: 'week', label: t('tasks.week', 'Week') },
-                          { id: 'month', label: t('tasks.month', 'Month') }
-                        ].map(opt => (
-                          <button
-                            key={opt.id}
-                            onClick={() => setDateFilter(opt.id as any)}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                              dateFilter === opt.id
-                                ? "bg-white/10 border-white/20 text-white shadow-[0_0_10px_rgba(255,255,255,0.05)]"
-                                : "bg-transparent border-transparent text-white/40 hover:bg-white/5 hover:text-white/60"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
+                      <div className="flex flex-col gap-2">
+                        
+                        {/* Tabs Row */}
+                        <div className="flex flex-wrap items-center gap-3">
+                             {/* Tabs */}
+                             <div className="flex p-0.5 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
+                                  {(['ALL', 'DAY', 'WEEK', 'MONTH'] as const).map((tf) => (
+                                     <button
+                                         key={tf}
+                                         onClick={() => setTimeframe(tf)}
+                                         className={cn(
+                                             "relative px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 z-10",
+                                             timeframe === tf ? "text-white bg-white/10 shadow-sm" : "text-white/40 hover:text-white/60"
+                                         )}
+                                     >
+                                         {tf === 'ALL' ? t('tasks.all', 'ALL') : tf === 'DAY' ? 'DAY' : tf === 'WEEK' ? 'WEEK' : 'MONTH'}
+                                     </button>
+                                 ))}
+                             </div>
+                        </div>
+
+                        {/* Navigator Row (Only if NOT ALL) */}
+                        {timeframe !== 'ALL' && (
+                            <div className="flex items-center gap-2">
+                                {/* Navigator */}
+                                <div className="flex items-center bg-[#1c1c1e] rounded-lg border border-white/10 p-0.5 shrink-0">
+                                    <button 
+                                        onClick={handlePrev}
+                                        className="w-7 h-7 flex items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    
+                                    <div className="px-2 min-w-[80px] text-center">
+                                        <span className="text-[10px] font-bold text-white uppercase tracking-wider whitespace-nowrap">
+                                            {dateRangeLabel}
+                                        </span>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleNext}
+                                        className="w-7 h-7 flex items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
+
+                                {/* Blue Date Button (Now separate and simplified) */}
+                                <button 
+                                    onClick={() => setIsDateModalOpen(true)}
+                                    className="h-8 px-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 hover:bg-blue-500 hover:text-white transition-all shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)] shrink-0"
+                                >
+                                    <Calendar size={12} />
+                                    <span>
+                                        {format(currentDate, 'MMMM yyyy', { locale: es })}
+                                    </span>
+                                </button>
+                            </div>
+                        )}
                       </div>
                     </div>
 
@@ -449,38 +584,68 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                     </div>
 
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+            )}
           </div>
       </div>
 
-      <div className="flex flex-col pb-32 gap-3 flex-1 min-h-0">
-          {sortedQuests.map((quest) => (
-              <div
-                  key={quest.id}
-                  style={{ contentVisibility: 'auto', containIntrinsicSize: '180px' }}
-              >
-                  <QuestItem 
-                      quest={quest} 
-                      attribute={attributeMap.get(quest.attribute)} 
-                      project={quest.projectId ? projectMap.get(quest.projectId) : undefined}
-                      smartProject={quest.smartProjectId ? smartProjectMap.get(quest.smartProjectId) : undefined}
-                      onComplete={onCompleteQuest} 
-                      onDelete={onDeleteQuest}
-                      onEdit={onEditQuest}
-                      onFocusProject={onFocusProject}
-                      onOpenNexus={onOpenNexus}
-                  />
-              </div>
-          ))}
-          
-          {sortedQuests.length === 0 && (
+      <div 
+        ref={listContainerRef} 
+        onScroll={handleScroll}
+        className="flex flex-col pb-48 gap-3 flex-1 min-h-0 overflow-y-auto overscroll-contain will-change-scroll"
+      >
+          {sortedQuests.length === 0 ? (
              <div className="py-10 text-center text-white/20 italic">
-                {t('tasks.empty', 'No missions found')}
+               {t('tasks.empty', 'No missions found')}
              </div>
+          ) : (
+            <>
+              {paddingTop > 0 && <div style={{ height: paddingTop }} />}
+              {virtualItems.map((quest) => (
+                <div
+                  key={quest.id}
+                  style={{ 
+                    contentVisibility: 'auto', 
+                    containIntrinsicSize: '160px',
+                  }}
+                >
+                  <MemoizedQuestItem 
+                    quest={quest} 
+                    attribute={attributeMap.get(quest.attribute)} 
+                    project={quest.projectId ? projectMap.get(quest.projectId) : undefined}
+                    smartProject={quest.smartProjectId ? smartProjectMap.get(quest.smartProjectId) : undefined}
+                    onComplete={onCompleteQuest} 
+                    onDelete={onDeleteQuest}
+                    onEdit={onEditQuest}
+                    onFocusProject={onFocusProject}
+                    onOpenNexus={onOpenNexus}
+                    isLite
+                  />
+                </div>
+              ))}
+              {paddingBottom > 0 && <div style={{ height: paddingBottom }} />}
+            </>
           )}
       </div>
+
+      <DateSelectionModal 
+        isOpen={isDateModalOpen}
+        onClose={() => setIsDateModalOpen(false)}
+        onSelect={handleDateSelect}
+        mode={timeframe === 'MONTH' ? 'MONTH' : timeframe === 'DAY' ? 'DAY' : 'WEEK'}
+        currentDate={currentDate}
+      />
     </div>
   );
+}, (prev, next) => {
+  // Custom comparison for React.memo to prevent unnecessary re-renders
+  // Only re-render if key props change
+  if (prev.quests === next.quests && 
+      prev.attributes === next.attributes && 
+      prev.dailyLimits === next.dailyLimits &&
+      prev.projects === next.projects &&
+      prev.smartProjects === next.smartProjects) {
+    return true; // Props are equal, don't re-render
+  }
+  return false;
 });

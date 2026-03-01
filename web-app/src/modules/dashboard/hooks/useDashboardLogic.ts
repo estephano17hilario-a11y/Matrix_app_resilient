@@ -3,7 +3,7 @@ import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
-import { Trophy, Flame, Clock, Star, Infinity as InfinityIcon, Skull, Target, Trash2, AlertTriangle, Check } from 'lucide-react';
+import { Trophy, Flame, Star, Infinity as InfinityIcon, Skull, Trash2, AlertTriangle, Check } from 'lucide-react';
 import { 
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
@@ -16,7 +16,7 @@ import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
-import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs } from '@/services/firebase';
+import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs, deleteDoc } from '@/services/firebase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { toLocalISOString, getHistoryDateKey } from '../../../utils/dateUtils';
@@ -38,24 +38,32 @@ export const useDashboardLogic = () => {
         goldGained: number, 
         newPlayerStats: { xp: number, level: number, gold: number }, 
         oldPlayerStats: { level: number },
-        traitUpdate?: { id: string, name: string, xp: number, maxXp: number, level: number, oldLevel: number }
+        traitUpdate?: { id: string, name: string, xp: number, maxXp: number, level: number, oldLevel: number, gained?: number }
     ) => {
         const currentLevelBaseXp = calculateXpForLevel(newPlayerStats.level);
         const nextLevelTotalXp = calculateNextLevelXp(newPlayerStats.level);
         
+        const oldCumulativeXp = newPlayerStats.xp - xpGained;
+        const calculatedOldLevel = calculateLevelFromXp(oldCumulativeXp); 
+        
+        const oldLevelBase = calculateXpForLevel(calculatedOldLevel);
+        const oldRelXp = Math.max(0, oldCumulativeXp - oldLevelBase);
+
         addReward({
             source,
             xpGained,
             currentXp: Math.max(0, newPlayerStats.xp - currentLevelBaseXp),
             maxXp: nextLevelTotalXp - currentLevelBaseXp,
             level: newPlayerStats.level,
+            initialLevel: calculatedOldLevel,
+            initialXp: oldRelXp,
             isLevelUp: newPlayerStats.level > oldPlayerStats.level,
             goldGained,
             currentGold: newPlayerStats.gold,
             ...(traitUpdate ? {
                 traitId: traitUpdate.id,
                 traitName: traitUpdate.name,
-                traitXpGained: xpGained,
+                traitXpGained: traitUpdate.gained !== undefined ? traitUpdate.gained : xpGained,
                 traitCurrentXp: traitUpdate.xp,
                 traitMaxXp: traitUpdate.maxXp,
                 traitLevel: traitUpdate.level,
@@ -1042,6 +1050,12 @@ export const useDashboardLogic = () => {
         // Optimistic update
         setAttributes(prev => prev.filter(a => a.id !== traitId));
 
+        // Dissociate from Habits, Projects, Bad Habits, Quests
+        setHabits(prev => prev.map(h => h.attribute === traitId ? { ...h, attribute: '' } : h));
+        setBadHabits(prev => prev.map(h => h.attribute === traitId ? { ...h, attribute: '' } : h));
+        setProjects(prev => prev.map(p => p.attribute === traitId ? { ...p, attribute: '' } : p));
+        setQuests(prev => prev.map(q => q.attribute === traitId ? { ...q, attribute: '' } : q));
+
         try {
             const batch = writeBatch(db);
             
@@ -1060,6 +1074,35 @@ export const useDashboardLogic = () => {
                     }
                 });
             }
+
+            // 3. Update Associated Items in Firestore
+            habits.forEach(h => {
+                if (h.attribute === traitId) {
+                    const ref = doc(db, 'users', user.uid, 'habits', h.id);
+                    batch.update(ref, { attribute: '' });
+                }
+            });
+            
+            badHabits.forEach(h => {
+                if (h.attribute === traitId) {
+                    const ref = doc(db, 'users', user.uid, 'bad-habits', h.id);
+                    batch.update(ref, { attribute: '' });
+                }
+            });
+            
+            projects.forEach(p => {
+                if (p.attribute === traitId) {
+                    const ref = doc(db, 'users', user.uid, 'projects', p.id);
+                    batch.update(ref, { attribute: '' });
+                }
+            });
+            
+            quests.forEach(q => {
+                if (q.attribute === traitId) {
+                    const ref = doc(db, 'users', user.uid, 'quests', q.id);
+                    batch.update(ref, { attribute: '' });
+                }
+            });
 
             await batch.commit();
         } catch (e) {
@@ -1234,7 +1277,8 @@ export const useDashboardLogic = () => {
         }
 
         if (player.level > prevPlayerLevel.current) {
-            addNotification({ type: 'GLOBAL', label: 'HERO', fromLevel: prevPlayerLevel.current, toLevel: player.level, icon: Trophy, color: '#fbbf24' });
+            // User requested to remove this notification as the RewardOverlay handles it
+            // addNotification({ type: 'GLOBAL', label: 'HERO', fromLevel: prevPlayerLevel.current, toLevel: player.level, icon: Trophy, color: '#fbbf24' });
         }
         prevPlayerLevel.current = player.level;
     }, [player.level, addNotification, luxLoading, user]);
@@ -1251,7 +1295,8 @@ export const useDashboardLogic = () => {
         attributes.forEach(attr => {
             const prev = prevAttributes.current.find(p => p.id === attr.id);
             if (prev && attr.level > prev.level) {
-                addNotification({ type: 'ATTRIBUTE', label: attr.label, fromLevel: prev.level, toLevel: attr.level, icon: attr.icon, color: attr.color });
+                // User requested to remove this notification
+                // addNotification({ type: 'ATTRIBUTE', label: attr.label, fromLevel: prev.level, toLevel: attr.level, icon: attr.icon, color: attr.color });
             }
         });
         prevAttributes.current = attributes;
@@ -1284,15 +1329,16 @@ export const useDashboardLogic = () => {
                 isActivatingStreak.current = true;
                 
                 try {
+                    const newStreak = (user.stats.streak || 0) + 1;
                     const userRef = doc(db, 'users', user.uid);
                     await updateDoc(userRef, {
-                        'stats.streak': (user.stats.streak || 0) + 1,
+                        'stats.streak': newStreak,
                         'stats.lastStreakDate': today
                     });
                     
                     addNotification({ 
                         type: 'GLOBAL', 
-                        label: 'STREAK ACTIVE', 
+                        label: `STREAK DAY ${newStreak}`, 
                         icon: Flame, 
                         color: '#f97316' // Orange-500
                     });
@@ -1471,30 +1517,29 @@ export const useDashboardLogic = () => {
 
         const hourlyXp = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.XP;
         const hourlyGold = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.COINS;
+        const hourlyTP = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.TP;
         
         const safeDurationSeconds = Number.isFinite(durationSeconds) ? Math.max(0, Math.floor(durationSeconds)) : 0;
         if (safeDurationSeconds < 5) return;
         
-        // Strategy: We ALWAYS reward sessions, regardless of daily limit, to encourage usage.
-        // We will just cap the XP/Gold if it exceeds "reasonable" amounts per session (e.g. 24h) to prevent exploits.
         const rewardableMinutes = safeDurationSeconds / 60;
         
-        // INTELLIGENT REWARD CALCULATION
-        // Formula: (Base Hourly Rate / 60) * Duration in Minutes
-        // Multipliers:
-        // - NONE (User Request: "solo quiero que las recompensas que se muestra en el creador de proyects, sea cuando logres cumplir con el objetivo del dia")
-
+        // 1. Calculate RAW Rewards (Uncapped)
         let xpReward = (rewardableMinutes * hourlyXp) / 60;
         let goldReward = (rewardableMinutes * hourlyGold) / 60;
+        let tpReward = (rewardableMinutes * hourlyTP) / 60;
 
         // Apply Immersion Bonus (Non-linear scaling)
-        if (rewardableMinutes >= 50) {
-            xpReward *= 1.25;
-            goldReward *= 1.25;
-        } else if (rewardableMinutes >= 25) {
-            xpReward *= 1.1;
-            goldReward *= 1.1;
-        }
+        // DISABLED PER USER REQUEST: "SIEMPRE, PERO SIEMPRE, LAS RECOMPENSAS POR HORA SERAN LAS SIGUIENTES"
+        // if (rewardableMinutes >= 50) {
+        //     xpReward *= 1.25;
+        //     goldReward *= 1.25;
+        //     tpReward *= 1.25;
+        // } else if (rewardableMinutes >= 25) {
+        //     xpReward *= 1.1;
+        //     goldReward *= 1.1;
+        //     tpReward *= 1.1;
+        // }
 
         // Apply Project Impact Multiplier
         let attrId = 'MENTAL';
@@ -1505,90 +1550,83 @@ export const useDashboardLogic = () => {
             proj = projects.find(p => p.id === projectId);
             if (proj) {
                 attrId = proj.attribute;
-                multiplier = 1; // User requested NO impact multiplier
+                multiplier = 1; // User requested NO impact multiplier. STRICTLY ENFORCED.
             } else {
                 console.warn(`⚠️ Project ${projectId} not found, using defaults`);
             }
         }
 
-        // Apply Streak Bonus (Subtle boost)
-        // User requested NO streak bonus
-        // const streakBonus = Math.min(1.2, 1 + ((dailyLimits.tasksCompleted || 0) * 0.01));
-
         xpReward *= multiplier;
         goldReward *= multiplier;
+        tpReward *= multiplier;
 
         // Rounding
-        let finalXp = Math.round(xpReward);
-        let finalGold = Math.round(goldReward);
+        let rawXp = Math.round(xpReward);
+        let rawGold = Math.round(goldReward);
+        let rawTP = Math.round(tpReward);
 
         // Minimum Reward for any valid session > 1 min
-        if (rewardableMinutes >= 1 && finalXp < 1) finalXp = 1;
-        if (rewardableMinutes >= 1 && finalGold < 1) finalGold = 1;
+        if (rewardableMinutes >= 1) {
+            if (rawXp < 1) rawXp = 1;
+            if (rawGold < 1) rawGold = 1;
+            if (rawTP < 1) rawTP = 1;
+        }
 
-        if (!Number.isFinite(finalXp)) finalXp = 0;
-        if (!Number.isFinite(finalGold)) finalGold = 0;
+        // 2. Calculate Daily Limits & Caps
+        const maxHours = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_HOURS;
+        // Theoretical Max Rewards (Base Calculation from FocusLimits)
+        const maxDailyXP = maxHours * hourlyXp;
+        const maxDailyGold = maxHours * hourlyGold;
+        const maxDailyTP = maxHours * hourlyTP;
 
-        console.log(`[REWARD CALC] Duration: ${safeDurationSeconds}s (${rewardableMinutes.toFixed(2)}m) | BaseXP: ${hourlyXp}/h | Multiplier: ${multiplier}x | FinalXP: ${finalXp} | FinalGold: ${finalGold}`);
+        const currentDailyXP = currentLimits.focusXp || 0;
+        const currentDailyGold = currentLimits.focusGold || 0;
+        const currentDailyTP = currentLimits.focusTraitPoints || 0;
+
+        const remainingXP = Math.max(0, maxDailyXP - currentDailyXP);
+        const remainingGold = Math.max(0, maxDailyGold - currentDailyGold);
+        const remainingTP = Math.max(0, maxDailyTP - currentDailyTP);
+
+        // Cap the rewards
+        let finalXp = Math.min(rawXp, remainingXP);
+        let finalGold = Math.min(rawGold, remainingGold);
+        let finalTP = Math.min(rawTP, remainingTP);
+
+        // Ensure non-negative
+        finalXp = Math.max(0, finalXp);
+        finalGold = Math.max(0, finalGold);
+        finalTP = Math.max(0, finalTP);
+
+        console.log(`[REWARD CALC] Duration: ${safeDurationSeconds}s (${rewardableMinutes.toFixed(2)}m) | Base: ${hourlyXp}XP/${hourlyTP}TP/${hourlyGold}G | Raw: ${rawXp}/${rawTP}/${rawGold} | Capped: ${finalXp}/${finalTP}/${finalGold} | Rem: ${remainingXP}/${remainingTP}/${remainingGold}`);
         
         // --- DAILY GOAL COMPLETION BONUS ---
         let bonusXp = 0;
         let bonusGold = 0;
 
-        if (proj && proj.goalFrequency === 'DAILY' && proj.goalTarget > 0) {
-            // Calculate previous daily progress
-            const now = new Date();
-            const todayStr = now.toDateString();
-            
-            const sessionsToday = (proj.sessions || []).filter(s => {
-                 const d = new Date(s.date);
-                 return d.toDateString() === todayStr;
-            });
-            
-            const previousDuration = sessionsToday.reduce((acc, s) => acc + s.duration, 0);
-            const newDuration = previousDuration + safeDurationSeconds;
-            const goalSeconds = proj.goalTarget * 60;
-            
-            // Trigger bonus only if we crossed the line just now
-            if (previousDuration < goalSeconds && newDuration >= goalSeconds) {
-                // BONUS CALCULATION
-                // "mientras mas tiempo sea diariamente que tengo que hacer, mayor sera la recompensa al completarlo"
-                
-                // Base bonus for completing any daily goal
-                const baseBonus = 100; 
-                
-                // Scaling: More hours = Exponentially bigger bonus
-                // 1h -> 1.0x
-                // 4h -> 1.6x
-                // 8h -> 2.4x
-                const goalHours = proj.goalTarget / 60;
-                const timeScale = 1 + (goalHours * 0.2); 
-                
-                // Difficulty multiplier (Impact)
-                // Impact ranges from 1 (C) to 1.5 (S) typically, or logic-defined
-                const difficultyMult = proj.impact || 1; 
-                
-                bonusXp = Math.floor(baseBonus * timeScale * difficultyMult);
-                bonusGold = Math.floor(bonusXp * 0.5);
-                
-                console.log(`[BONUS] Daily Goal Met! Target: ${goalHours}h. Bonus: ${bonusXp} XP`);
-
-                // Add notification for bonus
-                setTimeout(() => {
-                    addNotification({ 
-                        type: 'ACHIEVEMENT', 
-                        label: 'DAILY GOAL MET', 
-                        fromLevel: 'Bonus', 
-                        toLevel: `+${bonusXp} XP`, 
-                        icon: Target, 
-                        color: '#f472b6' // Pink-400
-                    });
-                }, 2000); // Delay to appear after session summary
-            }
-        }
+        // DISABLED PER USER REQUEST: "NO QUIERO QUE... EL TIEMPO QUE LE PONGA DE OBJETIVO... INFLUYA"
+        // if (proj && proj.goalFrequency === 'DAILY' && proj.goalTarget > 0) {
+        //     // Calculate previous daily progress
+        //     const now = new Date();
+        //     const todayStr = now.toDateString();
+        //     
+        //     const sessionsToday = (proj.sessions || []).filter(s => {
+        //          const d = new Date(s.date);
+        //          return d.toDateString() === todayStr;
+        //     });
+        //     
+        //     const previousDuration = sessionsToday.reduce((acc, s) => acc + s.duration, 0);
+        //     const newDuration = previousDuration + safeDurationSeconds;
+        //     const goalSeconds = proj.goalTarget * 60;
+        //     
+        //     // Trigger bonus only if we crossed the line just now
+        //     if (previousDuration < goalSeconds && newDuration >= goalSeconds) {
+        //         // BONUS DISABLED
+        //     }
+        // }
 
         const totalXp = finalXp + bonusXp;
         const totalGold = finalGold + bonusGold;
+        const totalTP = finalTP + bonusXp; // Assuming bonus XP counts as TP too
         
         // 1. Prepare the new session object
         // Use a unique ID based on timestamp and randomness
@@ -1598,7 +1636,8 @@ export const useDashboardLogic = () => {
             duration: safeDurationSeconds, 
             date: new Date().toISOString(),
             xpEarned: totalXp,
-            goldEarned: totalGold
+            goldEarned: totalGold,
+            traitPointsEarned: totalTP
         };
         
         // Log for debugging
@@ -1666,7 +1705,10 @@ export const useDashboardLogic = () => {
             const currentSafeFocusSeconds = validLimits.focusSeconds || 0;
             const newLimits = {
                 ...validLimits,
-                focusSeconds: currentSafeFocusSeconds + safeDurationSeconds
+                focusSeconds: currentSafeFocusSeconds + safeDurationSeconds,
+                focusXp: (validLimits.focusXp || 0) + finalXp,
+                focusGold: (validLimits.focusGold || 0) + finalGold,
+                focusTraitPoints: (validLimits.focusTraitPoints || 0) + finalTP
             };
 
             // Side effect: Save to Firestore
@@ -1719,7 +1761,7 @@ export const useDashboardLogic = () => {
             
             if (attrIndex !== -1) {
                 const attr = attributes[attrIndex];
-                let newAttrXp = attr.xp + totalXp;
+                let newAttrXp = attr.xp + totalTP;
                 let newAttrLevel = attr.level;
                 let newAttrMaxXp = attr.maxXp;
 
@@ -1755,13 +1797,13 @@ export const useDashboardLogic = () => {
             const predictedPlayerStats = { xp: pXp, gold: pGold, level: pLevel, nextXp: pNextXp };
 
             console.log("🏆 TRIGGERING REWARD OVERLAY", { type, totalXp, totalGold });
-            triggerReward('Focus Session', totalXp, totalGold, predictedPlayerStats, { level: player.level }, traitUpdate);
+            triggerReward('Focus Session', totalXp, totalGold, predictedPlayerStats, { level: player.level }, traitUpdate ? { ...traitUpdate, gained: totalTP } : undefined);
 
             // 6. Legacy Visuals (Particles & Notification)
             const attr = attributes.find(a => a.id === attrId);
             const AttrIcon = attr?.icon || Star;
             spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
-            addNotification({ type: 'SESSION', label: type === 'POMO' ? 'POMODORO COMPLETE' : 'SESSION COMPLETE', fromLevel: Math.floor(safeDurationSeconds / 60) + 'm', toLevel: '+' + finalXp + ' XP', icon: Clock, color: '#fbbf24' });
+            // addNotification({ type: 'SESSION', label: type === 'POMO' ? 'POMODORO COMPLETE' : 'SESSION COMPLETE', fromLevel: Math.floor(safeDurationSeconds / 60) + 'm', toLevel: '+' + finalXp + ' XP', icon: Clock, color: '#fbbf24' });
         } else if (safeDurationSeconds > 0) {
              console.log("ℹ️ Short session saved, no XP awarded");
              addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(safeDurationSeconds) + 's', toLevel: 'Short Session', icon: Check, color: '#10b981' });
@@ -1779,31 +1821,69 @@ export const useDashboardLogic = () => {
             return;
         }
 
-        // 2. REWARD CALCULATION (SIMPLIFIED & GUARANTEED)
-        // User Request: "RECONSTRUIR TODA LA MECANICA... QUE FUNCIONE SI O SI"
-        // Strategy: Grant rewards directly based on time, ignoring strict daily caps for manual entries to ensure feedback.
-        
+        // 2. REWARD CALCULATION
+        const hourlyXp = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.XP;
+        const hourlyGold = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.COINS;
+        const hourlyTP = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.TP;
+
         const durationSeconds = Math.round(safeMinutes * 60);
-        const multiplier = targetProj.impact || 1;
-        
-        // Base Rates: 1 min = 1 XP, 1 min = 0.5 Gold
-        let rawXp = safeMinutes * 1.0;
-        let rawGold = safeMinutes * 0.5;
+        const rewardableMinutes = safeMinutes;
 
-        // Apply Multiplier
-        rawXp *= multiplier;
-        rawGold *= multiplier;
+        // 1. Calculate RAW Rewards (Uncapped)
+        let xpReward = (rewardableMinutes * hourlyXp) / 60;
+        let goldReward = (rewardableMinutes * hourlyGold) / 60;
+        let tpReward = (rewardableMinutes * hourlyTP) / 60;
 
-        // Guaranteed Minimums (If session > 1 min)
+        // Apply Project Impact Multiplier
+        // DISABLED PER USER REQUEST: "QUIERO QUE NO INTERFIERA LA DIFICULTAD... POR HORA"
+        const multiplier = 1; // targetProj.impact || 1;
+        xpReward *= multiplier;
+        goldReward *= multiplier;
+        tpReward *= multiplier;
+
+        // Rounding
+        let rawXp = Math.round(xpReward);
+        let rawGold = Math.round(goldReward);
+        let rawTP = Math.round(tpReward);
+
+        // Minimum Reward for any valid session > 1 min
         if (safeMinutes >= 1) {
-            rawXp = Math.max(rawXp, 5); // Minimum 5 XP
-            rawGold = Math.max(rawGold, 1); // Minimum 1 Gold
+            if (rawXp < 1) rawXp = 1;
+            if (rawGold < 1) rawGold = 1;
+            if (rawTP < 1) rawTP = 1;
         }
 
-        const finalXp = Math.round(rawXp);
-        const finalGold = Math.round(rawGold);
+        // 2. Calculate Daily Limits & Caps (Using Explicit Config for Synergy)
+        const maxDailyXP = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_XP;
+        const maxDailyGold = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_GOLD;
+        const maxDailyTP = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_TP;
 
-        console.log(`💎 [MANUAL ENTRY] Project: ${targetProj.title}, Duration: ${safeMinutes}m, XP: ${finalXp}, Gold: ${finalGold}`);
+        // Ensure we have valid current limits
+        const today = toLocalISOString(new Date());
+        let currentLimits = dailyLimits;
+        if (currentLimits.date !== today) {
+            currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, focusXp: 0, focusGold: 0, focusTraitPoints: 0 };
+        }
+
+        const currentDailyXP = currentLimits.focusXp || 0;
+        const currentDailyGold = currentLimits.focusGold || 0;
+        const currentDailyTP = currentLimits.focusTraitPoints || 0;
+
+        const remainingXP = Math.max(0, maxDailyXP - currentDailyXP);
+        const remainingGold = Math.max(0, maxDailyGold - currentDailyGold);
+        const remainingTP = Math.max(0, maxDailyTP - currentDailyTP);
+
+        // Cap the rewards
+        let finalXp = Math.min(rawXp, remainingXP);
+        let finalGold = Math.min(rawGold, remainingGold);
+        let finalTP = Math.min(rawTP, remainingTP);
+
+        // Ensure non-negative
+        finalXp = Math.max(0, finalXp);
+        finalGold = Math.max(0, finalGold);
+        finalTP = Math.max(0, finalTP);
+
+        console.log(`💎 [MANUAL ENTRY] Project: ${targetProj.title}, Duration: ${safeMinutes}m | Raw: ${rawXp}/${rawTP}/${rawGold} | Capped: ${finalXp}/${finalTP}/${finalGold}`);
 
         // 3. CREATE SESSION OBJECT
         const nextSessionId = sessionId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `manual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
@@ -1815,7 +1895,8 @@ export const useDashboardLogic = () => {
             duration: durationSeconds,
             date: nextSessionDate,
             xpEarned: finalXp,
-            goldEarned: finalGold
+            goldEarned: finalGold,
+            traitPointsEarned: finalTP
         };
 
         // 4. UPDATE PROJECT STATE
@@ -1835,19 +1916,14 @@ export const useDashboardLogic = () => {
 
         // 5. UPDATE ATTRIBUTES (CRITICAL)
         let traitUpdate = undefined;
-        let attrId = targetProj.attribute || 'MENTAL';
-        let attrIndex = attributes.findIndex(a => a.id === attrId);
+        let attrId = targetProj.attribute;
+        let attrIndex = attrId ? attributes.findIndex(a => a.id === attrId) : -1;
         
-        // Safety Fallback: Use first attribute if mapped one is missing
-        if (attrIndex === -1 && attributes.length > 0) {
-            console.warn(`⚠️ Attribute ${attrId} not found, using fallback.`);
-            attrIndex = 0;
-            attrId = attributes[0].id;
-        }
-
         if (attrIndex !== -1) {
             const attr = attributes[attrIndex];
-            let newAttrXp = attr.xp + finalXp;
+            // Attributes gain XP based on TP earned (conceptually similar)
+            // FIXED: Use finalTP (capped) instead of raw TP or previous logic
+            let newAttrXp = attr.xp + finalTP; 
             let newAttrLevel = attr.level;
             let newAttrMaxXp = attr.maxXp;
 
@@ -1867,7 +1943,7 @@ export const useDashboardLogic = () => {
                 return next;
             });
 
-            traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+            traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: finalTP };
 
             // Persistence
             if (user?.uid) {
@@ -1910,12 +1986,14 @@ export const useDashboardLogic = () => {
         }
 
         // 8. UPDATE DAILY LIMITS (TRACKING ONLY)
-        const today = toLocalISOString(new Date());
-        let newLimits = { ...dailyLimits };
-        if (newLimits.date !== today) {
-            newLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
-        }
-        newLimits = { ...newLimits, focusSeconds: (newLimits.focusSeconds || 0) + durationSeconds };
+        const newLimits = {
+            ...currentLimits,
+            focusSeconds: (currentLimits.focusSeconds || 0) + durationSeconds,
+            focusXp: (currentLimits.focusXp || 0) + finalXp,
+            focusGold: (currentLimits.focusGold || 0) + finalGold,
+            focusTraitPoints: (currentLimits.focusTraitPoints || 0) + finalTP
+        };
+        
         setDailyLimits(newLimits);
         
         if (user?.uid) {
@@ -1923,19 +2001,7 @@ export const useDashboardLogic = () => {
         }
 
         // 9. FINAL FEEDBACK
-        // User requested removal of manual entry notification as it is redundant
-        /*
-        addNotification({ 
-            type: 'SESSION', 
-            label: 'MANUAL ENTRY', 
-            fromLevel: `+${Math.floor(safeMinutes)}m`, 
-            toLevel: `+${finalXp} XP / +${finalGold} G`, 
-            icon: Clock, 
-            color: '#10b981' 
-        });
-        */
-            
-        triggerReward('Manual Entry', finalXp, finalGold, newPlayerStats, { level: player.level }, traitUpdate);
+        triggerReward('Manual Entry', finalXp, finalGold, newPlayerStats, { level: player.level }, traitUpdate ? { ...traitUpdate, gained: finalTP } : undefined);
 
     }, [projects, dailyLimits, user, addNotification, saveProjectsCache, player, attributes, triggerReward]);
 
@@ -1952,19 +2018,36 @@ export const useDashboardLogic = () => {
         // Use stored rewards if available, otherwise calculate fallback
         let xpToRevert = session.xpEarned;
         let goldToRevert = session.goldEarned;
+        let tpToRevert = session.traitPointsEarned;
 
-        if (xpToRevert === undefined || goldToRevert === undefined) {
+        if (xpToRevert === undefined || goldToRevert === undefined || tpToRevert === undefined) {
              const safeDurationSeconds = Math.max(0, Math.floor(durationSeconds));
              const rewardableMinutes = safeDurationSeconds / 60;
-             let calcXp = Math.round(rewardableMinutes * 10);
-             let calcGold = Math.round(rewardableMinutes * 2);
+             
+             // CORRECTION: Use Config instead of hardcoded values to prevent "borra MAS" issues
+             const hourlyXp = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.XP;
+             const hourlyGold = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.COINS;
+             const hourlyTP = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.TP;
+
+             let calcXp = Math.round((rewardableMinutes * hourlyXp) / 60);
+             let calcGold = Math.round((rewardableMinutes * hourlyGold) / 60);
+             let calcTP = Math.round((rewardableMinutes * hourlyTP) / 60);
              
              const multiplier = project.impact || 1;
              calcXp = Math.floor(calcXp * multiplier);
              calcGold = Math.floor(calcGold * multiplier);
+            calcTP = Math.floor(calcTP * multiplier);
              
+             // Min 1 if duration > 1m (Consistent with Creation)
+            if (rewardableMinutes >= 1) {
+                calcXp = Math.max(1, calcXp);
+                calcGold = Math.max(1, calcGold);
+                calcTP = Math.max(1, calcTP);
+            }
+
              xpToRevert = xpToRevert ?? calcXp;
              goldToRevert = goldToRevert ?? calcGold;
+            tpToRevert = tpToRevert ?? calcTP;
         }
 
         // 2. Update Project State (Robust Functional Update)
@@ -1991,7 +2074,10 @@ export const useDashboardLogic = () => {
         // 3. Reverse Rewards & Limits
         if (xpToRevert > 0 || goldToRevert > 0) {
             addPlayerReward({ xp: -xpToRevert, gold: -goldToRevert });
-            updateAttributeXp(project.attribute, -xpToRevert);
+        }
+
+        if (tpToRevert && tpToRevert > 0) {
+            updateAttributeXp(project.attribute, -tpToRevert);
         }
 
         // Update Daily Limits (Subtract Focus Time)
@@ -2002,9 +2088,17 @@ export const useDashboardLogic = () => {
         if (isToday) {
             // Need to fetch latest limits or use currentLimits from state
             const safeFocusSeconds = Number.isFinite(dailyLimits.focusSeconds) ? Number(dailyLimits.focusSeconds) : 0;
+            const safeFocusMinutes = Number.isFinite(dailyLimits.focusMinutes) ? Number(dailyLimits.focusMinutes) : 0;
+            const safeFocusXp = Number.isFinite(dailyLimits.focusXp) ? Number(dailyLimits.focusXp) : 0;
+            const safeFocusGold = Number.isFinite(dailyLimits.focusGold) ? Number(dailyLimits.focusGold) : 0;
+            const safeFocusTP = Number.isFinite(dailyLimits.focusTraitPoints) ? Number(dailyLimits.focusTraitPoints) : 0;
             const newLimits = {
                 ...dailyLimits,
-                focusSeconds: Math.max(0, safeFocusSeconds - durationSeconds)
+                focusSeconds: Math.max(0, safeFocusSeconds - durationSeconds),
+                focusMinutes: Math.max(0, safeFocusMinutes - (durationSeconds / 60)),
+                focusXp: Math.max(0, safeFocusXp - (xpToRevert || 0)),
+                focusGold: Math.max(0, safeFocusGold - (goldToRevert || 0)),
+                focusTraitPoints: Math.max(0, safeFocusTP - (tpToRevert || 0))
             };
             setDailyLimits(newLimits);
             if (user?.uid) {
@@ -2015,6 +2109,192 @@ export const useDashboardLogic = () => {
         addNotification({ type: 'SYSTEM', label: 'SESSION DELETED', fromLevel: Math.floor(durationSeconds / 60) + 'm', toLevel: 'Reversed', icon: Trash2, color: '#ef4444' });
 
     }, [projects, dailyLimits, user, addPlayerReward, updateAttributeXp, addNotification]);
+
+    const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => {
+        // 1. Find Project and Session
+        const projectIndex = projects.findIndex(p => p.id === projectId);
+        if (projectIndex === -1) return;
+        
+        const project = projects[projectIndex];
+        const session = project.sessions?.find(s => s.id === sessionId);
+        if (!session) return;
+
+        // 2. Calculate Diffs
+        const oldDurationSeconds = session.duration || 0;
+        const newDurationSeconds = Math.round(newDurationMinutes * 60);
+        const durationDiff = newDurationSeconds - oldDurationSeconds;
+
+        if (durationDiff === 0 && session.date === newDateStr) return; // No change
+
+        // 3. Calculate New Rewards (Logic consistent with handleStopSession)
+        const hourlyXp = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.XP;
+        const hourlyGold = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.COINS;
+        const hourlyTP = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.TP;
+
+        const rewardableMinutes = newDurationSeconds / 60;
+        
+        // Calculate Raw New Rewards
+        let rawXp = Math.round((rewardableMinutes * hourlyXp) / 60);
+        let rawGold = Math.round((rewardableMinutes * hourlyGold) / 60);
+        let rawTP = Math.round((rewardableMinutes * hourlyTP) / 60);
+
+        // Min 1 if duration > 1m
+        if (rewardableMinutes >= 1) {
+            rawXp = Math.max(1, rawXp);
+            rawGold = Math.max(1, rawGold);
+            rawTP = Math.max(1, rawTP);
+        }
+
+        // CORRECTION: Apply Daily Limits if session is Today
+        let finalXp = rawXp;
+        let finalGold = rawGold;
+        let finalTP = rawTP;
+
+        const sessionDateObj = new Date(newDateStr);
+        const isToday = new Date().toDateString() === sessionDateObj.toDateString();
+
+        if (isToday) {
+             const maxHours = GAMIFICATION_CONFIG.MAX_DAILY_FOCUS_HOURS;
+             const maxDailyXP = maxHours * hourlyXp;
+             const maxDailyGold = maxHours * hourlyGold;
+             const maxDailyTP = maxHours * hourlyTP;
+
+             const currentDailyXP = dailyLimits.focusXp || 0;
+             const currentDailyGold = dailyLimits.focusGold || 0;
+             const currentDailyTP = dailyLimits.focusTraitPoints || 0;
+
+             // Calculate usage excluding this session (to see available space)
+             const usageWithoutSessionXP = Math.max(0, currentDailyXP - (session.xpEarned || 0));
+             const usageWithoutSessionGold = Math.max(0, currentDailyGold - (session.goldEarned || 0));
+             const usageWithoutSessionTP = Math.max(0, currentDailyTP - (session.traitPointsEarned || 0));
+
+             const remainingXP = Math.max(0, maxDailyXP - usageWithoutSessionXP);
+             const remainingGold = Math.max(0, maxDailyGold - usageWithoutSessionGold);
+             const remainingTP = Math.max(0, maxDailyTP - usageWithoutSessionTP);
+
+             finalXp = Math.min(rawXp, remainingXP);
+             finalGold = Math.min(rawGold, remainingGold);
+             finalTP = Math.min(rawTP, remainingTP);
+        }
+
+        // 4. Calculate Deltas
+        const oldXp = session.xpEarned || 0;
+        const oldGold = session.goldEarned || 0;
+        const oldTP = session.traitPointsEarned || 0;
+
+        const xpDiff = finalXp - oldXp;
+        const goldDiff = finalGold - oldGold;
+        const tpDiff = finalTP - oldTP;
+
+        console.log(`✏️ [EDIT SESSION] Diff: ${xpDiff}XP / ${goldDiff}G / ${tpDiff}TP`);
+
+        // 5. Update Project State
+        const updatedSession: Session = {
+            ...session,
+            duration: newDurationSeconds,
+            date: newDateStr,
+            xpEarned: finalXp,
+            goldEarned: finalGold,
+            traitPointsEarned: finalTP
+        };
+
+        const updatedProject = {
+            ...project,
+            totalTime: (project.totalTime || 0) + durationDiff,
+            sessions: project.sessions?.map(s => s.id === sessionId ? updatedSession : s) || []
+        };
+
+        // Optimistic Update
+        const nextProjects = projects.map(p => p.id === projectId ? updatedProject : p);
+        setProjects(nextProjects);
+        
+        // Save Project
+        if (user?.uid) {
+            projectService.saveProject(user.uid, updatedProject).catch(console.error);
+        }
+
+        // 6. Update User Stats (XP, Gold)
+        if (user?.uid && (xpDiff !== 0 || goldDiff !== 0)) {
+            const userRef = doc(db, 'users', user.uid);
+            
+            // We use the current state from context/state
+            // Note: This relies on 'player' state being relatively fresh.
+            // Ideally use Firestore increment, but we do manual calc here.
+            
+            // Update local state first (if exposed via setPlayer, but we don't have it here easily for stats update? 
+            // We have setPlayer for level/xp.
+            // But let's just update Firestore and let the listener sync it back?
+            // Actually useDashboardLogic has 'player' state (line 3426).
+            
+            // Wait, we don't have access to current stats easily without potentially stale state.
+            // Let's assume 'user.stats' from useDashboardLogic (memoized) is good enough.
+            const currentStats = user.stats || { xp: 0, gold: 0, level: 1 };
+            const newXp = (currentStats.xp || 0) + xpDiff;
+            const newGold = (currentStats.gold || 0) + goldDiff;
+            
+            const newLevel = calculateLevelFromXp(newXp);
+            const newNextXp = calculateNextLevelXp(newLevel);
+
+            updateDoc(userRef, {
+                'stats.xp': newXp,
+                'stats.gold': newGold,
+                'stats.level': newLevel,
+                'stats.nextXp': newNextXp
+            }).catch(console.error);
+
+            if (xpDiff !== 0 || goldDiff !== 0) {
+                 // Use Smart Reward Overlay for adjustment feedback
+                 triggerReward(
+                    'Session Adjusted', 
+                    xpDiff, 
+                    goldDiff, 
+                    { xp: newXp, level: newLevel, gold: newGold }, 
+                    { level: currentStats.level }
+                 );
+            }
+        }
+        
+        // 7. Update Daily Limits (Only if Today)
+        // const sessionDateObj is already defined above
+        // const isToday is already defined above
+        
+        if (isToday) {
+            const todayStr = new Date().toDateString();
+            let totalSeconds = 0;
+            let totalXp = 0;
+            let totalGold = 0;
+            let totalTP = 0;
+
+            for (const proj of nextProjects) {
+                for (const s of proj.sessions || []) {
+                    const sDate = new Date(s.date);
+                    if (sDate.toDateString() !== todayStr) continue;
+                    const duration = Number.isFinite(s?.duration) ? Math.max(0, s?.duration ?? 0) : 0;
+                    totalSeconds += duration;
+                    totalXp += Number.isFinite(s?.xpEarned) ? (s?.xpEarned ?? 0) : 0;
+                    totalGold += Number.isFinite(s?.goldEarned) ? (s?.goldEarned ?? 0) : 0;
+                    totalTP += Number.isFinite(s?.traitPointsEarned) ? (s?.traitPointsEarned ?? 0) : 0;
+                }
+            }
+
+            const newLimits = {
+                ...(dailyLimits || {}),
+                focusSeconds: Math.max(0, totalSeconds),
+                focusMinutes: Math.max(0, totalSeconds / 60),
+                focusXp: Math.max(0, totalXp),
+                focusGold: Math.max(0, totalGold),
+                focusTraitPoints: Math.max(0, totalTP)
+            } as any; // Cast to any to avoid partial type issues if dailyLimits is undefined initially
+
+            setDailyLimits(newLimits);
+
+            if (user?.uid) {
+                const userRef = doc(db, 'users', user.uid);
+                updateDoc(userRef, { dailyLimits: newLimits }).catch(console.error);
+            }
+        }
+
+    }, [projects, dailyLimits, user, addNotification]);
 
     const completeQuest = useCallback(async (e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
@@ -2033,7 +2313,9 @@ export const useDashboardLogic = () => {
         let rewardTraitXp = 0;
         let newQuest = { ...quest };
         let isReversal = false;
-        const calculatedReward = calculateTaskRewards(quest.estimatedTime);
+        const multipliers: Record<string, number> = { 'C': 1, 'B': 2, 'A': 3, 'S': 4 };
+        const impact = multipliers[quest.difficulty] || 1;
+        const calculatedReward = calculateTaskRewards(quest.estimatedTime, impact);
         const baseXp = Number.isFinite(quest.xpReward) ? quest.xpReward : calculatedReward.xp;
         const baseGold = Number.isFinite(quest.gold) ? quest.gold : calculatedReward.coins;
 
@@ -2081,7 +2363,8 @@ export const useDashboardLogic = () => {
             
             const rawXp = baseXp;
             const rawGold = baseGold;
-            const rawTraitXp = Math.floor(rawXp * 0.4);
+            // SYNC FIX: Use 1:1 ratio for TP to match RewardCalculator and allow reaching the 350 TP limit
+            const rawTraitXp = rawXp; 
 
             rewardXp = Math.min(rawXp, availableXp);
             rewardGold = Math.min(rawGold, availableGold);
@@ -2172,46 +2455,22 @@ export const useDashboardLogic = () => {
             return;
         }
 
-        // ATOMIC BATCH
+
+        // ATOMIC TRANSACTION (Reinforced Logic)
         try {
-            const batch = writeBatch(db);
-            const userRef = doc(db, 'users', userId);
-            const questRef = doc(db, 'users', userId, 'quests', quest.id);
-
-            // New Vars for Reward Overlay
-            let finalXp = player.xp;
-            let finalLevel = player.level;
-            let finalGold = player.gold;
-            let traitUpdate = undefined;
-
-            // A. Update Quest
-            batch.set(questRef, {
-                completed: newQuest.completed,
-                rewardedXp: newQuest.rewardedXp || 0,
-                rewardedGold: newQuest.rewardedGold || 0
-            }, { merge: true });
-
-            // B. Update Player Stats
+            // 1. Optimistic UI Updates
+            // We keep the local state updates for "0ms delay" feel
             if (rewardXp !== 0 || rewardGold !== 0) {
                  let newXp = player.xp + rewardXp;
                  let newGold = player.gold + rewardGold;
-                 
-                 // Reversal logic
                  if (newXp < 0) newXp = 0;
-                 
                  let newLevel = calculateLevelFromXp(newXp);
                  const newNextXp = calculateNextLevelXp(newLevel);
                 
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp }));
-                batch.update(userRef, { 'stats.xp': newXp, 'stats.gold': newGold, 'stats.level': newLevel, 'stats.nextXp': newNextXp });
-                
-                finalXp = newXp;
-                finalLevel = newLevel;
-                finalGold = newGold;
             }
 
-            // C. Update Attribute
-             if (rewardTraitXp !== 0 && quest.attribute) {
+            if (rewardTraitXp !== 0 && quest.attribute) {
                  const attrIndex = attributes.findIndex(a => a.id === quest.attribute);
                  if (attrIndex !== -1) {
                      const attr = attributes[attrIndex];
@@ -2232,15 +2491,10 @@ export const useDashboardLogic = () => {
                     const newAttributes = [...attributes];
                     newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                     setAttributes(newAttributes);
-
-                    const attrRef = doc(db, 'users', userId, 'attributes', attr.id);
-                    batch.set(attrRef, { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }, { merge: true });
-                    
-                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
                  }
             }
 
-            // D. Update Limits
+            // Update Limits locally
             if (!isReversal) {
                  const today = toLocalISOString(new Date());
                  let currentLimits = dailyLimits;
@@ -2255,31 +2509,38 @@ export const useDashboardLogic = () => {
                     tasksCompleted: (currentLimits.tasksCompleted || 0) + 1
                 };
                 setDailyLimits(newLimits);
-                batch.update(userRef, { dailyLimits: newLimits });
                 
                 if (rewardXp > 0 || rewardGold > 0) {
-                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: finalXp, gold: finalGold, level: finalLevel }, { level: player.level }, traitUpdate);
+                    // Trigger reward UI
+                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level });
                 }
             } else {
-                 // Revert Limits
                  const today = toLocalISOString(new Date());
                  if (dailyLimits.date === today) {
                       const newLimits = {
                         ...dailyLimits,
-                        taskXp: Math.max(0, dailyLimits.taskXp + rewardXp), // rewardXp is negative
+                        taskXp: Math.max(0, dailyLimits.taskXp + rewardXp), 
                         taskGold: Math.max(0, dailyLimits.taskGold + rewardGold),
                         taskTraitPoints: Math.max(0, dailyLimits.taskTraitPoints + rewardTraitXp),
                         tasksCompleted: Math.max(0, (dailyLimits.tasksCompleted || 0) - 1)
                     };
                     setDailyLimits(newLimits);
-                    batch.update(userRef, { dailyLimits: newLimits });
                  }
             }
-            
-            await batch.commit();
+
+            // 2. Secure Persistence (TransactionService)
+            await TransactionService.toggleQuestCompletion(
+                userId, 
+                quest.id, 
+                newQuest.completed, 
+                rewardXp, 
+                rewardGold, 
+                rewardTraitXp
+            );
 
         } catch (e) {
-            console.error("Failed to sync quest", e);
+            console.error("Failed to sync quest (Transaction)", e);
+            // Ideally: Revert UI state here or show toast
         }
 
     }, [attributes, spawnParticles, calculateNextXp, user, dailyLimits, player]);
@@ -2303,6 +2564,7 @@ export const useDashboardLogic = () => {
         let newHabit = { ...habit };
         let rewardXp = 0;
         let rewardGold = 0;
+        let rewardTraitXp = 0;
         let isReversal = false;
         
         // --- LOGIC: TOGGLE ---
@@ -2311,7 +2573,10 @@ export const useDashboardLogic = () => {
             isReversal = true;
             
             // FIX: Apply same multiplier logic for reversal to prevent XP farming
-            let baseRevert = 20 + ((habit.streak - 1) * 2);
+            const currentStreak = typeof habit.streak === 'number' ? habit.streak : 0;
+            const currentTotal = typeof habit.totalCompletions === 'number' ? habit.totalCompletions : 0;
+
+            let baseRevert = 20 + ((currentStreak - 1) * 2);
             let goldRevert = 2;
             if (habit.estimatedTime && habit.estimatedTime > 0) {
                 const hours = habit.estimatedTime / 60;
@@ -2322,13 +2587,14 @@ export const useDashboardLogic = () => {
 
             rewardXp = -baseRevert; // Subtract EXACTLY what was given
             rewardGold = -goldRevert; // Revert Gold
+            rewardTraitXp = -baseRevert; // Revert Trait Points
             
             const newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== todayHistory);
             newHabit = {
                 ...habit,
                 completedToday: false,
-                streak: Math.max(0, habit.streak - 1),
-                totalCompletions: Math.max(0, habit.totalCompletions - 1),
+                streak: Math.max(0, currentStreak - 1),
+                totalCompletions: Math.max(0, currentTotal - 1),
                 history: newHistory
             };
         } else {
@@ -2342,16 +2608,13 @@ export const useDashboardLogic = () => {
             const isRewardable = habitsDone < DAILY_LIMITS.HABITS.MAX_COUNT;
 
             if (isRewardable) {
-                let baseReward = 20 + (habit.streak * 2);
-                let baseGold = 2;
-                if (habit.estimatedTime && habit.estimatedTime > 0) {
-                    const hours = habit.estimatedTime / 60;
-                    const timeMultiplier = Math.min(2.0, hours * 0.15);
-                    baseReward = Math.floor(baseReward * (1 + timeMultiplier));
-                    baseGold = Math.floor(baseGold * (1 + timeMultiplier));
-                }
-                rewardXp = baseReward;
-                rewardGold = baseGold; // Scaled Gold Reward
+                // Use standardized reward calculator to match UI prediction
+                // NOW INCLUDES STREAK BONUS AUTOMATICALLY
+                const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak);
+                
+                rewardXp = prediction.xp;
+                rewardGold = prediction.coins;
+                rewardTraitXp = prediction.traitXp; 
             } else {
                  addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
             }
@@ -2388,15 +2651,15 @@ export const useDashboardLogic = () => {
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp }));
             }
 
-            if (rewardXp !== 0 && habit.attribute) {
+            if (rewardTraitXp !== 0 && habit.attribute) {
                 const attrIndex = attributes.findIndex(a => a.id === habit.attribute);
                 if (attrIndex !== -1) {
                     const attr = attributes[attrIndex];
-                    let newAttrXp = attr.xp + rewardXp;
+                    let newAttrXp = attr.xp + rewardTraitXp;
                     let newAttrLevel = attr.level;
                     let newAttrMaxXp = attr.maxXp;
 
-                    if (rewardXp > 0) {
+                    if (rewardTraitXp > 0) {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
@@ -2483,15 +2746,15 @@ export const useDashboardLogic = () => {
             }
 
             // C. Update Attribute
-            if (rewardXp !== 0 && habit.attribute) {
+            if (rewardTraitXp !== 0 && habit.attribute) {
                  const attrIndex = attributes.findIndex(a => a.id === habit.attribute);
                  if (attrIndex !== -1) {
                      const attr = attributes[attrIndex];
-                     let newAttrXp = attr.xp + rewardXp;
+                     let newAttrXp = attr.xp + rewardTraitXp;
                      let newAttrLevel = attr.level;
                      let newAttrMaxXp = attr.maxXp;
 
-                     if (rewardXp > 0) {
+                     if (rewardTraitXp > 0) {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
@@ -2541,18 +2804,22 @@ export const useDashboardLogic = () => {
                 }
             } else if (isReversal) {
                 let currentLimits = dailyLimits;
-                if (currentLimits.date === today) {
-                     const newLimits = { 
-                        ...currentLimits, 
-                        habitsCompleted: Math.max(0, (currentLimits.habitsCompleted || 0) - 1) 
-                    };
-                    
-                    // Update Local Limits
-                    setDailyLimits(newLimits);
-                    
-                    // Add to Batch
-                    batch.update(userRef, { dailyLimits: newLimits });
+                // Force date sync if needed, but primarily trust we need to decrement
+                if (currentLimits.date !== today) {
+                    console.warn("Daily Limits date mismatch on reversal, syncing to today");
+                    currentLimits = { ...currentLimits, date: today }; 
                 }
+                
+                const newLimits = { 
+                    ...currentLimits, 
+                    habitsCompleted: Math.max(0, (currentLimits.habitsCompleted || 0) - 1) 
+                };
+                
+                // Update Local Limits
+                setDailyLimits(newLimits);
+                
+                // Add to Batch
+                batch.update(userRef, { dailyLimits: newLimits });
             }
 
             // COMMIT
@@ -2588,19 +2855,23 @@ export const useDashboardLogic = () => {
             const habitsDone = currentLimits.habitsCompleted || 0;
             const isRewardable = habitsDone < DAILY_LIMITS.HABITS.MAX_COUNT;
 
-            let rewardXp = 20 + (validationHabit.streak * 2);
-            // Time Multiplier
-            if (validationHabit.estimatedTime && validationHabit.estimatedTime > 0) {
-                const timeMultiplier = Math.min(0.5, (validationHabit.estimatedTime / 30) * 0.1);
-                rewardXp = Math.floor(rewardXp * (1 + timeMultiplier));
-            }
+            let rewardXp = 0;
+            let rewardGold = 0;
+            let rewardTraitXp = 0;
 
-            if (!isRewardable) rewardXp = 0;
+            if (isRewardable) {
+                const prediction = calculateTaskRewards(validationHabit.estimatedTime, validationHabit.impact);
+                const streakBonus = Math.min(50, validationHabit.streak * 2);
+
+                rewardXp = prediction.xp + streakBonus;
+                rewardGold = prediction.coins + Math.floor(streakBonus / 5);
+                rewardTraitXp = prediction.traitXp + streakBonus;
+            }
 
             if (isRewardable) {
                 spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#fff', Trophy, 'fire');
-                addPlayerReward({ xp: rewardXp, gold: 0 });
-                updateAttributeXp(validationHabit.attribute, rewardXp);
+                addPlayerReward({ xp: rewardXp, gold: rewardGold });
+                updateAttributeXp(validationHabit.attribute, rewardTraitXp);
 
                  // Update Limits
                 const newLimits = { ...currentLimits, habitsCompleted: habitsDone + 1 };
@@ -3093,13 +3364,109 @@ export const useDashboardLogic = () => {
     }, []);
 
     const handleUpdateSmartProject = useCallback(async (project: SmartProject) => {
-        const newProjects = smartProjects.map(p => p.id === project.id ? project : p);
-        setSmartProjects(newProjects);
-        if (user?.uid) {
-             PersistenceService.saveCollection(user.uid, 'smartProjects', newProjects);
-             await persistenceService.smartProjects.save(user.uid, project);
+        const oldProject = smartProjects.find(p => p.id === project.id);
+        let projectToSave = project;
+        let rewardToTrigger: { xp: number, gold: number } | null = null;
+
+        // CHECK COMPLETION (100%)
+        // If transitioning from Not Completed -> Completed
+        if (oldProject && !oldProject.rootNode.isCompleted && project.rootNode.isCompleted) {
+            console.log("🎉 PROJECT COMPLETED:", project.mainGoal);
+            
+            // Use the reward defined in the root node (Project Reward)
+            const reward = project.rootNode.reward || { xp: 1000, coins: 500 };
+            rewardToTrigger = { xp: reward.xp, gold: reward.coins };
+            
+            // Update status to COMPLETED
+            projectToSave = { ...project, status: 'COMPLETED' };
         }
-    }, [user?.uid, smartProjects]);
+
+        setSmartProjects(prev => {
+            const newProjects = prev.map(p => p.id === projectToSave.id ? projectToSave : p);
+            if (user?.uid) {
+                PersistenceService.saveCollection(user.uid, 'smartProjects', newProjects);
+            }
+            return newProjects;
+        });
+        
+        if (user?.uid) {
+             await persistenceService.smartProjects.save(user.uid, projectToSave);
+        }
+
+        // TRIGGER REWARD
+        if (rewardToTrigger && user?.uid) {
+             const { xp, gold } = rewardToTrigger;
+             
+             // 1. Calculate New Player Stats
+             const newXp = player.xp + xp;
+             const newGold = player.gold + gold;
+             const newLevel = calculateLevelFromXp(newXp);
+             const nextXp = calculateNextLevelXp(newLevel);
+             
+             // 2. Update Player State
+             const newPlayerStats = { xp: newXp, gold: newGold, level: newLevel, nextXp };
+             setPlayer(prev => ({ ...prev, ...newPlayerStats }));
+             
+             // 3. Update Trait (if project has one)
+             let traitUpdateData = undefined;
+             if (projectToSave.traitId) {
+                 const attrIndex = attributes.findIndex(a => a.id === projectToSave.traitId);
+                 if (attrIndex !== -1) {
+                     const attr = attributes[attrIndex];
+                     const traitXpGained = Math.floor(xp * 1.0); 
+                     let newAttrXp = attr.xp + traitXpGained;
+                     let newAttrLevel = attr.level;
+                     let newAttrMaxXp = attr.maxXp;
+                     
+                     while (newAttrXp >= newAttrMaxXp) {
+                        newAttrXp -= newAttrMaxXp;
+                        newAttrLevel += 1;
+                        newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                     }
+                     
+                     const updatedAttr = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                     setAttributes(prev => {
+                         const next = [...prev];
+                         next[attrIndex] = updatedAttr;
+                         return next;
+                     });
+                     
+                     // Persist Trait
+                     const attrRef = doc(db, 'users', user.uid, 'attributes', attr.id);
+                     setDoc(attrRef, { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }, { merge: true }).catch(console.error);
+
+                     traitUpdateData = { 
+                         id: attr.id, 
+                         name: attr.label, 
+                         xp: newAttrXp, 
+                         maxXp: newAttrMaxXp, 
+                         level: newAttrLevel, 
+                         oldLevel: attr.level, 
+                         gained: traitXpGained 
+                     };
+                 }
+             }
+             
+             // 4. Persist Player Stats
+             const userRef = doc(db, 'users', user.uid);
+             updateDoc(userRef, {
+                 'stats.xp': newXp,
+                 'stats.gold': newGold,
+                 'stats.level': newLevel,
+                 'stats.nextXp': nextXp
+             }).catch(console.error);
+             
+             // 5. Trigger Visual Reward
+             triggerReward(
+                 `Project Completed: ${projectToSave.mainGoal}`,
+                 xp,
+                 gold,
+                 { xp: newXp, level: newLevel, gold: newGold },
+                 { level: player.level },
+                 traitUpdateData
+             );
+        }
+    }, [user?.uid, smartProjects, player, attributes, triggerReward]);
 
     const handleBadHabitConfirm = useCallback(async (data: Partial<BadHabit>) => {
         if (!user?.uid) return;
@@ -3199,9 +3566,51 @@ export const useDashboardLogic = () => {
         const newBadHabits = badHabits.filter(h => h.id !== id);
         setBadHabits(newBadHabits);
         PersistenceService.saveCollection(user.uid, 'badHabits', newBadHabits);
-
-        await persistenceService.badHabits.delete(user.uid, id);
+        // Also remove from Firestore
+        const habitRef = doc(db, 'users', user.uid, 'badHabits', id);
+        await deleteDoc(habitRef);
     }, [user?.uid, badHabits]);
+
+    const handleReorderHabits = useCallback(async (newOrder: Habit[]) => {
+        // Optimistic update
+        setHabits(newOrder);
+        
+        if (!user?.uid) return;
+        
+        try {
+            const batch = writeBatch(db);
+            newOrder.forEach((habit, index) => {
+                const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+                batch.update(habitRef, { order: index });
+            });
+            await batch.commit();
+            
+            // Update cache
+            PersistenceService.saveCollection(user.uid, 'habits', newOrder);
+        } catch (error) {
+            console.error("Failed to reorder habits:", error);
+        }
+    }, [user?.uid]);
+
+    const handleReorderProjects = useCallback(async (newOrder: Project[]) => {
+        // Optimistic update
+        setProjects(newOrder);
+        
+        if (!user?.uid) return;
+        
+        try {
+            const batch = writeBatch(db);
+            newOrder.forEach((project, index) => {
+                const projectRef = doc(db, 'users', user.uid, 'projects', project.id);
+                batch.update(projectRef, { order: index });
+            });
+            await batch.commit();
+             // Update cache
+            PersistenceService.saveCollection(user.uid, 'projects', newOrder);
+        } catch (error) {
+            console.error("Failed to reorder projects:", error);
+        }
+    }, [user?.uid]);
 
     return {
         user,
@@ -3296,6 +3705,9 @@ export const useDashboardLogic = () => {
         vividMode,
         setVividMode,
         updatePlayerLevel,
-        updateAttributeLevel
+        updateAttributeLevel,
+        handleEditSession,
+        handleReorderHabits,
+        handleReorderProjects
     };
 };

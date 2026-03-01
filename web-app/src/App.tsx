@@ -1,9 +1,11 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
+import { NotesProvider } from '@/modules/notes/context/NotesContext';
 import { RewardProvider } from '@/modules/rewards/context/RewardContext';
 import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { AuroraBackground } from '@/components/AuroraBackground';
@@ -26,10 +28,20 @@ const AppRoutes = () => {
     }
   }, [user, profile]);
 
+  // 🚀 PERFORMANCE: Hide Splash Screen ASAP
+  useEffect(() => {
+    if (!isLoading) {
+      // Immediate hide to prevent perceived lag
+      SplashScreen.hide().catch(() => {
+        // Ignore error if not running on device
+      });
+    }
+  }, [isLoading]);
+
   // Determine what to show in the content layer
   const renderContent = () => {
     // Snappier transition for FLASH speed
-    const transition = { duration: 0.25, ease: [0.23, 1, 0.32, 1] as const };
+    const transition = { duration: 0.15, ease: "easeOut" as const };
 
     // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
     const canEnterLux = !!user || !!profile;
@@ -39,9 +51,9 @@ const AppRoutes = () => {
       return (
         <motion.div 
           key="loading" 
-          initial={{ opacity: 0, scale: 0.99 }} 
-          animate={{ opacity: 1, scale: 1 }} 
-          exit={{ opacity: 0, scale: 1.01 }} 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
           transition={transition}
           className="w-full h-full"
         >
@@ -54,9 +66,9 @@ const AppRoutes = () => {
       return (
         <motion.div 
           key="auth" 
-          initial={{ opacity: 0, scale: 0.99 }} 
-          animate={{ opacity: 1, scale: 1 }} 
-          exit={{ opacity: 0, scale: 1.01 }} 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
           transition={transition}
           className="w-full h-full"
         >
@@ -69,9 +81,9 @@ const AppRoutes = () => {
       return (
         <motion.div 
           key="onboarding" 
-          initial={{ opacity: 0, scale: 0.99 }} 
-          animate={{ opacity: 1, scale: 1 }} 
-          exit={{ opacity: 0, scale: 1.01 }} 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
           transition={transition}
           className="w-full h-full"
         >
@@ -83,19 +95,21 @@ const AppRoutes = () => {
     return (
       <motion.div 
         key="main" 
-        initial={{ opacity: 0, scale: 0.99 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        exit={{ opacity: 0, scale: 1.01 }} 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }} 
         transition={transition}
         className="w-full h-full"
       >
         <LuxProvider userId={user?.uid || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <RewardProvider>
-              <Suspense fallback={null}>
-                <Dashboard />
-              </Suspense>
-              <RewardOverlay />
+              <NotesProvider>
+                <Suspense fallback={<LoadingScreen />}>
+                  <Dashboard />
+                </Suspense>
+                <RewardOverlay />
+              </NotesProvider>
             </RewardProvider>
           </EconomyProvider>
         </LuxProvider>

@@ -19,15 +19,13 @@ export const AdShard: React.FC<AdShardProps> = ({ onWatch }) => {
 
   return (
     <motion.div
-      layout
       whileHover={{ scale: 1.01, y: -2 }}
       whileTap={{ scale: 0.98 }}
       className={clsx(
         "relative flex flex-row items-center p-6 rounded-[32px] overflow-hidden cursor-pointer group",
-        // Distinctive style for Ad: More vibrant but classy
-        "bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent backdrop-blur-lg",
+        "bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent",
         "border border-indigo-500/20 hover:border-indigo-400/40 transition-colors duration-300",
-        "shadow-lg shadow-indigo-900/10 hover:shadow-indigo-500/20"
+        "shadow-md shadow-indigo-900/10 hover:shadow-indigo-500/20"
       )}
       onClick={handleWatch}
     >

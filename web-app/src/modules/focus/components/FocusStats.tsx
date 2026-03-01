@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Target, Layers, Plus, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Layers, Plus, ChevronDown, Calendar as CalendarIcon, SlidersHorizontal, Check, Archive } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
+import { DailyLimits } from '../../../types/User';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
 import { 
-    format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
-    subWeeks, addWeeks, subMonths, addMonths, addYears, addDays 
+    format, startOfWeek, endOfWeek, startOfMonth, 
+    subWeeks, addWeeks, addMonths, addYears, addDays,
+    getDaysInMonth, startOfQuarter, endOfQuarter, addQuarters
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
-import { useTranslation } from 'react-i18next';
-import { DAILY_LIMITS } from '../../dashboard/constants';
 import { FocusLimits } from '../FocusLimits';
+import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
+
+import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
@@ -28,22 +31,39 @@ const ALL_RANGES: { value: TimeRange; label: string }[] = [
     { value: 'TOTAL', label: 'Total' }
 ];
 
-export const FocusStats = React.memo(({ projects, attributes }: { projects: Project[], attributes: Attribute[] }) => {
+export const FocusStats = React.memo(({ 
+    projects, 
+    attributes,
+    showArchived,
+    onToggleArchived
+}: { 
+    projects: Project[], 
+    attributes: Attribute[],
+    showArchived?: boolean,
+    onToggleArchived?: () => void
+}) => {
     const { user } = useLux();
-    const dailyLimits = user?.dailyLimits || { date: '', taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
-    const { t } = useTranslation();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
+    const dailyLimits: DailyLimits = user?.dailyLimits ?? {
+        date: '',
+        taskXp: 0,
+        taskGold: 0,
+        taskTraitPoints: 0,
+        habitsCompleted: 0,
+        focusSeconds: 0
+    };
     
     const [timeRange, setTimeRange] = useState<TimeRange>('DAY');
-    const [pinnedRanges, setPinnedRanges] = useState<TimeRange[]>(['DAY', 'WEEK', 'MONTH']);
+    const [thirdSlot, setThirdSlot] = useState<TimeRange>('MONTH');
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     
     const [currentDate, setCurrentDate] = useState(new Date());
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
-    const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | 'RANGES' | null>(null);
     
     const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>('ATTRIBUTE');
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     
     // Reset date when range changes
     useEffect(() => {
@@ -52,55 +72,153 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
 
     const handleTabClick = (range: TimeRange) => {
         setTimeRange(range);
-        if (!pinnedRanges.includes(range)) {
-            if (pinnedRanges.length >= 3) {
-                setPinnedRanges([range, ...pinnedRanges.slice(0, 2)]);
-            } else {
-                setPinnedRanges([range, ...pinnedRanges]);
-            }
+        
+        // If it's not DAY or WEEK, update the third slot
+        if (range !== 'DAY' && range !== 'WEEK') {
+            setThirdSlot(range);
         }
+        
         setIsConfigOpen(false);
     };
 
+    const handleDateSelect = (date: Date) => {
+        setCurrentDate(date);
+        // Switch to appropriate range if needed. 
+        // For simplicity, if we select a date via modal, we might want to ensure we are in a mode that supports specific date selection nicely.
+        // But FocusStats handles currentDate for all modes.
+        // However, DateSelectionModal returns a specific date or start of week/month.
+        // If user picks a day, we might want to switch to DAY mode or keep current?
+        // Let's assume user wants to see that specific period.
+        // But `DateSelectionModal` `mode` prop determines what they pick.
+        // We will pass the mode based on current timeRange.
+    };
+
+    const attributeById = useMemo(() => {
+        const map = new Map<string, Attribute>();
+        attributes.forEach(attr => map.set(attr.id, attr));
+        return map;
+    }, [attributes]);
+
+    const projectById = useMemo(() => {
+        const map = new Map<string, Project>();
+        projects.forEach(project => map.set(project.id, project));
+        return map;
+    }, [projects]);
+
     const activeFilterColor = useMemo(() => {
         if (filterMode === 'GLOBAL') return avatarColor;
-        const activeAttr = attributes.find(a => a.id === filterMode);
+        const activeAttr = attributeById.get(filterMode);
         if (activeAttr) return activeAttr.color;
-        const activeProj = projects.find(p => p.id === filterMode);
+        const activeProj = projectById.get(filterMode);
         if (activeProj) {
-            const attr = attributes.find(a => a.id === activeProj.attribute);
+            const attr = attributeById.get(activeProj.attribute);
             return attr ? attr.color : '#6366f1';
         }
         return '#6366f1'; 
-    }, [filterMode, attributes, projects, avatarColor]);
-
-    const activeAttribute = useMemo(() => attributes.find(a => a.id === filterMode), [filterMode, attributes]);
-    const activeProject = useMemo(() => projects.find(p => p.id === filterMode), [filterMode, projects]);
+    }, [filterMode, attributeById, projectById, avatarColor]);
 
     const groupMode = useMemo(() => {
         if (filterMode === 'GLOBAL') return viewMode;
-        const isAttr = attributes.some(a => a.id === filterMode);
+        const isAttr = attributeById.has(filterMode);
         if (isAttr) return 'PROJECT';
         return 'TOTAL';
-    }, [filterMode, attributes, viewMode]);
+    }, [filterMode, attributeById, viewMode]);
 
     const stats = useMemo(() => {
-        const data = generateFocusData(projects, attributes, currentDate, timeRange, filterMode, groupMode);
-        // Debug logging for stats generation
-        const totalMinutes = data.datasets.reduce((acc, ds) => acc + ds.data.reduce((a, b) => a + b, 0), 0);
-        console.log(`📊 FocusStats Generated: Range=${timeRange}, Total=${totalMinutes}m, Projects=${projects.length}`);
-        return data;
+        return generateFocusData(projects, attributes, currentDate, timeRange, filterMode, groupMode);
     }, [projects, attributes, currentDate, timeRange, filterMode, groupMode]);
     
-    const dailyGoalMinutes = useMemo(() => {
-        if (timeRange !== 'DAY') return 0;
-        return projects.reduce((acc, p) => {
-            if (!p.deleted && !p.archived && p.goalFrequency === 'DAILY') {
-                return acc + (p.goalTarget || 0);
+    const activeProject = useMemo(() => {
+        if (filterMode === 'GLOBAL') return undefined;
+        return projectById.get(filterMode);
+    }, [filterMode, projectById]);
+
+    const isNonWorkingDay = useMemo(() => {
+        if (timeRange !== 'DAY') return false;
+        if (!activeProject) return false;
+        const workingDays = activeProject.workingDays;
+        if (!workingDays || workingDays.length === 0) return false;
+        return !workingDays.includes(currentDate.getDay());
+    }, [activeProject, currentDate, timeRange]);
+
+    const nextWorkingLabel = useMemo(() => {
+        if (!activeProject) return '';
+        const workingDays = activeProject.workingDays;
+        if (!workingDays || workingDays.length === 0) return '';
+        for (let i = 1; i <= 7; i += 1) {
+            const next = addDays(currentDate, i);
+            if (workingDays.includes(next.getDay())) {
+                if (i === 1) return 'Mañana';
+                const label = format(next, 'EEEE', { locale: es });
+                return label.charAt(0).toUpperCase() + label.slice(1);
             }
-            return acc;
-        }, 0) || 240; // Default 4 hours
-    }, [projects, timeRange]);
+        }
+        return '';
+    }, [activeProject, currentDate]);
+
+    const dailyGoalMinutes = useMemo(() => {
+        if (['3_MONTHS', 'YEAR', 'TOTAL'].includes(timeRange)) return 0;
+
+        const isToday = new Date().toDateString() === currentDate.toDateString();
+        let dayTotal = 0;
+        let weekTotal = 0;
+        let eightWeeksTotal = 0;
+        let monthTotal = 0;
+
+        projects.forEach((p) => {
+            if (p.deleted || p.archived) return;
+            const effectiveFrequency = p.uiFrequency || p.goalFrequency;
+
+            if (effectiveFrequency === 'DAILY') {
+                const daily = Math.max(0, p.goalTarget || 0);
+                dayTotal += daily;
+                weekTotal += daily * 7;
+                eightWeeksTotal += daily * 56;
+                monthTotal += daily * getDaysInMonth(currentDate);
+                return;
+            }
+
+            if (effectiveFrequency === 'WEEKLY') {
+                const weekly = Math.max(0, getWeeklyGoalMinutes(p));
+                const workingDaysCount = p.workingDays?.length || 7;
+                const dailyAvg = workingDaysCount > 0 ? weekly / workingDaysCount : 0;
+                const dynamicToday = Math.max(0, getDynamicDailyTarget(p));
+                dayTotal += timeRange === 'DAY' && isToday ? dynamicToday : Math.max(0, dailyAvg);
+                weekTotal += weekly;
+                eightWeeksTotal += weekly * 8;
+                monthTotal += weekly * Math.max(1, Math.ceil(getDaysInMonth(currentDate) / 7));
+                return;
+            }
+
+            if (effectiveFrequency === 'MONTHLY') {
+                const monthly = Math.max(0, getMonthlyGoalMinutes(p));
+                const workingDaysCount = p.workingDays?.length || 7;
+                const dailyAvg = workingDaysCount > 0 ? monthly / (workingDaysCount * 4) : 0;
+                const dynamicToday = Math.max(0, getDynamicDailyTarget(p));
+                dayTotal += timeRange === 'DAY' && isToday ? dynamicToday : Math.max(0, dailyAvg);
+                weekTotal += Math.max(0, dailyAvg) * 7;
+                eightWeeksTotal += Math.max(0, dailyAvg) * 56;
+                monthTotal += monthly;
+            }
+        });
+
+        if (dayTotal === 0 && weekTotal === 0 && eightWeeksTotal === 0 && monthTotal === 0) {
+            dayTotal = 240;
+            weekTotal = 240 * 7;
+            eightWeeksTotal = 240 * 56;
+            monthTotal = 240 * getDaysInMonth(currentDate);
+        }
+
+        switch (timeRange) {
+            case 'DAY': return dayTotal;
+            case 'WEEK': return weekTotal;
+            case '8_WEEKS': return eightWeeksTotal;
+            case 'MONTH': return monthTotal;
+            default: return 0;
+        }
+    }, [projects, timeRange, currentDate]);
+
+    const showGoal = dailyGoalMinutes > 0 && !isNonWorkingDay;
 
     const currentMinutes = useMemo(() => {
         return stats.datasets.reduce((acc, ds) => acc + ds.data.reduce((a, b) => a + b, 0), 0);
@@ -108,26 +226,14 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
 
     const progressPercentage = dailyGoalMinutes > 0 ? Math.min(100, (currentMinutes / dailyGoalMinutes) * 100) : 0;
 
-    const formattedHours = useMemo(() => {
-        const num = parseFloat(stats.totalHours);
-        return isNaN(num) ? "0" : Math.floor(num).toString();
-    }, [stats.totalHours]);
-
-    const hoursFontSize = useMemo(() => {
-        const len = formattedHours.length;
-        if (len > 6) return 'text-xl';
-        if (len > 4) return 'text-2xl';
-        return 'text-3xl';
-    }, [formattedHours]);
-
     const dateRangeLabel = useMemo(() => {
         let start: Date, end: Date;
         if (timeRange === 'DAY') {
-            return format(currentDate, 'd MMMM yyyy', { locale: es });
+            return format(currentDate, 'EEEE d MMM', { locale: es }).toUpperCase();
         } else if (timeRange === 'WEEK') {
             start = startOfWeek(currentDate, { weekStartsOn: 1 });
             end = endOfWeek(currentDate, { weekStartsOn: 1 });
-            return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
+            return `${format(start, 'd MMM').toUpperCase()} - ${format(end, 'd MMM', { locale: es }).toUpperCase()}`;
         } else if (timeRange === '8_WEEKS') {
             end = endOfWeek(currentDate, { weekStartsOn: 1 });
             start = subWeeks(end, 7);
@@ -135,10 +241,11 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
             return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
         } else if (timeRange === 'MONTH') {
             start = startOfMonth(currentDate);
-            return format(start, 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase());
+            const label = format(start, 'MMMM yyyy', { locale: es });
+            return label.charAt(0).toUpperCase() + label.slice(1);
         } else if (timeRange === '3_MONTHS') {
-            end = endOfMonth(currentDate);
-            start = subMonths(startOfMonth(end), 2);
+            const start = startOfQuarter(currentDate);
+            const end = endOfQuarter(currentDate);
             return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy', { locale: es })}`;
         } else if (timeRange === 'YEAR') {
             return format(currentDate, 'yyyy');
@@ -147,24 +254,64 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
         }
     }, [timeRange, currentDate]);
 
+    const isCurrentRange = useMemo(() => {
+        const today = new Date();
+        if (timeRange === 'DAY') return format(currentDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+        if (timeRange === 'WEEK') {
+            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            return today >= start && today <= end;
+        }
+        if (timeRange === 'MONTH') {
+            return currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
+        }
+        if (timeRange === 'YEAR') return currentDate.getFullYear() === today.getFullYear();
+        return false;
+    }, [currentDate, timeRange]);
+
     const navigateDate = (dir: -1 | 1) => {
         if (timeRange === 'DAY') setCurrentDate(d => addDays(d, dir));
         else if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, dir));
         else if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, dir * 8));
         else if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, dir));
-        else if (timeRange === '3_MONTHS') setCurrentDate(d => addMonths(d, dir * 3));
+        else if (timeRange === '3_MONTHS') setCurrentDate(d => addQuarters(d, dir));
         else if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, dir));
     };
 
     const { chartMax, yTicks } = useMemo(() => {
         const base = Math.max(stats.max * 1.15, 60);
         const steps = [15, 30, 60, 90, 120, 180, 240, 360, 480, 720, 960];
-        const maxTicks = 5;
+        const maxTicks = 6; // Increased from 5 for more granularity
         const step = steps.find((s) => Math.ceil(base / s) <= maxTicks - 1) || steps[steps.length - 1];
         const maxValue = Math.ceil(base / step) * step;
         const ticks = Array.from({ length: Math.floor(maxValue / step) + 1 }, (_, i) => i * step);
         return { chartMax: maxValue, yTicks: ticks };
     }, [stats.max]);
+
+    const xTickInterval = useMemo(() => {
+        if (timeRange === 'DAY') return 4;
+        if (timeRange === 'MONTH') return 5;
+        if (timeRange === '3_MONTHS') return 2;
+        if (timeRange === 'YEAR') return 2;
+        if (timeRange === 'TOTAL') {
+             const len = stats.labels.length;
+             if (len > 20) return Math.ceil(len / 8);
+             if (len > 12) return 2;
+             return 1;
+        }
+        return 1;
+    }, [timeRange, stats.labels.length]);
+
+    const barSpacing = useMemo(() => {
+        if (timeRange === 'YEAR') return 'px-0.5 md:px-1';
+        if (timeRange === 'MONTH') return 'px-[1px]';
+
+        const count = stats.labels.length;
+        // Aggressive reduction for mobile to prevent zero-width bars
+        if (count > 20) return 'px-[1px] md:px-0.5'; // 24 items (Day) -> Very tight
+        if (count > 12) return 'px-0.5 md:px-1';
+        return 'px-1 md:px-2';
+    }, [stats.labels.length, timeRange]);
 
     const formatMinutes = (mins: number) => {
         if (mins <= 0) return '0h';
@@ -177,277 +324,313 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
 
     return (
         <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
-            <div className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-5 flex flex-col gap-2 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
+            <div className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-4 flex flex-col gap-3 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
                  <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
                  
-                {/* HEADER ROW: Stats & Time Range */}
-                <div className="flex justify-between items-start z-50 min-h-[42px] relative">
-                    <div className="flex flex-col min-w-0">
-                        <span className={`${hoursFontSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50 tracking-tighter transition-all duration-300 whitespace-nowrap leading-none`}>{formattedHours}</span>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex-shrink-0">Hours</span>
-                    </div>
-
-                    {/* NEW CONFIGURABLE TIME RANGE TABS */}
-                    <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg relative">
-                        <AnimatePresence mode="popLayout">
-                            {pinnedRanges.map((range) => {
-                                const isActive = timeRange === range;
-                                const label = ALL_RANGES.find(r => r.value === range)?.label || range;
-                                
-                                return (
-                                    <motion.button
-                                        key={range}
-                                        layoutId={`tab-${range}`}
-                                        onClick={() => handleTabClick(range)}
-                                        className={cn(
-                                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
-                                            isActive 
-                                                ? "bg-white text-black shadow-lg scale-105 z-10" 
-                                                : "text-zinc-400 hover:text-white hover:bg-white/5"
-                                        )}
-                                    >
-                                        <span className="relative z-10">{label}</span>
-                                        {isActive && (
-                                            <motion.div
-                                                layoutId="activeTab"
-                                                className="absolute inset-0 bg-white"
-                                                initial={false}
-                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                            />
-                                        )}
-                                    </motion.button>
-                                );
-                            })}
-                        </AnimatePresence>
-
-                        <div className="w-[1px] h-3 bg-white/10 mx-0.5" />
-
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsConfigOpen(!isConfigOpen)}
-                                className={cn(
-                                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
-                                    isConfigOpen 
-                                        ? "bg-white/20 text-white rotate-45" 
-                                        : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
-                                )}
-                            >
-                                <Plus size={14} />
-                            </button>
-
-                            <AnimatePresence>
-                                {isConfigOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                        className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
-                                    >
-                                        <div className="flex flex-col gap-0.5">
-                                            {ALL_RANGES.map((option) => {
-                                                const isPinned = pinnedRanges.includes(option.value);
-                                                const isSelected = timeRange === option.value;
-                                                
-                                                return (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => handleTabClick(option.value)}
-                                                        className={cn(
-                                                            "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
-                                                            isSelected 
-                                                                ? "bg-white text-black shadow-md" 
-                                                                : "text-zinc-400 hover:text-white hover:bg-white/5"
-                                                        )}
-                                                    >
-                                                        <span>{option.label}</span>
-                                                        {isSelected && <Check size={12} className="text-black" />}
-                                                        {isPinned && !isSelected && (
-                                                            <div className="w-1 h-1 rounded-full bg-zinc-600" />
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
+                {/* NEW COMPACT HEADER: Time Range + Date Nav + Global */}
+                <div className="flex flex-col gap-2 z-50 relative">
+                    <div className="flex items-center justify-between gap-2">
+                        {/* LEFT: Time Range Tabs (Reduced Size) */}
+                        <div className="flex items-center gap-1 bg-black/40 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-md relative z-20">
+                            <AnimatePresence mode="popLayout">
+                                {['DAY', 'WEEK', thirdSlot].map((range) => {
+                                    const isActive = timeRange === range;
+                                    const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                    
+                                    return (
+                                        <div key={range} className="relative">
+                                            <motion.button
+                                                layoutId={`tab-${range}`}
+                                                onClick={() => {
+                                                    if (isActive) {
+                                                        setIsConfigOpen(!isConfigOpen);
+                                                    } else {
+                                                        handleTabClick(range as TimeRange);
+                                                        setIsConfigOpen(false); // Close if switching to another
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all relative whitespace-nowrap overflow-visible",
+                                                    isActive 
+                                                        ? "bg-white text-black shadow-sm z-10" 
+                                                        : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                )}
+                                            >
+                                                <span className="relative z-10 flex items-center gap-1">
+                                                    {label}
+                                                    {isActive && (
+                                                        <ChevronDown 
+                                                            size={12} 
+                                                            className={`transition-transform duration-300 ${isConfigOpen ? 'rotate-180' : ''}`} 
+                                                        />
+                                                    )}
+                                                </span>
+                                                {isActive && (
+                                                    <motion.div
+                                                        layoutId="activeTab"
+                                                        className="absolute inset-0 bg-white rounded-lg"
+                                                        initial={false}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    />
+                                                )}
+                                            </motion.button>
                                         </div>
-                                    </motion.div>
-                                )}
+                                    );
+                                })}
                             </AnimatePresence>
-                        </div>
-                    </div>
-                </div>
 
-                {/* NEW FILTER CONTROLS ROW */}
-                <div className="flex flex-col gap-1 z-20 mt-2">
-                    <div className="flex items-center gap-1 w-full overflow-hidden">
-                        {/* 1. Date Navigation - Compact Left */}
-                        <div className="flex items-center justify-between gap-1 bg-black/20 p-0.5 rounded-lg border border-white/5 flex-shrink-0 min-w-[120px] max-w-[140px]">
-                            <button onClick={() => navigateDate(-1)} className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5">
-                                <ChevronLeft size={12} />
-                            </button>
-                            
-                            <div className="flex-1 h-6 flex items-center justify-center relative overflow-hidden px-1">
-                                <AnimatePresence mode="wait">
-                                    <motion.span 
-                                        key={currentDate.toString() + timeRange}
-                                        initial={{ y: 5, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        exit={{ y: -5, opacity: 0 }}
-                                        transition={{ type: "spring", stiffness: 500, damping: 25, mass: 0.5 }}
-                                        className="text-[9px] font-bold text-white text-center absolute whitespace-nowrap"
-                                    >
-                                        {dateRangeLabel}
-                                    </motion.span>
+                            <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+
+                            {/* GLOBAL RANGE PICKER (PLUS BUTTON) - SEPARATE */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setActiveDropdown(activeDropdown === 'RANGES' ? null : 'RANGES')} // Use separate state or reuse activeDropdown
+                                    className={cn(
+                                        "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                                        activeDropdown === 'RANGES'
+                                            ? "bg-white/20 text-white" 
+                                            : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                                    )}
+                                >
+                                    <Plus size={12} className={cn("transition-transform duration-300", activeDropdown === 'RANGES' && "rotate-45")} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {activeDropdown === 'RANGES' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 5, x: "-50%" }}
+                                            animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+                                            exit={{ opacity: 0, scale: 0.9, y: 5, x: "-50%" }}
+                                            className="absolute left-1/2 top-full mt-2 w-40 bg-zinc-900 border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1"
+                                        >
+                                            <div className="flex flex-col gap-0.5">
+                                                {ALL_RANGES.map((option) => {
+                                                    const isPinned = option.value === 'DAY' || option.value === 'WEEK' || option.value === thirdSlot;
+                                                    const isSelected = timeRange === option.value;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => {
+                                                                handleTabClick(option.value);
+                                                                setActiveDropdown(null);
+                                                                setIsConfigOpen(false); // Ensure date nav closes
+                                                            }}
+                                                            className={cn(
+                                                                "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
+                                                                isSelected 
+                                                                    ? "bg-white text-black shadow-md" 
+                                                                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                            )}
+                                                        >
+                                                            <span>{option.label}</span>
+                                                            {isSelected && <Check size={10} className="text-black" />}
+                                                            {isPinned && !isSelected && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </motion.div>
+                                    )}
                                 </AnimatePresence>
                             </div>
-
-                            <button onClick={() => navigateDate(1)} disabled={timeRange === 'TOTAL'} className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${timeRange === 'TOTAL' ? 'bg-white/5 text-slate-600 border-white/5 opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white active:scale-90 border-white/5'}`}>
-                                <ChevronRight size={12} />
-                            </button>
                         </div>
 
-                        {/* Filter Buttons Group - Compact Right - Flexible */}
-                        <div className="flex flex-1 gap-1 min-w-0">
-                            {/* 2. Global Filter Box */}
+                        {/* RIGHT: Global Button & Calendar */}
+                        <div className="flex items-center gap-2">
+                             {/* CALENDAR BUTTON REMOVED AS REQUESTED - NOW NEXT TO NAVIGATOR */}
+
+                            {/* Global Button */}
                             <button 
                                 onClick={() => { 
                                     setFilterMode('GLOBAL'); 
                                     setActiveDropdown(activeDropdown === 'GLOBAL_OPTIONS' ? null : 'GLOBAL_OPTIONS'); 
                                 }}
-                                className={`h-8 px-2 rounded-lg border text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center flex-1 min-w-0 ${filterMode === 'GLOBAL' ? 'bg-white text-black border-white shadow-lg shadow-white/10' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
+                                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${filterMode === 'GLOBAL' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
                             >
-                                <span className="truncate">GLOBAL</span>
+                                <SlidersHorizontal size={12} />
                             </button>
 
-                            {/* 3. Trait Filter Box */}
-                            <button 
-                                onClick={() => setActiveDropdown(activeDropdown === 'TRAITS' ? null : 'TRAITS')}
-                                className={`h-8 px-2 rounded-lg border text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1 flex-1 min-w-0 ${activeAttribute ? '' : (activeDropdown === 'TRAITS' ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white')}`}
-                                style={activeAttribute ? { backgroundColor: activeAttribute.color, borderColor: activeAttribute.color, color: 'white', boxShadow: `0 0 10px -5px ${activeAttribute.color}` } : {}}
-                            >
-                                {activeAttribute ? <activeAttribute.icon size={10} className="shrink-0" /> : <Layers size={10} className="shrink-0" />}
-                                <span className="truncate">{activeAttribute ? activeAttribute.label.toUpperCase() : 'TRAITS'}</span>
-                            </button>
-
-                            {/* 4. Project Filter Box */}
-                            <button 
-                                onClick={() => setActiveDropdown(activeDropdown === 'PROJECTS' ? null : 'PROJECTS')}
-                                className={`h-8 px-2 rounded-lg border text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center gap-1 flex-1 min-w-0 ${activeProject ? '' : (activeDropdown === 'PROJECTS' ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white')}`}
-                                style={activeProject ? { backgroundColor: '#6366f1', borderColor: '#6366f1', color: 'white', boxShadow: '0 0 10px -5px #6366f1' } : {}}
-                            >
-                                <Target size={10} className="shrink-0" />
-                                <span className="truncate">{activeProject ? activeProject.title.toUpperCase() : 'PROJECTS'}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Expandable Dropdown Panel */}
-                    <AnimatePresence>
-                        {activeDropdown && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="overflow-hidden"
-                            >
-                                <div className={`bg-black/40 rounded-xl p-3 border border-white/5 grid gap-2 max-h-[240px] overflow-y-auto ${activeDropdown === 'GLOBAL_OPTIONS' ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                    {activeDropdown === 'GLOBAL_OPTIONS' && (
-                                        <>
-                                            <button 
-                                                onClick={() => { setViewMode('TOTAL'); setActiveDropdown(null); }}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${viewMode === 'TOTAL' ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
-                                            >
-                                                <div className={`w-3.5 h-3.5 rounded-[2px] ${viewMode === 'TOTAL' ? 'bg-black' : 'bg-indigo-400'}`} />
-                                                <span className="truncate">SIN DIVIDIR</span>
-                                            </button>
-                                            
-                                            <button 
-                                                onClick={() => { setViewMode('ATTRIBUTE'); setActiveDropdown(null); }}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${viewMode === 'ATTRIBUTE' ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
-                                            >
-                                                <Layers size={14} className={viewMode === 'ATTRIBUTE' ? 'text-black' : 'text-indigo-400'} />
-                                                <span className="truncate">DIVIDIR POR RASGO</span>
-                                            </button>
-
-                                            <button 
-                                                onClick={() => { setViewMode('PROJECT'); setActiveDropdown(null); }}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${viewMode === 'PROJECT' ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
-                                            >
-                                                <Target size={14} className={viewMode === 'PROJECT' ? 'text-black' : 'text-indigo-400'} />
-                                                <span className="truncate">DIVIDIR POR PROYECTO</span>
-                                            </button>
-                                        </>
+                            {/* Archive Toggle Button */}
+                            {onToggleArchived && (
+                                <button
+                                    onClick={onToggleArchived}
+                                    className={cn(
+                                        "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                                        showArchived
+                                            ? "bg-amber-500 text-black shadow-md shadow-amber-500/20"
+                                            : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
                                     )}
-                                    {activeDropdown === 'TRAITS' && attributes.map(attr => {
-                                        const Icon = attr.icon;
-                                        const isActive = filterMode === attr.id;
-                                        return (
-                                            <button 
-                                                key={attr.id} 
-                                                onClick={() => { setFilterMode(attr.id); setActiveDropdown(null); }}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
-                                            >
-                                                <Icon size={14} style={{ color: isActive ? 'black' : attr.color }} /> 
-                                                <span className="truncate">{t(attr.label, attr.label).toUpperCase()}</span>
-                                            </button>
-                                        );
-                                    })}
+                                    title={showArchived ? "Ver Proyectos Activos" : "Ver Proyectos Archivados"}
+                                >
+                                    <Archive size={12} />
+                                </button>
+                            )}
+                        </div>
 
-                                    {activeDropdown === 'PROJECTS' && projects.filter(p => !p.deleted).map(proj => {
-                                        const isActive = filterMode === proj.id;
-                                        return (
-                                            <button 
-                                                key={proj.id} 
-                                                onClick={() => { setFilterMode(proj.id); setActiveDropdown(null); }}
-                                                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-[10px] font-bold transition-all ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'}`}
-                                            >
-                                                <Target size={14} className={isActive ? 'text-black' : 'text-indigo-400'} />
-                                                <span className="truncate">{proj.title.toUpperCase()}</span>
-                                            </button>
-                                        );
-                                    })}
+                        {/* Global Dropdown (Absolute) */}
+                        <AnimatePresence>
+                            {activeDropdown === 'GLOBAL_OPTIONS' && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                    className="absolute right-0 top-full mt-2 w-auto bg-zinc-900 border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1.5 min-w-[140px]"
+                                >
+                                    <div className="flex flex-col gap-1">
+                                        <button 
+                                            onClick={() => { setViewMode('TOTAL'); setActiveDropdown(null); }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'TOTAL' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                        >
+                                            <div className={`w-3 h-3 rounded-[2px] ${viewMode === 'TOTAL' ? 'bg-black' : 'bg-indigo-400'}`} />
+                                            <span className="text-[10px] font-bold">SIN DIVIDIR</span>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => { setViewMode('ATTRIBUTE'); setActiveDropdown(null); }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'ATTRIBUTE' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                        >
+                                            <Layers size={12} />
+                                            <span className="text-[10px] font-bold">DIVIDIR POR RASGO</span>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => { setViewMode('PROJECT'); setActiveDropdown(null); }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'PROJECT' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                        >
+                                            <Target size={12} />
+                                            <span className="text-[10px] font-bold">DIVIDIR POR PROYECTO</span>
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    
+                    {/* DATE NAV DROPDOWN - PUSH CONTENT DOWN */}
+                    <AnimatePresence>
+                        {isConfigOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                                animate={{ height: 'auto', opacity: 1, marginBottom: 4 }}
+                                exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                className="overflow-hidden w-full"
+                            >
+                                <div className="flex items-center justify-between gap-2 px-1">
+                                    {/* DATE NAV */}
+                                    <div className="flex items-center justify-between gap-1 bg-black/40 p-0.5 rounded-lg border border-white/5 whitespace-nowrap shadow-sm">
+                                        <button onClick={(e) => { e.stopPropagation(); navigateDate(-1); }} className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-90 border border-white/5 flex-shrink-0">
+                                            <ChevronLeft size={10} />
+                                        </button>
+                                        
+                                        <div 
+                                            className="h-5 flex items-center justify-center relative overflow-hidden px-2 min-w-[70px] cursor-pointer hover:bg-white/5 rounded transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsDateModalOpen(true);
+                                            }}
+                                            title="Elegir fecha"
+                                        >
+                                            <AnimatePresence mode="wait">
+                                                <motion.span 
+                                                    key={currentDate.toString() + timeRange}
+                                                    initial={{ y: 5, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    exit={{ y: -5, opacity: 0 }}
+                                                    className="text-[9px] font-bold text-white text-center whitespace-nowrap block"
+                                                >
+                                                    {dateRangeLabel}
+                                                </motion.span>
+                                            </AnimatePresence>
+                                        </div>
+
+                                        <button onClick={(e) => { e.stopPropagation(); navigateDate(1); }} disabled={timeRange === 'TOTAL'} className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 ${timeRange === 'TOTAL' ? 'bg-white/5 text-slate-600 border-white/5 opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white active:scale-90 border-white/5'}`}>
+                                            <ChevronRight size={10} />
+                                        </button>
+                                    </div>
+
+                                    {/* NEW BLUE DATE BUTTON NEXT TO NAVIGATOR */}
+                                    <button 
+                                        onClick={() => setIsDateModalOpen(true)}
+                                        className={cn(
+                                            "px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer border active:scale-95",
+                                            isCurrentRange
+                                                ? "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                                                : "bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20"
+                                        )}
+                                    >
+                                        <CalendarIcon size={12} className={cn(isCurrentRange ? "text-blue-300" : "text-amber-300")} />
+                                        <span className={cn(
+                                            "text-[10px] font-bold tracking-wide whitespace-nowrap font-mono",
+                                            isCurrentRange ? "text-blue-200/90" : "text-amber-200/90"
+                                        )}>
+                                            {format(currentDate, 'MMMM yyyy', { locale: es })}
+                                        </span>
+                                    </button>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="px-1 mt-1 mb-0.5">
+                {/* Progress Bar (Goal) - Increased Text Size */}
+                <div className="px-1 mt-0">
                     <div className="flex justify-between items-end mb-1 px-0.5">
-                        <span className="text-[9px] font-bold text-slate-500 tracking-wider uppercase">Goal</span>
+                        <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">
+                            {isNonWorkingDay ? "Descanso" : showGoal ? "Goal" : "Total Focus"}
+                        </span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className="text-[10px] font-bold text-white tracking-tight">
+                            {/* Increased from text-[10px] to text-sm (14px) or text-xs (12px) */}
+                            <span className="text-sm font-bold text-white tracking-tight">
                                 {Math.floor(currentMinutes / 60)}h {currentMinutes % 60}m
                             </span>
-                            <span className="text-[9px] font-medium text-white/30">
-                                / {Math.floor(dailyGoalMinutes / 60)}h{dailyGoalMinutes % 60 > 0 ? ` ${dailyGoalMinutes % 60}m` : ''}
-                            </span>
-                            <span className="text-[9px] font-bold ml-0.5" style={{ color: activeFilterColor }}>
-                                {Math.round(progressPercentage)}%
-                            </span>
+                            
+                            {showGoal && (
+                                <>
+                                    <span className="text-xs font-medium text-white/30">
+                                        / {Math.floor(dailyGoalMinutes / 60)}h{dailyGoalMinutes % 60 > 0 ? ` ${dailyGoalMinutes % 60}m` : ''}
+                                    </span>
+                                    <span className="text-xs font-bold ml-0.5" style={{ color: activeFilterColor }}>
+                                        {Math.round(progressPercentage)}%
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                     
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
-                        <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(100, progressPercentage)}%` }}
-                            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                            className="h-full rounded-full relative"
-                            style={{ 
-                                backgroundColor: activeFilterColor,
-                                boxShadow: `0 0 8px ${activeFilterColor}50`
-                            }}
-                        >
-                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                        </motion.div>
-                    </div>
+                    {isNonWorkingDay ? (
+                        <div className="flex items-center justify-between px-0.5 py-2 rounded-lg bg-white/5 border border-white/10">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">Descanso</span>
+                            <span className="text-[11px] font-semibold text-white/70">
+                                {nextWorkingLabel ? `Siguiente sesión: ${nextWorkingLabel}` : 'Siguiente sesión pronto'}
+                            </span>
+                        </div>
+                    ) : showGoal && (
+                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(100, progressPercentage)}%` }}
+                                transition={{ type: "spring", stiffness: 80, damping: 20 }}
+                                className="h-full rounded-full relative overflow-hidden"
+                                style={{ 
+                                    backgroundColor: activeFilterColor,
+                                    boxShadow: `0 0 14px ${activeFilterColor}45`
+                                }}
+                            >
+                                <div className="absolute inset-0 bg-white/10" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]" />
+                            </motion.div>
+                        </div>
+                    )}
                     
-                    {/* BIO-LIMIT INDICATOR (Discrete) */}
+                    {/* DATE RANGE INDICATOR (Replaces BIO-LIMIT) */}
                     <div className="flex justify-end mt-1">
-                        <span className={`text-[8px] font-mono ${parseFloat(stats.totalHours) >= DAILY_LIMITS.FOCUS.MAX_HOURS ? 'text-red-500 font-bold' : 'text-white/20'}`}>
-                            BIO-LIMIT: {parseFloat(stats.totalHours).toFixed(1)}/{DAILY_LIMITS.FOCUS.MAX_HOURS}h
+                        <span className="text-[9px] font-bold text-white/30 uppercase tracking-wide">
+                            {dateRangeLabel}
                         </span>
                     </div>
                 </div>
@@ -456,13 +639,17 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
                 <BarChart 
                     datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: activeFilterColor } : d)}
                     labels={stats.labels}
-                    height={160}
+                    height={220}
                     max={chartMax}
-                    className="mt-2"
+                    className="mt-0"
                     showBackground={false}
+                    showGrid={true}
                     stacked={groupMode !== 'TOTAL'}
                     yTicks={yTicks}
                     yTickFormatter={formatMinutes}
+                    xTickInterval={xTickInterval}
+                    barSpacing={barSpacing}
+                    paddingTop="top-2"
                 />
             </div>
             
@@ -470,6 +657,14 @@ export const FocusStats = React.memo(({ projects, attributes }: { projects: Proj
             <div className="mt-2 px-2">
                     <FocusLimits dailyLimits={dailyLimits} />
             </div>
+
+            <DateSelectionModal 
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={handleDateSelect}
+                mode={timeRange === 'MONTH' ? 'MONTH' : timeRange === 'YEAR' ? 'YEAR' : timeRange === 'WEEK' ? 'WEEK' : 'DAY'}
+                currentDate={currentDate}
+            />
         </div>
     );
 });

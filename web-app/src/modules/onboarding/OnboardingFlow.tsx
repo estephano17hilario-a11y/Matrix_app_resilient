@@ -278,7 +278,7 @@ export function OnboardingFlow() {
                               </button>
                           </div>
                       ) : (
-                      <div className="relative rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-md">
+                      <div className="relative rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-sm">
                         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-3xl" />
                         <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                           {TRAITS_LIST.map((trait, index) => {

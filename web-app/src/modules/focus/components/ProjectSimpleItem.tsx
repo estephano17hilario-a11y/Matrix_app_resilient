@@ -46,11 +46,11 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
       layout
       whileTap={{ scale: 0.98 }}
       onClick={() => onClick?.(project)}
-      className="group relative bg-gray-900/40 backdrop-blur-md border border-white/10 shadow-sm rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-gray-800/40"
+      className="group relative bg-black/40 border border-white/10 shadow-sm rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-white/10"
     >
         <div 
-            className="absolute inset-0 opacity-[0.02] group-hover:opacity-0 transition-opacity duration-500" 
-            style={{ backgroundColor: baseColor }}
+            className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500" 
+            style={{ background: `linear-gradient(180deg, ${baseColor}12 0%, transparent 60%)` }}
         />
 
       <div className="relative flex items-center gap-5">

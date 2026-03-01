@@ -30,8 +30,10 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('firebase')) return 'firebase';
-            if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
+            // UI Vendor first (specifics)
             if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) return 'ui-vendor';
+            // React Core last (catch-all)
+            if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
           }
         },
       },

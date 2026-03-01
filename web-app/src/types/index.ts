@@ -58,6 +58,7 @@ export interface Habit {
   attribute: string;
   totalCompletions: number;
   frequency: string;
+  frequencyDays?: number[]; // 0=Sun, 1=Mon, etc.
   type: 'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN';
   iconName?: string;
   targetValue?: number;
@@ -73,6 +74,10 @@ export interface Habit {
   customColor?: string;
   archived?: boolean;
   createdAt?: number;
+  monthlyType?: 'SPECIFIC_DATES' | 'FLEXIBLE_COUNT';
+  monthlyFlexibleCount?: number;
+  monthlyLastDay?: boolean;
+  order?: number;
 }
 
 export interface BadHabit {
@@ -102,6 +107,10 @@ export interface Project {
   goalFrequency: string;
   uiFrequency?: string; // Stores the user's selected frequency (WEEKLY, MONTHLY, etc) for UI restoration
   uiTarget?: number; // Stores the user's input target (e.g. 10 hours) for UI restoration
+  uiUnit?: 'HOURS' | 'MINUTES'; // Stores the unit preference (HOURS or MINUTES)
+  monthlyType?: 'SPECIFIC_DATES' | 'FLEXIBLE_COUNT';
+  monthlyFlexibleCount?: number;
+  monthlyLastDay?: boolean; // New flag for "Last Day of Month"
   pomoDuration: number;
   breakDuration: number;
   impact: number;
@@ -114,6 +123,7 @@ export interface Project {
   smartProjectId?: string;
   createdAt?: number;
   lastSessionDate?: string;
+  order?: number;
 }
 
 export interface Session {
@@ -123,6 +133,7 @@ export interface Session {
   date: string;
   xpEarned?: number;
   goldEarned?: number;
+  traitPointsEarned?: number;
 }
 
 export interface NoteBlock {

@@ -47,4 +47,3 @@ npx cap sync
 - **Vite**: Minificación avanzada (esbuild), separación de chunks (vendor splitting), y eliminación de source maps.
 - **Capacitor**: Configuración de Splash Screen rápido y tema oscuro por defecto.
 - **UI/UX**: Viewport nativo (sin zoom, cover area), safe-areas configuradas.
-- **Assets**: Limpieza de referencias rotas (noise.png).

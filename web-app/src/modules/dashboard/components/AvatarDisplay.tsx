@@ -13,6 +13,11 @@ interface AvatarDisplayProps {
 export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, className = '', avatarId }) => {
   const { mode, color, shadowColor, Icon } = useAvatarState(hp);
   const avatarPath = getAvatarPath(avatarId);
+  const [avatarError, setAvatarError] = React.useState(false);
+
+  React.useEffect(() => {
+    setAvatarError(false);
+  }, [avatarPath]);
 
   // SVG Configuration
   const strokeWidth = 6; // Slightly thicker for visibility
@@ -62,7 +67,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
     <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       {/* 1. Liquid Glass Container (Background) */}
       <motion.div
-        className="absolute inset-0 rounded-full bg-gray-900/60 backdrop-blur-md border border-white/10"
+        className="absolute inset-0 rounded-full bg-gray-900/60 backdrop-blur-sm border border-white/10"
         variants={containerVariants}
         initial="initial"
         animate="animate"
@@ -106,7 +111,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
       {/* 3. Dynamic Avatar Icon (Center) or Custom Image */}
       <div className="relative z-10 w-3/4 h-3/4 flex items-center justify-center">
         <AnimatePresence mode="wait">
-          {avatarPath ? (
+          {avatarPath && !avatarError ? (
              <motion.div
                key="custom-avatar"
                className="w-full h-full rounded-full overflow-hidden border-2 border-white/10"
@@ -118,6 +123,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
                <img 
                  src={avatarPath} 
                  alt="User Avatar" 
+                 onError={() => setAvatarError(true)}
                  className="w-full h-full object-cover object-[50%_20%]"
                />
              </motion.div>

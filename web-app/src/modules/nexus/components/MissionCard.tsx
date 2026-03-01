@@ -30,7 +30,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
       onClick={onClick}
       className={cn(
         "relative group cursor-pointer overflow-hidden rounded-3xl",
-        "bg-gray-900/40 backdrop-blur-md border border-white/10",
+        "bg-gray-900/40 backdrop-blur-sm border border-white/10",
         "hover:bg-gray-800/50 transition-colors duration-300",
         "h-[280px] flex flex-col justify-between p-6",
         isCompleted ? "shadow-[0_0_30px_-5px_rgba(234,179,8,0.3)] border-yellow-500/30" : "shadow-lg hover:shadow-cyan-500/20"
@@ -46,7 +46,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
 
       {/* Header */}
       <div className="relative z-10 flex justify-between items-start">
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+        <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
           <Target className={cn("w-6 h-6", isCompleted ? "text-yellow-400" : "text-cyan-400")} />
         </div>
         
@@ -70,7 +70,24 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
         <div className="mt-6 space-y-2">
           <div className="flex justify-between text-xs font-mono text-cyan-200/70">
             <span>SYNC STATUS</span>
-            <span>{Math.round(progress)}%</span>
+            <motion.span 
+              className={cn(
+                "tabular-nums",
+                Math.round(progress) >= 100 ? "text-white" : ""
+              )}
+              animate={Math.round(progress) >= 100 ? { 
+                  opacity: [1, 0.5, 1],
+                  textShadow: isCompleted 
+                    ? ['0 0 5px rgba(234,179,8,0.4)', '0 0 15px rgba(234,179,8,0.8)', '0 0 5px rgba(234,179,8,0.4)'] 
+                    : ['0 0 5px rgba(34,211,238,0.4)', '0 0 15px rgba(34,211,238,0.8)', '0 0 5px rgba(34,211,238,0.4)']
+              } : { 
+                  opacity: 1,
+                  textShadow: '0 0 0px transparent'
+              }}
+              transition={Math.round(progress) >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+            >
+              {Math.round(progress)}%
+            </motion.span>
           </div>
           <div className="h-2 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
             <motion.div 
@@ -79,8 +96,23 @@ export const MissionCard: React.FC<MissionCardProps> = ({ project, onClick, isAc
                 isCompleted ? "bg-gradient-to-r from-yellow-600 to-yellow-400" : "bg-gradient-to-r from-cyan-900 to-cyan-400"
               )}
               initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
+              animate={Math.round(progress) >= 100 ? { 
+                width: `${progress}%`,
+                opacity: [1, 0.5, 1],
+                boxShadow: isCompleted 
+                  ? ['0 0 5px rgba(234,179,8,0.4)', '0 0 15px rgba(234,179,8,0.8)', '0 0 5px rgba(234,179,8,0.4)'] 
+                  : ['0 0 5px rgba(34,211,238,0.4)', '0 0 15px rgba(34,211,238,0.8)', '0 0 5px rgba(34,211,238,0.4)']
+              } : { 
+                width: `${progress}%`,
+                opacity: 1,
+                boxShadow: 'none'
+              }}
+              transition={Math.round(progress) >= 100 ? { 
+                duration: 3, repeat: Infinity, ease: "easeInOut",
+                width: { duration: 0 }
+              } : { 
+                duration: 1, ease: "easeOut" 
+              }}
             >
               {/* Shimmer Effect */}
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />

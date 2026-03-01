@@ -94,7 +94,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-[#020204]/60 backdrop-blur-md z-[9998]"
+                        className="fixed inset-0 bg-[#020204]/60 backdrop-blur-sm z-[9998]"
                     />
 
                     {/* MODAL CONTAINER */}
@@ -106,7 +106,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                             transition={{ type: "spring", stiffness: 350, damping: 25 }}
                             className="w-full max-w-[340px] pointer-events-auto"
                         >
-                            <div className="relative overflow-hidden rounded-[28px] bg-[#0A0A0A]/90 border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-lg">
+                            <div className="relative overflow-hidden rounded-[28px] bg-[#0A0A0A]/90 border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-sm">
                                 
                                 {/* Background Ambient Glow */}
                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-orange-500/10 blur-[60px] pointer-events-none" />
@@ -114,7 +114,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                 {/* Close Button */}
                                 <button 
                                     onClick={onClose}
-                                    className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full z-20 backdrop-blur-md border border-white/5"
+                                    className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full z-20 backdrop-blur-sm border border-white/5"
                                 >
                                     <X size={16} />
                                 </button>

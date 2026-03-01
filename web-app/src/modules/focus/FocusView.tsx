@@ -1,10 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Archive } from 'lucide-react';
 import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { ProjectCardMinimal } from './components/ProjectCardMinimal';
 import { HabitDetailView } from '../dashboard/components/HabitDetailView';
 import { AnimatePresence } from 'framer-motion';
+import { ReorderModal } from '../../components/ui/ReorderModal';
+import { useLongPress } from '../../hooks/useLongPress';
 
 export const FocusView = React.memo(({ 
     projects, 
@@ -13,7 +15,9 @@ export const FocusView = React.memo(({
     onDeleteProject,
     onUpdateProject,
     onStartFocus,
-    onDetailViewChange
+    onDetailViewChange,
+    openArchived,
+    onReorder
 }: {  
     projects: Project[], 
     attributes: Attribute[], 
@@ -31,12 +35,22 @@ export const FocusView = React.memo(({
     onAutoStartConsumed?: any,
     onToggleFullScreen?: any,
     isActive?: any,
-    openArchived?: any,
+    openArchived?: boolean,
     onExitSession?: any,
     onSelectProject?: any,
+    onReorder?: (projects: Project[]) => void,
 }) => {
     // Navigation State
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [showArchived, setShowArchived] = useState(false);
+    const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+
+    // Sync with prop if provided
+    useEffect(() => {
+        if (openArchived) {
+            setShowArchived(true);
+        }
+    }, [openArchived]);
 
     // Notify parent when detail view state changes
     useEffect(() => {
@@ -45,12 +59,27 @@ export const FocusView = React.memo(({
         }
     }, [selectedProjectId, onDetailViewChange]);
 
-    // Sort projects: Active first, then by creation date or title
+    // Sort projects: Active first, then by order, then by creation date or title
     const visibleProjects = useMemo(() => {
         return projects
-            .filter(p => !p.deleted && !p.archived)
-            .sort((a, b) => (b.lastSessionDate ? new Date(b.lastSessionDate).getTime() : 0) - (a.lastSessionDate ? new Date(a.lastSessionDate).getTime() : 0));
-    }, [projects]);
+            .filter(p => !p.deleted && (showArchived ? p.archived : !p.archived))
+            .sort((a, b) => {
+                 const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+                 const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+                 if (orderA !== orderB) return orderA - orderB;
+                 
+                 return (b.lastSessionDate ? new Date(b.lastSessionDate).getTime() : 0) - (a.lastSessionDate ? new Date(a.lastSessionDate).getTime() : 0);
+            });
+    }, [projects, showArchived]);
+
+    // Long Press Handler
+    const longPressHandlers = useLongPress(() => {
+        if (!showArchived && onReorder) {
+            // Trigger vibration if available
+            if (navigator.vibrate) navigator.vibrate(50);
+            setIsReorderModalOpen(true);
+        }
+    }, { threshold: 600 });
 
     // Handle Detail View
     const selectedProject = useMemo(() => 
@@ -96,18 +125,45 @@ export const FocusView = React.memo(({
     }
 
     return (
-        <div className="relative w-full font-sans flex flex-col p-4">
+        <div className="relative w-full font-sans flex flex-col p-4 pt-0">
             {/* Stats - Always Visible (General Graph + Stops + Specific Graphics) */}
-            <div className="relative z-10 mb-2">
-                <FocusStats projects={projects} attributes={attributes} />
+            <div className="relative z-10 mb-2 -mt-1">
+                <FocusStats 
+                    projects={projects} 
+                    attributes={attributes} 
+                    showArchived={showArchived}
+                    onToggleArchived={() => setShowArchived(!showArchived)}
+                />
             </div>
 
             {/* Project Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-20">
+                {showArchived && (
+                    <div className="col-span-full mb-2 bg-amber-900/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                            <Archive size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-amber-200 tracking-wide">ZONA DE ARCHIVO</h3>
+                            <p className="text-xs text-amber-200/60 font-medium mt-0.5">Proyectos en stasis. Reactívalos para continuar tu progreso.</p>
+                        </div>
+                    </div>
+                )}
+
                 {visibleProjects.map(project => {
                     const attribute = attributes.find(a => a.id === project.attribute);
                     return (
-                        <div key={project.id} className="relative z-10"> {/* Wrapper for clean layout */}
+                        <div 
+                            key={project.id} 
+                            className="relative z-10 touch-manipulation"
+                            {...longPressHandlers}
+                            onContextMenu={(e) => {
+                                if (!showArchived && onReorder) {
+                                    e.preventDefault();
+                                    setIsReorderModalOpen(true);
+                                }
+                            }}
+                        > 
                             <ProjectCardMinimal 
                                 project={project} 
                                 attribute={attribute} 
@@ -119,18 +175,31 @@ export const FocusView = React.memo(({
                 })}
                 
                 {/* New Project Silhouette Card */}
-                <div 
-                    onClick={() => onOpenProjectModal()}
-                    className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"
-                >
-                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                        <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                {!showArchived && (
+                    <div 
+                        onClick={() => onOpenProjectModal()}
+                        className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"
+                    >
+                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                            <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                        </div>
+                        <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
+                            Create New Project
+                        </span>
                     </div>
-                    <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
-                        Create New Project
-                    </span>
-                </div>
+                )}
             </div>
+
+            {onReorder && isReorderModalOpen && (
+                <ReorderModal
+                    isOpen={isReorderModalOpen}
+                    onClose={() => setIsReorderModalOpen(false)}
+                    items={visibleProjects}
+                    onSave={(newItems) => onReorder(newItems)}
+                    title="Reordenar Proyectos"
+                    getItemColor={(p) => attributes.find(a => a.id === p.attribute)?.color || '#fff'}
+                />
+            )}
         </div>
     );
 });

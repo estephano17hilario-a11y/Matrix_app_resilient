@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Share2, Crown, MoreVertical, Edit2, Archive, Trash2, Plus, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check } from 'lucide-react';
 import { Habit, Project } from '../../../types';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachWeekOfInterval, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
+import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { HabitGoalChart } from './HabitGoalChart';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
@@ -120,7 +121,11 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        setIsScrolled(e.currentTarget.scrollTop > 20);
+    };
 
     const handleTabClick = (tabValue: TimeRange) => {
         // If clicking on a tab that is not in pinned ranges (from config menu),
@@ -212,12 +217,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         }
 
         const goalTargetMinutes = project?.goalTarget || 0;
-        const workingDaysCount = Math.max(1, project?.workingDays?.length || 5);
-        // Daily goal in minutes for Project
-        const dailyGoalMinutes = project?.goalFrequency === 'WEEKLY'
-            ? goalTargetMinutes / workingDaysCount
-            : project?.goalFrequency === 'MONTHLY'
-                ? goalTargetMinutes / (workingDaysCount * 4)
+        const workingDaysCount = Math.max(1, project?.workingDays?.length || 7);
+        const effectiveFrequency = project?.uiFrequency || project?.goalFrequency;
+        const weeklyGoalMinutes = project ? getWeeklyGoalMinutes(project) : 0;
+        const monthlyGoalMinutes = project ? getMonthlyGoalMinutes(project) : 0;
+        const dailyGoalMinutes = effectiveFrequency === 'WEEKLY'
+            ? (weeklyGoalMinutes / workingDaysCount)
+            : effectiveFrequency === 'MONTHLY'
+                ? (monthlyGoalMinutes / (workingDaysCount * 4))
                 : goalTargetMinutes;
 
         let start: Date, end: Date;
@@ -228,7 +235,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         if (timeRange === 'TODAY') {
             start = startOfDay(currentDate);
             end = endOfDay(currentDate);
-            calculatedGoalValue = habit ? baseValue : dailyGoalMinutes;
+            calculatedGoalValue = habit ? baseValue : (effectiveFrequency === 'WEEKLY' || effectiveFrequency === 'MONTHLY') && project ? getDynamicDailyTarget(project) : dailyGoalMinutes;
 
             if (project) {
                 // Hourly breakdown for Project
@@ -269,7 +276,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             const days = eachDayOfInterval({ start, end });
             
             calculatedGoalValue = habit ? (baseValue * 7) : (dailyGoalMinutes * 7);
-            if (project?.goalFrequency === 'WEEKLY') calculatedGoalValue = goalTargetMinutes;
+            if (effectiveFrequency === 'WEEKLY') calculatedGoalValue = weeklyGoalMinutes;
 
             dataPoints = days.map(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
@@ -326,8 +333,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             end = endOfMonth(currentDate);
             const days = eachDayOfInterval({ start, end });
             
-            calculatedGoalValue = habit ? (baseValue * 30) : (dailyGoalMinutes * 30); // Approx
-            if (project?.goalFrequency === 'MONTHLY') calculatedGoalValue = goalTargetMinutes;
+            calculatedGoalValue = habit ? (baseValue * 30) : (dailyGoalMinutes * 30);
+            if (effectiveFrequency === 'MONTHLY') calculatedGoalValue = monthlyGoalMinutes;
 
             dataPoints = days.map(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
@@ -385,7 +392,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             end = endOfYear(currentDate);
             const months = eachMonthOfInterval({ start, end });
             
-            calculatedGoalValue = (habit ? (baseValue * 30) : (dailyGoalMinutes * 30)) * 12; // Approx
+            calculatedGoalValue = (habit ? (baseValue * 30) : (dailyGoalMinutes * 30)) * 12;
 
             dataPoints = months.map(monthStart => {
                 const monthEnd = endOfMonth(monthStart);
@@ -474,7 +481,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             // Calculate total goal based on duration
             if (project) {
                  const totalDurationWeeks = differenceInWeeks(end, start) || 1;
-                 calculatedGoalValue = totalDurationWeeks * (project.goalFrequency === 'WEEKLY' ? goalTargetMinutes : dailyGoalMinutes * 7);
+                 calculatedGoalValue = totalDurationWeeks * (effectiveFrequency === 'WEEKLY' ? weeklyGoalMinutes : dailyGoalMinutes * 7);
                  if (project.totalTime) {
                      // If we have totalTime project goal, use that? 
                      // Usually project goal is recurring. If it's a fixed goal project, we might handle differently.
@@ -487,9 +494,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
         // 2. AGGREGATE VALUES
         const total = dataPoints.reduce((acc, curr) => acc + curr.value, 0);
-        const avg = total / (dataPoints.length || 1);
+        const sessionCountInRange = project
+            ? sessionEntries.filter(s => isWithinInterval(s.dateObj, { start, end })).length
+            : 0;
+        const avg = project
+            ? (sessionCountInRange > 0 ? total / sessionCountInRange : 0)
+            : (total / (dataPoints.length || 1));
         const best = Math.max(...dataPoints.map(d => d.value), 0);
-        const sessionsCount = dataPoints.filter(d => d.value > 0).length;
+        const sessionsCount = project ? sessionCountInRange : dataPoints.filter(d => d.value > 0).length;
         const maxVal = Math.max(best, 1);
 
         let rangeLabel = '';
@@ -543,22 +555,15 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const summaryPercentage = Math.round(Math.max(summaryRatio, 0) * 100);
 
     // --- UI COMPONENTS ---
-    const StatCard = ({ label, value, icon: Icon, isGold }: any) => (
+    const StatCard = ({ label, value }: { label: string; value: string | number }) => (
         <motion.div 
             variants={itemVariants}
-            className="bg-zinc-900/70 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800/70 transition-colors border border-white/10 shadow-sm"
+            className="bg-zinc-800/40 backdrop-blur-sm rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800/60 transition-colors border border-white/10 shadow-sm"
         >
             <div className="flex justify-between items-start relative z-10">
-                {isGold ? (
-                     <div className="flex flex-col items-center w-full gap-2">
-                        <span className="text-zinc-400 text-xs font-medium">{label}</span>
-                        <Icon size={20} className="text-yellow-500 fill-yellow-500" />
-                     </div>
-                ) : (
-                    <div className="flex flex-col items-center w-full gap-2">
-                        <span className="text-zinc-400 text-xs font-medium">{label}</span>
-                    </div>
-                )}
+                <div className="flex flex-col items-center w-full gap-2">
+                    <span className="text-zinc-400 text-xs font-medium">{label}</span>
+                </div>
             </div>
             
             <div className="flex flex-col items-center gap-1 relative z-10 mt-auto">
@@ -583,13 +588,22 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
             >
-                {/* Background Atmosphere */}
-                <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] bg-cyan-500/10 blur-lg rounded-full pointer-events-none" />
-                <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] bg-indigo-500/10 blur-lg rounded-full pointer-events-none" />
-                <div className="absolute top-[40%] left-[30%] w-[60%] h-[60%] bg-pink-500/10 blur-lg rounded-full pointer-events-none" />
+                {/* Background Atmosphere - Optimized (No Blur Filter needed, use Gradients) */}
+                <div 
+                    className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
+                    style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.8) 0%, transparent 70%)' }} 
+                />
+                <div 
+                    className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
+                    style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.8) 0%, transparent 70%)' }} 
+                />
+                <div 
+                    className="absolute top-[40%] left-[30%] w-[60%] h-[60%] rounded-full pointer-events-none opacity-10"
+                    style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.8) 0%, transparent 70%)' }} 
+                />
 
                 {/* Header */}
-                <div className="relative z-20 flex items-center justify-between px-6 py-5 pt-safe-top">
+                <div className="relative z-[10000] flex items-center justify-between px-6 pt-12 pb-4">
                     <button 
                         onClick={onClose} 
                         className="flex items-center gap-1 text-blue-400 font-medium active:opacity-70 transition-opacity"
@@ -602,7 +616,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         {habit?.title || project?.title}
                     </h2>
 
-                    <div className="relative flex items-center gap-1 z-50">
+                    <div className="relative flex items-center gap-1 z-[10000]">
 
 
                         <button 
@@ -621,7 +635,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                    className="absolute right-0 top-full mt-2 w-48 bg-[#09090b]/90 backdrop-blur-lg border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100]"
+                                    className="absolute right-0 top-full mt-2 w-48 bg-[#09090b] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[10000]"
                                 >
                                     {onEdit && (
                                         <button 
@@ -667,8 +681,187 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                     </div>
                 </div>
 
+                {/* Fixed Controls */}
+                <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative z-20"
+                >
+                    {/* Unified Control Deck - Optimized for Mobile Performance */}
+                    <motion.div 
+                        className="flex flex-col items-center mx-auto transition-all duration-300 origin-top bg-zinc-900/95 border border-white/10 shadow-lg relative z-50"
+                        animate={{
+                            borderRadius: isScrolled ? 24 : 32,
+                            padding: isScrolled ? "12px 20px" : "12px 24px",
+                            gap: isScrolled ? 2 : 12,
+                            scale: isScrolled ? 1 : 1,
+                            y: isScrolled ? 0 : 0
+                        }}
+                        style={{ width: 'fit-content', minWidth: '340px' }}
+                    >
+                        {/* Row 1: Time Range Tabs */}
+                        <div className="flex items-center gap-1 relative z-10">
+                            <AnimatePresence mode="popLayout">
+                                {pinnedRanges.map((range) => {
+                                    const isActive = timeRange === range;
+                                    const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                    
+                                    return (
+                                        <motion.button
+                                            key={range}
+                                            layoutId={`tab-${range}`}
+                                            onClick={() => handleTabClick(range)}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-full text-[11px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
+                                                isActive 
+                                                    ? "bg-white text-black shadow-lg z-10" 
+                                                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                            )}
+                                        >
+                                            <span className="relative z-10">{label}</span>
+                                            {isActive && (
+                                                <motion.div
+                                                    layoutId="activeTab"
+                                                    className="absolute inset-0 bg-white"
+                                                    initial={false}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                />
+                                            )}
+                                        </motion.button>
+                                    );
+                                })}
+                            </AnimatePresence>
+
+                            {/* Divider */}
+                            <div className="w-[1px] h-3 bg-white/10 mx-1" />
+
+                            {/* Config Button (+) */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsConfigOpen(!isConfigOpen)}
+                                    className={cn(
+                                        "w-7 h-7 rounded-full flex items-center justify-center transition-all",
+                                        isConfigOpen 
+                                            ? "bg-white/20 text-white rotate-45" 
+                                            : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                                    )}
+                                >
+                                    <Plus size={14} />
+                                </button>
+
+                                {/* Dropdown Menu (VisionOS Style) */}
+                                <AnimatePresence>
+                                    {isConfigOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            className="absolute right-0 top-full mt-2 w-32 bg-[#18181b] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
+                                        >
+                                            <div className="flex flex-col gap-0.5">
+                                                {ALL_RANGES.map((option) => {
+                                                    const isPinned = pinnedRanges.includes(option.value);
+                                                    const isSelected = timeRange === option.value;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => handleTabClick(option.value)}
+                                                            className={cn(
+                                                                "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
+                                                                isSelected 
+                                                                    ? "bg-white text-black shadow-md" 
+                                                                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                            )}
+                                                        >
+                                                            <span>{option.label}</span>
+                                                            {isSelected && <Check size={12} className="text-black" />}
+                                                            {isPinned && !isSelected && (
+                                                                <div className="w-1 h-1 rounded-full bg-zinc-600" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+
+                        {/* Row 2: Date Navigation */}
+                        <motion.div 
+                            className="flex items-center justify-between w-full"
+                            animate={{
+                                gap: isScrolled ? 0 : 16,
+                                scale: isScrolled ? 1 : 1,
+                                height: 'auto',
+                                opacity: 1,
+                                marginTop: 0
+                            }}
+                        >
+                            <button 
+                                onClick={() => {
+                                    if (timeRange === 'TODAY') setCurrentDate(d => subDays(d, 1));
+                                    if (timeRange === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
+                                    if (timeRange === '8_WEEKS') setCurrentDate(d => subWeeks(d, 8));
+                                    if (timeRange === 'MONTH') setCurrentDate(d => subMonths(d, 1));
+                                    if (timeRange === '3_MONTHS') setCurrentDate(d => subMonths(d, 3));
+                                    if (timeRange === 'YEAR') setCurrentDate(d => subYears(d, 1));
+                                }}
+                                disabled={timeRange === 'TOTAL'}
+                                className={cn(
+                                    "rounded-full flex items-center justify-center transition-all active:scale-90",
+                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5",
+                                    isScrolled ? "w-8 h-8" : "w-8 h-8"
+                                )}
+                            >
+                                <ChevronLeft size={isScrolled ? 16 : 16} />
+                            </button>
+                            
+                            <motion.span 
+                                key={dateRangeLabel}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={cn(
+                                    "text-xs font-bold text-zinc-300 tracking-wider uppercase bg-white/5 px-4 py-1.5 rounded-full border border-white/5 shadow-sm transition-all",
+                                    isScrolled && "bg-transparent border-transparent shadow-none px-2 py-0 text-white/50 text-[11px] font-medium"
+                                )}
+                            >
+                                {dateRangeLabel}
+                            </motion.span>
+
+                            <button 
+                                onClick={() => {
+                                    if (timeRange === 'TODAY') setCurrentDate(d => addDays(d, 1));
+                                    if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
+                                    if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, 8));
+                                    if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, 1));
+                                    if (timeRange === '3_MONTHS') setCurrentDate(d => addMonths(d, 3));
+                                    if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, 1));
+                                }}
+                                disabled={timeRange === 'TOTAL'}
+                                className={cn(
+                                    "rounded-full flex items-center justify-center transition-all active:scale-90",
+                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5",
+                                    isScrolled ? "w-8 h-8" : "w-8 h-8"
+                                )}
+                            >
+                                <ChevronRight size={isScrolled ? 16 : 16} />
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+
                 {/* Main Content */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 pt-0 pb-20 space-y-4 scrollbar-hide overscroll-contain">
+                <div 
+                    onScroll={handleScroll}
+                    className={cn(
+                        "flex-1 overflow-y-auto overflow-x-hidden px-5 pt-0 pb-20 space-y-4 scrollbar-hide overscroll-contain",
+                        isDateModalOpen && "overflow-hidden"
+                    )}
+                >
                     
                     <motion.div
                         variants={containerVariants}
@@ -676,153 +869,12 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         animate="visible"
                         className="space-y-4 max-w-md mx-auto"
                     >
-                        <motion.div variants={itemVariants} className="space-y-2">
-                            {/* Global Time Range Tabs - NEW CONFIGURATION ZONE */}
-                            <div className="flex flex-col items-center gap-4 mb-2 relative z-50">
-                                {/* Pinned Ranges + Config Button */}
-                                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg relative">
-                                    <AnimatePresence mode="popLayout">
-                                        {pinnedRanges.map((range) => {
-                                            const isActive = timeRange === range;
-                                            const label = ALL_RANGES.find(r => r.value === range)?.label || range;
-                                            
-                                            return (
-                                                <motion.button
-                                                    key={range}
-                                                    layoutId={`tab-${range}`}
-                                                    onClick={() => handleTabClick(range)}
-                                                    className={cn(
-                                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
-                                                        isActive 
-                                                            ? "bg-white text-black shadow-lg scale-105 z-10" 
-                                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
-                                                    )}
-                                                >
-                                                    <span className="relative z-10">{label}</span>
-                                                    {isActive && (
-                                                        <motion.div
-                                                            layoutId="activeTab"
-                                                            className="absolute inset-0 bg-white"
-                                                            initial={false}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                        />
-                                                    )}
-                                                </motion.button>
-                                            );
-                                        })}
-                                    </AnimatePresence>
 
-                                    {/* Divider */}
-                                    <div className="w-[1px] h-3 bg-white/10 mx-0.5" />
-
-                                    {/* Config Button (+) */}
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setIsConfigOpen(!isConfigOpen)}
-                                            className={cn(
-                                                "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
-                                                isConfigOpen 
-                                                    ? "bg-white/20 text-white rotate-45" 
-                                                    : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
-                                            )}
-                                        >
-                                            <Plus size={14} />
-                                        </button>
-
-                                        {/* Dropdown Menu (VisionOS Style) */}
-                                        <AnimatePresence>
-                                            {isConfigOpen && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                                    className="absolute right-0 top-full mt-2 w-32 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
-                                                >
-                                                    <div className="flex flex-col gap-0.5">
-                                                        {ALL_RANGES.map((option) => {
-                                                            const isPinned = pinnedRanges.includes(option.value);
-                                                            const isSelected = timeRange === option.value;
-                                                            
-                                                            return (
-                                                                <button
-                                                                    key={option.value}
-                                                                    onClick={() => handleTabClick(option.value)}
-                                                                    className={cn(
-                                                                        "w-full px-2 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center justify-between group transition-all",
-                                                                        isSelected 
-                                                                            ? "bg-white text-black shadow-md" 
-                                                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    <span>{option.label}</span>
-                                                                    {isSelected && <Check size={12} className="text-black" />}
-                                                                    {isPinned && !isSelected && (
-                                                                        <div className="w-1 h-1 rounded-full bg-zinc-600" />
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-
-                                {/* Date Navigation */}
-                                <div className="flex items-center justify-center gap-6">
-                                    <button 
-                                        onClick={() => {
-                                            if (timeRange === 'TODAY') setCurrentDate(d => subDays(d, 1));
-                                            if (timeRange === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
-                                            if (timeRange === '8_WEEKS') setCurrentDate(d => subWeeks(d, 8));
-                                            if (timeRange === 'MONTH') setCurrentDate(d => subMonths(d, 1));
-                                            if (timeRange === '3_MONTHS') setCurrentDate(d => subMonths(d, 3));
-                                            if (timeRange === 'YEAR') setCurrentDate(d => subYears(d, 1));
-                                        }}
-                                        disabled={timeRange === 'TOTAL'}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90",
-                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
-                                        )}
-                                    >
-                                        <ChevronLeft size={16} />
-                                    </button>
-                                    
-                                    <motion.span 
-                                        key={dateRangeLabel}
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-xs font-bold text-zinc-300 tracking-wider uppercase bg-white/5 px-4 py-1.5 rounded-full border border-white/5 shadow-sm"
-                                    >
-                                        {dateRangeLabel}
-                                    </motion.span>
-
-                                    <button 
-                                        onClick={() => {
-                                            if (timeRange === 'TODAY') setCurrentDate(d => addDays(d, 1));
-                                            if (timeRange === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
-                                            if (timeRange === '8_WEEKS') setCurrentDate(d => addWeeks(d, 8));
-                                            if (timeRange === 'MONTH') setCurrentDate(d => addMonths(d, 1));
-                                            if (timeRange === '3_MONTHS') setCurrentDate(d => addMonths(d, 3));
-                                            if (timeRange === 'YEAR') setCurrentDate(d => addYears(d, 1));
-                                        }}
-                                        disabled={timeRange === 'TOTAL'}
-                                        className={cn(
-                                            "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90",
-                                            timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
-                                        )}
-                                    >
-                                        <ChevronRight size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
 
                         {/* 1. MAIN STATS CARD */}
                         <motion.div 
                             variants={itemVariants} 
-                            className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
+                            className="bg-zinc-800/40 backdrop-blur-sm rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
                         >
                             {/* Glow Effect */}
                             <div
@@ -906,7 +958,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 3. WORKED HOURS (Bar Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
+                        <motion.div variants={itemVariants} className="bg-zinc-800/40 backdrop-blur-sm rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide">
                                     {isTimeBased ? 'HORAS TRABAJADAS' : 'PROGRESO'}
@@ -997,7 +1049,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             <StatCard 
                                 label="Sesiones" 
                                 value={totalSessions} 
-                                icon={Crown}
                             />
                             <StatCard 
                                 label="Racha actual" 
@@ -1006,14 +1057,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             <StatCard 
                                 label="Sesión promedio" 
                                 value={formatValue(averageValue, habit?.type, unitLabel, isTimeBased)}
-                                icon={Crown}
-                                isGold 
                             />
                             <StatCard 
                                 label="Mejor día" 
                                 value={formatValue(bestDayValue, habit?.type, unitLabel, isTimeBased)}
-                                icon={Crown}
-                                isGold 
                             />
                         </motion.div>
                         

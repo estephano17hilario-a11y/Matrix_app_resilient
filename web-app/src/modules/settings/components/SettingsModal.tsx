@@ -45,7 +45,7 @@ export const SettingsModal = () => {
     >
       {/* BACKDROP - Iron Rule: No blur here to save GPU if modal has blur */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" 
+        className="absolute inset-0 bg-black/60" 
         onClick={closeSettings}
       />
 
@@ -55,7 +55,7 @@ export const SettingsModal = () => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-[95%] max-w-lg md:max-w-4xl h-[85vh] md:h-[80vh] flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 bg-[#050505]/90 backdrop-blur-md shadow-2xl relative z-10"
+        className="w-[95%] max-w-lg md:max-w-4xl h-[85vh] md:h-[80vh] flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 bg-[#050505]/90 backdrop-blur-sm shadow-md shadow-indigo-500/10 relative z-10"
       >
         {/* SIDEBAR */}
         <SettingsSidebar />
@@ -67,7 +67,7 @@ export const SettingsModal = () => {
           <div className="absolute top-4 right-4 z-50">
             <button
               onClick={closeSettings}
-              className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors border border-white/5 backdrop-blur-sm"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors border border-white/5"
             >
               <X size={18} />
             </button>

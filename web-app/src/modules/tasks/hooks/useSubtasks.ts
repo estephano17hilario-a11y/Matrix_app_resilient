@@ -7,38 +7,65 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => 
   const { user } = useLux();
   const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
   
-  // Debounce ref to prevent excessive writes
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   
-  // Keep track of latest subtasks state for the debounced save
   const latestSubtasksRef = useRef(subtasks);
+
+  const areSubtasksEqual = useCallback((a: Subtask[], b: Subtask[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      const left = a[i];
+      const right = b[i];
+      if (!right) return false;
+      if (left.id !== right.id) return false;
+      if (left.title !== right.title) return false;
+      if (left.isCompleted !== right.isCompleted) return false;
+      if (left.createdAt !== right.createdAt) return false;
+    }
+    return true;
+  }, []);
+
+  useEffect(() => {
+    if (!areSubtasksEqual(initialSubtasks, latestSubtasksRef.current)) {
+      setSubtasks(initialSubtasks);
+    }
+  }, [initialSubtasks, areSubtasksEqual]);
 
   useEffect(() => {
     latestSubtasksRef.current = subtasks;
   }, [subtasks]);
 
-  const saveToFirestore = useCallback(async (newSubtasks: Subtask[]) => {
+  const saveImmediate = useCallback(async (newSubtasks: Subtask[]) => {
     if (!user?.uid || !taskId) return;
 
-    // Clear existing timeout
+    try {
+      const taskRef = doc(db, 'users', user.uid, 'quests', taskId);
+      await updateDoc(taskRef, {
+        subtasks: newSubtasks
+      });
+    } catch (error) {
+      console.error('Error syncing subtasks:', error);
+    }
+  }, [user?.uid, taskId]);
+
+  const saveToFirestore = useCallback((newSubtasks: Subtask[]) => {
+    if (!user?.uid || !taskId) return;
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
+    debounceTimeout.current = setTimeout(() => {
+      void saveImmediate(newSubtasks);
+    }, 500);
+  }, [user?.uid, taskId, saveImmediate]);
 
-    // Debounce write (500ms)
-    debounceTimeout.current = setTimeout(async () => {
-      try {
-        const taskRef = doc(db, 'users', user.uid, 'quests', taskId);
-        await updateDoc(taskRef, {
-          subtasks: newSubtasks
-        });
-        console.log('Subtasks synced to Firestore');
-      } catch (error) {
-        console.error('Error syncing subtasks:', error);
-        // Optionally revert local state or show error
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
       }
-    }, 1000); // 1 second debounce to be safe
-  }, [user?.uid, taskId]);
+      void saveImmediate(latestSubtasksRef.current);
+    };
+  }, [saveImmediate]);
 
   const addSubtask = useCallback((title: string) => {
     const newSubtask: Subtask = {

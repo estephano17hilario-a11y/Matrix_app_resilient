@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { useSmartTaskLogic } from './hooks/useSmartTaskLogic';
@@ -78,8 +79,9 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
 
   // Limit Reached Screen
   if (isLimitReached) {
-      return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md">
+      if (typeof document === 'undefined') return null;
+      return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
              <button 
                 onClick={onCancel}
                 className="absolute top-8 right-8 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50"
@@ -102,7 +104,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     Understood
                 </button>
             </div>
-        </div>
+        </div>,
+        document.body
       );
   }
 
@@ -119,14 +122,16 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       }
   }, [currentStep, timeframeHierarchy, isStarting, generateProject, onComplete]);
 
-  return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-md overflow-hidden">
-      {/* Dynamic Background based on Trait */}
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-[#020204]/60 overflow-hidden">
+      {/* Dynamic Background based on Trait - MOVED TO PARENT (Behind Glass) */}
       <div 
-        className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out"
+        className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out opacity-40"
         style={{ 
             background: tempTraitId || projectMeta.traitId
-                ? `radial-gradient(circle at 50% 50%, ${effectiveColor}20 0%, #000000 90%)`
+                ? `radial-gradient(circle at 50% 50%, ${effectiveColor}20 0%, transparent 90%)`
                 : 'radial-gradient(circle at 50% 50%, #6366f110 0%, transparent 70%)'
         }}
       />
@@ -140,7 +145,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
-      <div className="w-full max-w-4xl px-6 relative z-10 h-full flex flex-col pt-4 md:pt-0 md:justify-center">
+      <div className="w-full max-w-4xl px-6 relative z-10 h-[90vh] md:h-auto md:min-h-[600px] flex flex-col pt-4 md:pt-0 md:justify-center bg-black/40 backdrop-blur-sm border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
               <AnimatePresence mode="popLayout">
                 {isStarting ? (
                   <motion.div
@@ -224,6 +229,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                 )}
               </AnimatePresence>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

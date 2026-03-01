@@ -13,6 +13,7 @@ interface PomodoroViewProps {
     onUpdateProject: (p: Project) => void;
     onDeleteSession?: (projectId: string, sessionId: string) => void;
     onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => void;
+    onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void;
     initialProjectId?: string | null;
 }
 
@@ -26,36 +27,33 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
     onUpdateProject,
     onDeleteSession,
     onAddManualSession,
+    onEditSession,
     initialProjectId
 }) => {
     // FORCE INITIAL STATE to use prop if available
-    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
-        console.log("🔥 [PomodoroView] Initializing with ID:", initialProjectId);
-        return initialProjectId || null;
-    });
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => initialProjectId || null);
 
     // EFFECT: Sync with prop if it changes later (optional but safe)
     React.useEffect(() => {
         if (initialProjectId && initialProjectId !== selectedProjectId) {
-            console.log("🔄 [PomodoroView] Syncing prop ID:", initialProjectId);
             setSelectedProjectId(initialProjectId);
         }
     }, [initialProjectId]);
 
     const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false);
 
+    const selectedProject = useMemo(() => {
+        if (!selectedProjectId) return null;
+        return projects.find(p => p.id === selectedProjectId) || null;
+    }, [selectedProjectId, projects]);
+
     // Create a virtual "Quick Focus" project if no project is selected
     const activeProject: Project = useMemo(() => {
-        if (selectedProjectId) {
-            return projects.find(p => p.id === selectedProjectId) || projects[0];
-        }
-
-        // Default "Quick Focus" Project
-        return {
+        const quickFocusProject: Project = {
             id: QUICK_FOCUS_PROJECT_ID,
             title: 'Quick Focus',
             description: 'Sesión de enfoque rápido',
-            attribute: 'intelligence', // Default Blue/Cyan
+            attribute: 'intelligence',
             pomoDuration: 25,
             breakDuration: 5,
             impact: 1,
@@ -65,12 +63,22 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
             createdAt: Date.now(),
             sessions: []
         };
-    }, [selectedProjectId, projects]);
+
+        if (!projects.length) {
+            return quickFocusProject;
+        }
+
+        if (selectedProject) {
+            return selectedProject;
+        }
+
+        return quickFocusProject;
+    }, [selectedProject, projects.length]);
 
     const activeAttribute = attributes.find(a => a.id === activeProject.attribute);
 
     const handleSessionComplete = (duration: number, type: 'POMO' | 'STOPWATCH') => {
-        const targetId = activeProject.id === QUICK_FOCUS_PROJECT_ID ? null : activeProject.id;
+        const targetId = selectedProject ? selectedProject.id : null;
         onCompleteSession(targetId, duration, type);
     };
 
@@ -80,7 +88,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
              <div className="flex flex-col items-center gap-2">
                     {/* If initialProjectId is provided, show static badge. Else, show selector */}
                     {initialProjectId ? (
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-lg">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-md">
                             <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeAttribute?.color || '#06b6d4', color: activeAttribute?.color || '#06b6d4' }} />
                             <span className="text-xs font-bold text-white uppercase tracking-widest">
                                 {activeProject.title}
@@ -90,7 +98,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
                         <>
                             <button
                                 onClick={() => setIsProjectSelectorOpen(!isProjectSelectorOpen)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md transition-all active:scale-95 group shadow-lg"
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-sm transition-all active:scale-95 group shadow-md"
                             >
                                 <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeAttribute?.color || '#06b6d4', color: activeAttribute?.color || '#06b6d4' }} />
                                 <span className="text-xs font-bold text-white uppercase tracking-widest">
@@ -105,7 +113,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute top-full mt-2 w-64 max-h-60 overflow-y-auto bg-[#1a1a1a]/95 backdrop-blur-lg border border-white/10 rounded-xl shadow-2xl p-1 flex flex-col gap-1 z-[100]"
+                                        className="absolute top-full mt-2 w-64 max-h-60 overflow-y-auto bg-[#1a1a1a]/95 border border-white/10 rounded-xl shadow-md p-1 flex flex-col gap-1 z-[100]"
                                     >
                                         <button
                                             onClick={() => {
@@ -150,7 +158,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 z-[500] bg-black/60 flex flex-col backdrop-blur-lg"> {/* More transparency: 60% opacity + lighter blur */}
+        <div className="fixed inset-0 z-[500] bg-black/60 flex flex-col">
             <div className="flex-1 relative">
                 <ActiveSessionView
                     project={activeProject}
@@ -160,6 +168,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
                     onUpdateProject={onUpdateProject}
                     onDeleteSession={onDeleteSession}
                     onAddManualSession={onAddManualSession}
+                    onEditSession={onEditSession}
                     customHeaderTitle={customHeader}
                 />
             </div>

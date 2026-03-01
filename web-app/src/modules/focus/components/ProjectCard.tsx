@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight, Play } from 'lucide-react';
+import { addDays, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Project } from '../../../types';
 import { cn } from '../../../utils/cn';
+import { getDynamicDailyTarget } from '../../../utils/projectUtils';
 
 interface ProjectCardProps {
     project: Project;
@@ -12,7 +15,7 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onClick }) => {
     // Calculate progress
-    const goalMinutes = project.goalTarget || 0;
+    let goalMinutes = project.goalTarget || 0;
     // Let's verify unit. In FocusStats: Math.floor(currentMinutes / 60)h...
     // In HabitDetailView: value = sessionEntries.reduce... (s.duration / 60).
     // Session duration seems to be in seconds.
@@ -23,14 +26,43 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
     // Actually, in FocusStats: `currentMinutes` comes from `generateFocusData` which returns minutes.
     
     // Let's assume project.totalTime is in SECONDS.
-    const totalMinutes = Math.floor((project.totalTime || 0) / 60);
-    const progress = goalMinutes > 0 ? (totalMinutes / goalMinutes) * 100 : 0;
+    let currentMinutes = Math.floor((project.totalTime || 0) / 60);
+    
+    const effectiveFrequency = project.uiFrequency || project.goalFrequency;
+    if (effectiveFrequency === 'DAILY') {
+        const todayStr = new Date().toDateString();
+        const todaySeconds = (project.sessions || [])
+            .filter(s => new Date(s.date).toDateString() === todayStr)
+            .reduce((acc, s) => {
+                const duration = Number.isFinite(s.duration) ? Math.max(0, s.duration) : 0;
+                return acc + duration;
+            }, 0);
+        currentMinutes = Math.floor(todaySeconds / 60);
+    } else if (effectiveFrequency === 'WEEKLY' || effectiveFrequency === 'MONTHLY') {
+        goalMinutes = getDynamicDailyTarget(project);
+        
+        const todayStr = new Date().toDateString();
+        const todaySeconds = (project.sessions || [])
+            .filter(s => new Date(s.date).toDateString() === todayStr)
+            .reduce((acc, s) => {
+                const duration = Number.isFinite(s.duration) ? Math.max(0, s.duration) : 0;
+                return acc + duration;
+            }, 0);
+        currentMinutes = Math.floor(todaySeconds / 60);
+    }
+
+    currentMinutes = Math.max(0, currentMinutes);
+    goalMinutes = Math.max(0, goalMinutes);
+
+    const progress = goalMinutes > 0 ? (currentMinutes / goalMinutes) * 100 : 0;
     const cappedProgress = Math.min(100, Math.max(0, progress));
+    const displayPercentage = Math.round(Math.max(0, progress));
 
     const formatTime = (mins: number) => {
         const h = Math.floor(mins / 60);
         const m = mins % 60;
         if (h === 0) return `${m}m`;
+        if (m === 0 && h === 0) return `0m`; // Handle 0
         if (m === 0) return `${h}h`;
         return `${h}h ${m.toString().padStart(2, '0')}m`;
     };
@@ -45,9 +77,25 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
     const borderColor = toRgba(themeColor, 0.2);
-    const glowColor = toRgba(themeColor, 0.15);
+    const glowColor = toRgba(themeColor, 0.22); // Reduced slightly
     const sheen = toRgba('#ffffff', 0.04);
     const topGlow = toRgba(themeColor, 0.08);
+
+    const workingDays = project.workingDays;
+    const today = new Date();
+    const isWorkingDay = !workingDays || workingDays.length === 0 || workingDays.includes(today.getDay());
+    const nextWorkingLabel = (() => {
+        if (!workingDays || workingDays.length === 0) return '';
+        for (let i = 1; i <= 7; i += 1) {
+            const next = addDays(today, i);
+            if (workingDays.includes(next.getDay())) {
+                if (i === 1) return 'Mañana';
+                const label = format(next, 'EEEE', { locale: es });
+                return label.charAt(0).toUpperCase() + label.slice(1);
+            }
+        }
+        return '';
+    })();
 
     return (
         <motion.div
@@ -59,7 +107,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                 "bg-black/25 border",
                 "shadow-sm hover:shadow-md transition-all duration-300"
             )}
-            style={{ borderColor, boxShadow: `0 0 16px ${glowColor}`, background: `linear-gradient(180deg, ${sheen} 0%, rgba(255,255,255,0) 70%)` }}
+            style={{ borderColor, boxShadow: `0 0 20px ${glowColor}`, background: `linear-gradient(180deg, ${sheen} 0%, rgba(255,255,255,0) 70%)` }}
         >
             <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(70% 90% at 10% 0%, ${topGlow} 0%, rgba(255,255,255,0) 65%)` }} />
             {/* Background Gradient - Fake Glass */}
@@ -74,7 +122,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                         onClick={(e) => onFocus(e, project)}
                         className={cn(
                             "w-16 h-16 rounded-full flex items-center justify-center shrink-0",
-                            "bg-rose-500 text-white shadow-[0_0_25px_-5px_rgba(244,63,94,0.6)]",
+                            "bg-rose-500 text-white shadow-[0_0_28px_-4px_rgba(244,63,94,0.75)]",
                             "hover:bg-rose-400 hover:scale-105 transition-all duration-300",
                             "border-2 border-white/10"
                         )}
@@ -94,26 +142,68 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                         </div>
                        
                         <div className="flex items-baseline gap-2 leading-none">
-                            <span className="text-3xl font-black text-white tracking-tighter tabular-nums leading-none">
-                                {formatTime(totalMinutes)}
-                            </span>
-                            <span className="text-xs text-white/30 font-bold tabular-nums">
-                                / {formatTime(goalMinutes)}
-                            </span>
+                            <motion.span 
+                                className="text-3xl font-black text-white tracking-tighter tabular-nums leading-none"
+                                animate={displayPercentage >= 100 ? { 
+                                    opacity: [1, 0.5, 1],
+                                    textShadow: ['0 0 10px rgba(244,63,94,0.4)', '0 0 25px rgba(244,63,94,0.7)', '0 0 10px rgba(244,63,94,0.4)']
+                                } : { 
+                                    opacity: 1,
+                                    textShadow: '0 0 0px transparent'
+                                }}
+                                transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+                            >
+                                {formatTime(currentMinutes)}
+                            </motion.span>
+                            {isWorkingDay && (
+                                <span className="text-xs text-white/30 font-bold tabular-nums">
+                                    / {formatTime(goalMinutes)}
+                                </span>
+                            )}
                         </div>
 
-                         {/* Progress Bar - Integrated below time */}
-                        <div className="flex items-center gap-3 mt-2 w-full">
-                            <div className="h-2.5 flex-1 bg-white/5 rounded-full overflow-hidden">
-                                <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${cappedProgress}%` }}
-                                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                                    className="h-full bg-rose-500 rounded-full shadow-[0_0_10px_rgba(244,63,94,0.3)]"
-                                />
+                        {isWorkingDay ? (
+                            <div className="flex items-center gap-3 mt-2 w-full">
+                                <div className="h-2.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={displayPercentage >= 100 ? { 
+                                            width: `${cappedProgress}%`,
+                                            opacity: [1, 0.5, 1],
+                                            boxShadow: ['0 0 5px rgba(244,63,94,0.3)', '0 0 15px rgba(244,63,94,0.6)', '0 0 5px rgba(244,63,94,0.3)']
+                                        } : { 
+                                            width: `${cappedProgress}%`,
+                                            opacity: 1,
+                                            boxShadow: '0 0 10px rgba(244,63,94,0.3)'
+                                        }}
+                                        transition={displayPercentage >= 100 ? { 
+                                            duration: 3, repeat: Infinity, ease: "easeInOut",
+                                            width: { duration: 0 } // Don't animate width on breathing
+                                        } : { 
+                                            type: "spring", stiffness: 100, damping: 20 
+                                        }}
+                                        className="h-full bg-rose-500 rounded-full"
+                                    />
+                                </div>
+                                <motion.span 
+                                    className="text-[10px] font-bold tabular-nums text-white"
+                                    animate={displayPercentage >= 100 ? { 
+                                        opacity: [0.95, 0.5, 0.95],
+                                        textShadow: ['0 0 5px rgba(244,63,94,0.4)', '0 0 15px rgba(244,63,94,0.8)', '0 0 5px rgba(244,63,94,0.4)']
+                                    } : { 
+                                        opacity: 0.3,
+                                        textShadow: '0 0 0px transparent'
+                                    }}
+                                    transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+                                >
+                                    {displayPercentage}%
+                                </motion.span>
                             </div>
-                            <span className="text-[10px] font-bold text-white/30 tabular-nums">{Math.round(progress)}%</span>
-                        </div>
+                        ) : (
+                            <div className="mt-2 text-[11px] font-semibold text-white/60">
+                                {nextWorkingLabel ? `Siguiente sesión: ${nextWorkingLabel}` : 'Siguiente sesión pronto'}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

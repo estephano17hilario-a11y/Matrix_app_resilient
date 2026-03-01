@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle } from 'lucide-react';
@@ -9,9 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { IconPicker } from './IconPicker';
 import { DurationPicker } from './DurationPicker';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit }) => {
     const { t } = useTranslation();
+    const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
     
     // Block 1: Identity
@@ -61,6 +64,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     // Reset or Populate form on open
     useEffect(() => {
         if (isOpen) {
+            setIsSubmitting(false);
             setExpandedBlock(1);
             if (initialData) {
                 setTitle(initialData.title || '');
@@ -68,6 +72,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setAttrId(initialData.attribute || '');
                 setSmartProjectId(initialData.projectId || '');
                 setFreq(initialData.frequency || 'DAILY');
+                setWeekDays(initialData.frequencyDays || []);
                 setLogic(initialData.type || 'BOOLEAN');
                 setTarget(initialData.targetValue?.toString() || '');
                 setUnit(initialData.unit || '');
@@ -111,8 +116,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const activeLabel = selectedAttr?.label || 'Trait';
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(estimatedTime);
-    }, [estimatedTime]);
+        // If creating a new habit, streak is 0.
+        // If editing, use the current streak to show the NEXT reward.
+        // BUT WAIT! The user might be confused. "Base Reward" vs "Next Reward".
+        // The most honest thing is to show the BASE reward + CURRENT STREAK BONUS.
+        // Because that's what they will get if they complete it today.
+        
+        const currentStreak = initialData?.streak || 0;
+        return calculateTaskRewards(estimatedTime, impact, currentStreak);
+    }, [estimatedTime, impact, initialData?.streak]);
 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
@@ -139,6 +151,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 attribute: attrId,
                 type: logic,
                 frequency: freq,
+                frequencyDays: freq === 'WEEKLY' ? weekDays : undefined,
                 targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
                 unit: unit || undefined,
                 checklist: logic === 'CHECKLIST' ? subtasks.map((t, i) => ({ id: `${Date.now()}-${i}`, text: t, completed: false })) : [],
@@ -158,7 +171,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         }
     };
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
@@ -167,7 +182,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[500] flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
+                    <div className="absolute inset-0 bg-black/40" onClick={!isSubmitting ? onClose : undefined} />
                     <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -180,7 +195,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     style={{
                         border: `1px solid ${hasColorSource ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
                         boxShadow: hasColorSource
-                            ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
+                            ? `0 0 0 1px ${activeColor}40, 0 0 30px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
                             : `0 20px 50px -10px rgba(0,0,0,0.5)`
                     }}
                 >
@@ -188,7 +203,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     <div className="flex justify-between items-center p-5 pb-2 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: activeColor }}>
-                                <SelectedIcon size={18} className="text-white" />
+                                <SelectedIcon size={21} className="text-white" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-black text-white tracking-tight leading-none">{initialData ? 'Editar Hábito' : 'Nuevo Hábito'}</h2>
@@ -527,20 +542,65 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />
 
                                         {/* Reminder */}
-                                        <div className="bg-black/20 rounded-xl p-2.5 flex items-center justify-between border border-white/5 group">
-                                            <div className="flex items-center gap-2">
-                                                <AlertCircle size={14} className="text-orange-400" />
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.habit.alert') || "Alerta"}</span>
+                                        <div className="space-y-2">
+                                            <div className="bg-black/20 rounded-xl p-2.5 flex items-center justify-between border border-white/5 group">
+                                                <div className="flex items-center gap-2">
+                                                    <AlertCircle size={14} className="text-orange-400" />
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.habit.alert') || "Alerta"}</span>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="time" 
+                                                        value={reminder} 
+                                                        onChange={(e) => {
+                                                            setReminder(e.target.value);
+                                                            if (e.target.value && permissions.notifications !== 'granted') {
+                                                                requestPermissions();
+                                                            }
+                                                        }} 
+                                                        className="bg-transparent text-xs font-bold text-white outline-none w-24 text-right cursor-pointer z-10 relative" 
+                                                    />
+                                                    {!reminder && <span className="absolute right-0 top-0 text-xs font-bold text-white/20 pointer-events-none">OFF</span>}
+                                                </div>
                                             </div>
-                                            <div className="relative">
-                                                <input 
-                                                    type="time" 
-                                                    value={reminder} 
-                                                    onChange={(e) => setReminder(e.target.value)} 
-                                                    className="bg-transparent text-xs font-bold text-white outline-none w-24 text-right cursor-pointer z-10 relative" 
-                                                />
-                                                {!reminder && <span className="absolute right-0 top-0 text-xs font-bold text-white/20 pointer-events-none">OFF</span>}
-                                            </div>
+
+                                            {/* Permission & Battery Checks */}
+                                            <AnimatePresence>
+                                                {reminder && (
+                                                    <motion.div 
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="space-y-2 overflow-hidden"
+                                                    >
+                                                        {/* Notification Permission Gate */}
+                                                        {(permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
+                                                            <button 
+                                                                onClick={requestPermissions}
+                                                                className="w-full flex items-center justify-between p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <AlertCircle size={12} />
+                                                                    <span className="text-[10px] font-bold">Permisos Faltantes</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-bold underline">ACTIVAR</span>
+                                                            </button>
+                                                        )}
+
+                                                        {/* Battery Optimization Check */}
+                                                        <button 
+                                                            onClick={openSystemSettings}
+                                                            className="w-full flex items-center justify-between p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Zap size={12} />
+                                                                <span className="text-[10px] font-bold">Batería / Segundo Plano</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold underline">REVISAR</span>
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
 
                                         {/* Project Link */}
@@ -653,6 +713,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
             </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }, (prev, next) => prev.isOpen === next.isOpen && prev.initialData === next.initialData);

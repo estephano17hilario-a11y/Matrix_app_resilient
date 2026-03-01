@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Eye, ChevronDown, Check, Sparkles, Briefcase, Zap, Layers } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
-import { THEMES, ThemeCategory } from '../../../config/themes';
+import { THEMES } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
 
 type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo';
@@ -74,9 +74,9 @@ export const VisualsSection = () => {
             <AnimatePresence>
             {openPanels.layout && (
                 <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="overflow-hidden"
                 >
@@ -180,14 +180,14 @@ export const VisualsSection = () => {
             <AnimatePresence>
             {openPanels.themes && (
                 <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="space-y-6 pt-2"
                 >
                 {/* Category Tabs */}
-                <div className="flex p-1 bg-black/20 backdrop-blur-md border border-white/5 rounded-xl overflow-x-auto no-scrollbar gap-1">
+                <div className="flex p-1 bg-black/30 border border-white/5 rounded-xl overflow-x-auto no-scrollbar gap-1">
                     {CATEGORIES.map((cat) => {
                         const isSelected = selectedCategory === cat.id;
                         const Icon = cat.icon;
@@ -217,15 +217,13 @@ export const VisualsSection = () => {
                 </div>
 
                 <motion.div 
-                    layout
                     className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 pb-4"
                 >
-                    <AnimatePresence mode='popLayout'>
+                    <AnimatePresence initial={false}>
                         {filteredThemes.map((theme) => {
                             const isActive = currentTheme === theme.id;
                             return (
                             <motion.button
-                                layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}

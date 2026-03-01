@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Skull, Coins, Heart, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { BadHabit } from '../../../types';
@@ -27,10 +28,12 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
+    if (typeof document === 'undefined') return null;
+
     const { penalties } = habit;
     const canAffordGold = userGold >= penalties.gold;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <motion.div 
                 initial={{ opacity: 0 }} 
@@ -132,7 +135,8 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                     </button>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

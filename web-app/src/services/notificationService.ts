@@ -71,7 +71,7 @@ export const notificationService = {
         toast(notification.title || 'New Message', {
            icon: '📱',
            duration: 6000,
-           className: '!bg-[#050505]/90 !backdrop-blur-md !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
+           className: '!bg-[#050505]/90 !backdrop-blur-sm !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
            style: {
              // Overridden by className, but kept for backup
              background: '#050505',
@@ -279,5 +279,52 @@ export const notificationService = {
             new Notification(title, { body, icon: '/vite.svg' });
         }
     }
+  },
+
+  /**
+   * Schedule a one-time notification for a specific date/time
+   */
+  scheduleEventNotification: async (id: string, title: string, body: string, date: Date) => {
+    // Generate a unique numeric ID from string ID hash or similar
+    const numericId = parseInt(id.replace(/\D/g, '').slice(0, 8)) || Math.floor(Math.random() * 100000);
+
+    if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+            notifications: [{
+                title,
+                body,
+                id: numericId,
+                schedule: { at: date },
+                sound: 'beep.wav',
+                smallIcon: 'ic_stat_cake', // Idealmente tener un icono de pastel
+                actionTypeId: '',
+                extra: { type: 'EVENT', originalId: id }
+            }]
+        });
+        console.log(`Scheduled native notification for ${date.toISOString()}`);
+    } else {
+        // Web Fallback: Check if we can use Service Worker registration for later
+        // If the browser is open, we can use setTimeout if it's in the current session (unlikely for birthdays)
+        // Ideally we would use Push API with backend. 
+        // For now, we'll just log it or simulate if it's very soon.
+        console.log(`Web Notification scheduled for ${date.toISOString()} (Only works if app open or via SW Push)`);
+        
+        // Simulación visual si es en menos de 1 hora
+        const diff = date.getTime() - Date.now();
+        if (diff > 0 && diff < 3600000) {
+            setTimeout(() => {
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body, icon: '/vite.svg' });
+                }
+            }, diff);
+        }
+    }
+  },
+
+  cancelEventNotification: async (id: string) => {
+      const numericId = parseInt(id.replace(/\D/g, '').slice(0, 8)) || 0;
+      if (numericId && Capacitor.isNativePlatform()) {
+          await LocalNotifications.cancel({ notifications: [{ id: numericId }] });
+      }
   }
 };

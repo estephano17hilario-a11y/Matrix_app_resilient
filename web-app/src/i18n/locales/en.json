@@ -97,6 +97,8 @@
         "WEEKLY": "WEEKLY",
         "MONTHLY": "MONTHLY"
       },
+      "update": "Update Protocol",
+      "create": "Initialize Protocol",
       "logics": {
         "BOOLEAN": "Boolean",
         "QUANTITY": "Quantity",

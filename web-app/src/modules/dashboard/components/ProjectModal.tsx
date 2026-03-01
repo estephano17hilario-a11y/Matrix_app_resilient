@@ -1,15 +1,18 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap } from 'lucide-react';
 import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
+    const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
 
     // Block 1: Identity
@@ -20,9 +23,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
 
     // Block 2: Mechanics (Goals)
-    const [goalTarget, setGoalTarget] = useState(10);
+    const [goalTarget, setGoalTarget] = useState(1);
+    const [goalUnit, setGoalUnit] = useState<'HOURS' | 'MINUTES'>('HOURS');
     const [goalFreq, setGoalFreq] = useState('DAILY');
     const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
+    const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'FLEXIBLE_COUNT'>('SPECIFIC_DATES');
+    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState(10);
+    const [monthlyLastDay, setMonthlyLastDay] = useState(false);
 
     // Block 3: Commitment (Session)
     const [pomoDuration, setPomoDuration] = useState(25);
@@ -47,21 +54,31 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 const freq = initialData.uiFrequency || initialData.goalFrequency || 'DAILY';
                 setGoalFreq(freq);
 
+                if (initialData.monthlyType) setMonthlyType(initialData.monthlyType);
+                if (initialData.monthlyFlexibleCount) setMonthlyFlexibleCount(initialData.monthlyFlexibleCount);
+                if (initialData.monthlyLastDay) setMonthlyLastDay(initialData.monthlyLastDay);
+
                 // Target Restoration
                 if (initialData.uiTarget) {
                     setGoalTarget(initialData.uiTarget);
+                    setGoalUnit(initialData.uiUnit || 'HOURS');
                 } else if (initialData.goalTarget) {
                     // Fallback logic for legacy projects
                     const days = initialData.workingDays?.length || 5;
                     if (freq === 'WEEKLY') {
                          setGoalTarget(Math.round((initialData.goalTarget * days) / 60));
                     } else if (freq === 'MONTHLY') {
-                         setGoalTarget(Math.round((initialData.goalTarget * days * 4) / 60));
+                        // If legacy monthly, assume specific dates if workingDays exist and are > 6 (implying dates) or use simple division
+                        // Actually legacy workingDays for monthly didn't exist properly, usually it was daily based.
+                        // Let's just use the stored total / 60
+                         setGoalTarget(Math.round((initialData.goalTarget * (initialData.workingDays?.length || 20)) / 60));
                     } else {
                          setGoalTarget(Math.round(initialData.goalTarget / 60));
                     }
+                    setGoalUnit('HOURS');
                 } else {
-                    setGoalTarget(10);
+                    setGoalTarget(1);
+                    setGoalUnit('HOURS');
                 }
 
                 setPomoDuration(initialData.pomoDuration || 25);
@@ -73,9 +90,12 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 setDesc('');
                 setAttrId('');
                 setSmartProjectId('');
-                setGoalTarget(10);
+                setGoalTarget(1);
+                setGoalUnit('HOURS');
                 setGoalFreq('DAILY');
                 setWorkingDays([1, 2, 3, 4, 5]);
+                setMonthlyType('SPECIFIC_DATES');
+                setMonthlyFlexibleCount(10);
                 setPomoDuration(25);
                 setReminder('');
                 setImpact(1);
@@ -90,29 +110,55 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label) : t('modals.project.traitDefault', 'Trait');
 
     const calculatedDailyGoal = useMemo(() => {
-        if (goalFreq === 'DAILY') return goalTarget;
-        const daysCount = workingDays.length || 1;
+        // Normalize to hours for calculations
+        const valueInHours = goalUnit === 'MINUTES' ? goalTarget / 60 : goalTarget;
+
+        if (goalFreq === 'DAILY') return valueInHours;
         
-        let daily = goalTarget;
+        let daily = valueInHours;
         if (goalFreq === 'WEEKLY') {
-            daily = goalTarget / daysCount;
+            const daysCount = workingDays.length || 1;
+            daily = valueInHours / daysCount;
         } else if (goalFreq === 'MONTHLY') {
-            daily = goalTarget / (daysCount * 4);
+            if (monthlyType === 'SPECIFIC_DATES') {
+                // If last day is enabled, we consider it as effectively one more day in the "schedule"
+                // But calculation-wise, if 31 is selected and Last Day is ON, it just means 31 maps to 28 in Feb.
+                // It doesn't add an EXTRA day if 31 is already selected.
+                // However, if 31 is NOT selected but Last Day IS, then it adds a day.
+                // Simplified: The count is just workingDays.length + (lastDay && !workingDays.includes(31) ? 1 : 0) ?
+                // Actually, let's keep it simple: Just divide by number of selected markers.
+                // The user logic is: "I want to work on days 1, 15 and Last Day". That's 3 days.
+                let count = workingDays.length;
+                if (monthlyLastDay && !workingDays.includes(31)) {
+                    // If last day is checked and 31 is NOT already selected (which usually represents last day in UI), add 1
+                    // But usually 31 IS the last day visual.
+                    // Let's assume the "Last Day" toggle is a modifier for the "31st" slot or a separate logical slot.
+                    // User said: "Si marcas 29, 30, 31 no cuentan en febrero, solo si activas la opcion Ultimo Dia".
+                    // So we should calculate based on a "Average Month" (30.4 days)? No, just use the count of "Intentions".
+                    // If I mark 5 days, I intend to work 5 days.
+                    count = workingDays.length + (monthlyLastDay ? 1 : 0);
+                }
+                const daysCount = count || 1;
+                daily = valueInHours / daysCount;
+            } else {
+                // FLEXIBLE_COUNT
+                daily = valueInHours / monthlyFlexibleCount;
+            }
         }
         
-        // Round to 1 decimal place
-        return Math.round(daily * 10) / 10;
-    }, [goalTarget, goalFreq, workingDays]);
+        // Round to 2 decimal places for better precision with minutes
+        return Math.round(daily * 100) / 100;
+    }, [goalTarget, goalFreq, workingDays, goalUnit, monthlyType, monthlyFlexibleCount]);
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(calculatedDailyGoal * 60);
-    }, [calculatedDailyGoal]);
+        return calculateTaskRewards(calculatedDailyGoal * 60, impact);
+    }, [calculatedDailyGoal, impact]);
 
     const toggleDay = (dayIndex: number) => {
         setWorkingDays(prev => 
             prev.includes(dayIndex) 
                 ? prev.filter(d => d !== dayIndex)
-                : [...prev, dayIndex].sort()
+                : [...prev, dayIndex].sort((a, b) => a - b)
         );
     };
 
@@ -134,6 +180,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 goalFrequency: 'DAILY', // Always save as DAILY so the tracker works per day
                 uiFrequency: goalFreq, // Store UI preference
                 uiTarget: goalTarget, // Store UI input
+                uiUnit: goalUnit, // Store UI Unit
+                monthlyType: goalFreq === 'MONTHLY' ? monthlyType : undefined,
+                monthlyFlexibleCount: goalFreq === 'MONTHLY' && monthlyType === 'FLEXIBLE_COUNT' ? monthlyFlexibleCount : undefined,
                 pomoDuration, 
                 breakDuration: 5, 
                 reminder, 
@@ -153,8 +202,15 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && attrId !== '';
-    const isBlock2Valid = goalTarget > 0 && (goalFreq === 'DAILY' || workingDays.length > 0);
-    const isBlock3Valid = pomoDuration > 0;
+    const isBlock2Valid = goalTarget > 0 && (
+        goalFreq === 'DAILY' || 
+        (goalFreq === 'WEEKLY' && workingDays.length > 0) ||
+        (goalFreq === 'MONTHLY' && (
+            (monthlyType === 'SPECIFIC_DATES' && workingDays.length > 0) ||
+            (monthlyType === 'FLEXIBLE_COUNT' && monthlyFlexibleCount > 0)
+        ))
+    );
+    const isBlock3Valid = pomoDuration > 0 && reminder !== '';
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;
@@ -164,7 +220,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
 
     if (!isOpen) return null;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
             <motion.div 
@@ -367,22 +425,52 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         
                                         <div className="flex justify-between items-center bg-black/20 rounded-xl p-1">
                                             {['DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
-                                                <button key={f} onClick={() => setGoalFreq(f)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${goalFreq === f ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}>{t(`modals.project.frequencies.${f}`)}</button>
+                                                <button 
+                                                    key={f} 
+                                                    onClick={() => {
+                                                        setGoalFreq(f);
+                                                        // Reset working days based on freq
+                                                        if (f === 'WEEKLY') setWorkingDays([1, 2, 3, 4, 5]);
+                                                        else if (f === 'MONTHLY') setWorkingDays([]); // Reset for specific dates
+                                                    }} 
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${goalFreq === f ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-white'}`}
+                                                >
+                                                    {t(`modals.project.frequencies.${f}`)}
+                                                </button>
                                             ))}
                                         </div>
 
                                         {/* Goal Input */}
-                                        <div className="flex items-center justify-between px-2 bg-black/20 rounded-xl py-1.5">
-                                            <button onClick={() => setGoalTarget(Math.max(1, goalTarget - 1))} className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronDown size={14} /></button>
-                                            <div className="text-center">
-                                                <span className="text-xl font-black text-white font-mono">{goalTarget}</span>
-                                                <span className="text-[10px] font-bold text-slate-500 ml-1">{t('modals.project.hrs')} / {goalFreq === 'DAILY' ? t('modals.project.day') : goalFreq === 'WEEKLY' ? t('modals.project.week') : t('modals.project.month')}</span>
+                                        <div className="bg-black/20 rounded-xl p-2 space-y-2">
+                                            <div className="flex justify-center gap-1 bg-black/20 p-1 rounded-lg w-fit mx-auto">
+                                                <button onClick={() => { setGoalUnit('HOURS'); if(goalTarget > 24 || goalTarget < 1) setGoalTarget(1); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'HOURS' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>HRS</button>
+                                                <button onClick={() => { setGoalUnit('MINUTES'); if(goalTarget < 15) setGoalTarget(30); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'MINUTES' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>MIN</button>
                                             </div>
-                                            <button onClick={() => setGoalTarget(Math.min(100, goalTarget + 1))} className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white"><ChevronUp size={14} /></button>
+
+                                            <div className="flex items-center justify-between px-2">
+                                                <button 
+                                                    onClick={() => setGoalTarget(Math.max(goalUnit === 'HOURS' ? 0.5 : 5, goalTarget - (goalUnit === 'HOURS' ? 0.5 : 5)))} 
+                                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white active:scale-95 transition-transform"
+                                                >
+                                                    <ChevronDown size={16} />
+                                                </button>
+                                                <div className="text-center">
+                                                    <span className="text-2xl font-black text-white font-mono">{goalTarget}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 ml-1 block uppercase tracking-wider">
+                                                        {goalUnit === 'HOURS' ? t('modals.project.hrs') : 'MIN'} / {goalFreq === 'DAILY' ? t('modals.project.day') : goalFreq === 'WEEKLY' ? t('modals.project.week') : t('modals.project.month')}
+                                                    </span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setGoalTarget(Math.min(goalUnit === 'HOURS' ? 24 : 720, goalTarget + (goalUnit === 'HOURS' ? 0.5 : 5)))} 
+                                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white active:scale-95 transition-transform"
+                                                >
+                                                    <ChevronUp size={16} />
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        {/* Working Days Selector (Only if not Daily) */}
-                                        {goalFreq !== 'DAILY' && (
+                                        {/* Working Days Selector (Weekly) */}
+                                        {goalFreq === 'WEEKLY' && (
                                             <div className="animate-in slide-in-from-top-2 pt-2 border-t border-white/5">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Calendar size={12} className="text-slate-400" />
@@ -399,16 +487,106 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                         </button>
                                                     ))}
                                                 </div>
-                                                
-                                                {/* Calculated Result */}
-                                                <div className="mt-2 bg-cyan-500/10 rounded-xl p-2.5 flex items-center gap-3 border border-cyan-500/20">
-                                                    <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                                        <Calculator size={14} />
+                                            </div>
+                                        )}
+
+                                        {/* Monthly Selector */}
+                                        {goalFreq === 'MONTHLY' && (
+                                            <div className="animate-in slide-in-from-top-2 pt-2 border-t border-white/5 space-y-3">
+                                                {/* Type Toggle */}
+                                                <div className="flex bg-black/20 p-1 rounded-lg">
+                                                    <button 
+                                                        onClick={() => setMonthlyType('SPECIFIC_DATES')} 
+                                                        className={cn("flex-1 py-1 text-[9px] font-bold rounded transition-all", monthlyType === 'SPECIFIC_DATES' ? "bg-white text-black" : "text-slate-500 hover:text-white")}
+                                                    >
+                                                        Días Específicos
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setMonthlyType('FLEXIBLE_COUNT')} 
+                                                        className={cn("flex-1 py-1 text-[9px] font-bold rounded transition-all", monthlyType === 'FLEXIBLE_COUNT' ? "bg-white text-black" : "text-slate-500 hover:text-white")}
+                                                    >
+                                                        Cantidad Flexible
+                                                    </button>
+                                                </div>
+
+                                                {monthlyType === 'SPECIFIC_DATES' ? (
+                                                    <div className="space-y-3">
+                                                        <div className="grid grid-cols-7 gap-1">
+                                                            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                                                                <button 
+                                                                    key={d} 
+                                                                    onClick={() => {
+                                                                        if (workingDays.length >= 28 && !workingDays.includes(d)) return; // Limit to 28 days
+                                                                        toggleDay(d);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-full aspect-square rounded flex items-center justify-center text-[9px] font-bold transition-all",
+                                                                        workingDays.includes(d) 
+                                                                            ? "bg-cyan-500 text-white shadow-[0_0_8px_rgba(6,182,212,0.4)]" 
+                                                                            : "bg-white/5 text-slate-500 hover:bg-white/10"
+                                                                    )}
+                                                                >
+                                                                    {d}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        
+                                                        {/* Last Day Option */}
+                                                        <button 
+                                                            onClick={() => setMonthlyLastDay(!monthlyLastDay)}
+                                                            className={cn(
+                                                                "w-full flex items-center justify-between p-2 rounded-xl border transition-all",
+                                                                monthlyLastDay ? "bg-cyan-500/10 border-cyan-500/30" : "bg-black/20 border-white/5 hover:bg-white/5"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={cn("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", monthlyLastDay ? "bg-cyan-500 border-cyan-500" : "border-white/30")}>
+                                                                    {monthlyLastDay && <CheckCircle2 size={10} className="text-black" />}
+                                                                </div>
+                                                                <span className={cn("text-[10px] font-bold uppercase", monthlyLastDay ? "text-cyan-400" : "text-slate-400")}>
+                                                                    Ultimo día del mes
+                                                                </span>
+                                                            </div>
+                                                            <div className="group relative">
+                                                                <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-white/50 cursor-help">?</div>
+                                                                <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-slate-300 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                                                    Activa esta opción para incluir siempre el último día (28, 29, 30 o 31) sin importar el mes. Los días 29-31 manuales no cuentan en meses cortos.
+                                                                </div>
+                                                            </div>
+                                                        </button>
                                                     </div>
-                                                    <div>
-                                                        <div className="text-[9px] font-bold text-cyan-200 uppercase">{t('modals.project.dailyTarget')}</div>
-                                                        <div className="text-xs font-black text-white"><span className="font-mono">{calculatedDailyGoal}</span> {t('modals.project.hours')} <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span></div>
+                                                ) : (
+                                                    <div className="flex items-center justify-between bg-black/20 p-2 rounded-xl border border-white/5">
+                                                        <button 
+                                                            onClick={() => setMonthlyFlexibleCount(Math.max(1, monthlyFlexibleCount - 1))} 
+                                                            className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white hover:bg-white/10"
+                                                        >
+                                                            <ChevronDown size={14} />
+                                                        </button>
+                                                        <div className="text-center">
+                                                            <span className="text-lg font-black text-white">{monthlyFlexibleCount}</span>
+                                                            <span className="text-[10px] font-bold text-slate-500 block uppercase">Días al mes</span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setMonthlyFlexibleCount(Math.min(28, monthlyFlexibleCount + 1))} 
+                                                            className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white hover:bg-white/10"
+                                                        >
+                                                            <ChevronUp size={14} />
+                                                        </button>
                                                     </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Calculated Result (Shared for Weekly/Monthly) */}
+                                        {goalFreq !== 'DAILY' && (
+                                            <div className="mt-2 bg-cyan-500/10 rounded-xl p-2.5 flex items-center gap-3 border border-cyan-500/20">
+                                                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                                    <Calculator size={14} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-[9px] font-bold text-cyan-200 uppercase">{t('modals.project.dailyTarget')}</div>
+                                                    <div className="text-xs font-black text-white"><span className="font-mono">{calculatedDailyGoal}</span> {t('modals.project.hours')} <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span></div>
                                                 </div>
                                             </div>
                                         )}
@@ -478,10 +656,58 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         </div>
 
                                         {/* Reminder */}
-                                        <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 group">
-                                            <div className="flex items-center gap-2 mb-1"><Bell size={14} className="text-purple-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.alert')}</span></div>
-                                            <input type="time" value={reminder} onChange={(e) => setReminder(e.target.value)} className="bg-transparent text-xl font-black text-white outline-none w-full z-10 relative" />
-                                            {!reminder && <span className="absolute left-6 bottom-6 text-xs font-bold text-white/20 pointer-events-none">{t('modals.project.off')}</span>}
+                                        <div className="space-y-2">
+                                            <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 group">
+                                                <div className="flex items-center gap-2 mb-1"><Bell size={14} className="text-purple-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.alert')}</span></div>
+                                                <input 
+                                                    type="time" 
+                                                    value={reminder} 
+                                                    onChange={(e) => {
+                                                        setReminder(e.target.value);
+                                                        if (e.target.value && permissions.notifications !== 'granted') {
+                                                            requestPermissions();
+                                                        }
+                                                    }} 
+                                                    className="bg-transparent text-xl font-black text-white outline-none w-full z-10 relative" 
+                                                />
+                                                {!reminder && <span className="absolute left-6 bottom-6 text-xs font-bold text-white/20 pointer-events-none">{t('modals.project.off')}</span>}
+                                            </div>
+
+                                            {/* Permission & Battery Checks */}
+                                            <AnimatePresence>
+                                                {reminder && (
+                                                    <motion.div 
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="space-y-2 overflow-hidden"
+                                                    >
+                                                        {(permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
+                                                            <button 
+                                                                onClick={requestPermissions}
+                                                                className="w-full flex items-center justify-between p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <Bell size={12} />
+                                                                    <span className="text-[10px] font-bold">Activar Notificaciones</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-bold underline">SOLUCIONAR</span>
+                                                            </button>
+                                                        )}
+
+                                                        <button 
+                                                            onClick={openSystemSettings}
+                                                            className="w-full flex items-center justify-between p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Zap size={12} />
+                                                                <span className="text-[10px] font-bold">Optimización Batería</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold underline">REVISAR</span>
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
 
                                         {/* Smart Project Link - MOVED HERE */}
@@ -504,9 +730,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             </div>
                                         )}
 
-                                        {/* Reward Prediction (Conditional) */}
+                                        {/* Reward Prediction */}
                                         <AnimatePresence>
-                                            {reminder && (
+                                            {isBlock3Valid && (
                                                 <motion.div
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
@@ -535,13 +761,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             )}
                                             <button 
                                                 onClick={handleConfirm} 
-                                                disabled={!title || !attrId || isSubmitting} 
-                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                                                disabled={!title || !attrId || isSubmitting || !isBlock3Valid} 
+                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting || !isBlock3Valid) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
                                                 style={{
-                                                    background: (!title || !attrId || isSubmitting) 
+                                                    background: (!title || !attrId || isSubmitting || !isBlock3Valid) 
                                                         ? undefined 
                                                         : `linear-gradient(135deg, ${activeColor}, ${activeColor}dd)`,
-                                                    boxShadow: (!title || !attrId || isSubmitting) 
+                                                    boxShadow: (!title || !attrId || isSubmitting || !isBlock3Valid) 
                                                         ? undefined 
                                                         : `0 8px 20px -4px ${activeColor}60, inset 0 1px 0 0 rgba(255,255,255,0.3)`
                                                 }}
@@ -563,7 +789,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                     </div>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 }, (prev, next) => {
     return prev.isOpen === next.isOpen && prev.initialData === next.initialData && prev.smartProjects === next.smartProjects; 

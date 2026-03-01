@@ -323,29 +323,6 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
       setIsEditing(false);
   };
 
-  const toggleNodeCompletion = (nodeId: string) => {
-      if (!onUpdateProject) return;
-
-      const updateNodeInTree = (node: StrategicNode): StrategicNode => {
-          if (node.id === nodeId) {
-              return { ...node, isCompleted: !node.isCompleted };
-          }
-          if (node.children) {
-              return { ...node, children: node.children.map(updateNodeInTree) };
-          }
-          return node;
-      };
-
-      const newRoot = updateNodeInTree(project.rootNode);
-      const newProject = { ...project, rootNode: newRoot };
-      
-      onUpdateProject(newProject);
-      
-      // Update local path state if the active node is the one being toggled
-      const newPath = path.map(p => p.id === nodeId ? { ...p, isCompleted: !p.isCompleted } : p);
-      setPath(newPath);
-  };
-
   const isLeafLevel = ['DAY'].includes(activeNode.level);
 
   // Filter quests for the active leaf node
@@ -359,7 +336,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     <div className="w-full h-full flex flex-col bg-black/20 font-sans">
         
         {/* --- 1. NAVIGATION HEADER --- */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-md z-10 flex items-center justify-between">
+        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-sm z-10 flex items-center justify-between">
             <div className="flex items-center gap-1 flex-wrap gap-y-2">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;
@@ -403,35 +380,25 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                     </button>
                 )}
 
-                {onDeleteProject && activeNode.level === 'YEAR' && (
+                {/* Always allow deleting the project if onDeleteProject is provided, regardless of level */}
+                {onDeleteProject && (
                     <button 
-                        onClick={() => {
-                            if (window.confirm('¿Estás seguro de que quieres eliminar este Plan Inteligente? Se borrarán todas las tareas asociadas.')) {
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(t('strategicMap.deleteProjectConfirm', 'Are you sure you want to delete this Smart Plan? All associated tasks will be deleted.'))) {
                                 onDeleteProject();
                             }
                         }}
-                        className="p-2.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex-shrink-0"
-                        title="Eliminar Estrategia Completa"
+                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all flex items-center gap-2 text-xs font-bold border border-red-500/20"
+                        title={t('strategicMap.deleteProject', 'Delete Strategy')}
                     >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
+                        <span className="hidden sm:inline">ELIMINAR</span>
                     </button>
                 )}
 
-                {/* SECTIONS CANNOT BE DELETED - ONLY LEAF TASKS */}
-                {activeNode.level !== 'YEAR' && (
-                    <button 
-                        onClick={() => toggleNodeCompletion(activeNode.id)}
-                        className={cn(
-                            "p-2.5 rounded-full transition-all flex-shrink-0 border",
-                            activeNode.isCompleted 
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20" 
-                                : "bg-white/5 text-white/40 border-white/5 hover:text-white hover:border-white/20"
-                        )}
-                        title={activeNode.isCompleted ? "Marcar como incompleto" : "Completar Sección"}
-                    >
-                        <CheckCircle2 size={16} className={cn(activeNode.isCompleted && "fill-emerald-500/20")} />
-                    </button>
-                )}
+                {/* REMOVED COMPLETION BUTTON AS PER USER REQUEST */}
+
             </div>
         </div>
 
@@ -458,7 +425,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                             
                             <div className="space-y-4 relative z-10">
                                 <div 
-                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg backdrop-blur-md transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg backdrop-blur-sm transition-colors"
                                     style={{ 
                                         borderColor: `${traitColor}33`,
                                         color: traitColor 
@@ -611,7 +578,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                                 }}
                                                                 key={child.id}
                                                                 onClick={() => handleNavigate(child)}
-                                                                className="group relative flex flex-col items-center justify-center p-8 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all duration-300 backdrop-blur-md cursor-pointer h-full min-h-[160px] active:scale-95"
+                                                                className="group relative flex flex-col items-center justify-center p-8 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all duration-300 backdrop-blur-sm cursor-pointer h-full min-h-[160px] active:scale-95"
                                                             >
                                                                 <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-white/40 group-hover:text-white">
                                                                     <Plus size={24} />
@@ -632,7 +599,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             tabIndex={0}
                                                             key={child.id}
                                                             onClick={() => handleNavigate(child)}
-                                                            className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
+                                                            className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-sm shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
                                                             style={{
                                                                 boxShadow: `0 0 0 1px ${traitColor}10, 0 10px 30px -10px ${traitColor}10`
                                                             }}
@@ -679,20 +646,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             </div>
                                                             
                                                             <div className="flex items-center gap-4 text-white/20 group-hover:text-white/60 transition-colors relative z-10">
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        toggleNodeCompletion(child.id);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "p-2 rounded-full transition-all z-20 border",
-                                                                        child.isCompleted
-                                                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
-                                                                            : "text-white/20 hover:text-white border-transparent hover:border-white/20 hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    <CheckCircle2 size={16} className={cn(child.isCompleted && "fill-emerald-500/20")} />
-                                                                </button>
+
                                                                 <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                                             </div>
                                                         </motion.div>
@@ -702,7 +656,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                 {/* CREATE NEW NODE SECTION */}
                                                 <div className="mt-2">
                                                     {isCreating ? (
-                                                        <div className="flex items-center gap-2 p-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+                                                        <div className="flex items-center gap-2 p-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
                                                             <input
                                                                 autoFocus
                                                                 type="text"

@@ -3,64 +3,70 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // --- FUNCIONES DE AYUDA ---
+    // --- SECURITY KERNEL (BANK-GRADE) ---
     
-    // Verifica si el usuario está autenticado
+    // 1. AUTHENTICATION GATES
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Verifica si el usuario es dueño del documento
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+
+    // 2. DATA INTEGRITY GATES (TYPE VALIDATION)
+    function isValidString(data, field, maxLen) {
+      return data.get(field, '') is string && data.get(field, '').size() <= maxLen;
+    }
     
-    // Verifica que no se esté intentando borrar físicamente (Soft Delete Enforcement)
-    // Para robustez bancaria, NUNCA permitimos delete() desde el cliente.
-    function isNotDelete() {
+    function isValidNumber(data, field) {
+      return data.get(field, 0) is number;
+    }
+    
+    function isValidBoolean(data, field) {
+      return data.get(field, false) is bool;
+    }
+
+    function hasRequiredFields(requiredFields) {
+      return request.resource.data.keys().hasAll(requiredFields);
+    }
+
+    // 3. IMMUTABILITY GATES (SOFT DELETE ENFORCEMENT)
+    // CRITICAL: Physical deletion is FORBIDDEN. Only 'deleted' flag updates allowed.
+    function isNotPhysicalDelete() {
       return request.method != 'delete';
     }
-    
-    // Valida tipos de datos básicos para evitar corrupción
-    function isValidString(text, maxLen) {
-      return text is string && text.size() <= maxLen;
-    }
-    
-    function isValidNumber(num) {
-      return num is number;
-    }
 
-    // --- REGLAS POR COLECCIÓN ---
+    // --- COLLECTION RULES ---
 
-    // Colección de Usuarios (Root)
+    // USER DATA (Root)
+    // Strict ownership: Users can ONLY touch their own doc.
     match /users/{userId} {
-      // El usuario puede leer y escribir su propio documento
-      allow read, create, update: if isOwner(userId);
-      // NADIE puede borrar un usuario desde el cliente (requiere Admin SDK)
-      allow delete: if false; 
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) 
+        && isValidString(request.resource.data, 'email', 100)
+        && isValidString(request.resource.data, 'displayName', 50);
+      allow update: if isOwner(userId) && isNotPhysicalDelete();
+      allow delete: if false; // NEVER ALLOW PHYSICAL DELETE
 
-      // Subcolecciones del Usuario (Quests, Habits, etc.)
+      // SUBCOLLECTIONS (Recursive Protection)
       match /{document=**} {
-        allow read, create, update: if isOwner(userId);
-        // Bloqueamos delete físico para forzar Soft Delete
-        allow delete: if false; 
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isNotPhysicalDelete();
       }
-      
-      // Reglas específicas para validación de datos (Opcional pero recomendado)
-      // match /quests/{questId} {
-      //   allow create, update: if isOwner(userId) 
-      //     && isValidString(request.resource.data.title, 100);
-      // }
     }
     
-    // Auditoría (Solo escritura, nadie puede borrar ni editar logs)
+    // AUDIT LOGS (Write-Only / Append-Only)
+    // Users can create logs for their actions, but NEVER read or modify them.
     match /audit_logs/{logId} {
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow read: if false; // Solo accesible por Admin SDK o consola
-      allow update, delete: if false; // Los logs son inmutables
+      allow create: if isAuthenticated() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.timestamp == request.time;
+      allow read, update, delete: if false;
     }
 
-    // Bloquear acceso a todo lo demás por defecto
+    // GLOBAL BLACKHOLE
+    // Deny everything else by default.
     match /{document=**} {
       allow read, write: if false;
     }

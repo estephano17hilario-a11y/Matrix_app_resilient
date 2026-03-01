@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { doc, onSnapshot, FirestoreError } from '../services/firebase';
+import { doc, onSnapshot } from '../services/firebase';
 import { db, configStatus } from '../services/firebase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
@@ -36,9 +36,6 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
   const [isSyncing, setIsSyncing] = useState(false);
   
   const isMounted = useRef(true);
-  const unsubscribeRef = useRef<() => void>();
-  const lastUpdateTimeRef = useRef<number | null>(null);
-  const lastSnapshotUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

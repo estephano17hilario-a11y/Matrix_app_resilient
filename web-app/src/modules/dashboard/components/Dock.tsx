@@ -3,7 +3,7 @@ import { Crosshair, Plus, Target, ClipboardList, Brain, Map as MapIcon, Shopping
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER' }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' }) => {
+export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS', taskViewMode: 'LIST' | 'STRATEGY', habitViewMode: 'PROTOCOLS' | 'VICES', noteViewMode: 'NOTES' | 'JOURNAL' }) => {
     const { t } = useTranslation();
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };
     
@@ -16,6 +16,9 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
     const isLiquid = dashboardStyle === 'LIQUID';
     const isGlass = dashboardStyle === 'GLASS';
+    const taskIndicator = taskViewMode === 'LIST' ? '1/2' : '2/2';
+    const habitIndicator = habitViewMode === 'PROTOCOLS' ? '1/2' : '2/2';
+    const noteIndicator = noteViewMode === 'NOTES' ? '1/2' : '2/2';
     
     // --- GLASS STYLE (VISION OS) ---
     if (isGlass) {
@@ -41,13 +44,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                         damping: 30,
                         mass: 0.8
                     }}
-                    className="pointer-events-auto relative bg-[#0a0a0a]/60 backdrop-blur-lg border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
+                    className="pointer-events-none relative bg-[#0a0a0a]/80 backdrop-blur-sm border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden" // Restored safe blur
+                    style={{ willChange: 'transform, height' }}
                 >
                     {/* Fake Glass Shine */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-60 z-0" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />
 
                     {/* EXPANDED MENU CONTENT */}
-                    <div className={`absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2 transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0 delay-100' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                    <div className={`pointer-events-auto absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2 transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0 delay-100' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                         <button onClick={() => handleModal('QUEST')} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center text-orange-400 border border-orange-500/20 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(249,115,22,0.2)]">
@@ -81,7 +85,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </div>
 
                     {/* MAIN DOCK BAR (Fixed at bottom of container) */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[72px] px-6 flex items-center justify-between gap-2 z-20">
+                    <div className="pointer-events-auto absolute bottom-0 left-0 right-0 h-[72px] px-6 flex items-center justify-between gap-2 z-20">
                         {/* TASKS */}
                         <button 
                             onClick={() => handleSmartNav('TASKS')}
@@ -92,6 +96,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                                 <ClipboardList size={22} strokeWidth={currentView === 'TASKS' ? 2.5 : 2} />
                             </div>
                             <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'TASKS' ? 'text-white' : 'text-white/30'}`}>TASKS</span>
+                            <span className={`pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'TASKS' ? 'text-white/70' : 'text-white/30'}`}>{taskIndicator}</span>
                         </button>
 
                         {/* HABITS */}
@@ -104,6 +109,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                                 <Flame size={22} strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
                             </div>
                             <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'HABITS' ? 'text-white' : 'text-white/30'}`}>HABITS</span>
+                            <span className={`pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'HABITS' ? 'text-white/70' : 'text-white/30'}`}>{habitIndicator}</span>
                         </button>
 
                         {/* CENTER ACTION BUTTON */}
@@ -144,6 +150,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                                 <Activity size={22} strokeWidth={currentView === 'NOTES' ? 2.5 : 2} />
                             </div>
                             <span className={`text-[9px] font-bold tracking-widest transition-colors ${currentView === 'NOTES' ? 'text-white' : 'text-white/30'}`}>STATS</span>
+                            <span className={`pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'NOTES' ? 'text-white/70' : 'text-white/30'}`}>{noteIndicator}</span>
                         </button>
                     </div>
                 </motion.div>
@@ -155,7 +162,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     
     // Shared base classes: Glass effect, positioning, sizing
     // REMOVED BACKDROP BLUR for stability
-    const baseClass = "pointer-events-auto relative box-border mx-auto";
+    const baseClass = "pointer-events-none relative box-border mx-auto";
     
     // Style-specific classes
     const styleClass = isLiquid
@@ -191,7 +198,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
              >
              <div className={`absolute inset-0 overflow-hidden rounded-[inherit] z-10 ${isOpen ? 'bg-black/90' : 'bg-transparent'}`}>
                 <div className="relative w-full h-full">
-                <div className={`absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                <div className={`pointer-events-auto absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     
                     <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
@@ -216,15 +223,17 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </button>
 
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20">
+                <div className="pointer-events-auto absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20">
                     <div className="flex justify-center">
-                        <button onClick={() => handleSmartNav('TASKS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'TASKS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                        <button onClick={() => handleSmartNav('TASKS')} className={`group relative flex flex-col items-center gap-1 transition-colors duration-300 pb-2 ${currentView === 'TASKS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
                             <ClipboardList size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'TASKS' ? 2.5 : 2} />
+                            <span className={`pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'TASKS' ? 'text-white/70' : 'text-white/30'}`}>{taskIndicator}</span>
                         </button>
                     </div>
                     <div className="flex justify-center">
-                        <button onClick={() => handleSmartNav('HABITS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                        <button onClick={() => handleSmartNav('HABITS')} className={`group relative flex flex-col items-center gap-1 transition-colors duration-300 pb-2 ${currentView === 'HABITS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
                             <Flame size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'HABITS' ? 2.5 : 2} />
+                            <span className={`pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'HABITS' ? 'text-white/70' : 'text-white/30'}`}>{habitIndicator}</span>
                         </button>
                     </div>
                     
@@ -235,13 +244,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </div>
 
                     <div className="flex justify-center">
-                        <button onClick={() => handleSmartNav('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                        <button onClick={() => handleSmartNav('FOCUS')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 pb-2 ${currentView === 'FOCUS' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
                             <Target size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'FOCUS' ? 2.5 : 2} />
                         </button>
                     </div>
                     <div className="flex justify-center">
-                        <button onClick={() => handleSmartNav('NOTES')} className={`group flex flex-col items-center gap-1 transition-colors duration-300 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
+                        <button onClick={() => handleSmartNav('NOTES')} className={`group relative flex flex-col items-center gap-1 transition-colors duration-300 pb-2 ${currentView === 'NOTES' ? 'text-white' : 'text-white/30 hover:text-white/60'}`}>
                             <Brain size={24} className="transition-transform group-active:scale-75 duration-300" strokeWidth={currentView === 'NOTES' ? 2.5 : 2} />
+                            <span className={`pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${currentView === 'NOTES' ? 'text-white/70' : 'text-white/30'}`}>{noteIndicator}</span>
                         </button>
                     </div>
                 </div>

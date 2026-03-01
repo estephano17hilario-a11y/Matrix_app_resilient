@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar } from 'lucide-react';
+import { format, isToday, isTomorrow, differenceInDays, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Quest, Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
+import { useTranslation } from 'react-i18next';
 
 interface QuestItemProps {
   quest: Quest;
@@ -21,9 +24,11 @@ interface QuestItemProps {
 }
 
 export const QuestItem = React.memo(({ quest, attribute, project, smartProject, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const Icon = attribute?.icon;
+
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -67,6 +72,24 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
   const isSmart = quest.isSmartQuest;
   const themeColor = attribute?.color || '#ffffff';
 
+  const getDeadlineText = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const date = parseISO(dateStr);
+    const today = new Date();
+    
+    if (isToday(date)) return 'Hoy';
+    if (isTomorrow(date)) return 'Mañana';
+    
+    const days = differenceInDays(date, today);
+    
+    if (days > 0 && days <= 7) return `En ${days} días`;
+    if (days < 0) return 'Vencido';
+    
+    return format(date, 'd MMM', { locale: es });
+  };
+
+  const deadlineText = getDeadlineText(quest.deadline);
+
   const Container: any = isLite ? 'div' : motion.div;
 
   return (
@@ -101,7 +124,9 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
 
       <div 
         className="relative z-10 p-3 cursor-pointer" 
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          if (!isLite) setExpanded(!expanded);
+        }}
       >
         <div className="flex items-center gap-3.5">
           {/* VISIONOS CHECKBOX / ICON CONTAINER */}
@@ -150,58 +175,53 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
              )}
           </button>
           
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex justify-between items-start">
+          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 mr-2">
+            <div className="flex items-center gap-3">
               <h3 className={cn(
-                "text-[15px] font-semibold truncate pr-2 leading-tight tracking-tight transition-all duration-300",
+                "text-[15px] font-semibold truncate leading-tight tracking-tight transition-all duration-300",
                 quest.completed ? "text-white/30 line-through" : "text-white/95 drop-shadow-md"
               )}>
                 {quest.title}
               </h3>
+              
+              {/* Difficulty Badge - Row 1 */}
+               <span className={cn("text-[9px] px-1.5 py-[2px] rounded-md font-bold border uppercase tracking-wide opacity-80 shrink-0", diffColor)}>
+                    {quest.difficulty}
+                </span>
             </div>
             
-            <div className="flex items-center gap-2 mt-1">
-                 {/* Trait Badge (Glass Capsule) */}
-                {attribute && (
+            <div className="flex items-center gap-3 shrink-0">
+                 {/* Trait / Strategy Badge - Row 2 */}
+                {(attribute || smartProject) && (
                     <div 
                         className="flex items-center gap-1 px-1.5 py-[2px] rounded-md bg-white/5 border border-white/5"
                         style={{ borderColor: `${themeColor}20` }}
                     >
                         <span className="text-[9px] font-bold uppercase tracking-wider opacity-90" style={{ color: themeColor }}>
-                            {smartProject ? smartProject.mainGoal : attribute.label}
+                            {smartProject ? smartProject.mainGoal : attribute?.label}
                         </span>
                     </div>
                 )}
                 
-                {/* Difficulty Badge */}
-                <span className={cn("text-[9px] px-1.5 py-[2px] rounded-md font-bold border uppercase tracking-wide opacity-80", diffColor)}>
-                    {quest.difficulty}
-                </span>
-
-                {isSmart && (
-                    <span className="text-[9px] font-black text-indigo-300 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-[2px] rounded border border-indigo-500/20">
-                        SMART
-                    </span>
+                 {/* Deadline - Row 2 */}
+                 {deadlineText && !quest.completed && (
+                    <div className={cn(
+                        "flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-bold tracking-wide transition-colors",
+                        deadlineText === 'Hoy' || deadlineText === 'Vencido' 
+                            ? "bg-rose-500/10 border-rose-500/20 text-rose-300" 
+                            : deadlineText === 'Mañana' 
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
+                                : "bg-white/5 border-white/10 text-slate-400"
+                    )}>
+                        <Calendar size={10} className={deadlineText === 'Hoy' || deadlineText === 'Vencido' ? "text-rose-400" : "text-slate-500"} />
+                        {deadlineText}
+                    </div>
                 )}
             </div>
           </div>
           
-          {/* RIGHT SIDE: Rewards & Actions */}
-          <div className="flex items-center gap-3">
-             <AnimatePresence mode="wait">
-                {(expanded || isSmart) && !quest.completed && (
-                     <motion.div 
-                        initial={{ opacity: 0, x: 10 }} 
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="flex flex-col items-end gap-0.5 text-[10px] font-mono font-medium"
-                     >
-                        <span className="text-emerald-400 drop-shadow-sm">+{Math.floor(xp)} XP</span>
-                        {coins > 0 && <span className="text-yellow-400 drop-shadow-sm">+{coins} G</span>}
-                     </motion.div>
-                )}
-             </AnimatePresence>
-
+          {/* RIGHT SIDE: Actions Only */}
+          <div className="flex items-center gap-2 shrink-0">
              <div className={cn(
                  "flex items-center gap-1 transition-all duration-300",
                  expanded ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
@@ -236,18 +256,55 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
             />
           </div>
         </div>
+      </div>
 
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 pb-1 pl-[3.75rem]"> {/* Indent to align with text */}
+        <div className="overflow-hidden">
+          <AnimatePresence initial={false}>
+            {expanded && !isLite && (
+              <motion.div
+                initial={{ opacity: 0, scaleY: 0.98 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0, scaleY: 0.98 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                style={{ transformOrigin: 'top' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="pb-4 pl-4 pr-4 sm:pl-[3.75rem] sm:pr-4"> {/* Responsive Padding */}
                 
+                {/* Rewards - Only Visible when Expanded */}
+                {!quest.completed && (
+                     <div className="flex flex-wrap items-center gap-3 mb-4">
+                        {/* XP Reward */}
+                        <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                            <Zap size={12} />
+                            <span className="text-xs font-bold">+{Math.floor(xp)} XP</span>
+                        </div>
+
+                        {/* Attribute Points Reward (New) */}
+                        {attribute && (
+                            <div 
+                                className="flex items-center gap-1.5 px-2 py-1 rounded-md border shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+                                style={{ 
+                                    color: attribute.color,
+                                    backgroundColor: `${attribute.color}15`, // 10% opacity
+                                    borderColor: `${attribute.color}30`
+                                }}
+                            >
+                                {attribute.icon && <attribute.icon size={12} />}
+                                <span className="text-xs font-bold">+{Math.floor(xp)} {t(attribute.label, attribute.label.replace('traits.', ''))}</span>
+                            </div>
+                        )}
+
+                        {/* Gold Reward */}
+                        {coins > 0 && (
+                            <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                                <Coins size={12} />
+                                <span className="text-xs font-bold">+{coins} Gold</span>
+                            </div>
+                        )}
+                     </div>
+                )}
+
                 {/* Description */}
                 {quest.description && (
                   <div className="text-[13px] text-white/60 leading-relaxed font-medium mb-4 border-l-2 border-white/10 pl-3">
@@ -279,12 +336,11 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                       <span className="font-bold">{quest.deadline}</span>
                    </div>
                 )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
     </Container>
   );

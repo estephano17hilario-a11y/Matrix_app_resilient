@@ -300,7 +300,11 @@ export default function Dashboard() {
         updateHabitSectionControl,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
-        dailyLimits
+        dailyLimits,
+        setDailyLimits,
+        handleEditSession,
+        handleReorderHabits,
+        handleReorderProjects
     } = useDashboardLogic();
 
     const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
@@ -632,8 +636,9 @@ export default function Dashboard() {
         }
     };
 
-    const handleDeleteSmartTaskNode = async (nodeId: string) => {
-        if (!smartProject || !user?.uid) return;
+    const handleDeleteSmartTaskNode = async (projectId: string, nodeId: string) => {
+        const targetProject = smartProjects.find(p => p.id === projectId);
+        if (!targetProject || !user?.uid) return;
 
         try {
              // 1. Logic to find and remove node, collecting all deleted IDs (including children)
@@ -659,8 +664,11 @@ export default function Dashboard() {
                         .map(removeNode)
                         .filter((n): n is StrategicNode => n !== null);
                      
-                     // If children changed, return new node
-                     if (newChildren.length !== node.children.length) {
+                     // Check if children changed (length or reference)
+                     const hasChanges = newChildren.length !== node.children.length || 
+                                        newChildren.some((child, i) => child !== node.children[i]);
+
+                     if (hasChanges) {
                          return { ...node, children: newChildren };
                      }
                  }
@@ -669,32 +677,28 @@ export default function Dashboard() {
              };
 
              // Execute removal on root
-             const newRoot = removeNode(smartProject.rootNode);
+             const newRoot = removeNode(targetProject.rootNode);
 
              // If root itself was deleted (should be handled by deleteProject, but safe to handle here)
              if (!newRoot) {
-                 handleDeleteSmartProject();
+                 handleDeleteSmartProject(projectId);
                  return;
              }
 
              // 2. Update Project in Persistence
-             const newProject = { ...smartProject, rootNode: newRoot };
-             if (smartProject.id) {
-                await persistenceService.smartProjects.update(user.uid, smartProject.id, newProject);
-             } else {
-                console.error("Smart Project ID is missing");
-             }
+             const newProject = { ...targetProject, rootNode: newRoot };
+             await persistenceService.smartProjects.update(user.uid, targetProject.id, newProject);
 
              // 3. Delete associated quests from Persistence
-      if (deletedIds.length > 0) {
-          await Promise.all(deletedIds.map(id => 
-              persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
-          ));
-      }
+             if (deletedIds.length > 0) {
+                await Promise.all(deletedIds.map(id => 
+                    persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
+                ));
+             }
 
-      // 4. Update State
-      setSmartProjects([newProject]);
-      setQuests(prev => prev.filter(q => !deletedIds.includes(q.id)));
+             // 4. Update State
+             setSmartProjects(prev => prev.map(p => p.id === projectId ? newProject : p));
+             setQuests(prev => prev.filter(q => !deletedIds.includes(q.id)));
 
         } catch (error) {
             console.error("Failed to delete smart task node:", error);
@@ -752,13 +756,49 @@ export default function Dashboard() {
         }
     }, [currentView, taskViewMode]);
 
-    // Calculate if all active habits are completed today
-    const activeHabits = habits.filter(h => !h.archived);
-    const isHabitsCompleted = activeHabits.length > 0 && activeHabits.every(h => h.completedToday);
+    // Calculate if all daily requirements are met (Streak Logic)
+    const isStreakActiveToday = (() => {
+        // ROBUSTNESS UPDATE: Visual state must reflect REALITY, not just DB state.
+        // Even if DB says "today is done", if the user unchecked a habit, 
+        // the UI must show it as pending.
+        
+        if (!dailyLimits) return false;
+        
+        const { 
+            tasksCompleted = 0, 
+            habitsCompleted = 0, 
+            focusSeconds = 0, 
+            notesCompleted = 0 
+        } = dailyLimits;
+        
+        // REQUIREMENTS (Must match StreakStatusModal & useDashboardLogic)
+        // 2 Tasks + 1 Habit + 1 Hour Focus + 1 Note
+        return (
+            tasksCompleted >= 2 && 
+            habitsCompleted >= 1 && 
+            focusSeconds >= 3600 && 
+            notesCompleted >= 1
+        );
+    })();
 
     const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false); // State to track detail view
 
     const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
+
+    // Visual Streak Calculation (Strict Mode)
+    const displayStreak = (() => {
+        const dbStreak = user?.stats?.streak || 0;
+        const lastStreakDate = user?.stats?.lastStreakDate;
+        const todayStr = toLocalISOString(new Date());
+        
+        // If DB says "today is counted" (lastStreakDate === today),
+        // but our real-time check says "incomplete" (!isStreakActiveToday),
+        // we subtract 1 to show the true pending state.
+        if (lastStreakDate === todayStr && !isStreakActiveToday) {
+            return Math.max(0, dbStreak - 1);
+        }
+        return dbStreak;
+    })();
 
     return (
         <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
@@ -779,17 +819,17 @@ export default function Dashboard() {
                             <motion.div 
                                 layout
                                 key={n.id}
-                                initial={{ opacity: 0, scale: 0.9, y: -40, filter: 'blur(12px)' }}
-                                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-                                exit={{ opacity: 0, scale: 0.95, filter: 'blur(8px)', transition: { duration: 0.2, ease: "backIn" } }}
+                                initial={{ opacity: 0, scale: 0.9, y: -40 }} 
+                                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "backIn" } }} 
                                 transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
-                                className="relative overflow-hidden backdrop-blur-md border border-yellow-500/20 bg-[#0a0a0a]/95 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+                                className="relative overflow-hidden backdrop-blur-sm border border-yellow-500/20 bg-[#0a0a0a]/80 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+                                style={{ willChange: 'transform, opacity' }}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
-                                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
                                 
                                 <div className="relative w-11 h-11 rounded-xl flex items-center justify-center bg-yellow-500/10 border border-yellow-500/20 shadow-[inset_0_0_10px_rgba(234,179,8,0.1)]" style={{ color: n.color }}>
-                                    <div className="absolute inset-0 bg-yellow-400/20 blur-lg rounded-full animate-pulse opacity-50" />
+                                    <div className="absolute inset-0 bg-yellow-400/20 rounded-full animate-pulse opacity-50" />
                                     <NotifIcon size={20} className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" strokeWidth={2} />
                                 </div>
                                 
@@ -844,7 +884,7 @@ export default function Dashboard() {
                                     nextXp={player.nextXp} 
                                     health={health}
                                     maxHealth={maxHealth}
-                                    streak={habits.reduce((acc, h) => acc + h.streak, 0)}
+                                    streak={displayStreak}
                                     isHidden={false} // Always visible in Dashboard
                                     showProfile={showProfile}
                                     onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
@@ -857,7 +897,7 @@ export default function Dashboard() {
                                     avatarId={user?.avatarId}
                                     avatarShape={avatarShape}
                                     onUpdateLevel={updatePlayerLevel}
-                                    isHabitsCompleted={isHabitsCompleted}
+                                    isHabitsCompleted={isStreakActiveToday}
                                     dailyLimits={dailyLimits}
                                     onNavigate={handleDockViewChange}
                                 />
@@ -869,7 +909,7 @@ export default function Dashboard() {
                         {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
                         {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
                              <div className={cn(
-                                "px-4 sm:px-6 max-w-md mx-auto mt-2 mb-6",
+                                "px-4 sm:px-6 max-w-md mx-auto mt-2 mb-2",
                                 "relative z-[290]"
                              )}>
                                 <PlayerHUD 
@@ -883,12 +923,12 @@ export default function Dashboard() {
                 )}
 
                 
-                <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : 'max-w-md'} mx-auto min-h-screen pt-4 ${isNexusImmersive || currentView === 'FOCUS' ? 'pb-0' : 'pb-40'} flex flex-col ${currentView === 'FOCUS' || isNexusImmersive || currentView === 'ACHIEVEMENTS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-6' : 'gap-2'}`}`}>
+                <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : 'max-w-md'} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || isNexusImmersive || currentView === 'ACHIEVEMENTS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
 
                     <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
-                            <div className="flex flex-col gap-6 h-full">
+                            <div className="flex flex-col gap-6 h-full min-h-0">
 
 
 
@@ -911,26 +951,30 @@ export default function Dashboard() {
                                         />
                                     </>
                                 ) : (
-                                    <div className="h-full flex-1 min-h-[500px] rounded-3xl overflow-hidden border border-white/5 relative">
-                                         {smartProject ? (
-                                            <Suspense fallback={<SuspenseFallback />}>
-                                                <StrategicMapView 
-                                                    project={smartProject} 
-                                                    quests={quests}
-                                                    attributes={attributes}
-                                                    onUpdateProject={(updated) => setSmartProjects([updated])}
-                                                    onDeleteProject={handleDeleteSmartProject}
-                                                    onDeleteNode={handleDeleteSmartTaskNode}
-                                                    onCreateNew={() => setIsWizardOpen(true)}
-                                                    onAddSmartTask={handleOpenSmartTaskCreator}
-                                                    onCompleteQuest={completeQuest}
-                                                    onDeleteQuest={handleDeleteQuest}
-                                                    onEditQuest={handleEditQuest}
-                                                    onOpenNexus={handleOpenNexus}
-                                                />
-                                            </Suspense>
+                                    <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-32 overflow-y-auto pr-2 no-scrollbar">
+                                         {smartProjects.length > 0 ? (
+                                            smartProjects.map((project) => (
+                                                <div key={project.id} className="rounded-3xl overflow-hidden border border-white/5 relative min-h-[500px] shrink-0 bg-black/20 backdrop-blur-[2px]">
+                                                    <Suspense fallback={<SuspenseFallback />}>
+                                                        <StrategicMapView 
+                                                            project={project} 
+                                                            quests={quests}
+                                                            attributes={attributes}
+                                                            onUpdateProject={handleUpdateSmartProject}
+                                                            onDeleteProject={() => handleDeleteSmartProject(project.id)}
+                                                            onDeleteNode={(nodeId) => handleDeleteSmartTaskNode(project.id, nodeId)}
+                                                            onCreateNew={() => setIsWizardOpen(true)}
+                                                            onAddSmartTask={(date) => handleOpenSmartTaskCreator(date, project.id)}
+                                                            onCompleteQuest={completeQuest}
+                                                            onDeleteQuest={handleDeleteQuest}
+                                                            onEditQuest={handleEditQuest}
+                                                            onOpenNexus={handleOpenNexus}
+                                                        />
+                                                    </Suspense>
+                                                </div>
+                                            ))
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                                            <div className="flex flex-col items-center justify-center h-full text-center p-8 border border-white/5 rounded-3xl bg-white/5">
                                                 <div className={`w-20 h-20 rounded-full ${archetypeTheme.bgLight} ring-1 ${archetypeTheme.ring} flex items-center justify-center mb-6 ${archetypeTheme.shadow}`}>
                                                     <ArrowUp className={`w-10 h-10 ${archetypeTheme.text} rotate-45`} />
                                                 </div>
@@ -1001,18 +1045,8 @@ export default function Dashboard() {
                             currentSection={habitViewMode}
                             isActive={currentView === 'HABITS'}
                             onOpenStreak={() => setCurrentView('STREAK')}
+                            onReorder={handleReorderHabits}
                         />
-                                </Suspense>
-                            </ViewContainer>
-                        )}
-
-                        {(loadedViews.has('STREAK') || currentView === 'STREAK') && (
-                            <ViewContainer isActive={currentView === 'STREAK'} id="STREAK" className="h-full pt-0 relative flex-1">
-                                <Suspense fallback={<SuspenseFallback />}>
-                                    <StreakRoadmapView
-                                        habits={habits}
-                                        onClose={() => setCurrentView('HABITS')}
-                                    />
                                 </Suspense>
                             </ViewContainer>
                         )}
@@ -1042,6 +1076,7 @@ export default function Dashboard() {
                                     onSelectProject={handleFocusProject}
                                     onStartFocus={handleStartPomodoro}
                                     onDetailViewChange={setIsProjectDetailOpen}
+                                    onReorder={handleReorderProjects}
                                 />
                             </Suspense>
                         </ViewContainer>
@@ -1058,6 +1093,12 @@ export default function Dashboard() {
                                         currentSubView={noteViewMode}
                                         sectionControl={habitSectionControl}
                                         onStatsOpenChange={setIsNotesStatsOpen}
+                                        onNoteCreated={() => {
+                                            setDailyLimits(prev => ({
+                                                ...prev,
+                                                notesCompleted: (prev.notesCompleted || 0) + 1
+                                            }));
+                                        }}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -1178,8 +1219,11 @@ export default function Dashboard() {
                             }} 
                             isOpen={isDockOpen} 
                             onToggle={setIsDockOpen} 
-                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO'}
+                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO' || !!activeModal}
                             dashboardStyle={dashboardStyle}
+                            taskViewMode={taskViewMode}
+                            habitViewMode={habitViewMode}
+                            noteViewMode={noteViewMode}
                         />,
                         document.body
                     )}
@@ -1189,11 +1233,11 @@ export default function Dashboard() {
                         {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || isDockOpen) && (
                             <motion.div 
                                 initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 z-[350] bg-black/60 backdrop-blur-sm"
-                                onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
-                            />
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[350] bg-black/40 backdrop-blur-[1px]"
+                            onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
+                        />
                         )}
                     </AnimatePresence>
 
@@ -1237,6 +1281,7 @@ export default function Dashboard() {
                             onClose={() => setActiveModal(null)}
                             onConfirm={handleBadHabitConfirm}
                             attributes={attributes}
+                            isFirstIdentify={badHabits.length === 0}
                         />
                     )}
 
@@ -1319,6 +1364,18 @@ export default function Dashboard() {
                     )}
                 </AnimatePresence>
 
+                {/* STREAK ROADMAP OVERLAY - Root Level */}
+                <AnimatePresence>
+                    {currentView === 'STREAK' && (
+                        <Suspense fallback={<div className="fixed inset-0 z-[500] bg-black" />}>
+                            <StreakRoadmapView
+                                habits={habits}
+                                onClose={() => setCurrentView('HABITS')}
+                            />
+                        </Suspense>
+                    )}
+                </AnimatePresence>
+
                 {/* POMODORO OVERLAY - Root Level */}
                 <AnimatePresence>
                     {currentView === 'POMODORO' && (
@@ -1331,6 +1388,7 @@ export default function Dashboard() {
                                 onUpdateProject={handleUpdateProject}
                                 onDeleteSession={handleDeleteSession}
                                 onAddManualSession={handleAddManualSession}
+                                onEditSession={handleEditSession}
                                 initialProjectId={focusAutoStartProjectId}
                             />
                         </Suspense>

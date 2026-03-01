@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, Suspense, lazy } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Monitor, 
   Cpu, 
@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 
-// Sections
-import { VisualsSection } from './components/VisualsSection';
-import { SystemSection } from './components/SystemSection';
-import { NeuralSection } from './components/NeuralSection';
-import { AccountSection } from './components/AccountSection';
+// Sections - Lazy Loaded for Performance
+const VisualsSection = lazy(() => import('./components/VisualsSection').then(module => ({ default: module.VisualsSection })));
+const SystemSection = lazy(() => import('./components/SystemSection').then(module => ({ default: module.SystemSection })));
+const NeuralSection = lazy(() => import('./components/NeuralSection').then(module => ({ default: module.NeuralSection })));
+const AccountSection = lazy(() => import('./components/AccountSection').then(module => ({ default: module.AccountSection })));
 
 // Types
 import { ThemeId } from '../../../config/themes';
@@ -48,7 +48,7 @@ interface SettingsHubProps {
 
 type SectionId = 'VISUALS' | 'SYSTEM' | 'NEURAL' | 'ACCOUNT';
 
-export const SettingsHub = (props: SettingsHubProps) => {
+export const SettingsHub = React.memo((props: SettingsHubProps) => {
   const [activeSection, setActiveSection] = useState<SectionId>('VISUALS');
 
   const navItems = [
@@ -63,19 +63,20 @@ export const SettingsHub = (props: SettingsHubProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-8 sm:p-16 md:p-24 bg-black/80 backdrop-blur-lg"
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-0 sm:p-8 md:p-12 lg:p-24 bg-black/90"
     >
       {/* MAIN CONTAINER - THE HUB */}
       <motion.div 
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-[95%] md:w-[85%] lg:w-[75%] max-w-4xl h-[85vh] sm:h-[80vh] max-h-[800px] flex flex-col sm:flex-row overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#050505]/95"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="w-full sm:w-[95%] md:w-[85%] lg:w-[75%] max-w-5xl h-full sm:h-[85vh] max-h-[900px] flex flex-col sm:flex-row overflow-hidden sm:rounded-3xl border-0 sm:border border-white/10 shadow-2xl shadow-indigo-500/10 bg-[#050505]"
       >
         
         {/* SIDEBAR NAVIGATION - "THE RAIL" */}
-        <div className="w-full sm:w-64 h-auto sm:h-full flex flex-col sm:flex-col border-b sm:border-b-0 sm:border-r border-white/5 bg-black/20 relative z-20 shrink-0">
+        <div className="w-full sm:w-64 h-auto sm:h-full flex flex-col sm:flex-col border-b sm:border-b-0 sm:border-r border-white/5 bg-black/40 relative z-20 shrink-0">
           
           {/* MOBILE HEADER: LOGO + CLOSE */}
           <div className="flex sm:hidden items-center justify-between p-4 border-b border-white/5 shrink-0">
@@ -110,54 +111,46 @@ export const SettingsHub = (props: SettingsHubProps) => {
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
                   className={cn(
-                    "flex items-center gap-3 sm:gap-4 p-2 sm:p-3 rounded-xl transition-all duration-300 group relative overflow-hidden shrink-0",
+                    "flex items-center gap-3 sm:gap-4 p-2 sm:p-3 rounded-xl transition-all duration-200 group relative overflow-hidden shrink-0",
                     isActive ? "bg-white/5 border border-white/10" : "hover:bg-white/5 border border-transparent"
                   )}
                 >
                   {/* Active Indicator */}
                   {isActive && (
-                    <motion.div 
-                      layoutId="active-nav-glow"
-                      className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-100"
+                    <div 
+                      className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-100 pointer-events-none"
                     />
                   )}
 
                   <div className={cn(
-                    "relative z-10 p-2 rounded-lg transition-all duration-300",
+                    "relative z-10 p-2 rounded-lg transition-all duration-200",
                     isActive ? "bg-black/40 shadow-inner" : "bg-transparent"
                   )}>
                     <item.icon size={20} className={cn(
-                      "transition-colors duration-300",
+                      "transition-colors duration-200",
                       isActive ? item.color : "text-white/40 group-hover:text-white/70"
                     )} />
                   </div>
                   
-                  {/* Label - Visible on Desktop, Hidden on Mobile unless we want labels? keeping hidden to save space */}
+                  {/* Label - Visible on Desktop */}
                   <div className="hidden sm:flex flex-col items-start relative z-10">
                     <span className={cn(
-                      "text-sm font-medium transition-colors duration-300",
+                      "text-sm font-medium transition-colors duration-200",
                       isActive ? "text-white" : "text-white/40 group-hover:text-white/70"
                     )}>
                       {item.label}
                     </span>
                     {isActive && (
-                      <motion.span 
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-[10px] text-white/30 font-mono"
-                      >
+                      <span className="text-[10px] text-white/30 font-mono">
                         ::ACTIVE
-                      </motion.span>
+                      </span>
                     )}
                   </div>
 
                   {isActive && (
-                    <motion.div 
-                      layoutId="active-nav-arrow"
-                      className="absolute right-3 text-white/20 hidden sm:block"
-                    >
+                    <div className="absolute right-3 text-white/20 hidden sm:block">
                       <ChevronRight size={14} />
-                    </motion.div>
+                    </div>
                   )}
                 </button>
               );
@@ -177,40 +170,30 @@ export const SettingsHub = (props: SettingsHubProps) => {
         </div>
 
         {/* MAIN CONTENT AREA - "THE STAGE" */}
-        <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-900/20 to-black">
-          {/* Background Elements */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div
-              className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-60"
-              style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }}
-            />
-            <div
-              className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-60"
-              style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 70%)' }}
-            />
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
+        <div className="flex-1 relative overflow-hidden bg-[#0a0a0a]">
+          {/* Static Background for Performance */}
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-black to-purple-900/20" />
           </div>
 
-          <div className="relative z-10 h-full overflow-y-auto custom-scrollbar p-8 sm:p-16">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSection}
-                initial={{ opacity: 0, x: 20, scale: 0.98 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -20, scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="h-full"
-              >
-                {activeSection === 'VISUALS' && <VisualsSection {...props} />}
-                {activeSection === 'SYSTEM' && <SystemSection {...props} />}
-                {activeSection === 'NEURAL' && <NeuralSection {...props} />}
-                {activeSection === 'ACCOUNT' && <AccountSection {...props} />}
-              </motion.div>
-            </AnimatePresence>
+          <div className="relative z-10 h-full overflow-y-auto custom-scrollbar p-4 sm:p-8 md:p-12">
+            <Suspense fallback={
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
+            }>
+               {/* Direct conditional rendering without AnimatePresence for instant switching */}
+               <div className="h-full animate-in fade-in duration-200 slide-in-from-bottom-2">
+                  {activeSection === 'VISUALS' && <VisualsSection {...props} />}
+                  {activeSection === 'SYSTEM' && <SystemSection {...props} />}
+                  {activeSection === 'NEURAL' && <NeuralSection {...props} />}
+                  {activeSection === 'ACCOUNT' && <AccountSection {...props} />}
+               </div>
+            </Suspense>
           </div>
         </div>
 
       </motion.div>
     </motion.div>
   );
-};
+});

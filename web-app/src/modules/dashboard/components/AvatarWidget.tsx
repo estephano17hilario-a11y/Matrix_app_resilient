@@ -94,6 +94,11 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;
     const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80";
+    const [imgSrc, setImgSrc] = React.useState<string>(avatarPath || defaultAvatar);
+
+    React.useEffect(() => {
+        setImgSrc(avatarPath || defaultAvatar);
+    }, [avatarPath]);
 
     const shapeClass = avatarShape === 'SQUARE' ? 'rounded-2xl' : 'rounded-full';
 
@@ -129,8 +134,13 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 style={auraStyle}
             >
                 <img 
-                    src={avatarPath || defaultAvatar} 
+                    src={imgSrc} 
                     alt="Avatar" 
+                    onError={(e) => {
+                        if (e.currentTarget.src !== defaultAvatar) {
+                            setImgSrc(defaultAvatar);
+                        }
+                    }}
                     className={`w-full h-full object-cover object-[50%_20%] transform transition-transform duration-700 group-hover:scale-110`} 
                 />
                 
@@ -140,19 +150,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             
             {/* Level Badge - Minimalist Corner Circle */}
             <div 
-                className="absolute -bottom-1 -right-1 w-6 h-6 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center z-10 cursor-pointer hover:bg-white/20 transition-all shadow-lg group-hover:scale-110"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (onUpdateLevel) {
-                        const input = prompt("Enter new level:", level.toString());
-                        if (input !== null) {
-                            const newLevel = parseInt(input, 10);
-                            if (!isNaN(newLevel) && newLevel > 0) {
-                                onUpdateLevel(newLevel);
-                            }
-                        }
-                    }
-                }}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center z-10 shadow-lg group-hover:scale-110"
             >
                  <span className="text-[10px] font-bold text-white font-mono">{level}</span>
             </div>

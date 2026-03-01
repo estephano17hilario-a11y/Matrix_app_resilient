@@ -97,6 +97,8 @@
         "WEEKLY": "SEMANAL",
         "MONTHLY": "MENSUAL"
       },
+      "update": "Actualizar Protocolo",
+      "create": "Inicializar Protocolo",
       "logics": {
         "BOOLEAN": "Booleano",
         "QUANTITY": "Cantidad",

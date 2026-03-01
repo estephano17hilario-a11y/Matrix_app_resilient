@@ -29,13 +29,13 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
             },
             inactive: { 
                 opacity: 0, 
-                scale: 0.95, 
-                filter: "blur(12px)",
-                y: 20,
+                scale: 1, 
+                filter: "blur(0px)",
+                y: 0,
                 zIndex: 0,
                 transition: { 
-                    duration: 0.3,
-                    ease: [0.32, 0.72, 0, 1]
+                    duration: 0,
+                    ease: "linear"
                 },
                 transitionEnd: {
                     display: "none"
@@ -75,7 +75,7 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
     return (
         <motion.div 
             id={id} 
-            className={`${className} w-full h-full absolute inset-0`}
+            className={`${className} w-full ${isActive ? 'relative min-h-full h-auto' : 'absolute inset-0 h-full overflow-hidden'}`}
             initial={false}
             animate={isActive ? "active" : "inactive"}
             variants={variants[variant as keyof typeof variants]}

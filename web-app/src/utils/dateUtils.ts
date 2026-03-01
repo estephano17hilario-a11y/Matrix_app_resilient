@@ -71,7 +71,9 @@ export const getContextDates = (
                 end = new Date(start);
                 end.setMonth(end.getMonth() + 6);
             }
-            label = `Semestre ${index + 1}`;
+            // Smart Label: H1 (Jan-Jun) or H2 (Jul-Dec)
+            const semesterNum = Math.floor(start.getMonth() / 6) + 1;
+            label = `H${semesterNum}`; 
             break;
 
         case 'SEMESTER':
@@ -84,7 +86,9 @@ export const getContextDates = (
                 end = new Date(start);
                 end.setMonth(end.getMonth() + 3);
             }
-            label = `Trimestre ${index + 1}`;
+            // Smart Label: Q1, Q2, Q3, Q4 based on month
+            const quarterNum = Math.floor(start.getMonth() / 3) + 1;
+            label = `Q${quarterNum}`;
             break;
 
         case 'QUARTER':
@@ -97,7 +101,8 @@ export const getContextDates = (
                 end = new Date(start);
                 end.setMonth(end.getMonth() + 1);
             }
-            label = `Mes ${index + 1}`;
+            // Smart Label: Month Name (Jan, Feb...)
+            label = start.toLocaleDateString('en-US', { month: 'short' });
             break;
 
         case 'MONTH':
@@ -181,6 +186,14 @@ export const toLocalISOString = (date: Date): string => {
     const d = new Date(date);
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().split('T')[0];
+};
+
+export const parseLocalDate = (dateString: string): Date => {
+    if (!dateString) return new Date();
+    // If it's a full ISO string, parse directly
+    if (dateString.includes('T')) return new Date(dateString);
+    // If it's YYYY-MM-DD, append time to force local
+    return new Date(`${dateString}T00:00:00`);
 };
 
 export const getHistoryDateKey = (value: string | Date): string => {

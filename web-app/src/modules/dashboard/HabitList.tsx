@@ -10,6 +10,7 @@ interface HabitListProps {
   habits: Habit[];
   attributes: Attribute[];
   onCompleteHabit: (e: React.MouseEvent, h: Habit) => void;
+  onOpenStreak?: () => void;
 }
 
 export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onCompleteHabit }) => {

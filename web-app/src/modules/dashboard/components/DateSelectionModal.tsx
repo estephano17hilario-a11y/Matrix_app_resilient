@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { 
@@ -20,7 +21,7 @@ import {
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 
-export type DateSelectionMode = 'WEEK' | 'MONTH' | 'YEAR';
+export type DateSelectionMode = 'WEEK' | 'MONTH' | 'YEAR' | 'DAY';
 
 interface DateSelectionModalProps {
     isOpen: boolean;
@@ -141,7 +142,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
         );
     };
 
-    const renderWeekView = () => {
+    const renderCalendarView = () => {
         const monthStart = startOfMonth(viewDate);
         const monthEnd = endOfMonth(viewDate);
         const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -189,13 +190,16 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                     {/* Days */}
                     <div className="grid grid-cols-7 gap-y-1 gap-x-1">
                         {days.map((day) => {
-                            const isSelected = isWithinInterval(day, { start: selectedStart, end: selectedEnd });
+                            const isSelected = mode === 'WEEK' 
+                                ? isWithinInterval(day, { start: selectedStart, end: selectedEnd })
+                                : isSameDay(day, currentDate);
+                            
                             const isCurrentMonth = isSameMonth(day, viewDate);
                             const isToday = isSameDay(day, new Date());
 
                             // Styling for range selection visual
-                            const isRangeStart = isSameDay(day, selectedStart);
-                            const isRangeEnd = isSameDay(day, selectedEnd);
+                            const isRangeStart = mode === 'WEEK' && isSameDay(day, selectedStart);
+                            const isRangeEnd = mode === 'WEEK' && isSameDay(day, selectedEnd);
 
                             return (
                                 <button
@@ -206,6 +210,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                         !isCurrentMonth && "opacity-30",
                                         isSelected ? "text-white bg-white/10" : "text-slate-300 hover:bg-white/5",
                                         (isRangeStart || isRangeEnd) && "bg-indigo-500 text-white shadow-sm font-bold",
+                                        (mode === 'DAY' && isSelected) && "bg-indigo-500 text-white shadow-sm font-bold",
                                         isToday && !isSelected && "text-emerald-400 font-bold"
                                     )}
                                 >
@@ -222,7 +227,9 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
         );
     };
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -232,7 +239,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999]"
                     />
 
                     {/* Modal */}
@@ -240,7 +247,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-4"
+                        className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4"
                     >
                         <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-2xl pointer-events-auto relative overflow-hidden">
                             {/* Glass Effect */}
@@ -254,7 +261,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-bold text-white leading-none">
-                                            {mode === 'WEEK' ? 'Seleccionar Semana' : mode === 'MONTH' ? 'Seleccionar Mes' : 'Seleccionar Año'}
+                                            {mode === 'WEEK' ? 'Seleccionar Semana' : mode === 'MONTH' ? 'Seleccionar Mes' : mode === 'DAY' ? 'Seleccionar Día' : 'Seleccionar Año'}
                                         </h2>
                                         <p className="text-xs text-slate-400 mt-1">
                                             Viaja en el tiempo
@@ -273,12 +280,13 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                             <div className="relative z-10 min-h-[280px]">
                                 {mode === 'YEAR' && renderYearView()}
                                 {mode === 'MONTH' && renderMonthView()}
-                                {mode === 'WEEK' && renderWeekView()}
+                                {(mode === 'WEEK' || mode === 'DAY') && renderCalendarView()}
                             </div>
                         </div>
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };

@@ -1,160 +1,383 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PenTool, Brain, Flame, Type } from 'lucide-react';
+import { X, PenTool, Brain, Flame, Type, Activity, TrendingUp, Zap, BarChart2, ArrowLeft, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Note, JournalEntry } from '../../../types';
-import { BarChart } from '../../../components/charts/BarChart';
 import { toLocalISOString, calculateStreak } from '../../../utils/dateUtils';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, addMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { 
+    Tooltip, 
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    Cell,
+    XAxis
+} from 'recharts';
+import { MoodSnakeChart } from './MoodSnakeChart';
+import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
 
-// Import NOISE_SVG or define it locally if reused
-const NOISE_SVG = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E`;
+// Force cast Recharts components to any to bypass strict React 18+ type checks
+const TooltipAny = Tooltip as any;
+const ResponsiveContainerAny = ResponsiveContainer as any;
+const BarChartAny = BarChart as any;
+const BarAny = Bar as any;
+const CellAny = Cell as any;
+const XAxisAny = XAxis as any;
 
-export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[] }) => {
-    const [range, setRange] = useState<'WEEK' | 'MONTH' | 'YEAR'>('WEEK');
+// --- CONSTANTS & CONFIG ---
+
+const MOODS = [
+    { id: 'rad', icon: '🚀', color: '#10b981', label: 'Radiant', value: 5 },
+    { id: 'good', icon: '😊', color: '#3b82f6', label: 'Good', value: 4 },
+    { id: 'meh', icon: '😐', color: '#94a3b8', label: 'Neutral', value: 3 },
+    { id: 'bad', icon: '🌧️', color: '#64748b', label: 'Low', value: 2 },
+    { id: 'awful', icon: '⛈️', color: '#ef4444', label: 'Drained', value: 1 },
+];
+
+const NOISE_SVG = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E`;
+
+// --- COMPONENTS ---
+
+const StatCard = ({ icon: Icon, label, value, subValue, color, delay }: any) => (
+    <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.4 }}
+        className="relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-4 group hover:bg-white/10 transition-colors"
+    >
+        <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity`} style={{ backgroundColor: color }} />
+        
+        <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-white/5 text-white/80">
+                    <Icon size={14} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{label}</span>
+            </div>
+            <div>
+                <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
+                {subValue && <div className="text-[10px] font-medium text-white/40 mt-0.5">{subValue}</div>}
+            </div>
+        </div>
+    </motion.div>
+);
+
+export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initialTab = 'OVERVIEW' }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[], initialTab?: 'OVERVIEW' | 'EMOTIONS' }) => {
+    const [range, setRange] = useState<'WEEK' | 'MONTH'>('WEEK');
+    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'EMOTIONS'>(initialTab);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
+
+    // --- DATA PROCESSING ---
+    const data = useMemo(() => {
+        const start = range === 'WEEK' 
+            ? startOfWeek(currentDate, { weekStartsOn: 1 }) 
+            : startOfMonth(currentDate);
+        const end = range === 'WEEK' 
+            ? endOfWeek(currentDate, { weekStartsOn: 1 }) 
+            : endOfMonth(currentDate);
+        const days = eachDayOfInterval({ start, end });
+        const chartData: any[] = [];
+        
+        for (const d of days) {
+            const dateStr = toLocalISOString(d);
+            const displayDate = range === 'WEEK' 
+                ? format(d, 'EEE', { locale: es }).toUpperCase()
+                : format(d, 'd', { locale: es });
+
+            // Find data for this day
+            const dayNotes = notes.filter(n => toLocalISOString(new Date(n.updatedAt)) === dateStr).length;
+            const dayEntry = journalEntries.find(j => j.date === dateStr);
+            
+            let moodVal = null;
+            let moodIcon = '';
+            let moodColor = '#333'; // Default dark
+            
+            if (dayEntry && dayEntry.mood) {
+                const m = MOODS.find(mood => mood.id === dayEntry.mood);
+                if (m) {
+                    moodVal = m.value;
+                    moodIcon = m.icon;
+                    moodColor = m.color;
+                }
+            }
+
+            chartData.push({
+                date: dateStr,
+                display: displayDate,
+                notes: dayNotes,
+                mood: moodVal, 
+                moodIcon,
+                moodColor,
+                fullDate: d
+            });
+        }
+        return chartData;
+    }, [notes, journalEntries, range, currentDate]);
+
+    const dateLabel = useMemo(() => {
+        if (range === 'WEEK') {
+            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            return `${format(start, 'd MMM', { locale: es })} - ${format(end, 'd MMM', { locale: es })}`;
+        }
+        return format(currentDate, 'MMMM yyyy', { locale: es });
+    }, [range, currentDate]);
 
     const stats = useMemo(() => {
-        const now = new Date();
-        let labels: string[] = [];
-        let notesData: number[] = [];
-        let journalData: number[] = [];
-        
-        if (range === 'WEEK') {
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date(now);
-                d.setDate(d.getDate() - i);
-                labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
-                const dateStr = toLocalISOString(d);
-                notesData.push(notes.filter(n => toLocalISOString(new Date(n.updatedAt)) === dateStr).length);
-                journalData.push(journalEntries.filter(j => j.date === dateStr).length);
-            }
-        } else if (range === 'MONTH') {
-            for (let i = 3; i >= 0; i--) {
-                const start = new Date(now);
-                start.setDate(start.getDate() - (i * 7) - 6);
-                const end = new Date(now);
-                end.setDate(end.getDate() - (i * 7));
-                
-                labels.push(`W${4-i}`);
-                
-                let nFill = 0;
-                let jFill = 0;
-                notes.forEach(n => {
-                    const d = new Date(n.updatedAt);
-                    if (d >= start && d <= end) nFill++;
-                });
-                journalEntries.forEach(j => {
-                    const d = new Date(j.date);
-                    if (d >= start && d <= end) jFill++;
-                });
-                notesData.push(nFill);
-                journalData.push(jFill);
-            }
-        } else {
-             for (let i = 11; i >= 0; i--) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                labels.push(d.toLocaleDateString('en-US', { month: 'narrow' }));
-                
-                const month = d.getMonth();
-                const year = d.getFullYear();
-                
-                notesData.push(notes.filter(n => {
-                    const nd = new Date(n.updatedAt);
-                    return nd.getMonth() === month && nd.getFullYear() === year;
-                }).length);
-                 journalData.push(journalEntries.filter(j => {
-                    const jd = new Date(j.date);
-                    return jd.getMonth() === month && jd.getFullYear() === year;
-                }).length);
-             }
-        }
-
-        const max = Math.max(...notesData, ...journalData, 1);
-        
         let totalWords = 0;
         notes.forEach(n => n.blocks.forEach(b => totalWords += (b.content || '').split(/\s+/).length));
         journalEntries.forEach(j => j.blocks.forEach(b => totalWords += (b.content || '').split(/\s+/).length));
 
         return {
-            labels, notesData, journalData, max,
             totalNotes: notes.length,
             totalJournal: journalEntries.length,
             streak: calculateStreak(journalEntries),
             words: totalWords
         };
-    }, [notes, journalEntries, range]);
+    }, [notes, journalEntries]);
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-0">
+                    {/* Backdrop */}
                     <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={onClose} 
-                        className="absolute inset-0 bg-black/80" 
+                        className="absolute inset-0 bg-black/95 backdrop-blur-[2px] transform-gpu" 
                     />
+
+                    {/* Modal Container */}
                     <motion.div 
-                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                        transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                        className="relative z-10 w-full max-w-[420px] bg-[#1c1c1e]/90 border border-white/10 rounded-[32px] overflow-hidden shadow-md"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        className={`relative z-10 w-full h-full flex flex-col bg-[#121212] overflow-hidden ${activeTab === 'EMOTIONS' ? '' : 'sm:max-w-[600px] sm:h-auto sm:max-h-[90vh] sm:rounded-[32px] sm:border sm:border-white/10'}`}
                     >
                         {/* Noise Texture */}
-                        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
+                        <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
                         
-                        {/* Header */}
-                        <div className="p-6 pb-2 flex justify-between items-center relative z-10">
+                        {/* Header & Tabs */}
+                        <div className={`relative z-20 shrink-0 flex justify-between items-start transition-all ${activeTab === 'EMOTIONS' ? 'p-8 pb-4' : 'px-6 pt-2 pb-2'}`}>
                             <div>
-                                <h2 className="text-2xl font-bold tracking-tight text-white">Insights</h2>
-                                <p className="text-xs font-medium text-white/40 uppercase tracking-wider mt-1">Productivity Analytics</p>
+                                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                                    {activeTab === 'EMOTIONS' ? (
+                                         <button 
+                                            onClick={() => setActiveTab('OVERVIEW')}
+                                            className="flex items-center gap-3 text-white/60 hover:text-white transition-colors group"
+                                         >
+                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                <ArrowLeft size={20} />
+                                            </div>
+                                            <span className="text-xl">Emotions</span>
+                                         </button>
+                                    ) : (
+                                        <>
+                                            <Activity size={20} className="text-indigo-400" />
+                                            <span>Insights</span>
+                                        </>
+                                    )}
+                                </h2>
+                                {activeTab !== 'EMOTIONS' && (
+                                    <p className="text-xs font-medium text-white/40 uppercase tracking-wider mt-1">Neural Analytics v2.0</p>
+                                )}
                             </div>
-                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors active:scale-90 border border-white/5">
-                                <X size={16} />
-                            </button>
+
+                            <div className="flex items-center gap-2 flex-wrap justify-end max-w-full">
+                                {/* Range Switcher - Only visible in EMOTIONS mode and moved to header */}
+                                {activeTab === 'EMOTIONS' && (
+                                    <div className="flex bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0">
+                                        {['WEEK', 'MONTH'].map(r => (
+                                            <button 
+                                                key={r} 
+                                                onClick={() => setRange(r as any)} 
+                                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                            >
+                                                {r}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {activeTab === 'EMOTIONS' && (
+                                    <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0 max-w-full">
+                                        <button
+                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, -1) : addMonths(d, -1))}
+                                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                        >
+                                            <ChevronLeft size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setIsDateModalOpen(true)}
+                                            className="px-2 h-7 rounded-full text-[10px] font-bold text-white/70 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 max-w-[170px]"
+                                        >
+                                            <CalendarIcon size={12} />
+                                            <span className="uppercase tracking-wider truncate">{dateLabel}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, 1) : addMonths(d, 1))}
+                                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                        >
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors active:scale-90 border border-white/5">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Bento Grid Stats */}
-                        <div className="grid grid-cols-2 gap-3 px-6 mb-6 relative z-10">
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 hover:bg-white/10 transition-colors group">
-                                <div className="flex items-center gap-2 mb-2 text-blue-400"><PenTool size={16} className="group-hover:scale-110 transition-transform" /> <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Notes</span></div>
-                                <div className="text-2xl font-black text-white tracking-tight">{stats.totalNotes}</div>
-                            </div>
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 hover:bg-white/10 transition-colors group">
-                                <div className="flex items-center gap-2 mb-2 text-purple-400"><Brain size={16} className="group-hover:scale-110 transition-transform" /> <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Entries</span></div>
-                                <div className="text-2xl font-black text-white tracking-tight">{stats.totalJournal}</div>
-                            </div>
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 hover:bg-white/10 transition-colors group">
-                                <div className="flex items-center gap-2 mb-2 text-orange-400"><Flame size={16} className="group-hover:scale-110 transition-transform" /> <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Streak</span></div>
-                                <div className="text-2xl font-black text-white tracking-tight">{stats.streak} <span className="text-sm font-medium text-white/30">days</span></div>
-                            </div>
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 hover:bg-white/10 transition-colors group">
-                                <div className="flex items-center gap-2 mb-2 text-green-400"><Type size={16} className="group-hover:scale-110 transition-transform" /> <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Words</span></div>
-                                <div className="text-2xl font-black text-white tracking-tight">{(stats.words / 1000).toFixed(1)}k</div>
+                        {/* Apple-style Segmented Control - FORCED HIDDEN WHEN EMOTIONS IS ACTIVE via style */}
+                        <div style={{ display: activeTab === 'EMOTIONS' ? 'none' : 'block' }} className="px-6 pb-4 relative z-20">
+                            <div className="bg-black/20 p-1 rounded-xl flex border border-white/5 relative overflow-hidden">
+                                <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+                                {['OVERVIEW', 'EMOTIONS'].map((tab) => {
+                                    const isActive = activeTab === tab;
+                                    return (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab as any)}
+                                            className={`flex-1 relative py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-300 z-10 flex items-center justify-center gap-2 ${isActive ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
+                                        >
+                                            {isActive && (
+                                                <motion.div 
+                                                    layoutId="activeTabBg"
+                                                    className="absolute inset-0 bg-white/10 border border-white/10 rounded-lg shadow-inner"
+                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                />
+                                            )}
+                                            <span className="relative z-10 flex items-center gap-2">
+                                                {tab === 'OVERVIEW' ? <BarChart2 size={12} /> : <Zap size={12} />}
+                                                {tab}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
-                        {/* Chart Section */}
-                        <div className="px-6 pb-6 relative z-10">
-                            <div className="flex bg-black/20 p-1 rounded-xl mb-6 border border-white/5">
-                                {['WEEK', 'MONTH', 'YEAR'].map(r => (
-                                    <button key={r} onClick={() => setRange(r as any)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-colors ${range === r ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10' : 'text-white/30 hover:text-white/60'}`}>{r}</button>
-                                ))}
-                            </div>
+                        {/* Content Area */}
+                        <div className={`relative z-10 flex-1 overflow-hidden ${activeTab === 'EMOTIONS' ? 'flex flex-col' : 'overflow-y-auto p-6 pt-2'}`}>
                             
-                            <BarChart 
-                                datasets={[
-                                    { data: stats.notesData, color: '#60a5fa', label: 'Notes' },
-                                    { data: stats.journalData, color: '#c084fc', label: 'Journal' }
-                                ]}
-                                labels={stats.labels}
-                                height={160}
-                                max={stats.max}
-                            />
+                            <AnimatePresence mode="wait">
+                                {activeTab === 'OVERVIEW' ? (
+                                    <motion.div
+                                        key="overview"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="space-y-6"
+                                    >
+                                        {/* Bento Grid Stats */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <StatCard icon={PenTool} label="Notes" value={stats.totalNotes} color="#3b82f6" delay={0.1} />
+                                            <StatCard icon={Brain} label="Entries" value={stats.totalJournal} color="#a855f7" delay={0.2} />
+                                            <StatCard icon={Flame} label="Streak" value={stats.streak} subValue="Current Days" color="#f97316" delay={0.3} />
+                                            <StatCard icon={Type} label="Words" value={(stats.words / 1000).toFixed(1) + 'k'} subValue="Total Written" color="#10b981" delay={0.4} />
+                                        </div>
+
+                                        {/* Simple Activity Chart */}
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Activity size={14} className="text-blue-400" />
+                                                <span className="text-xs font-bold text-white tracking-wide">ACTIVITY VOLUME</span>
+                                            </div>
+                                            <div className="h-[120px] w-full">
+                                                <ResponsiveContainerAny width="100%" height="100%">
+                                                    <BarChartAny data={data}>
+                                                        <XAxisAny 
+                                                            dataKey="display" 
+                                                            axisLine={false} 
+                                                            tickLine={false} 
+                                                            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                                                            dy={10}
+                                                        />
+                                                        <BarAny dataKey="notes" radius={[4, 4, 4, 4]}>
+                                                            {data.map((entry: any, index: number) => (
+                                                                <CellAny key={`cell-${index}`} fill={entry.notes > 0 ? '#3b82f6' : 'rgba(255,255,255,0.1)'} />
+                                                            ))}
+                                                        </BarAny>
+                                                        <TooltipAny 
+                                                            contentStyle={{ backgroundColor: '#1c1c1e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                            itemStyle={{ color: '#fff', fontSize: '12px' }}
+                                                            labelStyle={{ display: 'none' }}
+                                                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                                        />
+                                                    </BarChartAny>
+                                                </ResponsiveContainerAny>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="emotions"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.4 }}
+                                        className="w-full h-full flex flex-col"
+                                    >
+                                        {/* FULL SCREEN EMOTION CHART CONTAINER - NO PADDING, NO BORDERS */}
+                                        <div className="flex-1 w-full relative">
+                                            {/* Chart Title Overlay */}
+                                            <div className="absolute top-1 left-8 z-20 pointer-events-none">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <TrendingUp size={24} className="text-pink-400" />
+                                                    <span className="text-2xl font-bold text-white tracking-tight">Emotional Flow</span>
+                                                </div>
+                                                <p className="text-sm text-white/50 font-medium max-w-[300px]">Visualizing your emotional journey through time.</p>
+                                            </div>
+
+                                            {/* The Chart Itself */}
+                                            <div className="w-full h-full">
+                                                <MoodSnakeChart data={data} />
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Bottom Legend Bar */}
+                                        <div className="h-20 shrink-0 bg-black/40 backdrop-blur-[2px] border-t border-white/5 flex items-center justify-center gap-8">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                                <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Radiant</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                                <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Good</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                                                <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Drained</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                         </div>
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+            <DateSelectionModal
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={(date) => setCurrentDate(date)}
+                mode={range}
+                currentDate={currentDate}
+            />
+        </AnimatePresence>,
+        document.body
     );
 };

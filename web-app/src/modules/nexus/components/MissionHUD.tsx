@@ -118,7 +118,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
                             onDeleteProject();
                         }
                     }}
-                    className="w-10 h-10 rounded-full bg-red-500/10 backdrop-blur-md flex items-center justify-center hover:bg-red-500/20 active:scale-95 border border-red-500/10 transition-all text-red-400"
+                    className="w-10 h-10 rounded-full bg-red-500/10 backdrop-blur-sm flex items-center justify-center hover:bg-red-500/20 active:scale-95 border border-red-500/10 transition-all text-red-400"
                 >
                     <Trash2 className="w-5 h-5" />
                 </button>
@@ -131,7 +131,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
           
           {/* --- SECTION 1: DIRECTIVES (TASKS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-sm py-2 z-20 border-b border-white/5">
                   <Target size={14} className="text-cyan-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Directives</h3>
                   <span className="ml-auto text-[10px] font-bold text-white/20 bg-white/5 px-2 py-0.5 rounded-full">{quests.length} ACTIVE</span>
@@ -183,7 +183,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
 
           {/* --- SECTION 2: RITUALS (HABITS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-black/20 backdrop-blur-sm py-2 z-20 border-b border-white/5">
                   <Zap size={14} className="text-purple-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Rituals</h3>
                   <button onClick={onAddHabit} className="ml-auto w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
@@ -234,7 +234,7 @@ export const MissionHUD: React.FC<MissionHUDProps> = ({
 
           {/* --- SECTION 3: PROTOCOL (FOCUS) --- */}
           <section>
-              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/80 backdrop-blur-md py-2 z-20 border-b border-white/5">
+              <div className="flex items-center gap-2 mb-4 sticky top-0 bg-[#020204]/80 backdrop-blur-sm py-2 z-20 border-b border-white/5">
                   <Clock size={14} className="text-red-400" />
                   <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest">Protocol</h3>
               </div>

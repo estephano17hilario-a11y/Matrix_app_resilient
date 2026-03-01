@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Project } from '../../../types';
+import type { Project } from '../../../types';
+import FocusSession from '../../../plugins/FocusPlugin';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export interface FocusSessionState {
     projectId: string;
@@ -81,22 +83,58 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
     // 2. Persist State on Critical Changes (Not every tick)
     useEffect(() => {
-        const now = Date.now();
-        const state: FocusSessionState = {
-            projectId: project.id,
-            mode,
-            isActive,
-            isPaused,
-            timeLeft, // This might be slightly stale if running, but targetTime/startTime is the source of truth
-            totalDuration,
-            startTime: mode === 'STOPWATCH' ? now - (timeLeft * 1000) : null,
-            targetTime: mode === 'POMO' ? now + (timeLeft * 1000) : null,
-            lastUpdated: now
-        };
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const syncNative = async () => {
+            const now = Date.now();
+            const state: FocusSessionState = {
+                projectId: project.id,
+                mode,
+                isActive,
+                isPaused,
+                timeLeft, 
+                totalDuration,
+                startTime: mode === 'STOPWATCH' ? now - (timeLeft * 1000) : null,
+                targetTime: mode === 'POMO' ? now + (timeLeft * 1000) : null,
+                lastUpdated: now
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-    }, [isActive, isPaused, mode, totalDuration, project.id]); // Removed timeLeft to avoid per-second writes
+            // Sync with Native Notification
+            if (isActive) {
+                if (isPaused) {
+                    await FocusSession.pause().catch(console.error);
+                } else {
+                    // 🛡️ AGGRESSIVE PERMISSION REQUEST
+                    // We try LocalNotifications first, then generic Push if available
+                    try {
+                        const perm = await LocalNotifications.checkPermissions();
+                        if (perm.display !== 'granted') {
+                             console.log("⚠️ Requesting Notification Permission (Local)...");
+                             const req = await LocalNotifications.requestPermissions();
+                             if (req.display !== 'granted') {
+                                 // Fallback: try to alert user or just proceed
+                                 console.warn("🚫 Notification Permission Denied by User");
+                             }
+                        }
+                    } catch (e) {
+                        console.error("Error checking permissions", e);
+                    }
+
+                    await FocusSession.start({ 
+                        duration: timeLeft, 
+                        mode: mode,
+                        projectName: project.title,
+                        projectColor: project.color || '#FFFFFF'
+                    }).catch(console.error);
+                }
+            } else {
+                await FocusSession.stop().catch(console.error);
+            }
+        };
+
+        syncNative();
+
+    }, [isActive, isPaused, mode, totalDuration, project.id]);
 
     // 3. Timer Logic
     useEffect(() => {

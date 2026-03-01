@@ -22,6 +22,8 @@ import {
     initializeFirestore, 
     persistentLocalCache,
     persistentMultipleTabManager,
+    enableNetwork,
+    disableNetwork,
     doc as firestoreDoc,
     setDoc as firestoreSetDoc,
     getDoc as firestoreGetDoc,
@@ -49,7 +51,8 @@ import {
     FirestoreError,
     Transaction,
     QueryConstraint,
-    writeBatch as firestoreWriteBatch
+    writeBatch as firestoreWriteBatch,
+    WriteBatch
 } from 'firebase/firestore';
 import { getMessaging, Messaging, getToken, onMessage } from 'firebase/messaging';
 
@@ -145,6 +148,105 @@ if (isConfigValid) {
 
 export { app, auth, db, messaging, getToken, onMessage };
 
+const TRANSIENT_CODES = new Set([
+  'aborted',
+  'unavailable',
+  'deadline-exceeded',
+  'resource-exhausted',
+  'internal',
+  'cancelled'
+]);
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+const withRetry = async <T>(op: () => Promise<T>, label: string, maxRetries = 5): Promise<T> => {
+  let attempt = 0;
+  let lastError: any = null;
+  while (attempt <= maxRetries) {
+    try {
+      return await op();
+    } catch (e: any) {
+      lastError = e;
+      const code = e?.code || e?.name || 'unknown';
+      const isTransient = TRANSIENT_CODES.has(code);
+      if (!isTransient && attempt > 0) break;
+      if (!isTransient && attempt === 0) {
+      } else if (!isTransient) {
+        break;
+      }
+      const backoff = Math.min(200 * 2 ** attempt, 2000) + Math.floor(Math.random() * 150);
+      attempt += 1;
+      if (attempt > maxRetries) break;
+      console.warn(`↻ Retry(${attempt}/${maxRetries}) ${label} after error:`, code);
+      await sleep(backoff);
+      continue;
+    }
+  }
+  console.error(`✗ Permanent failure in ${label}:`, lastError);
+  throw lastError;
+};
+
+const awaitSync = async (firestore: Firestore, timeoutMs = 2500) => {
+  try {
+    await Promise.race([
+      firestoreWait(firestore),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('sync-timeout')), timeoutMs))
+    ]);
+  } catch {
+  }
+};
+
+const safeSetDoc = async <T>(
+  ref: DocumentReference<T>,
+  data: Partial<T>,
+  options?: { merge?: boolean },
+  ensureSync: boolean = false
+) => {
+  const result = await withRetry(() => firestoreSetDoc(ref, data as any, options as any), `setDoc(${ref.path})`);
+  if (ensureSync && (db as any)) await awaitSync(db);
+  return result;
+};
+
+const safeUpdateDoc = async <T>(
+  ref: DocumentReference<T>,
+  data: Partial<T>,
+  ensureSync: boolean = false
+) => {
+  const result = await withRetry(() => firestoreUpdateDoc(ref as any, data as any), `updateDoc(${(ref as any).path})`);
+  if (ensureSync && (db as any)) await awaitSync(db);
+  return result;
+};
+
+const safeAddDoc = async <T>(
+  coll: CollectionReference<T>,
+  data: T,
+  ensureSync: boolean = false
+) => {
+  const result = await withRetry(() => firestoreAddDoc(coll as any, data as any), `addDoc(${coll.path})`);
+  if (ensureSync && (db as any)) await awaitSync(db);
+  return result;
+};
+
+const patchedWriteBatch = (firestore: Firestore): WriteBatch => {
+  const batch = firestoreWriteBatch(firestore);
+  const originalCommit = (batch as any).commit.bind(batch);
+  (batch as any).commit = async () => {
+    const res = await withRetry(() => originalCommit(), 'batch.commit');
+    await awaitSync(firestore);
+    return res;
+  };
+  return batch;
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    try { enableNetwork(db as any); } catch { }
+  });
+  window.addEventListener('offline', () => {
+    try { disableNetwork(db as any); } catch { }
+  });
+}
+
 
 
 export const configStatus = {
@@ -210,17 +312,17 @@ export const updateProfile = async (user: any, profile: any) => {
 };
 
 export const doc = firestoreDoc;
-export const setDoc = firestoreSetDoc;
+export const setDoc = safeSetDoc as typeof firestoreSetDoc;
 export const getDoc = firestoreGetDoc;
-export const updateDoc = firestoreUpdateDoc;
+export const updateDoc = safeUpdateDoc as typeof firestoreUpdateDoc;
 export const collection = firestoreCollection;
 export const getDocs = firestoreGetDocs;
 export const query = firestoreQuery;
 export const deleteDoc = firestoreDeleteDoc;
 export const onSnapshot = firestoreSnapshot;
 export const runTransaction = firestoreRunTransaction;
-export const writeBatch = firestoreWriteBatch;
-export const addDoc = firestoreAddDoc;
+export const writeBatch = patchedWriteBatch as unknown as typeof firestoreWriteBatch;
+export const addDoc = safeAddDoc as typeof firestoreAddDoc;
 export const waitForPendingWrites = firestoreWait;
 
 // Re-export common types and SDK features

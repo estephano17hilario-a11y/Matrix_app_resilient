@@ -64,14 +64,31 @@ export const useSmartTaskLogic = () => {
     setDrillDownPath(finalPath);
     setTimeframeHierarchy(finalPath); 
 
+    // FORCE START DATE TO JAN 1st IF YEAR OR HIGHER (CALENDAR ALIGNMENT)
+    // User Request: "quiero que la division de 3 meses parta desde enero siempre"
+    let adjustedStartDate = now.toDate();
+    let adjustedEndDate = endDate.toDate();
+
+    if (startLevel === 'YEAR' || startLevel === '5_YEARS' || startLevel === '10_YEARS') {
+        // Reset to Jan 1st of the start year
+        adjustedStartDate.setMonth(0, 1);
+        adjustedStartDate.setHours(0, 0, 0, 0);
+        
+        // If duration is roughly 1 year (300-400 days), align End to Dec 31
+        const durationDays = (endDate.toMillis() - now.toMillis()) / (1000 * 60 * 60 * 24);
+        if (durationDays > 300 && durationDays < 400) {
+             adjustedEndDate = new Date(adjustedStartDate.getFullYear(), 11, 31, 23, 59, 59);
+        }
+    }
+
     const root: StrategicNode = {
       id: crypto.randomUUID(),
       title: mainGoal,
       level: startLevel,
-      startDate: now,
-      dueDate: endDate,
+      startDate: Timestamp.fromDate(adjustedStartDate),
+      dueDate: Timestamp.fromDate(adjustedEndDate),
       isCompleted: false,
-      reward: { xp: 1000, coins: 500 },
+      reward: { xp: 200, coins: 150 },
       children: [],
       placeholder: false,
     };

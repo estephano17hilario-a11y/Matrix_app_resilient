@@ -144,7 +144,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                         className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
                         style={{ color: accentColor }}
                     >
-                        <SelectedIcon size={22} strokeWidth={1.8} />
+                        <SelectedIcon size={25} strokeWidth={1.8} />
                     </button>
                     <AnimatePresence>
                         {isPickerOpen && (

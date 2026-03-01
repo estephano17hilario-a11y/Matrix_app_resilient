@@ -12,23 +12,21 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b0b15] via-[#050508] to-[#020204] pointer-events-none" />
         {/* Top-Left Orb (Indigo) */}
         <div 
-            className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[120px] animate-pulse-slow pointer-events-none" 
+            className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/30 rounded-full blur-[60px] md:blur-[100px] animate-pulse-slow pointer-events-none" 
             style={{ willChange: 'transform, opacity' }}
         />
         
         {/* Bottom-Right Orb (Pink) */}
         <div 
-            className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-pink-600/25 rounded-full blur-[100px] animate-pulse-slow pointer-events-none" 
+            className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-pink-600/25 rounded-full blur-[50px] md:blur-[80px] animate-pulse-slow pointer-events-none" 
             style={{ animationDelay: '1s', willChange: 'transform, opacity' }} 
         />
 
         <div 
-            className="absolute top-[10%] right-[-15%] w-[520px] h-[520px] bg-cyan-500/20 rounded-full blur-[110px] animate-pulse-slow pointer-events-none" 
+            className="absolute top-[10%] right-[-15%] w-[520px] h-[520px] bg-cyan-500/20 rounded-full blur-[60px] md:blur-[90px] animate-pulse-slow pointer-events-none" 
             style={{ animationDelay: '2s', willChange: 'transform, opacity' }} 
         />
         
-        {/* Noise Texture */}
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
       </div>
 
       {/* Content Area - Centered and Transparent */}

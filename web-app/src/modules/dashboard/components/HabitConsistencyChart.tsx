@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { toLocalISOString } from '../../../utils/dateUtils';
-import { TrendingUp, TrendingDown, Zap, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Flame, Calendar } from 'lucide-react';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
@@ -71,6 +71,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         const getDailyTotal = (date: Date) => {
             // Normalize compare date to start of day timestamp for strict comparison
             const compareTime = new Date(date).setHours(0, 0, 0, 0);
+            const dayOfWeek = new Date(date).getDay();
 
              return activeHabits.filter(h => {
                 let habitStartTime: number;
@@ -95,8 +96,36 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 // STRICT COMPARISON:
                 // If habit was created TODAY (habitStartTime), and we compare to YESTERDAY (compareTime)
                 // Today <= Yesterday is FALSE. Correct.
-                return habitStartTime <= compareTime;
+                if (habitStartTime > compareTime) return false;
+
+                // Frequency Check
+                if (h.frequency === 'DAILY') return true;
+                if (h.frequency === 'WEEKLY') {
+                    if (!h.frequencyDays || h.frequencyDays.length === 0) return true;
+                    return h.frequencyDays.includes(dayOfWeek);
+                }
+                
+                return true;
             }).length;
+        };
+
+        const anyHabitExisted = (date: Date) => {
+            const compareTime = new Date(date).setHours(0, 0, 0, 0);
+            return activeHabits.some(h => {
+                let habitStartTime: number;
+                if (h.createdAt) {
+                    habitStartTime = new Date(h.createdAt).setHours(0, 0, 0, 0);
+                } else {
+                    if (h.history && h.history.length > 0) {
+                        const dates = h.history.map(d => new Date(d).getTime());
+                        const firstCompletion = new Date(Math.min(...dates));
+                        habitStartTime = firstCompletion.setHours(0, 0, 0, 0);
+                    } else {
+                        habitStartTime = new Date().setHours(0, 0, 0, 0);
+                    }
+                }
+                return habitStartTime <= compareTime;
+            });
         };
 
         const currentTotalHabits = activeHabits.length;
@@ -128,6 +157,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         // Today's Stats
         const todayCount = getCompletionCount(todayStr);
         const todayTotal = getDailyTotal(today);
+        // FIX: If no habits due (total=0), percent is 0. Don't give free 100%.
         const todayPercent = todayTotal > 0 ? Math.round((todayCount / todayTotal) * 100) : 0;
 
         if (timeframe === 'WEEK') {
@@ -137,6 +167,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
                 const dailyTotal = getDailyTotal(date);
+                const existed = anyHabitExisted(date);
+                // FIX: If no habits due, percent is 0.
                 const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
                 const isFutureDate = isFuture(date) && !isSameDay(date, today);
                 
@@ -146,6 +178,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     count,
                     total: dailyTotal,
                     percent,
+                    existed, // Pass this to render
                     label: format(date, 'EEE', { locale: es }).charAt(0).toUpperCase(),
                     fullLabel: format(date, 'EEEE d', { locale: es }),
                     isCurrent: isSameDay(date, today),
@@ -154,13 +187,17 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             });
 
             let prevSum = 0;
+            let prevCount = 0;
             for (let i = 1; i <= 7; i += 1) {
                 const d = subDays(start, i);
-                const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
                 const dt = getDailyTotal(d);
-                prevSum += dt > 0 ? (c / dt) : 0;
+                if (dt > 0) {
+                    const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
+                    prevSum += (c / dt);
+                    prevCount++;
+                }
             }
-            prevPeriodAvg = (prevSum / 7) * 100;
+            prevPeriodAvg = prevCount > 0 ? (prevSum / prevCount) * 100 : 0;
 
         } else if (timeframe === 'MONTH') {
             // ViewDate Month Calendar View
@@ -172,6 +209,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const count = getCompletionCount(dateStr);
                 const dailyTotal = getDailyTotal(date);
+                const existed = anyHabitExisted(date);
                 const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
                 const dayNum = date.getDate();
                 const isFutureDate = isFuture(date) && !isSameDay(date, today);
@@ -182,6 +220,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     count,
                     total: dailyTotal,
                     percent,
+                    existed,
                     label: [1, 7, 14, 21, 28].includes(dayNum) ? dayNum.toString() : '',
                     fullLabel: format(date, 'd MMM', { locale: es }),
                     isCurrent: isSameDay(date, today),
@@ -195,12 +234,16 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
              const daysPrev = eachDayOfInterval({ start: startPrev, end: endPrev });
              
              let prevSum = 0;
+             let prevCount = 0;
              daysPrev.forEach(d => {
-                 const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
                  const dt = getDailyTotal(d);
-                 prevSum += dt > 0 ? (c / dt) : 0;
+                 if (dt > 0) {
+                     const c = getCompletionCount(format(d, 'yyyy-MM-dd'));
+                     prevSum += (c / dt);
+                     prevCount++;
+                 }
              });
-             prevPeriodAvg = (prevSum / daysPrev.length) * 100;
+             prevPeriodAvg = prevCount > 0 ? (prevSum / prevCount) * 100 : 0;
 
         } else {
             // YEAR (Jan - Dec of viewDate year)
@@ -252,23 +295,42 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         for (let i = 365; i >= 1; i -= 1) {
             const d = subDays(today, i);
             const dateStr = format(d, 'yyyy-MM-dd');
-            const count = getCompletionCount(dateStr);
             const dailyTotal = getDailyTotal(d);
-            const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
-            const required = getRequiredPercentForDay(currentStreak + 1);
-            if (percent >= required) {
-                currentStreak += 1;
+            
+            if (dailyTotal > 0) {
+                const count = getCompletionCount(dateStr);
+                const percent = Math.round((count / dailyTotal) * 100);
+                const required = getRequiredPercentForDay(currentStreak + 1);
+                
+                if (percent >= required) {
+                    currentStreak += 1;
+                } else {
+                    currentStreak = 0;
+                }
             } else {
-                currentStreak = 0;
+                // If habit existed but not due (Rest Day): SKIP (Maintain streak)
+                // If no habit existed (Before account creation): Reset?
+                // Actually, if we are iterating Past -> Present (which this loop does), 
+                // we should only start counting when habits exist.
+                // But currentStreak resets to 0 on failure. 
+                // So if we are in "Before Creation" era, dailyTotal=0.
+                // If we SKIP, currentStreak remains 0. Correct.
+                // If we encounter a failure, currentStreak becomes 0. Correct.
+                // If we encounter a success, currentStreak increments. Correct.
+                // If we encounter a Rest Day (dailyTotal=0), currentStreak remains X. Correct.
             }
         }
 
         const requiredToday = getRequiredPercentForDay(currentStreak + 1);
-        if (todayPercent >= requiredToday) {
-            currentStreak += 1;
+        if (todayTotal > 0) {
+            if (todayPercent >= requiredToday) {
+                currentStreak += 1;
+            }
         }
+        // If todayTotal == 0 (Rest Day), we don't increment streak for today, but we don't break it.
+        // So currentStreak remains what it was yesterday. Correct.
 
-        const minForStreak = Math.ceil((todayTotal * requiredToday) / 100);
+        const minForStreak = todayTotal > 0 ? Math.ceil((todayTotal * requiredToday) / 100) : 0;
 
         const trendValue = currentAvg - Math.round(prevPeriodAvg);
 
@@ -396,9 +458,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 </div>
 
                 {/* Row 2: Stats */}
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
                     {/* Average Percent */}
-                    <div className="flex items-baseline gap-3">
+                    <div className="flex items-baseline gap-3 shrink-0">
                         <span className="text-4xl font-mono font-bold text-white tracking-tighter">
                             {stats.average}%
                         </span>
@@ -413,17 +475,23 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         </div>
                     </div>
 
-                    {/* Current Streak */}
+                    {/* Current Streak - FLAME PATH RESTORED */}
                     <button 
                         onClick={() => onOpenStreak?.()}
-                        className="cursor-pointer group/streak flex flex-col items-start text-left"
+                        className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
                     >
-                        <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-amber-400 transition-colors">
-                            Racha Actual
+                        {/* Glow effect on hover - Optimized Blur for Mobile */}
+                        <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg blur-sm transition-all duration-500" />
+                        
+                        <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
+                            Camino de la Llama
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Zap size={18} className="text-amber-400 fill-amber-400/20" />
-                            <span className="text-xl font-bold text-white group-hover/streak:text-amber-100 transition-colors">
+                        <div className="flex items-center gap-2 relative z-10">
+                            <div className="relative">
+                                <Flame size={20} className="text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500 transition-all duration-500 group-hover/streak:scale-110" />
+                                <div className="absolute inset-0 bg-orange-500/20 blur-sm rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
+                            </div>
+                            <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
                                 {stats.streak} <span className="text-sm font-normal text-zinc-500">días</span>
                             </span>
                         </div>
@@ -489,16 +557,29 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 transition={{ duration: 0.2 }}
                             />
 
-                            <div
-                                className="w-full rounded-t-lg transition-all duration-500 origin-bottom"
+                            <motion.div
+                                className="w-full rounded-t-lg origin-bottom"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ 
+                                    height: data.total > 0 ? `${Math.max(data.percent, 4)}%` : '0%',
+                                    opacity: data.isCurrent ? 1 : 0.6
+                                }}
+                                transition={{ 
+                                    type: "spring", 
+                                    stiffness: 300, 
+                                    damping: 30,
+                                    delay: i * 0.05 // Stagger effect
+                                }}
                                 style={{ 
-                                    height: `${Math.max(data.percent, 4)}%`,
                                     backgroundColor: data.percent >= 80 ? '#10b981' : `${themeColor}CC`,
-                                    boxShadow: data.isCurrent ? `0 0 15px ${themeColor}40` : 'none',
-                                    opacity: data.isCurrent ? 1 : 0.6,
-                                    borderTop: data.isCurrent ? '1px solid rgba(255,255,255,0.4)' : 'none'
+                                    boxShadow: data.isCurrent && data.total > 0 ? `0 0 15px ${themeColor}40` : 'none',
+                                    borderTop: data.isCurrent && data.total > 0 ? '1px solid rgba(255,255,255,0.4)' : 'none'
                                 }}
                             />
+                            {/* Rest Day Indicator */}
+                            {data.total === 0 && data.existed && (
+                                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/20" />
+                            )}
                         </div>
 
                         {/* Label & Ticks */}
@@ -531,36 +612,44 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
             {/* --- NEW FOOTER: DAILY GOAL & PROGRESS --- */}
             <div className="pt-2 border-t border-white/5 mt-1">
-                <div className="flex justify-between items-end mb-1">
-                     <div className="flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-wide">Objetivo Diario</span>
-                        <div className="flex items-baseline gap-1.5">
-                            <span className="text-base font-bold" style={getProgressColorStyle(todayStats.percent, todayStats.requiredToday)}>
-                                {todayStats.count}/{todayStats.total}
+                {todayStats.total > 0 ? (
+                    <>
+                    <div className="flex justify-between items-end mb-1">
+                         <div className="flex flex-col">
+                            <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-wide">Objetivo Diario</span>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-base font-bold" style={getProgressColorStyle(todayStats.percent, todayStats.requiredToday)}>
+                                    {todayStats.count}/{todayStats.total}
+                                </span>
+                                <span className="text-[10px] text-zinc-600">completados</span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                             <span className="text-[9px] text-zinc-500">
+                                {todayStats.percent >= todayStats.requiredToday ? '¡Racha asegurada!' : `Faltan ${Math.max(0, todayStats.minForStreak - todayStats.count)} para racha`}
                             </span>
-                            <span className="text-[10px] text-zinc-600">completados</span>
                         </div>
                     </div>
-                    <div className="text-right">
-                         <span className="text-[9px] text-zinc-500">
-                            {todayStats.percent >= todayStats.requiredToday ? '¡Racha asegurada!' : `Faltan ${Math.max(0, todayStats.minForStreak - todayStats.count)} para racha`}
-                        </span>
-                    </div>
-                </div>
 
-                {/* Progress Bar with Goal Marker */}
-                    <div className="relative h-1.5 bg-zinc-800/50 rounded-full overflow-hidden">
-                    <div className="absolute top-0 bottom-0 w-[2px] bg-white/10 z-10" style={{ left: `${todayStats.requiredToday}%` }} />
-                        
-                    {/* Progress */}
-                        <motion.div 
-                            className={cn("h-full rounded-full transition-colors duration-500 origin-left")}
-                            initial={{ scaleX: 0 }}
-                            animate={{ scaleX: todayStats.percent / 100 }}
-                            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                            style={{ width: '100%', backgroundColor: getProgressColor(todayStats.percent, todayStats.requiredToday) }}
-                        />
+                    {/* Progress Bar with Goal Marker */}
+                        <div className="relative h-1.5 bg-zinc-800/50 rounded-full overflow-hidden">
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-white/10 z-10" style={{ left: `${todayStats.requiredToday}%` }} />
+                            
+                        {/* Progress */}
+                            <motion.div 
+                                className={cn("h-full rounded-full transition-colors duration-500 origin-left")}
+                                initial={{ scaleX: 0 }}
+                                animate={{ scaleX: todayStats.percent / 100 }}
+                                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                style={{ width: '100%', backgroundColor: getProgressColor(todayStats.percent, todayStats.requiredToday) }}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center justify-center py-2 text-[10px] text-zinc-500 italic">
+                        No hay hábitos programados para hoy
                     </div>
+                )}
             </div>
 
             <DateSelectionModal 

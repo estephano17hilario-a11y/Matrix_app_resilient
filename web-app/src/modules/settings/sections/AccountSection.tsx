@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, LogOut, Camera, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
@@ -12,8 +12,13 @@ export const AccountSection = () => {
   const { profile } = useAuth();
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [openPanels, setOpenPanels] = useState({ profile: true, archetype: true, subscription: !isPro, danger: true });
+  const [avatarError, setAvatarError] = useState(false);
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarPath]);
 
   const togglePanel = (key: 'profile' | 'archetype' | 'subscription' | 'danger') => {
     setOpenPanels(prev => ({ ...prev, [key]: !prev[key] }));
@@ -65,8 +70,13 @@ export const AccountSection = () => {
                         onClick={() => setShowAvatarSelector(!showAvatarSelector)}
                         className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-pink-500/50 transition-all group-avatar"
                      >
-                        {avatarPath ? (
-                          <img src={avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                        {avatarPath && !avatarError ? (
+                          <img 
+                            src={avatarPath} 
+                            alt="Avatar" 
+                            className="w-full h-full object-cover"
+                            onError={() => setAvatarError(true)}
+                          />
                         ) : (
                           <User size={28} className="text-white/20" />
                         )}

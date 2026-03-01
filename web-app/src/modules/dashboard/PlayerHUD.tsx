@@ -37,7 +37,6 @@ const getTraitColor = (traitId: string): 'indigo' | 'cyan' | 'emerald' | 'rose' 
 const TraitBar = ({ 
   attribute, 
   mini = false,
-  onUpdateLevel
 }: { 
   attribute: Attribute, 
   mini?: boolean,
@@ -66,19 +65,7 @@ const TraitBar = ({
               <div className="flex items-center gap-2 shrink-0">
                   <span className="font-mono text-[8px] text-white/30">{safeXp}/{safeMax}</span>
                   <span 
-                    className="font-mono text-[9px] opacity-60 font-bold text-white/70 cursor-pointer hover:text-white transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (onUpdateLevel) {
-                            const input = prompt(`Enter new level for ${t(attribute.label)}:`, attribute.level.toString());
-                            if (input !== null) {
-                                const newLevel = parseInt(input, 10);
-                                if (!isNaN(newLevel) && newLevel > 0) {
-                                    onUpdateLevel(attribute.id, newLevel);
-                                }
-                            }
-                        }
-                    }}
+                    className="font-mono text-[9px] opacity-60 font-bold text-white/70"
                   >
                       Lvl {attribute.level}
                   </span>

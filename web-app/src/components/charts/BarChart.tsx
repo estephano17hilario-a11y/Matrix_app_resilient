@@ -12,7 +12,10 @@ export const BarChart = React.memo(({
     barClassName = "",
     stacked = false,
     yTicks,
-    yTickFormatter
+    yTickFormatter,
+    xTickInterval = 1,
+    barSpacing = "px-2",
+    paddingTop = "top-6"
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -25,6 +28,9 @@ export const BarChart = React.memo(({
     stacked?: boolean;
     yTicks?: number[];
     yTickFormatter?: (value: number) => string;
+    xTickInterval?: number;
+    barSpacing?: string;
+    paddingTop?: string;
 }) => {
     // If stacked, max should be provided by parent or calculated by summing indices. 
     // Here we assume if max is provided it is correct.
@@ -75,26 +81,26 @@ export const BarChart = React.memo(({
     return (
         <div ref={containerRef} className={`w-full relative select-none ${className}`} style={{ height }}>
              {showBackground && (
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-40 rounded-3xl pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
              )}
 
             {showGrid && !yTicks && (
-                <div className="absolute inset-x-0 top-4 bottom-6 flex flex-col justify-between pointer-events-none opacity-10">
-                    <div className="border-t border-dashed border-white/20 w-full" />
-                    <div className="border-t border-dashed border-white/20 w-full" />
-                    <div className="border-t border-dashed border-white/20 w-full" />
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-8 flex flex-col justify-between pointer-events-none opacity-[0.05]`}>
+                    <div className="border-t border-dashed border-white/30 w-full" />
+                    <div className="border-t border-dashed border-white/30 w-full" />
+                    <div className="border-t border-dashed border-white/30 w-full" />
                 </div>
              )}
 
             {showGrid && yTicks && (
-                <div className="absolute inset-x-0 top-2 bottom-4 pointer-events-none">
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-8 pointer-events-none`}>
                     {yTicks.map((val) => (
                         <div
                             key={val}
-                            className="absolute left-6 right-0 border-t border-dashed border-white/15"
+                            className="absolute left-6 right-0 border-t border-dashed border-white/20"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
-                            <span className="absolute -top-1.5 -left-6 w-6 text-right pr-1 text-[9px] text-slate-500 font-mono">
+                            <span className="absolute -top-1.5 -left-6 w-6 text-right pr-1 text-[9px] text-slate-400 font-mono">
                                 {yTickFormatter ? yTickFormatter(val) : val}
                             </span>
                         </div>
@@ -133,43 +139,52 @@ export const BarChart = React.memo(({
                         onClick={(e) => handleBarClick(i, e)}
                         className="flex-1 h-full relative group z-10 cursor-pointer"
                     >
-                        {/* Bars Container */}
-                        <div className="absolute top-2 bottom-4 left-0 right-0 px-0.5">
-                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1'}`} style={{ perspective: '700px' }}>
+                        {/* Bars Container - Fixed Centering & Height */}
+                        <div className={`absolute ${paddingTop} bottom-8 left-0 right-0 ${barSpacing} flex items-end justify-center`}>
+                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1.5'}`}>
                                 {datasets.map((ds, idx) => {
                                     const val = ds.data[i];
-                                    const h = (val / maxValue);
+                                    const h = Math.min(val / maxValue, 1);
                                     
-                                    // Calculate if this is the top visible segment for stacked charts
-                                    // We need to know which is the highest index that has value > 0 for this column
                                     const isTopVisible = stacked 
                                         ? idx === datasets.reduce((last, d, currIdx) => (d.data[i] > 0 ? currIdx : last), -1)
-                                        : true; // Non-stacked always gets rounded top
+                                        : true;
 
-                                    // Minimum rounding as requested (2px)
                                     const roundingClass = stacked
-                                        ? (isTopVisible ? 'rounded-t-[2px]' : 'rounded-none')
-                                        : 'rounded-t-[2px]';
+                                        ? (isTopVisible ? 'rounded-t-sm' : 'rounded-none')
+                                        : 'rounded-t-sm';
 
-                                    // const isTopSegment = !stacked || idx === datasets.length - 1;
+                                    // Safe Color Handling
+                                    const safeColor = ds.color || '#6366f1';
+                                    const isHex = safeColor.startsWith('#');
+                                    const backgroundStyle = isHex 
+                                        ? `linear-gradient(180deg, ${safeColor}DD 0%, ${safeColor}80 100%)`
+                                        : safeColor;
+                                    const shadowStyle = isHex
+                                        ? `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 15px ${safeColor}45, 0 4px 15px ${safeColor}35`
+                                        : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`;
                                     
                                     return (
                                         <div 
                                             key={idx} 
                                             className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
-                                            style={stacked ? { height: `${h * 100}%` } : { }}
+                                            style={stacked ? { height: `${h * 100}%`, minHeight: val > 0 ? '4px' : '0' } : { }}
                                         >
                                              <div 
-                                                className={`w-full ${val > 0 ? 'min-h-[1px]' : 'h-0'} ${roundingClass} rounded-b-none ${stacked && idx > 0 ? 'border-b border-black/20' : ''} relative transition-all duration-500 ease-out ${barClassName}`}
+                                                className={`w-full ${val > 0 ? 'min-h-[4px]' : 'h-0'} ${roundingClass} rounded-b-none ${stacked && idx > 0 ? 'border-b border-black/10' : ''} relative transition-all duration-500 ease-out ${barClassName} group-hover:brightness-110 group-hover:scale-[1.02] group-hover:-translate-y-0.5`}
                                                 style={{ 
                                                     height: stacked ? '100%' : `${h * 100}%`,
-                                                    transformStyle: 'preserve-3d',
+                                                    // Vision Pro Modern: Cleaner gradient, less bloom
+                                                    background: backgroundStyle,
+                                                    // Reduced Glow (-15%): Sharper rim, softer volume
+                                                    boxShadow: shadowStyle
                                                 }}
                                              >
-                                                <div className={`absolute inset-0 ${roundingClass} rounded-b-none border border-white/10`} style={{ background: ds.color, transform: 'translateZ(6px)' }} />
-                                                {isTopVisible && (
-                                                    <div className={`absolute top-0 left-0 right-0 h-[6px] ${roundingClass} border border-white/10`} style={{ background: ds.color, transform: 'rotateX(90deg)', transformOrigin: 'top' }} />
-                                                )}
+                                                {/* Glass Specular Highlight (Refined) */}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30 mix-blend-overlay" />
+                                                
+                                                {/* Bottom Grounding Shadow */}
+                                                <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />
                                              </div>
                                         </div>
                                     );
@@ -179,7 +194,9 @@ export const BarChart = React.memo(({
 
                         {/* Label */}
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-                            <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                            {(i % xTickInterval === 0) && (
+                                <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                            )}
                         </div>
                     </div>
                 ))}

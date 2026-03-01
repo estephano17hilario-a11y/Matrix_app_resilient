@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, Archive, ChevronLeft, Plus } from 'lucide-react';
+import { Skull, Archive, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { isSameDay, isLastDayOfMonth } from 'date-fns';
 import { useTheme } from '../../context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
 import { HabitItem } from './components/HabitItem';
 import { HabitConsistencyChart } from './components/HabitConsistencyChart';
+import { ViewMode } from './components/HabitViewHeader';
+import { DateSelectionModal } from './components/DateSelectionModal';
+import { ReorderModal } from '../../components/ui/ReorderModal';
+import { useLongPress } from '../../hooks/useLongPress';
 
 interface HabitVisualViewProps {
     habits: Habit[];
@@ -25,6 +30,7 @@ interface HabitVisualViewProps {
     isActive?: boolean;
     currentSection?: 'PROTOCOLS' | 'VICES';
     onOpenStreak?: () => void;
+    onReorder?: (habits: Habit[]) => void;
 }
 
 export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({ 
@@ -40,12 +46,19 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onShowActions,
     isActive = true,
     currentSection,
-    onOpenStreak
+    onOpenStreak,
+    onReorder
 }) => {
     const { t } = useTranslation();
     const { setVicesMode } = useTheme();
     const [section, setSection] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
     const [showArchived, setShowArchived] = useState(false);
+    const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+    
+    // Header State
+    const [viewMode] = useState<ViewMode>('DAY');
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
     // Split habits into active and archived
     const { activeHabits, archivedHabits } = useMemo(() => {
@@ -58,8 +71,23 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
 
     const displayedHabits = useMemo(() => {
-        return showArchived ? archivedHabits : activeHabits;
-    }, [showArchived, archivedHabits, activeHabits]);
+        const list = showArchived ? archivedHabits : activeHabits;
+        
+        // Sort by order first
+        const sortedList = [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        // Date Logic Override
+        return sortedList.map(habit => {
+            const isCompleted = isSameDay(currentDate, new Date()) 
+                ? habit.completedToday 
+                : habit.history?.some(d => isSameDay(new Date(d), currentDate)) ?? false;
+            
+            return {
+                ...habit,
+                completedToday: isCompleted
+            };
+        });
+    }, [showArchived, archivedHabits, activeHabits, currentDate]);
 
     const reduceMotion = useMemo(() => {
         return displayedHabits.length + badHabits.length > 20;
@@ -109,6 +137,15 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
     const transitionConfig = { type: "spring" as const, stiffness: 350, damping: 25, mass: 1 };
 
+    // Long Press Handler
+    const longPressHandlers = useLongPress(() => {
+        if (!showArchived && onReorder) {
+            // Trigger vibration if available
+            if (navigator.vibrate) navigator.vibrate(50);
+            setIsReorderModalOpen(true);
+        }
+    }, { threshold: 600 });
+
     return (
         <motion.div 
             initial="hidden"
@@ -116,9 +153,17 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             variants={container}
             className="min-h-screen pb-32"
         >
-            {/* Header Section Removed as per request */}
-            <div className="flex flex-col gap-4 mb-4 px-4 sm:px-6 pt-2">
-                 <AnimatePresence mode="wait">
+            <DateSelectionModal 
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={setCurrentDate}
+                mode={viewMode === 'WEEK' ? 'WEEK' : viewMode === 'MONTH' ? 'MONTH' : 'DAY'} // Adapt mode
+                currentDate={currentDate}
+            />
+
+            {/* Header Section REMOVED as per user request */}
+            <div className="flex flex-col gap-4 mb-4 px-4 sm:px-6 pt-1">
+                <AnimatePresence mode="wait">
                     {(section === 'PROTOCOLS' && !showArchived) && (
                         <motion.div
                             key="chart"
@@ -143,8 +188,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             animate="animate"
                             exit="exit"
                             transition={transitionConfig}
-                            className="w-full grid gap-3"
+                            className="w-full grid gap-3 relative"
                         >
+                            {/* Floating Mini Action for Protocols (Restored subtly) */}
+                            {/* REMOVED: Create button */}
+
                             {/* ARCHIVED HEADER */}
                             {showArchived && (
                                 <div className="flex items-center gap-2 mb-2 px-1">
@@ -161,18 +209,43 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             )}
 
                             {/* LIST */}
-                            {displayedHabits.map(habit => (
-                                <HabitItem
-                                    key={habit.id}
-                                    habit={habit}
-                                    attribute={attributeMap.get(habit.attribute)}
-                                    onComplete={onCompleteHabit}
-                                    onEdit={onEditHabit}
-                                    onUpdate={onUpdateHabit}
-                                    onShowActions={onShowActions}
-                                    reduceMotion={reduceMotion}
-                                />
-                            ))}
+                            {displayedHabits.map(habit => {
+                                const isDue = habit.frequency === 'DAILY' || 
+                                              (habit.frequency === 'WEEKLY' && 
+                                               (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
+                                              (habit.frequency === 'MONTHLY' && (
+                                                   habit.monthlyType === 'FLEXIBLE_COUNT' ||
+                                                   ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
+                                                       (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||
+                                                       (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
+                                                   ))
+                                               ));
+
+                                return (
+                                    <div
+                                        key={habit.id}
+                                        {...longPressHandlers}
+                                        onContextMenu={(e) => {
+                                            if (!showArchived && onReorder) {
+                                                e.preventDefault();
+                                                setIsReorderModalOpen(true);
+                                            }
+                                        }}
+                                        className="touch-manipulation"
+                                    >
+                                        <HabitItem
+                                            habit={habit}
+                                            attribute={attributeMap.get(habit.attribute)}
+                                            onComplete={onCompleteHabit}
+                                            onEdit={onEditHabit}
+                                            onUpdate={onUpdateHabit}
+                                            onShowActions={onShowActions}
+                                            reduceMotion={reduceMotion}
+                                            isDue={isDue}
+                                        />
+                                    </div>
+                                );
+                            })}
 
                             {/* EMPTY STATE */}
                             {!showArchived && activeHabits.length === 0 && (
@@ -218,18 +291,14 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             className="w-full grid gap-3 relative"
                         >
                             {/* Floating Mini Action */}
-                            <button
-                                onClick={onCreateBadHabit}
-                                className="absolute -top-8 right-0 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all hover:scale-105 active:scale-95"
-                            >
-                                <Plus size={12} strokeWidth={3} />
-                                <span className="text-[10px] font-black uppercase tracking-wider">Nuevo</span>
-                            </button>
+                            {/* REMOVED: Create button */}
 
                             {/* Relapse History Chart */}
-                            <div className="col-span-full">
-                                <RelapseChart badHabits={badHabits} />
-                            </div>
+                            {badHabits.length > 0 && (
+                                <div className="col-span-full">
+                                    <RelapseChart badHabits={badHabits} />
+                                </div>
+                            )}
 
                             {badHabits.map(habit => (
                                 <BadHabitItem
@@ -241,16 +310,28 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 />
                             ))}
                             {badHabits.length === 0 && (
-                                <div className="col-span-full py-20 text-center text-slate-500 flex flex-col items-center gap-4">
-                                    <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center">
-                                        <Skull className="text-rose-500/50" size={32} />
+                                <div className="col-span-full min-h-[70vh] flex flex-col items-center justify-center gap-8 text-center -mt-20">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full animate-pulse-slow" />
+                                        <div className="w-24 h-24 rounded-full bg-[#1a1a1c] border border-white/10 flex items-center justify-center relative z-10 shadow-2xl">
+                                            <Skull className="text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]" size={40} />
+                                        </div>
                                     </div>
-                                    <p>{t('habits.emptyVices')}</p>
+                                    
+                                    <div className="space-y-2 max-w-xs mx-auto">
+                                        <h3 className="text-xl font-bold text-white tracking-tight">Zona Despejada</h3>
+                                        <p className="text-sm text-white/40 leading-relaxed">
+                                            {t('habits.emptyVices') || "No hay amenazas detectadas en el sistema. Mantén la vigilancia."}
+                                        </p>
+                                    </div>
+
                                     <button 
                                         onClick={onCreateBadHabit}
-                                        className="px-6 py-2 bg-rose-500/20 text-rose-400 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-rose-500/30 transition-colors"
+                                        className="group relative px-8 py-4 bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-2xl text-sm font-bold uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:shadow-[0_0_40px_rgba(225,29,72,0.5)] hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden"
                                     >
-                                        {t('habits.identifyEnemy')}
+                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                        <Skull size={18} className="relative z-10" />
+                                        <span className="relative z-10">{t('habits.identifyEnemy')}</span>
                                     </button>
                                 </div>
                             )}
@@ -259,6 +340,16 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 </AnimatePresence>
             </div>
 
+            {onReorder && isReorderModalOpen && (
+                <ReorderModal
+                    isOpen={isReorderModalOpen}
+                    onClose={() => setIsReorderModalOpen(false)}
+                    items={[...activeHabits].sort((a, b) => (a.order || 0) - (b.order || 0))}
+                    onSave={(newItems) => onReorder(newItems)}
+                    title={t('habits.reorderTitle', 'Reordenar Hábitos')}
+                    getItemColor={(h) => attributeMap.get(h.attribute)?.color || '#fff'}
+                />
+            )}
         </motion.div>
     );
 });

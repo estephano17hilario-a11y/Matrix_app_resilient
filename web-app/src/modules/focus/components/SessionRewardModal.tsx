@@ -22,14 +22,14 @@ export const SessionRewardModal: React.FC<SessionRewardModalProps> = ({ isOpen, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-6"
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-6"
                 onClick={onClose}
             >
                 <motion.div
                     initial={{ scale: 0.8, y: 50, opacity: 0 }}
                     animate={{ scale: 1, y: 0, opacity: 1 }}
                     exit={{ scale: 0.8, y: 50, opacity: 0 }}
-                    className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+                    className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl overflow-hidden shadow-md"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header with Glow */}
@@ -41,7 +41,7 @@ export const SessionRewardModal: React.FC<SessionRewardModalProps> = ({ isOpen, 
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
-                            className="relative z-10 w-20 h-20 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.5)]"
+                            className="relative z-10 w-20 h-20 rounded-full bg-black/40 border border-white/20 flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.5)]"
                         >
                             <Trophy size={40} className="text-yellow-400 drop-shadow-md" />
                         </motion.div>

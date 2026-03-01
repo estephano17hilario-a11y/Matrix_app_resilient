@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Archive, Trash2, Edit2, X, RotateCcw } from 'lucide-react';
 import { Habit } from '../../../types';
@@ -20,16 +21,18 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
 }) => {
     if (!habit) return null;
 
+    if (typeof document === 'undefined') return null;
+
     const isArchived = habit.archived;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[550] flex items-end sm:items-center justify-center p-4 sm:p-6">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/60"
+                className="absolute inset-0 bg-black/30"
             />
 
             <motion.div
@@ -108,6 +111,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                     </button>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 };

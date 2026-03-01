@@ -30,16 +30,16 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
       {achievement && (
         <motion.div
           layout
-          initial={{ y: -50, opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+          initial={{ y: -50, opacity: 0, scale: 0.8, filter: 'blur(var(--toast-blur))' }}
           animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
-          exit={{ scale: 0.9, opacity: 0, filter: 'blur(10px)', transition: { duration: 0.2 } }}
+          exit={{ scale: 0.9, opacity: 0, filter: 'blur(var(--toast-blur))', transition: { duration: 0.2 } }}
           transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
           className="w-full flex justify-center pointer-events-none p-2"
         >
           <div className="
             relative
             flex items-center gap-4 px-5 py-4
-            bg-[#050505]/80 backdrop-blur-md
+            bg-[#050505]/80 backdrop-blur-sm
             border border-emerald-500/20
             rounded-2xl
             shadow-[0_8px_32px_rgba(0,0,0,0.5)]

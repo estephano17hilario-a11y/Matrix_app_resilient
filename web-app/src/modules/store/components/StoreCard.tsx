@@ -27,7 +27,6 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
   return (
     <motion.div
       ref={ref}
-      layout
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ 
         opacity: canAfford ? 1 : 0.6, 
@@ -37,8 +36,7 @@ export const StoreCard = React.forwardRef<HTMLDivElement, StoreCardProps>(({ ite
       whileTap={isAffordable ? { scale: 0.99 } : {}}
       className={clsx(
         "relative flex flex-col p-4 rounded-[20px] overflow-hidden transition-all duration-200",
-        // Apple Glassmorphism (Cleaner)
-        "bg-[#1c1c1e]/80 backdrop-blur-md", // Apple dark system gray
+        "bg-[#1c1c1e]/80 bg-gradient-to-b from-white/5 to-transparent",
         "border border-white/5",
         canAfford ? "shadow-sm" : "grayscale-[0.3] opacity-80"
       )}

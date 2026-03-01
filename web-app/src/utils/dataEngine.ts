@@ -1,8 +1,9 @@
 import { 
     startOfWeek, endOfWeek, subWeeks, eachWeekOfInterval, 
-    startOfMonth, endOfMonth, subMonths, eachMonthOfInterval,
+    startOfMonth, endOfMonth, eachMonthOfInterval,
     startOfYear, endOfYear, format, differenceInDays,
-    eachDayOfInterval, eachHourOfInterval
+    eachDayOfInterval, eachHourOfInterval,
+    startOfQuarter, endOfQuarter
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Project, Attribute } from '../types';
@@ -60,8 +61,9 @@ export const generateFocusData = (
           label: format(d, 'd')
       }));
   } else if (range === '3_MONTHS') {
-      const end = endOfMonth(date);
-      const start = subMonths(startOfMonth(end), 2);
+      // Standard Quarter Logic (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
+      const start = startOfQuarter(date);
+      const end = endOfQuarter(date);
       const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
       buckets = weeks.map(w => ({
           start: w,

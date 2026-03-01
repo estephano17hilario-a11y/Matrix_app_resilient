@@ -6,9 +6,11 @@ export interface RewardPayload {
   
   // XP
   xpGained: number;
-  currentXp: number; // The new XP total
+  currentXp: number; // The new XP total relative to current level
   maxXp: number;
   level: number;
+  initialLevel?: number; // Level before reward
+  initialXp?: number; // XP before reward (relative to initial level)
   isLevelUp: boolean;
   
   // Trait (Optional)

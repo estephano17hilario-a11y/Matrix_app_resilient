@@ -49,6 +49,9 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
     });
   }, [theme, isSolid]);
 
+  // Detect mobile for strict performance mode
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
   return (
     <div 
       className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-all duration-700 ease-in-out ${className || ''}`}
@@ -81,71 +84,93 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
                          radial-gradient(at 0% 100%, ${secondaryGlow} 0px, transparent 50%)
                      `,
                      opacity: vividMode ? 0.8 : 0.5,
-                     filter: 'blur(60px)',
+                    filter: 'blur(var(--aurora-blur-1))',
                      transform: 'translateZ(0)'
                  }}
              />
 
-             {/* 2. Fluid Shape 1 (Large, Slow Moving) */}
-             <motion.div 
-                className="absolute top-[-20%] left-[-10%] w-[100vw] h-[100vw] rounded-full opacity-50 mix-blend-screen"
-                style={{ 
-                    background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 60%)`,
-                    filter: 'blur(80px)',
-                }}
-                animate={{
-                    scale: [1, 1.2, 1],
-                    x: [0, 50, 0],
-                    y: [0, 30, 0],
-                }}
-                transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-            />
+             {/* MOBILE OPTIMIZATION: Static or Minimal Animation */}
+             {isMobile ? (
+                <>
+                     {/* Static Orbs for Mobile (Zero GPU Load) */}
+                     <div 
+                        className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full opacity-40 mix-blend-screen"
+                        style={{ 
+                            background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 60%)`,
+                            filter: 'blur(var(--aurora-blur-2))',
+                        }}
+                    />
+                     <div 
+                        className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full opacity-30 mix-blend-screen"
+                        style={{ 
+                            background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 60%)`,
+                            filter: 'blur(var(--aurora-blur-3))',
+                        }}
+                    />
+                </>
+             ) : (
+                <>
+                    {/* DESKTOP: Full Fluid Animation */}
+                    <motion.div 
+                        className="absolute top-[-20%] left-[-10%] w-[100vw] h-[100vw] rounded-full opacity-50 mix-blend-screen"
+                        style={{ 
+                            background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 60%)`,
+                            filter: 'blur(var(--aurora-blur-2))',
+                        }}
+                        animate={{
+                            scale: [1, 1.2, 1],
+                            x: [0, 50, 0],
+                            y: [0, 30, 0],
+                        }}
+                        transition={{
+                            duration: 20,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                    />
 
-             {/* 3. Fluid Shape 2 (Secondary, Counter-Moving) */}
-             <motion.div 
-                className="absolute bottom-[-20%] right-[-10%] w-[100vw] h-[100vw] rounded-full opacity-40 mix-blend-screen"
-                style={{ 
-                    background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 60%)`,
-                    filter: 'blur(80px)',
-                }}
-                animate={{
-                    scale: [1.2, 1, 1.2],
-                    x: [0, -50, 0],
-                    y: [0, -30, 0],
-                }}
-                transition={{
-                    duration: 25,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-            />
+                    <motion.div 
+                        className="absolute bottom-[-20%] right-[-10%] w-[100vw] h-[100vw] rounded-full opacity-40 mix-blend-screen"
+                        style={{ 
+                            background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 60%)`,
+                            filter: 'blur(var(--aurora-blur-3))',
+                        }}
+                        animate={{
+                            scale: [1.2, 1, 1.2],
+                            x: [0, -50, 0],
+                            y: [0, -30, 0],
+                        }}
+                        transition={{
+                            duration: 25,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                    />
 
-            {/* 4. Center Accent (Pulsing) */}
-            <motion.div 
-                className="absolute top-[30%] left-[30%] w-[40vw] h-[40vw] rounded-full opacity-30 mix-blend-overlay"
-                style={{ 
-                    background: `radial-gradient(circle, ${accentGlow} 0%, transparent 70%)`,
-                    filter: 'blur(40px)',
-                }}
-                animate={{
-                    opacity: [0.2, 0.4, 0.2],
-                    scale: [1, 1.1, 1],
-                }}
-                transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-            />
+                    <motion.div 
+                        className="absolute top-[30%] left-[30%] w-[40vw] h-[40vw] rounded-full opacity-30 mix-blend-overlay"
+                        style={{ 
+                            background: `radial-gradient(circle, ${accentGlow} 0%, transparent 70%)`,
+                            filter: 'blur(var(--aurora-blur-4))',
+                        }}
+                        animate={{
+                            opacity: [0.2, 0.4, 0.2],
+                            scale: [1, 1.1, 1],
+                        }}
+                        transition={{
+                            duration: 8,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                    />
+                </>
+             )}
 
-            {/* 5. NOISE TEXTURE (CRITICAL FOR FIGMA LOOK) */}
+            {/* 5. NOISE TEXTURE (CRITICAL FOR FIGMA LOOK) - Reduced Opacity on Mobile */}
             <div 
-                className="absolute inset-0 w-full h-full opacity-[0.07] mix-blend-overlay pointer-events-none"
+                className="absolute inset-0 w-full h-full mix-blend-overlay pointer-events-none"
                 style={{
+                    opacity: isMobile ? 0.03 : 0.07,
                     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
                     backgroundRepeat: 'repeat',
                     backgroundSize: '128px'

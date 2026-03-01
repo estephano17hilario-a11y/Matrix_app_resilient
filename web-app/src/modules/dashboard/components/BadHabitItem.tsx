@@ -67,7 +67,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     }`}
                 >
                     {isRelapsed ? (
-                        <Skull size={22} className="text-rose-500" />
+                        <Skull size={25} className="text-rose-500" />
                     ) : (
                         <div 
                             className="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" 

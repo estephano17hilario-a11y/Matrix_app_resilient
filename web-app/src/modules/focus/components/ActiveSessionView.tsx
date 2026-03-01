@@ -1,10 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
+import FocusSession from '../../../plugins/FocusPlugin'; // Direct Plugin Access
 import { SessionHistoryModal } from './SessionHistoryModal';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
+// import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface ActiveSessionViewProps {
     project: Project;
@@ -14,6 +17,7 @@ interface ActiveSessionViewProps {
     onUpdateProject: (p: Project) => void;
     onDeleteSession?: (projectId: string, sessionId: string) => void;
     onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => void;
+    onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void;
     autoStart?: boolean;
     onAutoStartConsumed?: () => void;
     customHeaderTitle?: React.ReactNode;
@@ -27,6 +31,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     onUpdateProject,
     onDeleteSession,
     onAddManualSession,
+    onEditSession,
     autoStart,
     onAutoStartConsumed,
     customHeaderTitle
@@ -34,9 +39,60 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     const [showHistory, setShowHistory] = useState(false);
     const [isEditingTime, setIsEditingTime] = useState(false);
     const [editTimeValue, setEditTimeValue] = useState('25');
+    const [showFocusProtectionModal, setShowFocusProtectionModal] = useState(false);
+    
+    // SMART PERMISSIONS STATE
+    const [permissions, setPermissions] = useState({
+        notifications: true,
+        battery: true,
+        overlay: true
+    });
+    
     const hasAutoStarted = useRef(false);
     const sessionRecordedRef = useRef(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Check Advanced Permissions on Mount
+    const checkAllPermissions = useCallback(async () => {
+        try {
+            // Use our new native method
+            const perms = await FocusSession.checkPermissions();
+            console.log("🛡️ Focus Permissions Check:", perms);
+            setPermissions(perms);
+        } catch (e) {
+            console.warn("Failed to check advanced permissions", e);
+        }
+    }, []);
+
+    useEffect(() => {
+        checkAllPermissions();
+        
+        // Re-check when app resumes
+        const handleResume = () => checkAllPermissions();
+        document.addEventListener('resume', handleResume);
+        return () => document.removeEventListener('resume', handleResume);
+    }, [checkAllPermissions]);
+
+    // Handlers for Smart Buttons
+    const handleEnableNotifications = async () => {
+        await FocusSession.openNotificationSettings();
+    };
+
+    const handleDisableBatteryOpt = async () => {
+        await FocusSession.requestBatteryPermission();
+    };
+
+    const handleEnableOverlay = async () => {
+        await FocusSession.requestOverlayPermission();
+    };
+
+    const handleExitAttempt = () => {
+        if (isActive) {
+            setShowFocusProtectionModal(true);
+        } else {
+            onExit();
+        }
+    };
 
     const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH') => {
         const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
@@ -153,7 +209,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             handleSessionEnd(getElapsedSeconds('POMO'), 'POMO');
         }
         stopSession();
-        onExit();
+        // onExit(); // Removed to keep the user in the Focus Session view
     };
 
     return (
@@ -165,22 +221,21 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             transition={{ duration: 0.3 }}
         >
              {/* Dynamic Background */}
-             <div className="absolute inset-0 pointer-events-none z-0">
-                {/* Central Orb/Glow */}
+            <div className="absolute inset-0 pointer-events-none z-0">
                 <div 
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[100px] opacity-20 transition-all duration-1000 will-change-transform"
-                    style={{ backgroundColor: themeColor, transform: isActive && !isPaused ? 'translate(-50%, -50%) scale(1.2)' : 'translate(-50%, -50%) scale(1)' }} 
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 transition-transform duration-700"
+                    style={{ 
+                        backgroundImage: `radial-gradient(circle at center, ${themeColor} 0%, rgba(0,0,0,0) 60%)`,
+                        transform: isActive && !isPaused ? 'translate(-50%, -50%) scale(1.08)' : 'translate(-50%, -50%) scale(1)'
+                    }} 
                 />
-                
-                {/* Extra Ambient Orbs (if needed for non-orb themes, but user asked for orbs to change color) */}
-                {/* Assuming ParticleLayer handles the main background orbs, this local orb adds depth */}
-             </div>
+            </div>
 
             {/* Top Bar */}
-            <div className="w-full p-6 flex justify-between items-center z-50 shrink-0">
+            <div className="w-full px-6 pt-12 pb-6 flex justify-between items-center z-50 shrink-0 relative">
                 <button 
-                    onClick={onExit}
-                    className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md"
+                    onClick={handleExitAttempt}
+                    className="w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-colors"
                 >
                     <ChevronDown size={24} />
                 </button>
@@ -190,15 +245,61 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                         {customHeaderTitle}
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-lg">
-                        <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
-                        <span className="text-xs font-black text-white uppercase tracking-widest">{project.title}</span>
+                    <div className="flex flex-col items-center gap-2">
+                         <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-white/10 border border-white/10 shadow-md">
+                            <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
+                            <span className="text-xs font-black text-white uppercase tracking-widest">{project.title}</span>
+                        </div>
+                        
+                        {/* SMART NOTIFICATION PROMPT */}
+                        <AnimatePresence>
+                            {!permissions.notifications && (
+                                <motion.button
+                                    initial={{ opacity: 0, y: -10, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    onClick={handleEnableNotifications}
+                                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-colors"
+                                >
+                                    <BellOff size={12} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wide">Enable Notifications</span>
+                                </motion.button>
+                            )}
+                            
+                            {/* SMART BATTERY PROMPT (Only shows if Notifs are enabled but Battery is restricted) */}
+                            {permissions.notifications && !permissions.battery && (
+                                <motion.button
+                                    initial={{ opacity: 0, y: -10, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    onClick={handleDisableBatteryOpt}
+                                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-colors"
+                                >
+                                    <Battery size={12} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wide">Unrestrict Battery</span>
+                                </motion.button>
+                            )}
+
+                            {/* SMART OVERLAY PROMPT (Only shows if others are OK) */}
+                            {permissions.notifications && permissions.battery && !permissions.overlay && (
+                                <motion.button
+                                    initial={{ opacity: 0, y: -10, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    onClick={handleEnableOverlay}
+                                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/30 transition-colors"
+                                >
+                                    <Layers size={12} />
+                                    <span className="text-[10px] font-bold uppercase tracking-wide">Enable Live View</span>
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
                     </div>
                 )}
 
                 <button 
                     onClick={() => setShowHistory(true)}
-                    className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md relative"
+                    className="w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-colors relative"
                 >
                     <History size={20} />
                     {project.sessions && project.sessions.length > 0 && (
@@ -218,7 +319,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="flex bg-black/40 backdrop-blur-lg border border-white/10 rounded-full p-1 shadow-2xl"
+                                className="flex bg-black/50 border border-white/10 rounded-full p-1 shadow-md"
                             >
                                 <button 
                                     onClick={() => {
@@ -261,7 +362,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                 <stop offset="100%" stopColor={themeColor} stopOpacity="0.2" />
                             </linearGradient>
                             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                                 <feMerge>
                                     <feMergeNode in="coloredBlur" />
                                     <feMergeNode in="SourceGraphic" />
@@ -284,17 +385,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                             style={{ transition: 'stroke-dashoffset 1s linear' }}
                         />
 
-                        {/* PULSING GLOW WHEN ACTIVE */}
-                        {isActive && !isPaused && (
-                            <circle 
-                                cx="160" cy="160" r={radius} fill="none" 
-                                stroke={themeColor}
-                                strokeWidth="4"
-                                strokeOpacity="0.5"
-                                className="animate-ping-slow" // Requires custom animation or use framer motion
-                                style={{ animation: 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite', opacity: 0.3 }}
-                            />
-                        )}
+
                     </svg>
 
                     {/* Time Display */}
@@ -324,7 +415,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                     "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-2xl select-none scale-y-110 transition-all",
                                     !isActive && "cursor-pointer hover:scale-110 hover:text-indigo-200"
                                 )}
-                                style={{ textShadow: `0 0 50px ${themeColor}50` }}
+                                style={{ textShadow: `0 0 30px ${themeColor}40` }}
                             >
                                 {formatTime(timeLeft)}
                             </div>
@@ -337,12 +428,12 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             </div>
 
             {/* Controls Bar */}
-            <div className="w-full p-8 pb-12 flex items-center justify-center gap-10 relative z-20 shrink-0">
+            <div className="w-full px-8 pt-8 pb-20 flex items-center justify-center gap-10 relative z-20 shrink-0">
                 <motion.button 
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleStop} 
-                    className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-red-400 border border-white/5 flex items-center justify-center transition-colors backdrop-blur-md group shadow-lg"
+                    className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/15 text-slate-300 hover:text-red-400 border border-white/10 flex items-center justify-center transition-colors group shadow-md"
                 >
                     <StopCircle size={24} className="group-hover:drop-shadow-[0_0_8px_rgba(248,113,113,0.5)] transition-all" />
                 </motion.button>
@@ -355,8 +446,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                     style={{ 
                         backgroundColor: isActive && !isPaused ? themeColor : 'rgba(255,255,255,0.1)',
                         boxShadow: isActive && !isPaused 
-                            ? `0 0 80px ${themeColor}60` 
-                            : `0 0 20px rgba(255,255,255,0.1)`
+                            ? `0 0 40px ${themeColor}40` 
+                            : `0 0 15px rgba(255,255,255,0.05)`
                     }}
                 >
                     {isActive && !isPaused ? (
@@ -369,14 +460,14 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                 <motion.button 
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="w-16 h-16 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 flex items-center justify-center transition-colors backdrop-blur-md shadow-lg"
+                    className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10 flex items-center justify-center transition-colors shadow-md"
                 >
                     <Volume2 size={24} />
                 </motion.button>
             </div>
 
              {/* Session History Modal */}
-             <AnimatePresence>
+            <AnimatePresence>
                 {showHistory && (
                     <SessionHistoryModal 
                         isOpen={showHistory} 
@@ -387,9 +478,23 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                         onAddSession={(durationMinutes, type, sessionId, sessionDate) => {
                             handleAddManualSessionWrapper(project.id, durationMinutes, type, sessionId, sessionDate);
                         }}
+                        onEditSession={onEditSession}
+                        isActive={isActive}
+                        onShowWarning={() => setShowFocusProtectionModal(true)}
                     />
                 )}
             </AnimatePresence>
+
+            <ConfirmationModal
+                isOpen={showFocusProtectionModal}
+                onClose={() => setShowFocusProtectionModal(false)}
+                onConfirm={() => setShowFocusProtectionModal(false)}
+                title="Focus Mode Active"
+                message="You must finish or stop the current focus session before performing this action."
+                confirmText="Understood"
+                cancelText={null}
+                variant="warning"
+            />
         </motion.div>
     );
 };

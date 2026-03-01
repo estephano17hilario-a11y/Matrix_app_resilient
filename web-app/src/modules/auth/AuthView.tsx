@@ -40,7 +40,7 @@ const LandingView = ({ onStart, onLogin }: { onStart: () => void, onLogin: () =>
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-indigo-300 mb-4 backdrop-blur-md shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-indigo-300 mb-4 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.3)]"
         >
           <Sparkles className="w-3 h-3 animate-pulse" />
           <span>Lux OS 2.0</span>
@@ -252,8 +252,6 @@ export const AuthView = () => {
                  style={{ background: 'radial-gradient(circle, rgba(147, 51, 234, 0.4) 0%, transparent 70%)', transform: 'translateZ(0)' }}
             />
 
-            {/* Noise Texture */}
-            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
         </div>
 
         <AnimatePresence mode="wait">
@@ -284,7 +282,7 @@ export const AuthView = () => {
                     transition={SPRING_CONFIG}
                     className="w-full max-w-sm"
                 >
-                    <GlassCard className="p-8 backdrop-blur-md bg-black/40 border-white/10">
+                    <GlassCard className="p-8 backdrop-blur-sm bg-black/40 border-white/10">
                         <div className="flex items-center mb-6">
                             <button 
                                 onClick={() => setView(view === 'LOGIN' ? 'LANDING' : 'REGISTER_LANG')}

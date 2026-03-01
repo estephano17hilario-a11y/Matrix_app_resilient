@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, X } from 'lucide-react';
 import { NoteBlock, NoteBlueprint } from '../../../types';
@@ -56,7 +57,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -147,6 +148,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
             </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

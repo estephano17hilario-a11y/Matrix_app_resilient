@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
@@ -6,7 +7,8 @@ import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculato
 import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 import { DurationPicker } from './DurationPicker';
-import { toLocalISOString } from '../../../utils/dateUtils';
+import { toLocalISOString, parseLocalDate } from '../../../utils/dateUtils';
+import { DateSelectionModal } from './DateSelectionModal';
 
 export const QuestModal = React.memo(({ 
     isOpen, 
@@ -45,6 +47,7 @@ export const QuestModal = React.memo(({
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
     const [estimatedTime, setEstimatedTime] = useState(0);
+    const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
     // Effect to apply locked props or initial values
     React.useEffect(() => {
@@ -84,8 +87,9 @@ export const QuestModal = React.memo(({
     const selectedSmartProject = smartProjects.find(p => p.id === (lockedSmartProjectId || initialValues?.smartProjectId));
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(estimatedTime);
-    }, [estimatedTime]);
+        const multipliers: Record<Difficulty, number> = { 'C': 1, 'B': 2, 'A': 3, 'S': 4 };
+        return calculateTaskRewards(estimatedTime, multipliers[difficulty]);
+    }, [estimatedTime, difficulty]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -132,7 +136,7 @@ export const QuestModal = React.memo(({
         { id: 'S', label: t('modals.quest.difficulties.Epic'), icon: Star, color: 'text-purple-500' },
     ];
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/95" onClick={onClose} />
             <div className="relative z-10 w-full max-w-[360px]">
@@ -345,19 +349,16 @@ export const QuestModal = React.memo(({
                         </div>
 
                         {/* Date Picker */}
-                        <div className={`rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2.5 relative overflow-hidden`}>
-                             <input 
-                                type="date" 
-                                value={deadline} 
-                                onChange={(e) => setDeadline(e.target.value)} 
-                                className="absolute inset-0 opacity-0 z-10 cursor-pointer" 
-                             />
+                        <div 
+                            onClick={() => !lockedDate && setIsDateModalOpen(true)}
+                            className={`rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2.5 relative overflow-hidden transition-colors ${lockedDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'}`}
+                        >
                              <span className="text-[9px] font-black text-white/30 uppercase flex items-center gap-2">
                                 {t('modals.quest.dueDate')}
                              </span>
                              <div className="flex items-baseline gap-1 pointer-events-none">
-                                 <span className="text-sm font-bold text-white">{new Date(deadline).getDate()}</span>
-                                 <span className="text-[10px] font-bold text-white/50 uppercase">{new Date(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                 <span className="text-sm font-bold text-white">{parseLocalDate(deadline).getDate()}</span>
+                                 <span className="text-[10px] font-bold text-white/50 uppercase">{parseLocalDate(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
                              </div>
                         </div>
 
@@ -375,6 +376,15 @@ export const QuestModal = React.memo(({
                     </div>
                 </div>
             </div>
-        </div>
+
+            <DateSelectionModal 
+                isOpen={isDateModalOpen}
+                onClose={() => setIsDateModalOpen(false)}
+                onSelect={(date) => setDeadline(toLocalISOString(date))}
+                mode="DAY"
+                currentDate={parseLocalDate(deadline)}
+            />
+        </div>,
+        document.body
     );
 });
