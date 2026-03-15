@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { App } from '@capacitor/app';
 import { ArrowUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -24,6 +25,7 @@ import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
 
 import { ConfirmationModal } from './components/ui/ConfirmationModal';
+import { SecurityGate } from './components/ui/SecurityGate';
 import { HabitActionsModal } from './modules/dashboard/components/HabitActionsModal';
 
 import { ViewContainer } from './modules/dashboard/components/ViewContainer';
@@ -170,6 +172,30 @@ export default function Dashboard() {
     // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
     const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS']));
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [settingsLocked, setSettingsLocked] = useState(false);
+    const [settingsPin, setSettingsPin] = useState<string | null>(null);
+
+    // Effect to check lock status when opening settings
+    useEffect(() => {
+        if (isSettingsOpen) {
+            const savedConfig = localStorage.getItem('notes_config_v2');
+            if (savedConfig) {
+                try {
+                    const parsed = JSON.parse(savedConfig);
+                    if (parsed.security && parsed.security.pin && parsed.security.pin.length === 5) {
+                        setSettingsPin(parsed.security.pin);
+                        setSettingsLocked(true);
+                    } else {
+                        setSettingsLocked(false);
+                    }
+                } catch (e) {
+                    setSettingsLocked(false);
+                }
+            } else {
+                setSettingsLocked(false);
+            }
+        }
+    }, [isSettingsOpen]);
 
     // Force re-render on language change
     useEffect(() => {
@@ -196,8 +222,7 @@ export default function Dashboard() {
                     import('./modules/achievements/AchievementsScreen'),
                     import('./modules/store/StoreScreen'),
                     import('./modules/nexus'),
-                    import('./modules/smart-tasks/components/StrategicMapView'),
-                    import('./modules/dashboard/settings/SettingsHub')
+                    import('./modules/smart-tasks/components/StrategicMapView')
                 ]);
             } catch (e) {
                 console.warn("Prefetch failed", e);
@@ -241,6 +266,8 @@ export default function Dashboard() {
         isFocusMode,
         isNoteTaking,
         setIsNoteTaking,
+        isPomodoroActive,
+        setIsPomodoroActive,
         showProfile,
         setShowProfile,
         player,
@@ -294,8 +321,6 @@ export default function Dashboard() {
         handleBadHabitRelapse,
         vividMode,
         setVividMode,
-        updatePlayerLevel,
-        updateAttributeLevel,
         habitSectionControl,
         updateHabitSectionControl,
         allowDockSectionSwitch,
@@ -318,6 +343,33 @@ export default function Dashboard() {
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
+
+    // --- NAVIGATION HISTORY STACK ---
+    // Tracks the history of views to support "Back to Previous Page" functionality
+    const [viewHistory, setViewHistory] = useState<string[]>(['TASKS']);
+    const isBackNavigating = useRef(false);
+
+    useEffect(() => {
+        if (!currentView) return;
+        
+        // If this navigation was triggered by the Back Button, don't push it to history again
+        if (isBackNavigating.current) {
+            isBackNavigating.current = false;
+            return;
+        }
+
+        setViewHistory(prev => {
+            // Prevent duplicate entries if the view didn't actually change
+            if (prev[prev.length - 1] === currentView) return prev;
+            
+            // Limit history size to 20 to prevent memory leaks
+            const newHistory = [...prev, currentView];
+            if (newHistory.length > 20) {
+                return newHistory.slice(newHistory.length - 20);
+            }
+            return newHistory;
+        });
+    }, [currentView]);
 
     const isOverlayActive = activeModal || validationHabit || isDockOpen;
 
@@ -558,7 +610,7 @@ export default function Dashboard() {
 
     const handleStartPomodoro = (projectId: string) => {
         setFocusAutoStartProjectId(projectId);
-        setCurrentView('POMODORO');
+        setIsPomodoroActive(true);
     };
 
     const handleOpenSmartTaskCreator = (date: Date, smartProjectId?: string) => {
@@ -594,6 +646,12 @@ export default function Dashboard() {
         setEditingQuest(null);
         setSmartTaskProps(null);
     };
+
+    const handleQuestSave = useCallback(async (quest: Partial<Quest>) => {
+        await handleQuestConfirm(quest);
+        setEditingQuest(null);
+        setSmartTaskProps(null);
+    }, [handleQuestConfirm]);
 
     const handleDeleteSmartProject = async (projectId?: string) => {
         const targetId = projectId || smartProject?.id;
@@ -720,7 +778,7 @@ export default function Dashboard() {
         }
 
         if (view === 'POMODORO') {
-            setCurrentView('POMODORO');
+            setIsPomodoroActive(true);
             return;
         }
 
@@ -800,6 +858,157 @@ export default function Dashboard() {
         return dbStreak;
     })();
 
+    // --- HARDWARE BACK BUTTON HANDLER ---
+    useEffect(() => {
+        const handleBackButton = async () => {
+            // 1. Modals & Overlays (Highest Priority)
+            if (activeModal) {
+                setActiveModal(null);
+                return;
+            }
+            if (validationHabit) {
+                setValidationHabit(null);
+                return;
+            }
+            if (relapsingHabit) {
+                setRelapsingHabit(null);
+                return;
+            }
+            if (isWizardOpen) {
+                setIsWizardOpen(false);
+                return;
+            }
+            if (habitActionsHabit) {
+                setHabitActionsHabit(null);
+                return;
+            }
+            if (confirmationModal.isOpen) {
+                setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                return;
+            }
+            if (editingQuest) {
+                setEditingQuest(null);
+                return;
+            }
+            if (editingHabit) {
+                setEditingHabit(null);
+                return;
+            }
+            if (isProModalOpen) {
+                setIsProModalOpen(false);
+                return;
+            }
+            if (isSettingsOpen) {
+                setIsSettingsOpen(false);
+                return;
+            }
+            if (isProjectDetailOpen) {
+                setIsProjectDetailOpen(false);
+                return;
+            }
+
+            // 2. Side Panels / Dock
+            if (isNotesStatsOpen) {
+                setIsNotesStatsOpen(false);
+                return;
+            }
+            if (isDockOpen) {
+                setIsDockOpen(false);
+                return;
+            }
+
+            // 3. Immersive / Full Screen Modes
+            if (isNexusImmersive) {
+                setIsNexusImmersive(false);
+                return;
+            }
+            if (isFullScreenFocus) {
+                setIsFullScreenFocus(false);
+                return;
+            }
+            if (forceFocusOpen) {
+                handleExitFocusSession();
+                return;
+            }
+
+            // 4. Navigation (Smart History)
+            if (viewHistory.length > 1) {
+                // If we have history, pop the current view and go to the previous one
+                const newHistory = [...viewHistory];
+                newHistory.pop(); // Remove current view
+                const previousView = newHistory[newHistory.length - 1];
+
+                // Set flag so we don't re-add this back navigation to history
+                isBackNavigating.current = true;
+                
+                // Update History State immediately for sync
+                setViewHistory(newHistory);
+                
+                // Navigate
+                setCurrentView(previousView);
+                return;
+            }
+
+            // Fallback: If history is empty/corrupted but we are not at home, go home
+            if (currentView !== 'TASKS') {
+                setCurrentView('TASKS');
+                return;
+            }
+
+            // 5. Exit App
+            App.exitApp();
+        };
+
+        const setupListener = async () => {
+            try {
+                return await App.addListener('backButton', handleBackButton);
+            } catch (e) {
+                console.warn('Back button listener failed', e);
+            }
+        };
+
+        const listenerPromise = setupListener();
+
+        return () => {
+            listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
+        };
+    }, [
+        activeModal, 
+        validationHabit, 
+        relapsingHabit, 
+        isWizardOpen, 
+        habitActionsHabit, 
+        confirmationModal.isOpen,
+        editingQuest, 
+        editingHabit, 
+        isProModalOpen,
+        isSettingsOpen,
+        isProjectDetailOpen,
+        isNotesStatsOpen, 
+        isDockOpen, 
+        isNexusImmersive, 
+        isFullScreenFocus, 
+        forceFocusOpen,
+        currentView,
+        handleExitFocusSession,
+        setCurrentView,
+        setActiveModal,
+        setValidationHabit,
+        setRelapsingHabit,
+        setIsWizardOpen,
+        setHabitActionsHabit,
+        setConfirmationModal,
+        setEditingQuest,
+        setEditingHabit,
+        setIsProModalOpen,
+        setIsSettingsOpen,
+        setIsProjectDetailOpen,
+        setIsNotesStatsOpen,
+        setIsDockOpen,
+        setIsNexusImmersive,
+        setIsFullScreenFocus
+    ]);
+
     return (
         <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
             <GlobalStyles />
@@ -873,7 +1082,7 @@ export default function Dashboard() {
                 <ParticleLayer particles={particles} />
 
                 {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
-                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && currentView !== 'POMODORO' && (
+                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && (
                     <>
                         <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
                             <div className="max-w-md mx-auto px-4 sm:px-6">
@@ -896,7 +1105,6 @@ export default function Dashboard() {
                                     isPro={user?.plan === 'PRO'}
                                     avatarId={user?.avatarId}
                                     avatarShape={avatarShape}
-                                    onUpdateLevel={updatePlayerLevel}
                                     isHabitsCompleted={isStreakActiveToday}
                                     dailyLimits={dailyLimits}
                                     onNavigate={handleDockViewChange}
@@ -909,13 +1117,12 @@ export default function Dashboard() {
                         {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
                         {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
                              <div className={cn(
-                                "px-4 sm:px-6 max-w-md mx-auto mt-2 mb-2",
+                                "px-4 sm:px-6 max-w-md mx-auto mt-1 mb-1",
                                 "relative z-[290]"
                              )}>
                                 <PlayerHUD 
                                     attributes={attributes}
                                     defaultChartMode={defaultChartMode}
-                                    onUpdateAttributeLevel={updateAttributeLevel}
                                 />
                             </div>
                         )}
@@ -943,7 +1150,11 @@ export default function Dashboard() {
                                             onCompleteQuest={completeQuest} 
                                             onDeleteQuest={handleDeleteQuest} 
                                             onEditQuest={handleEditQuest}
-                                            onAddQuest={() => setActiveModal('QUEST')}
+                                            onAddQuest={() => {
+                                                setEditingQuest(null);
+                                                setSmartTaskProps(null);
+                                                setActiveModal('QUEST');
+                                            }}
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
                                             onOpenNexus={handleOpenNexus}
@@ -1099,6 +1310,7 @@ export default function Dashboard() {
                                                 notesCompleted: (prev.notesCompleted || 0) + 1
                                             }));
                                         }}
+                                        isActive={currentView === 'NOTES'}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -1219,7 +1431,7 @@ export default function Dashboard() {
                             }} 
                             isOpen={isDockOpen} 
                             onToggle={setIsDockOpen} 
-                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || currentView === 'POMODORO' || !!activeModal}
+                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK'}
                             dashboardStyle={dashboardStyle}
                             taskViewMode={taskViewMode}
                             habitViewMode={habitViewMode}
@@ -1228,16 +1440,17 @@ export default function Dashboard() {
                         document.body
                     )}
                     
-                    {/* --- GLOBAL BLUR BACKDROP (APPLE INTELLIGENCE MODE) --- */}
+                    {/* --- GLOBAL BACKDROP (OPTIMIZED) --- */}
                     <AnimatePresence>
                         {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || isDockOpen) && (
                             <motion.div 
                                 initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[350] bg-black/40 backdrop-blur-[1px]"
-                            onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
-                        />
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                className="fixed inset-0 z-[350] bg-black/60 gpu-accelerated"
+                                onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
+                            />
                         )}
                     </AnimatePresence>
 
@@ -1248,7 +1461,7 @@ export default function Dashboard() {
                         attributes={attributes} 
                         projects={projects} 
                         smartProjects={smartProjects}
-                        onConfirm={handleQuestConfirm}
+                        onConfirm={handleQuestSave}
                         lockedAttributeId={smartTaskProps?.lockedAttributeId}
                         lockedDate={smartTaskProps?.lockedDate}
                         lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
@@ -1334,33 +1547,44 @@ export default function Dashboard() {
                 {/* --- SETTINGS OVERLAY --- */}
                 <AnimatePresence>
                     {isSettingsOpen && (
-                        <Suspense fallback={null}>
-                            <SettingsView 
-                                currentTheme={currentTheme}
-                                onThemeToggle={(id) => setCurrentTheme(id as any)}
-                                showProfile={showProfile}
-                                onToggleProfile={setShowProfile}
-                                onClose={() => setIsSettingsOpen(false)}
-                                defaultChartMode={defaultChartMode}
-                                onSetDefaultChartMode={setDefaultChartMode}
-                                attributes={attributes}
-                                onUpdateAttribute={updateAttributeMetadata}
-                                onAddAttribute={addAttribute}
-                                onRemoveAttribute={removeAttribute}
-                                onShowPro={() => setActiveModal('PRO')}
-                                isPro={user?.plan === 'PRO'}
-                                dashboardStyle={dashboardStyle}
-                                onDashboardStyleChange={updateDashboardStyle}
-                                avatarShape={avatarShape}
-                                onAvatarShapeChange={updateAvatarShape}
-                                vividMode={vividMode}
-                                onToggleVividMode={setVividMode}
-                                habitSectionControl={habitSectionControl}
-                                onUpdateHabitSectionControl={updateHabitSectionControl}
-                                allowDockSectionSwitch={allowDockSectionSwitch}
-                                onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
+                        settingsLocked && settingsPin ? (
+                            <SecurityGate 
+                                isOpen={true}
+                                pin={settingsPin}
+                                onUnlock={() => setSettingsLocked(false)}
+                                onCancel={() => setIsSettingsOpen(false)}
+                                title="Settings Locked"
+                                description="Enter PIN to configure app"
                             />
-                        </Suspense>
+                        ) : (
+                            <Suspense fallback={null}>
+                                <SettingsView 
+                                    currentTheme={currentTheme}
+                                    onThemeToggle={(id) => setCurrentTheme(id as any)}
+                                    showProfile={showProfile}
+                                    onToggleProfile={setShowProfile}
+                                    onClose={() => setIsSettingsOpen(false)}
+                                    defaultChartMode={defaultChartMode}
+                                    onSetDefaultChartMode={setDefaultChartMode}
+                                    attributes={attributes}
+                                    onUpdateAttribute={updateAttributeMetadata}
+                                    onAddAttribute={addAttribute}
+                                    onRemoveAttribute={removeAttribute}
+                                    onShowPro={() => setActiveModal('PRO')}
+                                    isPro={user?.plan === 'PRO'}
+                                    dashboardStyle={dashboardStyle}
+                                    onDashboardStyleChange={updateDashboardStyle}
+                                    avatarShape={avatarShape}
+                                    onAvatarShapeChange={updateAvatarShape}
+                                    vividMode={vividMode}
+                                    onToggleVividMode={setVividMode}
+                                    habitSectionControl={habitSectionControl}
+                                    onUpdateHabitSectionControl={updateHabitSectionControl}
+                                    allowDockSectionSwitch={allowDockSectionSwitch}
+                                    onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
+                                />
+                            </Suspense>
+                        )
                     )}
                 </AnimatePresence>
 
@@ -1378,12 +1602,12 @@ export default function Dashboard() {
 
                 {/* POMODORO OVERLAY - Root Level */}
                 <AnimatePresence>
-                    {currentView === 'POMODORO' && (
+                    {isPomodoroActive && (
                         <Suspense fallback={<div className="fixed inset-0 z-[500] bg-black" />}>
                             <PomodoroView 
                                 projects={projects}
                                 attributes={attributes}
-                                onExit={() => setCurrentView('FOCUS')}
+                                onExit={() => setIsPomodoroActive(false)}
                                 onCompleteSession={handleCompleteSession}
                                 onUpdateProject={handleUpdateProject}
                                 onDeleteSession={handleDeleteSession}

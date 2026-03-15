@@ -18,7 +18,7 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
       backgroundColor: "#020204",
       androidSplashResourceName: "splash",
-      androidScaleType: "CENTER_CROP",
+      androidScaleType: "CENTER_INSIDE",
       showSpinner: false,
     },
     Keyboard: {

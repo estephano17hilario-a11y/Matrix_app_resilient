@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, X } from 'lucide-react';
 import { Habit } from '../../../types';
@@ -16,6 +17,18 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
     const [value, setValue] = useState(habit.currentValue || 0);
     const [isEditing, setIsEditing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) {
@@ -62,17 +75,17 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
         }
     };
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-                    {/* Darker, blurrier backdrop */}
+                    {/* Darker, blurrier backdrop - NOW FULL SCREEN */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/80"
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                     />
 
                     {/* Modal Window */}
@@ -90,6 +103,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                 ? "shadow-[0_0_80px_-20px_rgba(16,185,129,0.3)] border-emerald-500/50" 
                                 : "shadow-2xl shadow-black/50"
                         )}
+                        onClick={e => e.stopPropagation()}
                     >
                          {/* Subtle Background Glow */}
                          <div className={cn(
@@ -181,6 +195,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };

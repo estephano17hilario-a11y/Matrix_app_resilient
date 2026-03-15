@@ -29,7 +29,7 @@ export const NeuralSection = () => {
   const startEditing = (attr: any) => {
     setEditingId(attr.id);
     setEditForm({ 
-        label: String(t(attr.label, attr.label)), 
+        label: String(t(attr.label, attr.label.replace('traits.', ''))), 
         color: attr.color 
     });
   };
@@ -133,7 +133,7 @@ export const NeuralSection = () => {
                                     {attr.icon ? <attr.icon size={18} /> : <Hexagon size={18} />}
                                 </div>
                                 <div>
-                                    <div className="text-base font-bold text-white tracking-tight">{t(attr.label, attr.label)}</div>
+                                    <div className="text-base font-bold text-white tracking-tight">{t(attr.label, attr.label.replace('traits.', ''))}</div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] text-white/30 font-mono uppercase bg-white/5 px-1.5 py-0.5 rounded">LVL {attr.level}</span>
                                         <span className="text-[10px] text-white/20 font-mono">{attr.id}</span>
@@ -212,7 +212,7 @@ export const NeuralSection = () => {
                                     <Plus size={14} />
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-white font-medium text-sm group-hover:text-cyan-400 transition-colors">{t(trait.label, trait.label)}</div>
+                                    <div className="text-white font-medium text-sm group-hover:text-cyan-400 transition-colors">{t(trait.label, trait.label.replace('traits.', ''))}</div>
                                     <div className="text-white/20 text-xs font-mono">{trait.id}</div>
                                 </div>
                             </button>

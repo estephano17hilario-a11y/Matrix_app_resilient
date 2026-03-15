@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Eye, ChevronDown, Check, Sparkles, Briefcase, Zap, Layers } from 'lucide-react';
+import { Palette, Eye, ChevronDown, Check, Sparkles, Briefcase, Zap, Layers, Rocket } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { THEMES } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
 
-type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo';
+type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
 export const VisualsSection = () => {
   const { 
@@ -25,6 +25,7 @@ export const VisualsSection = () => {
 
   const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
     { id: 'all', label: 'All Reality', icon: Sparkles },
+    { id: 'cosmic', label: 'Cosmic Void', icon: Rocket },
     { id: 'holo', label: 'Holographic', icon: Layers },
     { id: 'orbs', label: 'Living Orbs', icon: Zap },
     { id: 'minimal', label: 'Office & Focus', icon: Briefcase },
@@ -33,6 +34,7 @@ export const VisualsSection = () => {
 
   const filteredThemes = Object.values(THEMES).filter(theme => {
     if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'cosmic') return theme.category === 'cosmic';
     if (selectedCategory === 'holo') return theme.category === 'holo';
     if (selectedCategory === 'orbs') return theme.category === 'orbs';
     if (selectedCategory === 'minimal') return theme.category === 'minimal';

@@ -27,9 +27,9 @@ interface StreakRoadmapViewProps {
 // --- COMPONENTS ---
 
 const HeaderStat = ({ label, value, colorClass = "text-white" }: { label: string, value: string, colorClass?: string }) => (
-    <div className="flex flex-col items-center justify-center p-4">
-        <span className="text-xs font-medium text-gray-400 tracking-wider mb-1">{label}</span>
-        <span className={cn("text-2xl font-bold font-mono", colorClass)}>{value}</span>
+    <div className="flex flex-col items-center justify-center py-4">
+        <span className="text-[9px] font-black text-white/30 tracking-[0.2em] mb-1 uppercase">{label}</span>
+        <span className={cn("text-xl font-black tracking-tight", colorClass)}>{value}</span>
     </div>
 );
 
@@ -174,38 +174,65 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-[#020204] text-white flex flex-col h-full w-full overflow-hidden font-sans"
         >
-            {/* Background Ambience (Fixed) */}
+            {/* Background Ambience (Ultra-Elegant Mesh Gradient - Static & High Perf) */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/20 blur-[120px] animate-pulse-slow" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-500/20 blur-[120px] animate-pulse-slow delay-700" />
-                <div className="absolute top-[40%] left-[20%] w-[400px] h-[400px] rounded-full bg-pink-500/10 blur-[120px] animate-pulse-slow delay-1000" />
+                {/* Primary Mesh Layer */}
+                <div 
+                    className="absolute inset-0 opacity-80"
+                    style={{
+                        background: `
+                            radial-gradient(at 0% 0%, #1e1b4b 0%, transparent 50%),
+                            radial-gradient(at 100% 0%, #312e81 0%, transparent 50%),
+                            radial-gradient(at 100% 100%, #1e3a8a 0%, transparent 50%),
+                            radial-gradient(at 0% 100%, #172554 0%, transparent 50%),
+                            radial-gradient(at 50% 50%, #1e1b4b 0%, transparent 50%)
+                        `
+                    }}
+                />
+                {/* Secondary Accent Layer (Mesh Style) */}
+                <div 
+                    className="absolute inset-0 opacity-40 mix-blend-screen"
+                    style={{
+                        background: `
+                            radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.2) 0%, transparent 40%),
+                            radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+                            radial-gradient(circle at 80% 10%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+                            radial-gradient(circle at 20% 90%, rgba(236, 72, 153, 0.1) 0%, transparent 40%)
+                        `
+                    }}
+                />
+                {/* Subtle Grain Texture for high-end feel */}
+                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
             </div>
 
             {/* --- HEADER --- */}
-                <div className="flex-none z-20 bg-[#020204]/15 backdrop-blur-sm border-b border-white/5">
-                    <div className="flex items-center justify-between px-4 py-4">
+                <div className="flex-none z-20 pt-safe relative">
+                    {/* Header Ambient Glow (Truly Integrated) */}
+                    <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
+                    
+                    <div className="relative flex items-center justify-between px-4 py-4">
                         <button 
                             onClick={onClose}
-                            className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors active:scale-95"
+                            className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-all active:scale-95 backdrop-blur-xl"
                         >
-                            <ArrowLeft className="w-6 h-6 text-gray-300" />
+                            <ArrowLeft className="w-6 h-6 text-white/90" />
                         </button>
                         
                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] font-bold tracking-[0.2em] text-gray-500 uppercase">El Camino</span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-bold text-white">Día {currentStreak}</span>
-                                <span className="text-sm text-gray-500 font-medium">/ {TOTAL_DAYS}</span>
+                            <span className="text-[9px] font-black text-white/30 tracking-[0.3em] uppercase mb-0.5">EL CAMINO</span>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-2xl font-black text-white tracking-tight drop-shadow-lg">Día {currentStreak}</span>
+                                <span className="text-xs text-white/30 font-bold">/ {TOTAL_DAYS}</span>
                             </div>
                         </div>
 
-                        <div className="p-2 rounded-full bg-amber-500/10 border border-amber-500/20">
-                            <Flame className="w-6 h-6 text-amber-500 fill-amber-500/50 animate-pulse-slow" />
+                        <div className="p-2.5 rounded-2xl bg-amber-500/5 border border-amber-500/10 backdrop-blur-xl">
+                            <Flame className="w-6 h-6 text-amber-500 fill-amber-500/40" />
                         </div>
                     </div>
 
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-2 divide-x divide-white/5 border-t border-white/5">
+                    {/* Stats Row (No more black boxes - Pure transparency) */}
+                    <div className="relative grid grid-cols-2 divide-x divide-white/5 border-y border-white/5">
                         <HeaderStat label="META DIARIA" value="50%" />
                         <HeaderStat label="PROGRESO HOY" value={`${todayProgress}%`} colorClass={todayProgress >= 100 ? "text-emerald-400" : "text-cyan-400"} />
                     </div>
@@ -217,9 +244,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                     className="flex-1 overflow-y-auto relative scrollbar-hide"
                     style={{ perspective: '1000px' }}
                 >
-
-
-                    <div className="relative min-h-[2000px] w-full flex justify-center pb-20 pt-10">
+                    <div className="relative w-full flex justify-center pb-32 pt-10" style={{ minHeight: `${roadmapData.length * NODE_HEIGHT + 200}px` }}>
                         {/* SVG PATH LAYER */}
                         <svg 
                             className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
@@ -228,41 +253,31 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                         >
                             <defs>
                                 <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#10b981" /> {/* emerald-500 */}
-                                    <stop offset="50%" stopColor="#06b6d4" /> {/* cyan-500 */}
-                                    <stop offset="100%" stopColor="#3b82f6" /> {/* blue-500 */}
+                                    <stop offset="0%" stopColor="#10b981" />
+                                    <stop offset="50%" stopColor="#06b6d4" />
+                                    <stop offset="100%" stopColor="#3b82f6" />
                                 </linearGradient>
-                                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                                    <feMerge>
-                                        <feMergeNode in="coloredBlur"/>
-                                        <feMergeNode in="SourceGraphic"/>
-                                    </feMerge>
-                                </filter>
                             </defs>
                             
                             {/* Background Track */}
                             <path 
                                 d={pathD} 
                                 fill="none" 
-                                stroke="rgba(255,255,255,0.05)" 
-                                strokeWidth="4" 
+                                stroke="rgba(255,255,255,0.03)" 
+                                strokeWidth="6" 
                                 strokeLinecap="round"
                             />
 
-                            {/* Active Progress Path (Simulated - masking could be better but this works for demo) */}
-                            {/* For now, just color the whole path or up to current index? 
-                                Implementing partial path progress is complex without pathLength.
-                                Let's just use a gradient that fades out at the bottom or simulate segments.
-                            */}
+                            {/* Active Progress Path */}
                              <path 
                                 d={pathD} 
                                 fill="none" 
                                 stroke="url(#pathGradient)" 
-                                strokeWidth="4" 
+                                strokeWidth="6" 
                                 strokeLinecap="round"
-                                strokeDasharray="10 10"
-                                className="opacity-30"
+                                strokeDasharray="10 12"
+                                className="opacity-50"
+                                style={{ filter: 'drop-shadow(0 0 12px rgba(16, 185, 129, 0.4))' }}
                             />
                         </svg>
 
@@ -324,32 +339,32 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
                 
                 {/* Main Pill */}
-                <div className="relative flex items-center gap-3 pl-2 pr-6 py-3 bg-[#0a0a0a] border border-emerald-500/30 rounded-full shadow-xl shadow-emerald-900/20 backdrop-blur-sm">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/50 text-emerald-400">
+                <div className="relative flex items-center gap-4 pl-2 pr-6 py-3 bg-white/[0.03] border border-emerald-500/30 rounded-[2rem] shadow-2xl backdrop-blur-xl group-hover:bg-white/[0.06] transition-all duration-500">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 shadow-inner">
                         {progress >= 100 ? (
-                            <CheckCircle2 className="w-6 h-6" />
+                            <CheckCircle2 className="w-7 h-7" />
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
-                                {/* Circular Progress could go here */}
-                                <Circle className="w-6 h-6 animate-pulse" />
+                                <Circle className="w-7 h-7 opacity-80" />
+                                <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-[6px] animate-pulse" />
                             </div>
                         )}
                     </div>
                     
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                        <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.2em] mb-0.5">
                             HOY
                         </span>
                         <span className={cn(
-                            "text-sm font-bold",
+                            "text-base font-black tracking-tight",
                             progress >= 100 ? "text-emerald-400" : "text-white"
                         )}>
                             {progress >= 100 ? "Completado" : "En Progreso"}
                         </span>
                     </div>
 
-                    {/* Right Dot Indicator */}
-                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+                    {/* Indicator Dot */}
+                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[3px] border-[#020204] shadow-[0_0_15px_rgba(16,185,129,1)]" />
                 </div>
             </motion.div>
         );
@@ -362,26 +377,26 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={variants}
-                className="relative flex items-center gap-3 pl-3 pr-5 py-2.5 bg-white/5 border border-white/5 rounded-full backdrop-blur-sm opacity-60 hover:opacity-100 transition-opacity"
+                className="relative flex items-center gap-4 pl-3 pr-6 py-2.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md opacity-60 hover:opacity-100 transition-all duration-300 hover:bg-white/[0.04] shadow-sm"
             >
                 {/* Number Circle */}
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 text-gray-400 font-mono font-bold text-sm">
+                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white/60 font-mono font-black text-sm shadow-inner">
                     {node.day}
                 </div>
 
                 <div className="flex flex-col min-w-[80px]">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">
                         {node.label}
                     </span>
                     <div className="flex items-center gap-1.5">
-                        <Trophy className="w-3 h-3 text-gray-600" />
-                        <span className="text-xs font-medium text-gray-400">50%</span>
+                        <Trophy className="w-3.5 h-3.5 text-white/20" />
+                        <span className="text-xs font-black text-white/50 tracking-tight">50%</span>
                     </div>
                 </div>
 
                 {/* Connector Dot */}
                 <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/20 bg-[#020204]",
+                    "absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm",
                     node.side === 'left' ? "-right-1" : "-left-1"
                 )} />
             </motion.div>
@@ -394,9 +409,9 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
             initial="hidden"
             animate="visible"
             variants={variants}
-            className="w-12 h-12 rounded-full bg-gray-800/50 border border-white/10 flex items-center justify-center backdrop-blur-sm grayscale opacity-50"
+            className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center backdrop-blur-sm grayscale-[0.5] opacity-40 hover:opacity-100 transition-all duration-300"
         >
-            <CheckCircle2 className="w-5 h-5 text-gray-500" />
+            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
         </motion.div>
     );
 };

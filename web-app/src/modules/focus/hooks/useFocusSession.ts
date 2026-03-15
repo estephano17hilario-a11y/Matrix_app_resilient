@@ -17,7 +17,7 @@ export interface FocusSessionState {
 
 const STORAGE_PREFIX = 'matrix_focus_session_';
 
-export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH') => void) => {
+export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH') => void, projectIcon?: string) => {
     // Initialize state from props first
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
     const [timeLeft, setTimeLeft] = useState(project.pomoDuration * 60);
@@ -124,7 +124,8 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                         duration: timeLeft, 
                         mode: mode,
                         projectName: project.title,
-                        projectColor: project.color || '#FFFFFF'
+                        projectColor: project.color || '#FFFFFF',
+                        projectIcon: projectIcon || '⚡'
                     }).catch(console.error);
                 }
             } else {
@@ -134,7 +135,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
         syncNative();
 
-    }, [isActive, isPaused, mode, totalDuration, project.id]);
+    }, [isActive, isPaused, mode, totalDuration, project.id, projectIcon]);
 
     // 3. Timer Logic
     useEffect(() => {

@@ -107,7 +107,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';
     const hasColorSource = !!attrId;
     const SelectedIcon = selectedAttr?.icon || Briefcase;
-    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label) : t('modals.project.traitDefault', 'Trait');
+    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : t('modals.project.traitDefault', 'Trait');
 
     const calculatedDailyGoal = useMemo(() => {
         // Normalize to hours for calculations
@@ -362,11 +362,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                                             <Icon size={16} style={{ color: attr.color }} />
                                                                         </div>
                                                                         <span className={cn(
-                                                                            "text-xs font-bold",
-                                                                            isSelected ? "text-white" : "text-slate-400"
-                                                                        )}>
-                                                                            {t(attr.label, attr.label)}
-                                                                        </span>
+                                                            "text-xs font-bold",
+                                                            isSelected ? "text-white" : "text-slate-400"
+                                                        )}>
+                                                            {t(attr.label, attr.label.replace('traits.', ''))}
+                                                        </span>
                                                                     </button>
                                                                 )
                                                             })}

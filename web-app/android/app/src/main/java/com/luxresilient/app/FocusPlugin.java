@@ -99,6 +99,7 @@ public class FocusPlugin extends Plugin {
         String mode = call.getString("mode", "POMO");
         String projectName = call.getString("projectName", "Focus Session");
         String projectColor = call.getString("projectColor", "#FFFFFF");
+        String projectIcon = call.getString("projectIcon", ""); // Optional icon string (emoji or name)
         
         // Start Foreground Service
         Intent intent = new Intent(getContext(), FocusService.class);
@@ -107,6 +108,7 @@ public class FocusPlugin extends Plugin {
         intent.putExtra("mode", mode);
         intent.putExtra("projectName", projectName);
         intent.putExtra("projectColor", projectColor);
+        intent.putExtra("projectIcon", projectIcon);
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);

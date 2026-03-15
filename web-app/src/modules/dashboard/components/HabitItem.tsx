@@ -169,7 +169,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
     >
         {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
-            className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-500" 
+            className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-200" 
             style={{ backgroundColor: baseColor }}
         />
 
@@ -264,7 +264,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
                              {attribute?.icon && <attribute.icon size={14} style={{ color: attribute.color }} />}
                              <div className="flex flex-col">
                                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Trait</span>
-                                 <span className="text-[11px] text-white font-medium">{attribute ? t(attribute.label) : 'Neutral'}</span>
+                                 <span className="text-[11px] text-white font-medium">{attribute ? t(attribute.label, attribute.label.replace('traits.', '')) : 'Neutral'}</span>
                              </div>
                          </div>
                          

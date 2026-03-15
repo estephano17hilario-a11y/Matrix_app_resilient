@@ -4,6 +4,7 @@ import { X, Lock, Key, FileText, CreditCard, Eye, EyeOff, Copy, Plus, Trash2, Sh
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
+import { SecurityGate } from '../../../components/ui/SecurityGate';
 
 interface SecureItem {
     id: string;
@@ -211,7 +212,20 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
             {/* Content */}
             <div className="flex-1 overflow-hidden relative z-10">
                 {!isUnlocked ? (
-                    <div className="h-full flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in zoom-in-95 duration-300">
+                    !isSetupMode ? (
+                        <SecurityGate
+                            isOpen={true}
+                            pin={localStorage.getItem('secure_vault_pin') || ''}
+                            onUnlock={() => {
+                                setIsUnlocked(true);
+                                toast.success("Vault Unlocked");
+                            }}
+                            onCancel={onClose}
+                            title="Access Vault"
+                            description="Enter your 5-digit security code."
+                        />
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in zoom-in-95 duration-300">
                         <div className="mb-4 md:mb-8 relative">
                             <div className="w-12 h-12 md:w-24 md:h-24 rounded-[16px] md:rounded-[32px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.3)]">
                                 <Lock className="text-white drop-shadow-md w-6 h-6 md:w-10 md:h-10" />
@@ -222,14 +236,10 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
                         </div>
 
                         <h3 className="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">
-                            {isSetupMode 
-                                ? (setupPin ? "Confirm PIN" : "Create Vault PIN") 
-                                : "Enter Access PIN"}
+                            {setupPin ? "Confirm PIN" : "Create Vault PIN"}
                         </h3>
                         <p className="text-white/40 text-[10px] md:text-sm mb-4 md:mb-8 max-w-[200px] md:max-w-xs text-center leading-relaxed">
-                            {isSetupMode 
-                                ? "Set a 5-digit security code." 
-                                : "Enter your 5-digit security code."}
+                            Set a 5-digit security code.
                         </p>
 
                         {/* PIN Dots */}
@@ -272,6 +282,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
                             </button>
                         </div>
                     </div>
+                    )
                 ) : (
                     <div className="h-full flex flex-col">
                         {/* Toolbar */}

@@ -1,4 +1,4 @@
-export type ThemeCategory = 'orbs' | 'minimal' | 'nature' | 'flow' | 'holo';
+export type ThemeCategory = 'orbs' | 'minimal' | 'nature' | 'flow' | 'holo' | 'cosmic';
 
 export type ThemeId = 
   | 'ether' | 'matrix' | 'digital_rain' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' 
@@ -7,7 +7,8 @@ export type ThemeId =
   | 'spotlight' | 'nebula' | 'aurora' | 'amy' | 'modern_dark' | 'modern_light' 
   | 'luxury' | 'graphite' | 'simple_dark'
   | 'midnight_flow' | 'titanium_flow' | 'velvet_flow' | 'oceanic_flow' | 'phantom_flow' | 'ember_flow'
-  | 'holo_spectrum' | 'holo_vision' | 'holo_midnight' | 'holo_blush' | 'holo_frost';
+  | 'holo_spectrum' | 'holo_vision' | 'holo_midnight' | 'holo_blush' | 'holo_frost'
+  | 'cosmic_void';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -576,5 +577,22 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       textPrimary: '240 250 255',
     },
     gradient: 'linear-gradient(135deg, #0ea5e9 0%, #ffffff 100%)',
+  },
+  // COSMIC CATEGORY - Deep Space / Void
+  cosmic_void: {
+    id: 'cosmic_void',
+    name: 'Cosmic Void',
+    description: 'Deep Space',
+    category: 'cosmic',
+    isSolid: true,
+    bgStyle: 'radial-gradient(circle at 50% -20%, #2e1065 0%, #0f172a 40%, #000000 100%)',
+    colors: {
+      bgDepth: '5 5 10', // Very Dark Purple/Black
+      primaryGlow: '56 189 248', // Sky Blue
+      secondaryGlow: '139 92 246', // Violet
+      glassTint: '30 20 50',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #2e1065 0%, #000000 100%)',
   },
 };

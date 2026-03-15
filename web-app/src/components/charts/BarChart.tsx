@@ -167,20 +167,15 @@ export const BarChart = React.memo(({
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`${stacked ? 'w-full' : 'w-full h-full'} relative flex items-end justify-center transition-all duration-300`}
-                                            style={stacked ? { height: `${h * 100}%`, minHeight: val > 0 ? '4px' : '0' } : { }}
+                                            className={`w-full transition-all duration-500 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
+                                            style={{ 
+                                                height: `${h * 100}%`,
+                                                background: backgroundStyle,
+                                                boxShadow: shadowStyle
+                                            }}
                                         >
-                                             <div 
-                                                className={`w-full ${val > 0 ? 'min-h-[4px]' : 'h-0'} ${roundingClass} rounded-b-none ${stacked && idx > 0 ? 'border-b border-black/10' : ''} relative transition-all duration-500 ease-out ${barClassName} group-hover:brightness-110 group-hover:scale-[1.02] group-hover:-translate-y-0.5`}
-                                                style={{ 
-                                                    height: stacked ? '100%' : `${h * 100}%`,
-                                                    // Vision Pro Modern: Cleaner gradient, less bloom
-                                                    background: backgroundStyle,
-                                                    // Reduced Glow (-15%): Sharper rim, softer volume
-                                                    boxShadow: shadowStyle
-                                                }}
-                                             >
-                                                {/* Glass Specular Highlight (Refined) */}
+                                             {/* Shine Effect */}
+                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30 mix-blend-overlay" />
                                                 
                                                 {/* Bottom Grounding Shadow */}

@@ -30,20 +30,25 @@ export const calculateTaskRewards = (
   const minutes = (estimatedTime && estimatedTime > 0) ? estimatedTime : 30;
   const hours = minutes / 60;
   
-  // 1. Base Rewards for Duration
-  xp = Math.round(hours * BASE_XP_PER_HOUR);
-  coins = Math.round(hours * BASE_COINS_PER_HOUR);
-  traitXp = Math.round(hours * BASE_TP_PER_HOUR);
+  // 1. Base Rewards for Duration with Aggressive Diminishing Returns
+  // Use a square root curve (x^0.5) so longer tasks yield significantly less marginal reward.
+  // 1 Hour = 1x, 4 Hours = 2x (instead of 4x).
+  const timeMultiplier = Math.pow(hours, 0.5);
+
+  xp = Math.round(timeMultiplier * BASE_XP_PER_HOUR);
+  coins = Math.round(timeMultiplier * BASE_COINS_PER_HOUR);
+  traitXp = Math.round(timeMultiplier * BASE_TP_PER_HOUR);
 
   // 2. Completion Bonus
-  // Scale bonus linearly but with a generous floor
-  const durationFactor = Math.min(1.5, Math.max(0.8, hours)); // Min 0.8x, Max 1.5x
+  // Scale bonus linearly but with a lower floor for short tasks
+  // Cap the duration factor strictly to 1.0 to prevent abuse
+  const durationFactor = Math.min(1.0, Math.max(0.2, hours)); // Reduced min from 0.8 to 0.2 for short tasks
   const baseBonus = 10 * durationFactor; // Base bonus 10
   
-  // Impact Multiplier (Difficulty)
+  // Impact Multiplier (Difficulty) - HEAVILY BOOSTED
   // Impact 1 (Easy) -> 1x
-  // Impact 3 (Hard) -> 1.5x
-  const impactMultiplier = 1 + ((impact - 1) * 0.25);
+  // Impact 3 (Hard) -> 2.2x (Was 1.7x)
+  const impactMultiplier = 1 + ((impact - 1) * 0.60);
   
   // Calculate Bonus
   const bonusXp = Math.floor(baseBonus * impactMultiplier);
@@ -54,10 +59,10 @@ export const calculateTaskRewards = (
   coins += bonusCoins;
   traitXp += bonusXp; // Bonus applies to TP too
 
-  // Ensure minimums (Floor)
-  xp = Math.max(15, xp);
-  coins = Math.max(5, coins);
-  traitXp = Math.max(10, traitXp);
+  // Ensure minimums (Floor) - Reduced for micro-habits
+  xp = Math.max(5, xp); // Was 15
+  coins = Math.max(2, coins); // Was 5
+  traitXp = Math.max(5, traitXp); // Was 10
 
   // 3. STREAK BONUS (Unified Here)
   // The streak bonus was previously calculated separately in the UI and Logic.

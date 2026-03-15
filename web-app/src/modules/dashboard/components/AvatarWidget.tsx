@@ -5,6 +5,7 @@ import { DailyLimits } from '@/types/User';
 import { GoldCounter } from '@/modules/store/components/GoldCounter';
 import { getAvatarPath, getAvatarConfig } from '@/config/avatars';
 import { calculateXpForLevel } from '@/utils/leveling';
+import { StreakStatusModal } from './StreakStatusModal';
 
 interface AvatarWidgetProps {
   level: number;
@@ -20,7 +21,6 @@ interface AvatarWidgetProps {
   isPro?: boolean;
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
-  onUpdateLevel?: (newLevel: number) => void;
   isHabitsCompleted?: boolean;
   onNavigate?: (view: string) => void;
 }
@@ -85,8 +85,6 @@ const MiniLiquidBar = ({  value,
     </div>
   );
 };
-
-import { StreakStatusModal } from './StreakStatusModal';
 
 export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, onNavigate }: AvatarWidgetProps) => {
     const [showStreakModal, setShowStreakModal] = React.useState(false);

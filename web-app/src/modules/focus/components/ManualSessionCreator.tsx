@@ -57,76 +57,94 @@ export const ManualSessionCreator = ({
             className="absolute inset-0 bg-[#000000] flex flex-col z-50 font-sans"
         >
             {/* Header */}
-            <div className="pt-6 pb-2 px-6 flex items-center justify-between shrink-0">
+            <div className="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 border-b border-white/5 bg-black/40 backdrop-blur-sm sticky top-0 z-[60]">
                 <div className="flex-1" /> {/* Spacer left */}
-                <h2 className="text-[17px] font-bold text-white tracking-tight">
-                    {isEditing ? 'Editar sesión' : 'Nueva sesión'}
-                </h2>
-                <div className="flex-1 flex justify-end gap-4">
+                <div className="flex flex-col items-center">
+                    <h2 className="text-[17px] font-black text-white tracking-tight uppercase">
+                        {isEditing ? 'Editar sesión' : 'Nueva sesión'}
+                    </h2>
+                    <div className="w-8 h-1 bg-[#0A84FF] rounded-full mt-1 shadow-[0_0_10px_rgba(10,132,255,0.5)]" />
+                </div>
+                <div className="flex-1 flex justify-end gap-3">
                     {isEditing && onDelete && (
                         <button 
                             onClick={onDelete}
-                            className="w-8 h-8 rounded-full bg-[#1C1C1E] text-red-500 flex items-center justify-center active:bg-[#2C2C2E] transition-colors"
+                            className="w-10 h-10 rounded-2xl bg-[#1C1C1E] text-red-500 flex items-center justify-center active:scale-90 transition-all border border-red-500/10"
                         >
-                            <Trash2 size={16} />
+                            <Trash2 size={18} />
                         </button>
                     )}
                     <button 
                         onClick={onCancel}
-                        className="w-8 h-8 rounded-full bg-[#1C1C1E] text-[#8E8E93] flex items-center justify-center active:bg-[#2C2C2E] transition-colors"
+                        className="w-10 h-10 rounded-2xl bg-[#1C1C1E] text-[#8E8E93] flex items-center justify-center active:scale-90 transition-all border border-white/5"
                     >
-                        <X size={16} />
+                        <X size={18} />
                     </button>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col px-4 pt-4 pb-6 gap-4 overflow-y-auto">
+            <div className="flex-1 flex flex-col px-4 pt-6 pb-8 gap-6 overflow-y-auto custom-scrollbar">
                 
                 {/* 1. DURATION DISPLAY (Large Container) */}
                 <div 
                     onClick={() => setActivePicker('DURATION')}
                     className={cn(
-                        "w-full rounded-[20px] py-8 flex flex-col items-center justify-center transition-colors cursor-pointer relative overflow-hidden",
-                        activePicker === 'DURATION' ? "bg-[#1C1C1E]" : "bg-[#1C1C1E]/40"
+                        "w-full rounded-[28px] py-10 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden border",
+                        activePicker === 'DURATION' 
+                            ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.1)]" 
+                            : "bg-[#1C1C1E]/40 border-white/5"
                     )}
                 >
-                    <span className="text-[11px] font-bold text-[#0A84FF] uppercase tracking-widest mb-1">DURACIÓN</span>
-                    <span className="text-[42px] font-medium text-[#0A84FF] tracking-tight tabular-nums leading-none">
-                        {hours}h {minutes.toString().padStart(2, '0')}m
+                    <span className={cn(
+                        "text-[10px] font-black uppercase tracking-widest mb-2 transition-colors",
+                        activePicker === 'DURATION' ? "text-[#0A84FF]" : "text-[#8E8E93]"
+                    )}>DURACIÓN</span>
+                    <span className={cn(
+                        "text-[48px] font-black tracking-tighter tabular-nums leading-none transition-colors",
+                        activePicker === 'DURATION' ? "text-white" : "text-white/40"
+                    )}>
+                        {hours}<span className="text-[24px] font-medium text-white/30 mx-1">h</span> {minutes.toString().padStart(2, '0')}<span className="text-[24px] font-medium text-white/30 mx-1">m</span>
                     </span>
+                    
+                    {activePicker === 'DURATION' && (
+                        <motion.div 
+                            layoutId="active-indicator"
+                            className="absolute bottom-3 w-12 h-1 rounded-full bg-[#0A84FF]"
+                        />
+                    )}
                 </div>
 
                 {/* 2. WHEEL PICKER (The centerpiece) */}
-                <div className="relative h-[250px] w-full shrink-0 select-none overflow-hidden">
+                <div className="relative h-[280px] w-full shrink-0 select-none overflow-hidden bg-[#0A0A0A] rounded-[32px] border border-white/5">
                     
                     {/* Highlight Bar (The "Selection" Row) */}
-                    <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-[44px] bg-[#1C1C1E] rounded-[8px] z-0 mx-4" />
+                    <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-[56px] bg-[#1C1C1E] rounded-[16px] z-0 border border-white/5 shadow-inner" />
 
                     {/* Gradient Masks (Fade Effect) */}
-                    <div className="absolute top-0 left-0 right-0 h-[80px] bg-gradient-to-b from-black via-black/80 to-transparent z-10 pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 right-0 h-[80px] bg-gradient-to-t from-black via-black/80 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute top-0 left-0 right-0 h-[100px] bg-gradient-to-b from-black via-black/80 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-black via-black/80 to-transparent z-10 pointer-events-none" />
 
                     {/* Wheel Content */}
                     <AnimatePresence mode="wait">
                         {activePicker === 'DURATION' ? (
                             <motion.div 
                                 key="duration-wheel"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="grid grid-cols-[1fr_auto_1fr_auto] h-full relative z-20 px-12"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="grid grid-cols-[1fr_auto_1fr_auto] h-full relative z-20 px-10"
                             >
                                 {/* Hours */}
                                 <TimeWheel 
                                     value={hours} 
                                     onChange={setHours} 
                                     items={durationHoursArray} 
-                                    height={250}
-                                    itemHeight={44}
+                                    height={280}
+                                    itemHeight={56}
                                 />
                                 <div className="flex items-center h-full pt-[2px] pointer-events-none">
-                                    <span className="text-[17px] font-medium text-white pl-2 pr-6">horas</span>
+                                    <span className="text-[15px] font-bold text-white/40 uppercase tracking-widest pl-2 pr-4">h</span>
                                 </div>
 
                                 {/* Minutes */}
@@ -134,19 +152,19 @@ export const ManualSessionCreator = ({
                                     value={minutes} 
                                     onChange={setMinutes} 
                                     items={minutesArray} 
-                                    height={250}
-                                    itemHeight={44}
+                                    height={280}
+                                    itemHeight={56}
                                 />
                                 <div className="flex items-center h-full pt-[2px] pointer-events-none">
-                                    <span className="text-[17px] font-medium text-white pl-2">min</span>
+                                    <span className="text-[15px] font-bold text-white/40 uppercase tracking-widest pl-2">m</span>
                                 </div>
                             </motion.div>
                         ) : (
                             <motion.div 
                                 key="start-wheel"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
                                 className="grid grid-cols-[1fr_auto_1fr] h-full relative z-20 px-16"
                             >
                                 {/* Hours */}
@@ -158,12 +176,12 @@ export const ManualSessionCreator = ({
                                         setStartDate(newDate);
                                     }} 
                                     items={hoursArray} 
-                                    height={250}
-                                    itemHeight={44}
+                                    height={280}
+                                    itemHeight={56}
                                 />
                                 
                                 <div className="flex items-center justify-center h-full pointer-events-none pb-1">
-                                    <span className="text-[28px] font-medium text-white/20">:</span>
+                                    <span className="text-[32px] font-black text-[#0A84FF] opacity-50">:</span>
                                 </div>
 
                                 {/* Minutes */}
@@ -175,8 +193,8 @@ export const ManualSessionCreator = ({
                                         setStartDate(newDate);
                                     }} 
                                     items={minutesArray} 
-                                    height={250}
-                                    itemHeight={44}
+                                    height={280}
+                                    itemHeight={56}
                                 />
                             </motion.div>
                         )}
@@ -184,34 +202,42 @@ export const ManualSessionCreator = ({
                 </div>
 
                 {/* 3. START / END BOXES */}
-                <div className="grid grid-cols-2 gap-3 shrink-0">
+                <div className="grid grid-cols-2 gap-4 shrink-0">
                     {/* Start Time Card */}
                     <button 
                         onClick={() => setActivePicker('START_TIME')}
                         className={cn(
-                            "py-6 rounded-[20px] flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all",
-                            activePicker === 'START_TIME' ? "bg-[#1C1C1E]" : "bg-[#1C1C1E]/40"
+                            "py-6 rounded-[28px] flex flex-col items-center justify-center gap-1 active:scale-[0.96] transition-all border",
+                            activePicker === 'START_TIME' 
+                                ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.1)]" 
+                                : "bg-[#1C1C1E]/40 border-white/5"
                         )}
                     >
-                        <span className="text-[11px] font-bold text-[#0A84FF] uppercase tracking-widest">INICIO</span>
-                        <span className="text-[28px] font-medium text-[#0A84FF] tracking-tight tabular-nums leading-none">
+                        <span className={cn(
+                            "text-[10px] font-black uppercase tracking-widest transition-colors",
+                            activePicker === 'START_TIME' ? "text-[#0A84FF]" : "text-[#8E8E93]"
+                        )}>INICIO</span>
+                        <span className={cn(
+                            "text-[28px] font-black tracking-tight tabular-nums leading-none transition-colors",
+                            activePicker === 'START_TIME' ? "text-white" : "text-white/40"
+                        )}>
                             {format(startDate, 'H:mm')}
                         </span>
                     </button>
 
                     {/* End Time Card (Static) */}
-                    <div className="py-6 rounded-[20px] bg-[#1C1C1E] flex flex-col items-center justify-center gap-1 opacity-60">
-                        <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-widest">FIN</span>
-                        <span className="text-[28px] font-medium text-white tracking-tight tabular-nums leading-none">
+                    <div className="py-6 rounded-[28px] bg-[#1C1C1E]/40 border border-white/5 flex flex-col items-center justify-center gap-1 opacity-60">
+                        <span className="text-[10px] font-black text-[#8E8E93] uppercase tracking-widest">FIN</span>
+                        <span className="text-[28px] font-black text-white/40 tracking-tight tabular-nums leading-none">
                             {format(endDate, 'H:mm')}
                         </span>
                     </div>
                 </div>
 
                 {/* 4. TASK BOX */}
-                <div className="w-full py-5 px-6 rounded-[20px] bg-[#1C1C1E] flex flex-col items-center text-center gap-1 shrink-0">
-                    <span className="text-[10px] font-bold text-[#8E8E93] uppercase tracking-widest">TASK</span>
-                    <span className="text-[15px] text-white leading-tight line-clamp-2">
+                <div className="w-full py-5 px-6 rounded-[28px] bg-[#1C1C1E] border border-white/5 flex flex-col items-center text-center gap-1 shrink-0 shadow-inner">
+                    <span className="text-[9px] font-black text-[#8E8E93] uppercase tracking-widest">PROYECTO SELECCIONADO</span>
+                    <span className="text-[16px] font-bold text-white leading-tight line-clamp-2">
                         {project.title || "Toca para seleccionar una tarea"}
                     </span>
                 </div>
@@ -221,9 +247,9 @@ export const ManualSessionCreator = ({
                 {/* 5. SAVE BUTTON */}
                 <button
                     onClick={handleSave}
-                    className="w-full py-4 rounded-[16px] bg-[#0A84FF] text-white font-bold text-[17px] hover:bg-[#007AFF] active:scale-[0.98] transition-all shadow-lg shadow-blue-500/10 shrink-0 mb-2"
+                    className="w-full py-5 rounded-[24px] bg-[#0A84FF] text-white font-black text-[18px] uppercase tracking-widest hover:bg-[#007AFF] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(10,132,255,0.3)] shrink-0 mb-4"
                 >
-                    Guardar
+                    Guardar Sesión
                 </button>
             </div>
         </motion.div>

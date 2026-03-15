@@ -246,9 +246,15 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
 
                 {/* Data Fill (Background) */}
                 <motion.path
-                    initial={{ d: chartData.map((_, i) => `${i === 0 ? 'M' : 'L'} ${CENTER} ${CENTER}`).join(" ") + " Z", opacity: 0 }}
-                    animate={{ d: polygonPath, opacity: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    d={polygonPath}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ 
+                        duration: 0.8,
+                        ease: "easeOut",
+                        delay: 0.1
+                    }}
+                    style={{ originX: "50%", originY: "50%" }}
                     fill="rgba(255, 255, 255, 0.5)" // White fill 50%
                     stroke="rgba(255, 255, 255, 0.4)" // Slightly brighter
                     strokeWidth="1.5"
@@ -264,8 +270,11 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1, d: polygonPath }}
-                    transition={{ type: "spring", stiffness: 40, damping: 10 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ 
+                        pathLength: { duration: 1.2, ease: "easeInOut", delay: 0.1 },
+                        opacity: { duration: 0.5, delay: 0.1 }
+                    }}
                     style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} // Fake Glow
                 />
 
@@ -283,7 +292,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         strokeOpacity="0.3" // Gradient glow effect via stroke
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        transition={{ delay: i * 0.05, type: "spring" }}
+                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.4, type: "spring" }}
                     />
                 ))}
 
@@ -292,7 +301,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
             {/* HTML LABELS LAYER */}
             {chartData.map((item, i) => {
                 const Icon = item.icon;
-                const labelText = t(item.label) as string;
+                const labelText = t(item.label, item.label.replace('traits.', '')) as string;
                 
                 return (
                     <motion.div

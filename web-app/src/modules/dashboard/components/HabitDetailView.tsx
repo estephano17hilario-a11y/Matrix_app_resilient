@@ -558,7 +558,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const StatCard = ({ label, value }: { label: string; value: string | number }) => (
         <motion.div 
             variants={itemVariants}
-            className="bg-zinc-800/40 backdrop-blur-sm rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800/60 transition-colors border border-white/10 shadow-sm"
+            className="bg-zinc-900/90 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800 transition-colors border border-white/10 shadow-sm"
         >
             <div className="flex justify-between items-start relative z-10">
                 <div className="flex flex-col items-center w-full gap-2">
@@ -874,7 +874,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         {/* 1. MAIN STATS CARD */}
                         <motion.div 
                             variants={itemVariants} 
-                            className="bg-zinc-800/40 backdrop-blur-sm rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
+                            className="bg-zinc-900/90 rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
                         >
                             {/* Glow Effect */}
                             <div

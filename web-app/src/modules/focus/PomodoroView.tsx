@@ -19,6 +19,8 @@ interface PomodoroViewProps {
 
 const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
 
+import { createPortal } from 'react-dom';
+
 export const PomodoroView: React.FC<PomodoroViewProps> = ({
     projects,
     attributes,
@@ -39,6 +41,27 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
             setSelectedProjectId(initialProjectId);
         }
     }, [initialProjectId]);
+
+    // EFFECT: Lock body scroll when PomodoroView is mounted
+    React.useEffect(() => {
+        // FORCE SCROLL TO TOP - Fix for mobile browsers retaining scroll position
+        window.scrollTo(0, 0);
+        
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        const originalTouchAction = window.getComputedStyle(document.body).touchAction;
+        
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.touchAction = 'none';
+
+        return () => {
+            document.body.style.overflow = originalStyle;
+            document.body.style.touchAction = originalTouchAction;
+            document.documentElement.style.overflow = originalStyle;
+            document.documentElement.style.touchAction = originalTouchAction;
+        };
+    }, []);
 
     const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false);
 
@@ -157,9 +180,23 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
         </div>
     );
 
-    return (
-        <div className="fixed inset-0 z-[500] bg-black/60 flex flex-col">
-            <div className="flex-1 relative">
+    // Use Portal to ensure it is always on top and centered relative to viewport
+    // avoiding scroll context issues from parent containers
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] bg-[#020204] flex flex-col animate-in fade-in duration-300 overflow-hidden touch-none select-none overscroll-none" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh' }}>
+            {/* Background Atmosphere - High Performance, No heavy blurs to avoid flickering */}
+            <div 
+                className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
+                style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)' }} 
+            />
+            <div 
+                className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
+                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)' }} 
+            />
+
+            <div className="flex-1 relative z-10 overflow-hidden flex items-center justify-center">
                 <ActiveSessionView
                     project={activeProject}
                     attribute={activeAttribute}
@@ -172,6 +209,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
                     customHeaderTitle={customHeader}
                 />
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

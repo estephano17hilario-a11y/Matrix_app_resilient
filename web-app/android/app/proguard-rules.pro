@@ -16,6 +16,8 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-keep class com.luxresilient.app.** { *; }
+-keep class com.luxresilient.app.FocusPlugin { *; }
+-keep class com.luxresilient.app.FocusService { *; }
+-keep public class * extends com.getcapacitor.Plugin
+-keep public class * extends android.app.Service

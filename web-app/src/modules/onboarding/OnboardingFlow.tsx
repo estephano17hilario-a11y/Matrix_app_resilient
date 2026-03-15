@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Sparkles, Lock, ChevronDown } from 'lucide-react';
 import { doc, setDoc, db } from '../../services/firebase';
@@ -39,6 +40,31 @@ export function OnboardingFlow() {
       }
     };
   }, []);
+
+  // --- HARDWARE BACK BUTTON HANDLER ---
+  useEffect(() => {
+    const handleBackButton = async () => {
+        if (step === 'traits') {
+            setStep('avatar');
+        } else if (step === 'avatar') {
+            App.exitApp();
+        }
+    };
+
+    const setupListener = async () => {
+        try {
+            return await App.addListener('backButton', handleBackButton);
+        } catch (e) {
+            console.warn('Back button listener failed', e);
+        }
+    };
+
+    const listenerPromise = setupListener();
+
+    return () => {
+        listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
+    };
+  }, [step]);
 
   // Initialize language from profile or i18n
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'en';

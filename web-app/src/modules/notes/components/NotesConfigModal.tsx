@@ -106,17 +106,18 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 font-sans">
                     <motion.div 
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-black/90"
+                        transition={{ duration: 0.15 }}
+                        className="absolute inset-0 bg-black/80"
                         onClick={onClose}
                     />
                     
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                        transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
                         className="relative z-10 w-full max-w-lg bg-[#111] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] antialiased"
-                        style={{ willChange: 'transform', backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
+                        style={{ willChange: 'transform, opacity', backfaceVisibility: 'hidden', transform: 'translate3d(0,0,0)' }}
                     >
                         {/* Header */}
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#161616]">
@@ -152,7 +153,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                             
                             {/* FEATURES TAB */}
                             {activeTab === 'FEATURES' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-150">
                                     <div className="space-y-3">
                                         <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">Quick Actions</label>
                                         <div className="grid grid-cols-3 gap-3">
@@ -181,7 +182,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
 
                             {/* SECURITY TAB */}
                             {activeTab === 'SECURITY' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-150">
                                     <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
                                         <label className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
                                             <Key size={12} />
@@ -230,7 +231,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
 
                             {/* RECOVERY TAB */}
                             {activeTab === 'RECOVERY' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-150">
                                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex gap-3">
                                         <AlertTriangle className="text-yellow-500 shrink-0" size={20} />
                                         <p className="text-xs text-yellow-200/80 leading-relaxed">

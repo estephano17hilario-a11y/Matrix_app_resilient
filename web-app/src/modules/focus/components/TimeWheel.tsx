@@ -54,13 +54,13 @@ const WheelItem = ({
     const scale = useTransform(
         y, 
         [-itemHeight * 3, -itemHeight * 2, -itemHeight, 0, itemHeight, itemHeight * 2, itemHeight * 3], 
-        [0.6, 0.75, 0.9, 1.25, 0.9, 0.75, 0.6]
+        [0.7, 0.8, 0.9, 1.15, 0.9, 0.8, 0.7]
     );
     
     const color = useTransform(
         y, 
         [-itemHeight * 2, -itemHeight, 0, itemHeight, itemHeight * 2], 
-        ["#48484A", "#8E8E93", "#FFFFFF", "#8E8E93", "#48484A"]
+        ["#3A3A3C", "#8E8E93", "#FFFFFF", "#8E8E93", "#3A3A3C"]
     );
     
     return (
@@ -71,8 +71,9 @@ const WheelItem = ({
                 opacity,
                 scale,
                 color,
-                transformPerspective: 1000,
-                transformOrigin: "center center"
+                transformPerspective: 800,
+                transformOrigin: "center center",
+                willChange: "transform, opacity"
             }}
             className={cn(
                 "flex items-center justify-center w-full cursor-pointer select-none"
@@ -130,15 +131,13 @@ export const TimeWheel = ({
     const handleScroll = () => {
         if (!containerRef.current) return;
         
-        setIsScrolling(true);
+        if (!isScrolling) setIsScrolling(true);
         clearTimeout(scrollTimeout.current);
 
         const scrollTop = containerRef.current.scrollTop;
         const index = Math.round(scrollTop / itemHeight);
         const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
         
-        // Only update if value changed and we are scrolling (to avoid loops)
-        // But we want live updates during scroll for the UI effect
         if (items[clampedIndex] !== value) {
             onChange(items[clampedIndex]);
         }
@@ -151,7 +150,7 @@ export const TimeWheel = ({
                     behavior: 'smooth'
                 });
             }
-        }, 150);
+        }, 100); // Faster snap
     };
 
     return (

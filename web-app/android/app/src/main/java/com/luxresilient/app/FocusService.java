@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.IBinder;
@@ -29,8 +31,9 @@ public class FocusService extends Service {
     public static final String EXTRA_MODE = "EXTRA_MODE"; // "POMO" or "STOPWATCH"
     public static final String EXTRA_PROJECT_NAME = "EXTRA_PROJECT_NAME";
     public static final String EXTRA_PROJECT_COLOR = "EXTRA_PROJECT_COLOR"; // Hex String e.g. "#FF0000"
+    public static final String EXTRA_PROJECT_ICON = "EXTRA_PROJECT_ICON"; // String/Emoji
 
-    private static final String CHANNEL_ID = "FocusSessionChannel_v2";
+    private static final String CHANNEL_ID = "FocusSessionChannel_v3"; // Bumped version to reset config
     private static final int NOTIFICATION_ID = 101;
 
     private CountDownTimer countDownTimer;
@@ -39,6 +42,7 @@ public class FocusService extends Service {
     private String currentMode = "POMO"; // "POMO" or "STOPWATCH"
     private String projectName = "Focus Session";
     private String projectColor = "#FFFFFF"; // Default White
+    private String projectIcon = ""; 
     private long startTimeMs = 0; // For Stopwatch
 
     @Override
@@ -51,6 +55,9 @@ public class FocusService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) return START_NOT_STICKY;
 
+        // Re-ensure channel exists just in case
+        createNotificationChannel();
+
         String action = intent.getAction();
 
         if (ACTION_START.equals(action)) {
@@ -58,11 +65,14 @@ public class FocusService extends Service {
             currentMode = intent.getStringExtra(EXTRA_MODE);
             if (currentMode == null) currentMode = "POMO";
             
-            projectName = intent.getStringExtra(EXTRA_PROJECT_NAME);
+            projectName = intent.getStringExtra("projectName");
             if (projectName == null) projectName = "Focus Session";
             
-            projectColor = intent.getStringExtra(EXTRA_PROJECT_COLOR);
+            projectColor = intent.getStringExtra("projectColor");
             if (projectColor == null) projectColor = "#FFFFFF";
+
+            projectIcon = intent.getStringExtra("projectIcon");
+            if (projectIcon == null) projectIcon = "";
 
             startTimer(durationSec * 1000);
             
@@ -201,6 +211,10 @@ public class FocusService extends Service {
 
     private Notification buildNotification() {
         String title = projectName;
+        if (projectIcon != null && !projectIcon.isEmpty()) {
+             title = projectIcon + " " + title;
+        }
+        
         String text;
 
         long seconds = timeRemainingMs / 1000;
@@ -243,17 +257,15 @@ public class FocusService extends Service {
                 this, 3, resumeIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Use a valid icon resource if possible, fallback to system icon
-        int iconResId = 0;
+        // Use a valid system icon guaranteed to be visible
+        int iconResId = android.R.drawable.ic_lock_idle_alarm; 
+
+        // Large Icon (App Logo)
+        Bitmap largeIcon = null;
         try {
-            iconResId = getResources().getIdentifier("lux_logo", "drawable", getPackageName());
+            largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
         } catch (Exception e) {
-            // Ignore
-        }
-        
-        if (iconResId == 0) {
-            // FALLBACK TO STANDARD ANDROID ICON TO ENSURE VISIBILITY
-            iconResId = android.R.drawable.ic_dialog_info; 
+            // ignore
         }
 
         // Parse Color
@@ -268,6 +280,7 @@ public class FocusService extends Service {
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSmallIcon(iconResId) 
+                .setLargeIcon(largeIcon) // Set App Logo as Large Icon
                 .setColor(colorInt) // Set Notification Color (Icon/Accent)
                 .setColorized(true) // Enable colorization for standard style (Android 8+)
                 .setContentIntent(pendingOpenIntent)

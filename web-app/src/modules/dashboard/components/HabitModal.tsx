@@ -113,7 +113,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         : null;
     const SelectedIcon = CustomIcon || selectedAttr?.icon || Star;
     const TraitIcon = selectedAttr?.icon || Star;
-    const activeLabel = selectedAttr?.label || 'Trait';
+    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : 'Trait';
 
     const prediction = useMemo(() => {
         // If creating a new habit, streak is 0.
@@ -274,10 +274,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                     attrId ? "bg-white/5 border-white/10" : "bg-black/20 border-dashed border-white/10 hover:border-white/30"
                                                 )}
                                             >
-                                                {attrId ? (
+                                                        {attrId ? (
                                                     <>
                                                         <TraitIcon size={16} style={{ color: selectedAttr?.color || '#3b82f6' }} />
-                                                        <span className="text-xs font-bold text-white">{selectedAttr ? t(selectedAttr.label, selectedAttr.label) : ''}</span>
+                                                        <span className="text-xs font-bold text-white">{selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : ''}</span>
                                                     </>
                                                 ) : (
                                                     <>
@@ -322,7 +322,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                             "text-xs font-bold",
                                                                             isSelected ? "text-white" : "text-slate-400"
                                                                         )}>
-                                                                        {t(attr.label, attr.label)}
+                                                                        {t(attr.label, attr.label.replace('traits.', ''))}
                                                                         </span>
                                                                     </button>
                                                                 )

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, JournalEntry, NoteBlock, Project } from '../../types';
@@ -14,6 +14,7 @@ import { SpecialEventsHub } from './components/SpecialEventsHub';
 import { SecureNotesHub } from './components/SecureNotesHub';
 import { BlueprintSelector } from './components/BlueprintSelector';
 import { SaveBlueprintModal } from './components/SaveBlueprintModal';
+import { SecurityGate } from '../../components/ui/SecurityGate';
 import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 
@@ -35,6 +36,7 @@ interface NotesViewProps {
     sectionControl?: 'VISIBLE' | 'HIDDEN';
     onStatsOpenChange?: (isOpen: boolean) => void;
     onNoteCreated?: () => void;
+    isActive?: boolean;
 }
 
 const getEntryTitle = (blocks: NoteBlock[]) => {
@@ -53,7 +55,7 @@ const WigglyLine = () => (
     </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onNoteCreated }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onNoteCreated, isActive = true }: NotesViewProps) => {
     const { t, i18n } = useTranslation();
     const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic(onNoteCreated);
 
@@ -384,105 +386,110 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
     return (
         <div className="h-full flex flex-col relative">
-            {/* Lock Screen Overlay */}
-            <AnimatePresence>
-                {isLocked && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-50 bg-[#050505]/95 backdrop-blur-md flex flex-col items-center justify-center p-6"
-                    >
-                        <div className="p-6 rounded-3xl bg-white/5 border border-white/5 shadow-2xl mb-6 relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-50" />
-                            <Lock size={48} className="text-white relative z-10" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">Notes Locked</h2>
-                        <p className="text-white/40 text-sm mb-8 text-center max-w-xs">
-                            This section is protected. Please enter your PIN to continue.
-                        </p>
+            {/* Lock Screen Overlay - Portal with Z-Index between HUD (290) and Dock (400) */}
+            {typeof document !== 'undefined' && createPortal(
+                <>
+                    <SecurityGate 
+                        isOpen={isLocked && isActive && !isRecoveryMode}
+                        pin={config.security.pin}
+                        onUnlock={() => {
+                            setIsLocked(false);
+                            toast.success("Identity Verified");
+                            if (pendingAction) {
+                                pendingAction();
+                                setPendingAction(null);
+                            }
+                        }}
+                        onCancel={() => {}} // Cannot cancel main lock
+                        title="Security Lock"
+                        description="Verification Required"
+                        isRecoveryAllowed={true}
+                        onRecovery={() => setIsRecoveryMode(true)}
+                    />
 
-                        {!isRecoveryMode ? (
-                            <div className="w-full max-w-xs space-y-4">
-                                <input 
-                                    type="text" 
-                                    inputMode="numeric"
-                                    value={passwordInput}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
-                                        setPasswordInput(val);
-                                        if (val.length === 5) {
-                                            // Auto submit
-                                            if (val === config.security.pin) {
-                                                setIsLocked(false);
-                                                setPasswordInput('');
-                                            } else {
-                                                toast.error("Incorrect PIN");
-                                                setPasswordInput('');
-                                            }
-                                        }
-                                    }}
-                                    placeholder="•••••"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white"
-                                />
-                                <button 
-                                    onClick={() => setIsRecoveryMode(true)}
-                                    className="w-full text-xs text-white/30 hover:text-white transition-colors py-2"
+                    {/* Recovery Mode Overlay */}
+                    <AnimatePresence>
+                        {isLocked && isActive && isRecoveryMode && (
+                            <motion.div 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[300] bg-[#050505] flex flex-col items-center justify-center p-6"
+                            >
+                                <motion.div 
+                                    initial={{ scale: 0.9, y: 20 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
                                 >
-                                    Forgot PIN?
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="w-full max-w-xs space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                                    <h3 className="text-sm font-bold text-white mb-2">Recovery Mode</h3>
-                                    <p className="text-xs text-white/60 mb-4">
-                                        {config.security.recoveryMethod === 'QUESTION' 
-                                            ? config.security.recoveryQuestion 
-                                            : "Enter your account password"}
-                                    </p>
+                                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/50 to-teal-500/50" />
+                                    
+                                    <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/5">
+                                        <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-[0.2em] mb-2">Security Challenge</p>
+                                        <p className="text-sm text-white/90 font-bold leading-relaxed">
+                                            {config.security.recoveryMethod === 'PASSWORD' 
+                                                ? "Enter your account password"
+                                                : (config.security.recoveryQuestion || "Recovery Question")}
+                                        </p>
+                                    </div>
+
                                     <input 
-                                        type={config.security.recoveryMethod === 'QUESTION' ? "text" : "password"}
+                                        type={config.security.recoveryMethod === 'PASSWORD' ? "password" : "text"}
                                         value={recoveryInput}
                                         onChange={(e) => setRecoveryInput(e.target.value)}
-                                        placeholder="Answer"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-white/30 transition-colors mb-3"
+                                        placeholder="Type your response..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-emerald-500/50 transition-all mb-4"
+                                        autoFocus
                                     />
+                                    
                                     <button 
                                         onClick={() => {
                                             let success = false;
-                                            if (config.security.recoveryMethod === 'QUESTION') {
-                                                if (recoveryInput.toLowerCase().trim() === config.security.recoveryAnswer?.toLowerCase().trim()) success = true;
-                                            } else {
-                                                // Mock check
-                                                if (recoveryInput.length > 3) success = true;
+                                            const method = config.security.recoveryMethod;
+                                            
+                                            if (method === 'QUESTION' || method === 'BOTH') {
+                                                if (recoveryInput.toLowerCase().trim() === config.security.recoveryAnswer?.toLowerCase().trim()) {
+                                                    success = true;
+                                                }
+                                            } 
+                                            
+                                            if (!success && (method === 'PASSWORD' || method === 'BOTH')) {
+                                                if (recoveryInput.length > 3 && !config.security.recoveryAnswer) {
+                                                     success = true;
+                                                }
                                             }
 
                                             if (success) {
                                                 setIsLocked(false);
                                                 setIsRecoveryMode(false);
                                                 setRecoveryInput('');
-                                                toast.success("Identity verified. Unlocked.");
+                                                toast.success("Verified");
                                             } else {
-                                                toast.error("Incorrect answer");
+                                                toast.error("Incorrect response");
                                             }
                                         }}
-                                        className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-emerald-600 transition-colors"
+                                        className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-[0_10px_20px_rgba(16,185,129,0.2)]"
                                     >
-                                        Recover Access
+                                        Verify Identity
                                     </button>
-                                </div>
-                                <button 
-                                    onClick={() => setIsRecoveryMode(false)}
-                                    className="w-full text-xs text-white/30 hover:text-white transition-colors"
-                                >
-                                    Back to PIN
-                                </button>
-                            </div>
+                                    
+                                    <button 
+                                        onClick={() => {
+                                            setIsRecoveryMode(false);
+                                            setRecoveryInput('');
+                                        }}
+                                        className="w-full mt-4 text-[10px] font-bold text-white/20 hover:text-white/60 transition-all uppercase tracking-widest py-2"
+                                    >
+                                        Back to PIN
+                                    </button>
+                                </motion.div>
+                            </motion.div>
                         )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    </AnimatePresence>
+                </>,
+                document.body
+            )}
 
-            <div className={`transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' || showEventsHub ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+            <div className={`transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' || showEventsHub ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`} style={{ willChange: 'transform, opacity' }}>
                 <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
                     {subView === 'NOTES' ? (
                         <button 
@@ -526,6 +533,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                 <Lock size={14} />
                             </button>
                         )}
+                        <button 
+                            onClick={() => setConfigOpen(true)}
+                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-300 text-white/40 hover:text-white shadow-sm"
+                        >
+                            <Settings size={14} />
+                        </button>
                     </div>
 
                     <button 
@@ -600,13 +613,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                         ) : (
                             <div className="columns-2 md:columns-3 gap-4">
                                 {/* Big Config Button */}
-                                {config.enabledFeatures.length === 0 && (
+                                {config.enabledFeatures.length < 3 && (
                                      <button onClick={() => setConfigOpen(true)} className="w-full h-[180px] rounded-[24px] bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-transparent border border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-all group mb-4 break-inside-avoid shadow-lg relative overflow-hidden">
                                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner backdrop-blur-[2px] relative z-10">
                                             <Plus size={28} className="text-white" strokeWidth={1.5} />
                                         </div>
-                                        <span className="text-xs font-bold text-white uppercase tracking-widest group-hover:text-white/80 transition-colors relative z-10">Customize Notes</span>
+                                        <span className="text-xs font-bold text-white uppercase tracking-widest group-hover:text-white/80 transition-colors relative z-10">{config.enabledFeatures.length === 0 ? 'Customize Notes' : 'Add More Features'}</span>
                                     </button>
                                 )}
 
@@ -791,52 +804,49 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             
             <AnimatePresence>
                 {showPasswordPrompt && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-[2px] p-4"
-                    >
-                        <motion.div 
-                            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-                            className="bg-[#111] border border-white/10 rounded-3xl p-8 w-full max-w-sm text-center space-y-6 shadow-2xl"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-white/5 mx-auto flex items-center justify-center border border-white/5">
-                                <Lock size={32} className="text-white/40" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-white tracking-tight">Enter Password</h3>
-                                <p className="text-xs text-white/40 font-medium">Please enter your 5-digit PIN to unlock.</p>
-                            </div>
-                            <input 
-                                type="text" 
-                                inputMode="numeric"
-                                maxLength={5}
-                                value={passwordInput}
-                                onChange={(e) => setPasswordInput(e.target.value.replace(/[^0-9]/g, ''))}
-                                className="w-full bg-black/50 border border-white/10 rounded-2xl px-4 py-4 text-center text-3xl font-mono text-white tracking-[0.5em] focus:outline-none focus:border-white/30 transition-colors placeholder:text-white/5"
-                                placeholder="•••••"
-                                autoFocus
-                            />
-                            <div className="grid grid-cols-2 gap-3">
-                                <button onClick={() => { setShowPasswordPrompt(false); setPasswordInput(''); setPendingAction(null); }} className="py-3 rounded-xl bg-white/5 text-white/60 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-colors">Cancel</button>
-                                <button onClick={handleUnlock} className="py-3 rounded-xl bg-white text-black text-xs font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg">Unlock</button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
+                    <SecurityGate
+                        isOpen={true}
+                        pin={config.security.pin}
+                        onUnlock={() => {
+                            setShowPasswordPrompt(false);
+                            toast.success("Unlocked");
+                            if (pendingAction) {
+                                pendingAction();
+                                setPendingAction(null);
+                            }
+                        }}
+                        onCancel={() => {
+                            setShowPasswordPrompt(false);
+                            setPendingAction(null);
+                        }}
+                        title="Enter PIN"
+                        description="Protected Area Access"
+                    />
                 )}
             </AnimatePresence>
 
-            <div className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-[20px] pointer-events-none'}`}>
+            <div 
+                className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-98 translate-y-4 pointer-events-none'}`}
+                style={{ willChange: 'transform, opacity', transform: 'translate3d(0,0,0)' }}
+            >
                 {editorMode !== 'NONE' && (
                     <div className="w-full h-full max-w-2xl mx-auto flex flex-col p-4 sm:p-6">
-                        <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in zoom-in-95 duration-500 delay-100 shadow-md">
+                        <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-md" style={{ willChange: 'transform, opacity' }}>
                              <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
-                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-1000" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
+                                <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-500" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
                              </div>
                             
                             <div className="flex justify-between items-center p-3 sm:p-6 border-b border-white/5 relative z-20 gap-2">
                                 <button onClick={closeEditor} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5 flex-shrink-0"><ArrowLeft size={20} /></button>
                                 <div className="flex items-center gap-1.5 sm:gap-4 flex-shrink-1 min-w-0 justify-end">
                                     <div className="flex items-center gap-1">
+                                        <button 
+                                            onClick={() => setConfigOpen(true)}
+                                            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 hover:rotate-45 transition-all duration-300"
+                                            title="Settings"
+                                        >
+                                            <Settings size={18} />
+                                        </button>
                                         <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
                                         <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Save as Blueprint"><Save size={18} /></button>
                                         <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />

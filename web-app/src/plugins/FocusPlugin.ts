@@ -6,6 +6,7 @@ export interface FocusPlugin {
     mode: 'POMO' | 'STOPWATCH';
     projectName?: string;
     projectColor?: string;
+    projectIcon?: string;
   }): Promise<void>;
   stop(): Promise<void>;
   pause(): Promise<void>;

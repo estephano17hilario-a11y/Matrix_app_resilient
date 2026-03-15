@@ -396,7 +396,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                     <Zap size={14} className="sm:w-[18px] sm:h-[18px]" />
                                                                 </div>
                                                                 <span className={`text-xs sm:text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
-                                                                    {t(attr.label, attr.label)}
+                                                                    {t(attr.label, attr.label.replace('traits.', ''))}
                                                                 </span>
                                                             </div>
                                                         </motion.button>
@@ -506,12 +506,12 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Daño HP</div>
                                                             <div className="text-xl font-black text-rose-500">-{penalties.hp}</div>
                                                         </div>
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
                                                             <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider truncate px-1">
-                                                                XP {attributes.find(a => a.id === attribute)?.label || 'General'}
+                                                                XP {(() => {
+                                                                    const a = attributes.find(a => a.id === attribute);
+                                                                    return a ? t(a.label, a.label.replace('traits.', '')) : 'General';
+                                                                })()}
                                                             </div>
-                                                            <div className="text-xl font-black text-orange-500">-{penalties.xp}</div>
-                                                        </div>
                                                         <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
                                                             <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Costo Oro</div>
                                                             <div className="text-xl font-black text-yellow-500">-{penalties.gold}</div>

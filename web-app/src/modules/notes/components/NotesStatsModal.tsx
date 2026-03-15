@@ -169,7 +169,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                         <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
                         
                         {/* Header & Tabs */}
-                        <div className={`relative z-20 shrink-0 flex justify-between items-start transition-all ${activeTab === 'EMOTIONS' ? 'p-8 pb-4' : 'px-6 pt-2 pb-2'}`}>
+                        <div className={`relative z-20 shrink-0 flex justify-between items-start transition-all ${activeTab === 'EMOTIONS' ? 'px-8 pt-16 pb-4' : 'px-6 pt-14 pb-2 sm:pt-6'}`}>
                             <div>
                                 <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                                     {activeTab === 'EMOTIONS' ? (
@@ -195,43 +195,41 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                             </div>
 
                             <div className="flex items-center gap-2 flex-wrap justify-end max-w-full">
-                                {/* Range Switcher - Only visible in EMOTIONS mode and moved to header */}
-                                {activeTab === 'EMOTIONS' && (
-                                    <div className="flex bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0">
-                                        {['WEEK', 'MONTH'].map(r => (
-                                            <button 
-                                                key={r} 
-                                                onClick={() => setRange(r as any)} 
-                                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
-                                            >
-                                                {r}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {activeTab === 'EMOTIONS' && (
-                                    <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0 max-w-full">
-                                        <button
-                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, -1) : addMonths(d, -1))}
-                                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                {/* Range Switcher - Visible for both modes */}
+                                <div className="flex bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0">
+                                    {['WEEK', 'MONTH'].map(r => (
+                                        <button 
+                                            key={r} 
+                                            onClick={() => setRange(r as any)} 
+                                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
                                         >
-                                            <ChevronLeft size={14} />
+                                            {r}
                                         </button>
-                                        <button
-                                            onClick={() => setIsDateModalOpen(true)}
-                                            className="px-2 h-7 rounded-full text-[10px] font-bold text-white/70 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 max-w-[170px]"
-                                        >
-                                            <CalendarIcon size={12} />
-                                            <span className="uppercase tracking-wider truncate">{dateLabel}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, 1) : addMonths(d, 1))}
-                                            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
-                                        >
-                                            <ChevronRight size={14} />
-                                        </button>
-                                    </div>
-                                )}
+                                    ))}
+                                </div>
+                                
+                                {/* Date Navigation - Visible for both modes */}
+                                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0 max-w-full">
+                                    <button
+                                        onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, -1) : addMonths(d, -1))}
+                                        className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsDateModalOpen(true)}
+                                        className="px-2 h-7 rounded-full text-[10px] font-bold text-white/70 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 max-w-[170px]"
+                                    >
+                                        <CalendarIcon size={12} />
+                                        <span className="uppercase tracking-wider truncate">{dateLabel}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, 1) : addMonths(d, 1))}
+                                        className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
 
                                 <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors active:scale-90 border border-white/5">
                                     <X size={20} />
@@ -304,6 +302,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                                             tickLine={false} 
                                                             tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
                                                             dy={10}
+                                                            interval={0}
                                                         />
                                                         <BarAny dataKey="notes" radius={[4, 4, 4, 4]}>
                                                             {data.map((entry: any, index: number) => (

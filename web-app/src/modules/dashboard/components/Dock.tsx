@@ -1,10 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Crosshair, Plus, Target, ClipboardList, Brain, Map as MapIcon, ShoppingBag, Trophy, ChevronDown, Activity, Flame } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode }: { currentView: string, onChangeView: (v: string) => void, onOpenModal: (m: string) => void, isOpen: boolean, onToggle: (open: boolean) => void, isHidden: boolean, dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS', taskViewMode: 'LIST' | 'STRATEGY', habitViewMode: 'PROTOCOLS' | 'VICES', noteViewMode: 'NOTES' | 'JOURNAL' }) => {
     const { t } = useTranslation();
+    
+    // Lock body scroll when dock is open - REMOVED TO PREVENT LAYOUT SHIFTS (SPASMS)
+    // The backdrop handles the blocking interaction effectively without causing scrollbar jumps.
+    /*
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+    */
+
     const handleView = (v: string) => { onChangeView(v); onToggle(false); };
     
     const handleSmartNav = (v: string) => {
@@ -19,15 +35,32 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     const taskIndicator = taskViewMode === 'LIST' ? '1/2' : '2/2';
     const habitIndicator = habitViewMode === 'PROTOCOLS' ? '1/2' : '2/2';
     const noteIndicator = noteViewMode === 'NOTES' ? '1/2' : '2/2';
+
+    const Backdrop = () => (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-[350] bg-black/80 backdrop-blur-[2px]"
+                    onClick={() => onToggle(false)}
+                />
+            )}
+        </AnimatePresence>
+    );
     
     // --- GLASS STYLE (VISION OS) ---
     if (isGlass) {
         return (
+            <>
+            <Backdrop />
             <motion.div 
                 initial={false}
                 animate={{ y: isHidden ? '200%' : '0%' }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="fixed bottom-8 left-0 right-0 z-[400] flex justify-center pointer-events-none"
+                className="fixed bottom-10 left-0 right-0 z-[400] flex justify-center pointer-events-none"
             >
                 <motion.div 
                     layout
@@ -45,7 +78,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                         mass: 0.8
                     }}
                     className="pointer-events-none relative bg-[#0a0a0a]/80 backdrop-blur-sm border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden" // Restored safe blur
-                    style={{ willChange: 'transform, height' }}
+                    style={{ willChange: 'transform, height', transform: 'translateZ(0)' }}
                 >
                     {/* Fake Glass Shine */}
                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />
@@ -155,6 +188,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </div>
                 </motion.div>
             </motion.div>
+            </>
         );
     }
 
@@ -172,6 +206,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     const containerClass = `${baseClass} ${styleClass}`;
 
     return (
+        <>
+        <Backdrop />
         <motion.div 
             initial={false}
             animate={{ y: isHidden ? '200%' : '0%' }}
@@ -259,5 +295,6 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
              </div>
            </motion.div>
         </motion.div>
+        </>
     );
 });

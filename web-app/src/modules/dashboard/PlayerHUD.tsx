@@ -13,7 +13,6 @@ interface PlayerHUDProps {
   attributes?: Attribute[];
   className?: string;
   defaultChartMode?: 'RADAR' | 'BAR';
-  onUpdateAttributeLevel?: (attrId: string, level: number) => void;
 }
 
 const getTraitColor = (traitId: string): 'indigo' | 'cyan' | 'emerald' | 'rose' | 'amber' | 'blue' | 'pink' | 'violet' | 'gray' => {
@@ -40,7 +39,6 @@ const TraitBar = ({
 }: { 
   attribute: Attribute, 
   mini?: boolean,
-  onUpdateLevel?: (attrId: string, level: number) => void
 }) => {
   const { t } = useTranslation();
   // 🛡️ SAFE CALCULATION
@@ -60,7 +58,7 @@ const TraitBar = ({
                   )}>
                       <Icon size={10} />
                   </div>
-                  {!mini && <span className="font-medium text-white/80 truncate">{t(attribute.label)}</span>}
+                  {!mini && <span className="font-medium text-white/80 truncate">{t(attribute.label, attribute.label.replace('traits.', ''))}</span>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                   <span className="font-mono text-[8px] text-white/30">{safeXp}/{safeMax}</span>
@@ -87,7 +85,6 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   attributes = [],
   className,
   defaultChartMode = 'RADAR',
-  onUpdateAttributeLevel
 }) => {
   const [chartMode, setChartMode] = useState<'RADAR' | 'BAR'>(defaultChartMode);
 
@@ -157,10 +154,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 {chartMode === 'RADAR' ? (
                     <motion.div 
                         key="radar"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.3 }}
+                        initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
                         className="w-full h-full flex items-center justify-center"
                     >
                         <TraitRadarChart attributes={orderedAttributes} />
@@ -168,10 +165,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 ) : (
                     <motion.div 
                         key="bar"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
+                        initial={{ opacity: 0, x: 20, filter: "blur(5px)" }}
+                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, x: -20, filter: "blur(5px)" }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                         className={cn(
                             "w-full grid gap-x-4 gap-y-3 px-1 py-1",
                             orderedAttributes.length > 5 ? "grid-cols-2" : "grid-cols-1"
@@ -181,7 +178,6 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                             <TraitBar 
                                 key={attr.id} 
                                 attribute={attr} 
-                                onUpdateLevel={onUpdateAttributeLevel}
                             />
                         ))}
                     </motion.div>

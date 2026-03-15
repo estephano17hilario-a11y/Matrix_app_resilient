@@ -195,7 +195,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                         <stop offset="0%" stopColor={color} stopOpacity="0.3" />
                         <stop offset="100%" stopColor={color} stopOpacity="0.0" />
                     </linearGradient>
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <filter id="habit-goal-glow" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="0.4" result="coloredBlur" />
                         <feMerge>
                             <feMergeNode in="coloredBlur" />
@@ -203,7 +203,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                         </feMerge>
                     </filter>
                     {/* Stronger Glow for Overload Effect */}
-                    <filter id="overloadGlow" x="-100%" y="-100%" width="300%" height="300%">
+                    <filter id="habit-goal-overload" x="-100%" y="-100%" width="300%" height="300%">
                          <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
                          <feMerge>
                              <feMergeNode in="coloredBlur" />
@@ -257,7 +257,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     strokeWidth="0.8" 
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    filter={isGoalMet ? "url(#overloadGlow)" : "url(#glow)"}
+                    filter={isGoalMet ? "url(#habit-goal-overload)" : "url(#habit-goal-glow)"}
                     initial={{ pathLength: 0 }}
                     animate={{ 
                         pathLength: 1,

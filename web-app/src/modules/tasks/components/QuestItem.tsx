@@ -198,7 +198,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                         style={{ borderColor: `${themeColor}20` }}
                     >
                         <span className="text-[9px] font-bold uppercase tracking-wider opacity-90" style={{ color: themeColor }}>
-                            {smartProject ? smartProject.mainGoal : attribute?.label}
+                            {smartProject ? smartProject.mainGoal : t(attribute?.label || '', (attribute?.label || '').replace('traits.', ''))}
                         </span>
                     </div>
                 )}

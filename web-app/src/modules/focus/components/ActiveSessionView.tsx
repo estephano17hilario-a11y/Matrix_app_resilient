@@ -102,6 +102,25 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
         onCompleteSession(safeDuration, mode);
     }, [onCompleteSession]);
 
+    // Helper to get emoji for attribute
+    const getTraitEmoji = (id: string) => {
+        switch(id) {
+            case 'DISCIPLINA': return '🎯';
+            case 'FISICO': return '🏋️';
+            case 'MENTAL': return '🧠';
+            case 'SOCIAL': return '👥';
+            case 'ESPIRITU': return '👻';
+            case 'FINANZAS': return '💰';
+            case 'CREATIVIDAD': return '🎨';
+            case 'ORDEN': return '⚓';
+            case 'LIDERAZGO': return '👑';
+            case 'RESILIENCIA': return '🛡️';
+            case 'VITALIDAD': return '⚡';
+            case 'ESTILO': return '🪶';
+            default: return '⚡';
+        }
+    };
+
     const {
         mode,
         setMode,
@@ -113,7 +132,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
         isPaused,
         toggleTimer,
         stopSession
-    } = useFocusSession(project, handleSessionEnd);
+    } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
     useEffect(() => {
         if (isEditingTime && inputRef.current) {
@@ -214,19 +233,36 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
     return (
         <motion.div
-            className="flex flex-col w-full h-full relative overflow-hidden bg-transparent font-sans" // Changed bg-[#030303] to bg-transparent
+            className="flex flex-col w-full h-full relative overflow-hidden bg-transparent font-sans touch-none select-none overscroll-none" // Added overscroll-none for extra safety
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
         >
-             {/* Dynamic Background */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-                <div 
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20 transition-transform duration-700"
+             {/* Dynamic Background Aura - Ultra Optimized & Visual */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                <motion.div 
+                    className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] rounded-full"
+                    initial={false}
+                    animate={{ 
+                        scale: isActive && !isPaused ? [1.02, 1.12, 1.02] : 1, // Even more subtle scale
+                        opacity: isActive && !isPaused ? 0.25 : 0.15,
+                        x: '-50%',
+                        y: '-50%'
+                    }}
+                    transition={{ 
+                        scale: {
+                            repeat: Infinity,
+                            duration: 6, // Even slower pulse
+                            ease: "easeInOut"
+                        },
+                        opacity: { duration: 1.5 },
+                        x: { duration: 0 },
+                        y: { duration: 0 }
+                    }}
                     style={{ 
-                        backgroundImage: `radial-gradient(circle at center, ${themeColor} 0%, rgba(0,0,0,0) 60%)`,
-                        transform: isActive && !isPaused ? 'translate(-50%, -50%) scale(1.08)' : 'translate(-50%, -50%) scale(1)'
+                        backgroundImage: `radial-gradient(circle at center, ${themeColor} 0%, ${themeColor}10 40%, rgba(0,0,0,0) 70%)`,
+                        willChange: 'transform, opacity'
                     }} 
                 />
             </div>
@@ -361,7 +397,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                 <stop offset="0%" stopColor={themeColor} stopOpacity="1" />
                                 <stop offset="100%" stopColor={themeColor} stopOpacity="0.2" />
                             </linearGradient>
-                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <filter id={`glow-${project.id}`} x="-20%" y="-20%" width="140%" height="140%">
                                 <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                                 <feMerge>
                                     <feMergeNode in="coloredBlur" />
@@ -373,7 +409,23 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                         {/* Background Track */}
                         <circle cx="160" cy="160" r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
                         
-                        {/* Progress */}
+                        {/* Progress Glow (Secondary layer for better visual without heavy filters) */}
+                        <motion.circle 
+                            cx="160" cy="160" r={radius} fill="none" 
+                            stroke={themeColor}
+                            strokeWidth="20"
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={dashOffset}
+                            initial={false}
+                            animate={{ 
+                                opacity: isActive && !isPaused ? 0.15 : 0,
+                                strokeWidth: isActive && !isPaused ? 24 : 20
+                            }}
+                            style={{ transition: 'stroke-dashoffset 1s linear, opacity 0.5s ease' }}
+                        />
+
+                        {/* Main Progress */}
                         <circle 
                             cx="160" cy="160" r={radius} fill="none" 
                             stroke={`url(#gradient-${project.id})`}
@@ -381,7 +433,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                             strokeLinecap="round"
                             strokeDasharray={circumference}
                             strokeDashoffset={dashOffset}
-                            filter="url(#glow)"
                             style={{ transition: 'stroke-dashoffset 1s linear' }}
                         />
 

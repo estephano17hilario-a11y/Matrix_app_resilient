@@ -67,7 +67,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
     <div className={`relative flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       {/* 1. Liquid Glass Container (Background) */}
       <motion.div
-        className="absolute inset-0 rounded-full bg-gray-900/60 backdrop-blur-sm border border-white/10"
+        className="absolute inset-0 rounded-full bg-gray-900/90 border border-white/10"
         variants={containerVariants}
         initial="initial"
         animate="animate"

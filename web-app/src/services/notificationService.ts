@@ -32,22 +32,26 @@ export const notificationService = {
       console.log('Initializing Native Push Notifications...');
       
       // 1. Request Permissions
+      // Check Push first (includes Local in some versions)
       let permStatus = await PushNotifications.checkPermissions();
       if (permStatus.receive === 'prompt') {
         permStatus = await PushNotifications.requestPermissions();
       }
 
       if (permStatus.receive !== 'granted') {
-        console.warn('User denied push permissions');
-        return { success: false, error: 'denied' };
+        console.warn('User denied push permissions, trying Local fallback...');
+        const localPerm = await LocalNotifications.requestPermissions();
+        if (localPerm.display !== 'granted') {
+             return { success: false, error: 'denied' };
+        }
       }
 
       // 2. Register
       try {
         await PushNotifications.register();
       } catch (regError) {
-        console.error('Registration failed', regError);
-        return { success: false, error: 'registration_failed', details: regError };
+        console.warn('Push Registration failed (might be expected without google-services.json)', regError);
+        // Do not return error, continue for Local Notifications support
       }
 
       // 3. Listeners
@@ -111,11 +115,6 @@ export const notificationService = {
   // --- WEB (PWA) STRATEGY ---
   initWeb: async (): Promise<NotificationInitResult> => {
     try {
-      if (!messaging) {
-        console.warn("Notification Service: Messaging not initialized (maybe offline or unsupported).");
-        return { success: false, error: 'unavailable' };
-      }
-
       if (!('Notification' in window)) {
         return { success: false, error: 'unsupported_browser' };
       }
@@ -127,9 +126,9 @@ export const notificationService = {
       }
 
       // Check VAPID Key validity
-      if (VAPID_KEY.includes('YOUR_VAPID_KEY')) {
-        console.error("VAPID Key is not configured.");
-        return { success: false, error: 'configuration_error', details: 'VAPID Key missing' };
+      if (!messaging || VAPID_KEY.includes('YOUR_VAPID_KEY')) {
+        console.warn("VAPID Key is not configured. Switching to Local-Only mode.");
+        return { success: true, token: 'local-only-mode' };
       }
 
       try {
@@ -147,7 +146,9 @@ export const notificationService = {
          if (tokenError.message?.includes('unregistered') || tokenError.code === 'messaging/failed-registration-token') {
              return { success: false, error: 'service_worker_issue', details: tokenError };
          }
-         throw tokenError;
+         // Fallback to local only if FCM fails
+         console.warn("FCM Registration failed, falling back to local notifications", tokenError);
+         return { success: true, token: 'local-only-fallback' };
       }
     } catch (error: any) {
       console.error("Notification Service: Error during initialization", error);
@@ -209,10 +210,11 @@ export const notificationService = {
     }
 
     try {
-       // 1. Cancel existing to avoid duplicates
+       // 1. Cancel existing "Lux Awaits" (IDs 100-106)
        const pending = await LocalNotifications.getPending();
-       if (pending.notifications.length > 0) {
-           await LocalNotifications.cancel(pending);
+       const toCancel = pending.notifications.filter(n => n.id >= 100 && n.id <= 106);
+       if (toCancel.length > 0) {
+           await LocalNotifications.cancel({ notifications: toCancel });
        }
 
        // 2. Schedule for each day
@@ -236,7 +238,7 @@ export const notificationService = {
                    },
                    allowWhileIdle: true 
                },
-               channelId: 'matrix_daily',
+               channelId: 'lux_daily',
                smallIcon: 'ic_stat_matrix', // Need to add this resource later
                actionTypeId: 'OPEN_APP'
            };
@@ -250,6 +252,65 @@ export const notificationService = {
        console.error("Failed to schedule local", e);
        toast.error("Calibration Failed");
     }
+  },
+
+  scheduleHabitReminder: async (habitId: string, title: string, time: string, days: number[]) => {
+      if (!Capacitor.isNativePlatform()) return;
+
+      try {
+          // Generate Numeric ID base from Habit ID hash (0-999999) + 2000 offset
+          const hash = habitId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 2000 + (hash % 10000); 
+
+          const [h, m] = time.split(':').map(Number);
+          if (isNaN(h) || isNaN(m)) return;
+
+          // Cancel existing for this habit
+          const pending = await LocalNotifications.getPending();
+          // We assume we use baseId + dayIndex (0-6)
+          const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
+          if (toCancel.length > 0) {
+              await LocalNotifications.cancel({ notifications: toCancel });
+          }
+
+          const notifications = days.map(dayIndex => ({
+              id: baseId + dayIndex,
+              title: "Habit Protocol",
+              body: title,
+              schedule: {
+                  on: {
+                      weekday: dayIndex + 1,
+                      hour: h,
+                      minute: m
+                  },
+                  allowWhileIdle: true
+              },
+              channelId: 'lux_daily',
+              smallIcon: 'ic_stat_matrix',
+              actionTypeId: 'OPEN_APP'
+          }));
+
+          await LocalNotifications.schedule({ notifications });
+          console.log(`Scheduled ${notifications.length} reminders for habit ${title}`);
+      } catch (e) {
+          console.error("Failed to schedule habit reminder", e);
+      }
+  },
+
+  cancelHabitReminder: async (habitId: string) => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+          const hash = habitId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 2000 + (hash % 10000);
+          
+          const pending = await LocalNotifications.getPending();
+          const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
+          if (toCancel.length > 0) {
+              await LocalNotifications.cancel({ notifications: toCancel });
+          }
+      } catch (e) {
+          console.error("Failed to cancel habit reminder", e);
+      }
   },
 
   /**

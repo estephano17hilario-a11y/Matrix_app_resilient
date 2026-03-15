@@ -25,12 +25,11 @@ interface StatsHeaderProps {
   onShowStreak?: () => void;
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
-  onUpdateLevel?: (newLevel: number) => void;
   dailyLimits?: any; // Using any temporarily to avoid deep type imports if not needed, but better to use DailyLimits
   onNavigate?: (view: string) => void;
 }
 
-export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowSettings, displayName, email, currentView, isPro, avatarId, avatarShape, onUpdateLevel, dailyLimits, onNavigate }: StatsHeaderProps) => {
+export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold, isHabitsCompleted, isHidden, showProfile, hideAvatar, isSyncing, onShowStore, onShowSettings, displayName, email, currentView, isPro, avatarId, avatarShape, dailyLimits, onNavigate }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile && !hideAvatar;
 
@@ -38,9 +37,9 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
     <header className={`flex justify-between items-center z-[100] relative ${
         isCompact 
             ? 'mt-0 mb-0' 
-            : 'mt-6'
+            : 'mt-4'
     } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
-    style={{ contain: 'layout style', willChange: 'opacity' }}
+    style={{ contain: 'layout style', willChange: 'opacity, transform' }}
     >
         <div className={`flex items-center gap-4 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Avatar Widget - MOVED FIRST */}
@@ -66,7 +65,6 @@ export const StatsHeader = React.memo(({ level, xp, nextXp, health, maxHealth, s
                       isPro={isPro} 
                       avatarId={avatarId} 
                       avatarShape={avatarShape}
-                      onUpdateLevel={onUpdateLevel}
                       isHabitsCompleted={isHabitsCompleted}
                       dailyLimits={dailyLimits}
                       onNavigate={onNavigate}

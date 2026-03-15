@@ -486,7 +486,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                               className="w-1.5 h-1.5 rounded-full"
                               style={{ backgroundColor: attr.color }} 
                             />
-                            {t(attr.label, attr.label)}
+                            {t(attr.label, attr.label.replace('traits.', ''))}
                           </button>
                         ))}
                       </div>

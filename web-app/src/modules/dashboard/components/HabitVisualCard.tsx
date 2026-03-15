@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { Edit2, Trash2, Check, Flame, Minus } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
@@ -82,22 +82,17 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
     const isWeek = viewMode === 'WEEK';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="group relative rounded-[28px] border border-white/10 bg-[#0b0b0d]/70 p-5 shadow-sm cursor-pointer"
+        <div
+            className="group relative rounded-[28px] border border-white/10 bg-[#0b0b0d] p-5 shadow-sm cursor-pointer hover:bg-[#121215] active:scale-[0.98] transition-all duration-200 gpu-accelerated"
             onClick={() => onClick?.(habit)}
         >
-            <div className="absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
-
             {/* Streak Badge */}
             {habit.streak > 0 && (
                 <div className={cn(
                     "absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors",
                     habit.completedToday
-                        ? "bg-orange-500/10 border-orange-500/20 text-orange-400 shadow-[0_0_10px_-4px_rgba(249,115,22,0.5)]"
-                        : "bg-[#0b0b0d]/80 border-white/10 text-zinc-400"
+                        ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
+                        : "bg-[#0b0b0d] border-white/10 text-zinc-400"
                 )}>
                     <Flame size={12} className={cn(
                         "transition-colors",
@@ -114,7 +109,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                             e.stopPropagation();
                             onEdit(habit);
                         }}
-                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white transition-colors"
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white transition-colors flex items-center justify-center"
                     >
                         <Edit2 size={14} />
                     </button>
@@ -127,7 +122,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                                 onDelete(habit.id);
                             }
                         }}
-                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-red-300 transition-colors"
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-red-300 transition-colors flex items-center justify-center"
                     >
                         <Trash2 size={14} />
                     </button>
@@ -146,59 +141,52 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                     >
                         <SelectedIcon size={25} strokeWidth={1.8} />
                     </button>
-                    <AnimatePresence>
-                        {isPickerOpen && (
-                            <>
-                                <motion.div
-                                    className="fixed inset-0 z-30"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    onClick={(e) => { e.stopPropagation(); setIsPickerOpen(false); }}
-                                />
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                    className="absolute left-0 top-full mt-3 z-40 w-[320px] rounded-[20px] bg-[#0b0b10]/95 border border-white/10 shadow-md p-3"
-                                >
-                                    <div className="max-h-[280px] overflow-y-auto space-y-3 pr-1">
-                                        {ICON_CATEGORIES.map(category => (
-                                            <div key={category.id} className="space-y-2">
-                                                <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium">
-                                                    {category.label}
-                                                </div>
-                                                <div className="grid grid-cols-6 gap-2">
-                                                    {category.icons.map((iconName) => {
-                                                        const Icon = (LucideIcons as any)[iconName];
-                                                        const isActive = habit.iconName === iconName;
-                                                        if (!Icon) return null;
-                                                        return (
-                                                            <button
-                                                                key={iconName}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setIsPickerOpen(false);
-                                                                    onUpdateHabit?.(habit.id, { iconName });
-                                                                }}
-                                                                className={cn(
-                                                                    'w-9 h-9 rounded-xl border flex items-center justify-center transition-colors',
-                                                                    isActive ? 'bg-white/20 border-white/30 text-white' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                                                                )}
-                                                            >
-                                                                <Icon size={16} strokeWidth={1.8} />
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
+                    {isPickerOpen && (
+                        <>
+                            <div
+                                className="fixed inset-0 z-30"
+                                onClick={(e) => { e.stopPropagation(); setIsPickerOpen(false); }}
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="absolute left-0 top-full mt-3 z-40 w-[320px] rounded-[20px] bg-[#0b0b10] border border-white/10 shadow-2xl p-3"
+                            >
+                                <div className="max-h-[280px] overflow-y-auto space-y-3 pr-1">
+                                    {ICON_CATEGORIES.map(category => (
+                                        <div key={category.id} className="space-y-2">
+                                            <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium">
+                                                {category.label}
                                             </div>
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
+                                            <div className="grid grid-cols-6 gap-2">
+                                                {category.icons.map((iconName) => {
+                                                    const Icon = (LucideIcons as any)[iconName];
+                                                    const isActive = habit.iconName === iconName;
+                                                    if (!Icon) return null;
+                                                    return (
+                                                        <button
+                                                            key={iconName}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setIsPickerOpen(false);
+                                                                onUpdateHabit?.(habit.id, { iconName });
+                                                            }}
+                                                            className={cn(
+                                                                'w-9 h-9 rounded-xl border flex items-center justify-center transition-colors',
+                                                                isActive ? 'bg-white/20 border-white/30 text-white' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                                                            )}
+                                                        >
+                                                            <Icon size={16} strokeWidth={1.8} />
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
                 </div>
 
                 <div className="flex-1 text-center min-w-0">
@@ -213,7 +201,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                 <button
                     onClick={(e) => onComplete(e, habit)}
                     className={cn(
-                        'w-14 h-12 rounded-xl border flex items-center justify-center transition-transform active:scale-95',
+                        'w-14 h-12 rounded-xl border flex items-center justify-center transition-all active:scale-95',
                         checkboxClass
                     )}
                 >
@@ -232,15 +220,15 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                     <span className="font-mono text-white/75">{progress.detail}</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                    <motion.div
-                        className="h-full rounded-full origin-left"
-                        style={{ backgroundColor: accentColor }}
-                        initial={false}
-                        animate={{ scaleX: progress.percent / 100 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    <div
+                        className="h-full rounded-full origin-left transition-transform duration-300 ease-out"
+                        style={{ 
+                            backgroundColor: accentColor,
+                            transform: `scaleX(${progress.percent / 100})`
+                        }}
                     />
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 };

@@ -81,7 +81,7 @@ export const QuestModal = React.memo(({
     const selectedAttr = attributes.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#333333';
     const SelectedIcon = selectedAttr?.icon || Star;
-    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label) : t('modals.project.traitDefault', 'Trait');
+    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : t('modals.project.traitDefault', 'Trait');
     
     const selectedProject = projects.find(p => p.id === projectId);
     const selectedSmartProject = smartProjects.find(p => p.id === (lockedSmartProjectId || initialValues?.smartProjectId));
@@ -290,7 +290,7 @@ export const QuestModal = React.memo(({
                                                  return (
                                                      <button key={attr.id} onClick={(e) => { e.stopPropagation(); setAttrId(attr.id); setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                                          <Icon size={16} style={{ color: attr.color }} />
-                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{t(attr.label, attr.label)}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{t(attr.label, attr.label.replace('traits.', ''))}</span>
                                                      </button>
                                                  )
                                              })}

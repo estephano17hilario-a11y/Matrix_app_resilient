@@ -11,6 +11,7 @@ import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNotificationSystem } from './hooks/useNotificationSystem';
 
 // CRITICAL MODULES
 import { AuthScreen } from '@/modules/auth/AuthScreen';
@@ -21,6 +22,7 @@ const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
+  useNotificationSystem(); // Initialize Notifications System-Wide
 
   useEffect(() => {
     if (user || profile) {

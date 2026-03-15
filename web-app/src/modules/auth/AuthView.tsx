@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { App } from '@capacitor/app';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -183,6 +184,35 @@ export const AuthView = () => {
     };
     checkRedirect();
   }, []);
+
+  // --- HARDWARE BACK BUTTON HANDLER ---
+  useEffect(() => {
+    const handleBackButton = async () => {
+        if (view === 'LANDING') {
+            App.exitApp();
+        } else if (view === 'REGISTER_LANG') {
+            setView('LANDING');
+        } else if (view === 'REGISTER_CREDENTIALS') {
+            setView('REGISTER_LANG');
+        } else if (view === 'LOGIN') {
+            setView('LANDING');
+        }
+    };
+
+    const setupListener = async () => {
+        try {
+            return await App.addListener('backButton', handleBackButton);
+        } catch (e) {
+            console.warn('Back button listener failed', e);
+        }
+    };
+
+    const listenerPromise = setupListener();
+
+    return () => {
+        listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
+    };
+  }, [view]);
 
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
