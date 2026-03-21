@@ -1,4 +1,4 @@
-package com.luxresilient.app;
+package com.lux.company;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -398,15 +398,6 @@ public class FocusService extends Service {
             android.net.Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
             if (soundUri == null) {
                  soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
-            }
-            // If still null, use system default notification sound
-            if (soundUri == null) {
-                try {
-                    android.media.Ringtone ringtone = android.media.RingtoneManager.getRingtone(getApplicationContext(), android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
-                    if (ringtone != null) {
-                        soundUri = ringtone.getUri();
-                    }
-                } catch (Exception e) { }
             }
             android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)

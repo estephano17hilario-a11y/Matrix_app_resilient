@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Lux</string>
     <string name="title_activity_main">Lux</string>
-    <string name="package_name">com.luxresilient.app</string>
-    <string name="custom_url_scheme">com.luxresilient.app</string>
+    <string name="package_name">com.lux.company</string>
+    <string name="custom_url_scheme">com.lux.company</string>
+    <string name="server_client_id">337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com</string>
 </resources>

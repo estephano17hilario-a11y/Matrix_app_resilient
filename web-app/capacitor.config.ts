@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.luxresilient.app',
+  appId: 'com.lux.company',
   appName: 'Lux',
   webDir: 'dist',
   server: {
@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
   plugins: {
     GoogleAuth: {
       scopes: ["profile", "email"],
-      serverClientId: "770116190928-8o5hunfe5m2ue5db4h1sqdpa0vo9cc9v.apps.googleusercontent.com",
+      serverClientId: "337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com",
       forceCodeForRefreshToken: true,
     },
     SplashScreen: {
