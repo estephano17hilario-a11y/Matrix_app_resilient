@@ -23,6 +23,8 @@ interface ActiveSessionViewProps {
     customHeaderTitle?: React.ReactNode;
 }
 
+import { useAudioAlarm } from '../hooks/useAudioAlarm';
+
 export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     project,
     attribute,
@@ -51,6 +53,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     const hasAutoStarted = useRef(false);
     const sessionRecordedRef = useRef(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const { playAlarm } = useAudioAlarm();
 
     // Check Advanced Permissions on Mount
     const checkAllPermissions = useCallback(async () => {
@@ -94,13 +98,32 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
         }
     };
 
-    const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH') => {
+    const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false) => {
         const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
         if (safeDuration < 5) return;
         if (sessionRecordedRef.current) return;
         sessionRecordedRef.current = true;
+        
+        // Only play alarm and show external notification if it finished naturally
+        if (!isManualStop) {
+            playAlarm(); // Call the custom beautiful alarm sound
+
+            // Show a web notification if permitted, so they know if they are in another tab
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    new Notification('Focus Complete!', {
+                        body: `You finished your session for ${project.title}. Claim victory!`,
+                        icon: '/favicon.ico',
+                        tag: 'focus-complete'
+                    });
+                } catch (e) {
+                    console.error("Failed to show web notification", e);
+                }
+            }
+        }
+
         onCompleteSession(safeDuration, mode);
-    }, [onCompleteSession]);
+    }, [onCompleteSession, playAlarm, project.title]);
 
     // Helper to get emoji for attribute
     const getTraitEmoji = (id: string) => {
@@ -222,10 +245,10 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
     const handleStop = () => {
         if (mode === 'STOPWATCH' && timeLeft > 0) {
-            handleSessionEnd(getElapsedSeconds('STOPWATCH'), 'STOPWATCH');
+            handleSessionEnd(getElapsedSeconds('STOPWATCH'), 'STOPWATCH', true);
         }
         if (mode === 'POMO') {
-            handleSessionEnd(getElapsedSeconds('POMO'), 'POMO');
+            handleSessionEnd(getElapsedSeconds('POMO'), 'POMO', true);
         }
         stopSession();
         // onExit(); // Removed to keep the user in the Focus Session view
@@ -241,29 +264,14 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
         >
              {/* Dynamic Background Aura - Ultra Optimized & Visual */}
             <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-                <motion.div 
+                <div 
                     className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] rounded-full"
-                    initial={false}
-                    animate={{ 
-                        scale: isActive && !isPaused ? [1.02, 1.12, 1.02] : 1, // Even more subtle scale
-                        opacity: isActive && !isPaused ? 0.25 : 0.15,
-                        x: '-50%',
-                        y: '-50%'
-                    }}
-                    transition={{ 
-                        scale: {
-                            repeat: Infinity,
-                            duration: 6, // Even slower pulse
-                            ease: "easeInOut"
-                        },
-                        opacity: { duration: 1.5 },
-                        x: { duration: 0 },
-                        y: { duration: 0 }
-                    }}
                     style={{ 
+                        opacity: isActive && !isPaused ? 0.25 : 0.15,
+                        transform: 'translate(-50%, -50%) translateZ(0)',
                         backgroundImage: `radial-gradient(circle at center, ${themeColor} 0%, ${themeColor}10 40%, rgba(0,0,0,0) 70%)`,
-                        willChange: 'transform, opacity'
-                    }} 
+                        transition: 'opacity 1.5s ease-in-out'
+                    }}
                 />
             </div>
 

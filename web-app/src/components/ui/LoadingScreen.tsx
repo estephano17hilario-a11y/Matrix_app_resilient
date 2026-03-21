@@ -10,13 +10,11 @@ export const LoadingScreen = () => {
           transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
           className="text-center relative"
         >
-          <motion.h1
-            animate={{ opacity: [0.9, 1, 0.9] }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+          <h1
             className="text-4xl md:text-6xl font-sans font-extralight tracking-[0.45em] text-white/90 select-none uppercase"
           >
             Lux
-          </motion.h1>
+          </h1>
           <div className="mt-5 flex justify-center">
             <div className="h-[1px] bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent w-36 rounded-full" />
           </div>

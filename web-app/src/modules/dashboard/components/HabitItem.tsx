@@ -29,6 +29,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   
+  const today = new Date().getDay();
+
   const CustomIcon = React.useMemo(() => {
     if (!habit.iconName) return null;
     return (LucideIcons as any)[habit.iconName] || null;
@@ -46,15 +48,16 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
         const now = new Date();
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const completions = habit.history?.filter(d => d.startsWith(currentMonth)).length || 0;
-        return `${completions}/${habit.monthlyFlexibleCount} este mes`;
+        return `${completions}/${habit.monthlyFlexibleCount} ${t('common.thisMonth')}`;
     }
 
     if (habit.type === 'QUANTITY') {
       return `${habit.currentValue || 0}/${habit.targetValue} ${habit.unit || ''}`;
     }
     if (habit.type === 'CHECKLIST') {
-      const total = habit.checklist?.length || 0;
-      const completed = habit.checklist?.filter(i => i.completed).length || 0;
+      const visibleItems = habit.checklist?.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)) || [];
+      const total = visibleItems.length;
+      const completed = visibleItems.filter(i => i.completed).length;
       return `${completed}/${total}`;
     }
     return isCompletedToday ? '1/1' : '0/1';
@@ -78,7 +81,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
     );
     
     // Auto-completion logic
-    const allCompleted = newChecklist.every(item => item.completed);
+    const visibleItems = newChecklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today));
+    const allCompleted = visibleItems.length > 0 && visibleItems.every(item => item.completed);
     
     onUpdate(habit.id, { checklist: newChecklist });
 
@@ -121,9 +125,10 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
         return Math.min(100, Math.max(0, (current / target) * 100));
     }
     if (habit.type === 'CHECKLIST') {
-        const total = habit.checklist?.length || 0;
+        const visibleItems = habit.checklist?.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)) || [];
+        const total = visibleItems.length;
         if (total === 0) return habit.completedToday ? 100 : 0;
-        const completed = habit.checklist?.filter(i => i.completed).length || 0;
+        const completed = visibleItems.filter(i => i.completed).length;
         return Math.min(100, Math.max(0, (completed / total) * 100));
     }
     return isCompletedToday ? 100 : 0;
@@ -134,46 +139,71 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
     return habit.checklist.length > 0 && habit.checklist.every(i => i.completed);
   }, [habit.checklist, habit.type]);
 
-  const wrapperProps = reduceMotion
-    ? {
+  const wrapperProps = reduceMotion ? {
         onClick: handleWrapperClick,
         className: cn(
-            "group relative bg-[#0b0b0d] border shadow-sm rounded-[1.5rem] p-3 transition-colors duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a] active:scale-95", // REMOVED opacity-80 and blurs for performance
-            allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/10",
-            !isDue && "opacity-60 grayscale" // Slightly more visible when inactive
+          "group relative bg-[#050505]/80 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] rounded-[24px] px-5 py-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#0a0a0a]/85 hover:border-white/[0.1] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)] active:scale-95",
+          allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/[0.05]",
+          !isDue && "opacity-60 grayscale",
+          isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
         ),
         style: wrapperStyle
       }
     : {
-        whileTap: { scale: 0.98 }, // Removed isDue check to allow expand animation
+        whileTap: { scale: 0.98 },
         onClick: handleWrapperClick,
         className: cn(
-            "group relative bg-[#0b0b0d] border shadow-sm rounded-[1.5rem] p-3 transition-colors duration-300 cursor-pointer overflow-hidden hover:bg-[#15151a]", // REMOVED opacity-80 and blurs
-            allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/10",
-            !isDue && "opacity-60 grayscale"
+          "group relative bg-[#050505]/80 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] rounded-[24px] px-5 py-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#0a0a0a]/85 hover:border-white/[0.1] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)]",
+          allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/[0.05]",
+          !isDue && "opacity-60 grayscale",
+          isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
         ),
         style: wrapperStyle
       };
 
   // Pre-calculate Rewards Display (Dynamic based on habit properties)
   const rewards = React.useMemo(() => {
+      // If habit is already completed today, show the reward they actually received.
+      if (isCompletedToday && typeof habit.rewardedXp === 'number' && typeof habit.rewardedGold === 'number') {
+          // Calculate trait XP based on rewarded XP (it's the same base calculation in the engine)
+          const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak - 1, 'HABIT');
+          return { xp: habit.rewardedXp, gold: habit.rewardedGold, traitXp: prediction.traitXp };
+      }
+
       // Calculate based on estimated time and impact
-      const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak);
+      const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak, 'HABIT');
       return { xp: prediction.xp, gold: prediction.coins, traitXp: prediction.traitXp };
-  }, [habit.estimatedTime, habit.impact, habit.streak]);
+  }, [habit.estimatedTime, habit.impact, habit.streak, habit.rewardedXp, habit.rewardedGold, isCompletedToday]);
 
   return (
     <>
-    <Wrapper
-      {...wrapperProps}
-    >
+      <Wrapper 
+        {...wrapperProps}
+      >
+        {/* Animated Background Progress for partial checklists */}
+        {habit.type === 'CHECKLIST' && percentage > 0 && percentage < 100 && (
+          <div 
+            className="absolute left-0 bottom-0 top-0 opacity-[0.03] transition-all duration-500 ease-out z-0"
+            style={{ width: `${percentage}%`, backgroundColor: baseColor }}
+          />
+        )}
+
         {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
             className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-200" 
             style={{ backgroundColor: baseColor }}
         />
 
-      <div className="relative flex items-start gap-3">
+        {/* Radial Gradient Blur Background */}
+        <div 
+            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-500" 
+            style={{ 
+                background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`,
+                transform: 'translateZ(0)'
+            }} 
+        />
+
+      <div className="relative flex items-start gap-3 z-10">
         <div 
           className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border border-white/5"
           style={{ backgroundColor: `${baseColor}20` }}
@@ -296,15 +326,19 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
                     {habit.type === 'CHECKLIST' && habit.checklist && (
                         <div className="pt-2 border-t border-white/5 space-y-1">
                             <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Subtasks</span>
-                            {habit.checklist.map(item => (
+                            {habit.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)).map(item => (
                                 <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, item.completed)}>
                                     <div
                                             className={cn(
                                                 "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
                                                 item.completed 
-                                                    ? (allChecklistCompleted ? "bg-emerald-500 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-indigo-500 border-indigo-500 text-white")
+                                                    ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
                                                     : "bg-white/5 border-white/20 group-hover/item:border-white/40"
                                             )}
+                                            style={{
+                                                backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined,
+                                                borderColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined
+                                            }}
                                         >
                                         {item.completed && <Check size={12} strokeWidth={3} />}
                                     </div>

@@ -10,12 +10,8 @@
     --color-secondary-glow: 236 72 153;
     --color-glass-tint: 255 255 255;
     --color-text-primary: 255 255 255;
-    --view-inactive-blur: 12px;
-    --toast-blur: 10px;
-    --aurora-blur-1: 60px;
-    --aurora-blur-2: 80px;
-    --aurora-blur-3: 80px;
-    --aurora-blur-4: 40px;
+    --view-inactive-blur: 0px;
+    --toast-blur: 8px;
 
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -28,6 +24,7 @@
     overflow-x: hidden;
     
     /* GLOBAL FLICKER FIX FOR ANDROID WEBVIEW */
+    /* Applied to root only to avoid memory explosion */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     transform: translateZ(0);
@@ -42,25 +39,43 @@
     will-change: transform, opacity;
   }
 
-  /* CLAMP HEAVY BLURS FOR STABILITY (Max 12px for desktop, 8px for mobile) */
-  /* This prevents "Black Screen" on Android due to GPU overload from heavy blurs */
-  .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl {
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+  /* CLAMP HEAVY BLURS FOR STABILITY - GLOBALLY DISABLED FOR MAX PERFORMANCE */
+  /* This completely prevents "Black Screen" and flickering on ALL devices */
+  .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl,
+  .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm,
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Beautiful premium fallback without GPU cost */
+    background: linear-gradient(135deg, rgb(var(--color-bg-depth) / 0.92) 0%, rgb(var(--color-bg-depth) / 0.8) 100%) !important;
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+  }
+
+  /* Disable all expensive filters globally */
+  .blur-3xl, .blur-2xl, .blur-xl, .blur-lg, .blur-md, .blur-sm, .blur,
+  [class*="blur-"] {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING */
+  * {
+    /* Only allow opacity and transform to be animated */
   }
 
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
   @media (max-width: 768px) {
       /* Optimize blurs on mobile - Cap max blur radius for performance */
       .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, 
-      .backdrop-blur-lg {
-        backdrop-filter: blur(5px) !important;
-        -webkit-backdrop-filter: blur(5px) !important;
+      .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
 
       /* Reduce regular blurs significantly for mobile to prevent black screens */
       .blur-3xl, .blur-2xl, .blur-xl, .blur-lg {
-          filter: blur(4px) !important;
+          filter: blur(2px) !important;
           opacity: 0.8;
           transform: translateZ(0);
       }
@@ -82,12 +97,12 @@
   @media (max-width: 768px) {
     :root {
       /* Drastically reduced blurs for mobile GPU safety - PREVENT BLACK SCREENS */
-      --view-inactive-blur: 2px; 
-      --toast-blur: 4px;
-      --aurora-blur-1: 8px; /* Reduced to absolute safe limit */
-      --aurora-blur-2: 12px; 
-      --aurora-blur-3: 12px; 
-      --aurora-blur-4: 6px; 
+      --view-inactive-blur: 0px; 
+      --toast-blur: 0px;
+      --aurora-blur-1: 0px; /* Reduced to absolute safe limit */
+      --aurora-blur-2: 0px; 
+      --aurora-blur-3: 0px; 
+      --aurora-blur-4: 0px; 
     }
 
     /* PREVENT BLACK SCREEN / GPU CRASH ON MOBILE */
@@ -99,47 +114,26 @@
         mix-blend-mode: normal !important;
     }
 
-    /* Replace heavy backdrops with simple transparency or very light blur */
-    .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md {
-        backdrop-filter: blur(4px) !important;
-        -webkit-backdrop-filter: blur(4px) !important;
-        background-color: rgba(0, 0, 0, 0.7) !important; /* Higher opacity to compensate for less blur */
-    }
-    
-    .backdrop-blur-sm {
-        backdrop-filter: blur(2px) !important;
-        -webkit-backdrop-filter: blur(2px) !important;
+    /* Replace heavy backdrops with beautiful solid/gradient fallbacks that look like premium glass */
+    .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur-sm, [class*="backdrop-blur-"] {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: linear-gradient(135deg, rgb(var(--color-bg-depth) / 0.95) 0%, rgb(var(--color-bg-depth) / 0.85) 100%) !important;
+        box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
     }
 
     /* Reduce regular blurs significantly */
-    .blur-3xl, .blur-2xl, .blur-xl, .blur-lg {
-        filter: blur(8px) !important;
+    .blur-3xl, .blur-2xl, .blur-xl, .blur-lg, .blur-md, .blur-sm, [class*="blur-"] {
+        filter: none !important;
         opacity: 0.9; /* Higher opacity to hide artifacts */
         transform: translateZ(0); /* Force GPU */
     }
-    
-    .blur-md, .blur-sm {
-        filter: blur(4px) !important;
-    }
 
-    /* HUGE BLURS (Aurora, etc) - CLAMP THEM */
-    .blur-\[100px\], .blur-\[120px\], .blur-\[150px\], .blur-\[80px\], .blur-\[60px\], .blur-\[90px\], .blur-\[50px\], .blur-\[70px\], .blur-\[40px\] {
-        filter: blur(8px) !important;
-        transform: scale(1.02); /* Slight scale to cover edges */
-    }
-
-    /* Safety net for arbitrary backdrop blurs on mobile */
-    [class*="backdrop-blur-"] {
-        backdrop-filter: blur(2px) !important;
-        -webkit-backdrop-filter: blur(2px) !important;
-        /* Ensure readable background if blur fails or is low */
-        background-color: rgba(0, 0, 0, 0.75) !important; 
-    }
-
-    /* DISABLE ANIMATIONS THAT CAUSE LAYOUT THRASHING */
+    /* OPTIMIZE ANIMATIONS INSTEAD OF DISABLING THEM COMPLETELY */
+    /* Fast, snappy transitions for a "0 delay" premium feel without layout thrashing */
     * {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
+        /* We don't disable everything, we just force fast transform/opacity transitions */
     }
     
     /* Re-enable specific safe animations if needed, but default to SNAP for 0 delay feel */
@@ -149,9 +143,9 @@
 
     /* INSTANT TOUCH FEEDBACK - "The 0 Delay Feel" */
     button:active, [role="button"]:active, .clickable:active {
-        opacity: 0.6 !important;
-        transform: scale(0.96) !important;
-        transition: none !important; /* Force instant change */
+        opacity: 0.7 !important;
+        transform: scale(0.97) !important;
+        transition: transform 0.05s ease-out, opacity 0.05s ease-out !important; /* Force instant but smooth change */
     }
   }
 

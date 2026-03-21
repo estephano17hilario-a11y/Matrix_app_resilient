@@ -8,11 +8,11 @@ import {
   signInAnonymously,
   updateProfile,
   setDoc,
-  serverTimestamp,
   User,
   doc, 
   getDoc 
 } from './firebase';
+import { DEFAULT_USER_STATS } from '../types/User';
 
 /**
  * SERVICE: Firebase Authentication & User Data
@@ -21,12 +21,50 @@ import {
 
 const googleProvider = new GoogleAuthProvider();
 
+export const initializeUserDocument = async (user: User, additionalData: any = {}) => {
+  const userDocRef = doc(db, 'users', user.uid);
+  const userDoc = await getDoc(userDocRef);
+
+  if (!userDoc.exists()) {
+    const defaultData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: additionalData.displayName || user.displayName || 'Operator',
+      photoURL: user.photoURL || null,
+      plan: 'FREE',
+      archetype: 'NEO',
+      stats: DEFAULT_USER_STATS,
+      theme: 'MATRIX',
+      createdAt: Date.now(),
+      lastLoginAt: Date.now(),
+      onboarding: {
+        successDefinition: "Becoming the One",
+        obstacles: [],
+        coachingTone: "Stoic",
+        completedAt: 0,
+        language: "en"
+      },
+      ...additionalData
+    };
+    await setDoc(userDocRef, defaultData);
+    return defaultData;
+  } else {
+    // If it exists, just update lastLoginAt
+    await setDoc(userDocRef, { lastLoginAt: Date.now() }, { merge: true });
+    return userDoc.data();
+  }
+};
+
 export const loginWithGoogle = async (): Promise<User | null> => {
   try {
     googleProvider.addScope('profile');
     googleProvider.addScope('email');
     const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
+    const user = result.user;
+
+    await initializeUserDocument(user, { isAnonymous: false });
+
+    return user;
   } catch (error: any) {
     if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/cancelled-popup-request') {
       await signInWithRedirect(auth, googleProvider);
@@ -43,13 +81,11 @@ export const loginAsGuest = async (name: string): Promise<User> => {
         
         await updateProfile(user, { displayName: name });
         
-        // Create user document for persistence
-        await setDoc(doc(db, 'users', user.uid), {
+        await initializeUserDocument(user, { 
             displayName: name,
             isAnonymous: true,
-            createdAt: serverTimestamp(),
             email: null
-        }, { merge: true });
+        });
 
         return user;
     } catch (error) {

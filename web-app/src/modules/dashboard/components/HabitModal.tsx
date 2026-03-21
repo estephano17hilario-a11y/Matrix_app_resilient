@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
-import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle } from 'lucide-react';
+import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -12,7 +12,7 @@ import { IconPicker } from './IconPicker';
 import { DurationPicker } from './DurationPicker';
 import { usePermissions } from '../../../hooks/usePermissions';
 
-export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit }) => {
+export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit, onSwitchToBadHabit?: () => void }) => {
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
@@ -31,7 +31,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const [logic, setLogic] = useState<'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN'>('BOOLEAN');
     const [target, setTarget] = useState('');
     const [unit, setUnit] = useState('');
-    const [subtasks, setSubtasks] = useState<string[]>([]);
+    const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean; color?: string; days?: number[] }[]>([]);
+    const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS'} | null>(null);
     const [newSubtask, setNewSubtask] = useState('');
     const [impact, setImpact] = useState(1);
 
@@ -76,7 +77,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setLogic(initialData.type || 'BOOLEAN');
                 setTarget(initialData.targetValue?.toString() || '');
                 setUnit(initialData.unit || '');
-                setSubtasks(initialData.checklist?.map(c => c.text) || []);
+                setSubtasks(initialData.checklist || []);
                 setReminder(initialData.reminderTime || '');
                 setEstimatedTime(initialData.estimatedTime || 0);
                 setCustomColor(initialData.customColor);
@@ -123,7 +124,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         // Because that's what they will get if they complete it today.
         
         const currentStreak = initialData?.streak || 0;
-        return calculateTaskRewards(estimatedTime, impact, currentStreak);
+        return calculateTaskRewards(estimatedTime, impact, currentStreak, 'HABIT');
     }, [estimatedTime, impact, initialData?.streak]);
 
     // Validation Logic
@@ -154,7 +155,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 frequencyDays: freq === 'WEEKLY' ? weekDays : undefined,
                 targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
                 unit: unit || undefined,
-                checklist: logic === 'CHECKLIST' ? subtasks.map((t, i) => ({ id: `${Date.now()}-${i}`, text: t, completed: false })) : [],
+                checklist: logic === 'CHECKLIST' ? subtasks : [],
                 reminderTime: reminder || undefined,
                 estimatedTime,
                 customColor,
@@ -165,9 +166,21 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 ...(initialData?.id ? { id: initialData.id } : {})
             });
             onClose();
+            
+            // Dispatch event for TourGuide
+            if (!initialData?.id) {
+                window.dispatchEvent(new CustomEvent('habit-created'));
+            }
         } catch (error) {
             console.error("Failed to save habit", error);
             setIsSubmitting(false);
+        }
+    };
+
+    const handleClose = () => {
+        onClose();
+        if (!initialData?.id) {
+            window.dispatchEvent(new CustomEvent('habit-created'));
         }
     };
 
@@ -182,7 +195,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[500] flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/40" onClick={!isSubmitting ? onClose : undefined} />
+                    <div className="absolute inset-0 bg-black/40" onClick={!isSubmitting ? handleClose : undefined} />
                     <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -206,11 +219,26 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <SelectedIcon size={21} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-white tracking-tight leading-none">{initialData ? 'Editar Hábito' : 'Nuevo Hábito'}</h2>
-                                <p className="text-[10px] font-medium text-white/40 mt-1 uppercase tracking-wider">Protocolo de Vida</p>
+                                <h2 className="text-lg font-black text-white tracking-tight leading-none">{initialData ? t('habits.editHabit', 'Edit Habit') : t('habits.newHabit', 'New Habit')}</h2>
+                                <p className="text-[10px] font-medium text-white/40 mt-1 uppercase tracking-wider">{t('habits.lifeProtocol', 'Life Protocol')}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
+                        <div className="flex items-center gap-3">
+                            {!initialData && onSwitchToBadHabit && (
+                                <div className="flex p-0.5 rounded-full bg-white/5 border border-white/10">
+                                    <div className="px-3 py-1 rounded-full bg-white/10 text-white text-[10px] font-bold shadow-sm">
+                                        {t('habits.habit', 'Habit')}
+                                    </div>
+                                    <button 
+                                        onClick={onSwitchToBadHabit}
+                                        className="px-3 py-1 rounded-full text-white/40 text-[10px] font-bold hover:text-white transition-colors"
+                                    >
+                                        {t('habits.vice', 'Vice')}
+                                    </button>
+                                </div>
+                            )}
+                            <button onClick={handleClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/20 transition-colors"><X size={16} /></button>
+                        </div>
                     </div>
 
                     <div ref={scrollContainerRef} className="overflow-y-auto no-scrollbar p-3 space-y-2">
@@ -230,7 +258,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 1 ? "bg-white text-black" : isBlock1Valid ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock1Valid && expandedBlock !== 1 ? <CheckCircle2 size={14} /> : "1"}
                                     </div>
-                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>IDENTIDAD</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>{t('habits.identity', 'IDENTITY')}</span>
                                 </div>
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
@@ -249,7 +277,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 type="text" 
                                                 value={title} 
                                                 onChange={(e) => setTitle(e.target.value)} 
-                                                placeholder="Nombre del Protocolo..." 
+                                                placeholder={t('habits.protocolNamePlaceholder', 'Protocol Name...')}
                                                 className="w-full h-9 bg-transparent px-3 text-xs font-bold text-white placeholder:text-white/20 outline-none" 
                                             />
                                         </div>
@@ -260,7 +288,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 type="text" 
                                                 value={desc} 
                                                 onChange={(e) => setDesc(e.target.value)} 
-                                                placeholder="Descripción (Requerida)..." 
+                                                placeholder={t('habits.descriptionPlaceholder', 'Description (Required)...')} 
                                                 className="w-full h-9 bg-transparent px-3 text-xs font-medium text-slate-300 placeholder:text-white/20 outline-none" 
                                             />
                                         </div>
@@ -282,10 +310,12 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 ) : (
                                                     <>
                                                         <Plus size={16} className="text-white/30" />
-                                                        <span className="text-xs font-bold text-white/30">Seleccionar Rasgo</span>
+                                                        <span className="text-xs font-bold text-white/30">{t('habits.selectTrait', 'Select Trait')}</span>
                                                     </>
                                                 )}
-                                                <ChevronDown size={14} className={cn("ml-auto transition-transform text-white/30", isAttrPickerOpen && "rotate-180")} />
+                                                <div className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+                                                    <ChevronDown size={14} className={cn("transition-transform text-white/30 group-hover:text-white/50", isAttrPickerOpen && "rotate-180")} />
+                                                </div>
                                             </div>
 
                                             <AnimatePresence>
@@ -350,7 +380,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 disabled={!isBlock1Valid}
                                                 className="px-6 py-2 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                                             >
-                                                Siguiente
+                                                {t('common.next', 'Next')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -373,7 +403,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 2 ? "bg-white text-black" : isBlock2Valid && expandedBlock > 2 ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock2Valid && expandedBlock > 2 ? <CheckCircle2 size={14} /> : "2"}
                                     </div>
-                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>MECÁNICA</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>{t('habits.mechanics', 'MECHANICS')}</span>
                                 </div>
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
@@ -404,15 +434,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         
                                         {freq === 'WEEKLY' && (
                                             <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
-                                                {[
-                                                    { label: 'L', index: 1 },
-                                                    { label: 'M', index: 2 },
-                                                    { label: 'X', index: 3 },
-                                                    { label: 'J', index: 4 },
-                                                    { label: 'V', index: 5 },
-                                                    { label: 'S', index: 6 },
-                                                    { label: 'D', index: 0 }
-                                                ].map(({ label, index }) => (
+                                                {(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((label: string, index: number) => (
                                                     <button 
                                                         key={index} 
                                                         onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
@@ -442,7 +464,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         <span className="text-xs font-bold text-white capitalize">{t(`modals.habit.logics.${logic}`)}</span>
                                                     </div>
                                                 </div>
-                                                <ChevronDown size={14} className="text-white/30" />
+                                                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+                                                    <ChevronDown size={14} className="text-white/30 group-hover:text-white/50" />
+                                                </div>
                                             </button>
                                         </div>
 
@@ -454,7 +478,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 </div>
                                                 <div className="flex-1 bg-black/20 rounded-xl p-2 border border-white/5">
                                                     <span className="text-[9px] font-bold text-slate-500 uppercase block mb-1 ml-1">{t('modals.habit.unit')}</span>
-                                                    <input type="text" placeholder="pág" value={unit} onChange={e => setUnit(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
+                                                    <input type="text" placeholder={t('habits.pagesPlaceholder', 'pages')} value={unit} onChange={e => setUnit(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
                                                 </div>
                                             </div>
                                         )}
@@ -462,22 +486,133 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         {logic === 'CHECKLIST' && (
                                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                                 <div className="flex gap-2 bg-black/20 rounded-xl p-1 border border-white/5">
-                                                    <input type="text" placeholder={t('modals.quest.addStepPlaceholder')} value={newSubtask} onChange={e => setNewSubtask(e.target.value)} className="flex-1 bg-transparent text-sm font-medium text-white outline-none px-3" />
-                                                    <button onClick={() => { if(newSubtask) { setSubtasks([...subtasks, newSubtask]); setNewSubtask(''); } }} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20"><Plus size={14} /></button>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder={t('modals.quest.addStepPlaceholder')} 
+                                                        value={newSubtask} 
+                                                        onChange={e => setNewSubtask(e.target.value)} 
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter' && newSubtask.trim()) {
+                                                                const defaultDays = freq === 'WEEKLY' ? weekDays : freq === 'MONTHLY' ? [] : undefined;
+                                                                setSubtasks([...subtasks, { id: Date.now().toString(), text: newSubtask, completed: false, days: defaultDays }]);
+                                                                setNewSubtask('');
+                                                            }
+                                                        }}
+                                                        className="flex-1 bg-transparent text-sm font-medium text-white outline-none px-3" 
+                                                    />
+                                                    <button 
+                                                        onClick={() => { 
+                                                            if(newSubtask.trim()) { 
+                                                                const defaultDays = freq === 'WEEKLY' ? weekDays : freq === 'MONTHLY' ? [] : undefined;
+                                                                setSubtasks([...subtasks, { id: Date.now().toString(), text: newSubtask, completed: false, days: defaultDays }]); 
+                                                                setNewSubtask(''); 
+                                                            } 
+                                                        }} 
+                                                        className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20"
+                                                    >
+                                                        <Plus size={14} />
+                                                    </button>
                                                 </div>
-                                                <div className="space-y-1 pl-1">
-                                                    {subtasks.map((task, i) => (
-                                                        <div key={i} className="flex items-center gap-2 text-xs text-slate-300">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-white/20" /> {task}
-                                                        </div>
+                                                
+                                                <Reorder.Group axis="y" values={subtasks} onReorder={setSubtasks} className="space-y-2">
+                                                    {subtasks.map((task) => (
+                                                        <Reorder.Item key={task.id} value={task} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                                                            <div className="flex items-center gap-2 p-2">
+                                                                <GripVertical size={14} className="text-white/20 cursor-grab active:cursor-grabbing flex-shrink-0" />
+                                                                
+                                                                <div 
+                                                                    className="w-2 h-2 rounded-full flex-shrink-0" 
+                                                                    style={{ backgroundColor: task.color || 'rgba(255,255,255,0.2)' }}
+                                                                />
+
+                                                                <input 
+                                                                    value={task.text}
+                                                                    onChange={(e) => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t))}
+                                                                    className="flex-1 bg-transparent text-xs text-white outline-none min-w-0"
+                                                                />
+
+                                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                                    <button 
+                                                                        onClick={() => setOpenMenu(prev => (prev?.id === task.id && prev?.type === 'COLOR') ? null : { id: task.id, type: 'COLOR' })}
+                                                                        className={cn("p-1.5 rounded hover:bg-white/10 transition-colors", task.color ? "text-white" : "text-white/30 hover:text-white")}
+                                                                    >
+                                                                        <Palette size={12} />
+                                                                    </button>
+
+                                                                    <button 
+                                                                        onClick={() => setOpenMenu(prev => (prev?.id === task.id && prev?.type === 'DAYS') ? null : { id: task.id, type: 'DAYS' })}
+                                                                        className={cn("p-1.5 rounded hover:bg-white/10 transition-colors", (task.days && task.days.length > 0) ? "text-cyan-400" : "text-white/30 hover:text-white")}
+                                                                    >
+                                                                        <Calendar size={12} />
+                                                                    </button>
+
+                                                                    <button 
+                                                                        onClick={() => setSubtasks(subtasks.filter(t => t.id !== task.id))}
+                                                                        className="p-1.5 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            <AnimatePresence>
+                                                                {openMenu?.id === task.id && (
+                                                                    <motion.div 
+                                                                        initial={{ height: 0, opacity: 0 }}
+                                                                        animate={{ height: "auto", opacity: 1 }}
+                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        className="border-t border-white/5 bg-black/20"
+                                                                    >
+                                                                        {openMenu.type === 'COLOR' && (
+                                                                            <div className="flex gap-1.5 p-2 overflow-x-auto no-scrollbar">
+                                                                                <button onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, color: undefined } : t))} className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center bg-transparent"><X size={10} className="text-white/50" /></button>
+                                                                                {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'].map(c => (
+                                                                                    <button 
+                                                                                        key={c}
+                                                                                        onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, color: c } : t))}
+                                                                                        className={cn("w-5 h-5 rounded-full border transition-transform hover:scale-110 flex-shrink-0", task.color === c ? "border-white scale-110" : "border-transparent")}
+                                                                                        style={{ backgroundColor: c }}
+                                                                                    />
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        {openMenu.type === 'DAYS' && (
+                                                                            <div className="flex justify-between p-2">
+                                                                                {(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((label: string, index: number) => {
+                                                                                    const isSelected = task.days ? task.days.includes(index) : true;
+                                                                                    return (
+                                                                                        <button 
+                                                                                            key={index} 
+                                                                                            onClick={() => {
+                                                                                                const currentDays = task.days || [0,1,2,3,4,5,6];
+                                                                                                const newDays = currentDays.includes(index) 
+                                                                                                    ? currentDays.filter(d => d !== index)
+                                                                                                    : [...currentDays, index];
+                                                                                                setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, days: newDays.length === 7 ? undefined : newDays } : t));
+                                                                                            }} 
+                                                                                            className={cn(
+                                                                                                "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold transition-all border",
+                                                                                                isSelected ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                                            )}
+                                                                                        >
+                                                                                            {label}
+                                                                                        </button>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        )}
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </Reorder.Item>
                                                     ))}
-                                                </div>
+                                                </Reorder.Group>
                                             </div>
                                         )}
 
                                         {/* Impact */}
                                         <div className="space-y-2">
-                                            <span className="text-[9px] font-bold text-white/30 uppercase pl-1">Impacto Positivo</span>
+                                            <span className="text-[9px] font-bold text-white/30 uppercase pl-1">{t('habits.positiveImpact', 'Positive Impact')}</span>
                                             <div className="h-8 bg-black/30 rounded-full p-1 flex gap-1">
                                                 {[1,2,3,4].map(lvl => (
                                                     <button 
@@ -502,7 +637,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                 onClick={() => isBlock2Valid && handleBlockChange(3)}
                                                 className="px-5 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
                                             >
-                                                Siguiente
+                                                {t('common.next', 'Next')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -525,7 +660,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 3 ? "bg-white text-black" : (isBlock3Valid || initialData) ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {expandedBlock === 3 ? "3" : (isBlock3Valid || initialData) ? <CheckCircle2 size={14} /> : "3"}
                                     </div>
-                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>{t('habits.commitment', 'COMMITMENT')}</span>
                                 </div>
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
@@ -581,9 +716,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             >
                                                                 <div className="flex items-center gap-2">
                                                                     <AlertCircle size={12} />
-                                                                    <span className="text-[10px] font-bold">Permisos Faltantes</span>
+                                                                    <span className="text-[10px] font-bold">{t('habits.missingPermissions', 'Missing Permissions')}</span>
                                                                 </div>
-                                                                <span className="text-[10px] font-bold underline">ACTIVAR</span>
+                                                                <span className="text-[10px] font-bold underline">{t('common.activate', 'ACTIVATE')}</span>
                                                             </button>
                                                         )}
 
@@ -594,9 +729,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         >
                                                             <div className="flex items-center gap-2">
                                                                 <Zap size={12} />
-                                                                <span className="text-[10px] font-bold">Batería / Segundo Plano</span>
+                                                                <span className="text-[10px] font-bold">{t('habits.batteryBackground', 'Battery / Background')}</span>
                                                             </div>
-                                                            <span className="text-[10px] font-bold underline">REVISAR</span>
+                                                            <span className="text-[10px] font-bold underline">{t('common.review', 'REVIEW')}</span>
                                                         </button>
                                                     </motion.div>
                                                 )}
@@ -618,7 +753,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         {projectId ? projects.find(p => p.id === projectId)?.title : "Vincular Proyecto (Opcional)"}
                                                     </span>
                                                 </div>
-                                                <ChevronDown size={14} className="text-white/30" />
+                                                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+                                                    <ChevronDown size={14} className="text-white/30 group-hover:text-white/50" />
+                                                </div>
                                             </button>
 
                                             {isProjectPickerOpen && (
@@ -630,7 +767,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left"
                                                         >
                                                             <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center"><X size={12} className="text-white/50" /></div>
-                                                            <span className="text-xs font-bold text-white/50">Sin Proyecto</span>
+                                                            <span className="text-xs font-bold text-white/50">{t('habits.noProject', 'No Project')}</span>
                                                         </button>
                                                         {projects.map(p => {
                                                             const attr = attributes.find(a => a.id === p.attribute);

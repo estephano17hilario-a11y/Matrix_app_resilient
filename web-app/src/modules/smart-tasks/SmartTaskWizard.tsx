@@ -19,6 +19,7 @@ interface SmartTaskWizardProps {
   availableTraits?: Attribute[];
   activeSmartTasksCount?: number;
   isPro?: boolean;
+  onOpenPro?: () => void;
 }
 
 export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({ 
@@ -26,7 +27,8 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
     onCancel, 
     availableTraits,
     activeSmartTasksCount = 0,
-    isPro = false
+    isPro = false,
+    onOpenPro
 }) => {
   const { t } = useTranslation();
   const traits = availableTraits && availableTraits.length > 0
@@ -34,7 +36,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
     : TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: 100 }));
   
   // Check Limit
-  const isLimitReached = !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_TASKS;
+  const isLimitReached = !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_STRATEGIES;
   
   const { 
     currentStep, 
@@ -78,35 +80,15 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   };
 
   // Limit Reached Screen
+  useEffect(() => {
+    if (isLimitReached) {
+      if (onOpenPro) onOpenPro();
+      onCancel();
+    }
+  }, [isLimitReached, onOpenPro, onCancel]);
+
   if (isLimitReached) {
-      if (typeof document === 'undefined') return null;
-      return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
-             <button 
-                onClick={onCancel}
-                className="absolute top-8 right-8 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50"
-            >
-                <span className="sr-only">Close</span>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <div className="text-center max-w-md px-6">
-                <div className="w-20 h-20 mx-auto bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-indigo-500/30">
-                    <Sparkles className="w-10 h-10 text-indigo-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Protocol Limit Reached</h2>
-                <p className="text-white/60 mb-8">
-                    System capacity reached. Maximum {FREE_LIMITS.ACTIVE_TASKS} active Smart Tasks. Complete existing tasks to continue.
-                </p>
-                <button 
-                    onClick={onCancel}
-                    className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-all"
-                >
-                    Understood
-                </button>
-            </div>
-        </div>,
-        document.body
-      );
+      return null;
   }
 
   // Check for completion
@@ -125,63 +107,63 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-[#020204]/60 overflow-hidden">
-      {/* Dynamic Background based on Trait - MOVED TO PARENT (Behind Glass) */}
+    <div 
+      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/85 backdrop-blur-2xl overflow-hidden"
+      style={{ backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}
+    >
+      {/* Dynamic Background based on Trait - Simplified for performance */}
       <div 
-        className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out opacity-40"
+        className="absolute inset-0 pointer-events-none transition-colors duration-1000 ease-in-out opacity-20"
         style={{ 
             background: tempTraitId || projectMeta.traitId
-                ? `radial-gradient(circle at 50% 50%, ${effectiveColor}20 0%, transparent 90%)`
-                : 'radial-gradient(circle at 50% 50%, #6366f110 0%, transparent 70%)'
+                ? `radial-gradient(circle at 50% 40%, ${effectiveColor}30 0%, transparent 60%)`
+                : 'radial-gradient(circle at 50% 40%, #6366f115 0%, transparent 50%)'
         }}
       />
       
       {/* CANCEL BUTTON */}
       <button 
         onClick={onCancel}
-        className="absolute top-8 right-8 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50"
+        className="absolute top-6 right-6 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50 border border-white/5"
       >
         <span className="sr-only">Close</span>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
-      <div className="w-full max-w-4xl px-6 relative z-10 h-[90vh] md:h-auto md:min-h-[600px] flex flex-col pt-4 md:pt-0 md:justify-center bg-black/40 backdrop-blur-sm border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-xl px-6 relative z-10 flex flex-col items-center justify-center">
               <AnimatePresence mode="popLayout">
                 {isStarting ? (
                   <motion.div
                     key="start"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.03 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex flex-col items-center justify-center text-center space-y-6 w-full h-full pt-12 md:pt-0"
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 1.02, filter: "blur(10px)" }}
+                    transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+                    className="flex flex-col items-center justify-center text-center space-y-6 w-full"
                   >
                     {/* APPLE INTELLIGENCE HEADER - Visible only in Objective Step */}
                     <AnimatePresence>
                         {wizardStep === 0 && (
                             <motion.div 
-                                initial={{ opacity: 0, scale: 0.98, y: 6 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.98, y: -6 }}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
                                 className="flex flex-col items-center flex-shrink-0"
                             >
-                                <div className="relative mb-4">
-                                    <div 
-                                        className="absolute inset-0 blur-lg opacity-20 animate-pulse transition-colors duration-500" 
-                                        style={{ backgroundColor: activeColor }}
-                                    />
+                                <div className="mb-4 flex items-center justify-center relative">
+                                    <div className="absolute inset-0 blur-xl opacity-50 transition-colors duration-700" style={{ backgroundColor: activeColor }} />
                                     <Sparkles 
-                                        className="w-12 h-12 relative z-10 transition-colors duration-500" 
+                                        className="w-12 h-12 relative z-10 transition-colors duration-700" 
                                         style={{ color: activeColor }}
                                     />
                                 </div>
-                                <h1 className="text-3xl font-bold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
-                                <p className="text-sm text-white/50">{t('smartTask.wizard.subtitle')}</p>
+                                <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
+                                <p className="text-sm text-white/50 mt-1 font-medium tracking-wide">{t('smartTask.wizard.subtitle')}</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <div className="w-full max-w-2xl flex-1 flex flex-col min-h-0 justify-center">
+                    <div className="w-full flex-1 flex flex-col min-h-0 justify-center pt-2">
                         {wizardStep === 0 && (
                             <ObjectiveStep 
                                 initialValue={tempObjective}

@@ -83,9 +83,18 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
 
     return (
         <div
-            className="group relative rounded-[28px] border border-white/10 bg-[#0b0b0d] p-5 shadow-sm cursor-pointer hover:bg-[#121215] active:scale-[0.98] transition-all duration-200 gpu-accelerated"
+            className="group relative rounded-[28px] border border-white/[0.05] bg-[#050505]/80 hover:bg-[#0a0a0a]/85 p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer hover:border-white/[0.1] active:scale-[0.98] transition-all duration-300 gpu-accelerated overflow-hidden"
             onClick={() => onClick?.(habit)}
         >
+            {/* Radial Gradient Blur Background */}
+            <div 
+                className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-500" 
+                style={{ 
+                    background: `radial-gradient(circle, ${accentColor} 0%, transparent 70%)`,
+                    transform: 'translateZ(0)'
+                }} 
+            />
+
             {/* Streak Badge */}
             {habit.streak > 0 && (
                 <div className={cn(

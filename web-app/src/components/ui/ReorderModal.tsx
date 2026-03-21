@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, GripVertical, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Habit, Project } from '../../types';
-import { cn } from '../../utils/cn';
 
 interface ReorderModalProps<T extends Habit | Project> {
   isOpen: boolean;

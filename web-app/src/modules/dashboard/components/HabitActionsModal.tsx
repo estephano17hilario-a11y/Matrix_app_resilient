@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Archive, Trash2, Edit2, X, RotateCcw } from 'lucide-react';
 import { Habit } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 interface HabitActionsModalProps {
     habit: Habit | null;
@@ -19,6 +20,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
     onArchive,
     onDelete
 }) => {
+    const { t } = useTranslation();
     if (!habit) return null;
 
     if (typeof document === 'undefined') return null;
@@ -70,7 +72,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                         </div>
                         <div className="text-left">
                             <div className="text-white font-semibold">Editar Hábito</div>
-                            <div className="text-white/40 text-xs">Modificar detalles y configuración</div>
+                            <div className="text-white/40 text-xs">{t('common.modifyDetails')}</div>
                         </div>
                     </button>
 
@@ -89,7 +91,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                                 {isArchived ? 'Restaurar Hábito' : 'Archivar Hábito'}
                             </div>
                             <div className="text-white/40 text-xs">
-                                {isArchived ? 'Volver a mostrar en el dashboard' : 'Ocultar del dashboard sin borrar'}
+                                {isArchived ? t('common.unarchive') : t('common.hideWithoutDeleting')}
                             </div>
                         </div>
                     </button>
@@ -105,8 +107,8 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                             <Trash2 size={20} />
                         </div>
                         <div className="text-left">
-                            <div className="text-rose-400 group-hover:text-rose-300 font-semibold">Eliminar Hábito</div>
-                            <div className="text-white/40 text-xs group-hover:text-rose-200/60">Esta acción no se puede deshacer</div>
+                            <div className="text-rose-400 group-hover:text-rose-300 font-semibold">{t('habits.deleteAction', 'Delete Habit')}</div>
+                            <div className="text-white/40 text-xs group-hover:text-rose-200/60">{t('common.undoWarning', 'This action cannot be undone')}</div>
                         </div>
                     </button>
                 </div>

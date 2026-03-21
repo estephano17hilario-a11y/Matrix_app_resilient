@@ -6,11 +6,11 @@ import {
     endOfYear,
     endOfQuarter,
     endOfMonth,
-    endOfWeek,
     endOfDay,
     addMilliseconds,
     getMonth
 } from 'date-fns';
+import { endOfWeek } from './dateUtils';
 
 export type TimeUnit = '10_YEARS' | '5_YEARS' | '1_YEAR' | 'SEMESTER' | 'QUARTER' | 'MONTH' | 'WEEK' | 'DAY';
 
@@ -80,7 +80,7 @@ export const generateTimeBlocks = (startDate: Date, endDate: Date): FractalStruc
                     : endOfYear(date);
             case 'QUARTER': return endOfQuarter(date);
             case 'MONTH': return endOfMonth(date);
-            case 'WEEK': return endOfWeek(date, { weekStartsOn: 1 }); // Monday start
+            case 'WEEK': return endOfWeek(date);
             case 'DAY': return endOfDay(date);
             default: return endOfDay(date);
         }

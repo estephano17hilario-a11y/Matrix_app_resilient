@@ -87,7 +87,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
         </div>
       </div>
 
-      <div className="space-y-3 pb-32">
+      <div data-tour="habit-list" className="space-y-3 pb-32">
         {habits.map((habit, index) => {
           const isOverLimit = index >= limit;
           const isLimitBoundary = index === limit;

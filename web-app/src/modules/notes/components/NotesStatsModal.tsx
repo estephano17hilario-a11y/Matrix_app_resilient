@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PenTool, Brain, Flame, Type, Activity, TrendingUp, Zap, BarChart2, ArrowLeft, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { X, PenTool, Brain, Flame, Type, Activity, TrendingUp, Zap, BarChart2, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Lock } from 'lucide-react';
 import { Note, JournalEntry } from '../../../types';
-import { toLocalISOString, calculateStreak } from '../../../utils/dateUtils';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, addMonths } from 'date-fns';
+import { toLocalISOString, calculateStreak, startOfWeek, endOfWeek } from '../../../utils/dateUtils';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, addWeeks, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { 
     Tooltip, 
     ResponsiveContainer,
@@ -39,12 +40,13 @@ const NOISE_SVG = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http:/
 
 // --- COMPONENTS ---
 
-const StatCard = ({ icon: Icon, label, value, subValue, color, delay }: any) => (
+const StatCard = ({ icon: Icon, label, value, subValue, color, delay, isLocked, onUnlock }: any) => (
     <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay, duration: 0.4 }}
-        className="relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-4 group hover:bg-white/10 transition-colors"
+        onClick={isLocked ? onUnlock : undefined}
+        className={`relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-4 group transition-colors ${isLocked ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/10'}`}
     >
         <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity`} style={{ backgroundColor: color }} />
         
@@ -54,6 +56,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay }: any) => 
                     <Icon size={14} />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{label}</span>
+                {isLocked && <Lock size={10} className="text-yellow-400 ml-auto" />}
             </div>
             <div>
                 <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
@@ -63,7 +66,8 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay }: any) => 
     </motion.div>
 );
 
-export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initialTab = 'OVERVIEW' }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[], initialTab?: 'OVERVIEW' | 'EMOTIONS' }) => {
+export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initialTab = 'OVERVIEW', isPro, onOpenPro }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[], initialTab?: 'OVERVIEW' | 'EMOTIONS', isPro?: boolean, onOpenPro?: () => void }) => {
+    const { t } = useTranslation();
     const [range, setRange] = useState<'WEEK' | 'MONTH'>('WEEK');
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'EMOTIONS'>(initialTab);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -78,10 +82,10 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
     // --- DATA PROCESSING ---
     const data = useMemo(() => {
         const start = range === 'WEEK' 
-            ? startOfWeek(currentDate, { weekStartsOn: 1 }) 
+            ? startOfWeek(currentDate)
             : startOfMonth(currentDate);
         const end = range === 'WEEK' 
-            ? endOfWeek(currentDate, { weekStartsOn: 1 }) 
+            ? endOfWeek(currentDate)
             : endOfMonth(currentDate);
         const days = eachDayOfInterval({ start, end });
         const chartData: any[] = [];
@@ -124,8 +128,8 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
 
     const dateLabel = useMemo(() => {
         if (range === 'WEEK') {
-            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            const start = startOfWeek(currentDate);
+            const end = endOfWeek(currentDate);
             return `${format(start, 'd MMM', { locale: es })} - ${format(end, 'd MMM', { locale: es })}`;
         }
         return format(currentDate, 'MMMM yyyy', { locale: es });
@@ -154,91 +158,81 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={onClose} 
-                        className="absolute inset-0 bg-black/95 backdrop-blur-[2px] transform-gpu" 
+                        className="absolute inset-0 bg-[#000]/95 transform-gpu" 
                     />
 
                     {/* Modal Container */}
                     <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
                         className={`relative z-10 w-full h-full flex flex-col bg-[#121212] overflow-hidden ${activeTab === 'EMOTIONS' ? '' : 'sm:max-w-[600px] sm:h-auto sm:max-h-[90vh] sm:rounded-[32px] sm:border sm:border-white/10'}`}
                     >
                         {/* Noise Texture */}
                         <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
                         
+                        {/* Close Button - Absolute Positioned */}
+                        <button 
+                            onClick={onClose} 
+                            className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center text-white/60 hover:text-white hover:bg-[#2a2a2a] transition-colors active:scale-95 border border-white/5"
+                        >
+                            <X size={20} />
+                        </button>
+
                         {/* Header & Tabs */}
-                        <div className={`relative z-20 shrink-0 flex justify-between items-start transition-all ${activeTab === 'EMOTIONS' ? 'px-8 pt-16 pb-4' : 'px-6 pt-14 pb-2 sm:pt-6'}`}>
-                            <div>
-                                <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                                    {activeTab === 'EMOTIONS' ? (
-                                         <button 
-                                            onClick={() => setActiveTab('OVERVIEW')}
-                                            className="flex items-center gap-3 text-white/60 hover:text-white transition-colors group"
-                                         >
-                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                                                <ArrowLeft size={20} />
-                                            </div>
-                                            <span className="text-xl">Emotions</span>
-                                         </button>
-                                    ) : (
-                                        <>
-                                            <Activity size={20} className="text-indigo-400" />
-                                            <span>Insights</span>
-                                        </>
-                                    )}
-                                </h2>
-                                {activeTab !== 'EMOTIONS' && (
+                        <div className={`relative z-20 shrink-0 flex flex-col gap-4 transition-all px-6 pt-16 pb-2 sm:px-8 sm:pt-16`}>
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 w-full pr-12 sm:pr-0">
+                                <div>
+                                    <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                                        <Activity size={20} className="text-indigo-400" />
+                                        <span>Insights</span>
+                                    </h2>
                                     <p className="text-xs font-medium text-white/40 uppercase tracking-wider mt-1">Neural Analytics v2.0</p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="flex items-center gap-2 flex-wrap justify-end max-w-full">
-                                {/* Range Switcher - Visible for both modes */}
-                                <div className="flex bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0">
-                                    {['WEEK', 'MONTH'].map(r => (
-                                        <button 
-                                            key={r} 
-                                            onClick={() => setRange(r as any)} 
-                                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    {/* Range Switcher */}
+                                    <div className="flex bg-[#1a1a1a] p-1 rounded-full border border-white/5 flex-shrink-0">
+                                        {['WEEK', 'MONTH'].map(r => (
+                                            <button 
+                                                key={r} 
+                                                onClick={() => setRange(r as any)} 
+                                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                            >
+                                                {r}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Date Navigation */}
+                                    <div className="flex items-center gap-1 bg-[#1a1a1a] p-1 rounded-full border border-white/5 flex-shrink-0">
+                                        <button
+                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, -1) : addMonths(d, -1))}
+                                            className="w-8 h-8 rounded-full bg-transparent hover:bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
                                         >
-                                            {r}
+                                            <ChevronLeft size={16} />
                                         </button>
-                                    ))}
+                                        <button
+                                            onClick={() => setIsDateModalOpen(true)}
+                                            className="px-2 h-8 rounded-full text-[11px] font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+                                        >
+                                            <CalendarIcon size={14} />
+                                            <span className="uppercase tracking-wider">{dateLabel}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, 1) : addMonths(d, 1))}
+                                            className="w-8 h-8 rounded-full bg-transparent hover:bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
                                 </div>
-                                
-                                {/* Date Navigation - Visible for both modes */}
-                                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/5 backdrop-blur-[2px] flex-shrink-0 max-w-full">
-                                    <button
-                                        onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, -1) : addMonths(d, -1))}
-                                        className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
-                                    >
-                                        <ChevronLeft size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => setIsDateModalOpen(true)}
-                                        className="px-2 h-7 rounded-full text-[10px] font-bold text-white/70 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 max-w-[170px]"
-                                    >
-                                        <CalendarIcon size={12} />
-                                        <span className="uppercase tracking-wider truncate">{dateLabel}</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentDate(d => range === 'WEEK' ? addWeeks(d, 1) : addMonths(d, 1))}
-                                        className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-95"
-                                    >
-                                        <ChevronRight size={14} />
-                                    </button>
-                                </div>
-
-                                <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors active:scale-90 border border-white/5">
-                                    <X size={20} />
-                                </button>
                             </div>
                         </div>
 
-                        {/* Apple-style Segmented Control - FORCED HIDDEN WHEN EMOTIONS IS ACTIVE via style */}
-                        <div style={{ display: activeTab === 'EMOTIONS' ? 'none' : 'block' }} className="px-6 pb-4 relative z-20">
+                        {/* Apple-style Segmented Control */}
+                        <div className="px-6 pb-4 relative z-20">
                             <div className="bg-black/20 p-1 rounded-xl flex border border-white/5 relative overflow-hidden">
                                 <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                                 {['OVERVIEW', 'EMOTIONS'].map((tab) => {
@@ -281,10 +275,10 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                     >
                                         {/* Bento Grid Stats */}
                                         <div className="grid grid-cols-2 gap-3">
-                                            <StatCard icon={PenTool} label="Notes" value={stats.totalNotes} color="#3b82f6" delay={0.1} />
-                                            <StatCard icon={Brain} label="Entries" value={stats.totalJournal} color="#a855f7" delay={0.2} />
-                                            <StatCard icon={Flame} label="Streak" value={stats.streak} subValue="Current Days" color="#f97316" delay={0.3} />
-                                            <StatCard icon={Type} label="Words" value={(stats.words / 1000).toFixed(1) + 'k'} subValue="Total Written" color="#10b981" delay={0.4} />
+                                            <StatCard icon={PenTool} label={t('notes.notes', 'Notes')} value={stats.totalNotes} color="#3b82f6" delay={0.1} />
+                                            <StatCard icon={Brain} label={t('notes.entries', 'Entries')} value={isPro ? stats.totalJournal : 'PRO'} color="#a855f7" delay={0.2} isLocked={!isPro} onUnlock={onOpenPro} />
+                                            <StatCard icon={Flame} label={t('notes.streak', 'Streak')} value={stats.streak} subValue={t('notes.currentDays', 'Current Days')} color="#f97316" delay={0.3} />
+                                            <StatCard icon={Type} label={t('notes.words', 'Words')} value={isPro ? (stats.words / 1000).toFixed(1) + 'k' : 'PRO'} subValue={isPro ? t('notes.totalWritten', 'Total Written') : undefined} color="#10b981" delay={0.4} isLocked={!isPro} onUnlock={onOpenPro} />
                                         </div>
 
                                         {/* Simple Activity Chart */}
@@ -332,7 +326,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                         {/* FULL SCREEN EMOTION CHART CONTAINER - NO PADDING, NO BORDERS */}
                                         <div className="flex-1 w-full relative">
                                             {/* Chart Title Overlay */}
-                                            <div className="absolute top-1 left-8 z-20 pointer-events-none">
+                                            <div className="absolute top-4 left-6 sm:left-8 z-20 pointer-events-none">
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <TrendingUp size={24} className="text-pink-400" />
                                                     <span className="text-2xl font-bold text-white tracking-tight">Emotional Flow</span>
@@ -347,17 +341,17 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                         </div>
                                         
                                         {/* Bottom Legend Bar */}
-                                        <div className="h-20 shrink-0 bg-black/40 backdrop-blur-[2px] border-t border-white/5 flex items-center justify-center gap-8">
+                                        <div className="h-20 shrink-0 bg-[#121212] border-t border-white/5 flex items-center justify-center gap-6 sm:gap-8 flex-wrap px-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                                <div className="w-3 h-3 rounded-full bg-emerald-500" />
                                                 <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Radiant</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                                <div className="w-3 h-3 rounded-full bg-blue-500" />
                                                 <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Good</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                                                <div className="w-3 h-3 rounded-full bg-red-500" />
                                                 <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Drained</span>
                                             </div>
                                         </div>

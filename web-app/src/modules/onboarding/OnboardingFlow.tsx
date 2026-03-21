@@ -419,16 +419,16 @@ export function OnboardingFlow() {
                     key="saving"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50"
+                    className="absolute inset-0 flex items-center justify-center bg-black/80 z-50"
                  >
                     <div className="flex flex-col items-center">
-                        {/* VisionOS Spinner */}
+                        {/* VisionOS Spinner - Optimized */}
                         <div className="relative w-24 h-24 mb-8">
                             <div className="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-spin" />
                             <div className="absolute inset-2 rounded-full border-r-2 border-purple-500 animate-spin-reverse" />
                             <div className="absolute inset-4 rounded-full border-b-2 border-cyan-500 animate-spin" />
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <Sparkles className="w-8 h-8 text-white animate-pulse" />
+                                <Sparkles className="w-8 h-8 text-white" />
                             </div>
                         </div>
                         
@@ -456,19 +456,19 @@ export function OnboardingFlow() {
                   handleNext();
                 }}
                 disabled={selectedTraits.length < 3}
-                whileHover={selectedTraits.length >= 3 ? { scale: 1.05 } : {}}
-                whileTap={selectedTraits.length >= 3 ? { scale: 0.95 } : {}}
+                whileHover={selectedTraits.length >= 3 ? { scale: 1.02 } : {}}
+                whileTap={selectedTraits.length >= 3 ? { scale: 0.98 } : {}}
                 className={`
-                  pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border shadow-2xl
+                  pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border
                   ${selectedTraits.length < 3
                     ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
-                    : 'bg-white text-black border-white/50 shadow-indigo-500/20 hover:shadow-indigo-500/40'
+                    : 'bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10'
                   }
                 `}
               >
-                {/* Glow Effect */}
+                {/* Glow Effect - Optimized */}
                 {selectedTraits.length >= 3 && (
-                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-1000 group-hover:translate-x-[100%]" />
                 )}
                 
                 <span>

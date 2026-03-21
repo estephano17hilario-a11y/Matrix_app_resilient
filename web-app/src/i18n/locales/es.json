@@ -26,6 +26,88 @@
       "title": "Configurando Realidad..."
     }
   },
+  "rewards": {
+    "title": "Recompensas",
+    "xp": "XP",
+    "gold": "Oro",
+    "streakBonus": "Bono de racha",
+    "continue": "Continuar"
+  },
+  "tour": {
+    "help": "Guía de la App",
+    "welcome": {
+      "title": "¡Bienvenido a Lux!",
+      "description": "Tu sistema de gestión de vida. Te explicaremos cómo funciona todo para que aproveches al máximo tu experiencia."
+    },
+    "xp": {
+      "title": "Experiencia (XP)",
+      "description": "Completa tareas y hábitos para ganar XP. Sube de nivel y desbloquea nuevas habilidades. Cada acción te da puntos de experiencia."
+    },
+    "tp": {
+      "title": "TP (Training Points)",
+      "description": "Los TP miden tu progreso en habilidades específicas. Cuanto más practiques un área, más TP ganas en ella."
+    },
+    "gold": {
+      "title": "Monedas de Oro",
+      "description": "Ganadas al completar tareas. Úsalas en la tienda para comprar potenciadores y artículos especiales."
+    },
+    "streak": {
+      "title": "Racha",
+      "description": "Mantén tu racha diaria completando al menos una tarea. Si pierdes un día, la racha se reinicia."
+    },
+    "dock": {
+      "title": "Dock de Navegación",
+      "description": "Aquí puedes cambiar entre las diferentes secciones: Tareas, Hábitos, Focus, Notas y más."
+    },
+    "quest-button": {
+      "title": "Crear Misión",
+      "description": "Presiona aquí para crear una nueva tarea o misión. Cada tarea completada te da XP y monedas."
+    },
+    "complete": {
+      "title": "¡Listo para Comenzar!",
+      "description": "Ya conoces lo básico. Explora la app y usa el botón de ayuda en cada sección para más guías. ¡Buena suerte!"
+    },
+    "onboarding": {
+      "welcome": { "title": "¡Bienvenido a Lux!", "desc": "Tu sistema de gestión de vida.", "sub": "Vamos a dar un recorrido interactivo." },
+      "xp": { "title": "Barra de XP", "desc": "Completa tareas para ganar experiencia.", "sub": "Sube de nivel para desbloquear habilidades." },
+      "gold": { "title": "Tus Monedas", "desc": "El oro se usa en la tienda.", "sub": "Gánalo completando misiones." },
+      "streak": { "title": "Tu Racha", "desc": "Días consecutivos en acción.", "sub": "¡Si pierdes un día, vuelve a cero!" },
+      "dock": { "title": "Navegación (Dock)", "desc": "Tu centro de comando principal.", "sub": "Desde aquí accedes a toda la app." },
+      "create": { "title": "Crear Misión", "desc": "El creador de tareas se abrirá automáticamente.", "sub": "¡Prepárate!" }
+    },
+    "tasks": {
+      "intro": { "title": "Centro de Misiones", "desc": "Aquí gestionas tu día a día.", "sub": "Las misiones activas aparecen aquí." },
+      "counter": { "title": "Misiones Activas", "desc": "Este es tu contador actual.", "sub": "Mantén este número bajo control." },
+      "list": { "title": "Rango de Dificultad", "desc": "S, A, B, C y ÉPICA.", "sub": "Mayor dificultad = Mejores recompensas." },
+      "create": { "title": "¡Tu turno!", "desc": "Vamos a crear tu primera tarea ahora mismo.", "sub": "El creador se abrirá automáticamente." }
+    },
+    "habits": {
+      "intro": { "title": "Protocolos y Vicios", "desc": "Tu sistema para construir disciplina.", "sub": "Automatiza lo bueno y destruye lo malo." },
+      "chart": { "title": "Gráfico de Consistencia", "desc": "Visualiza tu desempeño a lo largo del tiempo.", "sub": "Mantén el gráfico verde." },
+      "streak": { "title": "El Camino de la Llama", "desc": "Tu racha actual de disciplina.", "sub": "No rompas la cadena." },
+      "vices": { "title": "Zona de Vicios", "desc": "Identifica y erradicica los hábitos destructivos.", "sub": "Haz click para entrar a la zona oscura." },
+      "create": { "title": "Crea un Protocolo", "desc": "Vamos a crear tu primer hábito positivo.", "sub": "Completa el formulario y guárdalo." },
+      "createBad": { "title": "Identifica un Vicio", "desc": "Ahora, declara la guerra a un mal hábito.", "sub": "Completa el formulario y guárdalo." }
+    },
+    "focus": {
+      "intro": { "title": "Zona de Focus", "desc": "Para trabajo profundo y proyectos.", "sub": "" },
+      "stats": { "title": "Estadísticas", "desc": "Visualiza tus horas de concentración.", "sub": "" },
+      "projects": { "title": "Tus Proyectos", "desc": "Divide grandes metas en sesiones cortas.", "sub": "" },
+      "create": { "title": "Nuevo Proyecto", "desc": "Empieza a planificar tu próxima gran meta.", "sub": "El creador se abrirá automáticamente." }
+    },
+    "store": {
+      "intro": { "title": "Tienda de Poderes", "desc": "Gasta tus monedas aquí.", "sub": "" },
+      "items": { "title": "Artículos y Pociones", "desc": "Cada uno tiene un efecto único en tu cuenta.", "sub": "" }
+    },
+    "nexus": {
+      "intro": { "title": "El Nexo", "desc": "Conecta proyectos, tareas y hábitos.", "sub": "" },
+      "new": { "title": "Nuevo Proyecto", "desc": "Crea un nuevo proyecto estratégico.", "sub": "" }
+    },
+    "notes": {
+      "intro": { "title": "Tu Segundo Cerebro", "desc": "Captura ideas y pensamientos.", "sub": "" },
+      "fab": { "title": "Nueva Nota", "desc": "Presiona aquí para crear una nota.", "sub": "" }
+    }
+  },
   "avatars": {
     "avatar_cafe_programadora": "Coder del Café",
     "avatar_ceo_ajedrez": "CEO Estratega",
@@ -125,6 +207,8 @@
       "pomodoro": "Pomodoro",
       "initialize": "Inicializar Proyecto",
       "launch": "Lanzar Proyecto",
+      "create": "Inicializar Proyecto",
+      "update": "Actualizar Proyecto",
       "hoursPer": "HRS /",
       "hrs": "HRS",
       "hours": "Horas",
@@ -278,7 +362,8 @@
     "empty": "No hay misiones activas."
   },
   "nexus": {
-    "backToStrategy": "Volver a Estrategia"
+    "backToStrategy": "Volver a Estrategia",
+    "noActiveTasksForMission": "No hay tareas activas para esta misión."
   },
   "notes": {
     "tabs": {
@@ -298,7 +383,27 @@
     "streak": "Días de Racha",
     "yourStory": "Tu Historia",
     "untitledPlaceholder": "Nota Sin Título",
-    "save": "Guardar"
+    "save": "Guardar",
+    "notes": "Notas",
+    "journal": "Diario",
+    "entries": "Entradas",
+    "currentDays": "Días Actuales",
+    "totalWritten": "Total Escrito",
+    "celebrationsMemories": "Celebraciones y Recuerdos",
+    "generalNotes": "Notas Generales",
+    "journalingZone": "Zona de Diarios",
+    "statisticsCharts": "Estadísticas y Gráficos",
+    "settings": "Configuración",
+    "customizeExperience": "Personaliza tu experiencia",
+    "quickActions": "Acciones Rápidas",
+    "lockTheseAreas": "Bloquear estas áreas",
+    "accountPassword": "Contraseña de Cuenta",
+    "useLoginPassword": "Usa tu contraseña de acceso para restablecer PIN",
+    "securityQuestion": "Pregunta de Seguridad",
+    "answerPersonalQuestion": "Responde una pregunta personal",
+    "filterByProject": "Filtrar por Proyecto",
+    "filterByColor": "Filtrar por Color",
+    "dayStreak": "Días de Racha"
   },
   "oracle": {
     "title": "Oráculo",
@@ -361,6 +466,9 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
+    "undoWarning": "Esta acción no se puede deshacer",
+    "completed": "Completado",
+    "inProgress": "En Progreso",
     "edit": "Editar",
     "archive": "Archivar",
     "archived": "Archivado",
@@ -369,12 +477,46 @@
     "complete": "Completar",
     "loading": "Cargando...",
     "error": "Error",
+    "searchIcon": "Buscar icono...",
+    "viewAllCategories": "Ver todas las categorías",
+    "monday": "Lunes",
+    "sunday": "Domingo",
     "selectAtLeast": "Selecciona al menos {{count}}",
     "time": {
         "years": "Años",
         "months": "Meses",
         "days": "Días"
-    }
+    },
+    "weekdays": {
+      "initials": ["D", "L", "M", "X", "J", "V", "S"],
+      "short": ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+      "long": ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+    },
+    "dailyCaps": "Topes diarios",
+    "deleteHabitConfirm": "Estás a punto de eliminar \"{{title}}\". Esta acción no se puede deshacer.",
+    "deleteTitle": "¿Eliminar {{item}}?",
+    "deleteProjectConfirm": "Estás a punto de eliminar \"{{title}}\". Esta acción no se puede deshacer.",
+    "deleteError": "Error al eliminar el proyecto. Revisa la consola.",
+    "deleteTaskError": "Error al eliminar la tarea. Revisa la consola.",
+    "archivedHabits": "No hay hábitos archivados",
+    "thisMonth": "este mes",
+    "inDays": "En {{days}} días",
+    "daysPerMonth": "Días al mes",
+    "addNewSmartTask": "Añade nueva tarea inteligente",
+    "clickToChange": "Click para cambiar",
+    "customizeHabit": "Personaliza tu hábito",
+    "tapToContinue": "Toca en cualquier lado para continuar",
+    "keepStreak": "Mantén tu racha",
+    "streakDesc": "Completa todas las directivas para mantener tu racha.",
+    "streakWhy": "Mantener la racha mejora tu Disciplina y te otorga +20% de XP extra.",
+    "modifyDetails": "Modificar detalles y configuración",
+    "unarchive": "Volver a mostrar en el dashboard",
+    "hideWithoutDeleting": "Ocultar del dashboard sin borrar",
+    "errorDeletingProject": "Error al eliminar el proyecto. Revisa la consola.",
+    "errorDeletingTask": "Error al eliminar la tarea. Revisa la consola.",
+    "noArchivedHabits": "No hay hábitos archivados",
+    "tomorrow": "Mañana",
+    "overdue": "Vencido"
   },
   "smartTask": {
     "tutorial": {
@@ -421,7 +563,7 @@
       }
     },
     "wizard": {
-        "title": "Inteligencia Apple",
+        "title": "Inteligencia Lux",
         "subtitle": "Protocolo Neural v2.0",
         "objective": {
             "title": "¿Cuál es tu <span className=\"font-bold\">Objetivo Principal</span>?",
@@ -515,6 +657,9 @@
         "projectDeleted": "PROYECTO ELIMINADO",
         "activeSession": "SESIÓN ACTIVA"
     },
+    "tapToSelectTask": "Toca para seleccionar una tarea",
+    "chooseDate": "Elegir fecha",
+    "reorderProjects": "Reordenar Proyectos",
     "deleteModal": {
         "title": "¿Eliminar Proyecto?",
         "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"?",
@@ -526,7 +671,10 @@
     "subtitle": "Preferencias del Entorno Lux",
     "tabs": {
       "design": "Diseño",
-      "controls": "Controles",
+      "stats": "Stats",
+      "prefs": "Ajustes",
+      "profile": "Perfil",
+      "controls": "Control",
       "account": "Cuenta"
     },
     "profileHud": "HUD de Perfil",
@@ -553,7 +701,9 @@
     "accountStandard": "Estándar",
     "version": "Versión",
     "developer": "Desarrollador",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "weekStartsOn": "Semana Comienza En",
+    "weekStartsOnDesc": "Primer día de la semana para calendarios"
   },
   "dashboard": {
       "systemMetrics": "Métricas del Sistema",
@@ -565,7 +715,39 @@
     "strategy": "Estrategia",
     "noStrategy": "Sin Estrategia Activa",
     "noStrategyDesc": "Aún no has definido tu Gran Estrategia. Divide tu objetivo final en pasos accionables.",
-    "initProtocol": "Inicializar Protocolo"
+    "initProtocol": "Inicializar Protocolo",
+    "today": "Hoy",
+    "noTasksForToday": "No hay tareas programadas para hoy.",
+    "noHabitsForToday": "No hay hábitos programados para hoy",
+    "streakPath": "Camino de la Llama",
+    "days": "días",
+    "dailyGoal": "Objetivo Diario",
+    "todayProgress": "PROGRESO HOY",
+    "sessions": "Sesiones",
+    "currentStreak": "Racha Actual",
+    "averageSession": "Sesión Promedio",
+    "completed": "completados",
+    "streakAssured": "¡Racha asegurada!",
+    "streakNeed": "Faltan {{count}} para racha",
+    "week": "SEMANA",
+    "month": "MES",
+    "year": "AÑO",
+    "bestDay": "Mejor día",
+    "selectWeek": "Seleccionar Semana",
+    "selectMonth": "Seleccionar Mes",
+    "selectDay": "Seleccionar Día",
+    "selectYear": "Seleccionar Año",
+    "archived": {
+      "title": "ZONA DE ARCHIVO",
+      "message": "Proyectos en stasis. Reactívalos para continuar tu progreso."
+    },
+    "confirmDeleteSmartPlan": "¿Estás seguro de eliminar este Plan Inteligente? Se perderá todo el progreso asociado.",
+    "lastDayOfMonth": "Último día del mes",
+    "lastDayOption": "Activa esta opción para incluir siempre el último día (28, 29, 30 o 31) sin importar el mes. Los días 29-31 manuales no cuentan en meses cortos.",
+    "defineObjective": "Definir objetivo...",
+    "day": "Día",
+    "thePath": "EL CAMINO",
+    "workedThisPeriod": "Trabajado en este período"
   },
   "loading": {
     "quotes": [
@@ -694,13 +876,97 @@
     "newVice": "Nuevo Vicio",
     "empty": "No hay protocolos activos.",
     "emptyVices": "No hay vicios registrados. Mantente limpio.",
+    "deleteAction": "Eliminar Hábito",
+    "deleteTitle": "¿Eliminar Hábito?",
     "identifyEnemy": "Identificar Enemigo",
      "streak": "Racha",
      "dailyProtocol": "Protocolo Diario",
      "completed": "completado",
      "target": "Objetivo",
      "hpRisk": "Riesgo de HP",
-     "protocolSafe": "Protocolo Seguro",
-     "dailyProtocols": "Protocolos Diarios"
-   }
+     "dailyProtocols": "Protocolos Diarios",
+    "noProject": "Sin Proyecto",
+    "groupingNone": "Sin División",
+    "groupingByTrait": "Por Rasgo",
+    "groupingByProject": "Por Proyecto",
+    "protocolNamePlaceholder": "Nombre del Protocolo...",
+    "descriptionPlaceholder": "Descripción (Requerida)...",
+    "pagesPlaceholder": "pág",
+    "editHabit": "Editar Hábito",
+    "lifeProtocol": "Protocolo de Vida",
+    "habit": "Hábito",
+    "vice": "Vicio",
+    "identity": "IDENTIDAD",
+    "mechanics": "MECÁNICA",
+    "commitment": "COMPROMISO",
+    "selectTrait": "Seleccionar Rasgo",
+    "positiveImpact": "Impacto Positivo",
+    "missingPermissions": "Permisos Faltantes",
+    "batteryBackground": "Batería / Segundo Plano",
+    "customizationOptional": "Personalización (Opcional)",
+    "selectIconColor": "Seleccionar Icono & Color",
+    "activateNotifications": "Activar Notificaciones",
+    "batteryOptimization": "Optimización Batería"
+  },
+  "badHabits": {
+    "wizard": {
+      "reasonLabel": "¿Por qué quieres dejarlo?",
+      "reasonPlaceholder": "Escribe tu razón principal para abandonar este vicio...",
+      "gradualProcess": "Proceso Gradual",
+      "gradualDesc": "Las metas aumentan gradualmente: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 días",
+      "opportunityDay": "Día de Oportunidad",
+      "opportunityDesc": "Cuando alcances la meta, tienes 1 día para cometer el vicio SIN penalización. Tu racha se mantiene.",
+      "quote": "La única forma de ganar es no jugar.",
+      "readyToActivate": "Protocolo listo para activarse",
+      "addVicesPlaceholder": "Agrega vicios (coma o salto de línea)",
+      "viceExamplePlaceholder": "Ej: Fumar, TikTok..."
+    },
+    "opportunityDay": "Día de Oportunidad",
+    "intelligentFall": "Caída Inteligente",
+    "opportunityDesc": "Puedes usar \"{{title}}\" sin consecuencias. ¡Felicidades!",
+    "relapseDesc": "Has recaído en \"{{title}}\". El sistema analiza tu progreso...",
+    "noPenalty": "Sin Penalización",
+    "completedDays": "Has completado {{count}} días sin el vicio. Puedes darte un día libre y tu progreso se mantiene intacto.",
+    "nextTarget": "Siguiente meta:",
+    "succumbed": "Has sucumbido a \"{{title}}\".",
+    "demandsCompensation": "El sistema exige una compensación.",
+    "vices": "Vicios",
+    "createBadHabit": "Crear Vicio",
+    "editBadHabit": "Editar Vicio",
+    "newBadHabit": "Nuevo Vicio",
+    "nameBadHabit": "Nombre del Vicio",
+    "vicesSubtitle": "Identifica y destruye los hábitos destructivos.",
+    "howItWorks": "¿Cómo funciona esto?",
+    "howItWorksDesc1": "El objetivo es mantener la racha de días sin recaer.",
+    "howItWorksDesc2": "Al crearlo, inicia en Nivel 0 (Neutral).",
+    "howItWorksDesc3": "Si recaes, debes presionar el botón. Te restará XP según su impacto.",
+    "howItWorksDesc4": "Si mantienes la racha, evolucionará a estados superiores otorgando bonificaciones pasivas.",
+    "howItWorksDesc5": "Si es un vicio 'Inteligente', puedes configurar días permitidos (ej. cheat meal los fines de semana). Usarlo esos días no romperá la racha.",
+    "selectImpact": "Selecciona el Impacto",
+    "selectImpactDesc": "¿Qué tan destructivo es este hábito para tus metas?",
+    "intelligentVice": "Vicio Inteligente",
+    "intelligentViceDesc": "Permitir días específicos para hacerlo sin romper la racha (ej. Cheat meal el Domingo)",
+    "allowedDays": "Días Permitidos",
+    "allowedDaysDesc": "Selecciona los días donde este hábito está permitido",
+    "saveVice": "Guardar Vicio",
+    "noVices": "No hay Vicios Registrados",
+    "noVicesDesc": "Aún no has agregado hábitos negativos que quieras erradicar.",
+    "relapseConfirm": "¿Estás seguro de registrar una recaída en este vicio? Tu racha volverá a 0 y perderás XP.",
+    "useOpportunityDay": "Usar Día de Oportunidad",
+    "useOpportunityDayDesc": "Este día está permitido. Úsalo sin perder tu racha.",
+    "level": "Nivel",
+    "levels": {
+      "neutral": "Neutral",
+      "controlled": "Controlado",
+      "dominated": "Dominado",
+      "eradicated": "Erradicado"
+    }
+  },
+  "projects": {
+    "deleteTitle": "¿Eliminar Proyecto?",
+    "specificDays": "Días Específicos",
+    "editProject": "Editar Proyecto",
+    "newProject": "Nuevo Proyecto"
+  }
 }
+

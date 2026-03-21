@@ -31,6 +31,8 @@ interface HabitVisualViewProps {
     currentSection?: 'PROTOCOLS' | 'VICES';
     onOpenStreak?: () => void;
     onReorder?: (habits: Habit[]) => void;
+    isPro?: boolean;
+    onOpenPro?: () => void;
 }
 
 export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({ 
@@ -47,7 +49,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     isActive = true,
     currentSection,
     onOpenStreak,
-    onReorder
+    onReorder,
+    isPro,
+    onOpenPro
 }) => {
     const { t } = useTranslation();
     const { setVicesMode } = useTheme();
@@ -132,7 +136,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const contentVariants = {
         initial: { opacity: 0, x: 0, scale: 0.95 },
         animate: { opacity: 1, x: 0, scale: 1 },
-        exit: { opacity: 0, x: 0, scale: 1.05 }
+        exit: { opacity: 0, x: 0, scale: 0.95 }
     };
 
     const transitionConfig = { type: "spring" as const, stiffness: 350, damping: 25, mass: 1 };
@@ -162,20 +166,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             />
 
             {/* Header Section REMOVED as per user request */}
-            <div className="flex flex-col gap-4 mb-4 px-4 sm:px-6 pt-1">
-                <AnimatePresence mode="wait">
-                    {(section === 'PROTOCOLS' && !showArchived) && (
-                        <motion.div
-                            key="chart"
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                        >
-                            <HabitConsistencyChart habits={habits} onOpenStreak={onOpenStreak} isActive={isActive} />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
 
             {/* Content */}
             <div className="grid grid-cols-1 gap-3 relative">
@@ -188,14 +178,27 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             animate="animate"
                             exit="exit"
                             transition={transitionConfig}
-                            className="w-full grid gap-3 relative"
+                            className="w-full flex flex-col items-center gap-3 relative px-4 sm:px-6"
                         >
+                            {/* Habit Consistency Chart (Moved inside to prevent layout shifts during exit animation) */}
+                            {!showArchived && (
+                                <div className="w-full max-w-[600px] mb-1 pt-1">
+                                    <HabitConsistencyChart 
+                                        habits={habits} 
+                                        onOpenStreak={onOpenStreak} 
+                                        isActive={isActive} 
+                                        isPro={isPro}
+                                        onOpenPro={onOpenPro}
+                                    />
+                                </div>
+                            )}
+
                             {/* Floating Mini Action for Protocols (Restored subtly) */}
                             {/* REMOVED: Create button */}
 
                             {/* ARCHIVED HEADER */}
                             {showArchived && (
-                                <div className="flex items-center gap-2 mb-2 px-1">
+                                <div className="flex items-center gap-2 mb-2 px-1 w-full max-w-[600px]">
                                     <button 
                                         onClick={() => setShowArchived(false)}
                                         className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -231,7 +234,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 setIsReorderModalOpen(true);
                                             }
                                         }}
-                                        className="touch-manipulation"
+                                        className="touch-manipulation w-full max-w-[600px]"
                                     >
                                         <HabitItem
                                             habit={habit}
@@ -263,7 +266,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* EMPTY ARCHIVED STATE */}
                             {showArchived && archivedHabits.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 italic">
-                                    No hay hábitos archivados
+                                    {t('common.noArchivedHabits')}
                                 </div>
                             )}
 
@@ -288,26 +291,27 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             animate="animate"
                             exit="exit"
                             transition={transitionConfig}
-                            className="w-full grid gap-3 relative"
+                            className="w-full flex flex-col items-center gap-3 relative px-4 sm:px-6"
                         >
                             {/* Floating Mini Action */}
                             {/* REMOVED: Create button */}
 
                             {/* Relapse History Chart */}
                             {badHabits.length > 0 && (
-                                <div className="col-span-full">
+                                <div className="w-full max-w-[600px]">
                                     <RelapseChart badHabits={badHabits} />
                                 </div>
                             )}
 
                             {badHabits.map(habit => (
-                                <BadHabitItem
-                                    key={habit.id}
-                                    habit={habit}
-                                    attribute={attributeMap.get(habit.attribute)}
-                                    onRelapse={onRelapseBadHabit}
-                                    reduceMotion={reduceMotion}
-                                />
+                                <div className="w-full max-w-[600px]" key={habit.id}>
+                                    <BadHabitItem
+                                        habit={habit}
+                                        attribute={attributeMap.get(habit.attribute)}
+                                        onRelapse={onRelapseBadHabit}
+                                        reduceMotion={reduceMotion}
+                                    />
+                                </div>
                             ))}
                             {badHabits.length === 0 && (
                                 <div className="col-span-full min-h-[70vh] flex flex-col items-center justify-center gap-8 text-center -mt-20">
@@ -321,7 +325,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     <div className="space-y-2 max-w-xs mx-auto">
                                         <h3 className="text-xl font-bold text-white tracking-tight">Zona Despejada</h3>
                                         <p className="text-sm text-white/40 leading-relaxed">
-                                            {t('habits.emptyVices') || "No hay amenazas detectadas en el sistema. Mantén la vigilancia."}
+                                            {t('habits.emptyVices') || "No threats detected. Stay vigilant."}
                                         </p>
                                     </div>
 

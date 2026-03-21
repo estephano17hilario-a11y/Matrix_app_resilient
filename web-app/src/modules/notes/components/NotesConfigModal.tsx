@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Cake, Target, Key, Check, Shield, HelpCircle, Lock, AlertTriangle } from 'lucide-react';
+import { X, Check, Key, Shield, HelpCircle, AlertTriangle, Book, Target, Cake, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
+import { useTranslation } from 'react-i18next';
+
+import { hashPin } from '../../../utils/crypto';
 
 interface NotesConfigModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (config: NotesConfig) => void;
-    initialConfig?: NotesConfig;
+    initialConfig: NotesConfig;
+    isPro?: boolean;
+    onOpenPro?: () => void;
 }
 
 export interface NotesConfig {
@@ -24,17 +29,19 @@ export interface NotesConfig {
             memories: boolean;
             notes: boolean;
             charts: boolean;
+            journal: boolean;
         }
     }
 }
 
-export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: NotesConfigModalProps) => {
+export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro, onOpenPro }: NotesConfigModalProps) => {
+    const { t } = useTranslation();
     const [config, setConfig] = useState<NotesConfig>(initialConfig || {
         enabledFeatures: [],
         security: {
             pin: '',
             recoveryMethod: 'PASSWORD',
-            protectedAreas: { memories: false, notes: false, charts: false }
+            protectedAreas: { memories: false, notes: false, charts: false, journal: false }
         }
     });
 
@@ -65,6 +72,10 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
     };
 
     const toggleProtectedArea = (area: keyof typeof config.security.protectedAreas) => {
+        if (!isPro) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
         setConfig(prev => ({
             ...prev,
             security: {
@@ -77,10 +88,27 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
         }));
     };
 
-    const handleSave = () => {
+    const handlePinChange = (val: string) => {
+        if (!isPro) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
+        if (config.security.pin.length === 64 && val.includes('•')) {
+            val = val.replace(/•/g, '');
+        }
+        val = val.replace(/[^0-9]/g, '').slice(0, 5);
+        setConfig(prev => ({ ...prev, security: { ...prev.security, pin: val } }));
+    };
+
+    const handleSave = async () => {
         // Validation
+        let finalConfig = { ...config };
         if (config.enabledFeatures.includes('KEY')) {
-            if (config.security.pin.length !== 5) {
+            // Check if PIN needs to be hashed (it is exactly 5 digits)
+            if (config.security.pin.length === 5) {
+                const hashed = await hashPin(config.security.pin);
+                finalConfig.security.pin = hashed;
+            } else if (config.security.pin.length !== 64) {
                 toast.error('PIN must be exactly 5 digits');
                 return;
             }
@@ -93,7 +121,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
              // but here we might ask for it if we were simulating locally.
         }
 
-        onSave(config);
+        onSave(finalConfig);
         onClose();
         toast.success("Configuration saved");
     };
@@ -122,8 +150,8 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                         {/* Header */}
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#161616]">
                             <div>
-                                <h2 className="text-xl font-bold text-white tracking-tight">Settings</h2>
-                                <p className="text-xs text-white/40">Customize your experience</p>
+                                <h2 className="text-xl font-bold text-white tracking-tight">{t('notes.settings', 'Settings')}</h2>
+                                <p className="text-xs text-white/40">{t('notes.customizeExperience', 'Customize your experience')}</p>
                             </div>
                             <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-colors">
                                 <X size={20} />
@@ -155,7 +183,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                             {activeTab === 'FEATURES' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-150">
                                     <div className="space-y-3">
-                                        <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">Quick Actions</label>
+                                        <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">{t('notes.quickActions', 'Quick Actions')}</label>
                                         <div className="grid grid-cols-3 gap-3">
                                             {[
                                                 { id: 'BIRTHDAY', icon: Cake, label: 'Memories' },
@@ -187,24 +215,26 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                                         <label className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
                                             <Key size={12} />
                                             Master PIN (5 Digits)
+                                            {!isPro && <Lock size={12} className="text-yellow-400 ml-auto" />}
                                         </label>
                                         <input
                                             type="text"
                                             inputMode="numeric"
-                                            value={config.security.pin}
-                                            onChange={(e) => setConfig(prev => ({ ...prev, security: { ...prev.security, pin: e.target.value.replace(/[^0-9]/g, '').slice(0, 5) } }))}
+                                            value={config.security.pin.length === 64 ? '•••••' : config.security.pin}
+                                            onChange={(e) => handlePinChange(e.target.value)}
                                             placeholder="•••••"
                                             className="w-full bg-[#050505] border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white shadow-inner"
                                         />
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">Lock these areas</label>
+                                        <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">{t('notes.lockTheseAreas', 'Lock these areas')}</label>
                                         <div className="space-y-2">
                                             {[
-                                                { id: 'memories', label: 'Celebrations & Memories', icon: Cake },
-                                                { id: 'notes', label: 'General Notes', icon: Key }, // Using Key icon as placeholder for Notes area generally
-                                                { id: 'charts', label: 'Statistics & Charts', icon: Target }
+                                                { id: 'memories', label: t('notes.celebrationsMemories', 'Celebrations & Memories'), icon: Cake },
+                                                { id: 'notes', label: t('notes.generalNotes', 'General Notes'), icon: Key },
+                                                { id: 'journal', label: t('notes.journalingZone', 'Journaling Zone'), icon: Book },
+                                                { id: 'charts', label: t('notes.statisticsCharts', 'Statistics & Charts'), icon: Target }
                                             ].map(area => (
                                                 <div key={area.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                                                     <div className="flex items-center gap-3">
@@ -212,6 +242,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                                                             <area.icon size={16} />
                                                         </div>
                                                         <span className="text-sm font-medium text-white">{area.label}</span>
+                                                        {!isPro && <Lock size={12} className="text-yellow-400" />}
                                                     </div>
                                                     <label className="relative inline-flex items-center cursor-pointer">
                                                         <input 
@@ -248,8 +279,8 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                                                         <Shield size={16} />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-white">Account Password</h4>
-                                                        <p className="text-[10px] text-white/40">Use your login password to reset PIN</p>
+                                                        <h4 className="text-sm font-bold text-white">{t('notes.accountPassword', 'Account Password')}</h4>
+                                                        <p className="text-[10px] text-white/40">{t('notes.useLoginPassword', 'Use your login password to reset PIN')}</p>
                                                     </div>
                                                 </div>
                                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -290,8 +321,8 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig }: Not
                                                         <HelpCircle size={16} />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-white">Security Question</h4>
-                                                        <p className="text-[10px] text-white/40">Answer a personal question</p>
+                                                        <h4 className="text-sm font-bold text-white">{t('notes.securityQuestion', 'Security Question')}</h4>
+                                                        <p className="text-[10px] text-white/40">{t('notes.answerPersonalQuestion', 'Answer a personal question')}</p>
                                                     </div>
                                                 </div>
                                                 <label className="relative inline-flex items-center cursor-pointer">

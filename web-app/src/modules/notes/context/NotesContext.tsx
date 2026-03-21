@@ -3,8 +3,6 @@ import { Note, JournalEntry } from '../../../types';
 import { persistenceService } from '../../../services/persistenceService';
 import { useAuth } from '../../../context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
-import { db, doc, getDoc, updateDoc } from '../../../services/firebase';
-import { toLocalISOString } from '../../../utils/dateUtils';
 import { PersistenceService } from '../../../services/persistence';
 
 interface NotesContextType {
@@ -136,27 +134,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await persistenceService.notes.update(user.uid, note.id, note);
         } else {
             await persistenceService.notes.save(user.uid, note);
-            
-            // UPDATE STREAK PROTOCOL (Notes/Journaling)
-            const userRef = doc(db, 'users', user.uid);
-            getDoc(userRef).then(snap => {
-                if (snap.exists()) {
-                    const data = snap.data();
-                    const today = toLocalISOString(new Date());
-                    let limits = data.dailyLimits || {};
-                    
-                    if (limits.date !== today) {
-                        limits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, notesCompleted: 0 };
-                    }
-                    
-                    updateDoc(userRef, {
-                        dailyLimits: {
-                            ...limits,
-                            notesCompleted: (limits.notesCompleted || 0) + 1
-                        }
-                    }).catch(console.error);
-                }
-            });
         }
         return { isNew };
     }, [user?.uid]);
@@ -199,27 +176,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await persistenceService.journal.update(user.uid, entry.id, entry);
         } else {
             await persistenceService.journal.save(user.uid, entry);
-            
-            // UPDATE STREAK PROTOCOL (Notes/Journaling)
-            const userRef = doc(db, 'users', user.uid);
-            getDoc(userRef).then(snap => {
-                if (snap.exists()) {
-                    const data = snap.data();
-                    const today = toLocalISOString(new Date());
-                    let limits = data.dailyLimits || {};
-                    
-                    if (limits.date !== today) {
-                        limits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, notesCompleted: 0 };
-                    }
-                    
-                    updateDoc(userRef, {
-                        dailyLimits: {
-                            ...limits,
-                            notesCompleted: (limits.notesCompleted || 0) + 1
-                        }
-                    }).catch(console.error);
-                }
-            });
         }
         return { isNew };
     }, [user?.uid]);

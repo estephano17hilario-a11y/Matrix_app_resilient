@@ -1,3 +1,5 @@
+import { startOfWeek as dateFnsStartOfWeek, endOfWeek as dateFnsEndOfWeek, startOfMonth as dateFnsStartOfMonth, endOfMonth as dateFnsEndOfMonth, eachWeekOfInterval as dateFnsEachWeekOfInterval, eachDayOfInterval as dateFnsEachDayOfInterval } from 'date-fns';
+
 export const formatDate = (date: Date): string => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 };
@@ -155,12 +157,7 @@ export const getContextDates = (
 };
 
 export const getStartOfWeek = (date: Date): Date => {
-    const newDate = new Date(date);
-    const day = newDate.getDay();
-    const diff = newDate.getDate() - day + (day === 0 ? -6 : 1);
-    newDate.setDate(diff);
-    newDate.setHours(0, 0, 0, 0);
-    return newDate;
+    return startOfWeek(date);
 };
 
 export const formatDateRange = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'): string => {
@@ -171,8 +168,7 @@ export const formatDateRange = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'Y
         return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
     } else if (range === 'WEEK') {
         const start = getStartOfWeek(d);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 6);
+        const end = addDays(start, 6);
         return `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`;
     } else if (range === 'MONTH') {
         return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
@@ -235,4 +231,33 @@ export const getDaysInMonth = (date: Date): { days: number, firstDay: number } =
     const days = new Date(year, month + 1, 0).getDate();
     const firstDay = new Date(year, month, 1).getDay();
     return { days, firstDay };
+};
+
+export const getWeekStartDay = (): 0 | 1 => {
+    const saved = localStorage.getItem('weekStartDay');
+    return saved ? (parseInt(saved) as 0 | 1) : 1;
+};
+
+export const startOfWeek = (date: Date): Date => {
+    return dateFnsStartOfWeek(date, { weekStartsOn: getWeekStartDay() });
+};
+
+export const endOfWeek = (date: Date): Date => {
+    return dateFnsEndOfWeek(date, { weekStartsOn: getWeekStartDay() });
+};
+
+export const startOfMonth = (date: Date): Date => {
+    return dateFnsStartOfMonth(date);
+};
+
+export const endOfMonth = (date: Date): Date => {
+    return dateFnsEndOfMonth(date);
+};
+
+export const eachWeekOfInterval = (interval: { start: Date, end: Date }): Date[] => {
+    return dateFnsEachWeekOfInterval(interval, { weekStartsOn: getWeekStartDay() });
+};
+
+export const eachDayOfInterval = (interval: { start: Date, end: Date }): Date[] => {
+    return dateFnsEachDayOfInterval(interval);
 };

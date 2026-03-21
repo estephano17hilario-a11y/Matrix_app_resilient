@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { Heart } from 'lucide-react';
+import { MeshBackground } from './MeshBackground';
 
 interface AuroraBackgroundProps {
   overrideColor?: string;
@@ -69,104 +70,45 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
          - Reduced Layer Count (3 Orbs)
       */}
 
-      {themeConfig?.category === 'holo' && !isSolid ? (
+      {theme.startsWith('cosmic_') ? (
+        <MeshBackground />
+      ) : themeConfig?.category === 'holo' && !isSolid ? (
         <>
-            {/* HOLO ENGINE: MESH GRADIENT & NOISE */}
+             {/* HOLO ENGINE: MESH GRADIENT & NOISE */}
             
             {/* 1. Base Gradient Mesh (Static, Deep) */}
             <div 
                 className="absolute inset-0 w-full h-full"
                 style={{ 
                     background: `
-                         radial-gradient(at 0% 0%, ${primaryGlow} 0px, transparent 50%),
-                         radial-gradient(at 100% 0%, ${secondaryGlow} 0px, transparent 50%),
-                         radial-gradient(at 100% 100%, ${primaryGlow} 0px, transparent 50%),
-                         radial-gradient(at 0% 100%, ${secondaryGlow} 0px, transparent 50%)
+                         radial-gradient(at 0% 0%, ${primaryGlow} 0px, transparent 70%),
+                         radial-gradient(at 100% 0%, ${secondaryGlow} 0px, transparent 70%),
+                         radial-gradient(at 100% 100%, ${primaryGlow} 0px, transparent 70%),
+                         radial-gradient(at 0% 100%, ${secondaryGlow} 0px, transparent 70%)
                      `,
                      opacity: vividMode ? 0.8 : 0.5,
-                    filter: 'blur(var(--aurora-blur-1))',
-                     transform: 'translateZ(0)'
+                     transform: 'translateZ(0)',
+                     willChange: 'transform'
                  }}
              />
 
-             {/* MOBILE OPTIMIZATION: Static or Minimal Animation */}
-             {isMobile ? (
-                <>
-                     {/* Static Orbs for Mobile (Zero GPU Load) */}
-                     <div 
-                        className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full opacity-40 mix-blend-screen"
-                        style={{ 
-                            background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 60%)`,
-                            filter: 'blur(var(--aurora-blur-2))',
-                        }}
-                    />
-                     <div 
-                        className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full opacity-30 mix-blend-screen"
-                        style={{ 
-                            background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 60%)`,
-                            filter: 'blur(var(--aurora-blur-3))',
-                        }}
-                    />
-                </>
-             ) : (
-                <>
-                    {/* DESKTOP: Full Fluid Animation */}
-                    <motion.div 
-                        className="absolute top-[-20%] left-[-10%] w-[100vw] h-[100vw] rounded-full opacity-50 mix-blend-screen"
-                        style={{ 
-                            background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 60%)`,
-                            filter: 'blur(var(--aurora-blur-2))',
-                        }}
-                        animate={{
-                            scale: [1, 1.2, 1],
-                            x: [0, 50, 0],
-                            y: [0, 30, 0],
-                        }}
-                        transition={{
-                            duration: 20,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
+             {/* ULTRA PERFORMANCE MODE: Static Orbs for all devices (Zero GPU Load, 60 FPS) */}
+             <div 
+                className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full opacity-40"
+                style={{ 
+                    background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 70%)`,
+                    transform: 'translateZ(0)',
+                }}
+            />
+             <div 
+                className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full opacity-30"
+                style={{ 
+                    background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 70%)`,
+                    transform: 'translateZ(0)',
+                }}
+            />
 
-                    <motion.div 
-                        className="absolute bottom-[-20%] right-[-10%] w-[100vw] h-[100vw] rounded-full opacity-40 mix-blend-screen"
-                        style={{ 
-                            background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 60%)`,
-                            filter: 'blur(var(--aurora-blur-3))',
-                        }}
-                        animate={{
-                            scale: [1.2, 1, 1.2],
-                            x: [0, -50, 0],
-                            y: [0, -30, 0],
-                        }}
-                        transition={{
-                            duration: 25,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
-
-                    <motion.div 
-                        className="absolute top-[30%] left-[30%] w-[40vw] h-[40vw] rounded-full opacity-30 mix-blend-overlay"
-                        style={{ 
-                            background: `radial-gradient(circle, ${accentGlow} 0%, transparent 70%)`,
-                            filter: 'blur(var(--aurora-blur-4))',
-                        }}
-                        animate={{
-                            opacity: [0.2, 0.4, 0.2],
-                            scale: [1, 1.1, 1],
-                        }}
-                        transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    />
-                </>
-             )}
-
-            {/* 5. NOISE TEXTURE (CRITICAL FOR FIGMA LOOK) - Reduced Opacity on Mobile */}
+            {/* 5. NOISE TEXTURE (CRITICAL FOR FIGMA LOOK) - Reduced Opacity */}
             <div 
                 className="absolute inset-0 w-full h-full mix-blend-overlay pointer-events-none"
                 style={{

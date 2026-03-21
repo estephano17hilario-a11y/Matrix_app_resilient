@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame } from 'lucide-react';
+import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info } from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -11,36 +11,30 @@ interface BadHabitWizardProps {
     onConfirm: (data: Partial<BadHabit>) => void;
     attributes: Attribute[];
     isFirstIdentify?: boolean;
+    onSwitchToHabit?: () => void;
 }
 
-// --- OPTIMIZED AURORA BACKGROUND (Zero Cost) ---
-// Uses radial gradients instead of CSS Blur filters for 60 FPS
+const STREAK_TARGETS = [3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
+
 const AmbientBackground = () => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.15)_0%,_transparent_50%)]" />
-        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.15)_0%,_transparent_50%)]" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.12)_0%,_transparent_50%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.12)_0%,_transparent_50%)]" />
     </div>
 );
 
-// --- SPRING CONFIGURATION (iOS "Fluid" Physics) ---
 const springConfig = { type: "spring" as const, stiffness: 400, damping: 30, mass: 1 };
 const slideVariants = {
     enter: (direction: number) => ({
-        x: direction > 0 ? 20 : -20, // Reduced distance for faster feel
+        x: direction > 0 ? 15 : -15,
         opacity: 0,
-        scale: 0.99
+        scale: 0.98
     }),
-    center: {
-        zIndex: 1,
-        x: 0,
-        opacity: 1,
-        scale: 1
-    },
+    center: { x: 0, opacity: 1, scale: 1 },
     exit: (direction: number) => ({
-        zIndex: 0,
-        x: direction < 0 ? 20 : -20,
+        x: direction < 0 ? 15 : -15,
         opacity: 0,
-        scale: 0.99
+        scale: 0.98
     })
 };
 
@@ -49,35 +43,33 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     onClose,
     onConfirm,
     attributes,
-    isFirstIdentify
+    isFirstIdentify,
+    onSwitchToHabit
 }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0);
-    
-    // Form Data
+
     const [title, setTitle] = useState('');
     const [attribute, setAttribute] = useState('');
     const [reason, setReason] = useState('');
     const [impactLevel, setImpactLevel] = useState(3);
-    const [timeIndex, setTimeIndex] = useState(4); // Default to 1 hour (index 4 -> 60min)
+    const [timeIndex, setTimeIndex] = useState(4);
     const [inputMode, setInputMode] = useState<'LIST' | 'CUSTOM'>('CUSTOM');
     const [viceList, setViceList] = useState<string[]>([
-        'Procrastinación',
-        'Redes sociales',
-        'Pornografía',
-        'Azúcar',
-        'Comida chatarra',
-        'Tabaco',
-        'Alcohol',
-        'Videojuegos',
-        'Compras impulsivas',
-        'Desvelarse'
+        'Procrastinación', 'Redes sociales', 'Pornografía', 'Azúcar',
+        'Comida chatarra', 'Tabaco', 'Alcohol', 'Videojuegos',
+        'Compras impulsivas', 'Desvelarse'
     ]);
     const [listDraft, setListDraft] = useState('');
+    const [intelligentStreak, setIntelligentStreak] = useState(false);
 
-    // Calculated Penalties
-    const [penalties, setPenalties] = useState({ hp: 0, xp: 0, gold: 0 });
+    const getMinutesFromIndex = (index: number) => {
+        if (index <= 7) return (index + 1) * 15;
+        return 120 + ((index - 7) * 60);
+    };
+
+    const minutes = getMinutesFromIndex(timeIndex);
 
     useEffect(() => {
         if (!isOpen) {
@@ -89,71 +81,21 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 setImpactLevel(3);
                 setTimeIndex(4);
                 setDirection(0);
-            }, 300);
+                setIntelligentStreak(false);
+            }, 200);
             return () => clearTimeout(timer);
         }
         setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
         setViceList([
-            'Procrastinación',
-            'Redes sociales',
-            'Pornografía',
-            'Azúcar',
-            'Comida chatarra',
-            'Tabaco',
-            'Alcohol',
-            'Videojuegos',
-            'Compras impulsivas',
-            'Desvelarse'
+            'Procrastinación', 'Redes sociales', 'Pornografía', 'Azúcar',
+            'Comida chatarra', 'Tabaco', 'Alcohol', 'Videojuegos',
+            'Compras impulsivas', 'Desvelarse'
         ]);
         setListDraft('');
     }, [isOpen, isFirstIdentify]);
 
-    const getMinutesFromIndex = (index: number) => {
-        if (index <= 8) return (index + 1) * 15; // 15, 30, 45, 60, 75, 90, 105, 120, 135
-        // After 135 (index 8), we want to jump to hours?
-        // User requested: 15 min increments up to 2 hours (120 min).
-        // Then 1 hour increments up to 12 hours.
-        
-        // 0 -> 15
-        // 1 -> 30
-        // ...
-        // 7 -> 120 (2h)
-        
-        if (index <= 7) return (index + 1) * 15;
-        
-        // Index 8 starts at 3 hours? Or 2h + 1h = 3h?
-        // 8 -> 180 (3h)
-        // ...
-        // 17 -> 720 (12h)
-        return 120 + ((index - 7) * 60);
-    };
-
-    const minutes = getMinutesFromIndex(timeIndex);
-
-    useEffect(() => {
-        // Penalty Formula
-        // Impact Level: 1-5
-        // Time: minutes
-        
-        const timeMultiplier = Math.max(1, minutes / 30);
-        
-        // HP Damage: Base + (Impact * TimeFactor)
-        // Ex: Impact 3, 60min (Factor 2) -> 5 + (3 * 2) = 11 HP
-        // Ex: Impact 5, 120min (Factor 4) -> 5 + (5 * 4) = 25 HP
-        const totalHp = Math.floor(5 + (impactLevel * timeMultiplier));
-        
-        // XP Loss: Base + (Minutes * Impact)
-        // Ex: 60min * 3 = 180 XP
-        const totalXp = Math.floor(50 + (minutes * (1 + impactLevel * 0.2)));
-        
-        // Gold Cost
-        const goldCost = Math.floor(totalXp * 1.5);
-        
-        setPenalties({ hp: totalHp, xp: totalXp, gold: goldCost });
-    }, [timeIndex, impactLevel]);
-
     const handleNext = () => {
-        if (step < 3) {
+        if (step < (intelligentStreak ? 4 : 3)) {
             setDirection(1);
             setStep(s => s + 1);
         } else {
@@ -169,23 +111,30 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     };
 
     const handleConfirm = () => {
-        // Dopamine Trigger could go here (Haptic/Sound)
         onConfirm({
             title,
             attribute,
             reason,
-            negativeImpact: `Nivel de Impacto: ${impactLevel}/5`, // Storing level in description for now or could add new field
+            negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
-            penalties
+            penalties: { hp: 0, xp: 0, gold: 0 },
+            intelligentStreak,
+            currentTarget: intelligentStreak ? 3 : undefined,
+            reachedDays: 0
         });
         onClose();
+        
+        // Dispatch event for TourGuide
+        window.dispatchEvent(new CustomEvent('bad-habit-created'));
+    };
+
+    const handleClose = () => {
+        onClose();
+        window.dispatchEvent(new CustomEvent('bad-habit-created'));
     };
 
     const handleAddListItems = () => {
-        const items = listDraft
-            .split(/[\n,]+/)
-            .map(item => item.trim())
-            .filter(Boolean);
+        const items = listDraft.split(/[\n,]+/).map(item => item.trim()).filter(Boolean);
         if (items.length === 0) return;
         setViceList(prev => {
             const existing = new Set(prev.map(item => item.toLowerCase()));
@@ -204,81 +153,99 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         return true;
     };
 
-    if (!isOpen) return null;
+    const getStepCount = () => intelligentStreak ? 4 : 3;
 
-    if (typeof document === 'undefined') return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
     return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans">
-                    {/* 1. BACKDROP - Optimized: Reduced Opacity, No Blur needed if BG is dark enough */}
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute inset-0 bg-[#050505]/70"
-                        onClick={onClose}
+                        transition={{ duration: 0.15 }}
+                        className="absolute inset-0 bg-[#030303]/80"
+                        onClick={handleClose}
                     />
 
-                    {/* 2. MODAL - "Sentient Glass" */}
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 8 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        exit={{ opacity: 0, scale: 0.96, y: 8 }}
                         transition={springConfig}
-                        className="relative w-full max-w-lg bg-[#0f0f11] rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-hidden border border-white/10 ring-1 ring-white/5 max-h-[90vh] flex flex-col"
+                        className="relative w-full max-w-lg bg-[#0d0d0f] rounded-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden border border-white/[0.06] max-h-[90vh] flex flex-col"
                     >
-                        {/* Fake Glass Highlights */}
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-100" />
-                        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                         <AmbientBackground />
 
                         <div className="relative flex flex-col h-full overflow-hidden">
-                            
-                            {/* Header - Apple Style */}
-                            <div className="px-5 pt-5 pb-2 sm:px-8 sm:pt-8 flex justify-between items-center z-10 shrink-0">
+                            <div className="px-5 pt-5 pb-2 sm:px-8 sm:pt-7 flex justify-between items-center z-10 shrink-0">
                                 <div>
-                                    <motion.div 
-                                        initial={{ opacity: 0, x: -10 }}
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -8 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         className="flex items-center gap-2 mb-1"
                                     >
-                                        <div className="p-1 bg-rose-500/20 rounded-md">
-                                            <Skull size={14} className="text-rose-400" />
+                                        <div className="p-1 bg-rose-500/15 rounded-md">
+                                            <Skull size={13} className="text-rose-400" />
                                         </div>
-                                        <span className="text-xs font-bold text-rose-400 tracking-wider uppercase">Protocolo de Purga</span>
+                                        <span className="text-[11px] font-bold text-rose-400 tracking-wider uppercase">Protocolo de Purga</span>
+                                        {intelligentStreak && (
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className="flex items-center gap-1 px-2 py-0.5 bg-violet-500/15 rounded-full ml-1"
+                                            >
+                                                <Sparkles size={10} className="text-violet-400" />
+                                                <span className="text-[9px] font-bold text-violet-400 uppercase">Inteligente</span>
+                                            </motion.div>
+                                        )}
                                     </motion.div>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                                         {step === 1 && "Identificar Anomalía"}
                                         {step === 2 && "Diagnóstico del Fallo"}
-                                        {step === 3 && "Ejecutar Eliminación"}
+                                        {step === 3 && !intelligentStreak && "Ejecutar Eliminación"}
+                                        {step === 3 && intelligentStreak && "Sistema Inteligente"}
+                                        {step === 4 && "Ejecutar Eliminación"}
                                     </h2>
                                 </div>
-                                <motion.button 
-                                    whileHover={{ scale: 1.1, rotate: 90 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={onClose} 
-                                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors border border-white/5"
-                                >
-                                    <X size={18} />
-                                </motion.button>
+                                <div className="flex items-center gap-3">
+                                    {onSwitchToHabit && (
+                                        <div className="flex p-0.5 rounded-full bg-white/5 border border-white/10">
+                                            <button 
+                                                onClick={onSwitchToHabit}
+                                                className="px-3 py-1 rounded-full text-white/40 text-[10px] font-bold hover:text-white transition-colors"
+                                            >
+                                                Hábito
+                                            </button>
+                                            <div className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold shadow-sm">
+                                                Vicio
+                                            </div>
+                                        </div>
+                                    )}
+                                    <motion.button
+                                        whileHover={{ scale: 1.1, rotate: 90 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={handleClose}
+                                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors border border-white/5"
+                                    >
+                                        <X size={17} />
+                                    </motion.button>
+                                </div>
                             </div>
 
-                            {/* Minimal Progress */}
                             <div className="px-5 sm:px-8 mt-3 mb-4 shrink-0">
-                                <div className="h-1 bg-white/5 rounded-full overflow-hidden flex">
-                                    <motion.div 
-                                        initial={{ width: "33%" }}
-                                        animate={{ width: `${(step / 3) * 100}%` }}
+                                <div className="h-1 bg-white/[0.04] rounded-full overflow-hidden flex">
+                                    <motion.div
+                                        animate={{ width: `${(step / getStepCount()) * 100}%` }}
                                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="h-full bg-gradient-to-r from-indigo-500 to-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                                        className="h-full bg-gradient-to-r from-indigo-500 to-rose-500"
                                     />
                                 </div>
                             </div>
 
-                            {/* Content Area */}
                             <div className="flex-1 px-5 sm:px-8 relative overflow-hidden min-h-0">
                                 <AnimatePresence initial={false} custom={direction} mode="wait">
                                     {step === 1 && (
@@ -290,28 +257,24 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-4 sm:space-y-8 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                            className="space-y-5 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
                                         >
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Modo</span>
-                                                    <div className="flex items-center gap-1 p-1 rounded-full bg-white/5 border border-white/10">
+                                                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Modo</span>
+                                                    <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.03] border border-white/[0.06]">
                                                         <button
                                                             onClick={() => setInputMode('LIST')}
-                                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${
-                                                                inputMode === 'LIST'
-                                                                    ? 'bg-white/10 text-white'
-                                                                    : 'text-white/40 hover:text-white/70'
+                                                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                                                inputMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'
                                                             }`}
                                                         >
                                                             Lista
                                                         </button>
                                                         <button
                                                             onClick={() => setInputMode('CUSTOM')}
-                                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${
-                                                                inputMode === 'CUSTOM'
-                                                                    ? 'bg-white/10 text-white'
-                                                                    : 'text-white/40 hover:text-white/70'
+                                                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                                                                inputMode === 'CUSTOM' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'
                                                             }`}
                                                         >
                                                             Manual
@@ -325,30 +288,30 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             <input
                                                                 value={listDraft}
                                                                 onChange={(e) => setListDraft(e.target.value)}
-                                                                placeholder="Agrega vicios (coma o salto de línea)"
-                                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 transition-all"
+                                                                placeholder={t('badHabits.addVicesPlaceholder', 'Add vices (comma or line break)')}
+                                                                className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-rose-500/30 focus:ring-1 focus:ring-rose-500/20 transition-all"
                                                             />
                                                             <button
                                                                 onClick={handleAddListItems}
                                                                 disabled={!listDraft.trim()}
-                                                                className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                                                className={`px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${
                                                                     listDraft.trim()
-                                                                        ? 'bg-rose-500/20 text-rose-200 border border-rose-500/30'
-                                                                        : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
+                                                                        ? 'bg-rose-500/15 text-rose-200 border border-rose-500/25'
+                                                                        : 'bg-white/[0.03] text-white/20 border border-white/5 cursor-not-allowed'
                                                                 }`}
                                                             >
                                                                 Agregar
                                                             </button>
                                                         </div>
-                                                        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-[80px] sm:max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
+                                                        <div className="flex flex-wrap gap-1.5 max-h-[90px] overflow-y-auto pr-1 custom-scrollbar">
                                                             {viceList.map(item => (
                                                                 <button
                                                                     key={item}
                                                                     onClick={() => setTitle(item)}
-                                                                    className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold transition-all border ${
+                                                                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border ${
                                                                         title === item
-                                                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/40'
-                                                                            : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:border-white/20'
+                                                                            ? 'bg-rose-500/15 text-rose-200 border-rose-500/35'
+                                                                            : 'bg-white/[0.03] text-white/50 border-white/[0.06] hover:text-white hover:border-white/15'
                                                                     }`}
                                                                 >
                                                                     {item}
@@ -359,43 +322,47 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 )}
                                             </div>
 
-                                            <div className="space-y-3 sm:space-y-4">
-                                                <label className="text-xs sm:text-sm font-medium text-white/60 ml-1">
-                                                    ¿Qué hábito deseas eliminar?
+                                            <div className="space-y-3">
+                                                <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
+                                                    {t('badHabits.wizard.selectHabitToRemove', 'What habit do you want to remove?')}
                                                 </label>
-                                                <div className="relative group">
-                                                    <input 
+                                                <div className="relative">
+                                                    <input
                                                         value={title}
                                                         onChange={(e) => setTitle(e.target.value)}
-                                                        placeholder="Ej: Fumar, TikTok..."
-                                                        className="w-full bg-transparent border-b-2 border-white/10 px-1 py-2 sm:px-2 sm:py-4 text-xl sm:text-3xl font-bold text-white placeholder-white/10 focus:outline-none focus:border-rose-500 transition-colors"
+                                                        placeholder={t('badHabits.viceExamplePlaceholder', 'E.g. Smoking, TikTok...')}
+                                                        className="w-full bg-transparent border-b-2 border-white/10 px-1 py-3 text-xl sm:text-2xl font-bold text-white placeholder-white/10 focus:outline-none focus:border-rose-500/50 transition-colors"
                                                         autoFocus
                                                     />
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3 sm:space-y-4">
-                                                <label className="text-xs sm:text-sm font-medium text-white/60 ml-1">
+                                            <div className="space-y-3">
+                                                <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
                                                     Afecta a tu atributo:
                                                 </label>
-                                                <div className="grid grid-cols-2 gap-2 sm:gap-3 max-h-[180px] sm:max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                                     {attributes.map(attr => (
                                                         <motion.button
                                                             key={attr.id}
-                                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
+                                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.06)" }}
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={() => setAttribute(attr.id)}
-                                                            className={`relative p-2.5 sm:p-4 rounded-xl border text-left transition-all duration-200 group ${
-                                                                attribute === attr.id 
-                                                                ? 'bg-rose-500/10 border-rose-500/50 ring-1 ring-rose-500/20' 
-                                                                : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                            className={`relative p-3 rounded-xl border text-left transition-all duration-200 group ${
+                                                                attribute === attr.id
+                                                                    ? 'bg-rose-500/08 border-rose-500/40 ring-1 ring-rose-500/15'
+                                                                    : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
                                                             }`}
                                                         >
-                                                            <div className="flex items-center gap-2 sm:gap-3">
-                                                                <div className={`p-1.5 sm:p-2 rounded-lg transition-colors ${attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-white/5 text-white/40 group-hover:bg-white/10'}`}>
-                                                                    <Zap size={14} className="sm:w-[18px] sm:h-[18px]" />
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className={`p-1.5 rounded-lg transition-colors ${
+                                                                    attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25' : 'bg-white/[0.05] text-white/40 group-hover:bg-white/10'
+                                                                }`}>
+                                                                    <Zap size={13} />
                                                                 </div>
-                                                                <span className={`text-xs sm:text-sm font-medium ${attribute === attr.id ? 'text-white' : 'text-white/60 group-hover:text-white/80'}`}>
+                                                                <span className={`text-[12px] sm:text-sm font-medium ${
+                                                                    attribute === attr.id ? 'text-white' : 'text-white/50 group-hover:text-white/70'
+                                                                }`}>
                                                                     {t(attr.label, attr.label.replace('traits.', ''))}
                                                                 </span>
                                                             </div>
@@ -415,24 +382,24 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-6 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                            className="space-y-5 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
                                         >
                                             <div className="space-y-3">
-                                                <label className="text-sm font-medium text-white/60 ml-1">
-                                                    ¿Por qué quieres dejarlo?
+                                                <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
+                                                    {t('badHabits.wizard.reasonLabel', 'Why do you want to quit?')}
                                                 </label>
-                                                <textarea 
+                                                <textarea
                                                     value={reason}
                                                     onChange={(e) => setReason(e.target.value)}
-                                                    placeholder="Escribe tu razón principal..."
-                                                    className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-white/20 focus:outline-none focus:bg-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all resize-none"
+                                                    placeholder={t('badHabits.wizard.reasonPlaceholder', 'Write your main reason for quitting this vice...')}
+                                                    className="w-full h-28 bg-white/[0.03] border border-white/[0.06] rounded-2xl px-4 py-3.5 text-white placeholder-white/15 focus:outline-none focus:bg-white/[0.05] focus:border-rose-500/30 focus:ring-1 focus:ring-rose-500/15 transition-all resize-none text-[13px]"
                                                 />
                                             </div>
 
                                             <div className="space-y-4">
-                                                <label className="text-sm font-medium text-rose-400 ml-1 flex items-center gap-2">
-                                                    <AlertTriangle size={14} />
-                                                    Impacto Negativo (Nivel de Severidad)
+                                                <label className="text-[12px] sm:text-sm font-medium text-rose-400 ml-1 flex items-center gap-1.5">
+                                                    <AlertTriangle size={13} />
+                                                    Impacto Negativo
                                                 </label>
                                                 <div className="grid grid-cols-5 gap-2">
                                                     {[1, 2, 3, 4, 5].map((level) => (
@@ -440,17 +407,17 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             key={level}
                                                             onClick={() => setImpactLevel(level)}
                                                             className={`
-                                                                h-12 rounded-xl font-bold text-lg transition-all border
-                                                                ${impactLevel === level 
-                                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)] scale-105 z-10' 
-                                                                    : 'bg-white/5 text-white/20 border-white/5 hover:bg-white/10 hover:text-white/60 hover:border-white/10'}
+                                                                h-11 rounded-xl font-bold text-base transition-all border
+                                                                ${impactLevel === level
+                                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] scale-105 z-10'
+                                                                    : 'bg-white/[0.03] text-white/20 border-white/[0.05] hover:bg-white/[0.06] hover:text-white/60 hover:border-white/10'}
                                                             `}
                                                         >
                                                             {level}
                                                         </button>
                                                     ))}
                                                 </div>
-                                                <div className="text-center text-sm font-medium text-rose-200/60 h-5 tracking-wide">
+                                                <div className="text-center text-[12px] font-medium text-rose-200/50 h-5 tracking-wide">
                                                     {impactLevel === 1 && "Leve - Molestia menor"}
                                                     {impactLevel === 2 && "Bajo - Interferencia ocasional"}
                                                     {impactLevel === 3 && "Moderado - Afecta el rendimiento"}
@@ -458,12 +425,145 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     {impactLevel === 5 && "CRÍTICO - Colapso inminente"}
                                                 </div>
                                             </div>
+
+                                            <div className="space-y-3 pt-2">
+                                                <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1 flex items-center gap-1.5">
+                                                    <Brain size={13} className="text-violet-400" />
+                                                    Modo Inteligencia Artificial
+                                                </label>
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setIntelligentStreak(!intelligentStreak)}
+                                                    className={`w-full p-4 rounded-2xl border transition-all duration-300 text-left ${
+                                                        intelligentStreak
+                                                            ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/30 shadow-[0_0_20px_rgba(139,92,246,0.1)]'
+                                                            : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2.5 rounded-xl ${intelligentStreak ? 'bg-violet-500/20 text-violet-400' : 'bg-white/[0.05] text-white/40'}`}>
+                                                                <Sparkles size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-[13px] font-semibold ${intelligentStreak ? 'text-violet-200' : 'text-white/80'}`}>
+                                                                    Racha Inteligente
+                                                                </div>
+                                                                <div className="text-[11px] text-white/40 mt-0.5">
+                                                                    Proceso gradual sin penalización
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`w-11 h-6 rounded-full p-0.5 transition-all duration-300 ${intelligentStreak ? 'bg-violet-500' : 'bg-white/10'}`}>
+                                                            <motion.div
+                                                                animate={{ x: intelligentStreak ? 20 : 0 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                                className="w-5 h-5 rounded-full bg-white shadow-md"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </motion.button>
+                                            </div>
                                         </motion.div>
                                     )}
 
-                                    {step === 3 && (
+                                    {step === 3 && intelligentStreak && (
                                         <motion.div
-                                            key="step3"
+                                            key="step3-intelligent"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            className="h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                        >
+                                            <div className="bg-gradient-to-br from-violet-950/20 to-indigo-950/20 border border-violet-500/15 rounded-2xl p-5 mb-5">
+                                                <div className="flex items-center gap-2.5 mb-4">
+                                                    <div className="p-2 bg-violet-500/15 rounded-xl">
+                                                        <Brain size={18} className="text-violet-400" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-[15px] font-bold text-violet-200">Sistema de Racha Inteligente</h3>
+                                                        <p className="text-[11px] text-violet-300/50">Aprende de tus recaídas, no las penaliza</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3 mb-5">
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-emerald-500/15 rounded-lg mt-0.5">
+                                                            <Calendar size={14} className="text-emerald-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-emerald-200 mb-1">{t('badHabits.wizard.gradualProcess', 'Gradual Process')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {t('badHabits.wizard.gradualDesc', 'Goals increase gradually: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-amber-500/15 rounded-lg mt-0.5">
+                                                            <Check size={14} className="text-amber-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-amber-200 mb-1">{t('badHabits.wizard.opportunityDay', 'Opportunity Day')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {t('badHabits.wizard.opportunityDesc', 'When you reach the goal, you have 1 day to indulge in the vice WITHOUT penalty. Your streak is maintained.')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-rose-500/15 rounded-lg mt-0.5">
+                                                            <RotateCcw size={14} className="text-rose-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-rose-200 mb-1">Regresa, no penaliza</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                Si fallas, vuelves a la meta anterior. No pierdes todo, solo retrocedes un nivel.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+                                                    <div className="text-[11px] text-white/40 mb-3 uppercase tracking-wider font-semibold">Ejemplo Visual</div>
+                                                    <div className="flex items-center justify-between">
+                                                        {STREAK_TARGETS.slice(0, 5).map((target, i) => (
+                                                            <div key={target} className="flex flex-col items-center">
+                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                                                                    i === 0
+                                                                        ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30'
+                                                                        : 'bg-white/5 text-white/30 border border-white/10'
+                                                                }`}>
+                                                                    {target}
+                                                                </div>
+                                                                <div className="text-[9px] text-white/30 mt-1">días</div>
+                                                                {i < 4 && (
+                                                                    <div className="absolute left-1/2 w-full h-px bg-gradient-to-r from-violet-500/50 to-transparent" style={{ display: 'none' }} />
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        <div className="text-[10px] text-violet-400/60">...</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-amber-950/15 border border-amber-500/15 rounded-xl p-4">
+                                                <div className="flex items-start gap-2.5">
+                                                    <Info size={15} className="text-amber-400 mt-0.5 shrink-0" />
+                                                    <p className="text-[11px] text-amber-200/70 leading-relaxed">
+                                                        Si estás en la meta de 14 días y fallas el día 10, volverás a la meta de 7 días. ¡No se reinicia a 0!
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {step === 3 && !intelligentStreak && (
+                                        <motion.div
+                                            key="step3-normal"
                                             custom={direction}
                                             variants={slideVariants}
                                             initial="enter"
@@ -472,93 +572,118 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             transition={springConfig}
                                             className="h-full flex flex-col"
                                         >
-                                            <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-6 mb-6">
-                                                <h3 className="text-lg font-semibold text-rose-200 mb-4 flex items-center gap-2">
-                                                    <Flame className="text-rose-500" size={20} />
-                                                    Penalización por Recaída
+                                            <div className="bg-rose-950/15 border border-rose-500/15 rounded-2xl p-5 mb-5">
+                                                <h3 className="text-[14px] font-semibold text-rose-200 mb-3 flex items-center gap-2">
+                                                    <Flame size={16} className="text-rose-500" />
+                                                    Tiempo por Sesión
                                                 </h3>
-                                                <div className="space-y-6">
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between text-sm items-end">
-                                                            <span className="text-white/60">Tiempo perdido por sesión</span>
-                                                            <span className="font-mono font-bold text-xl text-rose-400">
-                                                                {minutes < 60 ? `${minutes} min` : `${Math.floor(minutes/60)}h ${minutes%60 > 0 ? minutes%60 + 'm' : ''}`}
-                                                            </span>
-                                                        </div>
-                                                        <input 
-                                                            type="range" 
-                                                            min="0" 
-                                                            max="17" 
-                                                            step="1"
-                                                            value={timeIndex}
-                                                            onChange={(e) => setTimeIndex(parseInt(e.target.value))}
-                                                            className="w-full accent-rose-500 h-2 bg-white/10 rounded-full appearance-none cursor-pointer"
-                                                        />
-                                                        <div className="flex justify-between text-[10px] text-white/20 font-mono px-1">
-                                                            <span>15m</span>
-                                                            <span>2h</span>
-                                                            <span>12h</span>
-                                                        </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between text-sm items-end">
+                                                        <span className="text-white/50">Duración estimada</span>
+                                                        <span className="font-mono font-bold text-lg text-rose-400">
+                                                            {minutes < 60 ? `${minutes} min` : `${Math.floor(minutes/60)}h ${minutes%60 > 0 ? minutes%60 + 'm' : ''}`}
+                                                        </span>
                                                     </div>
-
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
-                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Daño HP</div>
-                                                            <div className="text-xl font-black text-rose-500">-{penalties.hp}</div>
-                                                        </div>
-                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider truncate px-1">
-                                                                XP {(() => {
-                                                                    const a = attributes.find(a => a.id === attribute);
-                                                                    return a ? t(a.label, a.label.replace('traits.', '')) : 'General';
-                                                                })()}
-                                                            </div>
-                                                        <div className="bg-black/20 rounded-xl p-3 text-center border border-white/5 flex flex-col justify-between">
-                                                            <div className="text-[10px] text-white/40 mb-1 uppercase tracking-wider">Costo Oro</div>
-                                                            <div className="text-xl font-black text-yellow-500">-{penalties.gold}</div>
-                                                        </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="17"
+                                                        step="1"
+                                                        value={timeIndex}
+                                                        onChange={(e) => setTimeIndex(parseInt(e.target.value))}
+                                                        className="w-full accent-rose-500 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer"
+                                                    />
+                                                    <div className="flex justify-between text-[10px] text-white/25 font-mono px-1">
+                                                        <span>15m</span>
+                                                        <span>2h</span>
+                                                        <span>12h</span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div className="text-center space-y-2 mt-auto mb-4">
-                                                <p className="text-sm text-white/40">
-                                                    "La única forma de ganar es no jugar."
+                                                <p className="text-[13px] text-white/35 italic">
+                                                    {t('badHabits.wizard.quote', 'The only way to win is not to play.')}
                                                 </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {step === 4 && (
+                                        <motion.div
+                                            key="step4"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            className="h-full flex flex-col"
+                                        >
+                                            <div className="bg-gradient-to-br from-rose-950/20 to-violet-950/15 border border-white/5 rounded-2xl p-6 mb-6 text-center">
+                                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-rose-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center">
+                                                    <Skull size={28} className="text-rose-400" />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                                                <p className="text-[12px] text-white/40">{t('badHabits.wizard.readyToActivate', 'Protocol ready to activate')}</p>
+
+                                                {intelligentStreak && (
+                                                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full">
+                                                        <Sparkles size={14} className="text-violet-400" />
+                                                        <span className="text-[11px] font-semibold text-violet-300">Racha Inteligente Activada</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-3 flex-1">
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">Razón</span>
+                                                    <span className="text-[12px] text-white/80 font-medium truncate max-w-[200px]">{reason}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">Impacto</span>
+                                                    <span className="text-[12px] text-rose-400 font-medium">Nivel {impactLevel}/5</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">Atributo</span>
+                                                    <span className="text-[12px] text-white/80 font-medium">
+                                                        {attributes.find(a => a.id === attribute)?.label.replace('traits.', '') || 'General'}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
 
-                            {/* Footer / Navigation */}
-                            <div className="p-5 sm:p-8 pt-4 flex justify-between items-center bg-gradient-to-t from-[#0f0f11] to-transparent shrink-0">
+                            <div className="p-5 sm:p-7 pt-3 flex justify-between items-center bg-gradient-to-t from-[#0d0d0f] to-transparent shrink-0">
                                 {step > 1 ? (
                                     <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ scale: 1.03 }}
+                                        whileTap={{ scale: 0.97 }}
                                         onClick={handleBack}
-                                        className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors text-[12px] sm:text-[13px]"
                                     >
-                                        <ChevronLeft size={18} className="sm:w-[20px] sm:h-[20px]" />
-                                        <span className="font-medium text-xs sm:text-base">Atrás</span>
+                                        <ChevronLeft size={16} />
+                                        <span className="font-medium">Atrás</span>
                                     </motion.button>
                                 ) : <div />}
 
                                 <motion.button
-                                    whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(244,63,94,0.3)" }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ scale: 1.04, boxShadow: "0 0 25px rgba(244,63,94,0.25)" }}
+                                    whileTap={{ scale: 0.97 }}
                                     onClick={handleNext}
                                     disabled={!isStepValid()}
                                     className={`
-                                        flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 rounded-full font-bold text-sm sm:text-lg shadow-lg transition-all
-                                        ${isStepValid() 
-                                            ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-rose-900/20' 
-                                            : 'bg-white/10 text-white/20 cursor-not-allowed'}
+                                        flex items-center gap-2 px-6 py-2.5 sm:px-7 sm:py-3 rounded-full font-bold text-[13px] sm:text-[14px] shadow-lg transition-all
+                                        ${isStepValid()
+                                            ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-rose-900/20'
+                                            : 'bg-white/8 text-white/20 cursor-not-allowed'}
                                     `}
                                 >
-                                    <span>{step === 3 ? 'Activar Protocolo' : 'Continuar'}</span>
-                                    {step < 3 && <ChevronRight size={18} className="sm:w-[20px] sm:h-[20px]" />}
-                                    {step === 3 && <ShieldAlert size={18} className="sm:w-[20px] sm:h-[20px]" />}
+                                    <span>{step === getStepCount() ? 'Activar' : 'Continuar'}</span>
+                                    {step < getStepCount() && <ChevronRight size={16} />}
+                                    {step === getStepCount() && <ShieldAlert size={15} />}
                                 </motion.button>
                             </div>
                         </div>

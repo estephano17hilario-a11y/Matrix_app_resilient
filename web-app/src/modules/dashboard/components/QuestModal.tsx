@@ -88,7 +88,7 @@ export const QuestModal = React.memo(({
 
     const prediction = useMemo(() => {
         const multipliers: Record<Difficulty, number> = { 'C': 1, 'B': 2, 'A': 3, 'S': 4 };
-        return calculateTaskRewards(estimatedTime, multipliers[difficulty]);
+        return calculateTaskRewards(estimatedTime, multipliers[difficulty], 0, 'TASK');
     }, [estimatedTime, difficulty]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);

@@ -302,7 +302,7 @@ export const notificationService = {
       try {
           const hash = habitId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
           const baseId = 2000 + (hash % 10000);
-          
+
           const pending = await LocalNotifications.getPending();
           const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
           if (toCancel.length > 0) {
@@ -310,6 +310,97 @@ export const notificationService = {
           }
       } catch (e) {
           console.error("Failed to cancel habit reminder", e);
+      }
+  },
+
+  scheduleProjectReminder: async (projectId: string, title: string, time: string, days: number[]) => {
+      if (!Capacitor.isNativePlatform()) return;
+
+      try {
+          const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 5000 + (hash % 10000);
+
+          const [h, m] = time.split(':').map(Number);
+          if (isNaN(h) || isNaN(m)) return;
+
+          const pending = await LocalNotifications.getPending();
+          const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
+          if (toCancel.length > 0) {
+              await LocalNotifications.cancel({ notifications: toCancel });
+          }
+
+          const notifications = days.map(dayIndex => ({
+              id: baseId + dayIndex,
+              title: "Project Protocol",
+              body: title,
+              schedule: {
+                  on: {
+                      weekday: dayIndex + 1,
+                      hour: h,
+                      minute: m
+                  },
+                  allowWhileIdle: true
+              },
+              channelId: 'lux_daily',
+              smallIcon: 'ic_stat_matrix',
+              actionTypeId: 'OPEN_APP'
+          }));
+
+          await LocalNotifications.schedule({ notifications });
+          console.log(`Scheduled ${notifications.length} reminders for project ${title}`);
+      } catch (e) {
+          console.error("Failed to schedule project reminder", e);
+      }
+  },
+
+  cancelProjectReminder: async (projectId: string) => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+          const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 5000 + (hash % 10000);
+
+          const pending = await LocalNotifications.getPending();
+          const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
+          if (toCancel.length > 0) {
+              await LocalNotifications.cancel({ notifications: toCancel });
+          }
+      } catch (e) {
+          console.error("Failed to cancel project reminder", e);
+      }
+  },
+
+  scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date) => {
+      if (!Capacitor.isNativePlatform()) return;
+
+      try {
+          const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 8000 + (hash % 10000);
+
+          await LocalNotifications.schedule({
+              notifications: [{
+                  id: baseId,
+                  title: "Task Due",
+                  body: title,
+                  schedule: { at: dueDate },
+                  channelId: 'lux_daily',
+                  smallIcon: 'ic_stat_matrix',
+                  actionTypeId: 'OPEN_APP'
+              }]
+          });
+          console.log(`Scheduled reminder for task ${title} at ${dueDate.toISOString()}`);
+      } catch (e) {
+          console.error("Failed to schedule task reminder", e);
+      }
+  },
+
+  cancelTaskReminder: async (taskId: string) => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+          const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const baseId = 8000 + (hash % 10000);
+          await LocalNotifications.cancel({ notifications: [{ id: baseId }] });
+      } catch (e) {
+          console.error("Failed to cancel task reminder", e);
       }
   },
 

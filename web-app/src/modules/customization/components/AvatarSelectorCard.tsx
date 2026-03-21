@@ -62,14 +62,13 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
         }}
       />
       
-      {/* 2. Selected Halo (Opacity Pulse Only - No Scale for Perf) */}
+      {/* 2. Selection Glow (Behind the card) - Optimized */}
       {isSelected && (
-        <motion.div
+        <div 
           className="absolute -inset-1 rounded-2xl -z-20"
-          animate={{ opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           style={{ 
             background: `radial-gradient(circle, ${themeColor} 0%, transparent 80%)`,
+            opacity: 0.3
           }}
         />
       )}

@@ -10,14 +10,24 @@ import {
 import { isSameDay, addDays } from 'date-fns';
 import { Habit } from '../../types';
 import { cn } from '../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 // --- CONFIGURATION ---
-const TOTAL_DAYS = 60;
+const TOTAL_DAYS = 90;
 const NODE_HEIGHT = 140; // Vertical distance between nodes
 const X_OFFSET = 80;     // Horizontal amplitude from center
 const VIEWBOX_WIDTH = 320;
 const CENTER_X = VIEWBOX_WIDTH / 2;
 const TOP_PADDING = 60;  // Padding for the first node
+
+export const getTargetPercentage = (day: number) => {
+    if (day <= 7) return 50;
+    if (day <= 14) return 60;
+    if (day <= 30) return 67;
+    if (day <= 60) return 75;
+    if (day <= 90) return 80;
+    return 85;
+};
 
 interface StreakRoadmapViewProps {
     habits: Habit[];
@@ -34,6 +44,8 @@ const HeaderStat = ({ label, value, colorClass = "text-white" }: { label: string
 );
 
 export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, onClose }) => {
+    const { t } = useTranslation();
+
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // --- LOGIC: Calculate Streak & Progress ---
@@ -219,9 +231,9 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                         </button>
                         
                         <div className="flex flex-col items-center">
-                            <span className="text-[9px] font-black text-white/30 tracking-[0.3em] uppercase mb-0.5">EL CAMINO</span>
+                            <span className="text-[9px] font-black text-white/30 tracking-[0.3em] uppercase mb-0.5">{t('dashboard.thePath')}</span>
                             <div className="flex items-baseline gap-1.5">
-                                <span className="text-2xl font-black text-white tracking-tight drop-shadow-lg">Día {currentStreak}</span>
+                                <span className="text-2xl font-black text-white tracking-tight drop-shadow-lg">{t('dashboard.day')} {currentStreak}</span>
                                 <span className="text-xs text-white/30 font-bold">/ {TOTAL_DAYS}</span>
                             </div>
                         </div>
@@ -233,8 +245,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
                     {/* Stats Row (No more black boxes - Pure transparency) */}
                     <div className="relative grid grid-cols-2 divide-x divide-white/5 border-y border-white/5">
-                        <HeaderStat label="META DIARIA" value="50%" />
-                        <HeaderStat label="PROGRESO HOY" value={`${todayProgress}%`} colorClass={todayProgress >= 100 ? "text-emerald-400" : "text-cyan-400"} />
+                        <HeaderStat label={t('dashboard.dailyGoal', 'DAILY GOAL')} value={`${getTargetPercentage(currentStreak)}%`} />
+                        <HeaderStat label={t('dashboard.todayProgress', 'TODAY PROGRESS')} value={`${todayProgress}%`} colorClass={todayProgress >= getTargetPercentage(currentStreak) ? "text-emerald-400" : "text-cyan-400"} />
                     </div>
                 </div>
 
@@ -314,8 +326,11 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
 // --- SUB-COMPONENT: NODE ---
 const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
+    const { t } = useTranslation();
     const isCurrent = node.status === 'current';
     const isLocked = node.status === 'locked';
+    const isMilestone = [7, 14, 30, 60, 90].includes(node.day);
+    const targetPercentage = getTargetPercentage(node.day);
 
     // ANIMATIONS
     const variants: Variants = {
@@ -333,54 +348,102 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 initial="hidden"
                 animate="visible"
                 variants={variants}
-                className="relative group"
+                className={cn("relative group z-30", isMilestone ? "scale-110" : "")}
             >
-                {/* Glow Effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+                {/* Glow Effect - Optimized: Removed radial-gradient background for simple box-shadow or solid colors to save GPU */}
+                <div className="absolute -inset-1 rounded-full opacity-60 group-hover:opacity-80 transition-opacity duration-300" style={{ boxShadow: isMilestone ? '0 0 20px rgba(245,158,11,0.3)' : '0 0 20px rgba(16,185,129,0.2)' }} />
                 
                 {/* Main Pill */}
-                <div className="relative flex items-center gap-4 pl-2 pr-6 py-3 bg-white/[0.03] border border-emerald-500/30 rounded-[2rem] shadow-2xl backdrop-blur-xl group-hover:bg-white/[0.06] transition-all duration-500">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 shadow-inner">
-                        {progress >= 100 ? (
+                <div className={cn(
+                    "relative flex items-center gap-4 pl-2 pr-6 py-3 bg-[#111] border rounded-[2rem] shadow-lg group-hover:bg-[#1a1a1a] transition-colors duration-300",
+                    isMilestone ? "border-amber-500/50" : "border-emerald-500/30"
+                )}>
+                    <div className={cn(
+                        "flex items-center justify-center w-12 h-12 rounded-2xl border",
+                        isMilestone ? "bg-[#2a1a05] border-amber-500/50 text-amber-400" : "bg-[#051a10] border-emerald-500/40 text-emerald-400"
+                    )}>
+                        {progress >= targetPercentage ? (
                             <CheckCircle2 className="w-7 h-7" />
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
                                 <Circle className="w-7 h-7 opacity-80" />
-                                <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-[6px] animate-pulse" />
+                                <div className={cn("absolute inset-0 rounded-full opacity-20", isMilestone ? "bg-amber-500" : "bg-emerald-500")} />
                             </div>
                         )}
                     </div>
                     
                     <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.2em] mb-0.5">
-                            HOY
+                        <span className={cn(
+                            "text-[9px] font-black uppercase tracking-[0.2em] mb-0.5",
+                            isMilestone ? "text-amber-500" : "text-emerald-500"
+                        )}>
+                            {isMilestone ? "HOY (META ALTA)" : "HOY"}
                         </span>
                         <span className={cn(
                             "text-base font-black tracking-tight",
-                            progress >= 100 ? "text-emerald-400" : "text-white"
+                            progress >= targetPercentage 
+                                ? (isMilestone ? "text-amber-400" : "text-emerald-400") 
+                                : "text-white"
                         )}>
-                            {progress >= 100 ? "Completado" : "En Progreso"}
+                            {progress >= targetPercentage ? t('common.completed', 'Completed') : `${targetPercentage}% REQUERIDO`}
                         </span>
                     </div>
 
                     {/* Indicator Dot */}
-                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[3px] border-[#020204] shadow-[0_0_15px_rgba(16,185,129,1)]" />
+                    <div className={cn(
+                        "absolute -right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-[3px] border-[#020204]",
+                        isMilestone ? "bg-amber-500" : "bg-emerald-500"
+                    )} />
                 </div>
             </motion.div>
         );
     }
 
     if (isLocked) {
+        if (isMilestone) {
+            return (
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={variants}
+                    className="relative flex items-center gap-4 p-4 bg-[#1a1005] border border-amber-500/40 rounded-3xl shadow-lg transition-transform duration-300 hover:scale-105 z-20"
+                >
+                    {/* Number Circle */}
+                    <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-[#2a1a05] border border-amber-500/50 text-amber-300 font-black text-xl">
+                        <span className="text-[10px] uppercase tracking-widest opacity-80 mb-[-4px]">Día</span>
+                        {node.day}
+                    </div>
+
+                    <div className="flex flex-col min-w-[100px]">
+                        <span className="text-xs font-black text-amber-400/80 uppercase tracking-[0.2em] mb-1">
+                            NUEVO NIVEL
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <Flame className="w-5 h-5 text-amber-400" />
+                            <span className="text-lg font-black text-amber-400 tracking-tight">{targetPercentage}%</span>
+                        </div>
+                    </div>
+
+                    {/* Connector Dot */}
+                    <div className={cn(
+                        "absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-amber-500 bg-amber-200",
+                        node.side === 'left' ? "-right-1.5" : "-left-1.5"
+                    )} />
+                </motion.div>
+            );
+        }
+
         return (
             <motion.div
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={variants}
-                className="relative flex items-center gap-4 pl-3 pr-6 py-2.5 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md opacity-60 hover:opacity-100 transition-all duration-300 hover:bg-white/[0.04] shadow-sm"
+                className="relative flex items-center gap-4 pl-3 pr-6 py-2.5 bg-[#0a0a0a] border border-white/10 rounded-2xl opacity-80 hover:opacity-100 transition-opacity duration-300 shadow-sm"
             >
                 {/* Number Circle */}
-                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white/60 font-mono font-black text-sm shadow-inner">
+                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#111] border border-white/10 text-white/60 font-mono font-black text-sm">
                     {node.day}
                 </div>
 
@@ -390,13 +453,13 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     </span>
                     <div className="flex items-center gap-1.5">
                         <Trophy className="w-3.5 h-3.5 text-white/20" />
-                        <span className="text-xs font-black text-white/50 tracking-tight">50%</span>
+                        <span className="text-xs font-black text-white/50 tracking-tight">{targetPercentage}%</span>
                     </div>
                 </div>
 
                 {/* Connector Dot */}
                 <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm",
+                    "absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/20 bg-white/10",
                     node.side === 'left' ? "-right-1" : "-left-1"
                 )} />
             </motion.div>
@@ -404,12 +467,25 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
     }
 
     // COMPLETED / PAST
+    if (isMilestone) {
+        return (
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={variants}
+                className="w-14 h-14 rounded-2xl bg-[#1a1005] border border-amber-500/40 flex items-center justify-center shadow-lg opacity-90 hover:opacity-100 transition-opacity duration-300 z-10"
+            >
+                <CheckCircle2 className="w-8 h-8 text-amber-400" />
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial="hidden"
             animate="visible"
             variants={variants}
-            className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center backdrop-blur-sm grayscale-[0.5] opacity-40 hover:opacity-100 transition-all duration-300"
+            className="w-10 h-10 rounded-xl bg-[#051a10] border border-emerald-500/20 flex items-center justify-center grayscale-[0.5] opacity-60 hover:opacity-100 transition-opacity duration-300"
         >
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
         </motion.div>

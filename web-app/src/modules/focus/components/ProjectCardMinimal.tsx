@@ -6,6 +6,7 @@ import { ChevronRight, Play } from 'lucide-react';
 import { addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getDynamicDailyTarget } from '../../../utils/projectUtils';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectCardMinimalProps {
     project: Project;
@@ -15,6 +16,7 @@ interface ProjectCardMinimalProps {
 }
 
 export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project, attribute, onClick, onStartFocus }) => {
+    const { t, i18n } = useTranslation();
     // Theme color (Default to red/pink from image if no attribute)
     const themeColor = attribute?.color || '#f43f5e'; // rose-500
     
@@ -89,8 +91,8 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
         for (let i = 1; i <= 7; i += 1) {
             const next = addDays(today, i);
             if (workingDays.includes(next.getDay())) {
-                if (i === 1) return 'Mañana';
-                const label = format(next, 'EEEE', { locale: es });
+                if (i === 1) return t('tomorrow');
+                const label = format(next, 'EEEE', { locale: i18n.language === 'es' ? es : undefined });
                 return label.charAt(0).toUpperCase() + label.slice(1);
             }
         }

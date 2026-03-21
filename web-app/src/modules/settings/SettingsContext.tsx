@@ -35,6 +35,9 @@ interface SettingsContextType {
   updateHabitSectionControl: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch: boolean;
   updateAllowDockSectionSwitch: (allow: boolean) => void;
+  openDockConfig: () => void;
+  weekStartDay: 0 | 1;
+  updateWeekStartDay: (day: 0 | 1) => void;
 
   // Account
   isPro: boolean;
@@ -71,6 +74,9 @@ interface SettingsProviderProps {
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
+  onOpenDockConfig?: () => void;
+  weekStartDay?: 0 | 1;
+  onWeekStartDayChange?: (day: 0 | 1) => void;
 }
 
 export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) => {
@@ -104,6 +110,9 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     updateHabitSectionControl: props.onUpdateHabitSectionControl || (() => {}),
     allowDockSectionSwitch: props.allowDockSectionSwitch || false,
     updateAllowDockSectionSwitch: props.onUpdateAllowDockSectionSwitch || (() => {}),
+    openDockConfig: props.onOpenDockConfig || (() => {}),
+    weekStartDay: props.weekStartDay ?? 1,
+    updateWeekStartDay: props.onWeekStartDayChange || (() => {}),
 
     isPro: props.isPro || false,
     showProModal: props.onShowPro || (() => {}),

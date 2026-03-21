@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
 import { ArrowUp, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { toLocalISOString } from './utils/dateUtils';
+import { toLocalISOString, startOfWeek, endOfWeek } from './utils/dateUtils';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { TaskList } from './modules/tasks/TaskList';
 import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
 import { Dock } from './modules/dashboard/components/Dock';
+import { DockConfigModal } from './components/ui/DockConfigModal';
 import { QuestModal } from './modules/dashboard/components/QuestModal';
 import { HabitModal } from './modules/dashboard/components/HabitModal';
 import { ProjectModal } from './modules/dashboard/components/ProjectModal';
@@ -25,11 +26,11 @@ import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
 
 import { ConfirmationModal } from './components/ui/ConfirmationModal';
-import { SecurityGate } from './components/ui/SecurityGate';
 import { HabitActionsModal } from './modules/dashboard/components/HabitActionsModal';
 
 import { ViewContainer } from './modules/dashboard/components/ViewContainer';
 import { ParticleLayer } from './modules/dashboard/components/ParticleLayer';
+import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
 import { cn } from './utils/cn';
 
 // Lazy Load Heavy Views
@@ -38,7 +39,6 @@ const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ de
 const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
 const AchievementsScreen = lazy(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
 const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
-const NexusView = lazy(() => import('./modules/nexus').then(m => ({ default: m.NexusView })));
 const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
 const StrategicMapView = lazy(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
 const SettingsView = lazy(() => import('./modules/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
@@ -92,8 +92,8 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectI
     const quests: Quest[] = [];
     
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(now);
+    const weekEnd = endOfWeek(now);
 
     // Map level to difficulty
     const difficultyMap: Record<string, 'S'|'A'|'B'|'C'> = {
@@ -172,30 +172,6 @@ export default function Dashboard() {
     // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
     const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS']));
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [settingsLocked, setSettingsLocked] = useState(false);
-    const [settingsPin, setSettingsPin] = useState<string | null>(null);
-
-    // Effect to check lock status when opening settings
-    useEffect(() => {
-        if (isSettingsOpen) {
-            const savedConfig = localStorage.getItem('notes_config_v2');
-            if (savedConfig) {
-                try {
-                    const parsed = JSON.parse(savedConfig);
-                    if (parsed.security && parsed.security.pin && parsed.security.pin.length === 5) {
-                        setSettingsPin(parsed.security.pin);
-                        setSettingsLocked(true);
-                    } else {
-                        setSettingsLocked(false);
-                    }
-                } catch (e) {
-                    setSettingsLocked(false);
-                }
-            } else {
-                setSettingsLocked(false);
-            }
-        }
-    }, [isSettingsOpen]);
 
     // Force re-render on language change
     useEffect(() => {
@@ -221,7 +197,6 @@ export default function Dashboard() {
                     import('./modules/notes/NotesView'),
                     import('./modules/achievements/AchievementsScreen'),
                     import('./modules/store/StoreScreen'),
-                    import('./modules/nexus'),
                     import('./modules/smart-tasks/components/StrategicMapView')
                 ]);
             } catch (e) {
@@ -254,7 +229,6 @@ export default function Dashboard() {
 
     const {
         user,
-        matrixLoading,
         lastAchievement,
         setLastAchievement,
         currentTheme,
@@ -279,7 +253,6 @@ export default function Dashboard() {
         projects,
         smartProjects,
         setSmartProjects,
-        notes,
         notifications,
         particles,
         activeModal,
@@ -306,7 +279,6 @@ export default function Dashboard() {
         handleDeleteProject,
         handleUpdateProject,
         handleUpdateSmartProject,
-        handleAddNote,
         defaultChartMode,
         setDefaultChartMode,
         updateAttributeMetadata,
@@ -325,21 +297,54 @@ export default function Dashboard() {
         updateHabitSectionControl,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
+        dockConfig,
+        updateDockConfig,
+        weekStartDay,
+        updateWeekStartDay,
         dailyLimits,
-        setDailyLimits,
         handleEditSession,
         handleReorderHabits,
-        handleReorderProjects
+        handleReorderProjects,
+        showStreakCelebration,
+        setShowStreakCelebration
     } = useDashboardLogic();
 
     const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
+    // ==========================================
+    // ESCUCHA DE EVENTOS DEL TOUR GUIDE
+    // ==========================================
+    useEffect(() => {
+        const handleOpenQuest = () => setActiveModal('QUEST');
+        const handleOpenHabit = () => setActiveModal('HABIT');
+        const handleOpenProject = () => setActiveModal('PROJECT');
+        const handleOpenBadHabit = () => setActiveModal('BAD_HABIT');
+        const handleNavigateToStore = () => setCurrentView('STORE');
+        const handleOpenProModal = () => setIsProModalOpen(true);
+        
+        window.addEventListener('open-quest-modal', handleOpenQuest);
+        window.addEventListener('open-habit-modal', handleOpenHabit);
+        window.addEventListener('open-project-modal', handleOpenProject);
+        window.addEventListener('open-bad-habit-modal', handleOpenBadHabit);
+        window.addEventListener('navigate-to-store', handleNavigateToStore);
+        window.addEventListener('open-pro-modal', handleOpenProModal);
+        
+        return () => {
+            window.removeEventListener('open-quest-modal', handleOpenQuest);
+            window.removeEventListener('open-habit-modal', handleOpenHabit);
+            window.removeEventListener('open-project-modal', handleOpenProject);
+            window.removeEventListener('open-bad-habit-modal', handleOpenBadHabit);
+            window.removeEventListener('navigate-to-store', handleNavigateToStore);
+            window.removeEventListener('open-pro-modal', handleOpenProModal);
+        };
+    }, [setActiveModal, setCurrentView]);
+
     // 🛡️ RECOVERED LOGIC: Fixed Max Health to 100 as per user request
     const maxHealth = 100;
 
-    const [isNexusImmersive, setIsNexusImmersive] = useState(false);
     const [isFullScreenFocus, setIsFullScreenFocus] = useState(false);
     const [isNotesStatsOpen, setIsNotesStatsOpen] = useState(false);
+    const [isDockConfigOpen, setIsDockConfigOpen] = useState(false);
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
@@ -372,20 +377,6 @@ export default function Dashboard() {
     }, [currentView]);
 
     const isOverlayActive = activeModal || validationHabit || isDockOpen;
-
-    const handleToggleImmersive = (immersive: boolean) => {
-        setIsNexusImmersive(immersive);
-    };
-
-    const handleOpenProjectModalFromNexus = (smartProjectId: string) => {
-        setModalInitialContext({ smartProjectId });
-        setActiveModal('PROJECT');
-    };
-
-    const handleOpenHabitModalFromNexus = (smartProjectId: string) => {
-        setModalInitialContext({ projectId: smartProjectId });
-        setActiveModal('HABIT');
-    };
 
     // ⚡ PERFORMANCE: Add current view to loaded set
     useEffect(() => {
@@ -442,6 +433,11 @@ export default function Dashboard() {
     const [forceFocusOpen, setForceFocusOpen] = useState(false);
 
     // FIX: Lift Focus State to Dashboard
+    const handleOpenModal = useCallback((modal: string) => {
+        setModalInitialContext(null);
+        setActiveModal(modal as any);
+    }, []);
+
     const handleExitFocusSession = useCallback(() => {
         setFocusTargetProjectId(null);
         setFocusAutoStartProjectId(null);
@@ -472,7 +468,7 @@ export default function Dashboard() {
         handleFocusModeChange(target?.attribute || 'FOCUS');
     }, [projects, handleFocusModeChange, addNotification]);
 
-    const handleStartFocusProjectFromNexus = useCallback((payload: { projectId?: string | null; smartProjectId?: string | null } | null) => {
+    const handleStartFocusProject = useCallback((payload: { projectId?: string | null; smartProjectId?: string | null } | null) => {
         const explicitProjectId = payload?.projectId ?? null;
         let target = explicitProjectId ? projects.find(p => p.id === explicitProjectId) : undefined;
         
@@ -483,7 +479,7 @@ export default function Dashboard() {
              }
              
              if (!target) {
-                console.warn("⚠️ Dashboard: Nexus requested missing project", payload);
+                console.warn("⚠️ Dashboard: requested missing project", payload);
                 addNotification({ 
                     type: 'SYSTEM', 
                     label: 'Project Link Broken', 
@@ -504,7 +500,6 @@ export default function Dashboard() {
         setFocusOpenArchived(!!target?.archived);
         setCurrentView('FOCUS');
         setIsDockOpen(false);
-        setIsNexusImmersive(false);
         setActiveSmartProjectId(null);
         setForceFocusOpen(true);
         handleFocusModeChange(target?.attribute || 'FOCUS');
@@ -518,22 +513,17 @@ export default function Dashboard() {
     useEffect(() => {
         const handler = (event: Event) => {
             const detail = (event as CustomEvent<{ projectId?: string | null; smartProjectId?: string | null }>).detail ?? null;
-            handleStartFocusProjectFromNexus(detail);
+            handleStartFocusProject(detail);
         };
         window.addEventListener('matrix:focus', handler);
         return () => window.removeEventListener('matrix:focus', handler);
-    }, [handleStartFocusProjectFromNexus]);
+    }, [handleStartFocusProject]);
 
     useEffect(() => {
         if (forceFocusOpen && currentView !== 'FOCUS') {
             setCurrentView('FOCUS');
         }
     }, [forceFocusOpen, currentView]);
-
-    const handleOpenNexus = (smartProjectId: string) => {
-        setActiveSmartProjectId(smartProjectId);
-        setCurrentView('NEXUS');
-    };
 
     // --- HABIT ACTIONS & CONFIRMATION ---
     const [habitActionsHabit, setHabitActionsHabit] = useState<Habit | null>(null);
@@ -563,7 +553,7 @@ export default function Dashboard() {
         setConfirmationModal({
             isOpen: true,
             title: t('habits.deleteTitle', '¿Eliminar Hábito?'),
-            message: t('habits.deleteConfirm', `Estás a punto de eliminar "${habit.title}". Esta acción no se puede deshacer.`),
+            message: t('common.deleteHabitConfirm', { title: habit.title }),
             confirmText: t('common.delete', 'Eliminar'),
             variant: 'danger',
             onConfirm: () => handleDeleteHabit(habit.id),
@@ -576,7 +566,7 @@ export default function Dashboard() {
         setConfirmationModal({
             isOpen: true,
             title: t('projects.deleteTitle', '¿Eliminar Proyecto?'),
-            message: t('projects.deleteConfirm', `Estás a punto de eliminar "${title}". Esta acción no se puede deshacer.`),
+            message: t('common.deleteProjectConfirm', { title }),
             confirmText: t('common.delete', 'Eliminar'),
             variant: 'danger',
             onConfirm: () => {
@@ -690,7 +680,7 @@ export default function Dashboard() {
             
         } catch (error) {
             console.error("Failed to delete smart project:", error);
-            alert("Error al eliminar el proyecto. Revisa la consola.");
+            alert(t('common.errorDeletingProject'));
         }
     };
 
@@ -760,12 +750,11 @@ export default function Dashboard() {
 
         } catch (error) {
             console.error("Failed to delete smart task node:", error);
-            alert("Error al eliminar la tarea. Revisa la consola.");
+            alert(t('common.errorDeletingTask'));
         }
     };
 
     const handleDockViewChange = (view: string) => {
-        setIsNexusImmersive(false);
         setFocusOpenArchived(false);
         if (view !== 'FOCUS') {
             setForceFocusOpen(false);
@@ -821,21 +810,17 @@ export default function Dashboard() {
         // the UI must show it as pending.
         
         if (!dailyLimits) return false;
-        
-        const { 
-            tasksCompleted = 0, 
-            habitsCompleted = 0, 
-            focusSeconds = 0, 
-            notesCompleted = 0 
+
+        const {
+            tasksCompleted = 0,
+            habitsCompleted = 0,
+            focusSeconds = 0
         } = dailyLimits;
-        
-        // REQUIREMENTS (Must match StreakStatusModal & useDashboardLogic)
-        // 2 Tasks + 1 Habit + 1 Hour Focus + 1 Note
+
         return (
-            tasksCompleted >= 2 && 
-            habitsCompleted >= 1 && 
-            focusSeconds >= 3600 && 
-            notesCompleted >= 1
+            tasksCompleted >= 2 &&
+            habitsCompleted >= 1 &&
+            focusSeconds >= 3600
         );
     })();
 
@@ -852,10 +837,19 @@ export default function Dashboard() {
         // If DB says "today is counted" (lastStreakDate === today),
         // but our real-time check says "incomplete" (!isStreakActiveToday),
         // we subtract 1 to show the true pending state.
-        if (lastStreakDate === todayStr && !isStreakActiveToday) {
-            return Math.max(0, dbStreak - 1);
+        if (lastStreakDate === todayStr) {
+            if (!isStreakActiveToday) {
+                return Math.max(0, dbStreak - 1);
+            }
+            // If DB says it's 0 but it's active today, force at least 1
+            return Math.max(1, dbStreak);
+        } else {
+            // If they just met requirements but DB hasn't synced yet
+            if (isStreakActiveToday) {
+                return dbStreak + 1;
+            }
+            return dbStreak;
         }
-        return dbStreak;
     })();
 
     // --- HARDWARE BACK BUTTON HANDLER ---
@@ -917,11 +911,6 @@ export default function Dashboard() {
                 return;
             }
 
-            // 3. Immersive / Full Screen Modes
-            if (isNexusImmersive) {
-                setIsNexusImmersive(false);
-                return;
-            }
             if (isFullScreenFocus) {
                 setIsFullScreenFocus(false);
                 return;
@@ -986,7 +975,6 @@ export default function Dashboard() {
         isProjectDetailOpen,
         isNotesStatsOpen, 
         isDockOpen, 
-        isNexusImmersive, 
         isFullScreenFocus, 
         forceFocusOpen,
         currentView,
@@ -1005,7 +993,6 @@ export default function Dashboard() {
         setIsProjectDetailOpen,
         setIsNotesStatsOpen,
         setIsDockOpen,
-        setIsNexusImmersive,
         setIsFullScreenFocus
     ]);
 
@@ -1015,10 +1002,21 @@ export default function Dashboard() {
             
             <Suspense fallback={null}>
                 <ProUpgradeModal 
-                    isOpen={isProModalOpen}
-                    onClose={() => setIsProModalOpen(false)}
+                    isOpen={isProModalOpen || activeModal === 'PRO'}
+                    onClose={() => {
+                        setIsProModalOpen(false);
+                        if (activeModal === 'PRO') setActiveModal(null);
+                    }}
                 />
             </Suspense>
+
+            {/* Global Streak Celebration Overlay */}
+            <StreakCelebrationOverlay 
+                isOpen={showStreakCelebration}
+                onClose={() => setShowStreakCelebration(false)}
+                streak={displayStreak}
+                lastStreakDate={user?.stats?.lastStreakDate}
+            />
 
             {notificationRoot && createPortal(
                 <AnimatePresence mode="popLayout">
@@ -1064,7 +1062,7 @@ export default function Dashboard() {
                 ref={scrollContainerRef} 
                 className={cn(
                     "absolute inset-0 z-10 w-full h-full overflow-x-hidden scroll-smooth",
-                    (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen || isNexusImmersive) 
+                    (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen) 
                         ? "overflow-y-hidden" 
                         : "overflow-y-auto"
                 )}
@@ -1082,7 +1080,7 @@ export default function Dashboard() {
                 <ParticleLayer particles={particles} />
 
                 {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
-                {!isNexusImmersive && !isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && (
+                {!isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && (
                     <>
                         <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
                             <div className="max-w-md mx-auto px-4 sm:px-6">
@@ -1094,6 +1092,7 @@ export default function Dashboard() {
                                     health={health}
                                     maxHealth={maxHealth}
                                     streak={displayStreak}
+                                    lastStreakDate={user?.stats?.lastStreakDate}
                                     isHidden={false} // Always visible in Dashboard
                                     showProfile={showProfile}
                                     onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
@@ -1101,7 +1100,6 @@ export default function Dashboard() {
                                     onShowSettings={() => setIsSettingsOpen(true)}
                                     displayName={user?.displayName}
                                     email={user?.email}
-                                    currentView={currentView}
                                     isPro={user?.plan === 'PRO'}
                                     avatarId={user?.avatarId}
                                     avatarShape={avatarShape}
@@ -1130,15 +1128,32 @@ export default function Dashboard() {
                 )}
 
                 
-                <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : 'max-w-md'} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || isNexusImmersive || currentView === 'ACHIEVEMENTS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
+                <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : 'max-w-md'} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
 
                     <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
                         {/* ⚡ TASKS VIEW (Always loaded initially) */}
                         <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
-                            <div className="flex flex-col gap-6 h-full min-h-0">
+                            <div className="flex flex-col gap-4 h-full min-h-0">
 
-
-
+                                {/* ⚡ TASK SECTION SWITCHER */}
+                                <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
+                                    <div className="flex p-1 bg-white/5 rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
+                                        <button
+                                            onClick={() => setTaskViewMode('LIST')}
+                                            className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                            style={{ transform: 'translateZ(0)' }}
+                                        >
+                                            MISIONES
+                                        </button>
+                                        <button
+                                            onClick={() => setTaskViewMode('STRATEGY')}
+                                            className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
+                                            style={{ transform: 'translateZ(0)' }}
+                                        >
+                                            ESTRATEGIA
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {taskViewMode === 'LIST' ? (
                                     <>
@@ -1157,7 +1172,6 @@ export default function Dashboard() {
                                             }}
                                             onFocusProject={handleFocusProject}
                                             projects={projects}
-                                            onOpenNexus={handleOpenNexus}
                                             dailyLimits={dailyLimits}
                                         />
                                     </>
@@ -1165,7 +1179,7 @@ export default function Dashboard() {
                                     <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-32 overflow-y-auto pr-2 no-scrollbar">
                                          {smartProjects.length > 0 ? (
                                             smartProjects.map((project) => (
-                                                <div key={project.id} className="rounded-3xl overflow-hidden border border-white/5 relative min-h-[500px] shrink-0 bg-black/20 backdrop-blur-[2px]">
+                                                <div key={project.id} className="rounded-3xl overflow-hidden border border-white/10 relative min-h-[500px] shrink-0 bg-gradient-to-br from-white/[0.05] via-transparent to-white/[0.02] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
                                                     <Suspense fallback={<SuspenseFallback />}>
                                                         <StrategicMapView 
                                                             project={project} 
@@ -1179,7 +1193,6 @@ export default function Dashboard() {
                                                             onCompleteQuest={completeQuest}
                                                             onDeleteQuest={handleDeleteQuest}
                                                             onEditQuest={handleEditQuest}
-                                                            onOpenNexus={handleOpenNexus}
                                                         />
                                                     </Suspense>
                                                 </div>
@@ -1193,9 +1206,9 @@ export default function Dashboard() {
                                                 <p className="text-white/60 mb-8 max-w-md">{t('dashboard.noStrategyDesc')}</p>
                                                 <button 
                                                     onClick={() => {
-                                                        const activeQuests = quests.filter(q => !q.completed);
-                                                        if (user?.plan !== 'PRO' && activeQuests.length >= FREE_LIMITS.ACTIVE_TASKS) {
-                                                            setActiveModal('PRO');
+                                                        const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;
+                                                        if (user?.plan !== 'PRO' && currentActive >= FREE_LIMITS.ACTIVE_STRATEGIES) {
+                                                            setIsProModalOpen(true);
                                                             return;
                                                         }
                                                         setIsWizardOpen(true);
@@ -1218,7 +1231,7 @@ export default function Dashboard() {
                             <ViewContainer isActive={currentView === 'HABITS'}>
                                 {/* SECTION SWITCHER (RESTORED) */}
                                 {habitSectionControl === 'VISIBLE' && (
-                                    <div className="flex justify-center pt-6 pb-2 z-10 relative">
+                                    <div className="flex justify-center pt-2 pb-1 z-10 relative">
                                         <div className="flex p-1 bg-white/5 rounded-full border border-white/10 shadow-sm">
                                             <button
                                                 onClick={() => setHabitViewMode('PROTOCOLS')}
@@ -1227,6 +1240,7 @@ export default function Dashboard() {
                                                 PROTOCOLS
                                             </button>
                                             <button
+                                                data-tour="habit-vices-tab"
                                                 onClick={() => setHabitViewMode('VICES')}
                                                 className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
                                             >
@@ -1257,6 +1271,8 @@ export default function Dashboard() {
                             isActive={currentView === 'HABITS'}
                             onOpenStreak={() => setCurrentView('STREAK')}
                             onReorder={handleReorderHabits}
+                            isPro={user?.plan === 'PRO'}
+                            onOpenPro={() => setIsProModalOpen(true)}
                         />
                                 </Suspense>
                             </ViewContainer>
@@ -1288,6 +1304,8 @@ export default function Dashboard() {
                                     onStartFocus={handleStartPomodoro}
                                     onDetailViewChange={setIsProjectDetailOpen}
                                     onReorder={handleReorderProjects}
+                                    isPro={user?.plan === 'PRO'}
+                                    onOpenPro={() => setIsProModalOpen(true)}
                                 />
                             </Suspense>
                         </ViewContainer>
@@ -1304,13 +1322,9 @@ export default function Dashboard() {
                                         currentSubView={noteViewMode}
                                         sectionControl={habitSectionControl}
                                         onStatsOpenChange={setIsNotesStatsOpen}
-                                        onNoteCreated={() => {
-                                            setDailyLimits(prev => ({
-                                                ...prev,
-                                                notesCompleted: (prev.notesCompleted || 0) + 1
-                                            }));
-                                        }}
+                                        onClose={() => setCurrentView('TASKS')}
                                         isActive={currentView === 'NOTES'}
+                                        isPro={user?.plan === 'PRO'}
                                     />
                                 </Suspense>
                             </ViewContainer>
@@ -1334,63 +1348,28 @@ export default function Dashboard() {
                             </ViewContainer>
                         )}
 
-                        {/* NEXUS */}
-                        {(loadedViews.has('NEXUS') || currentView === 'NEXUS') && (
-                            <ViewContainer isActive={currentView === 'NEXUS'} id="NEXUS" className="h-full pt-0">
-                                <Suspense fallback={<SuspenseFallback />}>
-                                    <NexusView 
-                                        onToggleImmersive={handleToggleImmersive}
-                                        onOpenProjectModal={handleOpenProjectModalFromNexus}
-                                        onOpenHabitModal={handleOpenHabitModalFromNexus}
-                                        smartProjects={smartProjects}
-                                        habits={habits}
-                                        notes={notes}
-                                        projects={projects}
-                                        quests={quests}
-                                        onToggleHabit={handleHabitClick}
-                                        onCompleteQuest={completeQuest}
-                                        onUpdateSmartProject={handleUpdateSmartProject}
-                                        onAddNote={handleAddNote}
-                                        loading={matrixLoading}
-                                        targetSmartProjectId={activeSmartProjectId}
-                                        onOpenWizard={() => setIsWizardOpen(true)}
-                                        onDeleteSmartProject={handleDeleteSmartProject}
-                                        onClose={() => {
-                                            setTaskViewMode('STRATEGY');
-                                            setCurrentView('TASKS');
-                                            setIsNexusImmersive(false);
-                                            setActiveSmartProjectId(null);
-                                            setForceFocusOpen(false);
-                                        }}
-                                        onSelectProject={(id) => setActiveSmartProjectId(id)}
-                                        onAddQuest={handleOpenSmartTaskCreator}
-                                        onStartFocusProject={handleStartFocusProjectFromNexus}
-                                    />
-                                </Suspense>
-                            </ViewContainer>
-                        )}
-
                             {/* --- STRATEGY SECTION --- */}
                         <AnimatePresence>
                             {isWizardOpen && (
                                 <Suspense fallback={null}>
                                     <SmartTaskWizard 
                                         availableTraits={attributes}
-                                        activeSmartTasksCount={quests.filter(q => !q.completed).length}
+                                        activeSmartTasksCount={smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length}
                                         isPro={user?.plan === 'PRO'}
+                                        onOpenPro={() => setIsProModalOpen(true)}
                                         onComplete={(project) => {
                                             let newQuests = convertNodeToQuests(project.rootNode, project.traitId || '', project.id);
                                             
                                             // LIMIT CHECK: Enforce max active tasks
                                             if (user?.plan !== 'PRO') {
-                                                const currentActive = quests.filter(q => !q.completed).length;
-                                                const remainingSlots = Math.max(0, FREE_LIMITS.ACTIVE_TASKS - currentActive);
+                                                const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;
+                                                const remainingSlots = Math.max(0, FREE_LIMITS.ACTIVE_STRATEGIES - currentActive);
                                                 
-                                                if (newQuests.length > remainingSlots) {
-                                                newQuests = newQuests.slice(0, remainingSlots);
-                                                setActiveModal('PRO'); // Show upgrade prompt
+                                                if (remainingSlots <= 0) {
+                                                    setIsProModalOpen(true); // Show upgrade prompt
+                                                    return;
+                                                }
                                             }
-                                        }
 
                                         setSmartProjects(prev => [...prev, project]);
                                         setActiveSmartProjectId(project.id);
@@ -1425,31 +1404,50 @@ export default function Dashboard() {
                         <Dock 
                             currentView={currentView} 
                             onChangeView={handleDockViewChange} 
-                            onOpenModal={(modal) => {
-                                setModalInitialContext(null);
-                                setActiveModal(modal);
-                            }} 
+                            onOpenModal={handleOpenModal} 
                             isOpen={isDockOpen} 
                             onToggle={setIsDockOpen} 
-                            isHidden={isFocusMode || isNoteTaking || isWizardOpen || isNexusImmersive || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK'}
+                            isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK'}
+                            pointerEvents={isSettingsOpen || isDockConfigOpen ? 'none' : 'auto'}
                             dashboardStyle={dashboardStyle}
                             taskViewMode={taskViewMode}
                             habitViewMode={habitViewMode}
                             noteViewMode={noteViewMode}
+                            dockConfig={dockConfig}
                         />,
                         document.body
                     )}
                     
+                    <DockConfigModal
+                        isOpen={isDockConfigOpen}
+                        onClose={() => setIsDockConfigOpen(false)}
+                        config={dockConfig}
+                        onSave={updateDockConfig}
+                    />
+                    
                     {/* --- GLOBAL BACKDROP (OPTIMIZED) --- */}
                     <AnimatePresence>
-                        {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || isDockOpen) && (
+                        {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || (isDockOpen && !isSettingsOpen && !isDockConfigOpen)) && (
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 0.15 }}
                                 className="fixed inset-0 z-[350] bg-black/60 gpu-accelerated"
-                                onClick={() => { setActiveModal(null); setValidationHabit(null); setIsDockOpen(false); setModalInitialContext(null); }} 
+                                onPointerDown={(e) => { 
+                                    // NO PROPAGATION IF SETTINGS ARE OPEN
+                                    if (isSettingsOpen || isDockConfigOpen) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        return;
+                                    }
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setActiveModal(null); 
+                                    setValidationHabit(null); 
+                                    setIsDockOpen(false); 
+                                    setModalInitialContext(null); 
+                                }} 
                             />
                         )}
                     </AnimatePresence>
@@ -1476,6 +1474,7 @@ export default function Dashboard() {
                         projects={projects}
                         onConfirm={handleHabitConfirm}
                         initialData={editingHabit || modalInitialContext || undefined}
+                        onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
                     />
                     <ProjectModal 
                         key={modalInitialContext?.id || (activeModal === 'PROJECT' ? 'new-project' : 'closed')}
@@ -1495,6 +1494,7 @@ export default function Dashboard() {
                             onConfirm={handleBadHabitConfirm}
                             attributes={attributes}
                             isFirstIdentify={badHabits.length === 0}
+                            onSwitchToHabit={() => setActiveModal('HABIT')}
                         />
                     )}
 
@@ -1547,44 +1547,39 @@ export default function Dashboard() {
                 {/* --- SETTINGS OVERLAY --- */}
                 <AnimatePresence>
                     {isSettingsOpen && (
-                        settingsLocked && settingsPin ? (
-                            <SecurityGate 
-                                isOpen={true}
-                                pin={settingsPin}
-                                onUnlock={() => setSettingsLocked(false)}
-                                onCancel={() => setIsSettingsOpen(false)}
-                                title="Settings Locked"
-                                description="Enter PIN to configure app"
+                        <Suspense fallback={null}>
+                            <SettingsView 
+                                currentTheme={currentTheme}
+                                onThemeToggle={(id) => setCurrentTheme(id as any)}
+                                showProfile={showProfile}
+                                onToggleProfile={setShowProfile}
+                                onClose={() => setIsSettingsOpen(false)}
+                                defaultChartMode={defaultChartMode}
+                                onSetDefaultChartMode={setDefaultChartMode}
+                                attributes={attributes}
+                                onUpdateAttribute={updateAttributeMetadata}
+                                onAddAttribute={addAttribute}
+                                onRemoveAttribute={removeAttribute}
+                                onShowPro={() => setActiveModal('PRO')}
+                                isPro={user?.plan === 'PRO'}
+                                dashboardStyle={dashboardStyle}
+                                onDashboardStyleChange={updateDashboardStyle}
+                                avatarShape={avatarShape}
+                                onAvatarShapeChange={updateAvatarShape}
+                                vividMode={vividMode}
+                                onToggleVividMode={setVividMode}
+                                habitSectionControl={habitSectionControl}
+                                onUpdateHabitSectionControl={updateHabitSectionControl}
+                                allowDockSectionSwitch={allowDockSectionSwitch}
+                                onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
+                                onOpenDockConfig={() => {
+                                    setIsSettingsOpen(false);
+                                    setIsDockConfigOpen(true);
+                                }}
+                                weekStartDay={weekStartDay}
+                                onWeekStartDayChange={updateWeekStartDay}
                             />
-                        ) : (
-                            <Suspense fallback={null}>
-                                <SettingsView 
-                                    currentTheme={currentTheme}
-                                    onThemeToggle={(id) => setCurrentTheme(id as any)}
-                                    showProfile={showProfile}
-                                    onToggleProfile={setShowProfile}
-                                    onClose={() => setIsSettingsOpen(false)}
-                                    defaultChartMode={defaultChartMode}
-                                    onSetDefaultChartMode={setDefaultChartMode}
-                                    attributes={attributes}
-                                    onUpdateAttribute={updateAttributeMetadata}
-                                    onAddAttribute={addAttribute}
-                                    onRemoveAttribute={removeAttribute}
-                                    onShowPro={() => setActiveModal('PRO')}
-                                    isPro={user?.plan === 'PRO'}
-                                    dashboardStyle={dashboardStyle}
-                                    onDashboardStyleChange={updateDashboardStyle}
-                                    avatarShape={avatarShape}
-                                    onAvatarShapeChange={updateAvatarShape}
-                                    vividMode={vividMode}
-                                    onToggleVividMode={setVividMode}
-                                    habitSectionControl={habitSectionControl}
-                                    onUpdateHabitSectionControl={updateHabitSectionControl}
-                                    allowDockSectionSwitch={allowDockSectionSwitch}
-                                    onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
-                                />
-                            </Suspense>
-                        )
+                        </Suspense>
                     )}
                 </AnimatePresence>
 

@@ -73,19 +73,18 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
               background: `radial-gradient(1200px 900px at 10% 20%, rgba(${accentRgb}, 0.35) 0%, transparent 60%), radial-gradient(900px 700px at 85% 25%, rgba(${accentRgb}, 0.22) 0%, transparent 55%), linear-gradient(180deg, rgba(${accentRgb}, 0.12) 0%, rgba(2, 2, 4, 0.85) 60%, rgba(2, 2, 4, 0.95) 100%)`
             }}
           />
-          <motion.div
-            className="absolute -top-[10%] left-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-md"
-            animate={{ opacity: [0.25, 0.45, 0.25] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          {/* OPTIMIZED: Removed blur-md and heavy animations, using static opacity */}
+          <div
+            className="absolute -top-[10%] left-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full"
             style={{
+              opacity: 0.35,
               background: `radial-gradient(circle, rgba(${accentRgb}, 0.5) 0%, transparent 65%)`
             }}
           />
-          <motion.div
-            className="absolute bottom-[-20%] right-[-5%] w-[55vw] h-[55vw] max-w-[620px] max-h-[620px] rounded-full blur-md"
-            animate={{ opacity: [0.18, 0.35, 0.18] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          <div
+            className="absolute bottom-[-20%] right-[-5%] w-[55vw] h-[55vw] max-w-[620px] max-h-[620px] rounded-full"
             style={{
+              opacity: 0.3,
               background: `radial-gradient(circle, rgba(${accentRgb}, 0.4) 0%, transparent 70%)`
             }}
           />

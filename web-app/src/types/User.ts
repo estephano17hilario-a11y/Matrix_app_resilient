@@ -1,3 +1,5 @@
+import { DockConfig } from '@/components/ui/DockConfigModal';
+
 export type UserPlan = 'FREE' | 'PRO';
 export type UserArchetype = 'NEO' | 'SPARTAN' | 'HACKER' | 'MONK';
 
@@ -60,6 +62,8 @@ export interface UserProfile {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   allowDockSectionSwitch?: boolean;
+  dockConfig?: DockConfig;
+  weekStartDay?: 0 | 1;
   
   // Rate Limiting
   traitChanges?: {

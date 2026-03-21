@@ -292,35 +292,35 @@ export const RewardOverlay: React.FC = () => {
           layout
           key="reward-toast"
           ref={cardRef}
-          initial={{ opacity: 0, scale: 0.9, y: -20, filter: 'blur(var(--toast-blur))' }}
-          animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, scale: 0.95, filter: 'blur(var(--toast-blur))', transition: { duration: 0.2 } }}
+          initial={{ opacity: 0, scale: 0.9, y: -20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
           transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
           className="w-80 pointer-events-auto"
         >
-          <div className="relative group overflow-hidden rounded-[24px]">
-            {/* Apple-style Glass Background - Optimized opacity (85%) and reduced blur */}
-            <div className="absolute inset-0 bg-[#020204]/85 backdrop-blur-sm border border-white/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300" />
+          <div className="relative group overflow-hidden rounded-[24px] will-change-transform">
+            {/* Apple-style Glass Background - Optimized for zero delay/flicker */}
+            <div className="absolute inset-0 bg-[#020204]/90 border border-white/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]" />
             
-            {/* Subtle Noise Texture (Optional, for that premium feel) */}
-            <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
+            {/* Subtle light sweep instead of noise for performance */}
+            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:animate-[sweep_1.5s_ease-in-out_infinite]" />
 
             <div className="relative p-5">
                 <AnimatePresence mode="wait">
                 {step === 'XP' && (
                     <motion.div
                     key="xp"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="flex flex-col gap-3"
                     >
                         <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-white/50 tracking-wide uppercase">
+                            <span className="text-[10px] font-black text-white/40 tracking-[0.15em] uppercase font-mono">
                                 {currentReward.xpGained < 0 ? "XP LOST" : "Experience"}
                             </span>
-                            <span className={`text-xs font-bold font-mono tracking-tight ${currentReward.xpGained < 0 ? 'text-red-400' : 'text-indigo-400'}`}>
+                            <span className={`text-xs font-black font-mono tracking-tight ${currentReward.xpGained < 0 ? 'text-red-400' : 'text-indigo-400'}`}>
                                 {currentReward.xpGained > 0 ? '+' : ''}{currentReward.xpGained} XP
                             </span>
                         </div>
@@ -331,15 +331,15 @@ export const RewardOverlay: React.FC = () => {
                             visualState.maxXp,
                             currentReward.xpGained < 0 ? "Regression" : "Experience",
                             currentReward.xpGained < 0 ? "from-red-500 to-orange-500" : "from-indigo-500 to-purple-500",
-                            <Zap size={12} className="text-white" />,
+                            <Zap size={11} className="text-white" />,
                             visualState.isLevelUpAnimating || currentReward.isLevelUp
                         )}
                         
                         {/* Level Indicator - Minimalist Apple Style */}
-                        <div className="flex justify-between items-center min-h-[2rem]">
+                        <div className="flex justify-between items-center min-h-[1.5rem] mt-1">
                              {!visualState.isLevelUpAnimating ? (
                                  <div className="flex items-baseline gap-1.5">
-                                     <span className="text-sm font-medium text-white/60">Level</span>
+                                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest font-mono">Level</span>
                                      <span className="text-xl font-bold text-white tracking-tight">{visualState.level}</span>
                                  </div>
                              ) : (
@@ -352,9 +352,9 @@ export const RewardOverlay: React.FC = () => {
                                      <div className="flex items-center gap-2 text-white/90">
                                          <span className="text-lg font-bold">{visualState.level}</span>
                                          <ArrowRight size={14} className="text-white/40" />
-                                         <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 shadow-sm">{visualState.level + 1}</span>
+                                         <span className="text-2xl font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]">{visualState.level + 1}</span>
                                      </div>
-                                     <span className="ml-auto text-[10px] font-bold text-yellow-500/90 bg-yellow-500/10 px-2 py-1 rounded-full border border-yellow-500/20 tracking-wider">LEVEL UP</span>
+                                     <span className="ml-auto text-[9px] font-black text-yellow-500/90 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 tracking-[0.2em] font-mono">LEVEL UP</span>
                                  </motion.div>
                              )}
                         </div>
@@ -365,15 +365,15 @@ export const RewardOverlay: React.FC = () => {
                 {step === 'TRAIT' && (
                     <motion.div
                     key="trait"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
                     className="flex flex-col gap-3"
                     >
                         <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-white/50 tracking-wide uppercase">Growth</span>
-                            <span className="text-xs font-bold text-cyan-400 font-mono tracking-tight">+{currentReward.traitXpGained} XP</span>
+                            <span className="text-[10px] font-black text-white/40 tracking-[0.15em] uppercase font-mono">Growth</span>
+                            <span className="text-xs font-black text-cyan-400 font-mono tracking-tight">+{currentReward.traitXpGained} XP</span>
                         </div>
 
                         {renderProgressBar(
@@ -381,7 +381,7 @@ export const RewardOverlay: React.FC = () => {
                             currentReward.traitMaxXp,
                             traitLabel ? t(traitLabel, traitLabel) : t('modals.project.traitDefault', 'Trait'),
                             "from-cyan-400 to-blue-500",
-                            <Star size={12} className="text-white" />,
+                            <Star size={11} className="text-white" />,
                             currentReward.isTraitLevelUp,
                             currentReward.isTraitLevelUp ? 0 : Math.max(0, currentReward.traitCurrentXp - (currentReward.traitXpGained || 0))
                         )}
@@ -394,42 +394,19 @@ export const RewardOverlay: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    transition={{ duration: 0.2 }}
                     className="flex items-center justify-center py-2 relative w-full"
                     >
-                        <div className="flex items-center gap-4 relative bg-white/5 rounded-2xl p-3 px-5 border border-white/5 backdrop-blur-sm">
-                            <div className={`relative flex items-center justify-center p-2 rounded-full shadow-lg ${currentReward.goldGained < 0 ? 'bg-gradient-to-br from-gray-500 to-slate-600 shadow-gray-500/20' : 'bg-gradient-to-br from-amber-300 to-yellow-500 shadow-yellow-500/20'}`}>
+                        <div className="flex items-center gap-4 relative bg-white/5 rounded-2xl p-3 px-5 border border-white/10">
+                            <div className={`relative flex items-center justify-center p-2 rounded-full shadow-lg ${currentReward.goldGained < 0 ? 'bg-gradient-to-br from-gray-500 to-slate-600 shadow-gray-500/10' : 'bg-gradient-to-br from-amber-300 to-yellow-500 shadow-yellow-500/10'}`}>
                                 <Coins size={18} className="text-white drop-shadow-sm" />
-                                
-                                {goldTarget && currentReward.goldGained > 0 && (
-                                    <div className="absolute left-1/2 top-1/2 w-0 h-0 pointer-events-none z-[200]">
-                                        {[...Array(8)].map((_, i) => (
-                                            <motion.div
-                                                key={`coin-${i}`}
-                                                initial={{ x: 0, y: 0, opacity: 1, scale: 0.6 }}
-                                                animate={{ 
-                                                    x: goldTarget.x + 30,
-                                                    y: goldTarget.y,
-                                                    opacity: 0,
-                                                    scale: 0.3
-                                                }}
-                                                transition={{ 
-                                                    duration: 0.8 + Math.random() * 0.3, 
-                                                    ease: [0.23, 1, 0.32, 1], // Cubic bezier for smoother flight
-                                                    delay: i * 0.04 
-                                                }}
-                                                className="absolute w-3 h-3 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.9)]"
-                                            />
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                             
                             <div className="flex flex-col leading-none items-start gap-0.5">
-                                <span className={`text-xl font-bold tracking-tight ${currentReward.goldGained < 0 ? 'text-red-300' : 'text-white'}`}>
+                                <span className={`text-xl font-black tracking-tight font-mono ${currentReward.goldGained < 0 ? 'text-red-300' : 'text-white'}`}>
                                     {currentReward.goldGained > 0 ? '+' : ''}{currentReward.goldGained}
                                 </span>
-                                <span className="text-[10px] font-semibold text-white/40 tracking-widest uppercase">Coins</span>
+                                <span className="text-[10px] font-black text-white/30 tracking-[0.2em] uppercase font-mono">Coins</span>
                             </div>
                         </div>
                     </motion.div>

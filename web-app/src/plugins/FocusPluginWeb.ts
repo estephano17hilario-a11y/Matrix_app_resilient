@@ -40,14 +40,6 @@ export class FocusPluginWeb extends WebPlugin implements FocusPlugin {
       this.activeNotification.close();
       this.activeNotification = null;
     }
-    
-    if (Notification.permission === 'granted') {
-       new Notification('Session Finished', {
-         body: 'Great job! Take a break.',
-         icon: '/favicon.ico',
-         tag: 'focus-session'
-       });
-    }
   }
 
   async pause(): Promise<void> {

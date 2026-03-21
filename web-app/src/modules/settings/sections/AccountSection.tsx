@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, Camera, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { User, LogOut, Edit2, Check, X } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getAvatarPath } from '../../../config/avatars';
-import { AvatarSelector } from '../../customization/AvatarSelector';
-import { ArchetypeSelector } from '../../customization/ArchetypeSelector';
+import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
+import { updateProfile } from 'firebase/auth';
+import { auth, db, doc, setDoc } from '../../../services/firebase';
 
 export const AccountSection = () => {
-  const { user, isPro, logout } = useSettings();
-  const { profile } = useAuth();
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-  const [openPanels, setOpenPanels] = useState({ profile: true, archetype: true, subscription: !isPro, danger: true });
+  const { user, logout } = useSettings();
+  const { profile, updateProfileLocally } = useAuth();
   const [avatarError, setAvatarError] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
 
@@ -20,193 +21,149 @@ export const AccountSection = () => {
     setAvatarError(false);
   }, [avatarPath]);
 
-  const togglePanel = (key: 'profile' | 'archetype' | 'subscription' | 'danger') => {
-    setOpenPanels(prev => ({ ...prev, [key]: !prev[key] }));
+  const formattedName = profile?.displayName || ((user?.displayName && !user.displayName.includes('@'))
+    ? user.displayName
+    : (user?.email ? user.email.split('@')[0] : 'Operative'));
+
+  const handleStartEdit = () => {
+    setEditName(formattedName);
+    setIsEditingName(true);
   };
 
-  // 🛡️ NAME LOGIC: If displayName is an email, extract username.
-  const formattedName = (user?.displayName && !user.displayName.includes('@')) 
-      ? user.displayName 
-      : (user?.email ? user.email.split('@')[0] : 'Operative');
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setEditName('');
+  };
+
+  const handleSaveName = async () => {
+    const newName = editName.trim();
+    if (!newName || newName.length < 2 || newName.length > 14 || newName === formattedName) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { displayName: newName });
+      }
+
+      if (user?.uid) {
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, { displayName: newName }, { merge: true });
+        updateProfileLocally({ displayName: newName });
+      }
+
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Failed to update name:", error);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Header */}
-      <div className="space-y-1 md:space-y-2">
-        <h2 className="text-lg md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-          <User className="text-pink-400" size={24} />
-          Identity & Access
-        </h2>
-        <p className="text-white/40 text-xs md:text-base max-w-2xl">
-          Manage your digital footprint, avatar manifestation, and subscription tier.
-        </p>
+    <div className="space-y-8 pb-4">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold text-white">Profile</h2>
+        <p className="text-white/40 text-sm">Your identity and avatar.</p>
       </div>
 
-      <div className="space-y-4">
-        <button
-          onClick={() => togglePanel('profile')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <User size={16} className="text-pink-400" />
-            Avatar & Identity
-          </div>
-          {openPanels.profile ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <AnimatePresence initial={false}>
-          {openPanels.profile && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 relative group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent pointer-events-none rounded-2xl overflow-hidden" />
-
-              <div className="relative z-10 flex items-center gap-4 md:gap-6">
-                  <div className="relative">
-                     <button 
-                        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-pink-500/50 transition-all group-avatar"
-                     >
-                        {avatarPath && !avatarError ? (
-                          <img 
-                            src={avatarPath} 
-                            alt="Avatar" 
-                            className="w-full h-full object-cover"
-                            onError={() => setAvatarError(true)}
-                          />
-                        ) : (
-                          <User size={28} className="text-white/20" />
-                        )}
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-avatar-hover:opacity-100 transition-opacity">
-                            <Camera size={20} className="text-white" />
-                        </div>
-                     </button>
-                     <button 
-                       onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-                       className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-black flex items-center justify-center shadow-sm transition-transform active:scale-95 md:hidden"
-                     >
-                       <Camera size={12} />
-                     </button>
-                  </div>
-
-                  <div className="space-y-1">
-                     <h3 className="text-base md:text-xl font-bold text-white">{formattedName}</h3>
-                     <p className="text-xs md:text-sm text-white/40 font-mono">{user?.email}</p>
-                     <button 
-                        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-                        className="text-xs text-pink-400 hover:text-pink-300 font-medium tracking-wide flex items-center gap-1 mt-1"
-                     >
-                        <Camera size={12} />
-                        CHANGE APPEARANCE
-                     </button>
-                  </div>
+      <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 relative overflow-hidden group">
+        <div 
+          className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+          style={{ 
+            background: `radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%)`,
+            willChange: 'opacity'
+          }} 
+        />
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="w-16 h-16 rounded-[20px] bg-black/40 border border-white/[0.1] overflow-hidden shrink-0">
+            {avatarPath && !avatarError ? (
+              <img
+                src={avatarPath}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <User size={24} className="text-white/20" />
               </div>
-
-              <AnimatePresence>
-                  {showAvatarSelector && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      className="border-t border-white/5 pt-4 mt-4"
-                    >
-                       <AvatarSelector onClose={() => setShowAvatarSelector(false)} />
-                    </motion.div>
-                  )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="space-y-4">
-        <button
-          onClick={() => togglePanel('archetype')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Zap size={16} className="text-indigo-400" />
-            Archetype Class
+            )}
           </div>
-          {openPanels.archetype ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <AnimatePresence initial={false}>
-          {openPanels.archetype && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-              <div className="relative z-10">
-                <ArchetypeSelector />
-                
-                {/* UX HELP: Direct user to Avatar selector if they are confused */}
-                <div className="mt-6 pt-4 border-t border-white/5 text-center">
-                    <p className="text-xs text-white/30">
-                        Looking for visual skins? 
-                        <button 
-                            onClick={() => { 
-                                setOpenPanels(prev => ({ ...prev, profile: true, archetype: false })); 
-                                setShowAvatarSelector(true);
-                                // Scroll to top smoothly
-                                document.getElementById('settings-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className="ml-1 text-pink-400 hover:text-pink-300 underline underline-offset-2 transition-colors"
-                        >
-                            Change Avatar Appearance
-                        </button>
-                    </p>
-                </div>
+          <div className="flex-1 min-w-0">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 14) {
+                      setEditName(e.target.value);
+                    }
+                  }}
+                  disabled={isSavingName}
+                  className="bg-black/50 border border-white/20 rounded-lg px-3 py-1 text-white text-base font-bold outline-none focus:border-indigo-500 w-full max-w-[180px]"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={isSavingName || editName.trim().length < 2}
+                  className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isSavingName}
+                  className="p-1.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                >
+                  <X size={14} />
+                </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              <div className="flex items-center gap-3">
+                <h3 className="text-base font-bold text-white truncate">{formattedName}</h3>
+                <button
+                  onClick={handleStartEdit}
+                  className="text-white/30 hover:text-white/80 transition-colors"
+                >
+                  <Edit2 size={14} />
+                </button>
+              </div>
+            )}
+            <p className="text-[11px] text-white/40 font-mono truncate mt-0.5 tracking-wider">{user?.email}</p>
+          </div>
+        </div>
+
+        <div className="pt-2 relative z-10">
+          <AvatarCarouselQuick />
+        </div>
       </div>
 
       <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-white tracking-wide">Session</h3>
+          <div className="h-px flex-1 bg-gradient-to-r from-red-500/20 to-transparent" />
+        </div>
+
         <button
-          onClick={() => togglePanel('danger')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
+          onClick={logout}
+          className="w-full flex items-center gap-4 p-5 bg-gradient-to-br from-red-500/5 to-red-900/10 hover:from-red-500/10 hover:to-red-900/20 rounded-[20px] border border-red-500/10 hover:border-red-500/30 transition-all group active:scale-[0.98]"
         >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <LogOut size={16} className="text-red-400" />
-            Session Control
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 group-hover:text-red-300 transition-colors group-hover:scale-110 duration-300">
+            <LogOut size={20} />
           </div>
-          {openPanels.danger ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <div className="text-left">
+            <span className="block text-red-200 font-bold text-base group-hover:text-white transition-colors tracking-tight">Terminate Session</span>
+            <span className="block text-red-500/50 text-xs font-medium mt-0.5">Safe logout and local data sync</span>
+          </div>
         </button>
-        <AnimatePresence initial={false}>
-          {openPanels.danger && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-red-500/5 border border-red-500/10 rounded-2xl p-1"
-            >
-              <button
-                onClick={logout}
-                className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-red-500/10 transition-colors group"
-              >
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 group-hover:text-red-300 transition-colors">
-                      <LogOut size={20} />
-                    </div>
-                    <div className="text-left">
-                      <span className="block text-red-200 font-medium group-hover:text-white transition-colors">Terminate Session</span>
-                      <span className="block text-red-500/40 text-xs">Safe logout and local data sync</span>
-                    </div>
-                 </div>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );

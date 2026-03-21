@@ -151,7 +151,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     }, [goalTarget, goalFreq, workingDays, goalUnit, monthlyType, monthlyFlexibleCount]);
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(calculatedDailyGoal * 60, impact);
+        return calculateTaskRewards(calculatedDailyGoal * 60, impact, 0, 'TASK');
     }, [calculatedDailyGoal, impact]);
 
     const toggleDay = (dayIndex: number) => {
@@ -248,7 +248,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                 <SelectedIcon size={20} className="text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white tracking-tight leading-none">{initialData ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
+                                <h2 className="text-xl font-black text-white tracking-tight leading-none">{initialData ? t('projects.editProject', 'Edit Project') : t('projects.newProject', 'New Project')}</h2>
                                 <p className="text-[10px] font-medium text-white/40 mt-1 uppercase tracking-wider">{t('modals.project.subtitle')}</p>
                             </div>
                         </div>
@@ -272,7 +272,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 1 ? "bg-white text-black" : isBlock1Valid ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock1Valid && expandedBlock !== 1 ? <CheckCircle2 size={14} /> : "1"}
                                     </div>
-                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>IDENTIDAD</span>
+                                    <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>{t('habits.identity', 'IDENTITY')}</span>
                                 </div>
                                 <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
@@ -325,7 +325,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 ) : (
                                                     <>
                                                         <Plus size={18} className="text-white/30" />
-                                                        <span className="text-xs font-bold text-white/30">Seleccionar Rasgo</span>
+                                                        <span className="text-xs font-bold text-white/30">{t('habits.selectTrait', 'Select Trait')}</span>
                                                     </>
                                                 )}
                                                 <ChevronDown size={16} className={cn("ml-auto transition-transform text-white/30", isAttrPickerOpen && "rotate-180")} />
@@ -384,7 +384,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 disabled={!isBlock1Valid}
                                                 className="px-6 py-2 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                                             >
-                                                Siguiente
+                                                {t('common.next', 'Next')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -407,7 +407,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 2 ? "bg-white text-black" : isBlock2Valid && expandedBlock > 2 ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         {isBlock2Valid && expandedBlock !== 2 ? <CheckCircle2 size={14} /> : "2"}
                                     </div>
-                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>OBJETIVOS</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>{t('habits.mechanics', 'MECHANICS')}</span>
                                 </div>
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
@@ -499,7 +499,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                         onClick={() => setMonthlyType('SPECIFIC_DATES')} 
                                                         className={cn("flex-1 py-1 text-[9px] font-bold rounded transition-all", monthlyType === 'SPECIFIC_DATES' ? "bg-white text-black" : "text-slate-500 hover:text-white")}
                                                     >
-                                                        Días Específicos
+                                                        {t('projects.specificDays', 'Specific Days')}
                                                     </button>
                                                     <button 
                                                         onClick={() => setMonthlyType('FLEXIBLE_COUNT')} 
@@ -544,13 +544,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                                     {monthlyLastDay && <CheckCircle2 size={10} className="text-black" />}
                                                                 </div>
                                                                 <span className={cn("text-[10px] font-bold uppercase", monthlyLastDay ? "text-cyan-400" : "text-slate-400")}>
-                                                                    Ultimo día del mes
+                                                                    {t('dashboard.lastDayOfMonth')}
                                                                 </span>
                                                             </div>
                                                             <div className="group relative">
                                                                 <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-white/50 cursor-help">?</div>
                                                                 <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-slate-300 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                                                                    Activa esta opción para incluir siempre el último día (28, 29, 30 o 31) sin importar el mes. Los días 29-31 manuales no cuentan en meses cortos.
+                                                                    {t('dashboard.lastDayOption')}
                                                                 </div>
                                                             </div>
                                                         </button>
@@ -565,7 +565,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                         </button>
                                                         <div className="text-center">
                                                             <span className="text-lg font-black text-white">{monthlyFlexibleCount}</span>
-                                                            <span className="text-[10px] font-bold text-slate-500 block uppercase">Días al mes</span>
+                                                            <span className="text-[10px] font-bold text-slate-500 block uppercase">{t('common.daysPerMonth')}</span>
                                                         </div>
                                                         <button 
                                                             onClick={() => setMonthlyFlexibleCount(Math.min(28, monthlyFlexibleCount + 1))} 
@@ -607,7 +607,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 disabled={!isBlock2Valid}
                                                 className="px-5 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                                             >
-                                                Siguiente
+                                                {t('common.next', 'Next')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -630,7 +630,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors", expandedBlock === 3 ? "bg-white text-black" : isBlock3Valid ? "bg-emerald-500/20 text-emerald-500" : "bg-white/10 text-white/50")}>
                                         3
                                     </div>
-                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>COMPROMISO</span>
+                                    <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>{t('habits.commitment', 'COMMITMENT')}</span>
                                 </div>
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
@@ -689,9 +689,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                             >
                                                                 <div className="flex items-center gap-2">
                                                                     <Bell size={12} />
-                                                                    <span className="text-[10px] font-bold">Activar Notificaciones</span>
+                                                                    <span className="text-[10px] font-bold">{t('habits.activateNotifications', 'Activate Notifications')}</span>
                                                                 </div>
-                                                                <span className="text-[10px] font-bold underline">SOLUCIONAR</span>
+                                                                <span className="text-[10px] font-bold underline">{t('common.fix', 'FIX')}</span>
                                                             </button>
                                                         )}
 
@@ -701,9 +701,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                         >
                                                             <div className="flex items-center gap-2">
                                                                 <Zap size={12} />
-                                                                <span className="text-[10px] font-bold">Optimización Batería</span>
+                                                                <span className="text-[10px] font-bold">{t('habits.batteryOptimization', 'Battery Optimization')}</span>
                                                             </div>
-                                                            <span className="text-[10px] font-bold underline">REVISAR</span>
+                                                            <span className="text-[10px] font-bold underline">{t('common.review', 'REVIEW')}</span>
                                                         </button>
                                                     </motion.div>
                                                 )}

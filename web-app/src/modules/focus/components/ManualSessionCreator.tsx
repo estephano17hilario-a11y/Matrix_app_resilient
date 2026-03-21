@@ -7,6 +7,7 @@ import { format, addMinutes } from 'date-fns';
 import { Project } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { TimeWheel } from './TimeWheel';
+import { useTranslation } from 'react-i18next';
 
 interface ManualSessionCreatorProps {
     initialDuration: number; // in minutes
@@ -27,6 +28,7 @@ export const ManualSessionCreator = ({
     onDelete,
     isEditing = false
 }: ManualSessionCreatorProps) => {
+    const { t } = useTranslation();
     // Duration state
     const [hours, setHours] = useState(Math.floor(initialDuration / 60));
     const [minutes, setMinutes] = useState(initialDuration % 60);
@@ -238,7 +240,7 @@ export const ManualSessionCreator = ({
                 <div className="w-full py-5 px-6 rounded-[28px] bg-[#1C1C1E] border border-white/5 flex flex-col items-center text-center gap-1 shrink-0 shadow-inner">
                     <span className="text-[9px] font-black text-[#8E8E93] uppercase tracking-widest">PROYECTO SELECCIONADO</span>
                     <span className="text-[16px] font-bold text-white leading-tight line-clamp-2">
-                        {project.title || "Toca para seleccionar una tarea"}
+                        {project.title || t('focus.tapToSelectTask', 'Tap to select a task')}
                     </span>
                 </div>
 

@@ -65,7 +65,7 @@ interface ArchetypeSelectorProps {
 }
 
 export const ArchetypeSelector: React.FC<ArchetypeSelectorProps> = ({ onClose }) => {
-  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
+  const { user, profile, updateProfileLocally } = useAuth();
   const [selectedId, setSelectedId] = useState<UserArchetype>(profile?.archetype || 'NEO');
   const [isSaving, setIsSaving] = useState(false);
 

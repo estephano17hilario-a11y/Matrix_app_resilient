@@ -229,7 +229,7 @@ export const PersistenceService = {
 
   getProfile: (uid?: string): UserProfile | null => {
     try {
-      let resolvedUid = uid || sessionStorage.getItem(KEYS.SESSION_UID);
+      let resolvedUid = uid || sessionStorage.getItem(KEYS.SESSION_UID) || localStorage.getItem(KEYS.SESSION_UID);
       
       if (!resolvedUid) {
           resolvedUid = findLatestProfileUid();
@@ -382,6 +382,7 @@ export const PersistenceService = {
 
   setSession: (uid: string) => {
     try {
+      localStorage.setItem(KEYS.SESSION_UID, uid);
       sessionStorage.setItem(KEYS.SESSION_UID, uid);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Failed to set session.", e);
@@ -390,6 +391,7 @@ export const PersistenceService = {
 
   clearSession: () => {
     try {
+      localStorage.removeItem(KEYS.SESSION_UID);
       sessionStorage.removeItem(KEYS.SESSION_UID);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Failed to clear session.", e);

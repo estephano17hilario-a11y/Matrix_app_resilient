@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Lock } from 'lucide-react';
 import { Habit, Project } from '../../../types';
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachWeekOfInterval, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
+import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { startOfWeek, endOfWeek, eachWeekOfInterval, eachDayOfInterval } from '../../../utils/dateUtils';
 import { cn } from '../../../utils/cn';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { HabitGoalChart } from './HabitGoalChart';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { useTranslation } from 'react-i18next';
 
 interface HabitDetailViewProps {
     habit?: Habit | null;
@@ -19,20 +21,11 @@ interface HabitDetailViewProps {
     onEdit?: (item: Habit | Project) => void;
     onDelete?: (itemId: string) => void;
     onArchive?: (item: Habit | Project) => void;
-    onStartFocus?: () => void;
+    isPro?: boolean;
+    onOpenPro?: () => void;
 }
 
 type TimeRange = 'TODAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
-
-const ALL_RANGES: { value: TimeRange; label: string }[] = [
-    { value: 'TODAY', label: 'Hoy' },
-    { value: 'WEEK', label: 'Semana' },
-    { value: '8_WEEKS', label: '8 Semanas' },
-    { value: 'MONTH', label: 'Mes' },
-    { value: '3_MONTHS', label: '3 Meses' },
-    { value: 'YEAR', label: 'Año' },
-    { value: 'TOTAL', label: 'Total' }
-];
 
 // --- HELPERS ---
 const formatDuration = (minutes: number) => {
@@ -111,7 +104,8 @@ const barVariants: Variants = {
     }
 };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro }) => {
+    const { t } = useTranslation();
     const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
 
     const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
@@ -123,11 +117,26 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     
+    const ALL_RANGES = useMemo(() => [
+        { value: 'TODAY' as TimeRange, label: t('dashboard.today') },
+        { value: 'WEEK' as TimeRange, label: t('dashboard.week') },
+        { value: '8_WEEKS' as TimeRange, label: `8 ${t('dashboard.week')}s` },
+        { value: 'MONTH' as TimeRange, label: t('dashboard.month') },
+        { value: '3_MONTHS' as TimeRange, label: `3 ${t('dashboard.month')}s` },
+        { value: 'YEAR' as TimeRange, label: t('dashboard.year') },
+        { value: 'TOTAL' as TimeRange, label: 'Total' }
+    ], [t]);
+    
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         setIsScrolled(e.currentTarget.scrollTop > 20);
     };
 
     const handleTabClick = (tabValue: TimeRange) => {
+        if (!isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(tabValue)) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
+
         // If clicking on a tab that is not in pinned ranges (from config menu),
         // we might want to swap it into the pinned list or just set it active.
         // User requested: "3 pinned + 1 config".
@@ -262,7 +271,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
                 const value = completions * baseValue;
                 dataPoints = [{
-                    label: 'Hoy',
+                    label: t('dashboard.today'),
                     fullDate: dateStr,
                     value,
                     isToday: true,
@@ -271,8 +280,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             }
 
         } else if (timeRange === 'WEEK') {
-            start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            start = startOfWeek(currentDate);
+            end = endOfWeek(currentDate);
             const days = eachDayOfInterval({ start, end });
             
             calculatedGoalValue = habit ? (baseValue * 7) : (dailyGoalMinutes * 7);
@@ -298,15 +307,15 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             });
 
         } else if (timeRange === '8_WEEKS') {
-            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            end = endOfWeek(currentDate);
             start = subWeeks(end, 7);
-            start = startOfWeek(start, { weekStartsOn: 1 });
-            const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
-            
+            start = startOfWeek(start);
+            const weeks = eachWeekOfInterval({ start, end });
+
             calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 8; // Approx
 
             dataPoints = weeks.map(weekStart => {
-                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(weekStart);
                 let weeklyValue = 0;
                 
                 if (project) {
@@ -360,12 +369,12 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         } else if (timeRange === '3_MONTHS') {
             end = endOfMonth(currentDate);
             start = subMonths(startOfMonth(end), 2); // Current + 2 prev = 3 months
-            const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
-            
+            const weeks = eachWeekOfInterval({ start, end });
+
             calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 13; // Approx 13 weeks
 
             dataPoints = weeks.map(weekStart => {
-                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(weekStart);
                 let weeklyValue = 0;
                 
                 if (project) {
@@ -427,7 +436,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 const dates = habit.history.map(d => new Date(d));
                 minDate = dates.reduce((min, d) => d < min ? d : min, dates[0]);
             }
-            start = startOfWeek(minDate, { weekStartsOn: 1 }); // Align to week start
+            start = startOfWeek(minDate); // Align to week start
             end = new Date(); // Now
 
             const daysDiff = differenceInDays(end, start);
@@ -455,9 +464,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 });
             } else {
                 // Group by Week
-                const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+                const weeks = eachWeekOfInterval({ start, end });
                 dataPoints = weeks.map(weekStart => {
-                    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                    const weekEnd = endOfWeek(weekStart);
                     let weeklyValue = 0;
                     if (project) {
                         weeklyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: weekStart, end: weekEnd }) ? acc + (s.duration / 60) : acc, 0);
@@ -555,10 +564,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const summaryPercentage = Math.round(Math.max(summaryRatio, 0) * 100);
 
     // --- UI COMPONENTS ---
-    const StatCard = ({ label, value }: { label: string; value: string | number }) => (
+    const StatCard = ({ label, value, onClick }: { label: React.ReactNode; value: string | number; onClick?: () => void }) => (
         <motion.div 
             variants={itemVariants}
-            className="bg-zinc-900/90 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group hover:bg-zinc-800 transition-colors border border-white/10 shadow-sm"
+            onClick={onClick}
+            className={cn(
+                "bg-zinc-900/90 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group transition-colors border border-white/10 shadow-sm",
+                onClick ? "cursor-pointer hover:bg-zinc-800" : "hover:bg-zinc-800"
+            )}
         >
             <div className="flex justify-between items-start relative z-10">
                 <div className="flex flex-col items-center w-full gap-2">
@@ -672,7 +685,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors border-t border-white/5"
                                         >
                                             <Trash2 size={16} />
-                                            Eliminar
+                                            {t('common.delete')}
                                         </button>
                                     )}
                                 </motion.div>
@@ -705,7 +718,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             <AnimatePresence mode="popLayout">
                                 {pinnedRanges.map((range) => {
                                     const isActive = timeRange === range;
-                                    const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                    const label = ALL_RANGES.find((r: { value: TimeRange, label: string }) => r.value === range)?.label || range;
+                                    const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);
                                     
                                     return (
                                         <motion.button
@@ -713,13 +727,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             layoutId={`tab-${range}`}
                                             onClick={() => handleTabClick(range)}
                                             className={cn(
-                                                "px-3 py-1.5 rounded-full text-[11px] font-bold transition-all relative overflow-hidden whitespace-nowrap",
+                                                "px-3 py-1.5 rounded-full text-[11px] font-bold transition-all relative overflow-hidden whitespace-nowrap flex items-center gap-1",
                                                 isActive 
                                                     ? "bg-white text-black shadow-lg z-10" 
                                                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                                             )}
                                         >
                                             <span className="relative z-10">{label}</span>
+                                            {isLocked && <Lock size={10} className="relative z-10 text-yellow-400/80" />}
                                             {isActive && (
                                                 <motion.div
                                                     layoutId="activeTab"
@@ -760,9 +775,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             className="absolute right-0 top-full mt-2 w-32 bg-[#18181b] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
                                         >
                                             <div className="flex flex-col gap-0.5">
-                                                {ALL_RANGES.map((option) => {
+                                                {ALL_RANGES.map((option: { value: TimeRange, label: string }) => {
                                                     const isPinned = pinnedRanges.includes(option.value);
                                                     const isSelected = timeRange === option.value;
+                                                    const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(option.value);
                                                     
                                                     return (
                                                         <button
@@ -775,7 +791,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                                                             )}
                                                         >
-                                                            <span>{option.label}</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span>{option.label}</span>
+                                                                {isLocked && <Lock size={10} className="text-yellow-400/80" />}
+                                                            </div>
                                                             {isSelected && <Check size={12} className="text-black" />}
                                                             {isPinned && !isSelected && (
                                                                 <div className="w-1 h-1 rounded-full bg-zinc-600" />
@@ -927,7 +946,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                        <span className="text-[13px] text-zinc-400">Trabajado en este período</span>
+                                        <span className="text-[13px] text-zinc-400">{t('dashboard.workedThisPeriod', 'Worked on this period')}</span>
                                     </div>
                                     <div className="text-2xl font-bold text-white tracking-tight ml-4">
                                         <FormattedValue value={summaryValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} />
@@ -1045,24 +1064,52 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 4. STATS GRID */}
-                        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-                            <StatCard 
-                                label="Sesiones" 
-                                value={totalSessions} 
-                            />
-                            <StatCard 
-                                label="Racha actual" 
-                                value={`${streakDays} días`} 
-                            />
-                            <StatCard 
-                                label="Sesión promedio" 
-                                value={formatValue(averageValue, habit?.type, unitLabel, isTimeBased)}
-                            />
-                            <StatCard 
-                                label="Mejor día" 
-                                value={formatValue(bestDayValue, habit?.type, unitLabel, isTimeBased)}
-                            />
-                        </motion.div>
+                                <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+                                    <StatCard 
+                                        label={t('dashboard.sessions', 'Sessions')}
+                                        value={totalSessions}
+                                    />
+                                    <StatCard
+                                        label={t('dashboard.currentStreak', 'Current Streak')}
+                                        value={`${streakDays} ${t('dashboard.days')}`}
+                                    />
+                                    {isPro && (
+                                        <>
+                                            <StatCard
+                                                label={t('dashboard.averageSession', 'Average Session')}
+                                                value={formatValue(averageValue, habit?.type, unitLabel, isTimeBased)}
+                                            />
+                                            <StatCard 
+                                                label={t('dashboard.bestDay')}
+                                                value={formatValue(bestDayValue, habit?.type, unitLabel, isTimeBased)}
+                                            />
+                                        </>
+                                    )}
+                                    {!isPro && (
+                                        <>
+                                            <StatCard
+                                                label={
+                                                    <span className="flex items-center gap-1 justify-center">
+                                                        {t('dashboard.averageSession', 'Average Session')}
+                                                        <Lock size={10} className="text-yellow-400" />
+                                                    </span>
+                                                }
+                                                value="PRO"
+                                                onClick={() => onOpenPro && onOpenPro()}
+                                            />
+                                            <StatCard 
+                                                label={
+                                                    <span className="flex items-center gap-1 justify-center">
+                                                        {t('dashboard.bestDay')}
+                                                        <Lock size={10} className="text-yellow-400" />
+                                                    </span>
+                                                }
+                                                value="PRO"
+                                                onClick={() => onOpenPro && onOpenPro()}
+                                            />
+                                        </>
+                                    )}
+                                </motion.div>
                         
                         {/* Bottom Spacer */}
                         <div className="h-10" />
@@ -1081,9 +1128,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         onClose();
                     }
                 }}
-                title={habit ? '¿Eliminar Hábito?' : '¿Eliminar Proyecto?'}
-                message={`Estás a punto de eliminar "${habit?.title || project?.title}". Esta acción no se puede deshacer.`}
-                confirmText="Eliminar"
+                title={habit ? t('habits.deleteTitle', 'Delete Habit?') : t('projects.deleteTitle', 'Delete Project?')}
+                message={t('common.deleteHabitConfirm', { title: habit?.title || project?.title })}
+                confirmText={t('common.delete', 'Delete')}
                 variant="danger"
             />
 

@@ -2,8 +2,6 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 
   Auth, 
-  setPersistence,
-  browserLocalPersistence,
   signInWithEmailAndPassword as firebaseSignIn,
   signInWithPopup as firebasePopup,
   signInWithRedirect as firebaseSignInWithRedirect,
@@ -98,10 +96,8 @@ if (isConfigValid) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     
-    // 🛡️ SECURITY: Explicitly set persistence to LOCAL to avoid session loss on redirect/refresh
-    setPersistence(auth, browserLocalPersistence).catch(err => {
-        console.warn("⚠️ MATRIX CORE: Failed to set Auth Persistence:", err);
-    });
+    // Persistence is automatically handled by Firebase (defaults to local).
+    // We don't call setPersistence explicitly to avoid race conditions during HMR or app boot.
 
     // 💾 OFFLINE-FIRST: Enable Multi-Tab Persistence
     // This is critical for the "Matrix" experience (Zero Latency)

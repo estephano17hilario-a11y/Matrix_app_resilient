@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Cpu, Globe, Sliders, StickyNote, Hexagon, BarChart3, ChevronDown, ChevronUp, Zap, Bell, Shield, Smartphone } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -9,20 +9,9 @@ import { Capacitor } from '@capacitor/core';
 import toast from 'react-hot-toast';
 
 export const SystemSection = () => {
-  const { i18n, t } = useTranslation();
-  const { 
-    habitSectionControl, 
-    updateHabitSectionControl,
-    defaultChartMode,
-    setDefaultChartMode
-  } = useSettings();
+  const { t, i18n } = useTranslation();
+  const { habitSectionControl, updateHabitSectionControl, defaultChartMode, setDefaultChartMode, weekStartDay, updateWeekStartDay } = useSettings();
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-    localStorage.setItem('i18nextLng', lng);
-  };
-
-  const [openPanels, setOpenPanels] = useState({ localization: false, hud: false, neural: true });
   const [permissions, setPermissions] = useState({ notifications: false, battery: false, overlay: false });
   const [isNative, setIsNative] = useState(false);
 
@@ -30,7 +19,7 @@ export const SystemSection = () => {
     const checkNativeStatus = async () => {
       const platform = Capacitor.getPlatform();
       setIsNative(platform === 'android' || platform === 'ios');
-      
+
       if (platform === 'android') {
         try {
           const perms = await FocusSession.checkPermissions();
@@ -39,32 +28,22 @@ export const SystemSection = () => {
           console.error("Failed to check native permissions", e);
         }
       } else {
-        // Web fallback
         setPermissions({
           notifications: Notification.permission === 'granted',
-          battery: true, // Not applicable on web
-          overlay: true // Not applicable on web
+          battery: true,
+          overlay: true
         });
       }
     };
-    
+
     checkNativeStatus();
-    // Re-check when coming back to app
     window.addEventListener('focus', checkNativeStatus);
     return () => window.removeEventListener('focus', checkNativeStatus);
   }, []);
 
-  const handleRequestBattery = async () => {
-    if (!isNative) {
-      toast.error("Battery optimization is an Android-only feature");
-      return;
-    }
-    try {
-      await FocusSession.requestBatteryPermission();
-      toast.success("Opening battery settings...");
-    } catch (e) {
-      toast.error("Failed to open battery settings");
-    }
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('i18nextLng', lng);
   };
 
   const handleRequestNotifications = async () => {
@@ -76,257 +55,254 @@ export const SystemSection = () => {
     }
     try {
       await FocusSession.openNotificationSettings();
-      toast.success("Opening notification settings...");
     } catch (e) {
       toast.error("Failed to open notification settings");
     }
   };
 
-  const togglePanel = (key: 'localization' | 'hud' | 'neural') => {
-    setOpenPanels(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleRequestBattery = async () => {
+    if (!isNative) {
+      toast.error("Battery optimization is Android-only");
+      return;
+    }
+    try {
+      await FocusSession.requestBatteryPermission();
+      toast.success("Opening battery settings...");
+    } catch (e) {
+      toast.error("Failed to open battery settings");
+    }
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Header */}
-      <div className="space-y-1 md:space-y-2">
-        <h2 className="text-lg md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-          <Cpu className="text-emerald-400" size={24} />
-          System BIOS
-        </h2>
-        <p className="text-white/40 text-xs md:text-base max-w-2xl">
-          Core system configurations, language processing, and input/output handling.
-        </p>
+    <div className="space-y-8 pb-4">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold text-white">System</h2>
+        <p className="text-white/40 text-sm">Language, permissions, and navigation.</p>
       </div>
 
       <div className="space-y-4">
-        {/* NEURAL LINK OPTIMIZATION (NATIVE) */}
-        <button
-          onClick={() => togglePanel('neural')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Smartphone size={16} className="text-indigo-400" />
-            Neural Link Optimization
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+          <div 
+            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+            style={{ 
+              background: `radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)`,
+              willChange: 'opacity'
+            }} 
+          />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+              <Globe size={18} className="text-indigo-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">Language</div>
+              <div className="text-xs text-white/40 font-medium">Select system language</div>
+            </div>
           </div>
-          {openPanels.neural ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <AnimatePresence initial={false}>
-          {openPanels.neural && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 space-y-4"
-            >
-               <div className="flex items-center justify-between mb-2">
-                 <div className="space-y-1">
-                    <span className="text-white font-medium flex items-center gap-2">
-                      <Zap size={16} className="text-indigo-400" />
-                      System Permissions
-                    </span>
-                    <p className="text-xs text-white/40">Grant deep system access for full immersion.</p>
-                 </div>
-              </div>
 
-              <div className="space-y-3">
-                {/* NOTIFICATIONS */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full", permissions.notifications ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400")}>
-                      <Bell size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-white">Neural Notifications</h4>
-                      <p className="text-xs text-white/40">Receive real-time matrix updates.</p>
-                    </div>
+          <div className="grid grid-cols-2 gap-3 relative z-10">
+            <button
+              onClick={() => changeLanguage('en')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold shadow-sm",
+                i18n.language === 'en' ? "bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : "bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.08] hover:text-white"
+              )}
+            >
+              <span className="text-lg drop-shadow-md">🇺🇸</span>
+              <span>English</span>
+            </button>
+            <button
+              onClick={() => changeLanguage('es')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold shadow-sm",
+                i18n.language === 'es' ? "bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : "bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.08] hover:text-white"
+              )}
+            >
+              <span className="text-lg drop-shadow-md">🇪🇸</span>
+              <span>Español</span>
+            </button>
+          </div>
+        </div>
+
+        {isNative && (
+          <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+            <div 
+              className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+              style={{ 
+                background: `radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)`,
+                willChange: 'opacity'
+              }} 
+            />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                <Smartphone size={18} className="text-emerald-400" />
+              </div>
+              <div>
+                <div className="text-base font-bold text-white tracking-tight">Native Permissions</div>
+                <div className="text-xs text-white/40 font-medium">System access for background sync</div>
+              </div>
+            </div>
+
+            <div className="space-y-3 relative z-10">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/[0.02]">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg", permissions.notifications ? "bg-emerald-500/20" : "bg-white/[0.05]")}>
+                    <Bell size={16} className={permissions.notifications ? "text-emerald-400" : "text-white/40"} />
                   </div>
-                  <button
-                    onClick={handleRequestNotifications}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                      permissions.notifications 
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default"
-                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                    )}
-                  >
-                    {permissions.notifications ? "ACTIVE" : "ACTIVATE"}
-                  </button>
+                  <span className="text-sm font-semibold text-white/80">Notifications</span>
                 </div>
+                <button
+                  onClick={handleRequestNotifications}
+                  className={cn(
+                    "px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm",
+                    permissions.notifications ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-indigo-500 hover:bg-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                  )}
+                >
+                  {permissions.notifications ? "Active" : "Enable"}
+                </button>
+              </div>
 
-                {/* BATTERY OPTIMIZATION */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full", permissions.battery ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400")}>
-                      <Zap size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-white">Unrestricted Energy</h4>
-                      <p className="text-xs text-white/40">Disable battery limits for background processing.</p>
-                    </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/[0.02]">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg", permissions.battery ? "bg-emerald-500/20" : "bg-white/[0.05]")}>
+                    <BatteryMedium size={16} className={permissions.battery ? "text-emerald-400" : "text-white/40"} />
                   </div>
-                  <button
-                    onClick={handleRequestBattery}
-                    disabled={permissions.battery || !isNative}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                      permissions.battery 
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default"
-                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    {permissions.battery ? "OPTIMIZED" : "DISABLE LIMITS"}
-                  </button>
+                  <span className="text-sm font-semibold text-white/80">Battery Optimization</span>
                 </div>
+                <button
+                  onClick={handleRequestBattery}
+                  disabled={permissions.battery}
+                  className={cn(
+                    "px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm",
+                    permissions.battery ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default" : "bg-indigo-500 hover:bg-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50"
+                  )}
+                >
+                  {permissions.battery ? "Unrestricted" : "Disable"}
+                </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <button
-          onClick={() => togglePanel('localization')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Globe size={16} className="text-emerald-400" />
-            Localization
+            </div>
           </div>
-          {openPanels.localization ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <AnimatePresence initial={false}>
-          {openPanels.localization && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 space-y-4"
-            >
-              <div className="flex items-center justify-between mb-2">
-                 <div className="space-y-1">
-                    <span className="text-white font-medium flex items-center gap-2">
-                      <Globe size={16} className="text-emerald-400" />
-                      System Language
-                    </span>
-                    <p className="text-xs text-white/40">Select primary communication protocol</p>
-                 </div>
+        )}
+
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+          <div 
+            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+            style={{ 
+              background: `radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)`,
+              willChange: 'opacity'
+            }} 
+          />
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                <BarChart3 size={18} className="text-cyan-400" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => changeLanguage('en')}
-                    className={cn(
-                      "flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300",
-                      i18n.language === 'en' 
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
-                        : "bg-white/5 text-white/40 hover:bg-white/10"
-                    )}
-                  >
-                    <span className="text-xl">🇺🇸</span>
-                    <span className="font-bold text-sm">English</span>
-                  </button>
-
-                  <button
-                    onClick={() => changeLanguage('es')}
-                    className={cn(
-                      "flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300",
-                      i18n.language === 'es' 
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
-                        : "bg-white/5 text-white/40 hover:bg-white/10"
-                    )}
-                  >
-                    <span className="text-xl">🇪🇸</span>
-                    <span className="font-bold text-sm">Español</span>
-                  </button>
+              <div>
+                <div className="text-base font-bold text-white tracking-tight">Chart Style</div>
+                <div className="text-xs text-white/40 font-medium">Default visualization</div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
 
-      <div className="space-y-4">
-        <button
-          onClick={() => togglePanel('hud')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <StickyNote size={16} className="text-blue-400" />
-            HUD & Navigation
+            <div className="flex bg-black/40 rounded-xl p-1 border border-white/[0.05] shadow-inner">
+              <button
+                onClick={() => setDefaultChartMode('RADAR')}
+                className={cn(
+                  "p-2.5 rounded-lg transition-all flex items-center justify-center",
+                  defaultChartMode === 'RADAR' ? "bg-white/[0.12] text-cyan-300 shadow-md" : "text-white/30 hover:text-white/70"
+                )}
+              >
+                <Hexagon size={16} />
+              </button>
+              <button
+                onClick={() => setDefaultChartMode('BAR')}
+                className={cn(
+                  "p-2.5 rounded-lg transition-all flex items-center justify-center",
+                  defaultChartMode === 'BAR' ? "bg-white/[0.12] text-cyan-300 shadow-md" : "text-white/30 hover:text-white/70"
+                )}
+              >
+                <BarChart3 size={16} />
+              </button>
+            </div>
           </div>
-          {openPanels.hud ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-        <AnimatePresence initial={false}>
-          {openPanels.hud && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 space-y-6"
+        </div>
+
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+          <div 
+            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+            style={{ 
+              background: `radial-gradient(circle, rgba(217,70,239,0.4) 0%, transparent 70%)`,
+              willChange: 'opacity'
+            }} 
+          />
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center border border-fuchsia-500/20">
+                <Settings2 size={18} className="text-fuchsia-400" />
+              </div>
+              <div>
+                <div className="text-base font-bold text-white tracking-tight">Section Controls</div>
+                <div className="text-xs text-white/40 font-medium">Show habit section buttons</div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => updateHabitSectionControl(habitSectionControl === 'VISIBLE' ? 'HIDDEN' : 'VISIBLE')}
+              className={cn(
+                "w-12 h-7 rounded-full transition-all relative shadow-inner border border-white/5",
+                habitSectionControl === 'VISIBLE' ? "bg-gradient-to-r from-emerald-500 to-emerald-400" : "bg-black/50"
+              )}
             >
-              
-              <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                     <span className="text-white font-medium flex items-center gap-2">
-                      <BarChart3 size={16} className="text-purple-400" />
-                      Chart Visualization
-                    </span>
-                    <p className="text-xs text-white/40">Default metric representation</p>
-                  </div>
+              <motion.div
+                layout
+                className={cn(
+                  "absolute top-0.5 w-6 h-6 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.3)]",
+                  habitSectionControl === 'VISIBLE' ? "bg-white left-[22px]" : "bg-white/40 left-0.5"
+                )}
+              />
+            </button>
+          </div>
+        </div>
 
-                  <div className="flex bg-black/20 rounded-lg p-1 border border-white/5">
-                       <button 
-                          onClick={() => setDefaultChartMode('RADAR')}
-                          className={cn(
-                              "p-2 rounded-md transition-all", 
-                              defaultChartMode === 'RADAR' ? "bg-white/10 text-white shadow-sm" : "text-white/30 hover:text-white/60"
-                          )}
-                          title="Radar / Spider Chart"
-                       >
-                          <Hexagon size={16} />
-                       </button>
-                       <button 
-                          onClick={() => setDefaultChartMode('BAR')}
-                          className={cn(
-                              "p-2 rounded-md transition-all", 
-                              defaultChartMode === 'BAR' ? "bg-white/10 text-white shadow-sm" : "text-white/30 hover:text-white/60"
-                          )}
-                          title="Bar Chart"
-                       >
-                          <BarChart3 size={16} />
-                       </button>
-                  </div>
-              </div>
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+          <div 
+            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
+            style={{ 
+              background: `radial-gradient(circle, rgba(14,165,233,0.4) 0%, transparent 70%)`,
+              willChange: 'opacity'
+            }} 
+          />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+              <Calendar size={18} className="text-cyan-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">{t('settings.weekStartsOn', 'Week Starts On')}</div>
+              <div className="text-xs text-white/40 font-medium">{t('settings.weekStartsOnDesc', 'First day of week for calendars')}</div>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-6">
-                  <div className="space-y-1">
-                     <span className="text-white font-medium flex items-center gap-2">
-                      <Sliders size={16} className="text-orange-400" />
-                      Section Buttons
-                    </span>
-                    <p className="text-xs text-white/40">Show sub-navigation controls</p>
-                  </div>
-                  
-                  <button
-                     onClick={() => updateHabitSectionControl(habitSectionControl === 'VISIBLE' ? 'HIDDEN' : 'VISIBLE')}
-                     className={cn(
-                       "w-12 h-7 rounded-full transition-colors relative border",
-                       habitSectionControl === 'VISIBLE' ? "bg-orange-500/20 border-orange-500/50" : "bg-white/5 border-white/10"
-                     )}
-                  >
-                     <motion.div 
-                       layout
-                       className={cn(
-                         "absolute top-1 left-1 w-4 h-4 rounded-full shadow-sm transition-transform",
-                         habitSectionControl === 'VISIBLE' ? "bg-orange-400 translate-x-5" : "bg-white/20 translate-x-0"
-                       )} 
-                     />
-                  </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <div className="grid grid-cols-2 gap-3 relative z-10">
+            <button
+              onClick={() => updateWeekStartDay(1)}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold shadow-sm",
+                weekStartDay === 1 ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_20px_rgba(14,165,233,0.2)]" : "bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.08] hover:text-white"
+              )}
+            >
+              <span className="text-lg drop-shadow-md">📅</span>
+              <span>{t('common.monday', 'Monday')}</span>
+            </button>
+            <button
+              onClick={() => updateWeekStartDay(0)}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold shadow-sm",
+                weekStartDay === 0 ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_20px_rgba(14,165,233,0.2)]" : "bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.08] hover:text-white"
+              )}
+            >
+              <span className="text-lg drop-shadow-md">🗓️</span>
+              <span>{t('common.sunday', 'Sunday')}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

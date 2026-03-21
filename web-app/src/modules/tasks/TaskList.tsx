@@ -6,11 +6,13 @@ import { SmartProject } from '../../types/SmartGoal';
 import { DailyLimits } from '../../types/User';
 import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
-import { startOfWeek, endOfWeek, isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay } from 'date-fns';
+import { isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay } from 'date-fns';
+import { startOfWeek, endOfWeek } from '../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { DateSelectionModal } from '../dashboard/components/DateSelectionModal';
 import { es } from 'date-fns/locale';
+import { TourLightbulb } from '../../components/TourLightbulb';
 
 interface TaskListProps {
   quests: Quest[];
@@ -23,13 +25,12 @@ interface TaskListProps {
   onEditQuest?: (quest: Quest) => void;
   onAddQuest?: () => void;
   onFocusProject?: (projectId: string) => void;
-  onOpenNexus?: (smartProjectId: string) => void;
 }
 
 // Optimization: Memoized Item Wrapper
 const MemoizedQuestItem = React.memo(QuestItem);
 
-export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, onOpenNexus, dailyLimits }) => {
+export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, dailyLimits }) => {
   const { t } = useTranslation();
 
   // Filters
@@ -42,7 +43,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
   const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>('all');
   const [hideCompleted, setHideCompleted] = useState<boolean>(true);
-  const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(true);
+  const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(false);
 
   // Optimization: Memoize maps only when inputs change
   const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
@@ -54,7 +55,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
     if (timeframe === 'ALL') return null;
     const start = startOfDay(currentDate);
     if (timeframe === 'DAY') return { start, end: start }; // Same day comparison
-    if (timeframe === 'WEEK') return { start: startOfWeek(start, { weekStartsOn: 1 }), end: endOfWeek(start, { weekStartsOn: 1 }) };
+    if (timeframe === 'WEEK') return { start: startOfWeek(start), end: endOfWeek(start) };
     return { start: start, month: start.getMonth(), year: start.getFullYear() }; // Month check
   }, [timeframe, currentDate]);
 
@@ -114,8 +115,8 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
       if (timeframe === 'ALL') return t('tasks.all', 'All Time');
       if (timeframe === 'DAY') return format(currentDate, 'EEEE d MMM', { locale: es });
       if (timeframe === 'WEEK') {
-          const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-          const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+          const start = startOfWeek(currentDate);
+          const end = endOfWeek(currentDate);
           return `${format(start, 'd MMM').toUpperCase()} - ${format(end, 'd MMM', { locale: es }).toUpperCase()}`;
       }
       if (timeframe === 'MONTH') {
@@ -241,15 +242,15 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
     <div className="flex flex-col gap-3 h-full w-full">
       
       {/* HEADER GROUP */}
-      <div className="flex-none pt-2 pb-2 -mx-2 px-2 border-b border-white/5 transition-all duration-300">
+      <div className="flex-none pt-1 pb-2 -mx-2 px-2 border-b border-white/5 transition-all duration-300">
           {dailyLimits && (
-            <div className="px-1 mb-2">
+            <div className="px-1">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
                     <Zap size={10} className="text-cyan-300" />
                   </div>
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Topes diarios</span>
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('common.dailyCaps')}</span>
                 </div>
                 <button
                   onClick={() => setIsDailyCapsOpen(prev => !prev)}
@@ -267,7 +268,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="grid grid-cols-3 gap-2 py-2">
+                    <div className="grid grid-cols-3 gap-2 py-1.5">
                       <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1 text-[9px] font-bold text-cyan-300 uppercase tracking-wider">
@@ -327,22 +328,13 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
           )}
 
           {/* ACTIVE MISSIONS HEADER */}
-          <div ref={headerRef} className="scroll-mt-24 px-1">
-            <div className="flex items-center justify-between mb-1">
+          <div ref={headerRef} data-tour="tasks-header" className="scroll-mt-24 px-1">
+            <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white/90 tracking-tight flex items-center gap-2">
                 {t('dashboard.activeMissions')}
               </h2>
-              
-              <div className="flex items-center gap-2 ml-auto">
-                {/* Counter */}
-                <div className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                  <Flame size={10} className="text-orange-400 fill-orange-400" />
-                  <span className="text-[10px] font-black text-orange-400">
-                    {activeCount}
-                  </span>
-                </div>
 
-                {/* Filter Toggle */}
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={cn(
@@ -359,6 +351,15 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                       </span>
                   )}
                 </button>
+
+                <div data-tour="tasks-counter" className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                  <Flame size={10} className="text-orange-400 fill-orange-400" />
+                  <span className="text-[10px] font-black text-orange-400">
+                    {activeCount}
+                  </span>
+                </div>
+
+                <TourLightbulb tourId="tasks" />
 
                 {onAddQuest && (
                     <button 
@@ -601,11 +602,12 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
           ) : (
             <>
               {paddingTop > 0 && <div style={{ height: paddingTop }} />}
+              <div data-tour="task-list">
               {virtualItems.map((quest) => (
                 <div
                   key={quest.id}
-                  style={{ 
-                    contentVisibility: 'auto', 
+                  style={{
+                    contentVisibility: 'auto',
                     containIntrinsicSize: '160px',
                   }}
                 >
@@ -618,11 +620,11 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                     onDelete={onDeleteQuest}
                     onEdit={onEditQuest}
                     onFocusProject={onFocusProject}
-                    onOpenNexus={onOpenNexus}
                     isLite
                   />
                 </div>
               ))}
+              </div>
               {paddingBottom > 0 && <div style={{ height: paddingBottom }} />}
             </>
           )}

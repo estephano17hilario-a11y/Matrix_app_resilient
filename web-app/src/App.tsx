@@ -12,6 +12,7 @@ import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
+import { TourProvider } from '@/components/TourGuide';
 
 // CRITICAL MODULES
 import { AuthScreen } from '@/modules/auth/AuthScreen';
@@ -144,45 +145,47 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <Toaster
-          position="top-center"
-          reverseOrder={false}
-          toastOptions={{
-            className: '',
-            style: {
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2)), rgba(5, 5, 5, 0.95)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#fff',
-              boxShadow: '0 0 40px rgba(0,0,0,0.8)',
-              borderRadius: '16px',
-              padding: '12px 24px',
-              fontSize: '14px',
-              maxWidth: '400px',
-              zIndex: 9999,
-            },
-            success: {
+        <TourProvider>
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            toastOptions={{
+              className: '',
               style: {
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                boxShadow: '0 0 30px rgba(16, 185, 129, 0.2)',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2)), rgba(5, 5, 5, 0.95)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#fff',
+                boxShadow: '0 0 40px rgba(0,0,0,0.8)',
+                borderRadius: '16px',
+                padding: '12px 24px',
+                fontSize: '14px',
+                maxWidth: '400px',
+                zIndex: 9999,
               },
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#050505',
+              success: {
+                style: {
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  boxShadow: '0 0 30px rgba(16, 185, 129, 0.2)',
+                },
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#050505',
+                },
               },
-            },
-            error: {
-              style: {
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)',
+              error: {
+                style: {
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)',
+                },
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#050505',
+                },
               },
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#050505',
-              },
-            },
-          }}
-        />
-        <AppRoutes />
+            }}
+          />
+          <AppRoutes />
+        </TourProvider>
       </ThemeProvider>
     </AuthProvider>
   );

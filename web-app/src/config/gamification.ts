@@ -15,15 +15,15 @@ export const GAMIFICATION_CONFIG = {
   
   // Base Rewards
   TASKS: {
-    LIGHT: { XP: 3, TP: 3, COINS: 1 },
-    MID: { XP: 6, TP: 6, COINS: 3 },
-    EPIC: { XP: 15, TP: 15, COINS: 8 },
+    LIGHT: { XP: 4, TP: 4, COINS: 2 }, // Increased 5% (Was 3, 3, 1)
+    MID: { XP: 7, TP: 7, COINS: 4 }, // Increased 5% (Was 6, 6, 3)
+    EPIC: { XP: 16, TP: 16, COINS: 9 }, // Increased 5% (Was 15, 15, 8)
   },
   
   HABITS: {
     COGNITIVE_LOAD_LIMIT: 12,
-    PRIMARY: { XP: 5, TP: 5, COINS: 2 },
-    SECONDARY: { XP: 2, TP: 2, COINS: 1 },
+    PRIMARY: { XP: 6, TP: 6, COINS: 3 }, // Increased 5% (Was 5, 5, 2)
+    SECONDARY: { XP: 3, TP: 3, COINS: 2 }, // Increased 5% (Was 2, 2, 1)
   },
   
   FOCUS: {

@@ -120,7 +120,7 @@ interface StoreScreenProps {
 const StoreContent = ({ }: StoreScreenProps) => {
   const { user } = useLux();
   const { t } = useTranslation();
-  const { purchase, watchAd, storeItems, isTransactionPending } = useEconomy();
+  const { purchase, watchAd, storeItems, isTransactionPending, inventory, consume } = useEconomy();
   const [activeFilter, setActiveFilter] = useState<string>('all');
   
   // Confirmation State
@@ -131,7 +131,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
   const filters = useMemo(() => ([
       { id: 'all', label: 'store.filters.all' },
       { id: 'power_up', label: 'store.filters.power_up' },
-      { id: 'theme', label: 'store.filters.theme' }
+      { id: 'inventory', label: 'Inventario' }
   ]), []);
 
   const filteredItems = useMemo(() => {
@@ -177,9 +177,9 @@ const StoreContent = ({ }: StoreScreenProps) => {
        />
 
       <div className="relative z-10 max-w-lg mx-auto px-4 pt-6">
-        
+
         {/* Header - Refined */}
-        <div className="sticky top-4 z-50 mb-6">
+        <div data-tour="store-header" className="sticky top-4 z-50 mb-6">
             <div className="absolute inset-0 bg-[#1c1c1e]/95 rounded-[24px] shadow-sm border border-white/5" />
             <div className="relative flex justify-between items-center px-5 py-3.5">
                 <div className="flex items-center gap-3">
@@ -219,6 +219,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
 
         {/* Grid */}
         <motion.div 
+            data-tour="store-items"
             className="grid grid-cols-1 gap-3"
         >
             <AnimatePresence initial={false}>
@@ -234,19 +235,72 @@ const StoreContent = ({ }: StoreScreenProps) => {
                     </motion.div>
                 )}
 
-                {filteredItems.map((item) => (
-                    <div id={`store-item-${item.id}`} key={item.id}>
-                        <StoreCard 
-                            item={item} 
-                            userGold={user?.stats?.gold || 0}
-                            onPurchase={() => initiatePurchase(item)} // Change to open modal
-                            disabled={isTransactionPending}
-                        />
-                    </div>
-                ))}
+                {activeFilter !== 'inventory' ? (
+                    filteredItems.map((item) => (
+                        <div id={`store-item-${item.id}`} key={item.id}>
+                            <StoreCard 
+                                item={item} 
+                                userGold={user?.stats?.gold || 0}
+                                onPurchase={() => initiatePurchase(item)} // Change to open modal
+                                disabled={isTransactionPending}
+                            />
+                        </div>
+                    ))
+                ) : (
+                    inventory.length > 0 ? inventory.map((invItem) => {
+                        const storeItem = storeItems.find(si => si.id === invItem.itemId);
+                        if (!storeItem) return null;
+                        const Icon = IconMap[storeItem.iconName || 'ShoppingBag'] || ShoppingBag;
+                        return (
+                            <motion.div
+                                key={invItem.itemId}
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className={clsx(
+                                    "relative flex flex-col p-4 rounded-[20px] overflow-hidden transition-all duration-200",
+                                    "bg-[#1c1c1e]/80 bg-gradient-to-b from-white/5 to-transparent",
+                                    "border border-white/5 shadow-sm"
+                                )}
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="p-2.5 rounded-xl flex items-center justify-center bg-white/10 text-white">
+                                        <Icon size={20} strokeWidth={2} />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/20 text-white font-bold text-sm">
+                                        x{invItem.quantity}
+                                    </div>
+                                </div>
+                                <div className="flex-1 mb-4">
+                                    <h3 className="text-[17px] font-semibold text-white mb-1 leading-snug tracking-tight">
+                                        {t(storeItem.name)}
+                                    </h3>
+                                    <p className="text-[13px] text-white/50 leading-relaxed font-medium">
+                                        {t(storeItem.description)}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => consume(invItem.itemId)}
+                                    disabled={isTransactionPending}
+                                    className="w-full py-2.5 rounded-xl font-semibold text-[13px] tracking-wide transition-all active:scale-[0.98] bg-white text-black hover:bg-white/90"
+                                >
+                                    Usar
+                                </button>
+                            </motion.div>
+                        );
+                    }) : (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }}
+                            className="text-center py-20 text-white/20"
+                        >
+                            <ShoppingBag className="mx-auto mb-3 opacity-30" size={40} strokeWidth={1.5} />
+                            <p className="text-sm font-medium">Inventario vacío</p>
+                        </motion.div>
+                    )
+                )}
             </AnimatePresence>
             
-            {filteredItems.length === 0 && (
+            {activeFilter !== 'inventory' && filteredItems.length === 0 && (
                 <motion.div 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }}

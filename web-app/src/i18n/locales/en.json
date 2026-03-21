@@ -26,6 +26,88 @@
       "title": "Configuring Reality..."
     }
   },
+  "rewards": {
+    "title": "Rewards",
+    "xp": "XP",
+    "gold": "Gold",
+    "streakBonus": "Streak Bonus",
+    "continue": "Continue"
+  },
+  "tour": {
+    "help": "App Guide",
+    "welcome": {
+      "title": "Welcome to Lux!",
+      "description": "Your life management system. We'll explain how everything works so you can make the most of your experience."
+    },
+    "xp": {
+      "title": "Experience (XP)",
+      "description": "Complete tasks and habits to earn XP. Level up and unlock new abilities. Every action gives you experience points."
+    },
+    "tp": {
+      "title": "TP (Training Points)",
+      "description": "TP measures your progress in specific skills. The more you practice an area, the more TP you earn."
+    },
+    "gold": {
+      "title": "Gold Coins",
+      "description": "Earned by completing tasks. Use them in the store to buy power-ups and special items."
+    },
+    "streak": {
+      "title": "Streak",
+      "description": "Keep your daily streak by completing at least one task. If you miss a day, the streak resets."
+    },
+    "dock": {
+      "title": "Navigation Dock",
+      "description": "Here you can switch between different sections: Tasks, Habits, Focus, Notes and more."
+    },
+    "quest-button": {
+      "title": "Create Mission",
+      "description": "Press here to create a new task or mission. Each completed task gives you XP and coins."
+    },
+    "complete": {
+      "title": "Ready to Begin!",
+      "description": "You know the basics now. Explore the app and use the help button in each section for more guides. Good luck!"
+    },
+    "onboarding": {
+      "welcome": { "title": "Welcome to Lux!", "desc": "Your life management system.", "sub": "Let's take an interactive tour." },
+      "xp": { "title": "XP Bar", "desc": "Complete tasks to gain experience.", "sub": "Level up to unlock abilities." },
+      "gold": { "title": "Your Coins", "desc": "Gold is used in the store.", "sub": "Earn it by completing missions." },
+      "streak": { "title": "Your Streak", "desc": "Consecutive days of action.", "sub": "If you miss a day, it resets to zero!" },
+      "dock": { "title": "Navigation (Dock)", "desc": "Your main command center.", "sub": "Access the whole app from here." },
+      "create": { "title": "Create Mission", "desc": "The task creator will open automatically.", "sub": "Get ready!" }
+    },
+    "tasks": {
+      "intro": { "title": "Mission Center", "desc": "Manage your day-to-day here.", "sub": "Active missions appear here." },
+      "counter": { "title": "Active Missions", "desc": "This is your current counter.", "sub": "Keep this number under control." },
+      "list": { "title": "Difficulty Range", "desc": "S, A, B, C and EPIC.", "sub": "Higher difficulty = Better rewards." },
+      "create": { "title": "It's your turn!", "desc": "Let's create your first task right now.", "sub": "The creator will open automatically." }
+    },
+    "habits": {
+      "intro": { "title": "Protocols & Vices", "desc": "Your system to build discipline.", "sub": "Automate the good and destroy the bad." },
+      "chart": { "title": "Consistency Chart", "desc": "Visualize your performance over time.", "sub": "Keep the chart green." },
+      "streak": { "title": "The Flame Path", "desc": "Your current discipline streak.", "sub": "Don't break the chain." },
+      "vices": { "title": "Vice Zone", "desc": "Identify and eradicate destructive habits.", "sub": "Click to enter the dark zone." },
+      "create": { "title": "Create a Protocol", "desc": "Let's create your first positive habit.", "sub": "Complete the form and save it." },
+      "createBad": { "title": "Identify a Vice", "desc": "Now, declare war on a bad habit.", "sub": "Complete the form and save it." }
+    },
+    "focus": {
+      "intro": { "title": "Focus Zone", "desc": "For deep work and projects.", "sub": "" },
+      "stats": { "title": "Statistics", "desc": "Visualize your concentration hours.", "sub": "" },
+      "projects": { "title": "Your Projects", "desc": "Divide big goals into short sessions.", "sub": "" },
+      "create": { "title": "New Project", "desc": "Start planning your next big goal.", "sub": "The creator will open automatically." }
+    },
+    "store": {
+      "intro": { "title": "Power Store", "desc": "Spend your coins here.", "sub": "" },
+      "items": { "title": "Items & Potions", "desc": "Each one has a unique effect on your account.", "sub": "" }
+    },
+    "nexus": {
+      "intro": { "title": "The Nexus", "desc": "Connect projects, tasks and habits.", "sub": "" },
+      "new": { "title": "New Project", "desc": "Create a new strategic project.", "sub": "" }
+    },
+    "notes": {
+      "intro": { "title": "Your Second Brain", "desc": "Capture ideas and thoughts.", "sub": "" },
+      "fab": { "title": "New Note", "desc": "Press here to create a note.", "sub": "" }
+    }
+  },
   "avatars": {
     "avatar_cafe_programadora": "Coffee Coder",
     "avatar_ceo_ajedrez": "Mastermind CEO",
@@ -125,6 +207,8 @@
       "pomodoro": "Pomodoro",
       "initialize": "Initialize Project",
       "launch": "Launch Project",
+      "create": "Initialize Project",
+      "update": "Update Project",
       "hoursPer": "HRS /",
       "hrs": "HRS",
       "hours": "Hours",
@@ -132,11 +216,11 @@
       "week": "WEEK",
       "month": "MONTH",
       "custom": "Cust.",
-    "alert": "Alert",
-    "off": "OFF",
-    "impact": "Impact",
-    "daysInitials": ["S", "M", "T", "W", "T", "F", "S"],
-    "traitDefault": "Trait"
+      "alert": "Alert",
+      "off": "OFF",
+      "impact": "Impact",
+      "daysInitials": ["S", "M", "T", "W", "T", "F", "S"],
+      "traitDefault": "Trait"
   },
     "quest": {
       "titleNew": "New Mission",
@@ -275,6 +359,10 @@
     "targets": "TARGETS",
     "empty": "No active missions."
   },
+  "nexus": {
+    "backToStrategy": "Back to Strategy",
+    "noActiveTasksForMission": "No active tasks for this mission."
+  },
   "notes": {
     "tabs": {
       "notes": "Notes",
@@ -293,7 +381,27 @@
     "streak": "Day Streak",
     "yourStory": "Your Story",
     "untitledPlaceholder": "Untitled Note",
-    "save": "Save"
+    "save": "Save",
+    "notes": "Notes",
+    "journal": "Journal",
+    "entries": "Entries",
+    "currentDays": "Current Days",
+    "totalWritten": "Total Written",
+    "celebrationsMemories": "Celebrations & Memories",
+    "generalNotes": "General Notes",
+    "journalingZone": "Journaling Zone",
+    "statisticsCharts": "Statistics & Charts",
+    "settings": "Settings",
+    "customizeExperience": "Customize your experience",
+    "quickActions": "Quick Actions",
+    "lockTheseAreas": "Lock these areas",
+    "accountPassword": "Account Password",
+    "useLoginPassword": "Use your login password to reset PIN",
+    "securityQuestion": "Security Question",
+    "answerPersonalQuestion": "Answer a personal question",
+    "filterByProject": "Filter by Project",
+    "filterByColor": "Filter by Color",
+    "dayStreak": "Day Streak"
   },
   "oracle": {
     "title": "Oracle",
@@ -356,6 +464,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "undoWarning": "This action cannot be undone",
+    "completed": "Completed",
+    "inProgress": "In Progress",
     "edit": "Edit",
     "archive": "Archive",
     "archived": "Archived",
@@ -364,12 +475,46 @@
     "complete": "Complete",
     "loading": "Loading...",
     "error": "Error",
+    "searchIcon": "Search icon...",
+    "viewAllCategories": "View all categories",
+    "monday": "Monday",
+    "sunday": "Sunday",
     "selectAtLeast": "Select at least {{count}}",
     "time": {
         "years": "Years",
         "months": "Months",
         "days": "Days"
-    }
+    },
+    "weekdays": {
+      "initials": ["S", "M", "T", "W", "T", "F", "S"],
+      "short": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      "long": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    },
+    "dailyCaps": "Daily Caps",
+    "deleteHabitConfirm": "You are about to delete \"{{title}}\". This action cannot be undone.",
+    "deleteTitle": "Delete {{item}}?",
+    "deleteProjectConfirm": "You are about to delete \"{{title}}\". This action cannot be undone.",
+    "deleteError": "Error deleting the project. Check the console.",
+    "deleteTaskError": "Error deleting the task. Check the console.",
+    "archivedHabits": "No archived habits",
+    "thisMonth": "this month",
+    "inDays": "In {{days}} days",
+    "daysPerMonth": "Days per month",
+    "addNewSmartTask": "Add new smart task",
+    "clickToChange": "Click to change",
+    "customizeHabit": "Customize your habit",
+    "tapToContinue": "Tap anywhere to continue",
+    "keepStreak": "Keep your streak",
+    "streakDesc": "Complete all directives to maintain your streak.",
+    "streakWhy": "Keeping the streak improves your Discipline and grants +20% extra XP.",
+    "modifyDetails": "Modify details and settings",
+    "unarchive": "Show on dashboard again",
+    "hideWithoutDeleting": "Hide from dashboard without deleting",
+    "errorDeletingProject": "Error deleting project. Check console.",
+    "errorDeletingTask": "Error deleting task. Check console.",
+    "noArchivedHabits": "No archived habits",
+    "tomorrow": "Tomorrow",
+    "overdue": "Overdue"
   },
   "smartTask": {
     "tutorial": {
@@ -416,8 +561,8 @@
       }
     },
     "wizard": {
-        "title": "Apple Intelligence",
-        "subtitle": "Neural Engine Protocol v2.0",
+        "title": "Lux Intelligence",
+        "subtitle": "Neural Protocol v2.0",
         "objective": {
             "title": "What is your <span className=\"font-bold\">Main Objective</span>?",
             "subtitle": "Define the core mission clearly.",
@@ -510,6 +655,9 @@
         "projectDeleted": "PROJECT DELETED",
         "activeSession": "ACTIVE SESSION"
     },
+    "tapToSelectTask": "Tap to select a task",
+    "chooseDate": "Choose date",
+    "reorderProjects": "Reorder Projects",
     "deleteModal": {
         "title": "Delete Project?",
         "description": "Are you sure you want to delete \"{{title}}\"?",
@@ -521,6 +669,9 @@
     "subtitle": "Lux Environment Preferences",
     "tabs": {
       "design": "Design",
+      "stats": "Stats",
+      "prefs": "Prefs",
+      "profile": "Profile",
       "controls": "Controls",
       "account": "Account"
     },
@@ -548,7 +699,9 @@
     "accountStandard": "Standard",
     "version": "Version",
     "developer": "Developer",
-    "logout": "Terminate Session"
+    "logout": "Terminate Session",
+    "weekStartsOn": "Week Starts On",
+    "weekStartsOnDesc": "First day of week for calendars"
   },
   "dashboard": {
       "systemMetrics": "System Metrics",
@@ -560,7 +713,39 @@
     "strategy": "Strategy",
     "noStrategy": "No Active Strategy",
     "noStrategyDesc": "You haven't defined your Grand Strategy yet. Break down your ultimate goal into actionable steps.",
-    "initProtocol": "Initialize Protocol"
+    "initProtocol": "Initialize Protocol",
+    "today": "Today",
+    "noTasksForToday": "No tasks scheduled for today.",
+    "noHabitsForToday": "No habits scheduled for today",
+    "streakPath": "Flame Path",
+    "days": "days",
+    "dailyGoal": "Daily Goal",
+    "todayProgress": "TODAY PROGRESS",
+    "sessions": "Sessions",
+    "currentStreak": "Current Streak",
+    "averageSession": "Average Session",
+    "completed": "completed",
+    "streakAssured": "Streak assured!",
+    "streakNeed": "{{count}} more for streak",
+    "week": "WEEK",
+    "month": "MONTH",
+    "year": "YEAR",
+    "bestDay": "Best Day",
+    "selectWeek": "Select Week",
+    "selectMonth": "Select Month",
+    "selectDay": "Select Day",
+    "selectYear": "Select Year",
+    "archived": {
+      "title": "ARCHIVE ZONE",
+      "message": "Projects in stasis. Reactivate them to continue your progress."
+    },
+    "confirmDeleteSmartPlan": "Are you sure you want to delete this Smart Plan? All associated progress will be lost.",
+    "lastDayOfMonth": "Last day of month",
+    "lastDayOption": "Enable this option to always include the last day (28, 29, 30 or 31) regardless of month. Manual days 29-31 don't count in short months.",
+    "defineObjective": "Define objective...",
+    "day": "Day",
+    "thePath": "THE PATH",
+    "workedThisPeriod": "Worked on this period"
   },
   "loading": {
     "quotes": [
@@ -689,6 +874,8 @@
     "newVice": "New Vice",
     "empty": "No active protocols.",
     "emptyVices": "No vices recorded. Stay clean.",
+    "deleteAction": "Delete Habit",
+    "deleteTitle": "Delete Habit?",
     "identifyEnemy": "Identify Enemy",
      "streak": "Streak",
      "dailyProtocol": "Daily Protocol",
@@ -696,6 +883,64 @@
      "target": "Target",
      "hpRisk": "HP Risk",
      "protocolSafe": "Protocol Safe",
-     "dailyProtocols": "Daily Protocols"
-   }
+     "dailyProtocols": "Daily Protocols",
+    "noProject": "No Project",
+    "groupingNone": "No Division",
+    "groupingByTrait": "By Trait",
+    "groupingByProject": "By Project",
+    "protocolNamePlaceholder": "Protocol Name...",
+    "descriptionPlaceholder": "Description (Required)...",
+    "pagesPlaceholder": "pages",
+    "editHabit": "Edit Habit",
+    "lifeProtocol": "Life Protocol",
+    "habit": "Habit",
+    "vice": "Vice",
+    "identity": "IDENTITY",
+    "mechanics": "MECHANICS",
+    "commitment": "COMMITMENT",
+    "selectTrait": "Select Trait",
+    "positiveImpact": "Positive Impact",
+    "missingPermissions": "Missing Permissions",
+    "batteryBackground": "Battery / Background",
+    "customizationOptional": "Customization (Optional)",
+    "selectIconColor": "Select Icon & Color",
+    "activateNotifications": "Activate Notifications",
+    "batteryOptimization": "Battery Optimization"
+  },
+  "badHabits": {
+    "wizard": {
+      "reasonLabel": "Why do you want to quit?",
+      "reasonPlaceholder": "Write your main reason for quitting this vice...",
+      "gradualProcess": "Gradual Process",
+      "gradualDesc": "Goals increase gradually: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days",
+      "opportunityDay": "Opportunity Day",
+      "opportunityDesc": "When you reach the goal, you have 1 day to indulge in the vice WITHOUT penalty. Your streak is maintained.",
+      "quote": "The only way to win is not to play.",
+      "readyToActivate": "Protocol ready to activate",
+      "addVicesPlaceholder": "Add vices (comma or line break)",
+      "viceExamplePlaceholder": "E.g. Smoking, TikTok..."
+    },
+    "opportunityDay": "Opportunity Day",
+    "intelligentFall": "Intelligent Fall",
+    "opportunityDesc": "You can use \"{{title}}\" without consequences. Congratulations!",
+    "relapseDesc": "You have relapsed in \"{{title}}\". The system is analyzing your progress...",
+    "noPenalty": "No Penalty",
+    "completedDays": "You have completed {{count}} days without the vice. You can take a free day and your progress remains intact.",
+    "nextTarget": "Next target:",
+    "succumbed": "You have succumbed to \"{{title}}\".",
+    "demandsCompensation": "The system demands compensation.",
+    "level": "Level",
+    "levels": {
+      "neutral": "Neutral",
+      "controlled": "Controlled",
+      "dominated": "Dominated",
+      "eradicated": "Eradicated"
+    }
+  },
+  "projects": {
+    "deleteTitle": "Delete Project?",
+    "specificDays": "Specific Days",
+    "editProject": "Edit Project",
+    "newProject": "New Project"
+  }
 }

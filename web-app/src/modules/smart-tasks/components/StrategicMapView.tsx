@@ -18,8 +18,7 @@ import {
     ChevronUp,
     ChevronDown,
     LayoutList,
-    Plus,
-    Layout
+    Plus
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
@@ -44,7 +43,6 @@ interface StrategicMapViewProps {
   onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
   onEditQuest?: (q: Quest) => void;
-  onOpenNexus?: (smartProjectId: string) => void;
 }
 
 const LevelIcons: Record<TimeFrame, React.ReactNode> = {
@@ -117,8 +115,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     onCreateNew,
     onAddSmartTask, 
     onCompleteQuest, 
-    onDeleteQuest,
-    onOpenNexus
+    onDeleteQuest
 }) => {
   const { t } = useTranslation();
   // Navigation State
@@ -333,10 +330,10 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
   }, [quests, isLeafLevel, activeDate, project.traitId]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-black/20 font-sans">
+    <div className="w-full h-full flex flex-col bg-transparent font-sans">
         
         {/* --- 1. NAVIGATION HEADER --- */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-sm z-10 flex items-center justify-between">
+        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-transparent backdrop-blur-md z-10 flex items-center justify-between">
             <div className="flex items-center gap-1 flex-wrap gap-y-2">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;
@@ -419,14 +416,15 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                         {/* ACTIVE CONTEXT HEADER (Apple Event Style) */}
                         <div className="text-center relative">
                             <div 
-                                className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 blur-lg rounded-full pointer-events-none transition-colors duration-700"
-                                style={{ backgroundColor: `${traitColor}33` }} 
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] rounded-full pointer-events-none transition-colors duration-700 opacity-50"
+                                style={{ background: `radial-gradient(circle, ${traitColor} 0%, transparent 60%)` }} 
                             />
                             
                             <div className="space-y-4 relative z-10">
                                 <div 
-                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg backdrop-blur-sm transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-colors"
                                     style={{ 
+                                        background: `linear-gradient(90deg, ${traitColor}22, transparent)`,
                                         borderColor: `${traitColor}33`,
                                         color: traitColor 
                                     }}
@@ -488,16 +486,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                         {/* CONTENT LIST */}
                         <div className="relative">
                             
-                            {/* MISSIONS BUTTON (MOVED HERE) */}
-                            <div className="flex justify-center mb-6">
-                                <button
-                                    onClick={() => onOpenNexus && onOpenNexus(project.id)}
-                                    className="flex items-center justify-center gap-3 px-12 py-3 rounded-xl bg-theme-avatar/10 border border-theme-avatar/20 text-theme-avatar hover:bg-theme-avatar/20 hover:text-theme-avatar hover:border-theme-avatar/40 transition-all font-bold text-xs uppercase tracking-[0.2em] w-full max-w-xl shadow-lg shadow-theme-avatar/5 group"
-                                >
-                                    <Layout size={16} className="group-hover:scale-110 transition-transform" />
-                                    <span>MISSIONS PROTOCOL</span>
-                                </button>
-                            </div>
+                            {/* MISSIONS BUTTON (REMOVED) */}
 
                             <div className="flex items-center justify-between mb-4 px-2">
                                 <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-widest">
@@ -533,8 +522,14 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                         />
                                                     ))
                                                 ) : (
-                                                    <div className="p-12 text-center bg-white/5 border border-white/5 rounded-3xl backdrop-blur-sm">
-                                                        <div className="w-20 h-20 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-6 text-white/20">
+                                                    <div 
+                                                        className="p-12 text-center border rounded-3xl"
+                                                        style={{
+                                                            background: `linear-gradient(145deg, ${traitColor}15 0%, transparent 100%)`,
+                                                            borderColor: `${traitColor}22`
+                                                        }}
+                                                    >
+                                                        <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-6 text-white/20" style={{ backgroundColor: `${traitColor}15` }}>
                                                             <CheckCircle2 size={40} />
                                                         </div>
                                                         <h3 className="text-white font-medium text-xl">{t('strategicMap.leaf.emptyTitle')}</h3>
@@ -544,12 +539,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                 
                                                 <button 
                                                     onClick={() => onAddSmartTask && onAddSmartTask(safeDate(activeNode.startDate))}
-                                                    className="w-full py-8 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-3 text-white/30 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all group mt-4 active:scale-95"
+                                                    className="w-full py-8 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-3 text-white/30 hover:text-white transition-transform duration-200 group mt-4 active:scale-95"
+                                                    style={{ borderColor: `${traitColor}33`, backgroundColor: `${traitColor}05` }}
                                                 >
-                                                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                    <div className="w-12 h-12 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: `${traitColor}22` }}>
                                                         <Plus size={24} className="group-hover:scale-110 transition-transform" />
                                                     </div>
-                                                    <span className="font-bold tracking-wide uppercase text-xs">Añade otra tarea</span>
+                                                    <span className="font-bold tracking-wide uppercase text-xs" style={{ color: traitColor }}>Añade otra tarea</span>
                                                 </button>
                                             </div>
                                         ) : (
@@ -578,13 +574,14 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                                 }}
                                                                 key={child.id}
                                                                 onClick={() => handleNavigate(child)}
-                                                                className="group relative flex flex-col items-center justify-center p-8 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all duration-300 backdrop-blur-sm cursor-pointer h-full min-h-[160px] active:scale-95"
+                                                                className="group relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-3xl transition-transform duration-200 cursor-pointer h-full min-h-[160px] active:scale-95"
+                                                                style={{ backgroundColor: `${traitColor}05`, borderColor: `${traitColor}33` }}
                                                             >
-                                                                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-white/40 group-hover:text-white">
+                                                                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${traitColor}22`, color: traitColor }}>
                                                                     <Plus size={24} />
                                                                 </div>
-                                                                <span className="text-white/40 group-hover:text-white font-bold text-lg transition-colors">{child.title}</span>
-                                                                <span className="text-xs font-bold text-white/20 uppercase tracking-widest mt-1">Crear Nuevo Bloque</span>
+                                                                <span className="font-bold text-lg transition-colors" style={{ color: traitColor }}>{child.title}</span>
+                                                                <span className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: `${traitColor}88` }}>Crear Nuevo Bloque</span>
                                                             </motion.button>
                                                         );
                                                     }
@@ -599,25 +596,24 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             tabIndex={0}
                                                             key={child.id}
                                                             onClick={() => handleNavigate(child)}
-                                                            className="group relative flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-3xl transition-all duration-300 backdrop-blur-sm shadow-lg hover:shadow-xl hover:scale-[1.01] overflow-hidden cursor-pointer"
+                                                            className="group relative flex items-center justify-between p-6 rounded-3xl transition-transform duration-200 hover:scale-[1.01] overflow-hidden cursor-pointer border"
                                                             style={{
-                                                                boxShadow: `0 0 0 1px ${traitColor}10, 0 10px 30px -10px ${traitColor}10`
+                                                                background: `linear-gradient(145deg, ${traitColor}22 0%, ${traitColor}05 100%)`,
+                                                                borderColor: `${traitColor}33`,
+                                                                boxShadow: `0 8px 32px -8px rgba(0,0,0,0.3)`
                                                             }}
                                                         >
-                                                            {/* Subtle Trait Glow */}
-                                                            <div 
-                                                                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"
-                                                                style={{ background: `linear-gradient(to right, ${traitColor}20, transparent)` }}
-                                                            />
+                                                            {/* Subtle Trait Glow - Removed for performance */}
 
                                                             <div className="flex items-center gap-5 relative z-10">
                                                                 <div 
                                                                     className={cn(
-                                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-inner text-white",
+                                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-200 shadow-inner text-white",
                                                                     )}
                                                                     style={{
-                                                                        background: `linear-gradient(135deg, ${traitColor}66, ${traitColor}22)`, // Stronger gradient
-                                                                        boxShadow: `0 0 15px ${traitColor}40`
+                                                                        background: `linear-gradient(135deg, ${traitColor}55, ${traitColor}11)`,
+                                                                        boxShadow: `0 0 10px ${traitColor}30`,
+                                                                        border: `1px solid ${traitColor}33`
                                                                     }}
                                                                 >
                                                                     {LevelIcons[child.level] || <Circle size={18} />}
@@ -656,7 +652,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                 {/* CREATE NEW NODE SECTION */}
                                                 <div className="mt-2">
                                                     {isCreating ? (
-                                                        <div className="flex items-center gap-2 p-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+                                                        <div className="flex items-center gap-2 p-4 border rounded-3xl animate-in fade-in slide-in-from-top-2" style={{ borderColor: `${traitColor}44`, backgroundColor: `${traitColor}11` }}>
                                                             <input
                                                                 autoFocus
                                                                 type="text"
@@ -686,10 +682,11 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                     ) : (
                                                         <button
                                                             onClick={() => setIsCreating(true)}
-                                                            className="w-full py-4 flex items-center justify-center gap-2 text-white/20 hover:text-white hover:bg-white/5 border border-dashed border-white/10 hover:border-white/20 rounded-3xl transition-all group"
+                                                            className="w-full py-4 flex items-center justify-center gap-2 text-white/20 hover:text-white border border-dashed rounded-3xl transition-transform duration-200 group"
+                                                            style={{ borderColor: `${traitColor}33`, backgroundColor: `${traitColor}05` }}
                                                         >
                                                             <Plus size={18} className="group-hover:scale-110 transition-transform" />
-                                                            <span className="font-bold uppercase tracking-widest text-xs">Añadir {getNextLevel(activeNode.level) ? t(`strategicMap.levels.${getNextLevel(activeNode.level)!}`) : 'Sección'}</span>
+                                                            <span className="font-bold uppercase tracking-widest text-xs" style={{ color: traitColor }}>Añadir {getNextLevel(activeNode.level) ? t(`strategicMap.levels.${getNextLevel(activeNode.level)!}`) : 'Sección'}</span>
                                                         </button>
                                                     )}
                                                 </div>

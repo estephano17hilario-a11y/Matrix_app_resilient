@@ -8,7 +8,7 @@ export type ThemeId =
   | 'luxury' | 'graphite' | 'simple_dark'
   | 'midnight_flow' | 'titanium_flow' | 'velvet_flow' | 'oceanic_flow' | 'phantom_flow' | 'ember_flow'
   | 'holo_spectrum' | 'holo_vision' | 'holo_midnight' | 'holo_blush' | 'holo_frost'
-  | 'cosmic_void';
+  | 'cosmic_void' | 'cosmic_nebula' | 'cosmic_ocean' | 'cosmic_sunset' | 'cosmic_forest' | 'cosmic_ember';
 
 export interface ThemeConfig {
   id: ThemeId;
@@ -587,12 +587,82 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     isSolid: true,
     bgStyle: 'radial-gradient(circle at 50% -20%, #2e1065 0%, #0f172a 40%, #000000 100%)',
     colors: {
-      bgDepth: '5 5 10', // Very Dark Purple/Black
-      primaryGlow: '56 189 248', // Sky Blue
-      secondaryGlow: '139 92 246', // Violet
+      bgDepth: '5 5 10',
+      primaryGlow: '56 189 248',
+      secondaryGlow: '139 92 246',
       glassTint: '30 20 50',
       textPrimary: '255 255 255',
     },
     gradient: 'radial-gradient(circle at 50% 0%, #2e1065 0%, #000000 100%)',
+  },
+  cosmic_nebula: {
+    id: 'cosmic_nebula',
+    name: 'Cosmic Nebula',
+    description: 'Nebula Dreams',
+    category: 'cosmic',
+    colors: {
+      bgDepth: '15 5 25',
+      primaryGlow: '124 58 237',
+      secondaryGlow: '192 38 211',
+      glassTint: '50 20 70',
+      textPrimary: '255 255 255',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #7c3aed 0%, #000000 100%)',
+  },
+  cosmic_ocean: {
+    id: 'cosmic_ocean',
+    name: 'Cosmic Ocean',
+    description: 'Abyssal Blue',
+    category: 'cosmic',
+    colors: {
+      bgDepth: '5 20 30',
+      primaryGlow: '8 145 178',
+      secondaryGlow: '6 182 212',
+      glassTint: '15 50 60',
+      textPrimary: '240 255 255',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #0891b2 0%, #000000 100%)',
+  },
+  cosmic_sunset: {
+    id: 'cosmic_sunset',
+    name: 'Cosmic Sunset',
+    description: 'Solar Flare',
+    category: 'cosmic',
+    colors: {
+      bgDepth: '30 15 5',
+      primaryGlow: '217 119 6',
+      secondaryGlow: '194 65 12',
+      glassTint: '60 35 20',
+      textPrimary: '255 250 240',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #d97706 0%, #000000 100%)',
+  },
+  cosmic_forest: {
+    id: 'cosmic_forest',
+    name: 'Cosmic Forest',
+    description: 'Enchanted Woods',
+    category: 'cosmic',
+    colors: {
+      bgDepth: '5 25 20',
+      primaryGlow: '13 148 136',
+      secondaryGlow: '20 184 166',
+      glassTint: '15 50 45',
+      textPrimary: '240 255 250',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #0d9488 0%, #000000 100%)',
+  },
+  cosmic_ember: {
+    id: 'cosmic_ember',
+    name: 'Cosmic Ember',
+    description: 'Burning Core',
+    category: 'cosmic',
+    colors: {
+      bgDepth: '30 5 10',
+      primaryGlow: '190 18 52',
+      secondaryGlow: '159 18 57',
+      glassTint: '60 20 30',
+      textPrimary: '255 245 245',
+    },
+    gradient: 'radial-gradient(circle at 50% 0%, #be1234 0%, #000000 100%)',
   },
 };

@@ -3,13 +3,13 @@ import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
-import { Flame, Star, Skull, Trash2, AlertTriangle, Check, Infinity as InfinityIcon } from 'lucide-react';
+import { Flame, Star, Skull, Trash2, AlertTriangle, Check, Infinity as InfinityIcon, Sparkles } from 'lucide-react';
 import { 
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
 } from '@/types';
 import { DailyLimits } from '@/types/User';
-import { TRAITS_LIST, DAILY_LIMITS } from '../constants';
+import { TRAITS_LIST } from '../constants';
 import { GAMIFICATION_CONFIG } from '@/config/gamification';
 import { FREE_LIMITS } from '@/config/limits';
 import { projectService } from '@/services/projectService';
@@ -27,6 +27,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useReward } from '@/modules/rewards/context/RewardContext';
 
 import { SmartProject } from '@/types/SmartGoal';
+import { DockConfig, DEFAULT_DOCK_CONFIG } from '@/components/ui/DockConfigModal';
 
 export const useDashboardLogic = () => {
     const { addReward } = useReward();
@@ -136,6 +137,11 @@ export const useDashboardLogic = () => {
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>('VISIBLE');
     const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(true);
+    const [dockConfig, setDockConfig] = useState<DockConfig>(DEFAULT_DOCK_CONFIG);
+    const [weekStartDay, setWeekStartDay] = useState<0 | 1>(() => {
+        const saved = localStorage.getItem('weekStartDay');
+        return saved ? (parseInt(saved) as 0 | 1) : 1;
+    });
     // Sticky HUD disabled by default and removed from settings
 
     useEffect(() => {
@@ -192,6 +198,29 @@ export const useDashboardLogic = () => {
         }
     }, [user?.uid]);
 
+    const updateDockConfig = useCallback(async (config: DockConfig) => {
+        setDockConfig(config);
+        if (user?.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid), { dockConfig: config }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save dock config", e);
+            }
+        }
+    }, [user?.uid]);
+
+    const updateWeekStartDay = useCallback(async (day: 0 | 1) => {
+        setWeekStartDay(day);
+        localStorage.setItem('weekStartDay', day.toString());
+        if (user?.uid) {
+            try {
+                await setDoc(doc(db, 'users', user.uid), { weekStartDay: day }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save week start day", e);
+            }
+        }
+    }, [user?.uid]);
+
     // Sticky HUD updater removed
 
     // Sync Dashboard Style from User Profile
@@ -208,8 +237,14 @@ export const useDashboardLogic = () => {
         if (user?.allowDockSectionSwitch !== undefined) {
             setAllowDockSectionSwitch(user.allowDockSectionSwitch);
         }
+        if (user?.dockConfig) {
+            setDockConfig(user.dockConfig);
+        }
+        if (user?.weekStartDay !== undefined) {
+            setWeekStartDay(user.weekStartDay);
+        }
         // Sticky HUD sync removed
-    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.allowDockSectionSwitch]);
+    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: calculateNextLevelXp(1), gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -237,6 +272,8 @@ export const useDashboardLogic = () => {
     const [areHabitsLoaded, setAreHabitsLoaded] = useState(false);
     const [isDailyCheckDone, setIsDailyCheckDone] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
+
+    const STREAK_TARGETS = [3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
     const [smartProjects, setSmartProjects] = useState<SmartProject[]>([]);
     const deletedProjectIdsRef = useRef<Set<string>>(new Set());
     const mergeProjects = useCallback((base: Project[], incoming: Project[]) => {
@@ -317,6 +354,7 @@ export const useDashboardLogic = () => {
     // 1. Our own optimistic updates (Local changes, Server stale) -> IGNORE Server
     // 2. External updates (Server changes) -> SYNC Local
     const lastServerStats = useRef<{xp: number, level: number, gold: number, hp: number} | null>(null);
+    const lastServerLimits = useRef<string>("");
 
     // Helper for XP Curve
     const calculateNextXp = useCallback((level: number) => {
@@ -395,25 +433,40 @@ export const useDashboardLogic = () => {
                     setHealth(serverStats.hp);
                 }
 
-                // Sync Daily Limits
+                // Update last known server stats
+                lastServerStats.current = {
+                    xp: serverStats.xp,
+                    level: serverStats.level,
+                    gold: serverStats.gold,
+                    hp: serverStats.hp
+                };
+            }
+
+            // Sync Daily Limits independently of stats
+            const serverLimitsStr = JSON.stringify(user.dailyLimits || {});
+            if (lastServerLimits.current !== serverLimitsStr) {
+                lastServerLimits.current = serverLimitsStr;
+                
                 if (user.dailyLimits) {
                     const today = toLocalISOString(new Date());
                     if (user.dailyLimits.date === today) {
-                    // Sanitize to ensure all fields exist AND are numbers (prevent string concatenation bugs)
-                    setDailyLimits({
-                        ...user.dailyLimits,
-                        focusSeconds: Number(user.dailyLimits.focusSeconds || 0),
-                        habitsCompleted: Number(user.dailyLimits.habitsCompleted || 0),
-                        taskXp: Number(user.dailyLimits.taskXp || 0),
-                        taskGold: Number(user.dailyLimits.taskGold || 0),
-                        taskTraitPoints: Number(user.dailyLimits.taskTraitPoints || 0)
-                    });
-                } else {
-                        // Reset if server date is old (or just keep default today if we already reset)
-                        // Actually, if server has old date, we should probably update server? 
-                        // But we do that lazily on first action.
-                        // Here we just ensure local state is correct for TODAY.
-                         setDailyLimits(prev => prev.date === today ? prev : { 
+                        // Sanitize to ensure all fields exist AND are numbers (prevent string concatenation bugs)
+                        setDailyLimits({
+                            ...user.dailyLimits,
+                            focusSeconds: Number(user.dailyLimits.focusSeconds || 0),
+                            habitsCompleted: Number(user.dailyLimits.habitsCompleted || 0),
+                            taskXp: Number(user.dailyLimits.taskXp || 0),
+                            taskGold: Number(user.dailyLimits.taskGold || 0),
+                            taskTraitPoints: Number(user.dailyLimits.taskTraitPoints || 0),
+                            notesCompleted: Number(user.dailyLimits.notesCompleted || 0),
+                            tasksCompleted: Number(user.dailyLimits.tasksCompleted || 0),
+                            focusXp: Number(user.dailyLimits.focusXp || 0),
+                            focusGold: Number(user.dailyLimits.focusGold || 0),
+                            focusTraitPoints: Number(user.dailyLimits.focusTraitPoints || 0)
+                        });
+                    } else {
+                        // Reset if server date is old
+                        setDailyLimits(prev => prev.date === today ? prev : { 
                             date: today,
                             taskXp: 0,
                             taskGold: 0,
@@ -435,14 +488,6 @@ export const useDashboardLogic = () => {
                         });
                     }
                 }
-
-                // Update last known server stats
-                lastServerStats.current = {
-                    xp: serverStats.xp,
-                    level: serverStats.level,
-                    gold: serverStats.gold,
-                    hp: serverStats.hp
-                };
             }
         }
     }, [user, calculateNextXp]);
@@ -590,8 +635,11 @@ export const useDashboardLogic = () => {
                 if (user.stats?.streak && user.stats.streak > 0 && !isFrozen) {
                     if (lastStreakDate && lastStreakDate < yesterdayStr) {
                          console.log(`[DAILY RESET] Streak Broken. Last active: ${lastStreakDate}, Yesterday: ${yesterdayStr}`);
-                         // Reset streak to 0
-                         batch.update(userRef as any, { 'stats.streak': 0 });
+                         // Reset streak to 0 but save previous streak for redemption
+                         batch.update(userRef as any, { 
+                             'stats.streak': 0,
+                             'stats.previousStreak': user.stats.streak
+                         });
                     } else if (!lastStreakDate) {
                         console.log("[DAILY RESET] No lastStreakDate found. Preserving legacy streak.");
                     }
@@ -687,22 +735,35 @@ export const useDashboardLogic = () => {
     };
 
     // --- ACHIEVEMENT LISTENER ---
+    const processingAchievements = useRef(false);
     useEffect(() => {
         const verifyAchievements = async () => {
+            if (processingAchievements.current) return;
+            
             if (user && player.xp > 0 && !user.isSkeleton) {
-                const hybridUser = { 
-                    ...user, 
-                    stats: { 
-                        ...user.stats, 
-                        xp: player.xp, 
-                        level: player.level,
-                        hp: health 
-                    } 
-                };
-                
-                const newAchievements = await checkAchievements(hybridUser, attributes);
-                if (newAchievements.length > 0) {
-                    setLastAchievement(newAchievements[0]);
+                processingAchievements.current = true;
+                try {
+                    const hybridUser = { 
+                        ...user, 
+                        stats: { 
+                            ...user.stats, 
+                            xp: player.xp, 
+                            level: player.level,
+                            hp: health 
+                        } 
+                    };
+                    
+                    const newAchievements = await checkAchievements(hybridUser, attributes);
+                    if (newAchievements.length > 0) {
+                        // Queue achievements if multiple were unlocked
+                        newAchievements.forEach((ach, index) => {
+                            setTimeout(() => {
+                                setLastAchievement(ach);
+                            }, index * 4500); // 4s toast + 0.5s gap
+                        });
+                    }
+                } finally {
+                    processingAchievements.current = false;
                 }
             }
         };
@@ -1241,6 +1302,102 @@ export const useDashboardLogic = () => {
 
         // Run check
         checkDailyReset();
+
+        const checkBadHabitsDaily = async () => {
+            if (!user?.uid) return;
+            const today = new Date();
+            const todayStr = toLocalISOString(today);
+
+            let hasChanges = false;
+            let disciplineRewards: { habitId: string; habitTitle: string; traitId: string; bonusTp: number }[] = [];
+
+            const updatedBadHabits = badHabits.map(habit => {
+                if (!habit.intelligentStreak) return habit;
+
+                const newItem = { ...habit };
+                const lastRelapse = habit.history && habit.history.length > 0
+                    ? getHistoryDateKey(habit.history[habit.history.length - 1])
+                    : null;
+
+                const isRelapsedToday = lastRelapse === todayStr;
+                const currentTarget = habit.currentTarget || 3;
+                const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
+
+                if (isRelapsedToday) {
+                    return newItem;
+                }
+
+                if (habit.reachedDays === currentTarget) {
+                    if (!habit.relapsedToday) {
+                        const bonusTp = currentTarget * 3;
+                        disciplineRewards.push({
+                            habitId: habit.id,
+                            habitTitle: habit.title,
+                            traitId: habit.attribute,
+                            bonusTp
+                        });
+                    }
+
+                    if (targetIndex < STREAK_TARGETS.length - 1) {
+                        const nextTarget = STREAK_TARGETS[Math.min(targetIndex + 1, STREAK_TARGETS.length - 1)];
+                        newItem.currentTarget = nextTarget;
+                        newItem.reachedDays = 0;
+                        newItem.relapsedToday = false;
+                    } else {
+                        newItem.reachedDays = (habit.reachedDays || 0) + 1;
+                        newItem.relapsedToday = false;
+                    }
+                } else {
+                    newItem.reachedDays = (habit.reachedDays || 0) + 1;
+                    newItem.relapsedToday = false;
+
+                    if (newItem.reachedDays >= currentTarget && targetIndex < STREAK_TARGETS.length - 1) {
+                        const nextTarget = STREAK_TARGETS[Math.min(targetIndex + 1, STREAK_TARGETS.length - 1)];
+                        newItem.currentTarget = nextTarget;
+                        newItem.reachedDays = 0;
+                    }
+                }
+
+                hasChanges = true;
+                return newItem;
+            });
+
+            if (hasChanges) {
+                setBadHabits(updatedBadHabits);
+                PersistenceService.saveCollection(user.uid, 'badHabits', updatedBadHabits);
+
+                for (const habit of updatedBadHabits) {
+                    if (habit.intelligentStreak) {
+                        await persistenceService.badHabits.update(user.uid, habit.id, {
+                            reachedDays: habit.reachedDays,
+                            currentTarget: habit.currentTarget,
+                            relapsedToday: habit.relapsedToday
+                        });
+                    }
+                }
+
+                for (const reward of disciplineRewards) {
+                    const attr = attributes.find(a => a.id === reward.traitId);
+                    if (attr) {
+                        updateAttributeXp(reward.traitId, reward.bonusTp);
+                        console.log(`🏆 [DISCIPLINE BONUS] +${reward.bonusTp} TP awarded for skipping "${reward.habitTitle}" opportunity day`);
+                    }
+                }
+
+                if (disciplineRewards.length > 0) {
+                    addNotification({
+                        type: 'ACHIEVEMENT',
+                        label: 'DISCIPLINA BRILLANTE',
+                        fromLevel: 'Iron Will',
+                        toLevel: 'Titanium Resolve',
+                        icon: Sparkles,
+                        color: '#a855f7'
+                    });
+                }
+            }
+        };
+
+        checkBadHabitsDaily();
         // We only want to run this when habits are first loaded or user changes (login)
         // Adding habits to dependency array might cause loops if we update habits inside.
         // So we need a ref or strict dependency management.
@@ -1320,6 +1477,7 @@ export const useDashboardLogic = () => {
 
 
     // --- STREAK ACTIVATION ---
+    const [showStreakCelebration, setShowStreakCelebration] = useState(false);
     const isActivatingStreak = useRef(false);
 
     useEffect(() => {
@@ -1328,30 +1486,32 @@ export const useDashboardLogic = () => {
         const checkStreak = async () => {
             const today = toLocalISOString(new Date());
             const lastStreakDate = user.stats.lastStreakDate;
+            const currentStreak = user.stats.streak || 0;
             
-            // Already active today?
-            if (lastStreakDate === today) return;
+            // Already active today? (and not 0)
+            if (lastStreakDate === today && currentStreak > 0) return;
             if (isActivatingStreak.current) return;
 
             const { 
                 tasksCompleted = 0, 
                 habitsCompleted = 0, 
-                focusSeconds = 0, 
-                notesCompleted = 0 
+                focusSeconds = 0 
             } = dailyLimits;
 
-            if (tasksCompleted >= 2 && habitsCompleted >= 1 && focusSeconds >= 3600 && notesCompleted >= 1) {
+            if (tasksCompleted >= 2 && habitsCompleted >= 1 && focusSeconds >= 3600) {
                 console.log("🔥 STREAK ACTIVATED!");
                 isActivatingStreak.current = true;
                 
                 try {
-                    const newStreak = (user.stats.streak || 0) + 1;
+                    const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
                     const userRef = doc(db, 'users', user.uid);
                     await updateDoc(userRef, {
                         'stats.streak': newStreak,
                         'stats.lastStreakDate': today
                     });
                     
+                    setShowStreakCelebration(true); // DISPARAR OVERLAY AQUI
+
                     addNotification({ 
                         type: 'GLOBAL', 
                         label: `STREAK DAY ${newStreak}`, 
@@ -1392,7 +1552,7 @@ export const useDashboardLogic = () => {
         // 🛡️ SKELETON PROTECTION: Don't save if we are in skeleton mode
         if (user?.uid && !user.isSkeleton) {
             console.log(`[REWARD] Saving stats: Level ${newStats.level}, XP ${newStats.xp}, Gold ${newStats.gold}`);
-            TransactionService.awardExperience(user.uid, Math.floor(reward.xp), Math.floor(reward.gold))
+            TransactionService.awardExperience(user.uid, Math.floor(reward.xp), Math.floor(reward.gold), newLevel)
                 .catch(err => console.error("Error saving player stats:", err));
         }
     }, [calculateNextXp, user, player]); // Added player dependency
@@ -1401,43 +1561,41 @@ export const useDashboardLogic = () => {
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
 
     const updateAttributeXp = useCallback((attrId: string, amount: number) => {
-        // Find attribute in current state
-        const attrIndex = attributes.findIndex(a => a.id === attrId);
-        if (attrIndex === -1) return;
+        if (!user?.uid || user.isSkeleton) return;
         
-        const attr = attributes[attrIndex];
-        let newXp = attr.xp + Math.floor(amount);
-        let newLevel = attr.level;
-        let newMaxXp = attr.maxXp;
+        // Optimistic update for quick UI feedback
+        setAttributes(prev => {
+            const attrIndex = prev.findIndex(a => a.id === attrId);
+            if (attrIndex === -1) return prev;
+            
+            const attr = prev[attrIndex];
+            let newXp = attr.xp + Math.floor(amount);
+            let newLevel = attr.level;
+            let newMaxXp = attr.maxXp;
 
-        if (amount > 0) {
-            while (newXp >= newMaxXp) {
-                newXp -= newMaxXp;
-                newLevel += 1;
-                newMaxXp = Math.floor(newMaxXp * 1.2);
+            if (amount > 0) {
+                while (newXp >= newMaxXp) {
+                    newXp -= newMaxXp;
+                    newLevel += 1;
+                    newMaxXp = Math.floor(newMaxXp * 1.2);
+                }
+            } else {
+                while (newXp < 0 && newLevel > 1) {
+                    newLevel -= 1;
+                    newMaxXp = Math.floor(newMaxXp / 1.2); 
+                    newXp += newMaxXp;
+                }
+                if (newLevel === 1 && newXp < 0) newXp = 0;
             }
-        } else {
-            while (newXp < 0 && newLevel > 1) {
-                newLevel -= 1;
-                newMaxXp = Math.floor(newMaxXp / 1.2); 
-                newXp += newMaxXp;
-            }
-            if (newLevel === 1 && newXp < 0) newXp = 0;
-        }
+            
+            const next = [...prev];
+            next[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
+            return next;
+        });
         
-        const updatedAttr = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
-        
-        // Optimistic Update
-        const newAttributes = [...attributes];
-        newAttributes[attrIndex] = updatedAttr;
-        setAttributes(newAttributes);
-        
-        // SAVE TO FIRESTORE
-        if (user?.uid && !user.isSkeleton) {
-            console.log(`[ATTRIBUTE] Saving ${attr.label}: Level ${updatedAttr.level}, XP ${updatedAttr.xp}`);
-            persistenceService.attributes.save(user.uid, updatedAttr);
-        }
-    }, [user?.uid, user?.isSkeleton, attributes]);
+        // SAVE TO FIRESTORE ATOMICALLY
+        TransactionService.updateAttributeXpAtomic(user.uid, attrId, amount).catch(console.error);
+    }, [user?.uid, user?.isSkeleton]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
         setAttributes(prev => {
@@ -1576,26 +1734,27 @@ export const useDashboardLogic = () => {
         goldReward *= multiplier;
         tpReward *= multiplier;
 
-        // Rounding
-        let rawXp = Math.round(xpReward);
-        let rawGold = Math.round(goldReward);
-        let rawTP = Math.round(tpReward);
-
-        // Minimum Reward for any valid session > 1 min
-        if (rewardableMinutes >= 1) {
-            if (rawXp < 1) rawXp = 1;
-            if (rawGold < 1) rawGold = 1;
-            if (rawTP < 1) rawTP = 1;
+        // 2. Calculate Daily Limits & Caps (TIME ONLY - 24h Hard Limit)
+        const todayDate = toLocalISOString(new Date());
+        let effectiveDailySeconds = currentLimits.focusSeconds || 0;
+        
+        // RESET LIMITS IF STALE (Fix for "First session of the day gives no rewards")
+        if (currentLimits.date !== todayDate) {
+            effectiveDailySeconds = 0;
+            console.log("🔄 New day detected in session complete - resetting effective limits");
         }
 
-        // 2. Calculate Daily Limits & Caps (TIME ONLY - 24h Hard Limit)
         const maxDailySeconds = 24 * 60 * 60;
-        const currentDailySeconds = currentLimits.focusSeconds || 0;
-        const remainingSeconds = Math.max(0, maxDailySeconds - currentDailySeconds);
+        const remainingSeconds = Math.max(0, maxDailySeconds - effectiveDailySeconds);
         
         // Cap the DURATION strictly
         let finalDurationSeconds = Math.min(safeDurationSeconds, remainingSeconds);
         finalDurationSeconds = Math.max(0, finalDurationSeconds);
+
+        // Notify if capped
+        if (finalDurationSeconds < safeDurationSeconds && remainingSeconds === 0) {
+             addNotification({ type: 'SYSTEM', label: 'DAILY LIMIT', fromLevel: '24h Max', toLevel: 'Reached', icon: InfinityIcon, color: '#ef4444' });
+        }
 
         // Recalculate rewards based on capped duration
         const finalRewardableMinutes = finalDurationSeconds / 60;
@@ -1613,36 +1772,62 @@ export const useDashboardLogic = () => {
         finalGold = Math.max(0, finalGold);
         finalTP = Math.max(0, finalTP);
 
+        // Minimum Reward for any valid session > 0.1 min (6 seconds)
+        if (finalRewardableMinutes >= 0.1) {
+            if (finalXp < 1) finalXp = 1;
+            if (finalGold < 1) finalGold = 1;
+            if (finalTP < 1) finalTP = 1;
+        }
+
         console.log(`[REWARD CALC] Duration: ${safeDurationSeconds}s -> Capped: ${finalDurationSeconds}s | Final: ${finalXp}/${finalTP}/${finalGold}`);
         
         // --- DAILY GOAL COMPLETION BONUS ---
         let bonusXp = 0;
         let bonusGold = 0;
+        let bonusTP = 0;
 
-        // DISABLED PER USER REQUEST: "NO QUIERO QUE... EL TIEMPO QUE LE PONGA DE OBJETIVO... INFLUYA"
-        // if (proj && proj.goalFrequency === 'DAILY' && proj.goalTarget > 0) {
-        //     // Calculate previous daily progress
-        //     const now = new Date();
-        //     const todayStr = now.toDateString();
-        //     
-        //     const sessionsToday = (proj.sessions || []).filter(s => {
-        //          const d = new Date(s.date);
-        //          return d.toDateString() === todayStr;
-        //     });
-        //     
-        //     const previousDuration = sessionsToday.reduce((acc, s) => acc + s.duration, 0);
-        //     const newDuration = previousDuration + finalDurationSeconds;
-        //     const goalSeconds = proj.goalTarget * 60;
-        //     
-        //     // Trigger bonus only if we crossed the line just now
-        //     if (previousDuration < goalSeconds && newDuration >= goalSeconds) {
-        //         // BONUS DISABLED
-        //     }
-        // }
+        if (proj && proj.goalTarget > 0) {
+            // Calculate previous daily progress
+            const now = new Date();
+            const todayStr = now.toDateString();
+            
+            const sessionsToday = (proj.sessions || []).filter(s => {
+                 const d = new Date(s.date);
+                 return d.toDateString() === todayStr;
+            });
+            
+            const previousDurationSeconds = sessionsToday.reduce((acc, s) => acc + (s.duration || 0), 0);
+            const newDurationSeconds = previousDurationSeconds + finalDurationSeconds;
+            
+            // To ensure we use the dynamic target if available, but fallback to goalTarget
+            let dailyGoalMinutes = proj.goalTarget;
+            // A simple approximation of the dynamic target without importing:
+            if (proj.uiFrequency === 'WEEKLY' || proj.uiFrequency === 'MONTHLY') {
+                // If it's weekly/monthly, it might have a dynamic target. We'll stick to goalTarget (which is saved as daily equivalent) 
+                // for simplicity and consistency with the predicted rewards shown in modal.
+            }
+            
+            const goalSeconds = dailyGoalMinutes * 60;
+            
+            // Trigger bonus only if we crossed the line just now
+            if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
+                const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1);
+                
+                // Only give the completion bonus part, not the base time part which they already earned linearly
+                bonusXp = Math.max(0, prediction.xp - prediction.baseXp);
+                // Proportional bonus for coins and TP
+                const ratio = prediction.xp > 0 ? bonusXp / prediction.xp : 0;
+                bonusGold = Math.floor(prediction.coins * ratio);
+                bonusTP = Math.floor(prediction.traitXp * ratio);
+                
+                console.log(`🎉 [DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
+            }
+        }
 
         const totalXp = finalXp + bonusXp;
         const totalGold = finalGold + bonusGold;
-        const totalTP = finalTP + bonusXp; // Assuming bonus XP counts as TP too
+        const totalTP = finalTP + bonusTP; // Use bonusTP here
+
         
         // 1. Prepare the new session object
         // Use a unique ID based on timestamp and randomness
@@ -1706,120 +1891,76 @@ export const useDashboardLogic = () => {
             });
         }
         
-        // Update Limits (Functional Update)
-        setDailyLimits(prevLimits => {
-            // Use currentLimits logic for safety if prevLimits is null (though it shouldn't be if initialized correctly)
-            const baseLimits = prevLimits || currentLimits;
-            
-            // Ensure date matches today, otherwise reset
+        // Update Limits, Stats and Attributes via TransactionService
+        if (user?.uid && (totalXp > 0 || totalGold > 0 || finalDurationSeconds > 0)) {
             const today = toLocalISOString(new Date());
-            let validLimits = baseLimits;
-            if (validLimits.date !== today) {
-                validLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+            const isNewDay = dailyLimits.date !== today;
+            let newXp = player.xp + totalXp;
+            if (newXp < 0) newXp = 0;
+            const newLevel = calculateLevelFromXp(newXp);
+            const newNextXp = calculateNextLevelXp(newLevel);
+
+            // Optimistic Update
+            let newLimits = { ...dailyLimits };
+            if (isNewDay) {
+                newLimits = { 
+                    date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
+                    habitsCompleted: 0, tasksCompleted: 0, notesCompleted: 0,
+                    habitXp: 0, habitGold: 0, habitTraitPoints: 0,
+                    focusSeconds: finalDurationSeconds,
+                    focusXp: totalXp, 
+                    focusGold: totalGold, 
+                    focusTraitPoints: totalTP
+                };
+            } else {
+                newLimits.focusSeconds = (newLimits.focusSeconds || 0) + finalDurationSeconds;
+                newLimits.focusXp = (newLimits.focusXp || 0) + totalXp;
+                newLimits.focusGold = (newLimits.focusGold || 0) + totalGold;
+                newLimits.focusTraitPoints = (newLimits.focusTraitPoints || 0) + totalTP;
             }
+            setDailyLimits(newLimits);
 
-            const currentSafeFocusSeconds = validLimits.focusSeconds || 0;
-            const newLimits = {
-                ...validLimits,
-                focusSeconds: currentSafeFocusSeconds + finalDurationSeconds,
-                focusXp: (validLimits.focusXp || 0) + finalXp,
-                focusGold: (validLimits.focusGold || 0) + finalGold,
-                focusTraitPoints: (validLimits.focusTraitPoints || 0) + finalTP
-            };
-
-            // Side effect: Save to Firestore
-            if (user?.uid) {
-                setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
-            }
-            
-            return newLimits;
-        });
-
-        if (totalXp > 0 || totalGold > 0) {
-            // 1. Calculate Player Stats
-            setPlayer(prevPlayer => {
-                let newPlayerXp = prevPlayer.xp + totalXp;
-                let newPlayerGold = prevPlayer.gold + totalGold;
-                
-                if (newPlayerXp < 0) newPlayerXp = 0;
-
-                const newPlayerLevel = calculateLevelFromXp(newPlayerXp);
-                const newPlayerNextXp = calculateNextLevelXp(newPlayerLevel);
-                
-                const newPlayerStats = { ...prevPlayer, xp: newPlayerXp, gold: newPlayerGold, level: newPlayerLevel, nextXp: newPlayerNextXp };
-                
-                console.log("🆙 Updating Player Stats:", newPlayerStats);
-                
-                // Save Player to Firestore
-                if (user?.uid) {
-                     const userRef = doc(db, 'users', user.uid);
-                     updateDoc(userRef, {
-                        'stats.xp': newPlayerXp,
-                        'stats.gold': newPlayerGold,
-                        'stats.level': newPlayerLevel,
-                        'stats.nextXp': newPlayerNextXp
-                    }).catch(console.error);
-                }
-
-                // Trigger Reward Overlay using the NEW stats
-                // Note: We need to pass traitUpdate as well, which requires attributes state.
-                // Attributes are also updated via setState below. 
-                // To avoid complex callback chains, we'll calculate traitUpdate outside based on current 'attributes' state
-                // (Accepting a small risk if attributes changed in the last millisecond, but much safer than projects)
-                
-                return newPlayerStats;
-            });
-
-            // 2. Calculate Attribute Stats
-            // Note: We use the current 'attributes' state. 
             let traitUpdate = undefined;
-            const attrIndex = attributes.findIndex(a => a.id === attrId);
-            
-            if (attrIndex !== -1) {
-                const attr = attributes[attrIndex];
-                let newAttrXp = attr.xp + totalTP;
-                let newAttrLevel = attr.level;
-                let newAttrMaxXp = attr.maxXp;
+            if (attrId) {
+                const attrIndex = attributes.findIndex(a => a.id === attrId);
+                if (attrIndex !== -1) {
+                    const attr = attributes[attrIndex];
+                    let newAttrXp = attr.xp + totalTP;
+                    let newAttrLevel = attr.level;
+                    let newAttrMaxXp = attr.maxXp;
 
-                while (newAttrXp >= newAttrMaxXp) {
-                    newAttrXp -= newAttrMaxXp;
-                    newAttrLevel += 1;
-                    newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
-                }
-
-                // Update Attributes State
-                const newAttributes = [...attributes];
-                const updatedAttr = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
-                newAttributes[attrIndex] = updatedAttr;
-                setAttributes(newAttributes);
-
-                // Prepare Trait Update for Trigger
-                traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
-
-                // Save Attribute to Firestore
-                 if (user?.uid) {
-                    const attrRef = doc(db, 'users', user.uid, 'attributes', attr.id);
-                    setDoc(attrRef, { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }, { merge: true }).catch(console.error);
+                    if (totalTP > 0) {
+                        while (newAttrXp >= newAttrMaxXp) {
+                            newAttrXp -= newAttrMaxXp;
+                            newAttrLevel += 1;
+                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                        }
+                    }
+                    setAttributes(prev => prev.map(a => 
+                        a.id === attrId ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                    ));
+                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
                 }
             }
-            
-            // 5. Trigger Reward Overlay
-            // We need to pass the *predicted* new player stats because setPlayer is async.
-            // Re-calculating for the trigger call:
-            let pXp = player.xp + totalXp;
-            let pGold = player.gold + totalGold;
-            const pLevel = calculateLevelFromXp(pXp);
-            const pNextXp = calculateNextLevelXp(pLevel);
-            const predictedPlayerStats = { xp: pXp, gold: pGold, level: pLevel, nextXp: pNextXp };
 
-            console.log("🏆 TRIGGERING REWARD OVERLAY", { type, totalXp, totalGold });
-            triggerReward('Focus Session', totalXp, totalGold, predictedPlayerStats, { level: player.level }, traitUpdate ? { ...traitUpdate, gained: totalTP } : undefined);
+            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
+            setPlayer(newPlayerStats);
 
-            // 6. Legacy Visuals (Particles & Notification)
-            const attr = attributes.find(a => a.id === attrId);
-            const AttrIcon = attr?.icon || Star;
-            spawnParticles(window.innerWidth / 2, window.innerHeight / 2, attr?.color || '#fff', AttrIcon);
-            // addNotification({ type: 'SESSION', label: type === 'POMO' ? 'POMODORO COMPLETE' : 'SESSION COMPLETE', fromLevel: Math.floor(safeDurationSeconds / 60) + 'm', toLevel: '+' + finalXp + ' XP', icon: Clock, color: '#fbbf24' });
+            if (totalXp > 0 || totalGold > 0) {
+                triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, traitUpdate);
+            }
+
+            TransactionService.logFocusSession(
+                user.uid, 
+                finalDurationSeconds, 
+                totalXp, 
+                totalGold, 
+                totalTP, 
+                attrId,
+                isNewDay,
+                newLevel,
+                newNextXp
+            ).catch(console.error);
         } else if (finalDurationSeconds > 0) {
              console.log("ℹ️ Short session saved, no XP awarded");
              addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(finalDurationSeconds) + 's', toLevel: 'Short Session', icon: Check, color: '#10b981' });
@@ -1884,12 +2025,49 @@ export const useDashboardLogic = () => {
         finalGold = Math.max(0, finalGold);
         finalTP = Math.max(0, finalTP);
 
+        // --- DAILY GOAL COMPLETION BONUS ---
+        let bonusXp = 0;
+        let bonusGold = 0;
+        let bonusTP = 0;
+
+        if (targetProj && targetProj.goalTarget > 0) {
+            const sessionDateObj = new Date(sessionDate || new Date().toISOString());
+            const targetDateStr = sessionDateObj.toDateString();
+            
+            const sessionsOnDate = (targetProj.sessions || []).filter(s => {
+                 const d = new Date(s.date);
+                 return d.toDateString() === targetDateStr;
+            });
+            
+            const previousDurationSeconds = sessionsOnDate.reduce((acc, s) => acc + (s.duration || 0), 0);
+            const newDurationSeconds = previousDurationSeconds + durationSeconds;
+            
+            const goalSeconds = targetProj.goalTarget * 60;
+            
+            if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
+                const prediction = calculateTaskRewards(targetProj.goalTarget, targetProj.impact || 1);
+                
+                // Only give the completion bonus part, not the base time part which they already earned linearly
+                bonusXp = Math.max(0, prediction.xp - prediction.baseXp);
+                // Proportional bonus for coins and TP
+                const ratio = prediction.xp > 0 ? bonusXp / prediction.xp : 0;
+                bonusGold = Math.floor(prediction.coins * ratio);
+                bonusTP = Math.floor(prediction.traitXp * ratio);
+                
+                console.log(`🎉 [MANUAL DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
+            }
+        }
+
+        const totalXp = finalXp + bonusXp;
+        const totalGold = finalGold + bonusGold;
+        const totalTP = finalTP + bonusTP;
+
         const rawMinutes = safeMinutes;
         const rawXp = Math.round((rawMinutes * hourlyXp) / 60);
         const rawGold = Math.round((rawMinutes * hourlyGold) / 60);
         const rawTP = Math.round((rawMinutes * hourlyTP) / 60);
 
-        console.log(`💎 [MANUAL ENTRY] Project: ${targetProj.title}, Duration: ${safeMinutes}m | Raw: ${rawXp}/${rawTP}/${rawGold} | Capped: ${finalXp}/${finalTP}/${finalGold}`);
+        console.log(`💎 [MANUAL ENTRY] Project: ${targetProj.title}, Duration: ${safeMinutes}m | Raw: ${rawXp}/${rawTP}/${rawGold} | Capped: ${totalXp}/${totalTP}/${totalGold}`);
 
         // 3. CREATE SESSION OBJECT
         const nextSessionId = sessionId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `manual-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
@@ -1900,9 +2078,9 @@ export const useDashboardLogic = () => {
             type,
             duration: durationSeconds,
             date: nextSessionDate,
-            xpEarned: finalXp,
-            goldEarned: finalGold,
-            traitPointsEarned: finalTP
+            xpEarned: totalXp,
+            goldEarned: totalGold,
+            traitPointsEarned: totalTP
         };
 
         // 4. UPDATE PROJECT STATE
@@ -1920,66 +2098,77 @@ export const useDashboardLogic = () => {
             return next;
         });
 
-        // 5. UPDATE ATTRIBUTES (CRITICAL)
-        let traitUpdate = undefined;
-        let attrId = targetProj.attribute;
-        let attrIndex = attrId ? attributes.findIndex(a => a.id === attrId) : -1;
-        
-        if (attrIndex !== -1) {
-            const attr = attributes[attrIndex];
-            // Attributes gain XP based on TP earned (conceptually similar)
-            // FIXED: Use finalTP (capped) instead of raw TP or previous logic
-            let newAttrXp = attr.xp + finalTP; 
-            let newAttrLevel = attr.level;
-            let newAttrMaxXp = attr.maxXp;
+        // 5. UPDATE ATTRIBUTES, 6. UPDATE PLAYER STATS, 8. UPDATE DAILY LIMITS
+        if (user?.uid) {
+            const today = toLocalISOString(new Date());
+            const isNewDay = dailyLimits.date !== today;
+            let newXp = player.xp + totalXp;
+            if (newXp < 0) newXp = 0;
+            const newLevel = calculateLevelFromXp(newXp);
+            const newNextXp = calculateNextLevelXp(newLevel);
 
-            // Level Up Logic
-            while (newAttrXp >= newAttrMaxXp) {
-                newAttrXp -= newAttrMaxXp;
-                newAttrLevel += 1;
-                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+            let newLimits = { ...dailyLimits };
+            if (isNewDay) {
+                newLimits = { 
+                    date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
+                    habitsCompleted: 0, tasksCompleted: 0, notesCompleted: 0,
+                    habitXp: 0, habitGold: 0, habitTraitPoints: 0,
+                    focusSeconds: durationSeconds,
+                    focusXp: totalXp, 
+                    focusGold: totalGold, 
+                    focusTraitPoints: totalTP
+                };
+            } else {
+                newLimits.focusSeconds = (newLimits.focusSeconds || 0) + durationSeconds;
+                newLimits.focusXp = (newLimits.focusXp || 0) + totalXp;
+                newLimits.focusGold = (newLimits.focusGold || 0) + totalGold;
+                newLimits.focusTraitPoints = (newLimits.focusTraitPoints || 0) + totalTP;
+            }
+            setDailyLimits(newLimits);
+
+            let traitUpdate = undefined;
+            if (targetProj.attribute) {
+                const attrIndex = attributes.findIndex(a => a.id === targetProj.attribute);
+                if (attrIndex !== -1) {
+                    const attr = attributes[attrIndex];
+                    let newAttrXp = attr.xp + totalTP;
+                    let newAttrLevel = attr.level;
+                    let newAttrMaxXp = attr.maxXp;
+
+                    if (totalTP > 0) {
+                        while (newAttrXp >= newAttrMaxXp) {
+                            newAttrXp -= newAttrMaxXp;
+                            newAttrLevel += 1;
+                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                        }
+                    }
+                    setAttributes(prev => prev.map(a => 
+                        a.id === targetProj.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                    ));
+                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
+                }
             }
 
-            const updatedAttr = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
-            
-            // State Update
-            setAttributes(prev => {
-                const next = [...prev];
-                next[attrIndex] = updatedAttr;
-                return next;
-            });
+            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
+            setPlayer(newPlayerStats);
 
-            traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: finalTP };
-
-            // Persistence
-            if (user?.uid) {
-                const attrRef = doc(db, 'users', user.uid, 'attributes', attr.id);
-                setDoc(attrRef, { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }, { merge: true }).catch(console.error);
+            if (totalXp > 0 || totalGold > 0) {
+                triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, traitUpdate);
+            } else if (durationSeconds > 0) {
+                 addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: 'No XP', icon: Check, color: '#10b981' });
             }
-        }
 
-        // 6. UPDATE PLAYER STATS
-        let newPlayerStats = { ...player };
-        if (finalXp > 0 || finalGold > 0) {
-            const newPlayerXp = player.xp + finalXp;
-            const newPlayerGold = player.gold + finalGold;
-            
-            const newPlayerLevel = calculateLevelFromXp(newPlayerXp);
-            const newPlayerNextXp = calculateNextLevelXp(newPlayerLevel);
-            
-            newPlayerStats = { xp: newPlayerXp, gold: newPlayerGold, level: newPlayerLevel, nextXp: newPlayerNextXp };
-
-            setPlayer(prev => ({ ...prev, ...newPlayerStats }));
-
-            if (user?.uid) {
-                const userRef = doc(db, 'users', user.uid);
-                updateDoc(userRef, {
-                    'stats.xp': newPlayerXp,
-                    'stats.gold': newPlayerGold,
-                    'stats.level': newPlayerLevel,
-                    'stats.nextXp': newPlayerNextXp
-                }).catch(console.error);
-            }
+            TransactionService.logFocusSession(
+                user.uid,
+                durationSeconds,
+                totalXp,
+                totalGold,
+                totalTP,
+                targetProj.attribute || null,
+                isNewDay,
+                newLevel,
+                newNextXp
+            ).catch(console.error);
         }
 
         // 7. PERSIST PROJECT
@@ -1990,25 +2179,6 @@ export const useDashboardLogic = () => {
                     addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
                 });
         }
-
-        // 8. UPDATE DAILY LIMITS (TRACKING ONLY)
-        const newLimits = {
-            ...currentLimits,
-            focusSeconds: (currentLimits.focusSeconds || 0) + durationSeconds,
-            focusXp: (currentLimits.focusXp || 0) + finalXp,
-            focusGold: (currentLimits.focusGold || 0) + finalGold,
-            focusTraitPoints: (currentLimits.focusTraitPoints || 0) + finalTP
-        };
-        
-        setDailyLimits(newLimits);
-        
-        if (user?.uid) {
-            setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
-        }
-
-        // 9. FINAL FEEDBACK
-        triggerReward('Manual Entry', finalXp, finalGold, newPlayerStats, { level: player.level }, traitUpdate ? { ...traitUpdate, gained: finalTP } : undefined);
-
     }, [projects, dailyLimits, user, addNotification, saveProjectsCache, player, attributes, triggerReward]);
 
     const handleDeleteSession = useCallback(async (projectId: string, sessionId: string) => {
@@ -2077,44 +2247,66 @@ export const useDashboardLogic = () => {
             return prevProjects.map(p => p.id === projectId ? updatedProject : p);
         });
 
-        // 3. Reverse Rewards & Limits
-        if (xpToRevert > 0 || goldToRevert > 0) {
-            addPlayerReward({ xp: -xpToRevert, gold: -goldToRevert });
-        }
+        // 3. Reverse Rewards & Limits using TransactionService
+        if (user?.uid) {
+            const today = toLocalISOString(new Date());
+            const isNewDay = dailyLimits.date !== today;
+            
+            const rXp = -(xpToRevert || 0);
+            const rGold = -(goldToRevert || 0);
+            const rTP = -(tpToRevert || 0);
+            const rSec = -durationSeconds;
 
-        if (tpToRevert && tpToRevert > 0) {
-            updateAttributeXp(project.attribute, -tpToRevert);
-        }
+            let newXp = player.xp + rXp;
+            if (newXp < 0) newXp = 0;
+            const newLevel = calculateLevelFromXp(newXp);
+            const newNextXp = calculateNextLevelXp(newLevel);
 
-        // Update Daily Limits (Subtract Focus Time)
-        const sessionDate = new Date(session.date);
-        const today = new Date();
-        const isToday = sessionDate.toDateString() === today.toDateString();
-        
-        if (isToday) {
-            // Need to fetch latest limits or use currentLimits from state
-            const safeFocusSeconds = Number.isFinite(dailyLimits.focusSeconds) ? Number(dailyLimits.focusSeconds) : 0;
-            const safeFocusMinutes = Number.isFinite(dailyLimits.focusMinutes) ? Number(dailyLimits.focusMinutes) : 0;
-            const safeFocusXp = Number.isFinite(dailyLimits.focusXp) ? Number(dailyLimits.focusXp) : 0;
-            const safeFocusGold = Number.isFinite(dailyLimits.focusGold) ? Number(dailyLimits.focusGold) : 0;
-            const safeFocusTP = Number.isFinite(dailyLimits.focusTraitPoints) ? Number(dailyLimits.focusTraitPoints) : 0;
-            const newLimits = {
-                ...dailyLimits,
-                focusSeconds: Math.max(0, safeFocusSeconds - durationSeconds),
-                focusMinutes: Math.max(0, safeFocusMinutes - (durationSeconds / 60)),
-                focusXp: Math.max(0, safeFocusXp - (xpToRevert || 0)),
-                focusGold: Math.max(0, safeFocusGold - (goldToRevert || 0)),
-                focusTraitPoints: Math.max(0, safeFocusTP - (tpToRevert || 0))
-            };
-            setDailyLimits(newLimits);
-            if (user?.uid) {
-                setDoc(doc(db, 'users', user.uid), { dailyLimits: newLimits }, { merge: true }).catch(console.error);
+            let newLimits = { ...dailyLimits };
+            if (isNewDay) {
+                newLimits = { 
+                    date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
+                    habitsCompleted: 0, tasksCompleted: 0, notesCompleted: 0,
+                    habitXp: 0, habitGold: 0, habitTraitPoints: 0,
+                    focusSeconds: 0, focusXp: 0, focusGold: 0, focusTraitPoints: 0
+                };
+            } else {
+                newLimits.focusSeconds = Math.max(0, (newLimits.focusSeconds || 0) + rSec);
+                newLimits.focusXp = Math.max(0, (newLimits.focusXp || 0) + rXp);
+                newLimits.focusGold = Math.max(0, (newLimits.focusGold || 0) + rGold);
+                newLimits.focusTraitPoints = Math.max(0, (newLimits.focusTraitPoints || 0) + rTP);
             }
+            setDailyLimits(newLimits);
+
+            if (project.attribute) {
+                const attrIndex = attributes.findIndex(a => a.id === project.attribute);
+                if (attrIndex !== -1) {
+                    const attr = attributes[attrIndex];
+                    let newAttrXp = Math.max(0, attr.xp + rTP);
+                    setAttributes(prev => prev.map(a => 
+                        a.id === project.attribute ? { ...a, xp: newAttrXp } : a
+                    ));
+                }
+            }
+
+            setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rGold), level: newLevel, nextXp: newNextXp }));
+
+            TransactionService.logFocusSession(
+                user.uid, 
+                rSec, 
+                rXp, 
+                rGold, 
+                rTP, 
+                project.attribute || null,
+                isNewDay,
+                newLevel,
+                newNextXp
+            ).catch(console.error);
         }
 
         addNotification({ type: 'SYSTEM', label: 'SESSION DELETED', fromLevel: Math.floor(durationSeconds / 60) + 'm', toLevel: 'Reversed', icon: Trash2, color: '#ef4444' });
 
-    }, [projects, dailyLimits, user, addPlayerReward, updateAttributeXp, addNotification]);
+    }, [projects, dailyLimits, user, addNotification]);
 
     const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => {
         // 1. Find Project and Session
@@ -2206,88 +2398,72 @@ export const useDashboardLogic = () => {
             projectService.saveProject(user.uid, updatedProject).catch(console.error);
         }
 
-        // 6. Update User Stats (XP, Gold)
-        if (user?.uid && (xpDiff !== 0 || goldDiff !== 0)) {
-            const userRef = doc(db, 'users', user.uid);
-            
-            // We use the current state from context/state
-            // Note: This relies on 'player' state being relatively fresh.
-            // Ideally use Firestore increment, but we do manual calc here.
-            
-            // Update local state first (if exposed via setPlayer, but we don't have it here easily for stats update? 
-            // We have setPlayer for level/xp.
-            // But let's just update Firestore and let the listener sync it back?
-            // Actually useDashboardLogic has 'player' state (line 3426).
-            
-            // Wait, we don't have access to current stats easily without potentially stale state.
-            // Let's assume 'user.stats' from useDashboardLogic (memoized) is good enough.
-            const currentStats = user.stats || { xp: 0, gold: 0, level: 1 };
-            const newXp = (currentStats.xp || 0) + xpDiff;
-            const newGold = (currentStats.gold || 0) + goldDiff;
-            
+        // 6. Update User Stats, Limits and Attributes via TransactionService
+        if (user?.uid) {
+            const today = toLocalISOString(new Date());
+            const isNewDay = dailyLimits.date !== today;
+
+            let newXp = player.xp + xpDiff;
+            if (newXp < 0) newXp = 0;
             const newLevel = calculateLevelFromXp(newXp);
             const newNextXp = calculateNextLevelXp(newLevel);
 
-            updateDoc(userRef, {
-                'stats.xp': newXp,
-                'stats.gold': newGold,
-                'stats.level': newLevel,
-                'stats.nextXp': newNextXp
-            }).catch(console.error);
+            let newLimits = { ...dailyLimits };
+            if (isNewDay) {
+                newLimits = { 
+                    date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
+                    habitsCompleted: 0, tasksCompleted: 0, notesCompleted: 0,
+                    habitXp: 0, habitGold: 0, habitTraitPoints: 0,
+                    focusSeconds: Math.max(0, durationDiff),
+                    focusXp: Math.max(0, xpDiff), 
+                    focusGold: Math.max(0, goldDiff), 
+                    focusTraitPoints: Math.max(0, tpDiff)
+                };
+            } else {
+                newLimits.focusSeconds = Math.max(0, (newLimits.focusSeconds || 0) + durationDiff);
+                newLimits.focusXp = Math.max(0, (newLimits.focusXp || 0) + xpDiff);
+                newLimits.focusGold = Math.max(0, (newLimits.focusGold || 0) + goldDiff);
+                newLimits.focusTraitPoints = Math.max(0, (newLimits.focusTraitPoints || 0) + tpDiff);
+            }
+            setDailyLimits(newLimits);
+
+            if (project.attribute) {
+                const attrIndex = attributes.findIndex(a => a.id === project.attribute);
+                if (attrIndex !== -1) {
+                    const attr = attributes[attrIndex];
+                    let newAttrXp = Math.max(0, attr.xp + tpDiff);
+                    setAttributes(prev => prev.map(a => 
+                        a.id === project.attribute ? { ...a, xp: newAttrXp } : a
+                    ));
+                }
+            }
+
+            setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + goldDiff), level: newLevel, nextXp: newNextXp }));
 
             if (xpDiff !== 0 || goldDiff !== 0) {
-                 // Use Smart Reward Overlay for adjustment feedback
                  triggerReward(
                     'Session Adjusted', 
                     xpDiff, 
                     goldDiff, 
-                    { xp: newXp, level: newLevel, gold: newGold }, 
-                    { level: currentStats.level }
+                    { xp: newXp, level: newLevel, gold: Math.max(0, player.gold + goldDiff) }, 
+                    { level: player.level }
                  );
             }
-        }
-        
-        // 7. Update Daily Limits (Only if Today)
-        // const sessionDateObj is already defined above
-        // const isToday is already defined above
-        
-        if (isToday) {
-            const todayStr = new Date().toDateString();
-            let totalSeconds = 0;
-            let totalXp = 0;
-            let totalGold = 0;
-            let totalTP = 0;
 
-            for (const proj of nextProjects) {
-                for (const s of proj.sessions || []) {
-                    const sDate = new Date(s.date);
-                    if (sDate.toDateString() !== todayStr) continue;
-                    const duration = Number.isFinite(s?.duration) ? Math.max(0, s?.duration ?? 0) : 0;
-                    totalSeconds += duration;
-                    totalXp += Number.isFinite(s?.xpEarned) ? (s?.xpEarned ?? 0) : 0;
-                    totalGold += Number.isFinite(s?.goldEarned) ? (s?.goldEarned ?? 0) : 0;
-                    totalTP += Number.isFinite(s?.traitPointsEarned) ? (s?.traitPointsEarned ?? 0) : 0;
-                }
-            }
-
-            const newLimits = {
-                ...(dailyLimits || {}),
-                focusSeconds: Math.max(0, totalSeconds),
-                focusMinutes: Math.max(0, totalSeconds / 60),
-                focusXp: Math.max(0, totalXp),
-                focusGold: Math.max(0, totalGold),
-                focusTraitPoints: Math.max(0, totalTP)
-            } as any; // Cast to any to avoid partial type issues if dailyLimits is undefined initially
-
-            setDailyLimits(newLimits);
-
-            if (user?.uid) {
-                const userRef = doc(db, 'users', user.uid);
-                updateDoc(userRef, { dailyLimits: newLimits }).catch(console.error);
-            }
+            TransactionService.logFocusSession(
+                user.uid,
+                durationDiff,
+                xpDiff,
+                goldDiff,
+                tpDiff,
+                project.attribute || null,
+                isNewDay,
+                newLevel,
+                newNextXp
+            ).catch(console.error);
         }
 
-    }, [projects, dailyLimits, user, addNotification]);
+    }, [projects, dailyLimits, user, addNotification, triggerReward]);
 
     const completeQuest = useCallback(async (e: React.MouseEvent, quest: Quest) => { 
         e.stopPropagation();
@@ -2308,7 +2484,7 @@ export const useDashboardLogic = () => {
         let isReversal = false;
         const multipliers: Record<string, number> = { 'C': 1, 'B': 2, 'A': 3, 'S': 4 };
         const impact = multipliers[quest.difficulty] || 1;
-        const calculatedReward = calculateTaskRewards(quest.estimatedTime, impact);
+        const calculatedReward = calculateTaskRewards(quest.estimatedTime, impact, 0, 'TASK');
         const baseXp = Number.isFinite(quest.xpReward) ? quest.xpReward : calculatedReward.xp;
         const baseGold = Number.isFinite(quest.gold) ? quest.gold : calculatedReward.coins;
 
@@ -2343,27 +2519,18 @@ export const useDashboardLogic = () => {
             spawnParticles(originX, originY, attr?.color || '#fff', AttrIcon, 'icon', 'profile-avatar-target');
             if(navigator.vibrate) navigator.vibrate(10); 
             
-            // Calc Rewards with Limits
-            const today = toLocalISOString(new Date());
-            let currentLimits = dailyLimits;
-            if (currentLimits.date !== today) {
-                currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
-            }
-
-            const availableXp = Math.max(0, DAILY_LIMITS.TASKS.XP - currentLimits.taskXp);
-            const availableGold = Math.max(0, DAILY_LIMITS.TASKS.GOLD - currentLimits.taskGold);
-            const availableTraitXp = Math.max(0, DAILY_LIMITS.TASKS.TRAIT_POINTS - currentLimits.taskTraitPoints);
+            // Calc Rewards without Limits to ensure exact rewards are given
             
             const rawXp = baseXp;
             const rawGold = baseGold;
             // SYNC FIX: Use 1:1 ratio for TP to match RewardCalculator and allow reaching the 350 TP limit
             const rawTraitXp = rawXp; 
 
-            rewardXp = Math.min(rawXp, availableXp);
-            rewardGold = Math.min(rawGold, availableGold);
-            rewardTraitXp = Math.min(rawTraitXp, availableTraitXp);
+            rewardXp = rawXp;
+            rewardGold = rawGold;
+            rewardTraitXp = rawTraitXp;
             
-            console.log(`[QUEST] Awarding: XP=${rewardXp}, Gold=${rewardGold}`);
+            console.log(`[QUEST] Awarding EXACT: XP=${rewardXp}, Gold=${rewardGold}`);
 
             newQuest = { 
                 ...quest, 
@@ -2495,7 +2662,7 @@ export const useDashboardLogic = () => {
                  const today = toLocalISOString(new Date());
                  let currentLimits = dailyLimits;
                  if (currentLimits.date !== today) {
-                    currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
+                    currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, focusXp: 0, focusGold: 0, focusTraitPoints: 0 };
                 }
                 const newLimits = {
                     ...currentLimits,
@@ -2525,57 +2692,78 @@ export const useDashboardLogic = () => {
             }
 
             // 2. Secure Persistence (TransactionService)
-            await TransactionService.toggleQuestCompletion(
+            const today = toLocalISOString(new Date());
+            const isNewDay = dailyLimits.date !== today;
+            let newXp = player.xp + rewardXp;
+            if (newXp < 0) newXp = 0;
+            const newLevel = calculateLevelFromXp(newXp);
+            const newNextXp = calculateNextLevelXp(newLevel);
+
+            TransactionService.toggleQuestCompletion(
                 userId, 
                 quest.id, 
                 newQuest.completed, 
                 rewardXp, 
                 rewardGold, 
-                rewardTraitXp
-            );
+                rewardTraitXp,
+                isNewDay,
+                newLevel,
+                newNextXp,
+                quest.attribute
+            ).catch(e => {
+                console.error("Failed to sync quest (Transaction)", e);
+            });
 
         } catch (e) {
-            console.error("Failed to sync quest (Transaction)", e);
-            // Ideally: Revert UI state here or show toast
+            console.error("Failed to process quest", e);
         }
 
     }, [attributes, spawnParticles, calculateNextXp, user, dailyLimits, player]);
 
     // --- HELPER: APPLY HABIT REWARDS ---
     const applyHabitRewards = useCallback(async (habit: Habit, isReversal: boolean, isQuantityCompletion: boolean = false) => {
+        // Removido el filtro de "Solo proyectos" a petición del usuario.
+        // Ahora TODOS los hábitos de la zona de hábitos dan recompensa.
         const today = toLocalISOString(new Date());
         let rewardXp = 0;
         let rewardGold = 0;
         let rewardTraitXp = 0;
 
         if (isReversal) {
-            // REVERSAL LOGIC: Use exact same calculator to prevent XP farming
-            const originalStreak = Math.max(0, (habit.streak || 0) - (isQuantityCompletion ? 0 : 1)); 
-            const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, originalStreak);
-            rewardXp = -prediction.xp;
-            rewardGold = -prediction.coins;
-            rewardTraitXp = -prediction.traitXp;
+            // REVERSAL LOGIC: Use stored rewards if available (Farming Fix), otherwise calculate
+            if (typeof habit.rewardedXp === 'number' && typeof habit.rewardedGold === 'number') {
+                rewardXp = -habit.rewardedXp;
+                rewardGold = -habit.rewardedGold;
+                // Approximate trait XP if not stored (usually 40-50% of XP)
+                const originalStreak = Math.max(0, (habit.streak || 0) - (isQuantityCompletion ? 0 : 1));
+                const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, originalStreak, 'HABIT');
+                rewardTraitXp = -prediction.traitXp;
+            } else {
+                // Fallback (Legacy behavior)
+                const originalStreak = Math.max(0, (habit.streak || 0) - (isQuantityCompletion ? 0 : 1)); 
+                const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, originalStreak, 'HABIT');
+                
+                rewardXp = -prediction.xp;
+                rewardGold = -prediction.coins;
+                rewardTraitXp = -prediction.traitXp;
+            }
         } else {
             // COMPLETION LOGIC
             let currentLimits = dailyLimits;
             if (currentLimits.date !== today) {
                 currentLimits = { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 };
             }
-            const habitsDone = currentLimits.habitsCompleted || 0;
-            const isRewardable = habitsDone < DAILY_LIMITS.HABITS.MAX_COUNT;
-
-            if (isRewardable) {
-                const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak);
-                rewardXp = prediction.xp;
-                rewardGold = prediction.coins;
-                rewardTraitXp = prediction.traitXp;
-            } else {
-                addNotification({ type: 'SYSTEM', label: 'LIMIT REACHED', fromLevel: '10/10', toLevel: 'No XP', icon: InfinityIcon, color: '#ef4444' });
-                return; // Don't apply rewards if limit reached
-            }
+            
+            // REMOVED MAX_COUNT LIMIT to ensure exact rewards are always given
+            const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak, 'HABIT');
+            rewardXp = prediction.xp;
+            rewardGold = prediction.coins;
+            rewardTraitXp = prediction.traitXp;
         }
 
-        if (rewardXp === 0 && rewardGold === 0 && rewardTraitXp === 0) return;
+        if (rewardXp === 0 && rewardGold === 0 && rewardTraitXp === 0) {
+            return { rewardXp: 0, rewardGold: 0, rewardTraitXp: 0, traitUpdate: undefined };
+        }
 
         // Apply Player Stats
         let newXp = player.xp + rewardXp;
@@ -2617,8 +2805,11 @@ export const useDashboardLogic = () => {
         // Apply Daily Limits
         if (!isReversal) {
             const newLimits = { 
-                ...(dailyLimits.date === today ? dailyLimits : { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0 }), 
-                habitsCompleted: (dailyLimits.habitsCompleted || 0) + 1 
+                ...(dailyLimits.date === today ? dailyLimits : { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, focusXp: 0, focusGold: 0, focusTraitPoints: 0, habitXp: 0, habitGold: 0, habitTraitPoints: 0 }), 
+                habitsCompleted: (dailyLimits.habitsCompleted || 0) + 1,
+                habitXp: (dailyLimits.habitXp || 0) + rewardXp,
+                habitGold: (dailyLimits.habitGold || 0) + rewardGold,
+                habitTraitPoints: (dailyLimits.habitTraitPoints || 0) + rewardTraitXp
             };
             setDailyLimits(newLimits);
             
@@ -2629,15 +2820,15 @@ export const useDashboardLogic = () => {
         } else {
             const newLimits = { 
                 ...dailyLimits, 
-                habitsCompleted: Math.max(0, (dailyLimits.habitsCompleted || 0) - 1) 
+                habitsCompleted: Math.max(0, (dailyLimits.habitsCompleted || 0) - 1),
+                habitXp: Math.max(0, (dailyLimits.habitXp || 0) + rewardXp), // rewardXp is negative
+                habitGold: Math.max(0, (dailyLimits.habitGold || 0) + rewardGold),
+                habitTraitPoints: Math.max(0, (dailyLimits.habitTraitPoints || 0) + rewardTraitXp)
             };
             setDailyLimits(newLimits);
         }
 
-        // Persistence Sync (Only for stats, habit state is handled by caller)
-        if (user?.uid) {
-             TransactionService.awardExperience(user.uid, rewardXp, rewardGold);
-        }
+        return { rewardXp, rewardGold, rewardTraitXp, traitUpdate };
     }, [player, attributes, dailyLimits, user, addNotification, calculateLevelFromXp, calculateNextLevelXp, triggerReward]);
 
     const handleHabitClick = useCallback(async (e: React.MouseEvent, habit: Habit) => {
@@ -2653,11 +2844,18 @@ export const useDashboardLogic = () => {
 
         // 2. CALCULATE NEW STATE
         const todayHistory = toLocalISOString(new Date());
-        let newHabit = { ...habit };
         let isReversal = false;
         
         if (habit.completedToday) {
             isReversal = true;
+        }
+
+        // 3. APPLY REWARDS (Before state update to get the values)
+        const rewards = await applyHabitRewards(habit, isReversal);
+        
+        let newHabit = { ...habit };
+
+        if (isReversal) {
             const originalStreak = Math.max(0, (habit.streak || 0) - 1);
             const newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== todayHistory);
             newHabit = {
@@ -2665,7 +2863,9 @@ export const useDashboardLogic = () => {
                 completedToday: false,
                 streak: originalStreak,
                 totalCompletions: Math.max(0, (habit.totalCompletions || 0) - 1),
-                history: newHistory
+                history: newHistory,
+                rewardedXp: 0, // Reset to 0 instead of undefined for Firestore safety
+                rewardedGold: 0
             };
         } else {
             newHabit = {
@@ -2673,35 +2873,49 @@ export const useDashboardLogic = () => {
                 completedToday: true,
                 streak: (habit.streak || 0) + 1,
                 totalCompletions: (habit.totalCompletions || 0) + 1,
-                history: [...(habit.history || []), todayHistory]
+                history: [...(habit.history || []), todayHistory],
+                rewardedXp: rewards.rewardXp,
+                rewardedGold: rewards.rewardGold
             };
         }
 
-        // 3. OPTIMISTIC UI UPDATES
+        // 4. OPTIMISTIC UI UPDATES
         setHabits(prev => prev.map(h => h.id === habit.id ? newHabit : h));
 
-        // 4. APPLY REWARDS & PERSISTENCE
+        // 5. ATOMIC PERSISTENCE
         try {
-            await applyHabitRewards(habit, isReversal);
-
             if (user?.uid) {
+                const isNewDay = dailyLimits.date !== todayHistory;
+                let newXp = player.xp + rewards.rewardXp;
+                if (newXp < 0) newXp = 0;
+                const newLevel = calculateLevelFromXp(newXp);
+                const newNextXp = calculateNextLevelXp(newLevel);
+
                 await TransactionService.toggleHabitCompletion(
                     user.uid,
                     habit.id,
                     newHabit.completedToday,
-                    0, 0, 0, // Stats already handled by applyHabitRewards
+                    rewards.rewardXp, 
+                    rewards.rewardGold, 
+                    rewards.rewardTraitXp,
                     {
                         completedToday: newHabit.completedToday,
                         streak: newHabit.streak,
                         totalCompletions: newHabit.totalCompletions,
-                        history: newHabit.history
-                    }
+                        history: newHabit.history,
+                        rewardedXp: newHabit.rewardedXp,
+                        rewardedGold: newHabit.rewardedGold
+                    },
+                    isNewDay,
+                    newLevel,
+                    newNextXp,
+                    habit.attribute
                 );
             }
         } catch (err) {
             console.error("❌ HABIT ATOMIC SYNC FAILED:", err);
         }
-    }, [user, habits, applyHabitRewards, spawnParticles]);
+    }, [user, habits, applyHabitRewards, spawnParticles, dailyLimits.date, player.xp]);
 
     const validateHabitProgress = async () => {
         if (!validationHabit) return;
@@ -2718,9 +2932,10 @@ export const useDashboardLogic = () => {
         }
 
         const todayHistory = toLocalISOString(new Date());
+        let rewards = { rewardXp: 0, rewardGold: 0, rewardTraitXp: 0 };
 
         if (isComplete) {
-            await applyHabitRewards(validationHabit, false, true);
+            rewards = await applyHabitRewards(validationHabit, false, true);
         }
 
         setHabits(prev => prev.map(h => {
@@ -2732,7 +2947,9 @@ export const useDashboardLogic = () => {
                         streak: h.streak + 1, 
                         totalCompletions: h.totalCompletions + 1, 
                         currentValue: newCurrentValue,
-                        history: [...(h.history || []), todayHistory]
+                        history: [...(h.history || []), todayHistory],
+                        rewardedXp: rewards.rewardXp,
+                        rewardedGold: rewards.rewardGold
                     };
                 }
                 return { ...h, currentValue: newCurrentValue }; 
@@ -2742,13 +2959,34 @@ export const useDashboardLogic = () => {
 
         if (user?.uid) {
             if (isComplete) {
-                persistenceService.habits.update(user.uid, validationHabit.id, { 
-                    completedToday: true, 
-                    streak: validationHabit.streak + 1, 
-                    totalCompletions: validationHabit.totalCompletions + 1, 
-                    currentValue: newCurrentValue,
-                    history: [...(validationHabit.history || []), todayHistory]
-                });
+                const isNewDay = dailyLimits.date !== todayHistory;
+                let newXp = player.xp + rewards.rewardXp;
+                if (newXp < 0) newXp = 0;
+                const newLevel = calculateLevelFromXp(newXp);
+                const newNextXp = calculateNextLevelXp(newLevel);
+
+                // Use Atomic Transaction for consistency
+                TransactionService.toggleHabitCompletion(
+                    user.uid,
+                    validationHabit.id,
+                    true,
+                    rewards.rewardXp,
+                    rewards.rewardGold,
+                    rewards.rewardTraitXp,
+                    { 
+                        completedToday: true, 
+                        streak: validationHabit.streak + 1, 
+                        totalCompletions: validationHabit.totalCompletions + 1, 
+                        currentValue: newCurrentValue,
+                        history: [...(validationHabit.history || []), todayHistory],
+                        rewardedXp: rewards.rewardXp,
+                        rewardedGold: rewards.rewardGold
+                    },
+                    isNewDay,
+                    newLevel,
+                    newNextXp,
+                    validationHabit.attribute
+                );
             } else {
                 persistenceService.habits.update(user.uid, validationHabit.id, { 
                     currentValue: newCurrentValue 
@@ -2760,15 +2998,6 @@ export const useDashboardLogic = () => {
     };
 
     const handleQuestConfirm = useCallback((questData: Partial<Quest>) => {
-        // LIMIT CHECK: Tasks
-        if (user?.plan !== 'PRO') {
-            const activeQuests = quests.filter(q => !q.completed);
-            if (!questData.id && activeQuests.length >= FREE_LIMITS.ACTIVE_TASKS) {
-                setActiveModal('PRO');
-                return;
-            }
-        }
-
         // If ID exists, it's an update. If not, it's a create.
         const quest: Quest = questData.id 
             ? questData as Quest 
@@ -2790,6 +3019,19 @@ export const useDashboardLogic = () => {
             if (exists) return prev.map(q => q.id === quest.id ? quest : q);
             return [...prev, quest];
         });
+
+        // Schedule Notification Reminder for Task with Deadline
+        if (quest.deadline && quest.id) {
+            try {
+                const deadlineDate = new Date(quest.deadline);
+                if (!isNaN(deadlineDate.getTime())) {
+                    notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate);
+                }
+            } catch (e) {
+                console.warn("Failed to schedule task notification:", e);
+            }
+        }
+
         if (user?.uid) {
             persistenceService.quests.save(user.uid, quest);
         }
@@ -2810,7 +3052,8 @@ export const useDashboardLogic = () => {
     const handleHabitConfirm = useCallback((data: Partial<Habit>) => {
         // LIMIT CHECK: Habits
         if (user?.plan !== 'PRO') {
-            if (!data.id && habits.length >= FREE_LIMITS.HABITS) {
+            const activeHabitsCount = habits.filter(h => !h.archived && !h.completedToday).length;
+            if (!data.id && activeHabitsCount >= FREE_LIMITS.HABITS) {
                 setActiveModal('PRO');
                 return;
             }
@@ -2866,6 +3109,52 @@ export const useDashboardLogic = () => {
         const todayHistory = toLocalISOString(new Date());
         const todayKey = getHistoryDateKey(todayHistory);
 
+        // ARCHIVE LOGIC: Update Daily Limits if archiving/unarchiving a completed habit
+        if (data.archived !== undefined && user?.uid) {
+            // Anti-cheat limit check for unarchiving
+            if (data.archived === false && user?.plan !== 'PRO') {
+                const activeHabitsCount = habits.filter(h => !h.archived && !h.completedToday).length;
+                if (activeHabitsCount >= FREE_LIMITS.HABITS) {
+                    setActiveModal('PRO');
+                    return;
+                }
+            }
+
+            const habit = habits.find(h => h.id === habitId);
+            if (habit?.completedToday) {
+                const isArchiving = data.archived;
+                const change = isArchiving ? -1 : 1;
+                
+                // Update Local State
+                setDailyLimits(prev => ({
+                    ...prev,
+                    habitsCompleted: Math.max(0, (prev.habitsCompleted || 0) + change)
+                }));
+
+                // Update Firestore
+                try {
+                    const userRef = doc(db, 'users', user.uid);
+                    // Optimistic update using the calculated value since we don't have increment imported in this scope (or maybe we do?)
+                    // To be safe and consistent with handleDeleteHabit:
+                    // We can't easily access the latest Firestore value here without a transaction/get.
+                    // But we can use the local calculated value if we trust it, or use increment if available.
+                    // Let's use the local value derived from prev state in setter, but here we need the value.
+                    // Actually, we can just assume the local state is reasonably up to date for this user action.
+                    
+                    // We'll use updateDoc. Note: dailyLimits is a nested object.
+                    // If we use dot notation 'dailyLimits.habitsCompleted', it works.
+                    // We need to calculate the new value.
+                    const newCount = Math.max(0, (dailyLimits.habitsCompleted || 0) + change);
+                    
+                    await updateDoc(userRef, {
+                        'dailyLimits.habitsCompleted': newCount
+                    });
+                } catch (e) {
+                    console.error("Failed to update daily limits on archive", e);
+                }
+            }
+        }
+
         let habitToReward: Habit | null = null;
         let isReversal = false;
 
@@ -2917,21 +3206,85 @@ export const useDashboardLogic = () => {
             return next;
         }));
 
-        // Handle Rewards and Persistence
-        if (habitToReward) {
-            await applyHabitRewards(habitToReward as Habit, isReversal, true);
-        }
+        // Handle Rewards and Persistence Atomically
+        if (habitToReward && user?.uid) {
+            const currentHabit = habitToReward as Habit;
+            const isNowCompleted = !isReversal;
+            // First get the rewards calculation locally to apply to TransactionService
+            const today = toLocalISOString(new Date());
+            let rewardXp = 0;
+            let rewardGold = 0;
+            let rewardTraitXp = 0;
 
-        if (user?.uid) {
-            // Find the updated habit to persist full state
+            if (isReversal) {
+                if (typeof currentHabit.rewardedXp === 'number' && typeof currentHabit.rewardedGold === 'number') {
+                    rewardXp = -currentHabit.rewardedXp;
+                    rewardGold = -currentHabit.rewardedGold;
+                    const originalStreak = Math.max(0, (currentHabit.streak || 0) - (currentHabit.type === 'QUANTITY' || currentHabit.type === 'CHECKLIST' ? 0 : 1));
+                    const prediction = calculateTaskRewards(currentHabit.estimatedTime, currentHabit.impact, originalStreak, 'HABIT');
+                    rewardTraitXp = -prediction.traitXp;
+                } else {
+                    const originalStreak = Math.max(0, (currentHabit.streak || 0) - (currentHabit.type === 'QUANTITY' || currentHabit.type === 'CHECKLIST' ? 0 : 1)); 
+                    const prediction = calculateTaskRewards(currentHabit.estimatedTime, currentHabit.impact, originalStreak, 'HABIT');
+                    rewardXp = -prediction.xp;
+                    rewardGold = -prediction.coins;
+                    rewardTraitXp = -prediction.traitXp;
+                }
+            } else {
+                const prediction = calculateTaskRewards(currentHabit.estimatedTime, currentHabit.impact, currentHabit.streak, 'HABIT');
+                rewardXp = prediction.xp;
+                rewardGold = prediction.coins;
+                rewardTraitXp = prediction.traitXp;
+            }
+
+            const updatedHabit = habits.find(h => h.id === habitId);
+            if (updatedHabit) {
+                const finalData = { 
+                    ...updatedHabit, 
+                    ...data,
+                    completedToday: isNowCompleted,
+                    rewardedXp: isNowCompleted ? rewardXp : 0,
+                    rewardedGold: isNowCompleted ? rewardGold : 0
+                };
+                
+                // Save habit state first to be safe, though toggleHabitCompletion will update it
+                persistenceService.habits.update(user.uid, habitId, finalData as Habit).catch(console.error);
+
+                const isNewDay = dailyLimits.date !== today;
+                let newXp = player.xp + rewardXp;
+                if (newXp < 0) newXp = 0;
+                const newLevel = calculateLevelFromXp(newXp);
+                const newNextXp = calculateNextLevelXp(newLevel);
+
+                // Optimistic UI updates
+                setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rewardGold), level: newLevel, nextXp: newNextXp }));
+                if (rewardXp > 0 || rewardGold > 0) {
+                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 });
+                }
+
+                TransactionService.toggleHabitCompletion(
+                    user.uid,
+                    habitId,
+                    isNowCompleted,
+                    rewardXp,
+                    rewardGold,
+                    rewardTraitXp,
+                    finalData,
+                    isNewDay,
+                    newLevel,
+                    newNextXp,
+                    currentHabit.attribute
+                ).catch(console.error);
+            }
+        } else if (user?.uid) {
+            // Find the updated habit to persist full state (No completion change)
             const updatedHabit = habits.find(h => h.id === habitId);
             if (updatedHabit) {
                 const finalData = { ...updatedHabit, ...data };
-                // Ensure streak/completions/history are included if they changed
                 persistenceService.habits.update(user.uid, habitId, finalData as Habit).catch(console.error);
             }
         }
-    }, [user?.uid, habits, applyHabitRewards]);
+    }, [user?.uid, habits, dailyLimits, applyHabitRewards, triggerReward]);
 
     const handleDeleteHabit = useCallback(async (habitId: string) => {
         if (!user) return;
@@ -3019,8 +3372,8 @@ export const useDashboardLogic = () => {
         // 1. Generate ID (Stable)
         const nextId = projectData.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `proj-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
         
-        let resolvedProject: Project | null = null;
         let blockedByLimit = false;
+        const resolvedProjectRef = { current: null as Project | null };
 
         projectsHydratedRef.current = true;
 
@@ -3030,16 +3383,24 @@ export const useDashboardLogic = () => {
 
             // LIMIT CHECK (Only for NEW projects)
             if (user?.plan !== 'PRO' && !isUpdate) {
-                const activeCount = prev.filter(p => !p.deleted).length;
-                // Use a safer default if FREE_LIMITS.PROJECTS is undefined
+                const activeCount = prev.filter(p => !p.deleted && !p.archived).length;
                 const maxProjects = FREE_LIMITS.PROJECTS || 3; 
                 if (activeCount >= maxProjects) {
                     blockedByLimit = true;
-                    return prev; // Return previous state unchanged
+                    return prev;
                 }
             }
 
+            // LIMIT CHECK FOR UNARCHIVING
             const existing = prev.find(p => p.id === nextId);
+            if (user?.plan !== 'PRO' && isUpdate && existing?.archived && projectData.archived === false) {
+                const activeCount = prev.filter(p => !p.deleted && !p.archived).length;
+                const maxProjects = FREE_LIMITS.PROJECTS || 3; 
+                if (activeCount >= maxProjects) {
+                    blockedByLimit = true;
+                    return prev;
+                }
+            }
             
             const baseProject: Project = {
                 id: nextId,
@@ -3072,7 +3433,7 @@ export const useDashboardLogic = () => {
                     id: nextId // Ensure ID is set
                 };
 
-            resolvedProject = nextProject;
+            resolvedProjectRef.current = nextProject;
 
             // Optimistic Update
             const nextProjects = existing
@@ -3089,6 +3450,15 @@ export const useDashboardLogic = () => {
             console.warn("⚠️ Project creation blocked by plan limits");
             setActiveModal('PRO');
             return;
+        }
+
+        const resolvedProject = resolvedProjectRef.current;
+        // Schedule Notification Reminder for Project
+        if (resolvedProject?.reminder && resolvedProject.id) {
+            const days = resolvedProject.workingDays && resolvedProject.workingDays.length > 0
+                ? resolvedProject.workingDays
+                : [0, 1, 2, 3, 4, 5, 6];
+            notificationService.scheduleProjectReminder(resolvedProject.id, resolvedProject.title, resolvedProject.reminder, days);
         }
 
         // Async Save (Outside State Update)
@@ -3197,16 +3567,46 @@ export const useDashboardLogic = () => {
     }, [user?.uid]);
 
     const handleUpdateProject = useCallback((updatedProject: Project) => {
-        projectsHydratedRef.current = true;
-        
+        let blockedByLimit = false;
+
         setProjects(prev => {
+            const existing = prev.find(p => p.id === updatedProject.id);
+            
+            // LIMIT CHECK FOR UNARCHIVING
+            if (user?.plan !== 'PRO' && existing?.archived && updatedProject.archived === false) {
+                const activeCount = prev.filter(p => !p.deleted && !p.archived).length;
+                const maxProjects = FREE_LIMITS.PROJECTS || 3; 
+                if (activeCount >= maxProjects) {
+                    blockedByLimit = true;
+                    return prev;
+                }
+            }
+
             const nextProjects = prev.map(p => p.id === updatedProject.id ? updatedProject : p);
             if (user?.uid) {
                 saveProjectsCache(user.uid, nextProjects);
             }
             return nextProjects;
         });
-        
+
+        if (blockedByLimit) {
+            console.warn("⚠️ Project unarchive blocked by plan limits");
+            setActiveModal('PRO');
+            return;
+        }
+
+        projectsHydratedRef.current = true;
+
+        // Update Notification Schedule
+        if (updatedProject.reminder && updatedProject.id) {
+            const days = updatedProject.workingDays && updatedProject.workingDays.length > 0
+                ? updatedProject.workingDays
+                : [0, 1, 2, 3, 4, 5, 6];
+            notificationService.scheduleProjectReminder(updatedProject.id, updatedProject.title, updatedProject.reminder, days);
+        } else {
+            notificationService.cancelProjectReminder(updatedProject.id);
+        }
+
         if (user?.uid) {
             projectService.saveProject(user.uid, updatedProject).catch(console.error);
         }
@@ -3241,13 +3641,6 @@ export const useDashboardLogic = () => {
     // --- NOTE & SMART PROJECT STUBS (To Fix Dashboard Types) ---
     // These are required by Dashboard but might not be fully implemented in this hook yet.
     // We add basic implementations or state holders.
-
-    const [notes, setNotes] = useState<any[]>([]); // Replace 'any' with Note type if available
-
-    const handleAddNote = useCallback(async (note: any) => {
-        // Basic stub
-        setNotes(prev => [...prev, { ...note, id: Date.now().toString() }]);
-    }, []);
 
     const handleUpdateSmartProject = useCallback(async (project: SmartProject) => {
         const oldProject = smartProjects.find(p => p.id === project.id);
@@ -3317,9 +3710,8 @@ export const useDashboardLogic = () => {
                          return next;
                      });
                      
-                     // Persist Trait
-                     const attrRef = doc(db, 'users', user.uid, 'attributes', attr.id);
-                     setDoc(attrRef, { xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp }, { merge: true }).catch(console.error);
+                     // Persist Trait Atomically
+                     TransactionService.updateAttributeXpAtomic(user.uid, attr.id, traitXpGained).catch(console.error);
 
                      traitUpdateData = { 
                          id: attr.id, 
@@ -3333,14 +3725,8 @@ export const useDashboardLogic = () => {
                  }
              }
              
-             // 4. Persist Player Stats
-             const userRef = doc(db, 'users', user.uid);
-             updateDoc(userRef, {
-                 'stats.xp': newXp,
-                 'stats.gold': newGold,
-                 'stats.level': newLevel,
-                 'stats.nextXp': nextXp
-             }).catch(console.error);
+             // 4. Persist Player Stats Atomically
+             TransactionService.awardExperience(user.uid, xp, gold, newLevel).catch(console.error);
              
              // 5. Trigger Visual Reward
              triggerReward(
@@ -3402,41 +3788,91 @@ export const useDashboardLogic = () => {
     const handleBadHabitRelapse = useCallback(async (habit: BadHabit, paymentMethod: 'GOLD' | 'HP') => {
         if (!user?.uid) return;
 
-        const penalty = habit.penalties;
         const today = new Date().toISOString();
+        const isIntelligent = habit.intelligentStreak;
+        let updatedHabit: BadHabit;
 
-        if (paymentMethod === 'GOLD') {
-             addPlayerGold(-penalty.gold);
-        } else {
-            const newHealth = Math.max(0, health - penalty.hp);
-            setHealth(newHealth);
+        if (isIntelligent) {
+            const currentTarget = habit.currentTarget || 3;
+            const reachedDays = habit.reachedDays || 0;
+            const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
 
-            // 🛡️ IMMEDIATE PERSISTENCE: Save HP instantly to prevent refresh loss
-            if (user?.uid) {
-                const cached = PersistenceService.getProfile(user.uid);
-                if (cached) {
-                    PersistenceService.saveProfile({
-                        ...cached,
-                        stats: { ...cached.stats, hp: newHealth }
-                    });
+            if (reachedDays === currentTarget) {
+                const nextTargetIndex = Math.min(targetIndex + 1, STREAK_TARGETS.length - 1);
+                updatedHabit = {
+                    ...habit,
+                    reachedDays: 0,
+                    currentTarget: STREAK_TARGETS[nextTargetIndex],
+                    relapsedToday: true,
+                    history: [...habit.history, today]
+                };
+            } else {
+                const previousTargetIndex = Math.max(targetIndex - 1, 0);
+                const previousTarget = STREAK_TARGETS[previousTargetIndex];
+
+                const penalty = habit.penalties;
+                const hpPenalty = Math.max(1, Math.floor(penalty.hp * 0.5));
+                const newHealth = Math.max(1, health - hpPenalty);
+                setHealth(newHealth);
+
+                if (user?.uid) {
+                    const cached = PersistenceService.getProfile(user.uid);
+                    if (cached) {
+                        PersistenceService.saveProfile({
+                            ...cached,
+                            stats: { ...cached.stats, hp: newHealth }
+                        });
+                    }
+                    TransactionService.updateStat(user.uid, 'hp', -hpPenalty, true).catch(console.error);
                 }
+
+                addPlayerReward({
+                    xp: -penalty.xp,
+                    gold: 0
+                });
+                updateAttributeXp(habit.attribute, -penalty.xp);
+
+                updatedHabit = {
+                    ...habit,
+                    reachedDays: 0,
+                    currentTarget: previousTarget,
+                    relapsedToday: true,
+                    history: [...habit.history, today]
+                };
             }
-            
-            addPlayerReward({ 
-                xp: -penalty.xp, 
-                gold: 0
-            });
-            updateAttributeXp(habit.attribute, -penalty.xp);
+        } else {
+            const penalty = habit.penalties;
+            if (paymentMethod === 'GOLD') {
+                addPlayerGold(-penalty.gold);
+            } else {
+                const newHealth = Math.max(0, health - penalty.hp);
+                setHealth(newHealth);
 
-             setDoc(doc(db, 'users', user.uid), { 'stats.hp': newHealth }, { merge: true });
+                if (user?.uid) {
+                    const cached = PersistenceService.getProfile(user.uid);
+                    if (cached) {
+                        PersistenceService.saveProfile({
+                            ...cached,
+                            stats: { ...cached.stats, hp: newHealth }
+                        });
+                    }
+                    TransactionService.updateStat(user.uid, 'hp', -penalty.hp, true).catch(console.error);
+                }
+
+                addPlayerReward({
+                    xp: -penalty.xp,
+                    gold: 0
+                });
+                updateAttributeXp(habit.attribute, -penalty.xp);
+            }
+
+            updatedHabit = {
+                ...habit,
+                streak: 0,
+                relapsedToday: true,
+                history: [...habit.history, today]
+            };
         }
-
-        const updatedHabit: BadHabit = {
-            ...habit,
-            streak: 0,
-            relapsedToday: true,
-            history: [...habit.history, today]
-        };
 
         const newBadHabits = badHabits.map(h => h.id === habit.id ? updatedHabit : h);
         setBadHabits(newBadHabits);
@@ -3444,7 +3880,7 @@ export const useDashboardLogic = () => {
 
         await persistenceService.badHabits.save(user.uid, updatedHabit);
 
-    }, [user?.uid, health, addPlayerGold, addPlayerReward, badHabits]);
+    }, [user?.uid, health, addPlayerGold, addPlayerReward, updateAttributeXp, badHabits]);
 
     const handleDeleteBadHabit = useCallback(async (id: string) => {
         if (!user?.uid) return;
@@ -3581,10 +4017,10 @@ export const useDashboardLogic = () => {
         updateHabitSectionControl,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
+        dockConfig,
+        updateDockConfig,
         // updateStickyHud removed
         // New exports
-        notes,
-        handleAddNote,
         handleUpdateSmartProject,
         badHabits,
         handleBadHabitConfirm,
@@ -3596,6 +4032,10 @@ export const useDashboardLogic = () => {
         updateAttributeLevel,
         handleEditSession,
         handleReorderHabits,
-        handleReorderProjects
+        handleReorderProjects,
+        showStreakCelebration,
+        setShowStreakCelebration,
+        weekStartDay,
+        updateWeekStartDay
     };
 };

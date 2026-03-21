@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Key, FileText, CreditCard, Eye, EyeOff, Copy, Plus, Trash2, Shield, Search, ChevronRight, LogOut, ShieldAlert, Settings } from 'lucide-react';
+import { X, Lock, Key, FileText, CreditCard, Eye, EyeOff, Copy, Plus, Trash2, Shield, Search, ChevronLeft, ChevronRight, LogOut, ShieldAlert, Settings } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
+import { hashPin } from '../../../utils/crypto';
 import { SecurityGate } from '../../../components/ui/SecurityGate';
 
 interface SecureItem {
@@ -63,6 +64,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
         
         const savedData = localStorage.getItem('secure_vault_data');
         const savedPin = localStorage.getItem('secure_vault_pin');
+        const savedPinHash = localStorage.getItem('secure_vault_pin_hash');
 
         if (savedData) {
             try {
@@ -75,7 +77,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
             }
         }
 
-        if (!savedPin) {
+        if (!savedPin && !savedPinHash) {
             setIsSetupMode(true);
         }
     }, [isOpen]); // Reload when opened to ensure fresh data
@@ -90,14 +92,17 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
         }
     }, [items, isUnlocked]);
 
-    const handlePinSubmit = (inputPin: string) => {
-        const savedPin = localStorage.getItem('secure_vault_pin');
+    const handlePinSubmit = async (inputPin: string) => {
+        const savedPinHash = localStorage.getItem('secure_vault_pin_hash');
         
         if (isSetupMode) {
             if (setupPin) {
                 // Confirming PIN
                 if (inputPin === setupPin) {
-                    localStorage.setItem('secure_vault_pin', inputPin);
+                    const hashed = await hashPin(inputPin);
+                    localStorage.setItem('secure_vault_pin_hash', hashed);
+                    // Clear plain text legacy pin if exists
+                    localStorage.removeItem('secure_vault_pin');
                     setIsSetupMode(false);
                     setIsUnlocked(true);
                     setPin('');
@@ -115,7 +120,16 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
             }
         } else {
             // Unlocking
-            if (inputPin === savedPin) {
+            // Fallback for legacy plain text PIN during transition
+            const legacyPin = localStorage.getItem('secure_vault_pin');
+            const hashedInput = await hashPin(inputPin);
+            
+            if (savedPinHash === hashedInput || (legacyPin && inputPin === legacyPin)) {
+                if (legacyPin && inputPin === legacyPin) {
+                    // Upgrade to hash silently
+                    localStorage.setItem('secure_vault_pin_hash', hashedInput);
+                    localStorage.removeItem('secure_vault_pin');
+                }
                 setIsUnlocked(true);
                 setPin('');
                 toast.success("Vault Unlocked");
@@ -225,63 +239,81 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
                             description="Enter your 5-digit security code."
                         />
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in zoom-in-95 duration-300">
-                        <div className="mb-4 md:mb-8 relative">
-                            <div className="w-12 h-12 md:w-24 md:h-24 rounded-[16px] md:rounded-[32px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.3)]">
-                                <Lock className="text-white drop-shadow-md w-6 h-6 md:w-10 md:h-10" />
+                        <div className="h-full flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-300 bg-[#050505]">
+                            {/* Background Pattern */}
+                            <div className="absolute inset-0 opacity-10 pointer-events-none">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.1)_0%,transparent_70%)]" />
                             </div>
-                            <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 w-4 h-4 md:w-8 md:h-8 bg-[#111] rounded-full flex items-center justify-center border border-white/10">
-                                <div className="w-1 h-1 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse" />
-                            </div>
-                        </div>
 
-                        <h3 className="text-sm md:text-xl font-bold text-white mb-1 md:mb-2">
-                            {setupPin ? "Confirm PIN" : "Create Vault PIN"}
-                        </h3>
-                        <p className="text-white/40 text-[10px] md:text-sm mb-4 md:mb-8 max-w-[200px] md:max-w-xs text-center leading-relaxed">
-                            Set a 5-digit security code.
-                        </p>
-
-                        {/* PIN Dots */}
-                        <div className="flex gap-2 md:gap-4 mb-4 md:mb-10">
-                            {[...Array(PIN_LENGTH)].map((_, i) => (
-                                <div 
-                                    key={i} 
-                                    className={`w-2 h-2 md:w-4 md:h-4 rounded-full transition-all duration-300 ${
-                                        i < pin.length 
-                                            ? 'bg-emerald-500 scale-110 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                                            : 'bg-white/10'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Numpad */}
-                        <div className="grid grid-cols-3 gap-2 md:gap-4 w-full max-w-[200px] md:max-w-[280px]">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                                <button
-                                    key={num}
-                                    onClick={() => handlePinInput(num.toString())}
-                                    className="h-10 md:h-16 rounded-lg md:rounded-2xl bg-white/5 hover:bg-white/10 active:bg-white/20 transition-all text-base md:text-2xl font-medium text-white flex items-center justify-center"
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                            <div />
-                            <button
-                                onClick={() => handlePinInput('0')}
-                                className="h-10 md:h-16 rounded-lg md:rounded-2xl bg-white/5 hover:bg-white/10 active:bg-white/20 transition-all text-base md:text-2xl font-medium text-white flex items-center justify-center"
+                            <motion.div 
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="w-full max-w-md flex flex-col items-center relative z-10"
                             >
-                                0
-                            </button>
-                            <button
-                                onClick={handleBackspace}
-                                className="h-10 md:h-16 rounded-lg md:rounded-2xl bg-transparent hover:bg-white/5 text-white/40 hover:text-white flex items-center justify-center"
-                            >
-                                <ChevronRight className="rotate-180 w-4 h-4 md:w-6 md:h-6" />
-                            </button>
+                                <div className="mb-10 relative">
+                                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.3)]">
+                                        <Lock className="text-white w-10 h-10" strokeWidth={1.5} />
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#050505] rounded-full flex items-center justify-center border border-white/10">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                    </div>
+                                </div>
+
+                                <h3 className="text-2xl font-black text-white mb-3">
+                                    {setupPin ? "Confirm PIN" : "Create Vault PIN"}
+                                </h3>
+                                <p className="text-white/30 text-[11px] font-bold uppercase tracking-[0.2em] mb-12 max-w-[240px] text-center leading-relaxed">
+                                    Set a 5-digit security code for your private vault.
+                                </p>
+
+                                {/* PIN Dots */}
+                                <div className="flex gap-5 mb-16">
+                                    {[...Array(PIN_LENGTH)].map((_, i) => (
+                                        <motion.div 
+                                            key={i} 
+                                            animate={{
+                                                scale: i < pin.length ? 1.2 : 1,
+                                                backgroundColor: i < pin.length ? '#10b981' : 'transparent',
+                                                borderColor: i < pin.length ? '#10b981' : 'rgba(255,255,255,0.2)',
+                                                boxShadow: i < pin.length ? '0 0 15px rgba(16,185,129,0.5)' : 'none'
+                                            }}
+                                            className="w-3.5 h-3.5 rounded-full border-2 transition-all duration-200"
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Numpad */}
+                                <div className="grid grid-cols-3 gap-x-8 gap-y-6 w-full max-w-[320px]">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                        <motion.button
+                                            key={num}
+                                            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.05)" }}
+                                            whileTap={{ scale: 0.9, backgroundColor: "rgba(255,255,255,0.1)" }}
+                                            onClick={() => handlePinInput(num.toString())}
+                                            className="h-16 w-16 md:h-20 md:w-20 rounded-full border border-white/5 bg-white/[0.03] text-2xl md:text-3xl font-medium text-white flex items-center justify-center transition-colors duration-150"
+                                        >
+                                            {num}
+                                        </motion.button>
+                                    ))}
+                                    <div />
+                                    <motion.button
+                                        whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.05)" }}
+                                        whileTap={{ scale: 0.9, backgroundColor: "rgba(255,255,255,0.1)" }}
+                                        onClick={() => handlePinInput('0')}
+                                        className="h-16 w-16 md:h-20 md:w-20 rounded-full border border-white/5 bg-white/[0.03] text-2xl md:text-3xl font-medium text-white flex items-center justify-center transition-colors duration-150"
+                                    >
+                                        0
+                                    </motion.button>
+                                    <motion.button
+                                        whileTap={{ scale: 0.8 }}
+                                        onClick={handleBackspace}
+                                        className="h-16 w-16 md:h-20 md:w-20 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                                    >
+                                        <ChevronLeft size={32} strokeWidth={1.5} />
+                                    </motion.button>
+                                </div>
+                            </motion.div>
                         </div>
-                    </div>
                     )
                 ) : (
                     <div className="h-full flex flex-col">

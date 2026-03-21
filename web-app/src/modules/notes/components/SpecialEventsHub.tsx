@@ -10,10 +10,14 @@ import { toast } from 'react-hot-toast';
 import { SpecialEvent } from './types';
 import { getNextEventDate } from './utils';
 
+import { FREE_LIMITS } from '../../../config/limits';
+
 interface SpecialEventsHubProps {
     isOpen: boolean;
     onClose: () => void;
     onOpenSettings?: () => void;
+    isPro?: boolean;
+    onOpenPro?: () => void;
 }
 
 const EVENT_TYPES = {
@@ -22,7 +26,7 @@ const EVENT_TYPES = {
     OTHER: { icon: Star, color: '#fbbf24', label: 'Special Day' }
 };
 
-export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings }: SpecialEventsHubProps) => {
+export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpenPro }: SpecialEventsHubProps) => {
     const [events, setEvents] = useState<SpecialEvent[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<SpecialEvent | null>(null);
@@ -111,6 +115,14 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings }: SpecialEve
         isLoaded.current = true;
     }, [isOpen]); // Re-run on open to sync, and mark loaded.
 
+    const handleOpenCreateModal = () => {
+        if (!isPro && events.length >= FREE_LIMITS.NOTES) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
+        setIsCreateModalOpen(true);
+    };
+
     const handleCreateEvent = async (newEvent: SpecialEvent) => {
         setEvents(prev => {
             const exists = prev.find(e => e.id === newEvent.id);
@@ -185,21 +197,21 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings }: SpecialEve
                     </div>
 
                     {/* Fullscreen Header - No HUD */}
-            <div className="pt-safe-top px-6 pb-6 border-b border-white/5 flex justify-between items-end bg-gradient-to-b from-pink-500/5 to-transparent h-32 shrink-0">
-                <div>
+            <div className="pt-safe-top pt-12 px-6 pb-8 border-b border-white/5 flex justify-between items-end bg-gradient-to-b from-pink-500/5 to-transparent h-52 shrink-0">
+                <div className="pb-2">
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 mb-2"
+                        className="flex items-center gap-3 mb-3"
                     >
-                        <div className="p-2 rounded-xl bg-pink-500/10 text-pink-500">
-                            <Gift size={24} />
+                        <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-500">
+                            <Gift size={26} />
                         </div>
-                        <span className="text-xs font-bold text-pink-500 uppercase tracking-widest">Memories</span>
+                        <span className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em]">Memories</span>
                     </motion.div>
-                    <h2 className="text-4xl font-black text-white tracking-tight">Celebrations</h2>
+                    <h2 className="text-5xl font-black text-white tracking-tighter">Celebrations</h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 pb-2">
                     {onOpenSettings && (
                         <button 
                             onClick={onOpenSettings}
@@ -230,7 +242,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings }: SpecialEve
                                     <p className="text-white/40 max-w-xs mx-auto text-lg leading-relaxed">Add birthdays, anniversaries, or special milestones to get personalized reminders.</p>
                                 </div>
                                 <button 
-                                    onClick={() => setIsCreateModalOpen(true)}
+                                    onClick={handleOpenCreateModal}
                                     className="px-10 py-4 bg-white text-black rounded-full font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.2)] text-sm"
                                 >
                                     Add First Event
@@ -240,7 +252,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings }: SpecialEve
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Add Button Card */}
                                 <button 
-                                    onClick={() => setIsCreateModalOpen(true)}
+                                    onClick={handleOpenCreateModal}
                                     className="group relative aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-6 hover:border-white/20"
                                 >
                                     <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner">

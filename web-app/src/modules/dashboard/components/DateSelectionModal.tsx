@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { 
     format, 
     addMonths, 
@@ -14,10 +15,9 @@ import {
     isSameDay, 
     isSameMonth, 
     isSameYear,
-    startOfWeek,
-    endOfWeek,
     isWithinInterval
 } from 'date-fns';
+import { startOfWeek, endOfWeek } from '../../../utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 
@@ -38,6 +38,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
     mode,
     currentDate = new Date()
 }) => {
+    const { t } = useTranslation();
     const [viewDate, setViewDate] = useState(currentDate);
 
     // Reset view date when opening
@@ -48,7 +49,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
     }, [isOpen, currentDate]);
 
     const handleSelect = (date: Date) => {
-        const selection = mode === 'WEEK' ? startOfWeek(date, { weekStartsOn: 1 }) : date;
+        const selection = mode === 'WEEK' ? startOfWeek(date) : date;
         onSelect(selection);
         onClose();
     };
@@ -145,15 +146,15 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
     const renderCalendarView = () => {
         const monthStart = startOfMonth(viewDate);
         const monthEnd = endOfMonth(viewDate);
-        const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-        const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+        const startDate = startOfWeek(monthStart);
+        const endDate = endOfWeek(monthEnd);
         const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-        const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        const weekDays = t('common.weekdays.initials', { returnObjects: true }) as string[];
 
         // Calculate selected week range
-        const selectedStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-        const selectedEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+        const selectedStart = startOfWeek(currentDate);
+        const selectedEnd = endOfWeek(currentDate);
 
         return (
             <div className="space-y-4">
@@ -238,16 +239,18 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999]"
+                        className="fixed inset-0 bg-[#000]/90 z-[9999]"
                     />
 
                     {/* Modal */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4"
+                        exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4 will-change-[opacity,transform]"
                     >
                         <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-2xl pointer-events-auto relative overflow-hidden">
                             {/* Glass Effect */}
@@ -261,7 +264,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-bold text-white leading-none">
-                                            {mode === 'WEEK' ? 'Seleccionar Semana' : mode === 'MONTH' ? 'Seleccionar Mes' : mode === 'DAY' ? 'Seleccionar Día' : 'Seleccionar Año'}
+                                            {mode === 'WEEK' ? t('dashboard.selectWeek') : mode === 'MONTH' ? t('dashboard.selectMonth') : mode === 'DAY' ? t('dashboard.selectDay') : t('dashboard.selectYear')}
                                         </h2>
                                         <p className="text-xs text-slate-400 mt-1">
                                             Viaja en el tiempo

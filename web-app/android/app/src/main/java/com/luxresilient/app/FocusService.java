@@ -34,7 +34,9 @@ public class FocusService extends Service {
     public static final String EXTRA_PROJECT_ICON = "EXTRA_PROJECT_ICON"; // String/Emoji
 
     private static final String CHANNEL_ID = "FocusSessionChannel_v3"; // Bumped version to reset config
+    private static final String ALARM_CHANNEL_ID = "FocusAlarmChannel_v1";
     private static final int NOTIFICATION_ID = 101;
+    private static final int ALARM_NOTIFICATION_ID = 102;
 
     private CountDownTimer countDownTimer;
     private long timeRemainingMs = 0;
@@ -159,7 +161,7 @@ public class FocusService extends Service {
                     timeRemainingMs = 0;
                     updateNotification();
                     stopForeground(true); // Or keep showing "Done"
-                    // Optionally notify completion
+                    notifyCompletion(); // Trigger the alarm notification!
                 }
             }
         }.start();
@@ -196,6 +198,66 @@ public class FocusService extends Service {
             countDownTimer.cancel();
             countDownTimer = null;
         }
+    }
+
+    private void notifyCompletion() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager == null) return;
+
+        int iconResId = android.R.drawable.ic_lock_idle_alarm;
+
+        Bitmap largeIcon = null;
+        try {
+            largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+        } catch (Exception e) { }
+
+        int colorInt = android.graphics.Color.WHITE;
+        try {
+            colorInt = android.graphics.Color.parseColor(projectColor);
+        } catch (Exception e) { }
+
+        Intent openIntent = new Intent(this, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingOpenIntent = PendingIntent.getActivity(
+                this, 0, openIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        String title = "Focus Complete!";
+        if (projectIcon != null && !projectIcon.isEmpty()) {
+             title = projectIcon + " " + title;
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText("You finished your session for " + projectName + ". Tap to claim victory!")
+                .setSmallIcon(iconResId)
+                .setLargeIcon(largeIcon)
+                .setColor(colorInt)
+                .setColorized(true)
+                .setContentIntent(pendingOpenIntent)
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setFullScreenIntent(pendingOpenIntent, true); // Important for alarms when locked
+
+        // FORCE SOUND: Some devices don't respect channel sound settings
+        // Use built-in alarm sound with fallback
+        try {
+            android.net.Uri alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+            if (alarmSound == null) {
+                alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+            }
+            if (alarmSound != null) {
+                builder.setSound(alarmSound);
+            }
+        } catch (Exception e) {
+            // Ignore sound errors
+        }
+
+        try {
+            manager.notify(ALARM_NOTIFICATION_ID, builder.build());
+        } catch (Exception e) { }
     }
 
     private void updateNotification() {
@@ -310,6 +372,10 @@ public class FocusService extends Service {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager == null) return;
+
+            // Ongoing session channel (No sound, no vibration)
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Focus Session",
@@ -319,10 +385,42 @@ public class FocusService extends Service {
             channel.setSound(null, null); // No sound
             channel.enableVibration(false); // No vibration
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
+            manager.createNotificationChannel(channel);
+
+            // Completion Alarm channel (Loud sound, vibration)
+            NotificationChannel alarmChannel = new NotificationChannel(
+                    ALARM_CHANNEL_ID,
+                    "Focus Session Complete",
+                    NotificationManager.IMPORTANCE_MAX // MAX IMPORTANCE
+            );
+            alarmChannel.setDescription("Rings when a focus session finishes");
+            // Set default alarm sound with robust fallback
+            android.net.Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+            if (soundUri == null) {
+                 soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
             }
+            // If still null, use system default notification sound
+            if (soundUri == null) {
+                try {
+                    android.media.Ringtone ringtone = android.media.RingtoneManager.getRingtone(getApplicationContext(), android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
+                    if (ringtone != null) {
+                        soundUri = ringtone.getUri();
+                    }
+                } catch (Exception e) { }
+            }
+            android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .build();
+            if (soundUri != null) {
+                alarmChannel.setSound(soundUri, audioAttributes);
+            }
+            alarmChannel.enableVibration(true);
+            long[] vibrationPattern = {0, 1000, 500, 1000, 500, 1000}; // strong vibration
+            alarmChannel.setVibrationPattern(vibrationPattern);
+            alarmChannel.setBypassDnd(true); // Attempt to bypass Do Not Disturb for critical alarms
+            alarmChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(alarmChannel);
         }
     }
 }

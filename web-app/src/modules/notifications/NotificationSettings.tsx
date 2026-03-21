@@ -6,6 +6,7 @@ import { db, doc, getDoc, setDoc } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { LiquidButton } from '../../components/ui/LiquidButton';
+import { useTranslation } from 'react-i18next';
 
 interface NotificationConfig {
   enabled: boolean;
@@ -22,13 +23,13 @@ const DEFAULT_CONFIG: NotificationConfig = {
   reminderDays: [1, 2, 3, 4, 5], // Mon-Fri
 };
 
-const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
 export const NotificationSettings: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [config, setConfig] = useState<NotificationConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState('default');
+  const DAYS = t('common.weekdays.initials', { returnObjects: true }) as string[];
 
   useEffect(() => {
     if (user) {

@@ -127,8 +127,10 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
                 switch (effect.type) {
                     case 'heal':
                         const currentHp = stats.hp || 0;
-                        // 🛡️ RECOVERED LOGIC: Force Max HP to 100 as per user request
                         const maxHp = 100; 
+                        if (currentHp >= maxHp) {
+                            throw new Error("HP is already full.");
+                        }
                         updates["stats.hp"] = Math.min(maxHp, currentHp + effect.value);
                         updates["stats.maxHp"] = maxHp; // Sync DB to new rule
                         break;
@@ -142,7 +144,15 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
                         break;
                     case 'restore_streak':
                         const currentStreak = stats.streak || 0;
-                        updates["stats.streak"] = currentStreak + (effect.value || 1);
+                        const previousStreak = stats.previousStreak || 0;
+                        // If they have a previous streak saved (they lost it), restore it.
+                        // Otherwise, just give +1.
+                        if (previousStreak > currentStreak) {
+                            updates["stats.streak"] = previousStreak;
+                            updates["stats.previousStreak"] = 0; // consumed
+                        } else {
+                            updates["stats.streak"] = currentStreak + (effect.value || 1);
+                        }
                         break;
                     case 'freeze_streak':
                         const now = new Date();

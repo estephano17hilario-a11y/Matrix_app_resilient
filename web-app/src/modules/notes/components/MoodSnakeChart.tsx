@@ -155,18 +155,6 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
                             {gradientStops}
                         </linearGradient>
-                        
-                        <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
-                            <feOffset dx="0" dy="4" result="offsetblur" />
-                            <feComponentTransfer>
-                                <feFuncA type="linear" slope="0.2" />
-                            </feComponentTransfer>
-                            <feMerge> 
-                                <feMergeNode />
-                                <feMergeNode in="SourceGraphic" /> 
-                            </feMerge>
-                        </filter>
                     </defs>
 
                     {/* --- BACKGROUND GRID --- */}
@@ -188,14 +176,13 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                     <motion.path 
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{ pathLength: 1, opacity: 1 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                         d={pathData} 
                         fill="none" 
                         stroke={`url(#${gradientId})`} 
                         strokeWidth={strokeWidth} 
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        filter="url(#softShadow)"
                     />
                     
                     {/* --- MARKERS --- */}
@@ -204,7 +191,7 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                             key={`marker-${i}`}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ delay: 0.8 + i * 0.1, type: 'spring', stiffness: 260, damping: 20 }}
+                            transition={{ delay: 0.4 + i * 0.05, type: 'spring', stiffness: 260, damping: 20 }}
                         >
                             {p.hasMood && (
                                 <>
@@ -216,7 +203,6 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                                         textAnchor="middle" 
                                         fontSize={iconSize} 
                                         className="pointer-events-none select-none"
-                                        style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.2))' }}
                                     >
                                         {p.icon}
                                     </text>

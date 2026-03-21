@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Zap, Flame, Coins } from 'lucide-react';
+import { Heart, Zap, Flame, Coins, Settings, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DailyLimits } from '@/types/User';
 import { GoldCounter } from '@/modules/store/components/GoldCounter';
@@ -14,6 +14,7 @@ interface AvatarWidgetProps {
   health: number;
   maxHealth?: number;
   streak: number;
+  lastStreakDate?: string;
   gold?: number;
   dailyLimits?: DailyLimits;
   displayName?: string | null;
@@ -23,6 +24,7 @@ interface AvatarWidgetProps {
   avatarShape?: 'CIRCLE' | 'SQUARE';
   isHabitsCompleted?: boolean;
   onNavigate?: (view: string) => void;
+  onShowPro?: () => void;
 }
 
 const MiniLiquidBar = ({  value, 
@@ -65,8 +67,8 @@ const MiniLiquidBar = ({  value,
 
   return (
     <div className="flex items-center gap-3 w-40 sm:w-48 transition-all group/bar">
-        <div className={`flex items-center justify-center w-5 h-5 rounded-md ${theme.bg} backdrop-blur-sm border border-white/5`}>
-            <Icon size={12} className={theme.iconColor} />
+        <div className="flex items-center justify-center w-5 h-5">
+            <Icon size={14} className={theme.iconColor} />
         </div>
         <div className="flex-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between px-0.5">
@@ -86,7 +88,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, onNavigate }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold = 0, dailyLimits, displayName, email, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, onNavigate, onShowPro }: AvatarWidgetProps) => {
     const [showStreakModal, setShowStreakModal] = React.useState(false);
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
@@ -157,10 +159,10 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         {/* STATS COLUMN - PREMIUM APPLE STYLE */}
         <div className="flex flex-col gap-2 relative">
 
-            {/* HEADER: NAME + STREAK */}
-            <div className="flex items-center justify-between min-w-[180px]">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white tracking-tight drop-shadow-md">
+            {/* HEADER: NAME + STREAK + DELUX */}
+            <div className="flex items-center justify-start min-w-[220px] w-full gap-2">
+                <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold text-white tracking-tight drop-shadow-md truncate max-w-[80px]">
                         {formattedName}
                     </span>
                     <div 
@@ -168,6 +170,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                             e.stopPropagation();
                             setShowStreakModal(true);
                         }}
+                        data-tour="streak-display"
                         className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 cursor-pointer hover:bg-white/10 ${
                         isHabitsCompleted 
                             ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
@@ -186,24 +189,79 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                         }`}>{streak}</span>
                     </div>
                 </div>
+
+                {/* GO DELUXE BUTTON - COSMIC & PERFORMANT */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onShowPro) {
+                            onShowPro();
+                        } else {
+                            window.dispatchEvent(new CustomEvent('open-pro-modal'));
+                        }
+                    }}
+                    className="relative group shrink-0 transition-transform active:scale-95 rounded-full p-[1px] shadow-[0_0_10px_-2px_rgba(217,70,239,0.3)] hover:shadow-[0_0_15px_0px_rgba(217,70,239,0.6)]"
+                >
+                    {/* Animated Cosmic Border (Slower Pulse) */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-[pulse_4s_ease-in-out_infinite] opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Inner Button */}
+                    <div className="relative bg-[#050510] px-2.5 py-[2px] rounded-full flex items-center justify-center overflow-hidden">
+                        {/* Shimmer Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_3s_infinite] pointer-events-none" />
+                        
+                        {/* Text */}
+                        <span className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(217,70,239,0.5)] group-hover:from-indigo-200 group-hover:via-purple-200 group-hover:to-pink-200 transition-all duration-300">
+                            GO DELUXE
+                        </span>
+                    </div>
+                </button>
                 
-                {/* Gold Pill - Premium Look */}
-                <div id="gold-counter-pill" className="flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.3)]">
-                    <Coins size={12} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                    <span className="text-xs font-mono font-bold text-amber-300">
+                {/* Gold Pill - Premium Look (Moved slightly right) */}
+                <div id="gold-counter-pill" data-tour="gold-counter" className="flex items-center gap-1.5 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 shadow-[0_0_15px_-5px_rgba(245,158,11,0.3)] shrink-0">
+                    <Coins size={14} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    <span className="text-sm font-mono font-bold text-amber-300">
                         <GoldCounter value={gold} />
                     </span>
                 </div>
             </div>
 
-            {/* BARS - REFINED (Restored Numbers) */}
-            <div className="flex flex-col gap-1.5">
-                 <div id="health-bar-container">
-                    <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
-                 </div>
-                 <div id="xp-bar-container">
-                    <MiniLiquidBar value={relativeXp} max={relativeNextXp} color="xp" icon={Zap} />
-                 </div>
+            {/* BARS AND QUICK ACTIONS */}
+            <div className="flex items-center justify-between gap-3 w-full">
+                <div className="flex flex-col gap-1.5 shrink-0">
+                     <div id="health-bar-container">
+                        <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
+                     </div>
+                     <div id="xp-bar-container" data-tour="xp-counter">
+                        <MiniLiquidBar value={relativeXp} max={relativeNextXp} color="xp" icon={Zap} />
+                     </div>
+                </div>
+
+                {/* Quick Actions (Settings & Store) - Centered under coins, between Health/XP height */}
+                  <div className="flex items-center gap-3 justify-center mx-auto pr-1">
+                       <button 
+                           onClick={(e) => {
+                               e.stopPropagation();
+                               if (onNavigate) {
+                                   onNavigate('SETTINGS');
+                               }
+                           }}
+                           className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)]"
+                       >
+                           <Settings size={20} />
+                       </button>
+                       <button 
+                           onClick={(e) => {
+                               e.stopPropagation();
+                               if (onNavigate) {
+                                   onNavigate('STORE');
+                               }
+                           }}
+                           className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)] group"
+                       >
+                           <ShoppingBag size={20} className="group-hover:text-amber-400 transition-colors" />
+                       </button>
+                   </div>
             </div>
         </div>
     </div>
@@ -213,6 +271,8 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             onClose={() => setShowStreakModal(false)}
             dailyLimits={dailyLimits}
             onNavigate={onNavigate}
+            streak={streak}
+            lastStreakDate={lastStreakDate}
         />
     )}
     </>

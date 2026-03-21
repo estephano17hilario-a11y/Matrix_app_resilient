@@ -1,47 +1,44 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Target, Layers, Plus, ChevronDown, Calendar as CalendarIcon, SlidersHorizontal, Check, Archive } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Layers, Plus, ChevronDown, Calendar as CalendarIcon, SlidersHorizontal, Check, Archive, Lock } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { DailyLimits } from '../../../types/User';
 import { BarChart } from '../../../components/charts/BarChart';
 import { generateFocusData } from '../../../utils/dataEngine';
 import { 
-    format, startOfWeek, endOfWeek, startOfMonth, 
+    format, startOfMonth, 
     subWeeks, addWeeks, addMonths, addYears, addDays,
     getDaysInMonth, startOfQuarter, endOfQuarter, addQuarters
 } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { startOfWeek, endOfWeek } from '../../../utils/dateUtils';
 import { cn } from '../../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
 import { FocusLimits } from '../FocusLimits';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
-
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
-
-const ALL_RANGES: { value: TimeRange; label: string }[] = [
-    { value: 'DAY', label: 'Hoy' },
-    { value: 'WEEK', label: 'Semana' },
-    { value: '8_WEEKS', label: '8 Semanas' },
-    { value: 'MONTH', label: 'Mes' },
-    { value: '3_MONTHS', label: '3 Meses' },
-    { value: 'YEAR', label: 'Año' },
-    { value: 'TOTAL', label: 'Total' }
-];
 
 export const FocusStats = React.memo(({ 
     projects, 
     attributes,
     showArchived,
-    onToggleArchived
+    onToggleArchived,
+    isPro,
+    onOpenPro
 }: { 
     projects: Project[], 
     attributes: Attribute[],
     showArchived?: boolean,
-    onToggleArchived?: () => void
+    onToggleArchived?: () => void,
+    isPro?: boolean,
+    onOpenPro?: () => void
 }) => {
+    const { t } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
@@ -54,8 +51,18 @@ export const FocusStats = React.memo(({
         focusSeconds: 0
     };
     
+    const ALL_RANGES = useMemo(() => [
+        { value: 'DAY' as TimeRange, label: t('dashboard.today') },
+        { value: 'WEEK' as TimeRange, label: t('dashboard.week') },
+        { value: '8_WEEKS' as TimeRange, label: `8 ${t('dashboard.week')}s` },
+        { value: 'MONTH' as TimeRange, label: t('dashboard.month') },
+        { value: '3_MONTHS' as TimeRange, label: `3 ${t('dashboard.month')}s` },
+        { value: 'YEAR' as TimeRange, label: t('dashboard.year') },
+        { value: 'TOTAL' as TimeRange, label: 'Total' }
+    ], [t]);
+    
     const [timeRange, setTimeRange] = useState<TimeRange>('DAY');
-    const [thirdSlot, setThirdSlot] = useState<TimeRange>('MONTH');
+    const [thirdSlot, setThirdSlot] = useState<TimeRange>('8_WEEKS');
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -71,6 +78,11 @@ export const FocusStats = React.memo(({
     }, [timeRange]);
 
     const handleTabClick = (range: TimeRange) => {
+        if (!isPro && !['DAY', 'WEEK', '8_WEEKS'].includes(range)) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
+
         setTimeRange(range);
         
         // If it's not DAY or WEEK, update the third slot
@@ -148,13 +160,13 @@ export const FocusStats = React.memo(({
         for (let i = 1; i <= 7; i += 1) {
             const next = addDays(currentDate, i);
             if (workingDays.includes(next.getDay())) {
-                if (i === 1) return 'Mañana';
-                const label = format(next, 'EEEE', { locale: es });
+                if (i === 1) return t('tomorrow');
+                const label = format(next, 'EEEE', { locale: i18n.language === 'es' ? es : undefined });
                 return label.charAt(0).toUpperCase() + label.slice(1);
             }
         }
         return '';
-    }, [activeProject, currentDate]);
+    }, [activeProject, currentDate, t, i18n.language]);
 
     const dailyGoalMinutes = useMemo(() => {
         if (['3_MONTHS', 'YEAR', 'TOTAL'].includes(timeRange)) return 0;
@@ -231,13 +243,13 @@ export const FocusStats = React.memo(({
         if (timeRange === 'DAY') {
             return format(currentDate, 'EEEE d MMM', { locale: es }).toUpperCase();
         } else if (timeRange === 'WEEK') {
-            start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            start = startOfWeek(currentDate);
+            end = endOfWeek(currentDate);
             return `${format(start, 'd MMM').toUpperCase()} - ${format(end, 'd MMM', { locale: es }).toUpperCase()}`;
         } else if (timeRange === '8_WEEKS') {
-            end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            end = endOfWeek(currentDate);
             start = subWeeks(end, 7);
-            start = startOfWeek(start, { weekStartsOn: 1 });
+            start = startOfWeek(start);
             return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
         } else if (timeRange === 'MONTH') {
             start = startOfMonth(currentDate);
@@ -258,8 +270,8 @@ export const FocusStats = React.memo(({
         const today = new Date();
         if (timeRange === 'DAY') return format(currentDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
         if (timeRange === 'WEEK') {
-            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            const start = startOfWeek(currentDate);
+            const end = endOfWeek(currentDate);
             return today >= start && today <= end;
         }
         if (timeRange === 'MONTH') {
@@ -323,8 +335,8 @@ export const FocusStats = React.memo(({
     };
 
     return (
-        <div className="relative transition-all duration-300 ease-in-out flex-shrink-0">
-            <div className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-4 flex flex-col gap-3 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
+        <div data-tour="focus-header" className="relative transition-all duration-300 ease-in-out flex-shrink-0">
+            <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-4 flex flex-col gap-3 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
                  <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
                  
@@ -332,14 +344,21 @@ export const FocusStats = React.memo(({
                 <div className="flex flex-col gap-2 z-50 relative">
                     <div className="flex items-center justify-between gap-2">
                         {/* LEFT: Time Range Tabs (Reduced Size) */}
-                        <div className="flex items-center gap-1 bg-black/40 backdrop-blur-sm p-1 rounded-xl border border-white/10 shadow-md relative z-20">
-                            <AnimatePresence mode="popLayout">
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 shadow-md relative z-20 flex-shrink min-w-0">
+                            <AnimatePresence>
                                 {['DAY', 'WEEK', thirdSlot].map((range) => {
                                     const isActive = timeRange === range;
                                     const label = ALL_RANGES.find(r => r.value === range)?.label || range;
                                     
                                     return (
-                                        <div key={range} className="relative">
+                                        <motion.div 
+                                            key={range} 
+                                            layout
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="relative"
+                                        >
                                             <motion.button
                                                 layoutId={`tab-${range}`}
                                                 onClick={() => {
@@ -350,19 +369,21 @@ export const FocusStats = React.memo(({
                                                         setIsConfigOpen(false); // Close if switching to another
                                                     }
                                                 }}
+                                                transition={{ duration: 0.15, ease: "easeOut" }}
                                                 className={cn(
-                                                    "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all relative whitespace-nowrap overflow-visible",
+                                                    "py-1.5 rounded-lg font-bold transition-all relative whitespace-nowrap overflow-visible",
+                                                    label.length > 5 ? "px-1.5 text-[9px]" : "px-3 text-[11px]",
                                                     isActive 
                                                         ? "bg-white text-black shadow-sm z-10" 
                                                         : "text-zinc-400 hover:text-white hover:bg-white/5"
                                                 )}
                                             >
-                                                <span className="relative z-10 flex items-center gap-1">
-                                                    {label}
+                                                <span className="relative z-10 flex items-center gap-1 truncate max-w-[80px]">
+                                                    <span className="truncate">{label}</span>
                                                     {isActive && (
                                                         <ChevronDown 
                                                             size={12} 
-                                                            className={`transition-transform duration-300 ${isConfigOpen ? 'rotate-180' : ''}`} 
+                                                            className={`transition-transform duration-300 flex-shrink-0 ${isConfigOpen ? 'rotate-180' : ''}`} 
                                                         />
                                                     )}
                                                 </span>
@@ -371,11 +392,11 @@ export const FocusStats = React.memo(({
                                                         layoutId="activeTab"
                                                         className="absolute inset-0 bg-white rounded-lg"
                                                         initial={false}
-                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                        transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
                                                     />
                                                 )}
                                             </motion.button>
-                                        </div>
+                                        </motion.div>
                                     );
                                 })}
                             </AnimatePresence>
@@ -399,9 +420,10 @@ export const FocusStats = React.memo(({
                                 <AnimatePresence>
                                     {activeDropdown === 'RANGES' && (
                                         <motion.div
-                                            initial={{ opacity: 0, scale: 0.9, y: 5, x: "-50%" }}
+                                            initial={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
                                             animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
-                                            exit={{ opacity: 0, scale: 0.9, y: 5, x: "-50%" }}
+                                            exit={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
+                                            transition={{ duration: 0.15, ease: "easeOut" }}
                                             className="absolute left-1/2 top-full mt-2 w-40 bg-zinc-900 border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1"
                                         >
                                             <div className="flex flex-col gap-0.5">
@@ -409,6 +431,7 @@ export const FocusStats = React.memo(({
                                                     const isPinned = option.value === 'DAY' || option.value === 'WEEK' || option.value === thirdSlot;
                                                     const isSelected = timeRange === option.value;
                                                     
+                                                    const isLocked = !isPro && !['DAY', 'WEEK', '8_WEEKS'].includes(option.value);
                                                     return (
                                                         <button
                                                             key={option.value}
@@ -424,7 +447,10 @@ export const FocusStats = React.memo(({
                                                                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                                                             )}
                                                         >
-                                                            <span>{option.label}</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span>{option.label}</span>
+                                                                {isLocked && <Lock size={10} className="text-yellow-400/80" />}
+                                                            </div>
                                                             {isSelected && <Check size={10} className="text-black" />}
                                                             {isPinned && !isSelected && (
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
@@ -440,7 +466,7 @@ export const FocusStats = React.memo(({
                         </div>
 
                         {/* RIGHT: Global Button & Calendar */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                              {/* CALENDAR BUTTON REMOVED AS REQUESTED - NOW NEXT TO NAVIGATOR */}
 
                             {/* Global Button */}
@@ -475,9 +501,10 @@ export const FocusStats = React.memo(({
                         <AnimatePresence>
                             {activeDropdown === 'GLOBAL_OPTIONS' && (
                                 <motion.div
-                                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                    initial={{ opacity: 0, scale: 0.98, y: 5 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                    exit={{ opacity: 0, scale: 0.98, y: 5 }}
+                                    transition={{ duration: 0.15, ease: "easeOut" }}
                                     className="absolute right-0 top-full mt-2 w-auto bg-zinc-900 border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1.5 min-w-[140px]"
                                 >
                                     <div className="flex flex-col gap-1">
@@ -498,11 +525,21 @@ export const FocusStats = React.memo(({
                                         </button>
 
                                         <button 
-                                            onClick={() => { setViewMode('PROJECT'); setActiveDropdown(null); }}
-                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'PROJECT' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                            onClick={() => { 
+                                                if (!isPro) {
+                                                    onOpenPro?.();
+                                                    return;
+                                                }
+                                                setViewMode('PROJECT'); 
+                                                setActiveDropdown(null); 
+                                            }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-all ${viewMode === 'PROJECT' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
                                         >
-                                            <Target size={12} />
-                                            <span className="text-[10px] font-bold">DIVIDIR POR PROYECTO</span>
+                                            <div className="flex items-center gap-2">
+                                                <Target size={12} />
+                                                <span className="text-[10px] font-bold">DIVIDIR POR PROYECTO</span>
+                                            </div>
+                                            {!isPro && <Lock size={10} className="text-yellow-400/80" />}
                                         </button>
                                     </div>
                                 </motion.div>
@@ -517,7 +554,7 @@ export const FocusStats = React.memo(({
                                 initial={{ height: 0, opacity: 0, marginBottom: 0 }}
                                 animate={{ height: 'auto', opacity: 1, marginBottom: 4 }}
                                 exit={{ height: 0, opacity: 0, marginBottom: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                transition={{ duration: 0.15, ease: "easeOut" }}
                                 className="overflow-hidden w-full"
                             >
                                 <div className="flex items-center justify-between gap-2 px-1">
@@ -533,14 +570,15 @@ export const FocusStats = React.memo(({
                                                 e.stopPropagation();
                                                 setIsDateModalOpen(true);
                                             }}
-                                            title="Elegir fecha"
+                                            title={t('focus.chooseDate', 'Choose date')}
                                         >
                                             <AnimatePresence mode="wait">
                                                 <motion.span 
                                                     key={currentDate.toString() + timeRange}
-                                                    initial={{ y: 5, opacity: 0 }}
+                                                    initial={{ y: 2, opacity: 0 }}
                                                     animate={{ y: 0, opacity: 1 }}
-                                                    exit={{ y: -5, opacity: 0 }}
+                                                    exit={{ y: -2, opacity: 0 }}
+                                                    transition={{ duration: 0.1 }}
                                                     className="text-[9px] font-bold text-white text-center whitespace-nowrap block"
                                                 >
                                                     {dateRangeLabel}

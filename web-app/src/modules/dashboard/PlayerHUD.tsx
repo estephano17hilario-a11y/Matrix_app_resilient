@@ -154,9 +154,9 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 {chartMode === 'RADAR' ? (
                     <motion.div 
                         key="radar"
-                        initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
                         className="w-full h-full flex items-center justify-center"
                     >
@@ -165,9 +165,9 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 ) : (
                     <motion.div 
                         key="bar"
-                        initial={{ opacity: 0, x: 20, filter: "blur(5px)" }}
-                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, x: -20, filter: "blur(5px)" }}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
                         className={cn(
                             "w-full grid gap-x-4 gap-y-3 px-1 py-1",

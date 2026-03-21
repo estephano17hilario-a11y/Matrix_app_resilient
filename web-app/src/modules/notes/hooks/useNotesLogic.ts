@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useNotesContext } from '../context/NotesContext';
 import { Note, JournalEntry } from '../../../types';
 
-export const useNotesLogic = (onNoteCreated?: () => void) => {
+export const useNotesLogic = () => {
     const { 
         notes, 
         journalEntries, 
@@ -14,18 +14,12 @@ export const useNotesLogic = (onNoteCreated?: () => void) => {
     } = useNotesContext();
 
     const handleUpdateNote = useCallback(async (note: Note) => {
-        const { isNew } = await updateNote(note);
-        if (isNew && onNoteCreated) {
-            onNoteCreated();
-        }
-    }, [updateNote, onNoteCreated]);
+        await updateNote(note);
+    }, [updateNote]);
 
     const handleUpdateJournal = useCallback(async (entry: JournalEntry) => {
-        const { isNew } = await updateJournal(entry);
-        if (isNew && onNoteCreated) {
-            onNoteCreated();
-        }
-    }, [updateJournal, onNoteCreated]);
+        await updateJournal(entry);
+    }, [updateJournal]);
 
     const handleDeleteNote = useCallback(async (noteId: string) => {
         await deleteNote(noteId);

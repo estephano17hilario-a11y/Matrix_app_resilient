@@ -1,11 +1,12 @@
 import { 
-    startOfWeek, endOfWeek, subWeeks, eachWeekOfInterval, 
+    subWeeks, 
     startOfMonth, endOfMonth, eachMonthOfInterval,
     startOfYear, endOfYear, format, differenceInDays,
     eachDayOfInterval, eachHourOfInterval,
     startOfQuarter, endOfQuarter
 } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { startOfWeek, endOfWeek, eachWeekOfInterval } from './dateUtils';
 import { Project, Attribute } from '../types';
 
 export const generateFocusData = (
@@ -34,8 +35,8 @@ export const generateFocusData = (
           label: format(h, 'HH') + 'h'
       }));
   } else if (range === 'WEEK') {
-      const start = startOfWeek(date, { weekStartsOn: 1 });
-      const end = endOfWeek(date, { weekStartsOn: 1 });
+      const start = startOfWeek(date);
+      const end = endOfWeek(date);
       const days = eachDayOfInterval({ start, end });
       buckets = days.map(d => ({
           start: d,
@@ -43,12 +44,12 @@ export const generateFocusData = (
           label: format(d, 'EEE', { locale: es }).slice(0, 1).toUpperCase()
       }));
   } else if (range === '8_WEEKS') {
-      const end = endOfWeek(date, { weekStartsOn: 1 });
+      const end = endOfWeek(date);
       const start = subWeeks(end, 7);
-      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+      const weeks = eachWeekOfInterval({ start, end });
       buckets = weeks.map(w => ({
           start: w,
-          end: endOfWeek(w, { weekStartsOn: 1 }),
+          end: endOfWeek(w),
           label: format(w, 'd/M')
       }));
   } else if (range === 'MONTH') {
@@ -64,10 +65,10 @@ export const generateFocusData = (
       // Standard Quarter Logic (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec)
       const start = startOfQuarter(date);
       const end = endOfQuarter(date);
-      const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+      const weeks = eachWeekOfInterval({ start, end });
       buckets = weeks.map(w => ({
           start: w,
-          end: endOfWeek(w, { weekStartsOn: 1 }),
+          end: endOfWeek(w),
           label: format(w, 'd/M')
       }));
   } else if (range === 'YEAR') {
@@ -92,7 +93,7 @@ export const generateFocusData = (
               }
           });
       }
-      const start = startOfWeek(minDate, { weekStartsOn: 1 });
+      const start = startOfWeek(minDate);
       const end = new Date();
       const daysDiff = differenceInDays(end, start);
       
@@ -104,10 +105,10 @@ export const generateFocusData = (
               label: format(m, 'MMM yyyy', { locale: es })
           }));
       } else {
-          const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+          const weeks = eachWeekOfInterval({ start, end });
           buckets = weeks.map(w => ({
               start: w,
-              end: endOfWeek(w, { weekStartsOn: 1 }),
+              end: endOfWeek(w),
               label: format(w, 'd/M')
           }));
       }

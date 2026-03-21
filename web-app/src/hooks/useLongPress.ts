@@ -29,7 +29,7 @@ export const useLongPress = (
   );
 
   const clear = useCallback(
-    (_event: LongPressEvent, shouldTriggerClick = true) => {
+    (_event: LongPressEvent) => {
       if (timeout.current) {
         clearTimeout(timeout.current);
         timeout.current = null;

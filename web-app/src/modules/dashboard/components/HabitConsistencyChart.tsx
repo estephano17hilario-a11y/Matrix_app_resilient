@@ -1,39 +1,45 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval, startOfWeek } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval } from 'date-fns';
+import { enUS, es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
-import { toLocalISOString } from '../../../utils/dateUtils';
-import { TrendingUp, TrendingDown, Flame, Calendar } from 'lucide-react';
+import { toLocalISOString, startOfWeek } from '../../../utils/dateUtils';
+import { TrendingUp, TrendingDown, Flame, Calendar, Lock } from 'lucide-react';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
+import { useTranslation } from 'react-i18next';
+import { TourLightbulb } from '../../../components/TourLightbulb';
 
 interface HabitConsistencyChartProps {
     habits: Habit[];
     onOpenStreak?: () => void;
     isActive?: boolean;
+    isPro?: boolean;
+    onOpenPro?: () => void;
 }
 
 type TimeFrame = 'WEEK' | 'MONTH' | 'YEAR';
 
 const getRequiredPercentForDay = (day: number) => {
     if (day <= 7) return 50;
-    if (day <= 14) return 53;
-    if (day <= 21) return 57;
+    if (day <= 14) return 60;
     if (day <= 30) return 67;
-    if (day <= 45) return 80;
-    if (day <= 60) return 85;
+    if (day <= 60) return 75;
+    if (day <= 90) return 80;
     return 85;
 };
 
-export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true }) => {
+export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true, isPro, onOpenPro }) => {
+    const { t, i18n } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const themeColor = useMemo(() => {
         return avatarConfig?.themeColor || '#10b981';
     }, [avatarConfig?.themeColor]);
+
+    const dateLocale = i18n.language === 'es' ? es : enUS;
 
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [timeframe, setTimeframe] = useState<TimeFrame>('WEEK');
@@ -48,6 +54,11 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     }, [isActive]);
 
     const handleTabClick = (tf: TimeFrame) => {
+        if (!isPro && (tf === 'MONTH' || tf === 'YEAR')) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
+
         if (timeframe === tf) {
             setIsDateModalOpen(true);
         } else {
@@ -161,7 +172,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
         const todayPercent = todayTotal > 0 ? Math.round((todayCount / todayTotal) * 100) : 0;
 
         if (timeframe === 'WEEK') {
-            const start = startOfWeek(viewDate, { weekStartsOn: 1 });
+            const start = startOfWeek(viewDate);
             data = Array.from({ length: 7 }, (_, i) => {
                 const date = addDays(start, i);
                 const dateStr = format(date, 'yyyy-MM-dd');
@@ -179,8 +190,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     total: dailyTotal,
                     percent,
                     existed, // Pass this to render
-                    label: format(date, 'EEE', { locale: es }).charAt(0).toUpperCase(),
-                    fullLabel: format(date, 'EEEE d', { locale: es }),
+                    label: format(date, 'EEE', { locale: dateLocale }).charAt(0).toUpperCase(),
+                    fullLabel: format(date, 'EEEE d', { locale: dateLocale }),
                     isCurrent: isSameDay(date, today),
                     isFuture: isFutureDate
                 };
@@ -222,7 +233,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     percent,
                     existed,
                     label: [1, 7, 14, 21, 28].includes(dayNum) ? dayNum.toString() : '',
-                    fullLabel: format(date, 'd MMM', { locale: es }),
+                    fullLabel: format(date, 'd MMM', { locale: dateLocale }),
                     isCurrent: isSameDay(date, today),
                     isFuture: isFutureDate
                 };
@@ -271,8 +282,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     count: totalCompletedInMonth,
                     total: totalPossible,
                     percent,
-                    label: format(date, 'MMM', { locale: es }).charAt(0).toUpperCase(),
-                    fullLabel: format(date, 'MMMM yyyy', { locale: es }),
+                    label: format(date, 'MMM', { locale: dateLocale }).charAt(0).toUpperCase(),
+                    fullLabel: format(date, 'MMMM yyyy', { locale: dateLocale }),
                     isCurrent: isSameMonth(date, today),
                     isFuture: false
                 };
@@ -341,9 +352,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             const endD = data[data.length - 1].date;
             
             if (timeframe === 'WEEK') {
-                rangeLabel = `${format(startD, 'd MMM').toUpperCase()} - ${format(endD, 'd MMM', { locale: es }).toUpperCase()}`;
+                rangeLabel = `${format(startD, 'd MMM').toUpperCase()} - ${format(endD, 'd MMM', { locale: dateLocale }).toUpperCase()}`;
             } else if (timeframe === 'MONTH') {
-                const monthName = format(startD, 'MMMM', { locale: es });
+                const monthName = format(startD, 'MMMM', { locale: dateLocale });
                 rangeLabel = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${format(startD, 'yyyy')}`;
             } else {
                 rangeLabel = format(startD, 'yyyy');
@@ -368,7 +379,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 requiredToday
             }
         };
-    }, [habits, timeframe, currentDate]);
+    }, [habits, timeframe, currentDate, dateLocale]);
 
     // Color logic for the progress bar
     const getProgressColor = (percent: number, required: number) => {
@@ -399,7 +410,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     const showTicks = timeframe === 'MONTH';
 
     return (
-        <div className="w-full bg-[#0a0a0a]/70 rounded-[32px] p-4 border border-white/5 shadow-md overflow-hidden relative group">
+        <div data-tour="habit-chart" className="w-full bg-[#0a0a0a]/70 rounded-[32px] p-4 border border-white/5 shadow-md overflow-hidden relative group">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
             <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
             <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
@@ -440,7 +451,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 key={tf}
                                 onClick={() => handleTabClick(tf)}
                                 className={cn(
-                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-300 z-10",
+                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-300 z-10 flex items-center gap-1",
                                     timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
@@ -451,7 +462,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
                                 )}
-                                {tf === 'WEEK' ? 'SEMANA' : tf === 'MONTH' ? 'MES' : 'AÑO'}
+                                <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
+                                {!isPro && (tf === 'MONTH' || tf === 'YEAR') && <Lock size={10} className="text-yellow-400/80" />}
                             </button>
                         ))}
                     </div>
@@ -477,14 +489,15 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
                     {/* Current Streak - FLAME PATH RESTORED */}
                     <button 
+                        data-tour="habit-streak"
                         onClick={() => onOpenStreak?.()}
                         className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
                     >
-                        {/* Glow effect on hover - Optimized Blur for Mobile */}
-                        <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg blur-sm transition-all duration-500" />
+                        {/* Glow effect on hover - Optimized */}
+                        <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-500" />
                         
                         <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
-                            Camino de la Llama
+                            {t('dashboard.streakPath')}
                         </div>
                         <div className="flex items-center gap-2 relative z-10">
                             <div className="relative">
@@ -492,10 +505,12 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 <div className="absolute inset-0 bg-orange-500/20 blur-sm rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
                             </div>
                             <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
-                                {stats.streak} <span className="text-sm font-normal text-zinc-500">días</span>
+                                {stats.streak} <span className="text-sm font-normal text-zinc-500">{t('dashboard.days')}</span>
                             </span>
                         </div>
                     </button>
+
+                    <TourLightbulb tourId="habits" className="shrink-0" />
 
                 </div>
             </div>
@@ -559,21 +574,23 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
                             <motion.div
                                 className="w-full rounded-t-lg origin-bottom"
-                                initial={{ height: 0, opacity: 0 }}
+                                initial={{ scaleY: 0, opacity: 0 }}
                                 animate={{ 
-                                    height: data.total > 0 ? `${Math.max(data.percent, 4)}%` : '0%',
+                                    scaleY: data.total > 0 ? Math.max(data.percent / 100, 0.04) : 0,
                                     opacity: data.isCurrent ? 1 : 0.6
                                 }}
                                 transition={{ 
                                     type: "spring", 
                                     stiffness: 300, 
                                     damping: 30,
-                                    delay: i * 0.05 // Stagger effect
+                                    delay: i * 0.02 // Faster stagger
                                 }}
                                 style={{ 
+                                    height: '100%',
                                     backgroundColor: data.percent >= 80 ? '#10b981' : `${themeColor}CC`,
-                                    boxShadow: data.isCurrent && data.total > 0 ? `0 0 15px ${themeColor}40` : 'none',
-                                    borderTop: data.isCurrent && data.total > 0 ? '1px solid rgba(255,255,255,0.4)' : 'none'
+                                    boxShadow: data.isCurrent && data.total > 0 ? `0 0 10px ${themeColor}20` : 'none', // Reduced shadow
+                                    borderTop: data.isCurrent && data.total > 0 ? '1px solid rgba(255,255,255,0.4)' : 'none',
+                                    willChange: 'transform'
                                 }}
                             />
                             {/* Rest Day Indicator */}
@@ -616,17 +633,17 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     <>
                     <div className="flex justify-between items-end mb-1">
                          <div className="flex flex-col">
-                            <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-wide">Objetivo Diario</span>
+                            <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-wide">{t('dashboard.dailyGoal')}</span>
                             <div className="flex items-baseline gap-1.5">
                                 <span className="text-base font-bold" style={getProgressColorStyle(todayStats.percent, todayStats.requiredToday)}>
                                     {todayStats.count}/{todayStats.total}
                                 </span>
-                                <span className="text-[10px] text-zinc-600">completados</span>
+                                <span className="text-[10px] text-zinc-600">{t('dashboard.completed')}</span>
                             </div>
                         </div>
                         <div className="text-right">
                              <span className="text-[9px] text-zinc-500">
-                                {todayStats.percent >= todayStats.requiredToday ? '¡Racha asegurada!' : `Faltan ${Math.max(0, todayStats.minForStreak - todayStats.count)} para racha`}
+                                {todayStats.percent >= todayStats.requiredToday ? t('dashboard.streakAssured') : t('dashboard.streakNeed', { count: Math.max(0, todayStats.minForStreak - todayStats.count) })}
                             </span>
                         </div>
                     </div>
@@ -647,7 +664,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                     </>
                 ) : (
                     <div className="flex items-center justify-center py-2 text-[10px] text-zinc-500 italic">
-                        No hay hábitos programados para hoy
+                        {t('dashboard.noHabitsForToday')}
                     </div>
                 )}
             </div>

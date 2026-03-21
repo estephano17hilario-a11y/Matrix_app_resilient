@@ -27,6 +27,9 @@ export interface SettingsViewProps {
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
+  onOpenDockConfig?: () => void;
+  weekStartDay?: 0 | 1;
+  onWeekStartDayChange?: (day: 0 | 1) => void;
 }
 
 export const SettingsView = (props: SettingsViewProps) => {

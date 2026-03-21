@@ -64,7 +64,13 @@ export interface Habit {
   targetValue?: number;
   currentValue?: number;
   unit?: string;
-  checklist?: { id: string; text: string; completed: boolean }[];
+  checklist?: { 
+    id: string; 
+    text: string; 
+    completed: boolean;
+    color?: string; // Custom color for this item
+    days?: number[]; // Specific days this item should appear [0-6]
+  }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
   projectId?: string;
@@ -78,6 +84,8 @@ export interface Habit {
   monthlyFlexibleCount?: number;
   monthlyLastDay?: boolean;
   order?: number;
+  rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
+  rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
 }
 
 export interface BadHabit {
@@ -96,6 +104,9 @@ export interface BadHabit {
     gold: number; // Cost to pay off
   };
   createdAt: number;
+  intelligentStreak?: boolean;
+  currentTarget?: number;
+  reachedDays?: number;
 }
 
 export interface Project {

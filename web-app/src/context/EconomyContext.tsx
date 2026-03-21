@@ -53,31 +53,7 @@ const STORE_ITEMS: StoreItem[] = [
     effect: { type: 'freeze_streak', value: 1, duration: 24 }
   },
 
-  // --- THEMES (TEMAS) ---
-  {
-    id: 'theme_neon_purple',
-    name: 'store.items.theme_neon_purple.name',
-    description: 'store.items.theme_neon_purple.desc',
-    price: 5000,
-    category: 'theme',
-    iconName: 'Palette'
-  },
-  {
-    id: 'theme_matrix_green',
-    name: 'store.items.theme_matrix_green.name',
-    description: 'store.items.theme_matrix_green.desc',
-    price: 3000,
-    category: 'theme',
-    iconName: 'Code'
-  },
-  {
-    id: 'theme_apple_minimal',
-    name: 'store.items.theme_apple_minimal.name',
-    description: 'store.items.theme_apple_minimal.desc',
-    price: 8000,
-    category: 'theme',
-    iconName: 'Smartphone'
-  }
+  // --- THEMES (TEMAS) REMOVED ---
 ];
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -114,6 +90,11 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       const result = await consumeItem(user.uid, itemId, storeItem?.effect);
       
       setIsTransactionPending(false);
+      
+      if (!result.success && result.error) {
+          alert(result.error);
+      }
+      
       return result.success;
   }, [user?.uid]);
 

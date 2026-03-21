@@ -8,6 +8,8 @@ import { AVAILABLE_AVATARS } from '../config/avatars';
 interface ThemeContextType {
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
+  previewTheme: ThemeId | null;
+  setPreviewTheme: (theme: ThemeId | null) => void;
   availableThemes: typeof THEMES;
   vicesMode: boolean;
   setVicesMode: (enabled: boolean) => void;
@@ -24,6 +26,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const user = auth?.user;
   const profile = auth?.profile; // Access full profile to get avatarId
   const [vicesMode, setVicesMode] = useState(false);
+  const [previewTheme, setPreviewTheme] = useState<ThemeId | null>(null);
   
   // Initialize from localStorage or default
   const [theme, setThemeState] = useState<ThemeId>(() => {
@@ -47,10 +50,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const activeTheme = previewTheme || theme;
+
   // Apply theme to document
   React.useLayoutEffect(() => {
     const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-theme', activeTheme);
     if (vividMode) {
         root.setAttribute('data-vivid', 'true');
     } else {
@@ -58,7 +63,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Inject CSS variables dynamically from config
-    const themeConfig = THEMES[theme];
+    const themeConfig = THEMES[activeTheme];
     if (themeConfig) {
       const bgDepth = themeConfig.colors.bgDepth;
       
@@ -103,12 +108,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     try {
-      localStorage.setItem('matrix-theme', theme);
+      localStorage.setItem('matrix-theme', theme); // ALWAYS save original theme, not preview
       localStorage.setItem('matrix-vivid-mode', String(vividMode));
     } catch (e) {
       // Ignore
     }
-  }, [theme, vividMode, profile?.avatarId, vicesMode]); // Re-run when avatarId or vicesMode changes
+  }, [activeTheme, theme, vividMode, profile?.avatarId, vicesMode]); // Re-run when avatarId or vicesMode changes
 
   // Sync with Firestore
   // 1. Load from Firestore on login
@@ -198,14 +203,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user]);
 
   const value = useMemo(() => ({
-    theme,
+    theme: activeTheme, // Provide the active theme (preview or real) to consumers
     setTheme,
+    previewTheme,
+    setPreviewTheme,
     availableThemes: THEMES,
     vicesMode,
     setVicesMode,
     vividMode,
     setVividMode
-  }), [theme, setTheme, vicesMode, vividMode, setVividMode]);
+  }), [activeTheme, setTheme, previewTheme, setPreviewTheme, vicesMode, vividMode, setVividMode]);
 
   return (
     <ThemeContext.Provider value={value}>

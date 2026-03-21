@@ -5,49 +5,52 @@ import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } fr
 import { useTranslation } from 'react-i18next';
 import { 
   auth, 
-  db, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  doc,
-  setDoc,
   getRedirectResult,
   updateProfile
 } from '../../services/firebase';
 import { AuthLayout } from './components/AuthLayout';
-import { GlassCard } from '../../components/ui/GlassCard';
 import { AuthInput } from './components/AuthInput';
+import { retryOperation, isNetworkAvailable } from '../../utils/networkUtils';
+import { loginWithGoogle, initializeUserDocument } from '../../services/firebaseService';
 
 // --- TYPES & CONSTANTS ---
 type AuthViewMode = 'LANDING' | 'LOGIN' | 'REGISTER_LANG' | 'REGISTER_CREDENTIALS';
 
-const SPRING_CONFIG: Transition = { type: 'spring', stiffness: 300, damping: 30, mass: 0.8 };
+// ULTRA-FAST, NO-LAG TRANSITIONS (0 delay, minimal GPU load)
+const FAST_TRANSITION: Transition = { type: 'tween', ease: 'easeOut', duration: 0.15 };
 
 // --- SUB-COMPONENTS ---
 
 // 1. LANDING VIEW
-const LandingView = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => void }) => {
+const GoogleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
+
+const LandingView = ({ onStart, onLogin, onGoogleLogin, isLoading }: { onStart: () => void, onLogin: () => void, onGoogleLogin: () => void, isLoading: boolean }) => {
   const { t } = useTranslation();
   
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={SPRING_CONFIG}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={FAST_TRANSITION}
       className="flex flex-col items-center justify-center w-full space-y-8"
     >
       <div className="text-center space-y-2">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-indigo-300 mb-4 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.3)]"
-        >
-          <Sparkles className="w-3 h-3 animate-pulse" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 mb-4">
+          <Sparkles className="w-3 h-3" />
           <span>Lux OS 2.0</span>
-        </motion.div>
+        </div>
         
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 drop-shadow-sm">
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white">
           Lux
         </h1>
         <p className="text-white/40 font-medium tracking-wide text-sm md:text-base max-w-xs mx-auto">
@@ -57,28 +60,41 @@ const LandingView = ({ onStart, onLogin }: { onStart: () => void, onLogin: () =>
 
       <div className="w-full max-w-xs space-y-6">
         {/* BIG START BUTTON */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+        <button
           onClick={onStart}
-          className="group relative w-full h-20 flex items-center justify-center gap-3 bg-white text-black rounded-2xl font-bold text-xl tracking-tight shadow-[0_0_20px_rgba(255,255,255,0.3)] overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.6)]"
+          className="group w-full h-16 flex items-center justify-center gap-3 bg-white text-black rounded-xl font-bold text-lg tracking-tight transition-transform active:scale-95"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <Play className="w-6 h-6 fill-current transition-transform group-hover:translate-x-1" />
+          <Play className="w-5 h-5 fill-current" />
           <span>{t('auth.landing.start', 'EMPEZAR')}</span>
-        </motion.button>
+        </button>
 
-        {/* LOGIN LINK */}
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-white/20 text-xs uppercase tracking-widest">Or</span>
+        {/* LOGIN LINK (Arriba y más delgado) */}
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-white/20 text-xs uppercase tracking-widest font-semibold">{t('auth.orContinue', 'O')}</span>
           <button 
             onClick={onLogin}
-            className="text-white/50 hover:text-white text-sm font-medium transition-colors flex items-center gap-2 py-2 px-4 rounded-lg hover:bg-white/5"
+            className="w-full h-12 text-white font-bold transition-all flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95"
           >
-            <span>{t('auth.landing.login', 'Ya tengo cuenta')}</span>
-            <ArrowRight className="w-3 h-3" />
+            <span>{t('auth.landing.login', 'Iniciar Sesión')}</span>
+            <ArrowRight className="w-4 h-4 opacity-70" />
           </button>
         </div>
+
+        {/* GOOGLE BUTTON (Abajo) */}
+        <button
+          onClick={onGoogleLogin}
+          disabled={isLoading}
+          className="w-full h-12 bg-white/10 border border-white/10 text-white font-bold transition-all flex items-center justify-center gap-3 rounded-xl hover:bg-white/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-white/40" />
+          ) : (
+            <>
+              <GoogleIcon />
+              <span>Continuar con Google</span>
+            </>
+          )}
+        </button>
       </div>
     </motion.div>
   );
@@ -88,16 +104,8 @@ const LandingView = ({ onStart, onLogin }: { onStart: () => void, onLogin: () =>
 const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: () => void, onBack: () => void, currentLang: string, onChangeLang: (l: string) => void }) => {
   const { t } = useTranslation();
   const languages = [
-    { 
-      code: 'en', 
-      label: t('onboarding.language.en.name', 'English'), 
-      sub: t('onboarding.language.en.region', 'International') 
-    },
-    { 
-      code: 'es', 
-      label: t('onboarding.language.es.name', 'Español'), 
-      sub: t('onboarding.language.es.region', 'Latam / España') 
-    },
+    { code: 'en', label: t('onboarding.language.en.name', 'English'), sub: t('onboarding.language.en.region', 'International') },
+    { code: 'es', label: t('onboarding.language.es.name', 'Español'), sub: t('onboarding.language.es.region', 'Latam / España') },
   ];
 
   return (
@@ -105,7 +113,7 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={SPRING_CONFIG}
+      transition={FAST_TRANSITION}
       className="w-full max-w-sm"
     >
       <div className="flex items-center justify-between mb-8">
@@ -113,7 +121,7 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h2 className="text-xl font-bold text-white">{t('onboarding.language.title', 'Select Language')}</h2>
-        <div className="w-9" /> {/* Spacer */}
+        <div className="w-9" />
       </div>
 
       <div className="space-y-3">
@@ -122,28 +130,23 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
             key={lang.code}
             onClick={() => {
               onChangeLang(lang.code);
-              // Small delay for visual feedback
-              setTimeout(onNext, 150);
+              setTimeout(onNext, 50); // Instant feeling
             }}
-            className={`w-full p-4 rounded-xl border flex items-center justify-between group transition-all duration-200 ${
+            className={`w-full p-4 rounded-xl border flex items-center justify-between transition-colors duration-150 active:scale-95 ${
               currentLang === lang.code 
-                ? 'bg-white/10 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
-                : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/20'
+                ? 'bg-indigo-500/10 border-indigo-500/50' 
+                : 'bg-[#0a0a0f] border-white/5 hover:bg-white/5'
             }`}
           >
             <div className="text-left">
               <div className={`font-bold text-lg ${currentLang === lang.code ? 'text-white' : 'text-white/70'}`}>
                 {lang.label}
               </div>
-              <div className="text-xs text-white/30 font-medium tracking-wide">
+              <div className="text-xs text-white/40 font-medium tracking-wide">
                 {lang.sub}
               </div>
             </div>
-            {currentLang === lang.code && (
-              <motion.div layoutId="check" className="text-indigo-400">
-                <Sparkles className="w-5 h-5" />
-              </motion.div>
-            )}
+            {currentLang === lang.code && <Sparkles className="w-5 h-5 text-indigo-400" />}
           </button>
         ))}
       </div>
@@ -164,28 +167,34 @@ export const AuthView = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false);
 
-  // Validation State
+  // Validation State (Perfect Audit)
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPasswordValid = password.length >= 6;
-  const isNameValid = name.trim().length >= 2;
+  const isNameValid = name.trim().length >= 2 && name.trim().length <= 14;
   const isConfirmValid = confirmPassword === password && confirmPassword.length > 0;
 
-  // Initialize
+  // Check Redirects
   useEffect(() => {
-    // Check if we have a redirect result pending
     const checkRedirect = async () => {
         try {
             const result = await getRedirectResult(auth);
-            if (result?.user) setIsLoading(true);
-        } catch (e) {
-            console.error(e);
+            if (result?.user) {
+                setIsLoading(true);
+                // Si viene de Google Redirect, inicializar el documento si no existe
+                await retryOperation(() => initializeUserDocument(result.user, { isAnonymous: false }));
+                setIsLoading(false);
+            }
+        } catch (e: any) {
+            console.error('Redirect check error:', e);
+            setError(e.message || t('auth.errors.generic', 'An error occurred with Google sign-in.'));
         }
     };
     checkRedirect();
   }, []);
 
-  // --- HARDWARE BACK BUTTON HANDLER ---
+  // Hardware Back Button Handler
   useEffect(() => {
     const handleBackButton = async () => {
         if (view === 'LANDING') {
@@ -203,12 +212,11 @@ export const AuthView = () => {
         try {
             return await App.addListener('backButton', handleBackButton);
         } catch (e) {
-            console.warn('Back button listener failed', e);
+            // Ignore on web
         }
     };
 
     const listenerPromise = setupListener();
-
     return () => {
         listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
     };
@@ -222,74 +230,119 @@ export const AuthView = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid) {
-        return setError(t('auth.errors.required', 'Please fill all fields'));
+        return setError(t('auth.errors.required', 'Please fill all fields correctly'));
     }
     
     setIsLoading(true);
     setError(null);
     
     try {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        
-        // Update Profile Name
-        await updateProfile(userCred.user, { displayName: name });
+        const isOnline = await isNetworkAvailable();
+        if (!isOnline) {
+            throw new Error(t('auth.errors.network', "No network connection. Please check your internet and try again."));
+        }
 
-        // Save language preference immediately
-        await setDoc(doc(db, 'users', userCred.user.uid), {
-            onboarding: {
-                language: i18n.language,
-                completedAt: null // Explicitly null to trigger OnboardingFlow
-            },
-            email: email,
-            displayName: name,
-            updatedAt: Date.now()
-        }, { merge: true });
+        const userCred = await retryOperation(() => createUserWithEmailAndPassword(auth, email.trim(), password));
         
-        // App.tsx will detect user and switch to OnboardingFlow
+        await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
+
+        await retryOperation(() => initializeUserDocument(userCred.user, {
+            displayName: name.trim(),
+            onboarding: {
+                language: i18n.language || 'en',
+                completedAt: 0,
+                successDefinition: "Becoming the One",
+                obstacles: [],
+                coachingTone: "Stoic"
+            }
+        }));
+        
+        setIsLoading(false);
     } catch (err: any) {
-        console.error(err);
-        setError(err.message);
+        console.error('Registration error:', err);
+        if (err.code === 'auth/email-already-in-use') {
+            setError(t('auth.errors.emailInUse', 'Email is already in use.'));
+        } else if (err.code === 'auth/weak-password') {
+            setError(t('auth.errors.weakPassword', 'Password is too weak.'));
+        } else {
+            setError(err.message || t('auth.errors.generic', 'An error occurred during registration.'));
+        }
         setIsLoading(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return setError(t('auth.errors.required'));
+    if (!email || !password) return setError(t('auth.errors.required', 'Please enter email and password'));
     
     setIsLoading(true);
     setError(null);
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Success handled by auth state listener
-    } catch (err: any) {
-        setError(err.message);
+        const isOnline = await isNetworkAvailable();
+        if (!isOnline) {
+            throw new Error(t('auth.errors.network', "No network connection. Please check your internet and try again."));
+        }
+
+        const userCred = await retryOperation(() => signInWithEmailAndPassword(auth, email.trim(), password));
+        
+        await retryOperation(() => initializeUserDocument(userCred.user));
+        
         setIsLoading(false);
+    } catch (err: any) {
+        console.error('Login error:', err);
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+             setError(t('auth.errors.invalidCredentials', 'Invalid email or password.'));
+        } else {
+             setError(err.message || t('auth.errors.generic', 'An error occurred during login.'));
+        }
+        setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (isGoogleLoggingIn) return;
+    setIsGoogleLoggingIn(true);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const isOnline = await isNetworkAvailable();
+      if (!isOnline) {
+        throw new Error(t('auth.errors.network', "No network connection."));
+      }
+      
+      const user = await loginWithGoogle();
+      
+      // If loginWithGoogle returned null, it means it fell back to redirect method
+      // The redirect result will be handled by the useEffect above
+      if (user) {
+         setIsLoading(false);
+         // The global onAuthStateChanged in AuthContext will handle the rest
+      }
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        setError(t('auth.errors.popupBlocked', 'Popup was blocked. Please allow popups for this site.'));
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Just ignore cancellation, don't show error
+      } else {
+        setError(err.message || t('auth.errors.generic', 'An error occurred with Google sign-in.'));
+      }
+      setIsLoading(false);
+    } finally {
+      setIsGoogleLoggingIn(false);
     }
   };
 
   return (
     <AuthLayout>
-        {/* OPTIMIZED BACKGROUND (CSS Gradients instead of heavy blurs) */}
-        <div className="fixed inset-0 -z-10 bg-[#020204] overflow-hidden">
-            {/* Top Left Gradient */}
-            <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20"
-                 style={{ background: 'radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, transparent 70%)', transform: 'translateZ(0)' }} 
-            />
-            
-            {/* Bottom Right Gradient */}
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-15"
-                 style={{ background: 'radial-gradient(circle, rgba(147, 51, 234, 0.4) 0%, transparent 70%)', transform: 'translateZ(0)' }}
-            />
-
-        </div>
-
         <AnimatePresence mode="wait">
             {view === 'LANDING' && (
                 <LandingView 
                     key="landing"
                     onStart={() => setView('REGISTER_LANG')}
                     onLogin={() => setView('LOGIN')}
+                    onGoogleLogin={handleGoogleLogin}
+                    isLoading={isLoading}
                 />
             )}
 
@@ -306,22 +359,23 @@ export const AuthView = () => {
             {(view === 'REGISTER_CREDENTIALS' || view === 'LOGIN') && (
                 <motion.div
                     key="auth-form"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={SPRING_CONFIG}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={FAST_TRANSITION}
                     className="w-full max-w-sm"
                 >
-                    <GlassCard className="p-8 backdrop-blur-sm bg-black/40 border-white/10">
+                    <div className="p-6 sm:p-8 bg-[#0a0a0f] border border-white/10 rounded-2xl">
                         <div className="flex items-center mb-6">
                             <button 
                                 onClick={() => setView(view === 'LOGIN' ? 'LANDING' : 'REGISTER_LANG')}
                                 className="mr-4 text-white/50 hover:text-white transition-colors"
+                                type="button"
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <h2 className="text-xl font-bold text-white">
-                                {view === 'LOGIN' ? t('auth.login.title', 'Login') : t('auth.register.title', 'Create Account')}
+                                {view === 'LOGIN' ? t('auth.login.title', 'Welcome Back') : t('auth.register.title', 'Create Account')}
                             </h2>
                         </div>
 
@@ -333,9 +387,15 @@ export const AuthView = () => {
                                     type="text"
                                     placeholder="Neo"
                                     value={name}
-                                    onChange={e => setName(e.target.value)}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        if (val.length <= 14) {
+                                            setName(val);
+                                        }
+                                    }}
                                     isValid={isNameValid}
                                     showValidation={name.length > 0}
+                                    autoComplete="name"
                                 />
                             )}
 
@@ -348,6 +408,7 @@ export const AuthView = () => {
                                 onChange={e => setEmail(e.target.value)}
                                 isValid={isEmailValid}
                                 showValidation={email.length > 0}
+                                autoComplete="email"
                             />
                             
                             <AuthInput 
@@ -359,6 +420,7 @@ export const AuthView = () => {
                                 onChange={e => setPassword(e.target.value)}
                                 isValid={isPasswordValid}
                                 showValidation={password.length > 0}
+                                autoComplete={view === 'LOGIN' ? 'current-password' : 'new-password'}
                             />
 
                             {view === 'REGISTER_CREDENTIALS' && (
@@ -372,29 +434,24 @@ export const AuthView = () => {
                                     isValid={isConfirmValid}
                                     showValidation={confirmPassword.length > 0}
                                     error={confirmPassword.length > 0 && !isConfirmValid ? t('auth.errors.passwordMismatch', 'Passwords do not match') : undefined}
+                                    autoComplete="new-password"
                                 />
                             )}
                             
                             {error && (
-                                <motion.div 
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="text-red-400 text-xs p-2 bg-red-500/10 border border-red-500/20 rounded-lg"
-                                >
+                                <div className="text-red-400 text-xs p-3 bg-red-500/10 border border-red-500/20 rounded-xl transition-all">
                                     {error}
-                                </motion.div>
+                                </div>
                             )}
 
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                            <button
                                 type="submit"
                                 disabled={isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))}
                                 className={`
-                                    w-full h-12 mt-6 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2
+                                    w-full h-12 mt-6 font-bold rounded-xl transition-all flex items-center justify-center gap-2
                                     ${isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))
-                                        ? 'bg-gray-800 text-white/30 cursor-not-allowed shadow-none' 
-                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                                        ? 'bg-white/5 text-white/30 cursor-not-allowed' 
+                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
                                     }
                                 `}
                             >
@@ -406,9 +463,34 @@ export const AuthView = () => {
                                         <ArrowRight className="w-4 h-4" />
                                     </>
                                 )}
-                            </motion.button>
+                            </button>
+
+                            {view === 'LOGIN' && (
+                                <>
+                                    <div className="flex items-center gap-3 my-4">
+                                        <div className="flex-1 h-px bg-white/10" />
+                                        <span className="text-white/30 text-xs uppercase tracking-widest">o</span>
+                                        <div className="flex-1 h-px bg-white/10" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleGoogleLogin}
+                                        disabled={isLoading}
+                                        className="w-full h-12 bg-white text-gray-700 font-bold rounded-xl transition-all flex items-center justify-center gap-3 hover:bg-gray-100 active:scale-95 disabled:opacity-50"
+                                    >
+                                        {isLoading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                        ) : (
+                                            <>
+                                                <GoogleIcon />
+                                                <span>Continuar con Google</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </>
+                            )}
                         </form>
-                    </GlassCard>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>

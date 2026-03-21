@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, Layers, Briefcase, Zap } from 'luc
 import { format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 export type ViewMode = 'DAY' | 'WEEK' | 'MONTH';
 export type GroupingMode = 'NONE' | 'BY_TRAIT' | 'BY_PROJECT';
@@ -28,6 +29,7 @@ export const HabitViewHeader: React.FC<HabitViewHeaderProps> = ({
     onOpenDateModal,
     onCreateHabit
 }) => {
+    const { t } = useTranslation();
     
     const handlePrev = () => {
         if (viewMode === 'DAY') onDateChange(subDays(currentDate, 1));
@@ -43,12 +45,12 @@ export const HabitViewHeader: React.FC<HabitViewHeaderProps> = ({
 
     const getDateFormat = () => {
         if (viewMode === 'DAY') return 'd MMMM yyyy';
-        if (viewMode === 'WEEK') return "'Semana' w, yyyy";
+        if (viewMode === 'WEEK') return "'" + t('dashboard.week') + "' w, yyyy";
         return 'MMMM yyyy';
     };
 
     return (
-        <div className="flex flex-col gap-4 mb-6 px-1">
+        <div data-tour="habits-header" className="flex flex-col gap-4 mb-6 px-1">
             {/* BOTTOM ROW: Date Navigation & Config */}
             <div className="flex items-center justify-between gap-3">
                 
@@ -100,33 +102,34 @@ export const HabitViewHeader: React.FC<HabitViewHeaderProps> = ({
                                 "w-8 h-8 flex items-center justify-center rounded-lg transition-all relative",
                                 grouping === 'NONE' ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"
                             )}
-                            title="Sin División"
-                         >
+                            title={t('dashboard.groupingNone', 'No Division')}
+                            >
                             <Layers size={14} />
                          </button>
-                         <button
+                         <button 
                             onClick={() => onGroupingChange('BY_TRAIT')}
                             className={cn(
                                 "w-8 h-8 flex items-center justify-center rounded-lg transition-all relative",
                                 grouping === 'BY_TRAIT' ? "bg-indigo-500/20 text-indigo-400" : "text-slate-500 hover:text-indigo-400"
                             )}
-                            title="Por Rasgo"
+                            title={t('dashboard.groupingByTrait', 'By Trait')}
                          >
                             <Zap size={14} />
                          </button>
-                         <button
+                         <button 
                             onClick={() => onGroupingChange('BY_PROJECT')}
                             className={cn(
                                 "w-8 h-8 flex items-center justify-center rounded-lg transition-all relative",
                                 grouping === 'BY_PROJECT' ? "bg-emerald-500/20 text-emerald-400" : "text-slate-500 hover:text-emerald-400"
                             )}
-                            title="Por Proyecto"
+                            title={t('dashboard.groupingByProject', 'By Project')}
                          >
                             <Briefcase size={14} />
                          </button>
                     </div>
 
                     <motion.button
+                        data-tour="new-habit-btn"
                         whileTap={{ scale: 0.95 }}
                         onClick={onCreateHabit}
                         className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all shadow-lg shadow-indigo-500/20 shrink-0"

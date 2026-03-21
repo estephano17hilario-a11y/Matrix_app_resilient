@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import { Search, X, ChevronDown, Palette, ArrowDown, ListFilter, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 interface IconPickerProps {
     selectedIcon: string | null;
@@ -28,6 +29,7 @@ const COLOR_PALETTE = {
 import { ICON_CATEGORIES } from '../constants/iconCategories';
 
 export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelectColor, onToggle }: IconPickerProps) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
@@ -93,7 +95,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
     return (
         <div className="space-y-2">
             <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-white/30 uppercase pl-1">Personalización (Opcional)</span>
+                <span className="text-[10px] font-bold text-white/30 uppercase pl-1">{t('habits.customizationOptional', 'Customization (Optional)')}</span>
                 {selectedIcon && (
                     <button 
                         onClick={() => { onSelectIcon(null); onSelectColor(undefined); }}
@@ -131,10 +133,10 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                     )}
                     <div className="flex flex-col items-start gap-0.5">
                         <span className={cn("text-sm font-bold", selectedIcon ? "text-white" : "text-white/30")}>
-                            {selectedIcon ? selectedIcon : "Seleccionar Icono & Color"}
+                            {selectedIcon ? selectedIcon : t('habits.selectIconColor', 'Select Icon & Color')}
                         </span>
                         <span className="text-[10px] text-white/40 font-medium">
-                            {selectedIcon ? "Click para cambiar" : "Personaliza tu hábito"}
+                            {selectedIcon ? t('common.clickToChange') : t('common.customizeHabit')}
                         </span>
                     </div>
                 </div>
@@ -184,7 +186,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                                             <input 
                                                 type="text" 
-                                                placeholder="Buscar icono..."
+                                                placeholder={t('common.searchIcon', 'Search icon...')}
                                                 value={searchTerm}
                                                 onChange={(e) => { setSearchTerm(e.target.value); setDisplayLimit(100); setActiveCategory('Todos'); }}
                                                 className="w-full h-10 bg-black/40 rounded-xl pl-10 pr-3 text-sm text-white placeholder:text-white/20 border border-white/5 focus:border-white/20 outline-none transition-colors"
@@ -209,7 +211,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                                 ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
                                                                 : "bg-white/5 text-white/50 border-transparent hover:bg-white/10 hover:text-white"
                                                         )}
-                                                        title="Ver todas las categorías"
+                                                        title={t('common.viewAllCategories', 'View all categories')}
                                                     >
                                                         <ListFilter size={16} />
                                                     </button>

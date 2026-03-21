@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import { Project } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { getDynamicDailyTarget } from '../../../utils/projectUtils';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectCardProps {
     project: Project;
@@ -14,6 +15,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onClick }) => {
+    const { t, i18n } = useTranslation();
     // Calculate progress
     let goalMinutes = project.goalTarget || 0;
     // Let's verify unit. In FocusStats: Math.floor(currentMinutes / 60)h...
@@ -89,8 +91,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
         for (let i = 1; i <= 7; i += 1) {
             const next = addDays(today, i);
             if (workingDays.includes(next.getDay())) {
-                if (i === 1) return 'Mañana';
-                const label = format(next, 'EEEE', { locale: es });
+                if (i === 1) return t('tomorrow');
+                const label = format(next, 'EEEE', { locale: i18n.language === 'es' ? es : undefined });
                 return label.charAt(0).toUpperCase() + label.slice(1);
             }
         }

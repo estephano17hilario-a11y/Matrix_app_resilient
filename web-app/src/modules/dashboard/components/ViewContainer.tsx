@@ -17,20 +17,16 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
                 display: "block",
                 opacity: 1, 
                 scale: 1, 
-                filter: "blur(0px)",
                 y: 0,
                 zIndex: 10,
                 transition: { 
-                    type: "spring", 
-                    stiffness: 300, 
-                    damping: 30, 
-                    mass: 0.8
+                    duration: 0.15,
+                    ease: "linear"
                 }
             },
             inactive: { 
                 opacity: 0, 
                 scale: 1, 
-                filter: "blur(0px)",
                 y: 0,
                 zIndex: 0,
                 transition: { 
@@ -47,23 +43,21 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
                 display: "block",
                 opacity: 1, 
                 scale: 1, 
-                filter: "blur(0px)",
                 y: 0,
                 zIndex: 20, // Higher priority
                 transition: { 
-                    duration: 0.15,
-                    ease: "circOut"
+                    duration: 0.1,
+                    ease: "linear"
                 }
             },
             inactive: { 
                 opacity: 0, 
                 scale: 1, 
-                filter: "blur(0px)",
                 y: 0,
                 zIndex: 0,
                 transition: { 
-                    duration: 0.1,
-                    ease: "circIn"
+                    duration: 0,
+                    ease: "linear"
                 },
                 transitionEnd: {
                     display: "none"
@@ -80,7 +74,7 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
             animate={isActive ? "active" : "inactive"}
             variants={variants[variant as keyof typeof variants]}
             style={{
-                willChange: "transform, opacity, filter"
+                willChange: "opacity, transform"
             }}
         >
             {children}

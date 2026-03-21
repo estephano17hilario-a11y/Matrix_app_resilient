@@ -9,6 +9,7 @@ import { cn } from '../../../utils/cn';
 import { SubtaskManager } from './SubtaskManager';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 
 interface QuestItemProps {
   quest: Quest;
@@ -19,7 +20,6 @@ interface QuestItemProps {
   onDelete?: (id: string) => void;
   onEdit?: (quest: Quest) => void;
   onFocusProject?: (projectId: string) => void;
-  onOpenNexus?: (smartProjectId: string) => void;
   isLite?: boolean;
 }
 
@@ -72,23 +72,32 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
   const isSmart = quest.isSmartQuest;
   const themeColor = attribute?.color || '#ffffff';
 
-  const getDeadlineText = (dateStr?: string) => {
+  const getDeadlineInfo = (dateStr?: string) => {
     if (!dateStr) return null;
     const date = parseISO(dateStr);
     const today = new Date();
     
-    if (isToday(date)) return 'Hoy';
-    if (isTomorrow(date)) return 'Mañana';
+    if (isToday(date)) return { key: 'today', days: 0 };
+    if (isTomorrow(date)) return { key: 'tomorrow', days: 1 };
     
     const days = differenceInDays(date, today);
     
-    if (days > 0 && days <= 7) return `En ${days} días`;
-    if (days < 0) return 'Vencido';
+    if (days > 0 && days <= 7) return { key: 'inDays', days };
+    if (days < 0) return { key: 'overdue', days };
     
-    return format(date, 'd MMM', { locale: es });
+    return { key: 'date', days, text: format(date, 'd MMM', { locale: i18n.language === 'es' ? es : undefined }) };
   };
 
-  const deadlineText = getDeadlineText(quest.deadline);
+  const deadlineInfo = getDeadlineInfo(quest.deadline);
+  const getDeadlineText = () => {
+    if (!deadlineInfo) return null;
+    if (deadlineInfo.key === 'today') return t('dashboard.today');
+    if (deadlineInfo.key === 'tomorrow') return t('tomorrow');
+    if (deadlineInfo.key === 'inDays') return t('common.inDays', { days: deadlineInfo.days });
+    if (deadlineInfo.key === 'overdue') return t('overdue');
+    return deadlineInfo.text;
+  };
+  const deadlineText = getDeadlineText();
 
   const Container: any = isLite ? 'div' : motion.div;
 
@@ -204,16 +213,16 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                 )}
                 
                  {/* Deadline - Row 2 */}
-                 {deadlineText && !quest.completed && (
+                 {deadlineInfo && !quest.completed && (
                     <div className={cn(
                         "flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-bold tracking-wide transition-colors",
-                        deadlineText === 'Hoy' || deadlineText === 'Vencido' 
+                        deadlineInfo.key === 'today' || deadlineInfo.key === 'overdue' 
                             ? "bg-rose-500/10 border-rose-500/20 text-rose-300" 
-                            : deadlineText === 'Mañana' 
+                            : deadlineInfo.key === 'tomorrow' 
                                 ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
                                 : "bg-white/5 border-white/10 text-slate-400"
                     )}>
-                        <Calendar size={10} className={deadlineText === 'Hoy' || deadlineText === 'Vencido' ? "text-rose-400" : "text-slate-500"} />
+                        <Calendar size={10} className={deadlineInfo.key === 'today' || deadlineInfo.key === 'overdue' ? "text-rose-400" : "text-slate-500"} />
                         {deadlineText}
                     </div>
                 )}
@@ -332,7 +341,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                       "flex items-center gap-2 mt-3 font-mono text-[10px]",
                       isSmart ? "text-indigo-400" : "text-rose-400"
                    )}>
-                      <span className="opacity-50 uppercase tracking-widest">Deadline</span>
+                      <span className="opacity-50 uppercase tracking-widest">{t('tasks.deadline', 'Deadline')}</span>
                       <span className="font-bold">{quest.deadline}</span>
                    </div>
                 )}

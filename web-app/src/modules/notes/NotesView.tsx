@@ -15,6 +15,7 @@ import { SecureNotesHub } from './components/SecureNotesHub';
 import { BlueprintSelector } from './components/BlueprintSelector';
 import { SaveBlueprintModal } from './components/SaveBlueprintModal';
 import { SecurityGate } from '../../components/ui/SecurityGate';
+import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 
@@ -35,8 +36,9 @@ interface NotesViewProps {
     currentSubView?: 'NOTES' | 'JOURNAL';
     sectionControl?: 'VISIBLE' | 'HIDDEN';
     onStatsOpenChange?: (isOpen: boolean) => void;
-    onNoteCreated?: () => void;
+    onClose?: () => void;
     isActive?: boolean;
+    isPro?: boolean;
 }
 
 const getEntryTitle = (blocks: NoteBlock[]) => {
@@ -55,9 +57,9 @@ const WigglyLine = () => (
     </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onNoteCreated, isActive = true }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro }: NotesViewProps) => {
     const { t, i18n } = useTranslation();
-    const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic(onNoteCreated);
+    const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
     const [subView, setSubView] = useState<'NOTES' | 'JOURNAL'>('NOTES');
 
@@ -88,13 +90,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         security: {
             pin: '',
             recoveryMethod: 'PASSWORD',
-            protectedAreas: { memories: false, notes: false, charts: false }
+            protectedAreas: { memories: false, notes: false, charts: false, journal: false }
         }
     });
 
     const [isLocked, setIsLocked] = useState(false);
     const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
     const [recoveryInput, setRecoveryInput] = useState('');
     const [isRecoveryMode, setIsRecoveryMode] = useState(false);
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -106,8 +107,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             try {
                 const parsed = JSON.parse(savedConfig);
                 setConfig(parsed);
-                // Check if notes are protected
-                if (parsed.security.protectedAreas.notes) {
+                // Check if current area is protected
+                const isProtected = subView === 'NOTES' 
+                    ? parsed.security.protectedAreas.notes 
+                    : parsed.security.protectedAreas.journal;
+                
+                if (isProtected) {
                     setIsLocked(true);
                 }
             } catch (e) {
@@ -137,30 +142,30 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         setConfig(newConfig);
         localStorage.setItem('notes_config_v2', JSON.stringify(newConfig));
         
-        // Update lock state based on new config
-        if (newConfig.security.protectedAreas.notes) {
+        // Update lock state based on new config and current subView
+        const isProtected = subView === 'NOTES' 
+            ? newConfig.security.protectedAreas.notes 
+            : newConfig.security.protectedAreas.journal;
+
+        if (isProtected) {
              setIsLocked(true);
         } else {
              setIsLocked(false);
         }
     };
 
-    const handleUnlock = () => {
-        if (passwordInput === config.security.pin) {
-            setIsLocked(false);
-            setShowPasswordPrompt(false);
-            setPasswordInput('');
-            toast.success("Unlocked");
-            
-            if (pendingAction) {
-                pendingAction();
-                setPendingAction(null);
-            }
+    // Auto-lock when switching subViews if target is protected
+    useEffect(() => {
+        const isProtected = subView === 'NOTES' 
+            ? config.security.protectedAreas.notes 
+            : config.security.protectedAreas.journal;
+        
+        if (isProtected) {
+            setIsLocked(true);
         } else {
-            toast.error('Incorrect PIN');
-            setPasswordInput('');
+            setIsLocked(false);
         }
-    };
+    }, [subView, config.security.protectedAreas.notes, config.security.protectedAreas.journal]);
 
     // Events Hub
     const [showEventsHub, setShowEventsHub] = useState(false);
@@ -212,10 +217,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     }, [onInteractionEnd]);
 
     const openConfigModal = useCallback(() => {
-        // If coming from another hub, we might want to close it first?
-        // Or just open on top.
-        setConfigOpen(true);
-    }, []);
+        // Always require PIN to open settings if PIN is set
+        if (config.security.pin) {
+            setPendingAction(() => () => {
+                setConfigOpen(true);
+            });
+            setShowPasswordPrompt(true);
+        } else {
+            setConfigOpen(true);
+        }
+    }, [config.security.pin]);
 
     // Secure Notes Hub
     const [showSecureHub, setShowSecureHub] = useState(false);
@@ -308,7 +319,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     };
     
     const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
-    const closeEditor = () => { setEditorMode('NONE'); setDraftId(null); onInteractionEnd(); };
+    const closeEditor = () => { 
+        setEditorMode('NONE'); 
+        setDraftId(null); 
+        onInteractionEnd(); 
+        window.dispatchEvent(new CustomEvent('note-closed'));
+    };
     const addBlock = (type: 'text' | 'check' | 'image') => { setDraftBlocks(prev => [...prev, { id: Date.now().toString(), type, content: '', checked: false }]); };
     
     const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
@@ -400,7 +416,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                 setPendingAction(null);
                             }
                         }}
-                        onCancel={() => {}} // Cannot cancel main lock
+                        onCancel={() => {
+                            if (onClose) onClose();
+                        }} 
                         title="Security Lock"
                         description="Verification Required"
                         isRecoveryAllowed={true}
@@ -463,6 +481,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                 setIsRecoveryMode(false);
                                                 setRecoveryInput('');
                                                 toast.success("Verified");
+                                                if (pendingAction) {
+                                                    pendingAction();
+                                                    setPendingAction(null);
+                                                }
                                             } else {
                                                 toast.error("Incorrect response");
                                             }
@@ -490,30 +512,36 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             )}
 
             <div className={`transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' || showEventsHub ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`} style={{ willChange: 'transform, opacity' }}>
-                <div className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
-                    {subView === 'NOTES' ? (
-                        <button 
-                            onClick={() => setShowFilters(!showFilters)} 
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${showFilters || filterProject !== 'ALL' || filterTheme !== 'ALL' ? 'bg-white text-black shadow-lg scale-110' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'}`}
-                        >
-                            {showFilters ? <X size={16} /> : <Filter size={16} />}
-                        </button>
-                    ) : (
-                        <div className="w-8" />
-                    )}
-                    {sectionControl === 'VISIBLE' && !showStats && (
-                        <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
-                            <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
-                                subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
-                            }`} />
-                            <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Notes</button>
-                            <button onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>Journal</button>
-                        </div>
-                    )}
-                    {sectionControl !== 'VISIBLE' && <div className="flex-1" />}
+                <div data-tour="notes-header" className="flex items-center justify-between mb-6 mt-4 relative z-10 px-4">
+                    {/* Left: Filter */}
+                    <div className="flex items-center gap-2 flex-1">
+                        {subView === 'NOTES' ? (
+                            <button 
+                                onClick={() => setShowFilters(!showFilters)} 
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${showFilters || filterProject !== 'ALL' || filterTheme !== 'ALL' ? 'bg-white text-black shadow-lg scale-110' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'}`}
+                            >
+                                {showFilters ? <X size={16} /> : <Filter size={16} />}
+                            </button>
+                        ) : (
+                            <div className="w-8" />
+                        )}
+                    </div>
                     
-                    {/* Extra Buttons */}
-                    <div className="flex items-center gap-2 mx-2">
+                    {/* Center: Switch */}
+                    <div className="flex justify-center flex-[2]">
+                        {sectionControl === 'VISIBLE' && !showStats && (
+                            <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
+                                <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
+                                    subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
+                                }`} />
+                                <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.notes', 'Notes')}</button>
+                                <button data-tour="journal-tab-btn" onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.journal', 'Journal')}</button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-2 flex-1 justify-end">
                         {config.enabledFeatures.includes('BIRTHDAY') && (
                             <button 
                                 onClick={openEventsHub}
@@ -533,27 +561,31 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                 <Lock size={14} />
                             </button>
                         )}
+
                         <button 
-                            onClick={() => setConfigOpen(true)}
-                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-300 text-white/40 hover:text-white shadow-sm"
+                            onClick={() => {
+                                if (config.security.protectedAreas.charts) {
+                                    setPendingAction(() => () => setShowStats(true));
+                                    setShowPasswordPrompt(true);
+                                } else {
+                                    setShowStats(true);
+                                }
+                            }} 
+                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                        >
+                            <BarChart3 size={16} />
+                        </button>
+
+                        <button 
+                            onClick={openConfigModal}
+                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-300 text-white/60 hover:text-white shadow-sm"
+                            title="Settings"
                         >
                             <Settings size={14} />
                         </button>
-                    </div>
 
-                    <button 
-                        onClick={() => {
-                            if (config.security.protectedAreas.charts) {
-                                setPendingAction(() => () => setShowStats(true));
-                                setShowPasswordPrompt(true);
-                            } else {
-                                setShowStats(true);
-                            }
-                        }} 
-                        className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-                    >
-                        <BarChart3 size={16} />
-                    </button>
+                        <TourLightbulb tourId="notes" />
+                    </div>
                 </div>
                 
                 <AnimatePresence>
@@ -568,7 +600,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             <div className="bg-[#0a0a0a]/60 backdrop-blur-[2px] border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
                                 {/* Projects Filter */}
                                 <div className="flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Filter by Project</span>
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByProject', 'Filter by Project')}</span>
                                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                                         <button onClick={() => setFilterProject('ALL')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${filterProject === 'ALL' ? 'bg-white text-black border-white shadow-lg scale-105' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10'}`}>
                                             All Projects
@@ -583,7 +615,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
                                 {/* Colors Filter */}
                                 <div className="flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Filter by Color</span>
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByColor', 'Filter by Color')}</span>
                                     <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
                                         <button onClick={() => setFilterTheme('ALL')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${filterTheme === 'ALL' ? 'bg-white text-black border-white shadow-lg scale-105' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10'}`}>
                                             All Colors
@@ -612,19 +644,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             </div>
                         ) : (
                             <div className="columns-2 md:columns-3 gap-4">
-                                {/* Big Config Button */}
-                                {config.enabledFeatures.length < 3 && (
-                                     <button onClick={() => setConfigOpen(true)} className="w-full h-[180px] rounded-[24px] bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-transparent border border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-all group mb-4 break-inside-avoid shadow-lg relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner backdrop-blur-[2px] relative z-10">
-                                            <Plus size={28} className="text-white" strokeWidth={1.5} />
-                                        </div>
-                                        <span className="text-xs font-bold text-white uppercase tracking-widest group-hover:text-white/80 transition-colors relative z-10">{config.enabledFeatures.length === 0 ? 'Customize Notes' : 'Add More Features'}</span>
-                                    </button>
-                                )}
+
 
                                  {/* Create Button */}
-                                 <button onClick={createNote} className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
+                                 <button onClick={createNote} data-tour="notes-fab" className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
                                     <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
                                     <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
                                 </button>
@@ -661,137 +684,151 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 )}
                 {subView === 'JOURNAL' && (
                     <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-500">
-                        <div className="flex justify-between items-end px-6 mb-6">
-                            <div>
-                                <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} Day Streak</span>}{!streak && "Your Story"}</span>
-                                <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString('en-US', { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
+                        {isLocked ? (
+                            <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
+                                <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-[2px]">
+                                    <Lock size={48} className="text-white/20" />
+                                </div>
+                                <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
+                                <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">Unlock Journal</button>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
-                                    <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Calendar View"><Calendar size={14} /></button>
-                                    <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Notebook View"><AlignLeft size={14} /></button>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
-                                    <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {journalViewMode === 'CALENDAR' ? (
-                            <>
-                                <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{['S','M','T','W','T','F','S'].map((d, i) => <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>)}</div>
-                                <div className="grid grid-cols-7 gap-3 px-4 pb-32 flex-1 content-start animate-in fade-in duration-300">
-                                    {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
-                                    {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent }) => {
-                                        // Fix: Check if mood exists to apply color to border/bg
-                                        // User request: Border should NOT follow mood color.
-                                        // User request: Use the ENTRY THEME color if it exists.
-                                        const entryThemeId = entry?.theme || 'slate';
-                                        const entryColor = themeColorMap.get(entryThemeId);
-                                        const hasEntry = !!entry;
-
-                                        const borderColor = hasEntry && entryColor ? entryColor : (isToday ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)');
-                                        // Use entry color for background too if present, otherwise mood or default
-                                        const bgColor = hasEntry && entryColor ? `${entryColor}10` : (mood ? `${mood.color}10` : (isToday ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)'));
-                                        
-                                        return (
-                                            <button 
-                                                key={day} 
-                                                onClick={() => !isFuture && openJournal(date)} 
-                                                disabled={isFuture}
-                                                style={{ 
-                                                    borderColor: borderColor,
-                                                    backgroundColor: bgColor,
-                                                    boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
-                                                }}
-                                                className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform active:scale-90 group overflow-hidden border ${!isFuture ? 'hover:bg-white/5' : 'opacity-30 cursor-not-allowed'}`}
-                                            >
-                                                {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
-                                                {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
-                                                
-                                                {/* Special Event Indicator */}
-                                                {specialEvent && (
-                                                    <div className="absolute top-1 left-1 z-30">
-                                                        <div className="w-4 h-4 flex items-center justify-center rounded-full bg-pink-500 text-white shadow-lg animate-bounce">
-                                                            <Gift size={10} />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex-1 flex items-center justify-center z-10 w-full relative">
-                                                    {specialEvent ? (
-                                                        <span className="text-2xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">
-                                                            {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
-                                                        </span>
-                                                    ) : mood ? (
-                                                        // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?
-                                                        // User wants: "ambos emoji como el numero de la fecha, convivan y se puedan ver ambos"
-                                                        // Let's put emoji in center and date at bottom right, ensuring no overlap or readable overlap.
-                                                        <span className="text-3xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">{mood.icon}</span>
-                                                    ) : isFuture ? (
-                                                        <Lock size={16} className="text-white/20" />
-                                                    ) : null}
-                                                </div>
-                                                
-                                                {/* Date Number - Positioned to avoid overlap or with background */}
-                                                <div className="w-full flex justify-end z-20 absolute bottom-1.5 right-2">
-                                                    <span className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-white/40 group-hover:text-white/80'} drop-shadow-sm`}>
-                                                        {day}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </>
                         ) : (
-                            <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32 animate-in slide-in-from-right-8 duration-300">
-                                <div className="relative">
-                                    {/* Notebook Binding Effect */}
-                                    <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
-                                    
-                                    <div className="space-y-1">
-                                        {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture }) => {
-                                             const entryThemeId = entry?.theme || 'slate';
-                                             const entryColor = themeColorMap.get(entryThemeId) || '#fff';
-                                             return (
-                                            <div key={day} className="relative group">
-                                                <button 
-                                                    onClick={() => !isFuture && openJournal(date)}
-                                                    disabled={isFuture}
-                                                    style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
-                                                    className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2
-                                                        ${!isFuture ? 'hover:bg-white/5 active:scale-[0.995] transition-transform' : 'opacity-30 cursor-not-allowed'}
-                                                    `}
-                                                >
-                                                    <span className={`text-xs font-mono font-bold w-6 text-right ${isToday ? 'text-white' : 'text-white/20'}`}>{day < 10 ? `0${day}` : day}</span>
-                                                    <div className="flex-1 flex flex-col relative">
-                                                        <div className="flex items-center justify-between gap-4 pb-1">
-                                                            {entry ? (
-                                                                <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
-                                                            ) : (
-                                                                <span className="text-base text-white/10 font-serif italic">Empty page...</span>
-                                                            )}
-                                                            {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
-                                                        </div>
-                                                        <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
-                                                            <WigglyLine />
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        )})}
+                            <>
+                                <div className="flex justify-between items-end px-6 mb-6">
+                                    <div>
+                                        <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
+                                        <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString('en-US', { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
+                                            <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Calendar View"><Calendar size={14} /></button>
+                                            <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Notebook View"><AlignLeft size={14} /></button>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
+                                            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                                
+                                {journalViewMode === 'CALENDAR' ? (
+                                    <>
+                                        <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((d: string, i: number) => <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>)}</div>
+                                        <div className="grid grid-cols-7 gap-3 px-4 pb-32 flex-1 content-start animate-in fade-in duration-300">
+                                            {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
+                                            {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent }) => {
+                                                // Fix: Check if mood exists to apply color to border/bg
+                                                // User request: Border should NOT follow mood color.
+                                                // User request: Use the ENTRY THEME color if it exists.
+                                                const entryThemeId = entry?.theme || 'slate';
+                                                const entryColor = themeColorMap.get(entryThemeId);
+                                                const hasEntry = !!entry;
+
+                                                const borderColor = hasEntry && entryColor ? entryColor : (isToday ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)');
+                                                // Use entry color for background too if present, otherwise mood or default
+                                                const bgColor = hasEntry && entryColor ? `${entryColor}10` : (mood ? `${mood.color}10` : (isToday ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)'));
+                                                
+                                                return (
+                                                    <button 
+                                                        key={day} 
+                                                        onClick={() => !isFuture && openJournal(date)} 
+                                                        disabled={isFuture}
+                                                        data-tour={isToday ? "journal-today-btn" : undefined}
+                                                        style={{ 
+                                                            borderColor: borderColor,
+                                                            backgroundColor: bgColor,
+                                                            boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
+                                                        }}
+                                                        className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform active:scale-90 group overflow-hidden border ${!isFuture ? 'hover:bg-white/5' : 'opacity-30 cursor-not-allowed'}`}
+                                                    >
+                                                        {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
+                                                        {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
+                                                        
+                                                        {/* Special Event Indicator */}
+                                                        {specialEvent && (
+                                                            <div className="absolute top-1 left-1 z-30">
+                                                                <div className="w-4 h-4 flex items-center justify-center rounded-full bg-pink-500 text-white shadow-lg animate-bounce">
+                                                                    <Gift size={10} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex-1 flex items-center justify-center z-10 w-full relative">
+                                                            {specialEvent ? (
+                                                                <span className="text-2xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">
+                                                                    {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+                                                                </span>
+                                                            ) : mood ? (
+                                                                // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?
+                                                                // User wants: "ambos emoji como el numero de la fecha, convivan y se puedan ver ambos"
+                                                                // Let's put emoji in center and date at bottom right, ensuring no overlap or readable overlap.
+                                                                <span className="text-3xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">{mood.icon}</span>
+                                                            ) : isFuture ? (
+                                                                <Lock size={16} className="text-white/20" />
+                                                            ) : null}
+                                                        </div>
+                                                        
+                                                        {/* Date Number - Positioned to avoid overlap or with background */}
+                                                        <div className="w-full flex justify-end z-20 absolute bottom-1.5 right-2">
+                                                            <span className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-white/40 group-hover:text-white/80'} drop-shadow-sm`}>
+                                                                {day}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32 animate-in slide-in-from-right-8 duration-300">
+                                        <div className="relative">
+                                            {/* Notebook Binding Effect */}
+                                            <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
+                                            
+                                            <div className="space-y-1">
+                                                {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture }) => {
+                                                     const entryThemeId = entry?.theme || 'slate';
+                                                     const entryColor = themeColorMap.get(entryThemeId) || '#fff';
+                                                     return (
+                                                    <div key={day} className="relative group">
+                                                        <button 
+                                                            onClick={() => !isFuture && openJournal(date)}
+                                                            disabled={isFuture}
+                                                            data-tour={isToday ? "journal-today-btn" : undefined}
+                                                            style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
+                                                            className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2
+                                                                ${!isFuture ? 'hover:bg-white/5 active:scale-[0.995] transition-transform' : 'opacity-30 cursor-not-allowed'}
+                                                            `}
+                                                        >
+                                                            <span className={`text-xs font-mono font-bold w-6 text-right ${isToday ? 'text-white' : 'text-white/20'}`}>{day < 10 ? `0${day}` : day}</span>
+                                                            <div className="flex-1 flex flex-col relative">
+                                                                <div className="flex items-center justify-between gap-4 pb-1">
+                                                                    {entry ? (
+                                                                        <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
+                                                                    ) : (
+                                                                        <span className="text-base text-white/10 font-serif italic">Empty page...</span>
+                                                                    )}
+                                                                    {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
+                                                                </div>
+                                                                <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
+                                                                    <WigglyLine />
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                )})}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
             </div>
             <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={subView === 'JOURNAL' ? 'EMOTIONS' : 'OVERVIEW'} />
             
-            <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={openConfigModal} />
+            <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={openConfigModal} isPro={isPro} onOpenPro={onShowPro} />
             <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={openConfigModal} />
 
             {/* Config & Security Modals */}
@@ -800,6 +837,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     onClose={() => setConfigOpen(false)} 
                     onSave={handleSaveConfig}
                     initialConfig={config}
+                    isPro={isPro}
+                    onOpenPro={onShowPro}
                 />
             
             <AnimatePresence>
@@ -821,6 +860,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                         }}
                         title="Enter PIN"
                         description="Protected Area Access"
+                        isRecoveryAllowed={true}
+                        onRecovery={() => {
+                            setShowPasswordPrompt(false);
+                            setIsRecoveryMode(true);
+                            setIsLocked(true); // Re-use the existing lock mode for recovery
+                        }}
                     />
                 )}
             </AnimatePresence>
@@ -840,13 +885,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                 <button onClick={closeEditor} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5 flex-shrink-0"><ArrowLeft size={20} /></button>
                                 <div className="flex items-center gap-1.5 sm:gap-4 flex-shrink-1 min-w-0 justify-end">
                                     <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={() => setConfigOpen(true)}
-                                            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 hover:rotate-45 transition-all duration-300"
-                                            title="Settings"
-                                        >
-                                            <Settings size={18} />
-                                        </button>
                                         <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
                                         <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Save as Blueprint"><Save size={18} /></button>
                                         <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />

@@ -7,6 +7,8 @@ import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achiev
  * ACHIEVEMENT LISTENER
  * The watchful eye that rewards progress.
  */
+const sessionUnlockedAchievements = new Set<string>();
+
 export const checkAchievements = async (
   user: UserData,
   attributes?: Attribute[],
@@ -14,13 +16,15 @@ export const checkAchievements = async (
 ): Promise<Achievement[]> => {
   if (!user || !user.uid) return [];
 
-  // 1. Identify what we already have
-  const unlockedIds = new Set(user.unlockedAchievements || []);
+  // 1. Identify what we already have (DB + Session Cache)
+  const unlockedIds = new Set([
+    ...(user.unlockedAchievements || []),
+    ...Array.from(sessionUnlockedAchievements)
+  ]);
+  
   const newAchievements: Achievement[] = [];
 
   // 2. Filter relevant candidates (Performance Optimization)
-  // If we just gained XP, only check XP or MASTERY achievements.
-  // If we just did a task, maybe check COMBAT or STREAK.
   const candidates = ACHIEVEMENTS.filter(ach => 
     !unlockedIds.has(ach.id) && 
     (!triggerCategory || ach.category === triggerCategory || ach.category === 'RANK' || ach.category === 'TRAIT')
@@ -31,6 +35,7 @@ export const checkAchievements = async (
     try {
       if (ach.condition(user, attributes)) {
         newAchievements.push(ach);
+        sessionUnlockedAchievements.add(ach.id); // Add to session cache immediately
       }
     } catch (e) {
       console.warn(`Failed to evaluate achievement ${ach.id}`, e);

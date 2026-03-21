@@ -1,16 +1,15 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { 
   User, 
   onAuthStateChanged,
   signOut,
   doc, 
-  getDoc, 
+  getDoc,
   setDoc,
   waitForPendingWrites
 } from '../services/firebase';
 import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
-import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
 import { PersistenceService } from '../services/persistence';
 
@@ -18,7 +17,7 @@ const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
   obstacles: [],
   coachingTone: "Stoic",
-  completedAt: Date.now(),
+  completedAt: 0,
   language: 'en'
 };
 
@@ -28,7 +27,6 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
   updateProfileLocally: (updates: Partial<UserProfile>) => void;
 }
 
@@ -37,45 +35,39 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   
-  // 🧠 MEMORY CORE: Boot directly from Persistence
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     return PersistenceService.getProfile();
   });
   
-  const [isLoading, setIsLoading] = useState(() => !PersistenceService.getProfile());
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSafetyTimer = () => {
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
+  };
+
+  const startSafetyTimer = (onExpire: () => void, ms = 8000) => {
+    clearSafetyTimer();
+    safetyTimerRef.current = setTimeout(onExpire, ms);
+  };
 
   const updateProfileLocally = useCallback((updates: Partial<UserProfile>) => {
     if (!profile) return;
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     PersistenceService.saveProfile(newProfile);
-    console.log("⚡ MATRIX: Profile updated locally (Optimistic)", updates);
+    console.log("⚡ MATRIX: Profile updated locally (Optimistic)");
   }, [profile]);
-
-  const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    try {
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data() as UserProfile;
-        if (ENABLE_GLOBAL_PRO) {
-            data.plan = 'PRO';
-        }
-        setProfile(data);
-        PersistenceService.saveProfile(data);
-      }
-    } catch (e) {
-      console.error("Error refreshing profile:", e);
-    }
-  }, [user]);
 
   const logout = useCallback(async () => {
     try {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
-      // We do NOT clear profile here immediately to allow for "offline" access if needed,
-      // but standard logout implies clearing session.
+      
       if (user?.uid) {
         PersistenceService.clearUserCache(user.uid);
       }
@@ -85,11 +77,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
           await Promise.race([
               waitForPendingWrites(db),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 3000))
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 2000))
           ]);
-          console.log("✅ MATRIX: Data synchronized.");
       } catch (e) {
-          console.warn("⚠️ MATRIX: Could not verify full sync (likely offline). Logout proceeding.");
+          console.warn("⚠️ MATRIX: Sync timeout on logout.");
       }
 
       await signOut(auth);
@@ -102,192 +93,204 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    // SAFETY NET: Force stop loading after 45 seconds (Extended for Hardware Keys / Slow Connections)
-    const safetyTimer = setTimeout(() => {
-        setIsLoading(prev => {
-            if (prev) {
-                console.warn("⚠️ MATRIX CORE: Auth timeout triggered. Forcing entry.");
-                if (navigator.onLine) {
-                    setError("Connection slow. Entering Offline Mode.");
-                }
-                return false;
-            }
-            return prev;
-        });
-    }, 45000);
+    clearSafetyTimer();
 
-    // SAFEGUARD: Mock Mode
+    // Phantom mode guard
     if (!configStatus.isValid) {
-        console.warn("⚠️ MATRIX CORE: RUNNING IN PHANTOM MODE (No Firebase Config)");
+        console.warn("⚠️ MATRIX: Running in PHANTOM MODE (No Firebase Config). Using cached profile only.");
+        const cached = PersistenceService.getProfile();
+        if (cached) {
+            setProfile(cached);
+            setUser({ uid: cached.uid, email: cached.email, displayName: cached.displayName } as User);
+        }
+        setIsLoading(false);
+        return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser: User | null) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser: User | null) => {
       try {
         if (!currentUser) {
-          // LOGOUT / NO SESSION
-          
-          // Check if this was an intentional logout
           const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
+          
+          clearSafetyTimer();
           
           if (isIntentionalLogout) {
              console.log("👋 MATRIX: Intentional Logout Detected.");
              setUser(null);
              setProfile(null);
              sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
-             setIsLoading(false);
-             return;
-          }
-
-          // ZOMBIE MODE CHECK (For Refresh / Offline)
-          const cached = PersistenceService.getProfile();
-          if (!cached) {
-              setUser(null);
-              setProfile(null);
           } else {
-              console.log("ℹ️ MATRIX: User is null but Profile exists. Entering Zombie/Offline Mode.");
-              setProfile(cached);
-              // Create synthetic user to keep app alive and allow Dashboard hydration
-              setUser({
-                  uid: cached.uid,
-                  email: cached.email,
-                  displayName: cached.displayName,
-                  photoURL: cached.photoURL,
-                  emailVerified: true,
-                  isAnonymous: false,
-                  metadata: {},
-                  providerData: [],
-                  refreshToken: '',
-                  tenantId: null,
-                  delete: async () => {},
-                  getIdToken: async () => '',
-                  getIdTokenResult: async () => ({} as any),
-                  reload: async () => {},
-                  toJSON: () => ({}),
-                  phoneNumber: null,
-                  providerId: 'firebase'
-              } as User);
+             const cached = PersistenceService.getProfile();
+             if (!cached) {
+                 setUser(null);
+                 setProfile(null);
+             } else {
+                 console.log("ℹ️ MATRIX: Entering Zombie/Offline Mode.");
+                 setProfile(cached);
+                 setUser({ uid: cached.uid, email: cached.email, displayName: cached.displayName } as User);
+             }
           }
           
-          setIsLoading(false); 
+          setIsLoading(false);
           return;
         }
 
         // LOGIN DETECTED
+        console.log("🔐 MATRIX: User logged in:", currentUser.uid);
         setUser(currentUser);
-        PersistenceService.setSession(currentUser.uid);
         setError(null);
         
-        // OPTIMISTIC: If cached profile matches, use it while syncing
-        if (!profile || profile.uid !== currentUser.uid) {
-             const cached = PersistenceService.getProfile();
-             if (cached && cached.uid === currentUser.uid) {
-                 console.log("⚡ MATRIX: Restored cached profile.");
-                 setProfile(cached);
-             } else {
-                 // SKELETON (Prevent UI Hang)
-                 const skeletonProfile: UserProfile = {
-                    uid: currentUser.uid,
-                    email: currentUser.email,
-                    displayName: currentUser.displayName || "Operator",
-                    photoURL: currentUser.photoURL,
-                    plan: 'FREE',
-                    archetype: 'NEO',
-                    stats: DEFAULT_USER_STATS,
-                    createdAt: Date.now(),
-                    lastLoginAt: Date.now(),
-                    theme: 'MATRIX',
-                    onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
-                    isSkeleton: true 
-                };
-                setProfile(skeletonProfile);
-             }
+        // Restore from cache instantly
+        const cached = PersistenceService.getProfile();
+        if (cached && cached.uid === currentUser.uid) {
+             console.log("⚡ MATRIX: Restored from cache.");
+             setProfile(cached);
         }
 
-        // Unblock UI immediately
-        setIsLoading(false);
-        
-        // BACKGROUND HYDRATION
-        try {
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists()) {
-              const existingProfile = userSnap.data() as UserProfile;
-              
-              // RECOVERY: Fix empty profiles
-              if (!existingProfile.stats || !existingProfile.archetype) {
-                 console.log("⚠️ MATRIX: Repairing corrupted profile...");
-                 const completeProfile = {
-                    ...existingProfile,
-                    stats: existingProfile.stats || DEFAULT_USER_STATS,
-                    archetype: existingProfile.archetype || 'NEO',
-                    plan: existingProfile.plan || 'FREE',
-                    theme: existingProfile.theme || 'MATRIX',
-                    createdAt: existingProfile.createdAt || Date.now(),
-                    lastLoginAt: Date.now(),
-                    onboarding: existingProfile.onboarding || DEFAULT_ONBOARDING
+        // Set safety timer - MUST unblock UI no matter what
+         // 10 seconds is generous even on very slow connections
+         startSafetyTimer(() => {
+             console.warn("⚠️ MATRIX: Safety timer expired. Forcing entry with fallback profile.");
+             setIsLoading(false);
+             setProfile(prev => {
+                 if (prev && prev.uid === currentUser.uid) {
+                     console.log("🩹 MATRIX: Preserving existing profile, just removing skeleton flag.");
+                     return { ...prev, isSkeleton: false };
+                 }
+                 console.log("🩹 MATRIX: Creating brand new fallback profile from safety timer.");
+                 return {
+                     uid: currentUser.uid,
+                     email: currentUser.email,
+                     displayName: currentUser.displayName || "Operator",
+                     photoURL: currentUser.photoURL,
+                     plan: 'FREE',
+                     archetype: 'NEO',
+                     stats: DEFAULT_USER_STATS,
+                     createdAt: Date.now(),
+                     lastLoginAt: Date.now(),
+                     theme: 'MATRIX',
+                     onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                     isSkeleton: false
                  };
-                 
-                 setDoc(userRef, completeProfile, { merge: true });
-                 if (ENABLE_GLOBAL_PRO) completeProfile.plan = 'PRO';
-                 
-                 setProfile(completeProfile as UserProfile);
-                 PersistenceService.saveProfile(completeProfile as UserProfile);
-              } else {
-                 // NORMAL SYNC
-                 setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
-                 if (ENABLE_GLOBAL_PRO) existingProfile.plan = 'PRO';
-                 
-                 const finalProfile = { ...existingProfile, lastLoginAt: Date.now() };
-                 setProfile(finalProfile);
-                 PersistenceService.saveProfile(finalProfile);
-              }
-            } else {
-              // 🛡️ SAFETY CHECK: Before creating a new profile, check local cache one last time
-              // This prevents overwriting data if Firestore returns empty due to latency/offline issues
-              const localProfile = PersistenceService.getProfile(currentUser.uid);
-              if (localProfile && localProfile.uid === currentUser.uid && localProfile.stats) {
-                  console.log("⚠️ MATRIX: Firestore empty, but Local Profile exists. Resyncing Local -> Remote.");
-                  await setDoc(userRef, sanitizeFirestoreData(localProfile), { merge: true });
-                  setProfile(localProfile);
-                  return;
-              }
+             });
+         }, 10000);
 
-              console.log("🆕 MATRIX: Creating missing profile.");
-              const newUserProfile: UserProfile = {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName || "Operator",
-                photoURL: currentUser.photoURL,
-                plan: 'FREE',
-                archetype: 'NEO',
-                stats: DEFAULT_USER_STATS,
-                createdAt: Date.now(),
-                lastLoginAt: Date.now(),
-                theme: 'MATRIX',
-                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 }
-              };
+        // ONE-TIME FETCH with retry - Using setDoc to create/fill profile instead of just reading
+         // This avoids permission-denied on getDoc during initial login
+         const userRef = doc(db, "users", currentUser.uid);
+         
+         const createOrFillProfile = async (attempts = 0) => {
+             try {
+                 // Try to create the profile with all defaults. Using merge:true means:
+                 // - If doc exists: updates only the fields we pass (safe)
+                 // - If doc doesn't exist: creates it with those fields (perfect for new users)
+                 // This avoids getDoc permission issues entirely
+                 const profileData = {
+                     email: currentUser.email,
+                     displayName: currentUser.displayName || "Operator",
+                     plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                     archetype: 'NEO',
+                     stats: DEFAULT_USER_STATS,
+                     theme: 'MATRIX',
+                     lastLoginAt: Date.now(),
+                     createdAt: Date.now()
+                 };
 
-              const cleanProfile = sanitizeFirestoreData(newUserProfile);
-              await setDoc(userRef, cleanProfile, { merge: true });
-              
-              if (ENABLE_GLOBAL_PRO) newUserProfile.plan = 'PRO';
-              setProfile(newUserProfile);
-              PersistenceService.saveProfile(newUserProfile);
-            }
-        } catch (err) {
-            console.error("🔥 MATRIX: Background Sync Failed", err);
-        }
+                 await setDoc(userRef, profileData, { merge: true });
+                 clearSafetyTimer();
+
+                 // Now try to read it back
+                 const userSnap = await getDoc(userRef);
+                 
+                 if (userSnap.exists()) {
+                     const data = userSnap.data() as UserProfile;
+                     let resolvedOnboarding = data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                     const localCache = PersistenceService.getProfile(currentUser.uid);
+                     
+                     if (localCache?.onboarding?.completedAt && localCache.onboarding.completedAt > (resolvedOnboarding.completedAt || 0)) {
+                         resolvedOnboarding = localCache.onboarding;
+                     }
+
+                     const finalProfile: UserProfile = {
+                         ...data,
+                         uid: currentUser.uid,
+                         displayName: data.displayName || currentUser.displayName || "Operator",
+                         stats: data.stats || DEFAULT_USER_STATS,
+                         archetype: data.archetype || 'NEO',
+                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : (data.plan || 'FREE'),
+                         theme: data.theme || 'MATRIX',
+                         createdAt: data.createdAt || Date.now(),
+                         lastLoginAt: Date.now(),
+                         onboarding: resolvedOnboarding,
+                         isSkeleton: false
+                     };
+
+                     console.log("✅ MATRIX: Profile loaded from Firestore.");
+                     setProfile(finalProfile);
+                     PersistenceService.saveProfile(finalProfile);
+                 } else {
+                     // Should never happen since we just wrote it, but handle gracefully
+                     console.warn("⚠️ MATRIX: Profile still not found after write.");
+                     const fallback: UserProfile = {
+                         uid: currentUser.uid,
+                         email: currentUser.email,
+                         displayName: currentUser.displayName || "Operator",
+                         photoURL: currentUser.photoURL,
+                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                         archetype: 'NEO',
+                         stats: DEFAULT_USER_STATS,
+                         theme: 'MATRIX',
+                         createdAt: Date.now(),
+                         lastLoginAt: Date.now(),
+                         onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                         isSkeleton: false
+                     };
+                     setProfile(fallback);
+                     PersistenceService.saveProfile(fallback);
+                 }
+                 
+                 setIsLoading(false);
+                 
+             } catch (err) {
+                 console.error("🔥 MATRIX: Profile create/fetch error:", err);
+                 if (attempts < 2) {
+                     await new Promise(r => setTimeout(r, 1500));
+                     return createOrFillProfile(attempts + 1);
+                 }
+                 clearSafetyTimer();
+                 // Even on total failure, unblock the user with a minimal profile
+                 const fallback: UserProfile = {
+                     uid: currentUser.uid,
+                     email: currentUser.email,
+                     displayName: currentUser.displayName || "Operator",
+                     photoURL: currentUser.photoURL,
+                     plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                     archetype: 'NEO',
+                     stats: DEFAULT_USER_STATS,
+                     theme: 'MATRIX',
+                     createdAt: Date.now(),
+                     lastLoginAt: Date.now(),
+                     onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                     isSkeleton: false
+                 };
+                 setProfile(fallback);
+                 setIsLoading(false);
+             }
+         };
+
+        createOrFillProfile();
+
       } catch (err: any) {
         console.error("CRITICAL AUTH ERROR:", err);
-        setError(err.message || "Failed to synchronize neural link.");
+        clearSafetyTimer();
+        setError(err.message || "Failed to synchronize.");
         setIsLoading(false);
       }
     });
 
     return () => {
-      clearTimeout(safetyTimer);
-      unsubscribe();
+      clearSafetyTimer();
+      unsubscribeAuth();
     };
   }, []);
 
@@ -297,9 +300,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     error,
     logout,
-    refreshProfile,
     updateProfileLocally
-  }), [user, profile, isLoading, error, logout, refreshProfile, updateProfileLocally]);
+  }), [user, profile, isLoading, error, logout, updateProfileLocally]);
 
   return (
     <AuthContext.Provider value={value}>

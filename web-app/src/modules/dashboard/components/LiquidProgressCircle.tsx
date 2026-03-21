@@ -43,9 +43,9 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
                     initial={{ y: "100%" }}
                     animate={{ y: `${100 - p}%` }}
                     transition={{ type: "spring", stiffness: 60, damping: 15, mass: 1 }}
-                    style={{ backgroundColor: color }}
+                    style={{ backgroundColor: color, willChange: 'transform' }}
                 >
-                    {/* Wave Animation */}
+                    {/* Wave Animation - Optimized to Single Layer for Performance */}
                     {showWave && (
                         <motion.div 
                             className="absolute -top-[12px] left-[-50%] w-[200%] h-[24px]"
@@ -56,26 +56,10 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
                                 duration: 2 
                             }}
                             style={{
-                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='24' viewBox='0 0 200 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 12C40 12 60 0 100 0C140 0 160 12 200 12V24H0V12Z' fill='${encodeURIComponent(color)}' fill-opacity='0.6'/%3E%3C/svg%3E")`,
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='24' viewBox='0 0 200 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 12C40 12 60 0 100 0C140 0 160 12 200 12V24H0V12Z' fill='${encodeURIComponent(color)}' fill-opacity='0.8'/%3E%3C/svg%3E")`,
                                 backgroundSize: "50% 100%",
-                                backgroundRepeat: "repeat-x"
-                            }}
-                        />
-                    )}
-                     {/* Second Wave for depth */}
-                     {showWave && (
-                        <motion.div 
-                            className="absolute -top-[8px] left-[-50%] w-[200%] h-[20px]"
-                            animate={{ x: ["-50%", "0%"] }}
-                            transition={{ 
-                                repeat: Infinity, 
-                                ease: "linear", 
-                                duration: 3 
-                            }}
-                            style={{
-                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='20' viewBox='0 0 200 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10C40 10 60 0 100 0C140 0 160 10 200 10V20H0V10Z' fill='${encodeURIComponent(color)}' fill-opacity='0.4'/%3E%3C/svg%3E")`,
-                                backgroundSize: "50% 100%",
-                                backgroundRepeat: "repeat-x"
+                                backgroundRepeat: "repeat-x",
+                                willChange: 'transform'
                             }}
                         />
                     )}

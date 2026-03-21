@@ -66,57 +66,59 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
 
   return (
     <motion.div 
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        className="w-full h-full flex flex-col"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        className="w-full flex flex-col items-center"
     >
         <div className="space-y-2 text-center flex-shrink-0 mb-6">
-            <h2 className="text-2xl font-light text-white">
-                <Trans i18nKey="smartTask.wizard.date.title" components={{ span: <span className="font-bold" /> }} />
+            <h2 className="text-2xl font-medium text-white tracking-tight">
+                <Trans i18nKey="smartTask.wizard.date.title" components={{ span: <span className="font-bold text-white drop-shadow-md" /> }} />
             </h2>
-             <p className="text-white/40 text-sm">{t('smartTask.wizard.date.subtitle')}</p>
+             <p className="text-white/50 text-sm font-medium">{t('smartTask.wizard.date.subtitle')}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-1 pb-4">
-            <div className="space-y-6 max-w-lg mx-auto w-full">
+        <div className="w-full max-w-lg mb-6">
+            <div className="space-y-4 mx-auto w-full">
                 {/* Tabs */}
-                <div className="flex p-1 bg-white/10 rounded-xl">
+                <div className="flex p-1 bg-[#1a1a1a] rounded-xl border border-white/5 shadow-inner">
                      <button 
                         onClick={() => setInputType('date')}
-                        className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-all", inputType === 'date' ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white")}
+                        className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all", inputType === 'date' ? "bg-[#2a2a2a] text-white shadow-md" : "text-white/40 hover:text-white/80")}
                      >
                         {t('smartTask.wizard.date.mode.calendar')}
                      </button>
                      <button 
                         onClick={() => setInputType('duration')}
-                        className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-all", inputType === 'duration' ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white")}
+                        className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all", inputType === 'duration' ? "bg-[#2a2a2a] text-white shadow-md" : "text-white/40 hover:text-white/80")}
                      >
                         {t('smartTask.wizard.date.mode.duration')}
                      </button>
                 </div>
 
-                <div className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-6">
+                <div className="p-5 bg-[#0f0f0f] rounded-2xl border border-white/5 shadow-xl space-y-5 relative overflow-hidden">
                     {inputType === 'date' ? (
-                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs uppercase tracking-wider text-white/50 font-bold">{t('common.endDate')}</label>
+                         <div className="space-y-3">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase tracking-wider text-white/50 font-bold">{t('common.endDate')}</label>
                                 <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={20} />
-                                    <input 
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        min={startDate}
-                                        className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-white/30 transition-colors text-center"
-                                    />
+                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                     <input 
+                                         type="date" 
+                                         min={startDate}
+                                         value={endDate}
+                                         onChange={(e) => setEndDate(e.target.value)}
+                                         className="w-full pl-12 pr-4 py-3.5 bg-black/60 border border-white/5 rounded-xl text-white font-medium focus:outline-none focus:border-white/20 transition-colors shadow-inner"
+                                         style={{ colorScheme: 'dark' }}
+                                     />
                                 </div>
                             </div>
                          </div>
                     ) : (
-                        <div className="grid grid-cols-3 gap-4">
-                             <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">{t('common.time.years')}</label>
+                         <div className="grid grid-cols-3 gap-3">
+                             <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.years')}</label>
                                 <input 
                                     type="number" 
                                     min="0" 
@@ -124,23 +126,24 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                     onChange={(e) => setDuration({...duration, years: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('years')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
                                 />
                              </div>
-                             <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">{t('common.time.months')}</label>
+                             <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.months')}</label>
                                 <input 
                                     type="number" 
                                     min="0" 
+                                    max="11"
                                     value={activeField === 'months' && duration.months === 0 ? '' : duration.months} 
                                     onChange={(e) => setDuration({...duration, months: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('months')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
                                 />
                              </div>
-                             <div className="space-y-2">
-                                <label className="text-xs text-white/50 text-center block">{t('common.time.days')}</label>
+                             <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.days')}</label>
                                 <input 
                                     type="number" 
                                     min="0" 
@@ -148,7 +151,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                     onChange={(e) => setDuration({...duration, days: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('days')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/50 border border-white/10 rounded-xl py-2 text-center text-white focus:outline-none focus:border-white/30 transition-colors" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
                                 />
                              </div>
                         </div>
@@ -158,19 +161,19 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                 {/* Preview Section */}
                 {fractalPreview && (
                     <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3"
+                        initial={{ opacity: 0, y: 5, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className="p-4 rounded-2xl bg-[#0f0f0f] border border-white/5 space-y-3"
                     >
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-white/50">{t('strategicMap.fractalStructure')}</span>
-                            <span className="text-white font-mono text-xs md:text-sm">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-white/60 font-medium">{t('strategicMap.fractalStructure')}</span>
+                            <span className="text-white font-mono text-[11px] bg-black/30 px-2 py-1 rounded-md">
                                 {fractalPreview.drillDownPath.map(unit => t(`strategicMap.levels.${unit}`)).join(' > ')}
                             </span>
                         </div>
-                         <div className="flex gap-1 h-2 w-full rounded-full overflow-hidden bg-white/5">
+                         <div className="flex gap-1.5 h-2 w-full rounded-full overflow-hidden bg-black/40 p-0.5">
                             {fractalPreview.structure.map((_, i) => (
-                                <div key={i} className="h-full bg-white/20" style={{ flex: 1, opacity: 0.5 + (i % 2) * 0.5 }} />
+                                <div key={i} className="h-full bg-white/30 rounded-full" style={{ flex: 1, opacity: 0.4 + (i % 2) * 0.6 }} />
                             ))}
                          </div>
                     </motion.div>
@@ -178,14 +181,14 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
             </div>
         </div>
 
-        <div className="flex justify-center pt-4 pb-4 flex-shrink-0">
+        <div className="flex justify-center flex-shrink-0">
             <button
                 type="button"
                 disabled={!endDate}
                 onClick={handleNext}
-                className="px-8 py-3 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all flex items-center gap-2"
+                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-xl shadow-white/10"
             >
-                {t('smartTask.wizard.action.startJourney')} <ChevronRight size={16} />
+                {t('smartTask.wizard.action.startJourney')} <ChevronRight size={18} />
             </button>
         </div>
     </motion.div>

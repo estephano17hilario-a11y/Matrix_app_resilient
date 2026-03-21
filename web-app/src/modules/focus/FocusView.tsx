@@ -7,6 +7,7 @@ import { HabitDetailView } from '../dashboard/components/HabitDetailView';
 import { AnimatePresence } from 'framer-motion';
 import { ReorderModal } from '../../components/ui/ReorderModal';
 import { useLongPress } from '../../hooks/useLongPress';
+import { useTranslation } from 'react-i18next';
 
 export const FocusView = React.memo(({ 
     projects, 
@@ -17,7 +18,9 @@ export const FocusView = React.memo(({
     onStartFocus,
     onDetailViewChange,
     openArchived,
-    onReorder
+    onReorder,
+    isPro,
+    onOpenPro
 }: {  
     projects: Project[], 
     attributes: Attribute[], 
@@ -39,7 +42,10 @@ export const FocusView = React.memo(({
     onExitSession?: any,
     onSelectProject?: any,
     onReorder?: (projects: Project[]) => void,
+    isPro?: boolean,
+    onOpenPro?: () => void,
 }) => {
+    const { t } = useTranslation();
     // Navigation State
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [showArchived, setShowArchived] = useState(false);
@@ -118,7 +124,8 @@ export const FocusView = React.memo(({
                             onUpdateProject({ ...item, archived: !item.archived });
                         }
                     }}
-                    onStartFocus={() => onStartFocus?.(selectedProject.id)}
+                    isPro={isPro}
+                    onOpenPro={onOpenPro}
                 />
             </AnimatePresence>
         );
@@ -133,19 +140,21 @@ export const FocusView = React.memo(({
                     attributes={attributes} 
                     showArchived={showArchived}
                     onToggleArchived={() => setShowArchived(!showArchived)}
+                    isPro={isPro}
+                    onOpenPro={onOpenPro}
                 />
             </div>
 
             {/* Project Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-20">
+            <div data-tour="project-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-20">
                 {showArchived && (
                     <div className="col-span-full mb-2 bg-amber-900/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
                             <Archive size={20} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-amber-200 tracking-wide">ZONA DE ARCHIVO</h3>
-                            <p className="text-xs text-amber-200/60 font-medium mt-0.5">Proyectos en stasis. Reactívalos para continuar tu progreso.</p>
+                            <h3 className="text-sm font-bold text-amber-200 tracking-wide">{t('dashboard.archived.title')}</h3>
+                            <p className="text-xs text-amber-200/60 font-medium mt-0.5">{t('dashboard.archived.message')}</p>
                         </div>
                     </div>
                 )}
@@ -196,7 +205,7 @@ export const FocusView = React.memo(({
                     onClose={() => setIsReorderModalOpen(false)}
                     items={visibleProjects}
                     onSave={(newItems) => onReorder(newItems)}
-                    title="Reordenar Proyectos"
+                    title={t('focus.reorderProjects', 'Reorder Projects')}
                     getItemColor={(p) => attributes.find(a => a.id === p.attribute)?.color || '#fff'}
                 />
             )}
