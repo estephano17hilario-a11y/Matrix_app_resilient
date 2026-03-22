@@ -27,7 +27,12 @@ const canUseStorage = (() => {
 const getStoredLanguage = () => {
   if (!canUseStorage) return null;
   try {
-    return localStorage.getItem('i18nextLng');
+    const stored = localStorage.getItem('i18nextLng');
+    if (stored) {
+      if (stored.startsWith('en')) return 'en';
+      if (stored.startsWith('es')) return 'es';
+    }
+    return stored;
   } catch {
     return null;
   }

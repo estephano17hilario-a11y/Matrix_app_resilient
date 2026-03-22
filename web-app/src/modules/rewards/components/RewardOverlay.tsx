@@ -23,7 +23,6 @@ export const RewardOverlay: React.FC = () => {
   
   // Ref for the card to calculate coin start position
   const cardRef = useRef<HTMLDivElement>(null);
-  const [goldTarget, setGoldTarget] = useState<{x: number, y: number} | null>(null);
 
   // Visual State for animations
   const [visualState, setVisualState] = useState({
@@ -195,20 +194,7 @@ export const RewardOverlay: React.FC = () => {
 
   // Calculate Gold Target
   useEffect(() => {
-    if (step === 'GOLD' && cardRef.current) {
-        const targetEl = document.getElementById('gold-counter-pill');
-        if (targetEl && cardRef.current) {
-            const targetRect = targetEl.getBoundingClientRect();
-            const cardRect = cardRef.current.getBoundingClientRect();
-            
-            setGoldTarget({
-                x: targetRect.left + targetRect.width / 2 - (cardRect.left + cardRect.width / 2),
-                y: targetRect.top + targetRect.height / 2 - (cardRect.top + cardRect.height / 2)
-            });
-        } else {
-            setGoldTarget({ x: 200, y: -500 });
-        }
-    }
+    // Logic removed because goldTarget is not used
   }, [step]);
 
 
@@ -286,7 +272,7 @@ export const RewardOverlay: React.FC = () => {
   };
 
   return createPortal(
-    <AnimatePresence mode="popLayout">
+    <AnimatePresence mode="sync">
       {currentReward && (
         <motion.div
           layout

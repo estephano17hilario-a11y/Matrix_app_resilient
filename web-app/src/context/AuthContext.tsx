@@ -77,13 +77,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
           await Promise.race([
               waitForPendingWrites(db),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 2000))
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 3000))
           ]);
       } catch (e) {
           console.warn("⚠️ MATRIX: Sync timeout on logout.");
       }
 
       await signOut(auth);
+      
+      // FIX: Ensure Google Auth is also signed out so the account picker shows next time
+      try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+              const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+              await GoogleAuth.signOut();
+          }
+      } catch (e) {
+          console.warn("⚠️ GoogleAuth signOut failed:", e);
+      }
+
       setUser(null);
       setProfile(null);
     } catch (error: any) {
@@ -158,13 +170,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                      return { ...prev, isSkeleton: false };
                  }
                  console.log("🩹 MATRIX: Creating brand new fallback profile from safety timer.");
-                 return {
-                     uid: currentUser.uid,
-                     email: currentUser.email,
-                     displayName: currentUser.displayName || "Operator",
-                     photoURL: currentUser.photoURL,
-                     plan: 'FREE',
-                     archetype: 'NEO',
+                    return {
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        displayName: currentUser.displayName || "",
+                        photoURL: currentUser.photoURL,
+                        plan: 'FREE',
+                        archetype: 'NEO',
                      stats: DEFAULT_USER_STATS,
                      createdAt: Date.now(),
                      lastLoginAt: Date.now(),
@@ -180,63 +192,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          const userRef = doc(db, "users", currentUser.uid);
          
          const createOrFillProfile = async (attempts = 0) => {
-             try {
-                 // Try to create the profile with all defaults. Using merge:true means:
-                 // - If doc exists: updates only the fields we pass (safe)
-                 // - If doc doesn't exist: creates it with those fields (perfect for new users)
-                 // This avoids getDoc permission issues entirely
-                 const profileData = {
-                     email: currentUser.email,
-                     displayName: currentUser.displayName || "Operator",
-                     plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
-                     archetype: 'NEO',
-                     stats: DEFAULT_USER_STATS,
-                     theme: 'MATRIX',
-                     lastLoginAt: Date.now(),
-                     createdAt: Date.now()
-                 };
+            try {
+                const userSnap = await getDoc(userRef);
+                
+                if (!userSnap.exists()) {
+                    // Give AuthView a moment to complete its initializeUserDocument if this is a fresh registration
+                    if (attempts === 0) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        return createOrFillProfile(1);
+                    }
+                    
+                    const defaultData = {
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        displayName: currentUser.displayName || "Operator",
+                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                        archetype: 'NEO',
+                        stats: DEFAULT_USER_STATS,
+                        theme: 'MATRIX',
+                        createdAt: Date.now(),
+                        lastLoginAt: Date.now(),
+                        onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 }
+                    };
+                    await setDoc(userRef, defaultData);
+                } else {
+                    await setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
+                }
+                
+                clearSafetyTimer();
 
-                 await setDoc(userRef, profileData, { merge: true });
-                 clearSafetyTimer();
+                const finalSnap = await getDoc(userRef);
+                
+                if (finalSnap.exists()) {
+                    const data = finalSnap.data() as UserProfile;
+                    let resolvedOnboarding = data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                    const localCache = PersistenceService.getProfile(currentUser.uid);
+                    
+                    if (localCache?.onboarding?.completedAt && localCache.onboarding.completedAt > (resolvedOnboarding.completedAt || 0)) {
+                        resolvedOnboarding = localCache.onboarding;
+                    }
 
-                 // Now try to read it back
-                 const userSnap = await getDoc(userRef);
-                 
-                 if (userSnap.exists()) {
-                     const data = userSnap.data() as UserProfile;
-                     let resolvedOnboarding = data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
-                     const localCache = PersistenceService.getProfile(currentUser.uid);
-                     
-                     if (localCache?.onboarding?.completedAt && localCache.onboarding.completedAt > (resolvedOnboarding.completedAt || 0)) {
-                         resolvedOnboarding = localCache.onboarding;
-                     }
+                    const finalProfile: UserProfile = {
+                        ...data,
+                        uid: currentUser.uid,
+                        displayName: data.displayName || currentUser.displayName || "",
+                        stats: data.stats || DEFAULT_USER_STATS,
+                        archetype: data.archetype || 'NEO',
+                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : (data.plan || 'FREE'),
+                        theme: data.theme || 'MATRIX',
+                        createdAt: data.createdAt || Date.now(),
+                        lastLoginAt: Date.now(),
+                        onboarding: resolvedOnboarding,
+                        isSkeleton: false
+                    };
 
-                     const finalProfile: UserProfile = {
-                         ...data,
-                         uid: currentUser.uid,
-                         displayName: data.displayName || currentUser.displayName || "Operator",
-                         stats: data.stats || DEFAULT_USER_STATS,
-                         archetype: data.archetype || 'NEO',
-                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : (data.plan || 'FREE'),
-                         theme: data.theme || 'MATRIX',
-                         createdAt: data.createdAt || Date.now(),
-                         lastLoginAt: Date.now(),
-                         onboarding: resolvedOnboarding,
-                         isSkeleton: false
-                     };
-
-                     console.log("✅ MATRIX: Profile loaded from Firestore.");
-                     setProfile(finalProfile);
-                     PersistenceService.saveProfile(finalProfile);
-                 } else {
+                    console.log("✅ MATRIX: Profile loaded from Firestore.");
+                    setProfile(finalProfile);
+                    PersistenceService.saveProfile(finalProfile);
+                } else {
                      // Should never happen since we just wrote it, but handle gracefully
                      console.warn("⚠️ MATRIX: Profile still not found after write.");
-                     const fallback: UserProfile = {
-                         uid: currentUser.uid,
-                         email: currentUser.email,
-                         displayName: currentUser.displayName || "Operator",
-                         photoURL: currentUser.photoURL,
-                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                    const fallback: UserProfile = {
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        displayName: currentUser.displayName || "",
+                        photoURL: currentUser.photoURL,
+                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
                          archetype: 'NEO',
                          stats: DEFAULT_USER_STATS,
                          theme: 'MATRIX',
@@ -259,12 +280,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  }
                  clearSafetyTimer();
                  // Even on total failure, unblock the user with a minimal profile
-                 const fallback: UserProfile = {
-                     uid: currentUser.uid,
-                     email: currentUser.email,
-                     displayName: currentUser.displayName || "Operator",
-                     photoURL: currentUser.photoURL,
-                     plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                const fallback: UserProfile = {
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    displayName: currentUser.displayName || "",
+                    photoURL: currentUser.photoURL,
+                    plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
                      archetype: 'NEO',
                      stats: DEFAULT_USER_STATS,
                      theme: 'MATRIX',

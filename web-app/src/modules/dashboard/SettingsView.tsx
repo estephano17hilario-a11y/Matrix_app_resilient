@@ -4,6 +4,7 @@ import { SettingsProvider } from '../settings/SettingsContext';
 import { SettingsModal } from '../settings/components/SettingsModal';
 
 export interface SettingsViewProps {
+  initialTab?: string;
   currentTheme: ThemeId | string;
   onThemeToggle: (theme: ThemeId) => void;
   showProfile: boolean;
@@ -34,7 +35,7 @@ export interface SettingsViewProps {
 
 export const SettingsView = (props: SettingsViewProps) => {
   return (
-    <SettingsProvider {...props}>
+    <SettingsProvider {...props} initialTab={props.initialTab}>
       <SettingsModal />
     </SettingsProvider>
   );

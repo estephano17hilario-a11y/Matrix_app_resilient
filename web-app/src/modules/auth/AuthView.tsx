@@ -14,12 +14,13 @@ import { AuthLayout } from './components/AuthLayout';
 import { AuthInput } from './components/AuthInput';
 import { retryOperation, isNetworkAvailable } from '../../utils/networkUtils';
 import { loginWithGoogle, initializeUserDocument } from '../../services/firebaseService';
+import { PersistenceService } from '../../services/persistence';
 
 // --- TYPES & CONSTANTS ---
 type AuthViewMode = 'LANDING' | 'LOGIN' | 'REGISTER_LANG' | 'REGISTER_CREDENTIALS';
 
 // ULTRA-FAST, NO-LAG TRANSITIONS (0 delay, minimal GPU load)
-const FAST_TRANSITION: Transition = { type: 'tween', ease: 'easeOut', duration: 0.15 };
+const FAST_TRANSITION: Transition = { type: 'tween', ease: 'linear', duration: 0 };
 
 // --- SUB-COMPONENTS ---
 
@@ -113,7 +114,7 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={FAST_TRANSITION}
+      transition={{ duration: 0 }}
       className="w-full max-w-sm"
     >
       <div className="flex items-center justify-between mb-8">
@@ -172,7 +173,7 @@ export const AuthView = () => {
   // Validation State (Perfect Audit)
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPasswordValid = password.length >= 6;
-  const isNameValid = name.trim().length >= 2 && name.trim().length <= 14;
+  const isNameValid = name.trim().length >= 2 && name.trim().length <= 12;
   const isConfirmValid = confirmPassword === password && confirmPassword.length > 0;
 
   // Check Redirects
@@ -182,7 +183,7 @@ export const AuthView = () => {
             const result = await getRedirectResult(auth);
             if (result?.user) {
                 setIsLoading(true);
-                // Si viene de Google Redirect, inicializar el documento si no existe
+                PersistenceService.setSession(result.user.uid);
                 await retryOperation(() => initializeUserDocument(result.user, { isAnonymous: false }));
                 setIsLoading(false);
             }
@@ -243,13 +244,13 @@ export const AuthView = () => {
         }
 
         const userCred = await retryOperation(() => createUserWithEmailAndPassword(auth, email.trim(), password));
-        
+
         await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
 
         await retryOperation(() => initializeUserDocument(userCred.user, {
             displayName: name.trim(),
             onboarding: {
-                language: i18n.language || 'en',
+                language: localStorage.getItem('i18nextLng') || 'en',
                 completedAt: 0,
                 successDefinition: "Becoming the One",
                 obstacles: [],
@@ -257,6 +258,7 @@ export const AuthView = () => {
             }
         }));
         
+        PersistenceService.setSession(userCred.user.uid);
         setIsLoading(false);
     } catch (err: any) {
         console.error('Registration error:', err);
@@ -284,6 +286,7 @@ export const AuthView = () => {
         }
 
         const userCred = await retryOperation(() => signInWithEmailAndPassword(auth, email.trim(), password));
+        PersistenceService.setSession(userCred.user.uid);
         
         await retryOperation(() => initializeUserDocument(userCred.user));
         
@@ -389,7 +392,7 @@ export const AuthView = () => {
                                     value={name}
                                     onChange={e => {
                                         const val = e.target.value;
-                                        if (val.length <= 14) {
+                                        if (val.length <= 12) {
                                             setName(val);
                                         }
                                     }}

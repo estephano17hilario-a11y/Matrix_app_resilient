@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { doc, onSnapshot } from '../services/firebase';
+import { doc, onSnapshot, updateDoc } from '../services/firebase';
 import { db, configStatus } from '../services/firebase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
@@ -87,6 +87,16 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
                     const normalized = normalizeUserProfile({ uid: snapshot.id, ...data });
                     const safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
                     
+                    // AUDIT: Verificación estricta de Expiración de Plan Delux
+                    if (data.plan === 'PRO' && data.planExpiryDate) {
+                        if (Date.now() > data.planExpiryDate) {
+                            console.warn("🛡️ AUDIT: Plan Delux Expirado. Revirtiendo a FREE.");
+                            data.plan = 'FREE';
+                            // Optimistic update
+                            updateDoc(userRef, { plan: 'FREE', planExpiryDate: null }).catch(e => console.error(e));
+                        }
+                    }
+
                     // ⚡ OVERRIDE: Global PRO
                     if (ENABLE_GLOBAL_PRO) {
                         data.plan = 'PRO';

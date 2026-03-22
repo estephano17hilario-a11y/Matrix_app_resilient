@@ -282,17 +282,17 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
   },
   amy: {
     id: 'amy',
-    name: 'Amy',
-    description: 'Nature & Serenity',
+    name: 'San Valentin',
+    description: 'Amor & Pasión',
     category: 'flow',
     colors: {
-      bgDepth: '5 20 18', // Much darker/subtler Jungle Green (Less overwhelming)
-      primaryGlow: '52 211 153', // Emerald-400 (Kept Bright)
-      secondaryGlow: '20 184 166', // Teal-500
-      glassTint: '15 40 35', // Darker tint
-      textPrimary: '240 253 244', // Mint cream
+      bgDepth: '20 5 10', // Deep romantic red/burgundy
+      primaryGlow: '244 63 94', // Rose-500 (Bright red/pink)
+      secondaryGlow: '225 29 72', // Rose-600
+      glassTint: '40 15 20', // Darker red tint
+      textPrimary: '255 240 245', // Soft pinkish white
     },
-    gradient: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', // Darker gradient (Emerald-900 to almost black)
+    gradient: 'linear-gradient(135deg, #7f1d1d 0%, #4c0519 100%)', // Deep red gradient
   },
   spotlight: {
     id: 'spotlight',

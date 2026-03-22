@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, ShoppingBag, Trophy, Crosshair, ChevronUp, ChevronDown, Plus, Eye, EyeOff, Settings2 } from 'lucide-react';
+import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, ShoppingBag, Trophy, Plus, Settings2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
@@ -112,14 +112,10 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
     const handleSave = () => {
         // Automatically compute left/right based on order (first 2 left, next 2 right)
         const activeOrder = localConfig.order.slice(0, 4);
-        const finalLeft = activeOrder.slice(0, 2);
-        const finalRight = activeOrder.slice(2, 4);
 
         const finalConfig: DockConfig = {
             ...localConfig,
             order: activeOrder,
-            leftSection: finalLeft,
-            rightSection: finalRight,
             enabledItems: activeOrder
         };
         onSave(finalConfig);
@@ -131,9 +127,6 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
     };
 
     if (!isOpen) return null;
-
-    const enabledItems = localConfig.order.filter(id => localConfig.enabledItems.includes(id));
-    const disabledItems = DOCK_ITEMS.filter(item => !localConfig.enabledItems.includes(item.id));
 
     return createPortal(
         <AnimatePresence>
@@ -395,87 +388,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
                                 );
                             })()}
 
-                            {activeTab === 'assign' && (
-                                <div className="space-y-4">
-                                    <p className="text-xs text-white/40 text-center">Assign items to left or right side of the center button</p>
-                                    
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between text-xs text-cyan-400 uppercase tracking-wider px-1">
-                                                <span>Left Side</span>
-                                                <ChevronUp size={12} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                {localConfig.leftSection.map((id) => {
-                                                    const item = DOCK_ITEMS.find(i => i.id === id)!;
-                                                    const Icon = item.icon;
-                                                    return (
-                                                        <div
-                                                            key={id}
-                                                            className={cn(
-                                                                "bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2 flex items-center gap-2",
-                                                            )}
-                                                        >
-                                                            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border", item.bgColor, item.color, item.borderColor)}>
-                                                                <Icon size={10} />
-                                                            </div>
-                                                            <span className="text-[10px] font-bold text-white">{item.label}</span>
-                                                            <button
-                                                                onClick={() => handleAssignToSection(id, 'right')}
-                                                                className="ml-auto text-white/30 hover:text-white/60"
-                                                            >
-                                                                <ChevronDown size={12} />
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {localConfig.leftSection.length === 0 && (
-                                                    <div className="text-[10px] text-white/20 text-center py-4 border border-dashed border-white/10 rounded-lg">
-                                                        Empty
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between text-xs text-purple-400 uppercase tracking-wider px-1">
-                                                <span>Right Side</span>
-                                                <ChevronUp size={12} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                {localConfig.rightSection.map((id) => {
-                                                    const item = DOCK_ITEMS.find(i => i.id === id)!;
-                                                    const Icon = item.icon;
-                                                    return (
-                                                        <div
-                                                            key={id}
-                                                            className={cn(
-                                                                "bg-purple-500/10 border border-purple-500/20 rounded-lg p-2 flex items-center gap-2",
-                                                            )}
-                                                        >
-                                                            <button
-                                                                onClick={() => handleAssignToSection(id, 'left')}
-                                                                className="text-white/30 hover:text-white/60"
-                                                            >
-                                                                <ChevronUp size={12} />
-                                                            </button>
-                                                            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border", item.bgColor, item.color, item.borderColor)}>
-                                                                <Icon size={10} />
-                                                            </div>
-                                                            <span className="text-[10px] font-bold text-white">{item.label}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {localConfig.rightSection.length === 0 && (
-                                                    <div className="text-[10px] text-white/20 text-center py-4 border border-dashed border-white/10 rounded-lg">
-                                                        Empty
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {/* Removed assign tab code */}
                         </div>
 
                         <div className="p-4 border-t border-white/5 bg-white/5">

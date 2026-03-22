@@ -54,7 +54,7 @@ export const FocusAlarmOverlay: React.FC<FocusAlarmOverlayProps> = ({
                             style={{ border: `2px solid ${project.color || '#fff'}` }}
                         >
                             <span className="text-4xl" role="img" aria-label="project icon">
-                                {project.icon || '🚀'}
+                                🚀
                             </span>
                         </div>
 

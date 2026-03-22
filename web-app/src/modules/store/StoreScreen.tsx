@@ -120,7 +120,7 @@ interface StoreScreenProps {
 const StoreContent = ({ }: StoreScreenProps) => {
   const { user } = useLux();
   const { t } = useTranslation();
-  const { purchase, watchAd, storeItems, isTransactionPending, inventory, consume } = useEconomy();
+  const { purchase, storeItems, isTransactionPending, inventory, consume } = useEconomy();
   const [activeFilter, setActiveFilter] = useState<string>('all');
   
   // Confirmation State
@@ -224,16 +224,18 @@ const StoreContent = ({ }: StoreScreenProps) => {
         >
             <AnimatePresence initial={false}>
                 {/* Ad Shard - Only when Power Ups or All are selected */}
-                {(activeFilter === 'all' || activeFilter === 'power_up') && (
+                {/* 
+                // POR EL MOMENTO EL BOTON DE VER TRANSMISION EN LA ZONA DE TIENDA NO SE VEA
+                (activeFilter === 'all' || activeFilter === 'power_up') && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <AdShard onWatch={watchAd} />
+                        <AdShard />
                     </motion.div>
-                )}
+                )*/}
 
                 {activeFilter !== 'inventory' ? (
                     filteredItems.map((item) => (

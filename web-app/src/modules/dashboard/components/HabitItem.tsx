@@ -23,7 +23,7 @@ interface HabitItemProps {
   completedOverride?: boolean;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onUpdate, onShowActions, reduceMotion, isDue = true, completedOverride }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onUpdate, onShowActions, isDue = true, completedOverride }: HabitItemProps) => {
   const { t } = useTranslation();
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
@@ -108,8 +108,6 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
 
   const timeDisplay = React.useMemo(() => getTimeDisplay(), [habit.reminderTime]);
 
-  const Wrapper: React.ElementType = reduceMotion ? 'div' : motion.div;
-
   // Removed containIntrinsicSize to fix dynamic height issues
   const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto' };
 
@@ -139,22 +137,11 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
     return habit.checklist.length > 0 && habit.checklist.every(i => i.completed);
   }, [habit.checklist, habit.type]);
 
-  const wrapperProps = reduceMotion ? {
+  const wrapperProps = {
         onClick: handleWrapperClick,
         className: cn(
-          "group relative bg-[#050505]/80 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] rounded-[24px] px-5 py-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#0a0a0a]/85 hover:border-white/[0.1] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)] active:scale-95",
-          allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/[0.05]",
-          !isDue && "opacity-60 grayscale",
-          isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
-        ),
-        style: wrapperStyle
-      }
-    : {
-        whileTap: { scale: 0.98 },
-        onClick: handleWrapperClick,
-        className: cn(
-          "group relative bg-[#050505]/80 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] rounded-[24px] px-5 py-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-[#0a0a0a]/85 hover:border-white/[0.1] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)]",
-          allChecklistCompleted ? "border-emerald-500/30 shadow-emerald-500/10" : "border-white/[0.05]",
+          "group relative bg-[#050505]/90 border rounded-[24px] px-5 py-4 transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95",
+          allChecklistCompleted ? "border-emerald-500/30" : "border-white/5",
           !isDue && "opacity-60 grayscale",
           isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
         ),
@@ -177,13 +164,13 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
 
   return (
     <>
-      <Wrapper 
+      <div 
         {...wrapperProps}
       >
         {/* Animated Background Progress for partial checklists */}
         {habit.type === 'CHECKLIST' && percentage > 0 && percentage < 100 && (
           <div 
-            className="absolute left-0 bottom-0 top-0 opacity-[0.03] transition-all duration-500 ease-out z-0"
+            className="absolute left-0 bottom-0 top-0 opacity-[0.03] transition-all duration-300 ease-out z-0"
             style={{ width: `${percentage}%`, backgroundColor: baseColor }}
           />
         )}
@@ -196,7 +183,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
 
         {/* Radial Gradient Blur Background */}
         <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-500" 
+            className="absolute top-0 right-0 w-48 h-48 opacity-[0.20] pointer-events-none group-hover:opacity-[0.30] transition-opacity duration-300" 
             style={{ 
                 background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`,
                 transform: 'translateZ(0)'
@@ -392,7 +379,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
             </button>
         </div>
       </div>
-    </Wrapper>
+    </div>
 
     {habit.type === 'QUANTITY' && onUpdate && (
         <QuantityUpdateModal 

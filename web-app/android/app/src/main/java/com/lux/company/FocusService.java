@@ -33,8 +33,8 @@ public class FocusService extends Service {
     public static final String EXTRA_PROJECT_COLOR = "EXTRA_PROJECT_COLOR"; // Hex String e.g. "#FF0000"
     public static final String EXTRA_PROJECT_ICON = "EXTRA_PROJECT_ICON"; // String/Emoji
 
-    private static final String CHANNEL_ID = "FocusSessionChannel_v3"; // Bumped version to reset config
-    private static final String ALARM_CHANNEL_ID = "FocusAlarmChannel_v1";
+    private static final String CHANNEL_ID = "FocusSessionChannel_v4"; // Bumped version to reset config
+    private static final String ALARM_CHANNEL_ID = "FocusAlarmChannel_v2";
     private static final int NOTIFICATION_ID = 101;
     private static final int ALARM_NOTIFICATION_ID = 102;
 
@@ -241,13 +241,9 @@ public class FocusService extends Service {
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setFullScreenIntent(pendingOpenIntent, true); // Important for alarms when locked
 
-        // FORCE SOUND: Some devices don't respect channel sound settings
-        // Use built-in alarm sound with fallback
+        // FORCE SOUND: Use Notification sound for a gentler chime
         try {
-            android.net.Uri alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
-            if (alarmSound == null) {
-                alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
-            }
+            android.net.Uri alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
             if (alarmSound != null) {
                 builder.setSound(alarmSound);
             }
@@ -379,7 +375,7 @@ public class FocusService extends Service {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Focus Session",
-                    NotificationManager.IMPORTANCE_HIGH // FORCE HIGH IMPORTANCE
+                    NotificationManager.IMPORTANCE_LOW // LOW IMPORTANCE for silent ongoing
             );
             channel.setDescription("Shows active focus session timer");
             channel.setSound(null, null); // No sound
@@ -387,18 +383,15 @@ public class FocusService extends Service {
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(channel);
 
-            // Completion Alarm channel (Loud sound, vibration)
+            // Completion Alarm channel (Gentle sound, vibration)
             NotificationChannel alarmChannel = new NotificationChannel(
                     ALARM_CHANNEL_ID,
                     "Focus Session Complete",
-                    NotificationManager.IMPORTANCE_MAX // MAX IMPORTANCE
+                    NotificationManager.IMPORTANCE_HIGH // HIGH IMPORTANCE
             );
             alarmChannel.setDescription("Rings when a focus session finishes");
             // Set default alarm sound with robust fallback
-            android.net.Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
-            if (soundUri == null) {
-                 soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
-            }
+            android.net.Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
             android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .setUsage(android.media.AudioAttributes.USAGE_ALARM)

@@ -23,8 +23,8 @@ const MOCK_RESPONSES = [
 ];
 
 export const sendMessage = async (message: string, _history: AIMessage[] = []): Promise<AIResponse> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  // No network delay for "velocidad luz"
+  // await new Promise(resolve => setTimeout(resolve, 1500));
 
   // Simple keyword matching for "demo" intelligence
   const lowerMsg = message.toLowerCase();
@@ -55,6 +55,6 @@ export const sendMessage = async (message: string, _history: AIMessage[] = []): 
 };
 
 export const generateQuestSuggestion = async (): Promise<string> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  // await new Promise(resolve => setTimeout(resolve, 1000));
   return "Complete a 15-minute deep work session to restore focus.";
 };

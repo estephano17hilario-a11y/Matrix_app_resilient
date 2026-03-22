@@ -23,9 +23,8 @@ export class FocusPluginWeb extends WebPlugin implements FocusPlugin {
         body,
         icon: '/favicon.ico', // Ensure this exists or use a valid path
         tag: 'focus-session',
-        renotify: true,
         silent: true // Don't beep every time if we update it
-      });
+      } as NotificationOptions);
     } else if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
@@ -50,8 +49,7 @@ export class FocusPluginWeb extends WebPlugin implements FocusPlugin {
     if (Notification.permission === 'granted') {
         new Notification('Session Paused', {
             body: 'Resume when you are ready.',
-            tag: 'focus-session',
-            renotify: true
+            tag: 'focus-session'
         });
     }
   }
@@ -62,8 +60,7 @@ export class FocusPluginWeb extends WebPlugin implements FocusPlugin {
     if (Notification.permission === 'granted') {
         new Notification('Session Resumed', {
             body: 'Focus is back on.',
-            tag: 'focus-session',
-            renotify: true
+            tag: 'focus-session'
         });
     }
   }

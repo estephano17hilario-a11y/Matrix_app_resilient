@@ -301,5 +301,45 @@ export const TransactionService = {
             console.error(`❌ BATCH FAILED (Attribute XP):`, e);
             throw e;
         }
-    }
+    },
+
+    /**
+     * Atomically halves user level and all attributes when HP reaches 0
+     */
+    halveStats: async (userId: string, currentAttributes: any[], currentLevel: number, currentXp: number) => {
+        const batch = writeBatch(db);
+        const userRef = doc(db, 'users', userId);
+
+        try {
+            const newLevel = Math.max(1, Math.floor(currentLevel / 2));
+            const newXp = newLevel > 1 ? 20 * Math.pow(newLevel, 2) : 0; // Rough XP calc based on GAMIFICATION_CONFIG.LEVEL_CONSTANT = 20
+
+            batch.update(userRef, {
+                'stats.level': newLevel,
+                'stats.xp': newXp,
+                'stats.nextXp': 20 * Math.pow(newLevel + 1, 2),
+                'stats.hp': 100 // Reset HP
+            });
+
+            // Halve all attributes
+            currentAttributes.forEach(attr => {
+                const attrRef = doc(db, 'users', userId, 'attributes', attr.id);
+                const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
+                const newAttrXp = newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0;
+                const newMaxXp = 20 * Math.pow(newAttrLevel + 1, 2);
+                
+                batch.update(attrRef, {
+                    level: newAttrLevel,
+                    xp: newAttrXp,
+                    maxXp: newMaxXp
+                });
+            });
+
+            await batch.commit();
+            return { newLevel, newXp };
+        } catch (e) {
+            console.error("❌ BATCH FAILED (Halve Stats):", e);
+            throw e;
+        }
+    },
 };

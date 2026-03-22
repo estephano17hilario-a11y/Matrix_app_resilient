@@ -11,7 +11,7 @@ interface AuroraBackgroundProps {
 }
 
 export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColor, className, children }) => {
-  const { theme, vividMode, availableThemes } = useTheme();
+  const { theme, vividMode, availableThemes, vicesMode } = useTheme();
   const themeConfig = availableThemes?.[theme];
   const isSolid = themeConfig?.isSolid;
   const bgStyle = themeConfig?.bgStyle;
@@ -110,7 +110,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
 
             {/* 5. NOISE TEXTURE (CRITICAL FOR FIGMA LOOK) - Reduced Opacity */}
             <div 
-                className="absolute inset-0 w-full h-full mix-blend-overlay pointer-events-none"
+                className="absolute inset-0 w-full h-full pointer-events-none"
                 style={{
                     opacity: isMobile ? 0.03 : 0.07,
                     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
@@ -154,11 +154,11 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
                     delay: h.delay,
                     ease: "linear",
                   }}
-                  className={`absolute flex items-center justify-center whitespace-nowrap will-change-transform ${h.type === 'text' ? 'text-emerald-200/30 font-serif italic tracking-wider' : 'text-emerald-300/20'}`}
+                  className={`absolute flex items-center justify-center whitespace-nowrap will-change-transform ${h.type === 'text' ? 'text-rose-200/30 font-serif italic tracking-wider' : 'text-rose-300/20'}`}
                   style={{ 
                     left: h.left,
                     fontSize: h.type === 'text' ? '1.5rem' : undefined,
-                    textShadow: h.type === 'text' ? '0 0 10px rgba(16, 185, 129, 0.2)' : undefined
+                    /* Removed textShadow for zero-lag performance and preventing black flickers */
                   }}
                 >
                   {h.type === 'text' ? (
@@ -205,6 +205,19 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
           />
         </>
       )}
+
+      {/* Vices Mode Red Overlay (Universal Tint) */}
+      <div 
+        className="absolute inset-0 pointer-events-none transition-opacity duration-1000 ease-in-out"
+        style={{
+          background: isSolid 
+            ? 'rgba(153, 27, 27, 0.15)' // Flat subtle red for solid themes
+            : 'radial-gradient(circle at 50% 50%, rgba(220, 38, 38, 0.12) 0%, rgba(153, 27, 27, 0.05) 60%, transparent 100%)',
+          opacity: vicesMode ? 1 : 0,
+          transform: 'translateZ(0)', // Hardware acceleration
+          zIndex: 10
+        }}
+      />
     </div>
   );
 };

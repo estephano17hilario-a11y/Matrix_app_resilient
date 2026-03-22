@@ -36,14 +36,14 @@ export const NeuralSection = () => {
   return (
     <div className="space-y-8 pb-4">
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-white tracking-tight">Traits</h2>
-        <p className="text-white/40 text-sm font-medium">Your core attributes and cognitive parameters.</p>
+        <h2 className="text-xl font-bold text-white tracking-tight">{t('settings.attributeEditor', 'Traits')}</h2>
+        <p className="text-white/40 text-sm font-medium">{t('settings.attributeEditorDesc', 'Your core attributes and cognitive parameters.')}</p>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white tracking-wide">Active Traits</h3>
+            <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.activeTraits', 'Active Traits')}</h3>
             <div className="h-px w-12 bg-gradient-to-r from-white/10 to-transparent" />
           </div>
           <span className="text-[10px] font-bold tracking-widest text-white/50 bg-black/40 border border-white/5 px-2.5 py-1 rounded-full shadow-inner">
@@ -52,7 +52,7 @@ export const NeuralSection = () => {
         </div>
 
         <div className="space-y-3">
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence mode="sync">
             {attributes.map((attr) => (
               <motion.div
                 key={attr.id}
@@ -149,7 +149,7 @@ export const NeuralSection = () => {
       {availableTraits.length > 0 && (
         <div className="space-y-4 pt-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white tracking-wide">Available Modules</h3>
+            <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.availableTraits', 'Available Modules')}</h3>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
           </div>
 

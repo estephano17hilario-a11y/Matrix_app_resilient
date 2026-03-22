@@ -5,7 +5,7 @@ import { Skull, Coins, Heart, AlertTriangle, ShieldCheck, Sparkles, RotateCcw, C
 import { BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
-const STREAK_TARGETS = [3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
+const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
 interface RelapseModalProps {
     isOpen: boolean;
@@ -33,16 +33,17 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
     if (!isOpen || typeof document === 'undefined') return null;
 
     const isIntelligent = habit.intelligentStreak;
-    const currentTarget = habit.currentTarget || 3;
+    const currentTarget = habit.currentTarget || 1;
     const reachedDays = habit.reachedDays || 0;
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
 
     const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
-    const previousTarget = targetIndex > 0 ? STREAK_TARGETS[targetIndex - 1] : 3;
+    const previousTarget = targetIndex > 0 ? STREAK_TARGETS[targetIndex - 1] : 1;
     const nextTarget = targetIndex < STREAK_TARGETS.length - 1 ? STREAK_TARGETS[targetIndex + 1] : null;
     const { penalties } = habit;
     const canAffordGold = userGold >= penalties.gold && !isIntelligent;
-    const hpPenalty = Math.max(1, Math.floor(penalties.hp * 0.5));
+    // HP Penalty should be based on impact or default to a reasonable value for intelligent vice
+    const hpPenalty = isIntelligent ? Math.max(5, Math.floor(penalties.hp * 0.5)) : Math.max(1, Math.floor(penalties.hp * 0.5));
 
     return createPortal(
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
@@ -99,8 +100,8 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                 </h2>
                                 <p className="text-violet-200/80 font-medium text-[14px]">
                                     {isOpportunityDay
-                                        ? t('badHabits.opportunityDesc', `You can use "${habit.title}" without consequences. Congratulations!`)
-                                        : t('badHabits.relapseDesc', `You have relapsed in "${habit.title}". The system is analyzing your progress...`)}
+                                        ? t('badHabits.opportunityDesc', { defaultValue: `You can use "${habit.title}" without consequences. Congratulations!`, title: habit.title })
+                                        : t('badHabits.relapseDesc', { defaultValue: `You have relapsed in "${habit.title}". The system is analyzing your progress...`, title: habit.title })}
                                 </p>
                             </div>
 
@@ -111,7 +112,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                         <span className="font-bold text-[15px]">{t('badHabits.noPenalty', 'No Penalty')}</span>
                                     </div>
                                     <div className="text-[13px] text-white/60 leading-relaxed">
-                                        {t('badHabits.completedDays', `You have completed ${currentTarget} days without the vice. You can take a free day and your progress remains intact.`)}
+                                        {t('badHabits.completedDays', { defaultValue: `You have completed ${currentTarget} days without the vice. You can take a free day and your progress remains intact.`, count: currentTarget })}
                                     </div>
                                     {nextTarget && (
                                         <div className="flex items-center justify-center gap-2 pt-2 border-t border-white/5">
@@ -125,21 +126,21 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                     <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-4 space-y-3">
                                         <div className="flex items-center justify-center gap-2 text-rose-400">
                                             <RotateCcw size={18} />
-                                            <span className="font-bold text-[13px]">Racha Retrocedida</span>
+                                            <span className="font-bold text-[13px]">{t('badHabits.streakRetrogressed', 'Streak Retrogressed')}</span>
                                         </div>
 
                                         <div className="flex items-center justify-center gap-4">
                                             <div className="text-center">
-                                                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Anterior</div>
+                                                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">{t('badHabits.previous', 'Previous')}</div>
                                                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                                                    <span className="text-base font-black text-white/50">{previousTarget}</span>
+                                                    <span className="text-base font-black text-white/50">{currentTarget}</span>
                                                 </div>
                                             </div>
                                             <div className="flex flex-col items-center">
                                                 <ArrowDown size={16} className="text-rose-400/60" />
                                             </div>
                                             <div className="text-center">
-                                                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Nueva Meta</div>
+                                                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">{t('badHabits.newGoal', 'New Goal')}</div>
                                                 <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
                                                     <span className="text-base font-black text-rose-400">{previousTarget}</span>
                                                 </div>
@@ -150,14 +151,14 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                     <div className="bg-rose-950/20 border border-rose-500/20 rounded-2xl p-4 space-y-3">
                                         <div className="flex items-center justify-center gap-2 text-rose-400">
                                             <Heart size={18} />
-                                            <span className="font-bold text-[13px]">Penalización HP</span>
+                                            <span className="font-bold text-[13px]">{t('badHabits.hpPenalty', 'HP Penalty')}</span>
                                         </div>
                                         <div className="flex items-center justify-center gap-3">
                                             <div className="w-14 h-14 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
                                                 <span className="text-xl font-black text-rose-400">-{hpPenalty}</span>
                                             </div>
                                             <div className="text-[11px] text-white/50 leading-relaxed text-left">
-                                                Vida reducida como consecuencia de romper tu racha antes de completar la meta.
+                                                {t('badHabits.hpPenaltyDesc', 'Health reduced as a consequence of breaking your streak before completing the goal.')}
                                             </div>
                                         </div>
                                     </div>
@@ -171,7 +172,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                         onClick={() => onConfirm('GOLD')}
                                         className="flex-1 py-3.5 rounded-xl font-bold text-[13px] bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg hover:shadow-emerald-500/25 transition-all"
                                     >
-                                        Confirmar y Mantener Progreso
+                                        {t('badHabits.confirmKeepProgress', 'Confirm & Keep Progress')}
                                     </motion.button>
                                 ) : (
                                     <motion.button
@@ -180,7 +181,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                         className="flex-1 py-3.5 rounded-xl font-bold text-[13px] bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-lg hover:shadow-rose-500/25 transition-all flex items-center justify-center gap-2"
                                     >
                                         <Heart size={16} />
-                                        Aceptar Penalización
+                                        {t('badHabits.acceptPenalty', 'Accept Penalty')}
                                     </motion.button>
                                 )}
                             </div>
@@ -196,10 +197,10 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
 
                             <div>
                                 <h2 className="text-2xl font-black text-white tracking-tight mb-2">
-                                    Fallo en Protocolo
+                                    {t('badHabits.protocolFailure', 'Protocol Failure')}
                                 </h2>
                                 <p className="text-rose-200/80 font-medium text-[14px]">
-                                    {t('badHabits.succumbed', `You have succumbed to "${habit.title}".`)}
+                                    {t('badHabits.succumbed', { defaultValue: `You have succumbed to "${habit.title}".`, title: habit.title })}
                                 </p>
                                 <p className="text-white/40 text-[12px] mt-1">
                                     {t('badHabits.demandsCompensation', 'The system demands compensation.')}
@@ -223,7 +224,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                         {penalties.gold}
                                     </div>
                                     <div className="text-[10px] uppercase font-bold text-amber-200/60 tracking-wider mb-2">
-                                        Oro
+                                        {t('common.gold', 'Gold')}
                                     </div>
 
                                     {canAffordGold ? (
@@ -233,7 +234,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                         </div>
                                     ) : (
                                         <div className="text-[9px] text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded-full inline-block">
-                                            FALTAN
+                                            {t('badHabits.missingGold', 'MISSING')}
                                         </div>
                                     )}
                                 </button>
@@ -263,7 +264,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                 onClick={onClose}
                                 className="text-white/30 text-[12px] hover:text-white transition-colors py-2 px-4 rounded-full hover:bg-white/5"
                             >
-                                Cancelar (Falsa Alarma)
+                                {t('badHabits.cancelFalseAlarm', 'Cancel (False Alarm)')}
                             </button>
                         </>
                     )}

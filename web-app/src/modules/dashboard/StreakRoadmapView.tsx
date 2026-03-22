@@ -21,11 +21,20 @@ const CENTER_X = VIEWBOX_WIDTH / 2;
 const TOP_PADDING = 60;  // Padding for the first node
 
 export const getTargetPercentage = (day: number) => {
-    if (day <= 7) return 50;
-    if (day <= 14) return 60;
-    if (day <= 30) return 67;
-    if (day <= 60) return 75;
+    if (day <= 7) return 60;
+    if (day <= 14) return 67;
+    if (day <= 30) return 75;
+    if (day <= 60) return 80;
     if (day <= 90) return 80;
+    return 85;
+};
+
+export const getNextLevelPercentage = (day: number) => {
+    if (day < 7) return 67;
+    if (day < 14) return 75;
+    if (day < 30) return 80;
+    if (day < 60) return 80;
+    if (day < 90) return 85;
     return 85;
 };
 
@@ -49,7 +58,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // --- LOGIC: Calculate Streak & Progress ---
-    const { currentStreak, todayProgress, roadmapData } = useMemo(() => {
+    const { currentStreak, todayProgress, roadmapData, completedDays } = useMemo(() => {
         const activeHabits = habits.filter(h => !h.archived);
         
         // 1. Calculate Today's Progress
@@ -73,69 +82,45 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
         });
 
         const progressPercent = totalDueToday > 0 ? Math.round((completedTodayCount / totalDueToday) * 100) : 0;
-        
-        // 2. Calculate Streak (Simplified for UI Demo)
-        // Assume streak is stored or calculated based on consecutive days
-        // For this demo, let's derive it or use a mock if 0 to show the UI
-        let streak = 0;
-        // Mock streak calculation logic would go here based on history
-        // Using a hardcoded value or derived value for visual consistency
-        // Let's assume the user has a streak if they completed habits yesterday
-        // For the visual requested: "Día 1 / 60" implies we are on Day 1 or Day X
-        // Let's simulate a streak based on habits completion
-        streak = 1; // Default to Day 1 for new users
+        const todayProgress = progressPercent;
+        const streak = 1;
+        const completedDays = streak > 0 ? streak - 1 : 0;
 
         // 3. Generate Roadmap Nodes
         const nodes = Array.from({ length: TOTAL_DAYS }, (_, i) => {
             const dayNum = i + 1;
-            const date = addDays(today, i); // Day 1 is Today, Day 2 is Tomorrow... OR Day 1 was start?
-            // "El Camino" usually implies a journey. 
-            // If "Día 1/60", Day 1 is the start. 
-            // If user is on Day 5, then 1-4 are past.
-            
-            // Let's assume the roadmap tracks the *User's Journey*
-            // So Day 1 is the first day they started using the app (or this challenge).
-            // However, the image shows "HOY" on a specific node.
-            // Let's align: 
-            // If User is on Day X of the challenge.
-            
-            // MOCK STATE FOR UI REPLICATION:
-            // Let's say we are on Day 1 for the demo, or match the screenshot where "HOY" is prominent.
-            // If we want to replicate the screenshot exactly:
-            // The screenshot shows "HOY" as a node.
-            
-            // Dynamic Logic:
-            // We need to know which "Day" of the 60-day challenge is "Today".
-            // Let's assume currentStreak represents the day we are on.
+            const date = addDays(today, i);
             const isTodayNode = dayNum === streak;
             const isPast = dayNum < streak;
+            const isCompleted = isPast;
             
             let status: 'completed' | 'current' | 'locked' = 'locked';
             if (isPast) status = 'completed';
             if (isTodayNode) status = 'current';
             
-            // Label Logic
             let label = `DÍA ${dayNum}`;
             if (isTodayNode) label = "HOY";
             else if (dayNum === streak + 1) label = "MAÑANA";
             else if (dayNum === streak + 2) label = "EN 2 DÍAS";
             else if (dayNum === streak + 3) label = "EN 3 DÍAS";
             else if (dayNum === streak + 4) label = "EN 4 DÍAS";
-            else label = `EN ${dayNum - streak} DÍAS`; // Fallback
+            else label = `EN ${dayNum - streak} DÍAS`;
 
             return {
                 day: dayNum,
                 status,
                 label,
                 date,
-                side: i % 2 === 0 ? 'left' : 'right' // Zigzag
+                side: i % 2 === 0 ? 'left' : 'right',
+                isCompleted
             };
         });
 
         return {
             currentStreak: streak,
-            todayProgress: progressPercent,
-            roadmapData: nodes
+            todayProgress,
+            roadmapData: nodes,
+            completedDays
         };
     }, [habits]);
 
@@ -245,8 +230,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
                     {/* Stats Row (No more black boxes - Pure transparency) */}
                     <div className="relative grid grid-cols-2 divide-x divide-white/5 border-y border-white/5">
-                        <HeaderStat label={t('dashboard.dailyGoal', 'DAILY GOAL')} value={`${getTargetPercentage(currentStreak)}%`} />
-                        <HeaderStat label={t('dashboard.todayProgress', 'TODAY PROGRESS')} value={`${todayProgress}%`} colorClass={todayProgress >= getTargetPercentage(currentStreak) ? "text-emerald-400" : "text-cyan-400"} />
+                        <HeaderStat label={t('dashboard.dailyGoal', 'DAILY GOAL')} value={`${getNextLevelPercentage(currentStreak)}%`} />
+                        <HeaderStat label={t('dashboard.todayProgress', 'TODAY PROGRESS')} value={`${todayProgress}%`} colorClass={todayProgress >= getNextLevelPercentage(currentStreak) ? "text-orange-400" : "text-cyan-400"} />
                     </div>
                 </div>
 
@@ -265,32 +250,67 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                         >
                             <defs>
                                 <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#10b981" />
-                                    <stop offset="50%" stopColor="#06b6d4" />
-                                    <stop offset="100%" stopColor="#3b82f6" />
+                                    <stop offset="0%" stopColor="#f97316" />
+                                    <stop offset="50%" stopColor="#fb923c" />
+                                    <stop offset="100%" stopColor="#fbbf24" />
                                 </linearGradient>
+                                <linearGradient id="glowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
+                                    <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.3" />
+                                </linearGradient>
+                                <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
                             </defs>
                             
-                            {/* Background Track */}
+                            {/* Background Track - Dim */}
                             <path 
                                 d={pathD} 
                                 fill="none" 
                                 stroke="rgba(255,255,255,0.03)" 
-                                strokeWidth="6" 
+                                strokeWidth="4" 
                                 strokeLinecap="round"
                             />
 
-                            {/* Active Progress Path */}
-                             <path 
-                                d={pathD} 
-                                fill="none" 
-                                stroke="url(#pathGradient)" 
-                                strokeWidth="6" 
-                                strokeLinecap="round"
-                                strokeDasharray="10 12"
-                                className="opacity-50"
-                                style={{ filter: 'drop-shadow(0 0 12px rgba(16, 185, 129, 0.4))' }}
-                            />
+                            {/* Illuminated Progress Path - Progressive */}
+                            {completedDays > 0 && (
+                                <motion.path 
+                                    d={pathD} 
+                                    fill="none" 
+                                    stroke="url(#pathGradient)" 
+                                    strokeWidth="4" 
+                                    strokeLinecap="round"
+                                    filter="url(#pathGlow)"
+                                    initial={{ pathLength: 0 }}
+                                    animate={{ pathLength: 1 }}
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                />
+                            )}
+
+                            {/* Milestone Markers on Path */}
+                            {[7, 14, 30, 60, 90].map(milestone => {
+                                const milestoneIndex = milestone - 1;
+                                const milestoneNode = roadmapData[milestoneIndex];
+                                if (!milestoneNode) return null;
+                                const x = milestoneNode.side === 'left' ? CENTER_X - X_OFFSET : CENTER_X + X_OFFSET;
+                                const y = TOP_PADDING + (milestoneIndex * NODE_HEIGHT);
+                                const isPassed = milestone < currentStreak;
+                                return (
+                                    <circle
+                                        key={milestone}
+                                        cx={x}
+                                        cy={y}
+                                        r={isPassed ? 8 : 6}
+                                        fill={isPassed ? '#f97316' : 'rgba(251,191,36,0.3)'}
+                                        stroke={isPassed ? '#fed7aa' : 'rgba(251,191,36,0.5)'}
+                                        strokeWidth="2"
+                                    />
+                                );
+                            })}
                         </svg>
 
                         {/* NODES LAYER */}
@@ -326,23 +346,65 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
 // --- SUB-COMPONENT: NODE ---
 const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
-    const { t } = useTranslation();
     const isCurrent = node.status === 'current';
     const isLocked = node.status === 'locked';
+    const isCompleted = node.status === 'completed';
     const isMilestone = [7, 14, 30, 60, 90].includes(node.day);
     const targetPercentage = getTargetPercentage(node.day);
+    const nextLevelPercentage = getNextLevelPercentage(node.day);
 
-    // ANIMATIONS
     const variants: Variants = {
-        hidden: { scale: 0, opacity: 0 },
+        hidden: { scale: 0.8, opacity: 0 },
         visible: { 
             scale: 1, 
             opacity: 1,
-            transition: { type: 'spring', stiffness: 260, damping: 20 } 
+            transition: { type: 'spring', stiffness: 300, damping: 22 } 
         }
     };
 
+    if (isCompleted) {
+        if (isMilestone) {
+            return (
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={variants}
+                    className="relative group z-20"
+                >
+                    <div 
+                        className="absolute -inset-1 rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+                        style={{ boxShadow: '0 0 15px rgba(249,115,22,0.25)' }}
+                    />
+                    <div className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 border border-orange-500/40 shadow-lg">
+                        <CheckCircle2 className="w-7 h-7 text-orange-400" />
+                        <span className="text-[8px] font-black text-orange-400/80 uppercase tracking-wider mt-0.5">OK</span>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        return (
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={variants}
+                className="relative group"
+            >
+                <div 
+                    className="absolute -inset-1 rounded-xl opacity-30 group-hover:opacity-50 transition-opacity duration-300"
+                    style={{ boxShadow: '0 0 10px rgba(249,115,22,0.2)' }}
+                />
+                <div className="relative flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/15 to-amber-500/5 border border-orange-500/30">
+                    <CheckCircle2 className="w-5 h-5 text-orange-400" />
+                </div>
+            </motion.div>
+        );
+    }
+
     if (isCurrent) {
+        const displayPercentage = isMilestone ? nextLevelPercentage : targetPercentage;
+        const isAchieved = progress >= displayPercentage;
+
         return (
             <motion.div
                 initial="hidden"
@@ -350,49 +412,55 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 variants={variants}
                 className={cn("relative group z-30", isMilestone ? "scale-110" : "")}
             >
-                {/* Glow Effect - Optimized: Removed radial-gradient background for simple box-shadow or solid colors to save GPU */}
-                <div className="absolute -inset-1 rounded-full opacity-60 group-hover:opacity-80 transition-opacity duration-300" style={{ boxShadow: isMilestone ? '0 0 20px rgba(245,158,11,0.3)' : '0 0 20px rgba(16,185,129,0.2)' }} />
+                <div 
+                    className="absolute -inset-1 rounded-full opacity-70 group-hover:opacity-90 transition-opacity duration-300"
+                    style={{ 
+                        boxShadow: isAchieved 
+                            ? '0 0 25px rgba(249,115,22,0.4)' 
+                            : '0 0 20px rgba(16,185,129,0.3)'
+                    }}
+                />
                 
-                {/* Main Pill */}
                 <div className={cn(
-                    "relative flex items-center gap-4 pl-2 pr-6 py-3 bg-[#111] border rounded-[2rem] shadow-lg group-hover:bg-[#1a1a1a] transition-colors duration-300",
-                    isMilestone ? "border-amber-500/50" : "border-emerald-500/30"
+                    "relative flex items-center gap-3 pl-2 pr-5 py-2.5 bg-[#0f0f0f] border rounded-[1.8rem] shadow-lg transition-colors duration-300",
+                    isMilestone 
+                        ? (isAchieved ? "border-orange-500/60" : "border-amber-500/50") 
+                        : (isAchieved ? "border-orange-500/40" : "border-emerald-500/30")
                 )}>
                     <div className={cn(
-                        "flex items-center justify-center w-12 h-12 rounded-2xl border",
-                        isMilestone ? "bg-[#2a1a05] border-amber-500/50 text-amber-400" : "bg-[#051a10] border-emerald-500/40 text-emerald-400"
+                        "flex items-center justify-center w-11 h-11 rounded-xl border",
+                        isMilestone 
+                            ? (isAchieved ? "bg-orange-500/20 border-orange-500/50" : "bg-amber-500/20 border-amber-500/50") 
+                            : (isAchieved ? "bg-orange-500/20 border-orange-500/40" : "bg-emerald-500/20 border-emerald-500/40")
                     )}>
-                        {progress >= targetPercentage ? (
-                            <CheckCircle2 className="w-7 h-7" />
+                        {isAchieved ? (
+                            <CheckCircle2 className={cn("w-6 h-6", isMilestone ? "text-orange-400" : "text-orange-400")} />
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
-                                <Circle className="w-7 h-7 opacity-80" />
-                                <div className={cn("absolute inset-0 rounded-full opacity-20", isMilestone ? "bg-amber-500" : "bg-emerald-500")} />
+                                <Circle className="w-6 h-6 opacity-80" />
+                                <div className={cn("absolute inset-0 rounded-lg opacity-25", isMilestone ? "bg-amber-500" : "bg-emerald-500")} />
                             </div>
                         )}
                     </div>
                     
                     <div className="flex flex-col">
                         <span className={cn(
-                            "text-[9px] font-black uppercase tracking-[0.2em] mb-0.5",
-                            isMilestone ? "text-amber-500" : "text-emerald-500"
+                            "text-[8px] font-black uppercase tracking-[0.15em] mb-0.5",
+                            isMilestone ? "text-amber-400" : "text-emerald-500"
                         )}>
-                            {isMilestone ? "HOY (META ALTA)" : "HOY"}
+                            {isMilestone ? "HOY - NUEVO NIVEL" : "HOY"}
                         </span>
                         <span className={cn(
-                            "text-base font-black tracking-tight",
-                            progress >= targetPercentage 
-                                ? (isMilestone ? "text-amber-400" : "text-emerald-400") 
-                                : "text-white"
+                            "text-sm font-black tracking-tight",
+                            isAchieved ? "text-orange-400" : "text-white"
                         )}>
-                            {progress >= targetPercentage ? t('common.completed', 'Completed') : `${targetPercentage}% REQUERIDO`}
+                            {isAchieved ? "Completado" : `${displayPercentage}% Requerido`}
                         </span>
                     </div>
 
-                    {/* Indicator Dot */}
                     <div className={cn(
-                        "absolute -right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-[3px] border-[#020204]",
-                        isMilestone ? "bg-amber-500" : "bg-emerald-500"
+                        "absolute -right-1 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-[2px] border-[#020204]",
+                        isAchieved ? "bg-orange-500" : (isMilestone ? "bg-amber-500" : "bg-emerald-500")
                     )} />
                 </div>
             </motion.div>
@@ -407,28 +475,26 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     whileInView="visible"
                     viewport={{ once: true }}
                     variants={variants}
-                    className="relative flex items-center gap-4 p-4 bg-[#1a1005] border border-amber-500/40 rounded-3xl shadow-lg transition-transform duration-300 hover:scale-105 z-20"
+                    className="relative flex items-center gap-3 p-3 bg-[#0a0805] border border-amber-500/30 rounded-2xl shadow-lg transition-transform duration-300 hover:scale-[1.02] z-20"
                 >
-                    {/* Number Circle */}
-                    <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-[#2a1a05] border border-amber-500/50 text-amber-300 font-black text-xl">
-                        <span className="text-[10px] uppercase tracking-widest opacity-80 mb-[-4px]">Día</span>
+                    <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-[#1a1205] border border-amber-500/40 text-amber-300 font-black text-lg">
+                        <span className="text-[8px] uppercase tracking-widest opacity-70 mb-[-2px]">Día</span>
                         {node.day}
                     </div>
 
-                    <div className="flex flex-col min-w-[100px]">
-                        <span className="text-xs font-black text-amber-400/80 uppercase tracking-[0.2em] mb-1">
+                    <div className="flex flex-col min-w-[90px]">
+                        <span className="text-[10px] font-black text-amber-400/70 uppercase tracking-[0.15em] mb-0.5">
                             NUEVO NIVEL
                         </span>
-                        <div className="flex items-center gap-2">
-                            <Flame className="w-5 h-5 text-amber-400" />
-                            <span className="text-lg font-black text-amber-400 tracking-tight">{targetPercentage}%</span>
+                        <div className="flex items-center gap-1.5">
+                            <Flame className="w-4 h-4 text-amber-400" />
+                            <span className="text-base font-black text-amber-400 tracking-tight">{nextLevelPercentage}%</span>
                         </div>
                     </div>
 
-                    {/* Connector Dot */}
                     <div className={cn(
-                        "absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-amber-500 bg-amber-200",
-                        node.side === 'left' ? "-right-1.5" : "-left-1.5"
+                        "absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-amber-500/50 bg-amber-500/30",
+                        node.side === 'left' ? "-right-1" : "-left-1"
                     )} />
                 </motion.div>
             );
@@ -440,54 +506,29 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={variants}
-                className="relative flex items-center gap-4 pl-3 pr-6 py-2.5 bg-[#0a0a0a] border border-white/10 rounded-2xl opacity-80 hover:opacity-100 transition-opacity duration-300 shadow-sm"
+                className="relative flex items-center gap-3 pl-2.5 pr-5 py-2 bg-[#080808] border border-white/[0.06] rounded-xl opacity-60 hover:opacity-80 transition-opacity duration-300"
             >
-                {/* Number Circle */}
-                <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#111] border border-white/10 text-white/60 font-mono font-black text-sm">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#111] border border-white/10 text-white/50 font-mono font-black text-xs">
                     {node.day}
                 </div>
 
-                <div className="flex flex-col min-w-[80px]">
-                    <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">
+                <div className="flex flex-col min-w-[70px]">
+                    <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em] mb-0.5">
                         {node.label}
                     </span>
-                    <div className="flex items-center gap-1.5">
-                        <Trophy className="w-3.5 h-3.5 text-white/20" />
-                        <span className="text-xs font-black text-white/50 tracking-tight">{targetPercentage}%</span>
+                    <div className="flex items-center gap-1">
+                        <Trophy className="w-3 h-3 text-white/15" />
+                        <span className="text-[10px] font-black text-white/40 tracking-tight">{targetPercentage}%</span>
                     </div>
                 </div>
 
-                {/* Connector Dot */}
                 <div className={cn(
-                    "absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white/20 bg-white/10",
-                    node.side === 'left' ? "-right-1" : "-left-1"
+                    "absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full border border-white/15 bg-white/10",
+                    node.side === 'left' ? "-right-0.5" : "-left-0.5"
                 )} />
             </motion.div>
         );
     }
 
-    // COMPLETED / PAST
-    if (isMilestone) {
-        return (
-            <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={variants}
-                className="w-14 h-14 rounded-2xl bg-[#1a1005] border border-amber-500/40 flex items-center justify-center shadow-lg opacity-90 hover:opacity-100 transition-opacity duration-300 z-10"
-            >
-                <CheckCircle2 className="w-8 h-8 text-amber-400" />
-            </motion.div>
-        );
-    }
-
-    return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={variants}
-            className="w-10 h-10 rounded-xl bg-[#051a10] border border-emerald-500/20 flex items-center justify-center grayscale-[0.5] opacity-60 hover:opacity-100 transition-opacity duration-300"
-        >
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-        </motion.div>
-    );
+    return null;
 };

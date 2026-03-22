@@ -12,14 +12,36 @@ interface BadHabitWizardProps {
     attributes: Attribute[];
     isFirstIdentify?: boolean;
     onSwitchToHabit?: () => void;
+    initialData?: BadHabit;
 }
 
-const STREAK_TARGETS = [3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
+const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
-const AmbientBackground = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.12)_0%,_transparent_50%)]" />
-        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.12)_0%,_transparent_50%)]" />
+const AmbientBackground = ({ isIntelligent }: { isIntelligent?: boolean }) => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-1000">
+        {!isIntelligent ? (
+            <>
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.12)_0%,_transparent_50%)] transition-opacity duration-1000" />
+                <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.12)_0%,_transparent_50%)] transition-opacity duration-1000" />
+            </>
+        ) : (
+            <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.5 }}
+                className="absolute inset-0"
+            >
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.12)_0%,_rgba(15,23,42,0)_80%)] animate-pulse" style={{ animationDuration: '6s' }} />
+                <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-[radial-gradient(circle_at_center,_rgba(192,132,252,0.15)_0%,_transparent_70%)]" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.1)_0%,_transparent_70%)]" />
+                
+                {/* Estrellas cosmicas ligeras para evitar lag, sin blur para 0% impacto en GPU */}
+                <div className="absolute top-[20%] left-[30%] w-1 h-1 bg-white rounded-full opacity-60 animate-ping" style={{ animationDuration: '8s' }} />
+                <div className="absolute top-[60%] left-[80%] w-1.5 h-1.5 bg-violet-300 rounded-full opacity-40 animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-[80%] left-[20%] w-0.5 h-0.5 bg-cyan-200 rounded-full opacity-80 animate-ping" style={{ animationDuration: '12s' }} />
+            </motion.div>
+        )}
     </div>
 );
 
@@ -44,25 +66,37 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     onConfirm,
     attributes,
     isFirstIdentify,
-    onSwitchToHabit
+    onSwitchToHabit,
+    initialData
 }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0);
 
-    const [title, setTitle] = useState('');
-    const [attribute, setAttribute] = useState('');
-    const [reason, setReason] = useState('');
-    const [impactLevel, setImpactLevel] = useState(3);
-    const [timeIndex, setTimeIndex] = useState(4);
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [attribute, setAttribute] = useState(initialData?.attribute || '');
+    const [reason, setReason] = useState(initialData?.reason || '');
+    const [impactLevel, setImpactLevel] = useState(() => {
+        if (initialData?.negativeImpact) {
+            const match = initialData.negativeImpact.match(/\d+/);
+            if (match) return parseInt(match[0], 10);
+        }
+        return 3;
+    });
+    const [timeIndex, setTimeIndex] = useState(() => {
+        if (initialData?.timeConsumed) {
+            const timeMap: Record<number, number> = { 15: 0, 30: 1, 60: 2, 120: 3, 180: 4, 240: 5 };
+            return timeMap[initialData.timeConsumed] ?? 4;
+        }
+        return 4;
+    });
     const [inputMode, setInputMode] = useState<'LIST' | 'CUSTOM'>('CUSTOM');
     const [viceList, setViceList] = useState<string[]>([
-        'Procrastinación', 'Redes sociales', 'Pornografía', 'Azúcar',
-        'Comida chatarra', 'Tabaco', 'Alcohol', 'Videojuegos',
-        'Compras impulsivas', 'Desvelarse'
+        'Procrastinar', 'Redes sociales', 'Fap', 'Comida chatarra', 'Alcohol', 'Videojuegos'
     ]);
     const [listDraft, setListDraft] = useState('');
-    const [intelligentStreak, setIntelligentStreak] = useState(false);
+    const [intelligentStreak, setIntelligentStreak] = useState(initialData?.intelligentStreak || false);
+    const [showIntelligentInfo, setShowIntelligentInfo] = useState(false);
 
     const getMinutesFromIndex = (index: number) => {
         if (index <= 7) return (index + 1) * 15;
@@ -87,9 +121,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         }
         setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
         setViceList([
-            'Procrastinación', 'Redes sociales', 'Pornografía', 'Azúcar',
-            'Comida chatarra', 'Tabaco', 'Alcohol', 'Videojuegos',
-            'Compras impulsivas', 'Desvelarse'
+            'Procrastinar', 'Redes sociales', 'Fap', 'Comida chatarra', 'Alcohol', 'Videojuegos'
         ]);
         setListDraft('');
     }, [isOpen, isFirstIdentify]);
@@ -112,15 +144,15 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     const handleConfirm = () => {
         onConfirm({
+            ...(initialData || {}),
             title,
             attribute,
             reason,
             negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
-            penalties: { hp: 0, xp: 0, gold: 0 },
             intelligentStreak,
-            currentTarget: intelligentStreak ? 3 : undefined,
-            reachedDays: 0
+            currentTarget: initialData ? (intelligentStreak ? (initialData.currentTarget || 1) : undefined) : (intelligentStreak ? 1 : undefined),
+            reachedDays: initialData ? (intelligentStreak ? (initialData.reachedDays || 0) : undefined) : 0
         });
         onClose();
         
@@ -144,6 +176,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             });
             return merged;
         });
+        setTitle(items[0]);
         setListDraft('');
     };
 
@@ -178,7 +211,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                         className="relative w-full max-w-lg bg-[#0d0d0f] rounded-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden border border-white/[0.06] max-h-[90vh] flex flex-col"
                     >
                         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-                        <AmbientBackground />
+                        <AmbientBackground isIntelligent={intelligentStreak} />
 
                         <div className="relative flex flex-col h-full overflow-hidden">
                             <div className="px-5 pt-5 pb-2 sm:px-8 sm:pt-7 flex justify-between items-center z-10 shrink-0">
@@ -191,7 +224,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                         <div className="p-1 bg-rose-500/15 rounded-md">
                                             <Skull size={13} className="text-rose-400" />
                                         </div>
-                                        <span className="text-[11px] font-bold text-rose-400 tracking-wider uppercase">Protocolo de Purga</span>
+                                        <span className="text-[11px] font-bold text-rose-400 tracking-wider uppercase">{t('badHabits.purgeProtocol', 'Purge Protocol')}</span>
                                         {intelligentStreak && (
                                             <motion.div
                                                 initial={{ scale: 0 }}
@@ -199,7 +232,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 className="flex items-center gap-1 px-2 py-0.5 bg-violet-500/15 rounded-full ml-1"
                                             >
                                                 <Sparkles size={10} className="text-violet-400" />
-                                                <span className="text-[9px] font-bold text-violet-400 uppercase">Inteligente</span>
+                                                <span className="text-[9px] font-bold text-violet-400 uppercase">{t('badHabits.intelligent', 'Intelligent')}</span>
                                             </motion.div>
                                         )}
                                     </motion.div>
@@ -246,7 +279,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                 </div>
                             </div>
 
-                            <div className="flex-1 px-5 sm:px-8 relative overflow-hidden min-h-0">
+                            <div className="flex-1 px-5 sm:px-8 relative overflow-hidden min-h-[420px]">
                                 <AnimatePresence initial={false} custom={direction} mode="wait">
                                     {step === 1 && (
                                         <motion.div
@@ -257,11 +290,11 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-5 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-6"
                                         >
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Modo</span>
+                                                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">{t('badHabits.mode', 'Mode')}</span>
                                                     <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.03] border border-white/[0.06]">
                                                         <button
                                                             onClick={() => setInputMode('LIST')}
@@ -269,7 +302,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 inputMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'
                                                             }`}
                                                         >
-                                                            Lista
+                                                            {t('badHabits.list', 'List')}
                                                         </button>
                                                         <button
                                                             onClick={() => setInputMode('CUSTOM')}
@@ -277,7 +310,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 inputMode === 'CUSTOM' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'
                                                             }`}
                                                         >
-                                                            Manual
+                                                            {t('badHabits.manual', 'Manual')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -288,6 +321,12 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             <input
                                                                 value={listDraft}
                                                                 onChange={(e) => setListDraft(e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                        handleAddListItems();
+                                                                    }
+                                                                }}
                                                                 placeholder={t('badHabits.addVicesPlaceholder', 'Add vices (comma or line break)')}
                                                                 className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-rose-500/30 focus:ring-1 focus:ring-rose-500/20 transition-all"
                                                             />
@@ -303,15 +342,15 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 Agregar
                                                             </button>
                                                         </div>
-                                                        <div className="flex flex-wrap gap-1.5 max-h-[90px] overflow-y-auto pr-1 custom-scrollbar">
+                                                        <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar pb-1">
                                                             {viceList.map(item => (
                                                                 <button
                                                                     key={item}
                                                                     onClick={() => setTitle(item)}
-                                                                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border ${
+                                                                    className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${
                                                                         title === item
-                                                                            ? 'bg-rose-500/15 text-rose-200 border-rose-500/35'
-                                                                            : 'bg-white/[0.03] text-white/50 border-white/[0.06] hover:text-white hover:border-white/15'
+                                                                            ? 'bg-rose-500/20 text-rose-200 border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
+                                                                            : 'bg-white/[0.04] text-white/60 border-white/[0.08] hover:bg-white/[0.08] hover:text-white hover:border-white/20'
                                                                     }`}
                                                                 >
                                                                     {item}
@@ -337,11 +376,11 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
+                                            <div className="space-y-3 pb-2">
                                                 <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
                                                     Afecta a tu atributo:
                                                 </label>
-                                                <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div className="grid grid-cols-2 gap-2 pr-1">
                                                     {attributes.map(attr => (
                                                         <motion.button
                                                             key={attr.id}
@@ -382,7 +421,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="space-y-5 h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-6"
                                         >
                                             <div className="space-y-3">
                                                 <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
@@ -427,10 +466,52 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             </div>
 
                                             <div className="space-y-3 pt-2">
-                                                <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1 flex items-center gap-1.5">
-                                                    <Brain size={13} className="text-violet-400" />
-                                                    Modo Inteligencia Artificial
-                                                </label>
+                                                <div className="flex items-center justify-between ml-1">
+                                                    <label className="text-[12px] sm:text-sm font-medium text-white/60 flex items-center gap-1.5">
+                                                        <Brain size={13} className="text-violet-400" />
+                                                        Modo Inteligencia Artificial
+                                                    </label>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => setShowIntelligentInfo(!showIntelligentInfo)}
+                                                        className="text-violet-400/70 hover:text-violet-300 transition-colors p-1"
+                                                    >
+                                                        <Info size={14} />
+                                                    </motion.button>
+                                                </div>
+
+                                                <AnimatePresence>
+                                                    {showIntelligentInfo && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                            animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                                            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="p-4 rounded-xl bg-gradient-to-br from-violet-900/30 to-indigo-900/30 border border-violet-500/20 mb-3 relative overflow-hidden group">
+                                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                                                <h4 className="text-[13px] font-bold text-violet-200 mb-2 flex items-center gap-2">
+                                                                    <Sparkles size={14} className="text-violet-400 animate-pulse" />
+                                                                    ¿Qué es la Racha Inteligente?
+                                                                </h4>
+                                                                <p className="text-[11px] text-violet-100/70 leading-relaxed mb-2">
+                                                                    Es un sistema revolucionario que entiende que somos humanos. En lugar de castigarte brutalmente por un error y volver a cero (lo cual destruye la motivación), utiliza un <span className="font-semibold text-violet-300">algoritmo de progreso escalonado</span>.
+                                                                </p>
+                                                                <ul className="text-[11px] text-violet-100/60 space-y-1.5 list-disc pl-4 mb-2">
+                                                                    <li><strong className="text-violet-200">Metas Graduales:</strong> Empiezas con 1 día, luego 3, 7, 14, 30...</li>
+                                                                    <li><strong className="text-emerald-300">Días de Oportunidad:</strong> Al cumplir una meta, ganas un día donde puedes cometer el vicio SIN perder tu racha.</li>
+                                                                    <li><strong className="text-rose-300">Caída Suave:</strong> Si fallas, no vuelves a cero. Solo retrocedes a la meta anterior.</li>
+                                                                </ul>
+                                                                <p className="text-[11px] text-violet-300/80 font-medium italic mt-2 border-t border-violet-500/20 pt-2">
+                                                                    "Perfecto para vicios difíciles de dejar de golpe, creando un camino realista hacia la libertad."
+                                                                </p>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setIntelligentStreak(!intelligentStreak)}
@@ -476,7 +557,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="h-full overflow-y-auto custom-scrollbar pr-1 pb-4"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6"
                                         >
                                             <div className="bg-gradient-to-br from-violet-950/20 to-indigo-950/20 border border-violet-500/15 rounded-2xl p-5 mb-5">
                                                 <div className="flex items-center gap-2.5 mb-4">
@@ -484,8 +565,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                         <Brain size={18} className="text-violet-400" />
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-[15px] font-bold text-violet-200">Sistema de Racha Inteligente</h3>
-                                                        <p className="text-[11px] text-violet-300/50">Aprende de tus recaídas, no las penaliza</p>
+                                                        <h3 className="text-[15px] font-bold text-violet-200">{t('badHabits.intelligentStreakSystem', 'Intelligent Streak System')}</h3>
+                                                        <p className="text-[11px] text-violet-300/50">{t('badHabits.learnFromRelapses', 'Learns from your relapses, does not penalize them')}</p>
                                                     </div>
                                                 </div>
 
@@ -497,7 +578,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                         <div>
                                                             <div className="text-[12px] font-semibold text-emerald-200 mb-1">{t('badHabits.wizard.gradualProcess', 'Gradual Process')}</div>
                                                             <div className="text-[11px] text-white/50 leading-relaxed">
-                                                                {t('badHabits.wizard.gradualDesc', 'Goals increase gradually: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days')}
+                                                                {t('badHabits.wizard.gradualDesc', 'Goals increase gradually: 1 → 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days')}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -528,7 +609,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </div>
 
                                                 <div className="bg-black/30 rounded-xl p-4 border border-white/5">
-                                                    <div className="text-[11px] text-white/40 mb-3 uppercase tracking-wider font-semibold">Ejemplo Visual</div>
+                                                    <div className="text-[11px] text-white/40 mb-3 uppercase tracking-wider font-semibold">{t('badHabits.visualExample', 'Visual Example')}</div>
                                                     <div className="flex items-center justify-between">
                                                         {STREAK_TARGETS.slice(0, 5).map((target, i) => (
                                                             <div key={target} className="flex flex-col items-center">
@@ -539,7 +620,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 }`}>
                                                                     {target}
                                                                 </div>
-                                                                <div className="text-[9px] text-white/30 mt-1">días</div>
+                                                                <div className="text-[9px] text-white/30 mt-1">{t('common.days', 'days')}</div>
                                                                 {i < 4 && (
                                                                     <div className="absolute left-1/2 w-full h-px bg-gradient-to-r from-violet-500/50 to-transparent" style={{ display: 'none' }} />
                                                                 )}
@@ -570,7 +651,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="h-full flex flex-col"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6 flex flex-col"
                                         >
                                             <div className="bg-rose-950/15 border border-rose-500/15 rounded-2xl p-5 mb-5">
                                                 <h3 className="text-[14px] font-semibold text-rose-200 mb-3 flex items-center gap-2">
@@ -579,7 +660,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </h3>
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between text-sm items-end">
-                                                        <span className="text-white/50">Duración estimada</span>
+                                                        <span className="text-white/50">{t('common.estimatedDuration', 'Estimated Duration')}</span>
                                                         <span className="font-mono font-bold text-lg text-rose-400">
                                                             {minutes < 60 ? `${minutes} min` : `${Math.floor(minutes/60)}h ${minutes%60 > 0 ? minutes%60 + 'm' : ''}`}
                                                         </span>
@@ -618,11 +699,15 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="h-full flex flex-col"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6 flex flex-col"
                                         >
-                                            <div className="bg-gradient-to-br from-rose-950/20 to-violet-950/15 border border-white/5 rounded-2xl p-6 mb-6 text-center">
-                                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-rose-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center">
-                                                    <Skull size={28} className="text-rose-400" />
+                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_30px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
+                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
+                                                    {intelligentStreak ? (
+                                                        <Sparkles size={28} className="text-violet-300" />
+                                                    ) : (
+                                                        <Skull size={28} className="text-rose-400" />
+                                                    )}
                                                 </div>
                                                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
                                                 <p className="text-[12px] text-white/40">{t('badHabits.wizard.readyToActivate', 'Protocol ready to activate')}</p>
@@ -630,22 +715,22 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 {intelligentStreak && (
                                                     <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full">
                                                         <Sparkles size={14} className="text-violet-400" />
-                                                        <span className="text-[11px] font-semibold text-violet-300">Racha Inteligente Activada</span>
+                                                        <span className="text-[11px] font-semibold text-violet-300">{t('badHabits.intelligentStreakActivated', 'Intelligent Streak Activated')}</span>
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="space-y-3 flex-1">
                                                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
-                                                    <span className="text-[12px] text-white/50">Razón</span>
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.reason', 'Reason')}</span>
                                                     <span className="text-[12px] text-white/80 font-medium truncate max-w-[200px]">{reason}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
-                                                    <span className="text-[12px] text-white/50">Impacto</span>
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.impact', 'Impact')}</span>
                                                     <span className="text-[12px] text-rose-400 font-medium">Nivel {impactLevel}/5</span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
-                                                    <span className="text-[12px] text-white/50">Atributo</span>
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.attribute', 'Attribute')}</span>
                                                     <span className="text-[12px] text-white/80 font-medium">
                                                         {attributes.find(a => a.id === attribute)?.label.replace('traits.', '') || 'General'}
                                                     </span>
@@ -665,7 +750,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                         className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors text-[12px] sm:text-[13px]"
                                     >
                                         <ChevronLeft size={16} />
-                                        <span className="font-medium">Atrás</span>
+                                        <span className="font-medium">{t('common.back', 'Back')}</span>
                                     </motion.button>
                                 ) : <div />}
 

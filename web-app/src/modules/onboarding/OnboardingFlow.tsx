@@ -141,70 +141,63 @@ export function OnboardingFlow() {
 
     console.log("[Onboarding] ⚡ INSTANT UPDATE TRIGGERED", localUpdates);
     
-    // This triggers AuthContext -> App.tsx re-render -> Dashboard mount
-    if (profile) {
-       updateProfileLocally(localUpdates);
-    }
-
-    // 4. HEAVY LIFTING: Defer to next tick to unblock UI thread
-    // This allows the App to switch views while we save in background
-    setTimeout(async () => {
-        try {
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('lux_last_view', 'TASKS');
-                localStorage.setItem('matrix_last_view', 'TASKS');
-            }
-            
-            const userRef = doc(db, "users", userId);
-            
-            // Fire & Forget Firebase Save
-            const savePromise = setDoc(userRef, {
-                avatarId: selectedAvatarId,
-                onboarding: updatedOnboarding,
-                archetype: 'NEO',
-                updatedAt: Date.now()
-            }, { merge: true });
-
-            // Fire & Forget Attributes Save
-            const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
-                const trait = TRAITS_LIST.find(t => t.id === id);
-                if (!trait) return acc;
-                acc.push({
-                    id: trait.id,
-                    label: trait.label,
-                    level: 1,
-                    xp: 0,
-                    maxXp: 100,
-                    color: trait.color,
-                    icon: trait.icon 
-                });
-                return acc;
-            }, []);
-
-            // Local Persistence (Sync but fast enough usually, deferred now)
-            PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
-
-            // Background Firebase Attributes
-            const attrPromises = attributesToSave.map(attr => 
-                persistenceService.attributes.save(userId, attr)
-            );
-
-            // We await for debugging, but user is already gone hopefully
-            await Promise.all([savePromise, ...attrPromises]);
-            console.log("[Onboarding] ✅ Background save complete");
-            
-            // If user is somehow still here (optimistic update failed?), refresh might help
-            if (user) {
-                // await refreshProfile(); // Optional: might cause re-renders
-            }
-
-        } catch (error) {
-            console.error("[Onboarding] ❌ Background save failed:", error);
-            // We do NOT revert UI here because the user might already be in Dashboard
-            // and we don't want to yank them back.
-            // Just log it. The local state is what matters for session.
+    try {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('lux_last_view', 'TASKS');
+            localStorage.setItem('matrix_last_view', 'TASKS');
         }
-    }, 0);
+        
+        const userRef = doc(db, "users", userId);
+        
+        // Wait for it to ensure no data loss on logout
+        await setDoc(userRef, {
+            avatarId: selectedAvatarId ?? profile?.avatarId,
+            onboarding: updatedOnboarding,
+            archetype: 'NEO',
+            updatedAt: Date.now()
+        }, { merge: true });
+
+        // Fire & Forget Attributes Save
+        const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
+            const trait = TRAITS_LIST.find(t => t.id === id);
+            if (!trait) return acc;
+            acc.push({
+                id: trait.id,
+                label: trait.label,
+                level: 1,
+                xp: 0,
+                maxXp: 100,
+                color: trait.color,
+                icon: trait.icon
+            });
+            return acc;
+        }, []);
+
+        // Local Persistence (Sync but fast enough usually, deferred now)
+        PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
+
+        // Background Firebase Attributes
+        const attrPromises = attributesToSave.map(attr => 
+            persistenceService.attributes.save(userId, attr)
+        );
+
+        // We await for debugging, but user is already gone hopefully
+        await Promise.all(attrPromises);
+        console.log("[Onboarding] ✅ Background save complete");
+
+        // Clear safety timer
+        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+
+        // This triggers AuthContext -> App.tsx re-render -> Dashboard mount
+        if (profile) {
+           updateProfileLocally(localUpdates);
+        }
+
+    } catch (e) {
+        console.error("[Onboarding] Error saving data:", e);
+        // Still try to let them in even if offline save failed
+        if (profile) updateProfileLocally(localUpdates);
+    }
   };
 
   useEffect(() => {

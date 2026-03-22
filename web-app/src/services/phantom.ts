@@ -67,7 +67,7 @@ export const PHANTOM_USER: User = {
 
 export const phantomSignInWithPopup = async (auth: any, _provider: any) => {
     console.log("👻 PHANTOM: Signing in...");
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 10));
     
     const user = { ...PHANTOM_USER };
     saveSession(user);

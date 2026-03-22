@@ -78,10 +78,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
         const b = parseInt(normalized.slice(4, 6), 16);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
-    const borderColor = toRgba(themeColor, 0.2);
-    const glowColor = toRgba(themeColor, 0.22); // Reduced slightly
-    const sheen = toRgba('#ffffff', 0.04);
-    const topGlow = toRgba(themeColor, 0.08);
+    
+    const shadowColor = toRgba(themeColor, 0.2);
+    const customBoxShadow = `0 10px 15px -3px ${shadowColor}, 0 4px 6px -4px ${shadowColor}`;
 
     const workingDays = project.workingDays;
     const today = new Date();
@@ -106,15 +105,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
             whileTap={{ scale: 0.98 }}
             className={cn(
                 "relative group overflow-hidden rounded-[24px] p-4 cursor-pointer",
-                "bg-black/25 border",
-                "shadow-sm hover:shadow-md transition-all duration-300"
+                "bg-[#111113]/80 bg-gradient-to-br from-white/[0.04] to-transparent",
+                "border border-white/[0.08] hover:border-white/[0.15]",
+                "shadow-lg transition-all duration-300"
             )}
-            style={{ borderColor, boxShadow: `0 0 20px ${glowColor}`, background: `linear-gradient(180deg, ${sheen} 0%, rgba(255,255,255,0) 70%)` }}
+            style={{ boxShadow: customBoxShadow }}
         >
-            <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(70% 90% at 10% 0%, ${topGlow} 0%, rgba(255,255,255,0) 65%)` }} />
-            {/* Background Gradient - Fake Glass */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none" />
-            
             {/* Top Row: Icon/Button and Title */}
             <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-5 w-full">
@@ -166,7 +162,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
 
                         {isWorkingDay ? (
                             <div className="flex items-center gap-3 mt-2 w-full">
-                                <div className="h-2.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-2.5 flex-1 bg-black/60 rounded-full overflow-hidden">
                                     <motion.div 
                                         initial={{ width: 0 }}
                                         animate={displayPercentage >= 100 ? { 

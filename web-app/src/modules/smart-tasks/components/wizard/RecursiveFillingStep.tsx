@@ -146,7 +146,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                              <span className={`font-bold text-white/80 tracking-wide ${isHighDensity ? 'text-[11px]' : 'text-xs'}`}>{info.label}</span>
                              <div className="h-px w-6 bg-white/10" />
                         </div>
-                        <span className={`font-mono text-white/50 bg-black/40 backdrop-blur-md px-2.5 rounded-md border border-white/5 shadow-inner ${isHighDensity ? 'text-[9px] py-0.5' : 'text-[10px] py-1'}`}>
+                        <span className={`font-mono text-white/50 bg-black px-2.5 rounded-md border border-white/5 shadow-inner ${isHighDensity ? 'text-[9px] py-0.5' : 'text-[10px] py-1'}`}>
                             {formatDate(info.start)} - {formatDate(info.end)} 
                             <span className="text-white/20 mx-1.5">|</span> 
                             <span className="text-white/80 font-semibold">{info.durationStr}</span>

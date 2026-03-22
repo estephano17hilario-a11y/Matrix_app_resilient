@@ -46,10 +46,11 @@ service cloud.firestore {
     
     // 4. PERMISSIVE VALIDATION FOR UPDATES (existing docs might have partial data)
     function isValidUpdate(data) {
-      // Allow updates with any string fields as long as they're not too long
+      // Prevent user from giving themselves PRO plan, modifying coins, or changing their auth level
       let keys = data.keys();
-      // Check no string field exceeds 200 chars (reasonable limit)
-      return true; // Keep it permissive for updates
+      let hasRestrictedFields = keys.hasAny(['plan', 'isPro', 'role', 'permissions']) && 
+                                request.resource.data.get('plan', '') != resource.data.get('plan', '');
+      return !hasRestrictedFields;
     }
 
     // --- COLLECTION RULES ---
@@ -64,7 +65,7 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       
       // PERMISSIVE update: allow updates to existing documents
-      allow update: if isOwner(userId) && isNotPhysicalDelete();
+      allow update: if isOwner(userId) && isNotPhysicalDelete() && isValidUpdate(request.resource.data);
       
       allow delete: if false; // NEVER ALLOW PHYSICAL DELETE
 

@@ -6,8 +6,10 @@ import { getAvatarPath } from '../../../config/avatars';
 import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
 import { updateProfile } from 'firebase/auth';
 import { auth, db, doc, setDoc } from '../../../services/firebase';
+import { useTranslation } from 'react-i18next';
 
 export const AccountSection = () => {
+  const { t } = useTranslation();
   const { user, logout } = useSettings();
   const { profile, updateProfileLocally } = useAuth();
   const [avatarError, setAvatarError] = useState(false);
@@ -23,7 +25,7 @@ export const AccountSection = () => {
 
   const formattedName = profile?.displayName || ((user?.displayName && !user.displayName.includes('@'))
     ? user.displayName
-    : (user?.email ? user.email.split('@')[0] : 'Operative'));
+    : (user?.email ? user.email.split('@')[0] : t('settings.operative', 'Operative')));
 
   const handleStartEdit = () => {
     setEditName(formattedName);
@@ -37,7 +39,7 @@ export const AccountSection = () => {
 
   const handleSaveName = async () => {
     const newName = editName.trim();
-    if (!newName || newName.length < 2 || newName.length > 14 || newName === formattedName) {
+    if (!newName || newName.length < 2 || newName.length > 12 || newName === formattedName) {
       setIsEditingName(false);
       return;
     }
@@ -64,10 +66,10 @@ export const AccountSection = () => {
 
   return (
     <div className="space-y-8 pb-4">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">Profile</h2>
-        <p className="text-white/40 text-sm">Your identity and avatar.</p>
-      </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-white">{t('settings.tabs.profile', 'Profile')}</h2>
+          <p className="text-white/40 text-sm">{t('settings.profileDesc', 'Your identity and connection status.')}</p>
+        </div>
 
       <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 relative overflow-hidden group">
         <div 
@@ -99,12 +101,12 @@ export const AccountSection = () => {
                   type="text"
                   value={editName}
                   onChange={(e) => {
-                    if (e.target.value.length <= 14) {
+                    if (e.target.value.length <= 12) {
                       setEditName(e.target.value);
                     }
                   }}
                   disabled={isSavingName}
-                  className="bg-black/50 border border-white/20 rounded-lg px-3 py-1 text-white text-base font-bold outline-none focus:border-indigo-500 w-full max-w-[180px]"
+                  className="bg-black/50 border border-white/20 rounded-lg px-3 py-1 text-white text-sm font-normal outline-none focus:border-indigo-500 w-full max-w-[180px]"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
@@ -128,7 +130,7 @@ export const AccountSection = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-bold text-white truncate">{formattedName}</h3>
+                <h3 className="text-sm font-light text-white truncate">{formattedName}</h3>
                 <button
                   onClick={handleStartEdit}
                   className="text-white/30 hover:text-white/80 transition-colors"
@@ -148,7 +150,7 @@ export const AccountSection = () => {
 
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-white tracking-wide">Session</h3>
+          <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.session', 'Session')}</h3>
           <div className="h-px flex-1 bg-gradient-to-r from-red-500/20 to-transparent" />
         </div>
 
@@ -160,8 +162,8 @@ export const AccountSection = () => {
             <LogOut size={20} />
           </div>
           <div className="text-left">
-            <span className="block text-red-200 font-bold text-base group-hover:text-white transition-colors tracking-tight">Terminate Session</span>
-            <span className="block text-red-500/50 text-xs font-medium mt-0.5">Safe logout and local data sync</span>
+            <span className="block text-red-200 font-bold text-base group-hover:text-white transition-colors tracking-tight">{t('settings.terminateSession', 'Terminate Session')}</span>
+            <span className="block text-red-500/50 text-xs font-medium mt-0.5">{t('settings.safeLogout', 'Safe logout and local data sync')}</span>
           </div>
         </button>
       </div>

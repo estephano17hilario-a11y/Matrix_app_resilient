@@ -12,6 +12,7 @@ import { TraitSelectionStep } from './components/wizard/TraitSelectionStep';
 import { DateSelectionStep } from './components/wizard/DateSelectionStep';
 import { RecursiveFillingStep } from './components/wizard/RecursiveFillingStep';
 import { FREE_LIMITS } from '../../config/limits';
+import { StrategyTutorial } from './components/StrategyTutorial';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
@@ -50,10 +51,12 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
 
   const [wizardStep, setWizardStep] = useState(0); // 0: Objective, 1: Trait, 2: Date
   const [isStarting, setIsStarting] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // Temporary state for the wizard flow before starting the process
   const [tempObjective, setTempObjective] = useState('');
   const [tempTraitId, setTempTraitId] = useState<string | null>(null);
+  const [presetDates, setPresetDates] = useState<{start: Date, end: Date} | null>(null);
 
   // Get active color based on trait
   const activeColor = (tempTraitId ? traits.find(t => t.id === tempTraitId)?.color : undefined) || '#6366f1';
@@ -62,12 +65,24 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
 
   const handleObjectiveNext = (value: string) => {
       setTempObjective(value);
-      setWizardStep(1);
+      setShowTutorial(true); // Siempre mostrar el tutorial
+  };
+
+  const handlePresetDateSelected = (startDate: Date, endDate: Date) => {
+      setPresetDates({ start: startDate, end: endDate });
+      setWizardStep(1); // Go to Trait selection
   };
 
   const handleTraitNext = () => {
       if (tempTraitId) {
-          setWizardStep(2);
+          if (presetDates) {
+              // Si ya teníamos fechas del preset, saltamos el paso de fecha y empezamos directo
+              const traitColor = traits.find(t => t.id === tempTraitId)?.color;
+              startProcess(tempObjective, tempTraitId, traitColor, presetDates.start, presetDates.end);
+              setIsStarting(false);
+          } else {
+              setWizardStep(2); // Normal flow: go to date selection
+          }
       }
   };
 
@@ -108,8 +123,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/85 backdrop-blur-2xl overflow-hidden"
-      style={{ backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}
+      className="fixed inset-0 z-[500] flex items-center justify-center bg-[#09090b] overflow-hidden"
     >
       {/* Dynamic Background based on Trait - Simplified for performance */}
       <div 
@@ -131,14 +145,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       </button>
 
       <div className="w-full max-w-xl px-6 relative z-10 flex flex-col items-center justify-center">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="sync">
                 {isStarting ? (
                   <motion.div
                     key="start"
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 1.02, filter: "blur(10px)" }}
-                    transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                     className="flex flex-col items-center justify-center text-center space-y-6 w-full"
                   >
                     {/* APPLE INTELLIGENCE HEADER - Visible only in Objective Step */}
@@ -150,12 +164,13 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                                 exit={{ opacity: 0, y: -10 }}
                                 className="flex flex-col items-center flex-shrink-0"
                             >
-                                <div className="mb-4 flex items-center justify-center relative">
-                                    <div className="absolute inset-0 blur-xl opacity-50 transition-colors duration-700" style={{ backgroundColor: activeColor }} />
-                                    <Sparkles 
-                                        className="w-12 h-12 relative z-10 transition-colors duration-700" 
-                                        style={{ color: activeColor }}
-                                    />
+                                <div className="mb-5 flex items-center justify-center">
+                                    <div className="w-16 h-16 rounded-2xl bg-transparent border border-white/10 flex items-center justify-center shadow-sm transition-colors duration-300">
+                                        <Sparkles 
+                                            className="w-8 h-8 transition-colors duration-300" 
+                                            style={{ color: activeColor }}
+                                        />
+                                    </div>
                                 </div>
                                 <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
                                 <p className="text-sm text-white/50 mt-1 font-medium tracking-wide">{t('smartTask.wizard.subtitle')}</p>
@@ -211,6 +226,34 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                 )}
               </AnimatePresence>
       </div>
+
+      {/* Tutorial Overlay */}
+      <StrategyTutorial 
+          isOpen={showTutorial}
+          onClose={() => {
+              setShowTutorial(false);
+              setWizardStep(1);
+          }}
+          onProceed={(selectedDays?: number) => {
+              setShowTutorial(false);
+              
+              if (selectedDays) {
+                  // Si eligió un preset, avanzamos directo al paso de Traits (1)
+                  // y guardamos la fecha para que el DateStep la use o se salte
+                  const startDate = new Date();
+                  const endDate = new Date();
+                  endDate.setDate(startDate.getDate() + selectedDays);
+                  
+                  // Necesitamos una forma de pasar esta fecha. La guardaremos en localStorage temporalmente
+                  // o modificaremos el wizard para aceptar estas fechas.
+                  // Lo mejor es guardar la fecha seleccionada en un estado
+                  handlePresetDateSelected(startDate, endDate);
+              } else {
+                  // Si eligió custom, va al paso normal
+                  setWizardStep(1);
+              }
+          }}
+      />
     </div>,
     document.body
   );

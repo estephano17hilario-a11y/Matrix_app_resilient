@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Circle, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
@@ -382,7 +382,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                         onClick={resetFilters}
                         className="absolute top-4 right-4 text-[10px] text-white/30 hover:text-white/60 uppercase font-bold tracking-wider flex items-center gap-1"
                     >
-                        <X size={10} /> Clear
+                        <X size={10} /> {t('tasks.clear', 'Clear')}
                     </button>
 
                     {/* Date Filter */}
@@ -402,13 +402,20 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                                          key={tf}
                                          onClick={() => setTimeframe(tf)}
                                          className={cn(
-                                             "relative px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 z-10",
-                                             timeframe === tf ? "text-white bg-white/10 shadow-sm" : "text-white/40 hover:text-white/60"
+                                              "relative px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 z-10",
+                                              timeframe === tf ? "text-white" : "text-white/40 hover:text-white/70"
                                          )}
                                      >
-                                         {tf === 'ALL' ? t('tasks.all', 'ALL') : tf === 'DAY' ? 'DAY' : tf === 'WEEK' ? 'WEEK' : 'MONTH'}
+                                         {timeframe === tf && (
+                                              <motion.div
+                                                  layoutId="timeframeTab"
+                                                  className="absolute inset-0 bg-white/10 rounded-md border border-white/20"
+                                                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                              />
+                                         )}
+                                         <span className="relative z-20">{t(`tasks.filterDateTabs.${tf}`, tf)}</span>
                                      </button>
-                                 ))}
+                                  ))}
                              </div>
                         </div>
 
@@ -504,7 +511,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                             </label>
                             <div className="flex flex-wrap gap-1.5">
                                  {[
-                                    { id: 'all', label: 'ALL' },
+                                    { id: 'all', label: t('tasks.all', 'ALL') },
                                     { id: 'S', label: 'S', color: 'text-purple-400' },
                                     { id: 'A', label: 'A', color: 'text-red-400' },
                                     { id: 'B', label: 'B', color: 'text-orange-400' },
@@ -534,9 +541,9 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                             </label>
                             <div className="flex flex-wrap gap-1.5">
                                 {[
-                                    { id: 'all', label: 'ALL' },
-                                    { id: 'normal', label: 'Normal' },
-                                    { id: 'smart', label: 'Smart' }
+                                    { id: 'all', label: t('tasks.all', 'ALL') },
+                                    { id: 'normal', label: t('tasks.normal', 'Normal') },
+                                    { id: 'smart', label: t('tasks.smart', 'Smart') }
                                 ].map(opt => (
                                     <button
                                         key={opt.id}
@@ -558,27 +565,19 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
                                 <CheckCircle2 size={10} />
-                                {t('tasks.status', 'Status')}
+                                {t('tasks.hideCompleted', 'Hide Completed')}
                             </label>
-                             <button
+                            <button
                                 onClick={() => setHideCompleted(!hideCompleted)}
                                 className={cn(
-                                    "w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between border",
-                                    hideCompleted
-                                    ? "bg-white/5 border-white/10 text-white/60"
-                                    : "bg-green-500/10 border-green-500/20 text-green-400"
+                                    "px-4 py-2 rounded-lg text-xs font-bold transition-all w-full flex items-center justify-center gap-2",
+                                    hideCompleted 
+                                        ? "bg-white/10 text-white shadow-lg border border-white/20" 
+                                        : "bg-transparent text-white/30 border border-white/5 hover:bg-white/5"
                                 )}
-                                >
-                                <span>{t('tasks.hideCompleted', 'Hide Done')}</span>
-                                <div className={cn(
-                                    "w-6 h-3.5 rounded-full p-0.5 transition-colors relative",
-                                    hideCompleted ? "bg-white/10" : "bg-green-500/20"
-                                )}>
-                                    <div className={cn(
-                                    "w-2.5 h-2.5 rounded-full shadow-sm transition-transform",
-                                    hideCompleted ? "bg-white/40 translate-x-0" : "bg-green-400 translate-x-2.5"
-                                    )} />
-                                </div>
+                            >
+                                {hideCompleted ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Circle size={14} />}
+                                {t('tasks.hideCompleted', 'Hide Completed')}
                             </button>
                         </div>
 

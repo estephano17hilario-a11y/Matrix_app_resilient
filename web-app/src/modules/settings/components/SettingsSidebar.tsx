@@ -3,14 +3,17 @@ import { Palette, Cpu, User, Monitor, LogOut, Hexagon } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { cn } from '../../../utils/cn';
 
-const TABS = [
-  { id: 'visuals', label: 'Design', icon: Palette, color: 'text-indigo-400' },
-  { id: 'neural', label: 'Stats', icon: Hexagon, color: 'text-cyan-400' },
-  { id: 'system', label: 'Prefs', icon: Cpu, color: 'text-emerald-400' },
-  { id: 'account', label: 'Profile', icon: User, color: 'text-pink-400' },
+import { useTranslation } from 'react-i18next';
+
+const getTabs = (t: any) => [
+  { id: 'visuals', label: t('settings.tabs.design', 'Design'), icon: Palette, color: 'text-indigo-400' },
+  { id: 'neural', label: t('settings.tabs.stats', 'Stats'), icon: Hexagon, color: 'text-cyan-400' },
+  { id: 'system', label: t('settings.tabs.prefs', 'Prefs'), icon: Cpu, color: 'text-emerald-400' },
+  { id: 'account', label: t('settings.tabs.profile', 'Profile'), icon: User, color: 'text-pink-400' },
 ];
 
 export const SettingsSidebar = () => {
+  const { t } = useTranslation();
   const { activeTab, setActiveTab, logout } = useSettings();
 
   return (
@@ -22,14 +25,14 @@ export const SettingsSidebar = () => {
             <Monitor size={16} className="text-white" />
         </div>
         <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">Settings</h2>
+            <h2 className="text-lg font-bold text-white tracking-tight">{t('settings.title', 'Settings')}</h2>
             <p className="text-xs text-white/30 font-mono">v2.4.0-matrix</p>
         </div>
       </div>
 
       {/* NAVIGATION */}
       <nav className="flex-1 flex flex-row md:flex-col gap-1 md:space-y-1">
-        {TABS.map((tab) => {
+        {getTabs(t).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           

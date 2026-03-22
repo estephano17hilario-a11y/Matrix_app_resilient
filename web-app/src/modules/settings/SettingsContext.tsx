@@ -52,6 +52,7 @@ interface SettingsProviderProps {
   children: ReactNode;
   onClose: () => void;
   // ... all the props from SettingsView
+  initialTab?: string;
   currentTheme: ThemeId | string;
   onThemeToggle: (theme: ThemeId) => void;
   showProfile: boolean;
@@ -80,7 +81,7 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) => {
-  const [activeTab, setActiveTab] = useState('visuals');
+  const [activeTab, setActiveTab] = useState(props.initialTab || 'visuals');
   const { logout, user } = useAuth();
 
   const value: SettingsContextType = {

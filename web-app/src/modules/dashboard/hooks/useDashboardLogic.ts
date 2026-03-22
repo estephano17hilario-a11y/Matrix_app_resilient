@@ -1315,15 +1315,23 @@ export const useDashboardLogic = () => {
                 if (!habit.intelligentStreak) return habit;
 
                 const newItem = { ...habit };
+
+                // FIX: Skip if already checked today (prevents +1 day on every app restart)
+                if (habit.lastCheckedDate === todayStr) {
+                    return newItem;
+                }
+
                 const lastRelapse = habit.history && habit.history.length > 0
                     ? getHistoryDateKey(habit.history[habit.history.length - 1])
                     : null;
 
                 const isRelapsedToday = lastRelapse === todayStr;
-                const currentTarget = habit.currentTarget || 3;
+                const currentTarget = habit.currentTarget || 1;
                 const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
 
                 if (isRelapsedToday) {
+                    newItem.lastCheckedDate = todayStr;
+                    hasChanges = true;
                     return newItem;
                 }
 
@@ -1358,6 +1366,7 @@ export const useDashboardLogic = () => {
                     }
                 }
 
+                newItem.lastCheckedDate = todayStr;
                 hasChanges = true;
                 return newItem;
             });
@@ -1371,7 +1380,8 @@ export const useDashboardLogic = () => {
                         await persistenceService.badHabits.update(user.uid, habit.id, {
                             reachedDays: habit.reachedDays,
                             currentTarget: habit.currentTarget,
-                            relapsedToday: habit.relapsedToday
+                            relapsedToday: habit.relapsedToday,
+                            lastCheckedDate: habit.lastCheckedDate
                         });
                     }
                 }
@@ -3330,37 +3340,37 @@ export const useDashboardLogic = () => {
 
     // --- THE GREAT RESET (CANVAS WIPE) ---
     useEffect(() => {
-        const hasReset = localStorage.getItem('MATRIX_RESET_V3'); // Increment version to force wipe
-        if (!hasReset && user?.uid) {
+        if (!user?.uid) return;
+        const resetKey = `MATRIX_RESET_V3_${user.uid}`;
+        const hasReset = localStorage.getItem(resetKey);
+        if (!hasReset) {
             console.log("🚨 PERFORMING GREAT RESET (CANVAS WIPE) 🚨");
-            
-            // 1. Clear Local State
+
+            // 1. Clear Local State (except badHabits to preserve user progress)
             setProjects([]);
             setQuests([]);
             setHabits([]);
-            setBadHabits([]);
             setSmartProjects([]);
-            
-            // 2. Clear Persistence Cache
+
+            // 2. Clear Persistence Cache (except badHabits)
             PersistenceService.clearCollectionSafe(user.uid, 'projects');
             PersistenceService.clearCollectionSafe(user.uid, 'quests');
             PersistenceService.clearCollectionSafe(user.uid, 'habits');
-            PersistenceService.clearCollectionSafe(user.uid, 'badHabits');
             PersistenceService.clearCollectionSafe(user.uid, 'smartProjects');
-            
-            // 3. Mark as done
-            localStorage.setItem('MATRIX_RESET_V3', 'true');
-            
+
+            // 3. Mark as done (per user)
+            localStorage.setItem(resetKey, 'true');
+
             // 4. Force reload window to ensure clean slate? No, state update should be enough.
             // But let's add a notification
             setTimeout(() => {
-                 addNotification({ 
-                    type: 'SYSTEM', 
-                    label: 'SYSTEM RESET', 
-                    fromLevel: 'Canvas', 
-                    toLevel: 'Clean', 
-                    icon: Trash2, 
-                    color: '#ef4444' 
+                 addNotification({
+                    type: 'SYSTEM',
+                    label: 'SYSTEM RESET',
+                    fromLevel: 'Canvas',
+                    toLevel: 'Clean',
+                    icon: Trash2,
+                    color: '#ef4444'
                 });
             }, 1000);
         }
@@ -3793,7 +3803,7 @@ export const useDashboardLogic = () => {
         let updatedHabit: BadHabit;
 
         if (isIntelligent) {
-            const currentTarget = habit.currentTarget || 3;
+            const currentTarget = habit.currentTarget || 1;
             const reachedDays = habit.reachedDays || 0;
             const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
 
@@ -3811,7 +3821,7 @@ export const useDashboardLogic = () => {
                 const previousTarget = STREAK_TARGETS[previousTargetIndex];
 
                 const penalty = habit.penalties;
-                const hpPenalty = Math.max(1, Math.floor(penalty.hp * 0.5));
+                const hpPenalty = Math.max(5, Math.floor(penalty.hp * 0.5));
                 const newHealth = Math.max(1, health - hpPenalty);
                 setHealth(newHealth);
 
@@ -3846,8 +3856,40 @@ export const useDashboardLogic = () => {
                 addPlayerGold(-penalty.gold);
             } else {
                 const newHealth = Math.max(0, health - penalty.hp);
-                setHealth(newHealth);
+            setHealth(newHealth);
 
+            if (newHealth <= 0 && user?.uid) {
+                // HALF LEVEL AND ATTRIBUTES!
+                addNotification({
+                    type: 'SYSTEM',
+                    label: 'SYSTEM FAILURE',
+                    fromLevel: 'Critical',
+                    toLevel: 'Terminal',
+                    icon: Skull,
+                    color: '#ef4444'
+                });
+
+                TransactionService.halveStats(user.uid, attributes, player.level, player.xp).then(({ newLevel, newXp }) => {
+                    setPlayer(prev => ({
+                        ...prev,
+                        level: newLevel,
+                        xp: newXp,
+                        nextXp: 20 * Math.pow(newLevel + 1, 2)
+                    }));
+                    setHealth(100);
+                    
+                    setAttributes(prev => prev.map(attr => {
+                        const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
+                        return {
+                            ...attr,
+                            level: newAttrLevel,
+                            xp: newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0,
+                            maxXp: 20 * Math.pow(newAttrLevel + 1, 2)
+                        };
+                    }));
+                }).catch(console.error);
+
+            } else {
                 if (user?.uid) {
                     const cached = PersistenceService.getProfile(user.uid);
                     if (cached) {
@@ -3864,6 +3906,7 @@ export const useDashboardLogic = () => {
                     gold: 0
                 });
                 updateAttributeXp(habit.attribute, -penalty.xp);
+            }
             }
 
             updatedHabit = {
@@ -3931,6 +3974,25 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.uid, 'projects', newOrder);
         } catch (error) {
             console.error("Failed to reorder projects:", error);
+        }
+    }, [user?.uid]);
+
+    const handleReorderBadHabits = useCallback(async (newOrder: BadHabit[]) => {
+        setBadHabits(newOrder);
+        
+        if (!user?.uid) return;
+        
+        try {
+            const batch = writeBatch(db);
+            newOrder.forEach((habit, index) => {
+                const habitRef = doc(db, 'users', user.uid, 'badHabits', habit.id);
+                batch.update(habitRef, { order: index });
+            });
+            await batch.commit();
+            
+            PersistenceService.saveCollection(user.uid, 'badHabits', newOrder);
+        } catch (error) {
+            console.error("Failed to reorder bad habits:", error);
         }
     }, [user?.uid]);
 
@@ -4033,6 +4095,7 @@ export const useDashboardLogic = () => {
         handleEditSession,
         handleReorderHabits,
         handleReorderProjects,
+        handleReorderBadHabits,
         showStreakCelebration,
         setShowStreakCelebration,
         weekStartDay,

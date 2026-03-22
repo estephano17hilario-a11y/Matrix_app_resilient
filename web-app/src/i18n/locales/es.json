@@ -75,8 +75,58 @@
       "dock": { "title": "Navegación (Dock)", "desc": "Tu centro de comando principal.", "sub": "Desde aquí accedes a toda la app." },
       "create": { "title": "Crear Misión", "desc": "El creador de tareas se abrirá automáticamente.", "sub": "¡Prepárate!" }
     },
+    "stats": {
+      "xp": {
+        "title": "El Sistema de Energía (XP)",
+        "desc1": "La <strong>Experiencia (XP)</strong> mide tu progreso general. Ganas XP completando Hábitos, Tareas y Sesiones de Enfoque.",
+        "levelsHeader": "XP para completar cada Nivel:",
+        "level": "Nivel"
+      },
+      "tp": {
+        "title": "Puntos de Rasgo (TP)",
+        "desc1": "Los <strong>Puntos de Rasgo (TP)</strong> te permiten mejorar tus atributos específicos (Fuerza, Inteligencia, Disciplina, etc.).",
+        "desc2": "Existen múltiples <strong>Rasgos</strong> que puedes desarrollar. Puedes cambiarlos y gestionarlos en la <strong>Zona de Atributos</strong> para enfocarte en lo que más necesitas mejorar en tu vida actual.",
+        "tip": "Asigna tareas a diferentes rasgos para subirlos de nivel."
+      },
+      "gold": {
+        "title": "La Economía (Oro)",
+        "desc1": "El <strong>Oro</strong> es la moneda de LUX. Lo obtienes como recompensa por tu esfuerzo diario y al completar misiones.",
+        "whatFor": "¿Para qué sirve?",
+        "point1": "Comprar mejoras y recompensas en la <strong>Tienda</strong>.",
+        "point2": "<strong>Pagar por tus Malos Hábitos:</strong> Si recaes, puedes usar Oro para mitigar el daño a tu HP."
+      },
+      "hp": {
+        "title": "Vitalidad (HP) y Castigos",
+        "desc1": "Tu <strong>HP (Health Points)</strong> es tu vitalidad. Si cometes <strong>Malos Hábitos</strong> y decides no usar Oro para pagar la penalización, perderás HP.",
+        "warning": "¡CUIDADO CON LLEGAR A 0!",
+        "desc2": "Si tu HP llega a 0, sufrirás una falla en el sistema: <strong>Tu Nivel de Cuenta y los Niveles de TODOS tus Atributos se reducirán a la mitad.</strong>"
+      },
+      "tips": {
+        "title": "Tips en cada sección",
+        "desc1": "En varias partes de la aplicación encontrarás un pequeño <strong>foquito</strong>. ¡No dudes en pulsarlo!",
+        "buttonTitle": "Tutorial Interactivo",
+        "buttonDesc": "Al presionarlo, activará un recorrido visual explicándote exactamente cómo funciona la pantalla en la que te encuentras."
+      },
+      "next": "Siguiente",
+      "start": "Comenzar"
+    },
     "tasks": {
-      "intro": { "title": "Centro de Misiones", "desc": "Aquí gestionas tu día a día.", "sub": "Las misiones activas aparecen aquí." },
+    "filterDate": "Línea de Tiempo",
+    "filterTrait": "Atributo",
+    "filterType": "Tipo",
+    "filterDifficulty": "Dificultad",
+    "hideCompleted": "Ocultar Completados",
+    "all": "Todos",
+    "normal": "Normal",
+    "smart": "Smart",
+    "clear": "Limpiar",
+    "filterDateTabs": {
+      "ALL": "TODOS",
+      "DAY": "DÍA",
+      "WEEK": "SEMANA",
+      "MONTH": "MES"
+    },
+    "intro": { "title": "Centro de Misiones", "desc": "Aquí gestionas tu día a día.", "sub": "Las misiones activas aparecen aquí." },
       "counter": { "title": "Misiones Activas", "desc": "Este es tu contador actual.", "sub": "Mantén este número bajo control." },
       "list": { "title": "Rango de Dificultad", "desc": "S, A, B, C y ÉPICA.", "sub": "Mayor dificultad = Mejores recompensas." },
       "create": { "title": "¡Tu turno!", "desc": "Vamos a crear tu primera tarea ahora mismo.", "sub": "El creador se abrirá automáticamente." }
@@ -220,7 +270,29 @@
     "off": "OFF",
     "impact": "Impacto",
     "daysInitials": ["D", "L", "M", "M", "J", "V", "S"],
-    "traitDefault": "Rasgo"
+    "traitDefault": "Rasgo",
+    "attribute": "Atributo",
+    "classic": "Clásico",
+    "intelligent": "Inteligente",
+    "recommended": "Recomendado",
+    "list": "Lista",
+    "manual": "Manual",
+    "purgeProtocol": "Protocolo de Purga",
+    "intelligentStreakSystem": "Sistema de Racha Inteligente",
+    "learnFromRelapses": "Aprende de tus recaídas, no las penaliza",
+    "visualExample": "Ejemplo Visual",
+    "intelligentStreakActivated": "Racha Inteligente Activada",
+    "streakRetrogressed": "Racha Retrocedida",
+    "previous": "Anterior",
+    "newGoal": "Nueva Meta",
+    "hpPenalty": "Penalización HP",
+    "hpPenaltyDesc": "Vida reducida como consecuencia de romper tu racha antes de completar la meta.",
+    "confirmKeepProgress": "Confirmar y Mantener Progreso",
+    "acceptPenalty": "Aceptar Penalización",
+    "reorderTitle": "Reordenar Vicios",
+    "protocolFailure": "Fallo en Protocolo",
+    "missingGold": "FALTAN",
+    "cancelFalseAlarm": "Cancelar (Falsa Alarma)"
   },
     "quest": {
       "titleNew": "Nueva Misión",
@@ -383,6 +455,7 @@
     "streak": "Días de Racha",
     "yourStory": "Tu Historia",
     "untitledPlaceholder": "Nota Sin Título",
+    "estimatedDuration": "Duración Estimada",
     "save": "Guardar",
     "notes": "Notas",
     "journal": "Diario",
@@ -419,6 +492,7 @@
       "10_YEARS": "10 Años",
       "5_YEARS": "5 Años",
       "1_YEAR": "Año",
+      "YEAR": "Año",
       "SEMESTER": "Semestre",
       "QUARTER": "Trimestre",
       "MONTH": "Mes",
@@ -429,6 +503,7 @@
       "10_YEARS": "Década {{index}}",
       "5_YEARS": "Lustro {{index}}",
       "1_YEAR": "Año {{index}}",
+      "YEAR": "Año {{index}}",
       "SEMESTER": "Semestre {{index}}",
       "QUARTER": "Trimestre {{index}}",
       "MONTH": "Mes {{index}}",
@@ -666,6 +741,56 @@
         "warning": "Las estadísticas se conservarán en la vista general, pero ya no podrás filtrar por este proyecto."
     }
   },
+  "pro": {
+    "chooseYour": "Elige tu",
+    "plan": "Plan",
+    "monthly": "Mensual",
+    "month": "mes",
+    "reg": "Reg",
+    "select": "Seleccionar",
+    "mostPopular": "Más popular",
+    "yearly": "Anual",
+    "year": "año",
+    "launchOffer": "OFERTA DE LANZAMIENTO",
+    "launchOfferDesc": "Aprovecha estos precios especiales de lanzamiento por tiempo limitado. Al finalizar la oferta subirán a $9.90 y $99.90.",
+    "days": "Días",
+    "hrs": "Hrs",
+    "min": "Min",
+    "sec": "Seg",
+    "backToBenefits": "Volver a los beneficios",
+    "offerEnds": "LA OFERTA TERMINA EL 1 DE MAYO",
+    "unleashYour": "Desata tu",
+    "truePower": "Verdadero Poder",
+    "elevateDesc": "Eleva tu existencia a un nivel cósmico. Sin límites, sin restricciones, solo rendimiento puro.",
+    "activateDelux": "Activar Delux",
+    "unlockedWord": "Desbloqueados",
+    "unlimitedWord": "Ilimitadas",
+    "unlimitedWordM": "Ilimitados",
+    "features": {
+      "charts": {
+        "title": "Gráficos Desbloqueados",
+        "desc": "Visualiza tu progreso y estadísticas sin restricciones."
+      },
+      "strategies": {
+        "title": "Estrategias Ilimitadas",
+        "desc": "Crea y ejecuta infinitas estrategias para dominar tu día."
+      },
+      "habits": {
+        "title": "Hábitos Ilimitados",
+        "desc": "Forja y rastrea todos los hábitos que necesites."
+      },
+      "projects": {
+        "title": "Proyectos Ilimitados",
+        "desc": "Gestiona múltiples misiones simultáneas sin fronteras."
+      },
+      "traits": {
+        "title": "Todos los Rasgos Desbloqueados",
+        "desc": "Accede al espectro completo de personalización de tu avatar."
+      }
+    },
+    "mercadoPagoError": "Hubo un error al conectar con Mercado Pago. Intenta de nuevo.",
+    "mercadoPagoConnError": "La conexión con Mercado Pago falló. Por favor verifica tu conexión a internet e intenta de nuevo."
+  },
   "settings": {
     "title": "Configuración del Sistema",
     "subtitle": "Preferencias del Entorno Lux",
@@ -687,8 +812,9 @@
     "vividModeDesc": "Aumenta la saturación y brillo para pantallas OLED",
     "dashboardStyle": "Estilo de Dashboard",
     "dashboardStyleDesc": "Selecciona la apariencia del selector de secciones",
-    "styleBorder": "Con Borde",
-    "styleLiquid": "Cristal Líquido",
+    "styleBorder": "CON BORDE",
+    "styleLiquid": "CRISTAL LÍQUIDO",
+    "styleGlass": "CRISTAL",
     "startupChart": "Gráfico de Inicio",
     "startupChartDesc": "Visualización predeterminada para métricas del sistema",
     "chartRadar": "Radar / Araña",
@@ -703,16 +829,47 @@
     "developer": "Desarrollador",
     "logout": "Cerrar Sesión",
     "weekStartsOn": "Semana Comienza En",
-    "weekStartsOnDesc": "Primer día de la semana para calendarios"
+    "weekStartsOnDesc": "Primer día de la semana para calendarios",
+    "systemDesc": "Idioma, permisos y navegación.",
+    "nativePermissions": "Permisos Nativos",
+    "nativePermissionsDesc": "Acceso del sistema para sincronización en segundo plano",
+    "notifications": "Notificaciones",
+    "batteryOptimization": "Optimización de Batería",
+    "sectionControls": "Controles de Sección",
+    "sectionControlsDesc": "Mostrar botones de sección de hábitos",
+    "visualDesc": "Personaliza temas y configuraciones de pantalla.",
+    "tapToExit": "Toca en cualquier lugar para salir",
+    "previewMode": "Modo de Vista Previa",
+    "activeTraits": "Rasgos Activos",
+    "profileDesc": "Tu identidad y estado de conexión.",
+    "session": "Sesión",
+    "terminateSession": "Finalizar Sesión",
+    "safeLogout": "Cierre de sesión seguro y sincronización local",
+    "unrestricted": "Sin restricciones",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "active": "Activo",
+    "operative": "Operativo",
+    "previewTheme": "Previsualizar Tema",
+    "categories": {
+      "all": "Todos",
+      "cosmic": "Cósmico",
+      "holo": "Holo",
+      "orbs": "Orbes",
+      "minimal": "Oficina",
+      "gradients": "Degradados"
+    }
   },
   "dashboard": {
-      "systemMetrics": "Métricas del Sistema",
+    "systemMetrics": "Métricas del Sistema",
     "activeMissions": "Misiones Activas",
     "radarAnalysis": "Análisis de Radar",
     "listView": "Vista de Lista",
     "level": "Nvl",
-    "tasks": "Tareas",
-    "strategy": "Estrategia",
+    "tasks": "MISIONES",
+    "strategy": "ESTRATEGIA",
+    "protocols": "PROTOCOLOS",
+    "vices": "VICIOS",
     "noStrategy": "Sin Estrategia Activa",
     "noStrategyDesc": "Aún no has definido tu Gran Estrategia. Divide tu objetivo final en pasos accionables.",
     "initProtocol": "Inicializar Protocolo",
@@ -865,6 +1022,13 @@
       "store": "Tienda"
   },
   "habits": {
+    "detail": {
+      "ratio": "Relación",
+      "goalSummary": "RESUMEN DE METAS",
+      "estimatedGoal": "Meta estimada",
+      "hoursWorked": "HORAS TRABAJADAS",
+      "progress": "PROGRESO"
+    },
     "title": "Hábitos",
     "subtitle": "Diseña tu vida, un día a la vez.",
     "viewGrid": "Grilla",
@@ -906,14 +1070,42 @@
     "customizationOptional": "Personalización (Opcional)",
     "selectIconColor": "Seleccionar Icono & Color",
     "activateNotifications": "Activar Notificaciones",
-    "batteryOptimization": "Optimización Batería"
+    "batteryOptimization": "Optimización Batería",
+    "picker": {
+      "icons": "ICONOS",
+      "colors": "COLORES",
+      "noIconsFound": "No se encontraron iconos",
+      "swipe": "Desliza"
+    },
+    "categories": {
+      "all": "TODOS",
+      "esenciales": "Esenciales",
+      "salud": "Salud",
+      "productividad": "Productividad",
+      "finanzas": "Finanzas",
+      "tecnología": "Tecnología",
+      "educación": "Educación",
+      "hogar": "Hogar",
+      "viajes": "Viajes",
+      "social": "Social",
+      "rojos": "Rojos",
+      "rosas": "Rosas",
+      "naranjas": "Naranjas",
+      "amarillos": "Amarillos",
+      "marrones": "Marrones",
+      "verdes": "Verdes",
+      "cianes": "Cianes",
+      "azules": "Azules",
+      "violetas": "Violetas",
+      "grises": "Grises"
+    }
   },
   "badHabits": {
     "wizard": {
       "reasonLabel": "¿Por qué quieres dejarlo?",
       "reasonPlaceholder": "Escribe tu razón principal para abandonar este vicio...",
       "gradualProcess": "Proceso Gradual",
-      "gradualDesc": "Las metas aumentan gradualmente: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 días",
+      "gradualDesc": "Las metas aumentan gradualmente: 1 → 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 días",
       "opportunityDay": "Día de Oportunidad",
       "opportunityDesc": "Cuando alcances la meta, tienes 1 día para cometer el vicio SIN penalización. Tu racha se mantiene.",
       "quote": "La única forma de ganar es no jugar.",
@@ -960,13 +1152,29 @@
       "controlled": "Controlado",
       "dominated": "Dominado",
       "eradicated": "Erradicado"
-    }
+    },
+    "impact": "Impacto",
+    "attribute": "Atributo",
+    "classic": "Clásico",
+    "intelligent": "Inteligente",
+    "recommended": "Recomendado",
+    "list": "Lista",
+    "manual": "Manual",
+    "purgeProtocol": "Protocolo de Purga",
+    "intelligentStreakSystem": "Sistema de Racha Inteligente",
+    "learnFromRelapses": "Aprende de tus recaídas, no las penaliza",
+    "visualExample": "Ejemplo Visual",
+    "intelligentStreakActivated": "Racha Inteligente Activada"
   },
   "projects": {
     "deleteTitle": "¿Eliminar Proyecto?",
     "specificDays": "Días Específicos",
     "editProject": "Editar Proyecto",
     "newProject": "Nuevo Proyecto"
+  },
+  "smartTasks": {
+    "addAnotherTask": "Añade otra tarea",
+    "createNewBlock": "Crear Nuevo Bloque"
   }
 }
 

@@ -5,9 +5,9 @@ export const LoadingScreen = () => {
     <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-transparent">
       <div className="relative z-10 flex items-center justify-center h-full w-full">
         <motion.div
-          initial={{ opacity: 0, scale: 0.99 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0 }}
           className="text-center relative"
         >
           <h1

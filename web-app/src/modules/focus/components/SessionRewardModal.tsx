@@ -34,7 +34,7 @@ export const SessionRewardModal: React.FC<SessionRewardModalProps> = ({ isOpen, 
                 >
                     {/* Header with Glow */}
                     <div className="relative h-32 bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-[#1a1a1a]" />
                         
                         <motion.div 

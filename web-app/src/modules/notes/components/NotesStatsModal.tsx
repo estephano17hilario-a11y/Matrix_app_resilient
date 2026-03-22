@@ -48,7 +48,10 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay, isLocked, 
         onClick={isLocked ? onUnlock : undefined}
         className={`relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-4 group transition-colors ${isLocked ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/10'}`}
     >
-        <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity`} style={{ backgroundColor: color }} />
+        <div 
+            className="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-30 group-hover:opacity-40 transition-opacity pointer-events-none" 
+            style={{ background: `radial-gradient(circle, ${color} 0%, transparent 70%)` }} 
+        />
         
         <div className="relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center gap-2 mb-3">
@@ -170,7 +173,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                         className={`relative z-10 w-full h-full flex flex-col bg-[#121212] overflow-hidden ${activeTab === 'EMOTIONS' ? '' : 'sm:max-w-[600px] sm:h-auto sm:max-h-[90vh] sm:rounded-[32px] sm:border sm:border-white/10'}`}
                     >
                         {/* Noise Texture */}
-                        <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
+                        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url("${NOISE_SVG}")` }} />
                         
                         {/* Close Button - Absolute Positioned */}
                         <button 
@@ -194,15 +197,24 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                 <div className="flex items-center gap-3 flex-wrap">
                                     {/* Range Switcher */}
                                     <div className="flex bg-[#1a1a1a] p-1 rounded-full border border-white/5 flex-shrink-0">
-                                        {['WEEK', 'MONTH'].map(r => (
+                                        {['WEEK', 'MONTH'].map(r => {
+                                            const isLockedMonth = r === 'MONTH' && !isPro;
+                                            return (
                                             <button 
                                                 key={r} 
-                                                onClick={() => setRange(r as any)} 
-                                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${range === r ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                                onClick={() => {
+                                                    if (isLockedMonth) {
+                                                        onOpenPro?.();
+                                                    } else {
+                                                        setRange(r as any);
+                                                    }
+                                                }} 
+                                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 ${range === r ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white'} ${isLockedMonth ? 'cursor-pointer' : ''}`}
                                             >
-                                                {r}
+                                                {r === 'WEEK' ? 'SEMANA' : 'MES'}
+                                                {isLockedMonth && <Lock size={10} className={range === r ? 'text-black' : 'text-yellow-400'} />}
                                             </button>
-                                        ))}
+                                        )})}
                                     </div>
                                     
                                     {/* Date Navigation */}
@@ -276,9 +288,9 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                         {/* Bento Grid Stats */}
                                         <div className="grid grid-cols-2 gap-3">
                                             <StatCard icon={PenTool} label={t('notes.notes', 'Notes')} value={stats.totalNotes} color="#3b82f6" delay={0.1} />
-                                            <StatCard icon={Brain} label={t('notes.entries', 'Entries')} value={isPro ? stats.totalJournal : 'PRO'} color="#a855f7" delay={0.2} isLocked={!isPro} onUnlock={onOpenPro} />
+                                            <StatCard icon={Brain} label={t('notes.entries', 'Entries')} value={isPro ? stats.totalJournal : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span>} color="#a855f7" delay={0.2} isLocked={!isPro} onUnlock={onOpenPro} />
                                             <StatCard icon={Flame} label={t('notes.streak', 'Streak')} value={stats.streak} subValue={t('notes.currentDays', 'Current Days')} color="#f97316" delay={0.3} />
-                                            <StatCard icon={Type} label={t('notes.words', 'Words')} value={isPro ? (stats.words / 1000).toFixed(1) + 'k' : 'PRO'} subValue={isPro ? t('notes.totalWritten', 'Total Written') : undefined} color="#10b981" delay={0.4} isLocked={!isPro} onUnlock={onOpenPro} />
+                                            <StatCard icon={Type} label={t('notes.words', 'Words')} value={isPro ? (stats.words / 1000).toFixed(1) + 'k' : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span>} subValue={isPro ? t('notes.totalWritten', 'Total Written') : undefined} color="#10b981" delay={0.4} isLocked={!isPro} onUnlock={onOpenPro} />
                                         </div>
 
                                         {/* Simple Activity Chart */}
@@ -297,6 +309,14 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
                                                             tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
                                                             dy={10}
                                                             interval={0}
+                                                            tickFormatter={(value: any) => {
+                                                                if (range === 'MONTH') {
+                                                                    const num = parseInt(value);
+                                                                    if ([1, 7, 14, 21, 28].includes(num)) return value;
+                                                                    return '';
+                                                                }
+                                                                return value;
+                                                            }}
                                                         />
                                                         <BarAny dataKey="notes" radius={[4, 4, 4, 4]}>
                                                             {data.map((entry: any, index: number) => (

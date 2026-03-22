@@ -18,36 +18,37 @@ interface StatsHeaderProps {
   onShowStore: () => void;
   onShowPro?: () => void;
   onShowSettings?: () => void;
+  onShowSettingsWithTab?: (tab: string) => void;
   displayName?: string | null;
   email?: string | null;
   isPro?: boolean;
   onShowStreak?: () => void;
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
-  dailyLimits?: any; // Using any temporarily to avoid deep type imports if not needed, but better to use DailyLimits
+  dailyLimits?: any;
   onNavigate?: (view: string) => void;
 }
 
 export const StatsHeader = React.memo(({ 
   level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold, isHabitsCompleted, isHidden, showProfile, 
-  isSyncing, onShowStore, onShowPro, onShowSettings, displayName, email, isPro, avatarId, avatarShape, dailyLimits, onNavigate 
+  isSyncing, onShowStore, onShowPro, onShowSettings, onShowSettingsWithTab, displayName, email, isPro, avatarId, avatarShape, dailyLimits, onNavigate 
 }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile;
 
   return (
-    <header className={`flex justify-between items-center z-[100] relative ${
+    <header className={`flex justify-between items-center z-[100] relative w-full gap-2 ${
         isCompact 
             ? 'mt-0 mb-0' 
             : 'mt-4'
     } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
     style={{ contain: 'layout style', willChange: 'opacity, transform' }}
     >
-        <div className={`flex items-center gap-4 ${!isHidden ? 'pointer-events-auto' : ''}`}>
+        <div className={`flex items-center gap-2 sm:gap-4 flex-1 min-w-0 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Avatar Widget - MOVED FIRST */}
             <div 
                 id="profile-avatar-target"
-                className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${shouldShowAvatar ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-4 w-0 overflow-hidden'}`}
+                className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 w-full ${shouldShowAvatar ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 h-0 overflow-hidden'}`}
             >
                 {shouldShowAvatar && (
                   <div onClick={(e) => {
@@ -71,6 +72,7 @@ export const StatsHeader = React.memo(({
                       isHabitsCompleted={isHabitsCompleted}
                       dailyLimits={dailyLimits}
                       onShowPro={onShowPro}
+                      onShowSettingsWithTab={onShowSettingsWithTab}
                       onNavigate={(view) => {
                           if (view === 'SETTINGS' && onShowSettings) {
                               onShowSettings();

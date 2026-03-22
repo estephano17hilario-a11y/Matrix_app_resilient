@@ -38,7 +38,6 @@ interface StrategicMapViewProps {
   onUpdateProject?: (project: SmartProject) => void;
   onDeleteProject?: () => void;
   onDeleteNode?: (nodeId: string) => void;
-  onCreateNew?: () => void;
   onAddSmartTask?: (date: Date) => void;
   onCompleteQuest?: (e: React.MouseEvent, q: Quest) => void;
   onDeleteQuest?: (id: string) => void;
@@ -111,8 +110,8 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     quests = [], 
     attributes = [], 
     onUpdateProject, 
-    onDeleteProject, 
-    onCreateNew,
+    onDeleteProject,
+    onDeleteNode: _onDeleteNode, // Ignore unused
     onAddSmartTask, 
     onCompleteQuest, 
     onDeleteQuest
@@ -333,7 +332,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
     <div className="w-full h-full flex flex-col bg-transparent font-sans">
         
         {/* --- 1. NAVIGATION HEADER --- */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/5 bg-transparent backdrop-blur-md z-10 flex items-center justify-between">
+        <div 
+          className="flex-shrink-0 px-6 py-4 z-10 flex items-center justify-between liquid-glass-header"
+          style={{
+            '--trait-color': traitColor,
+            '--trait-color-alpha': `${traitColor}20`
+          } as React.CSSProperties}
+        >
             <div className="flex items-center gap-1 flex-wrap gap-y-2">
                 {path.map((node, index) => {
                     const isLast = index === path.length - 1;
@@ -367,16 +372,6 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
             </div>
             
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-                {onCreateNew && (
-                    <button 
-                        onClick={onCreateNew}
-                        className="px-3 py-1.5 rounded-full bg-theme-primary/10 border border-theme-primary/20 text-theme-primary hover:bg-theme-primary/20 hover:text-theme-primary transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
-                    >
-                        <Plus size={12} />
-                        <span>Smart Goal</span>
-                    </button>
-                )}
-
                 {/* Always allow deleting the project if onDeleteProject is provided, regardless of level */}
                 {onDeleteProject && (
                     <button 
@@ -390,7 +385,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                         title={t('strategicMap.deleteProject', 'Delete Strategy')}
                     >
                         <Trash2 size={14} />
-                        <span className="hidden sm:inline">ELIMINAR</span>
+                        <span className="hidden sm:inline">{t('common.delete', 'DELETE')}</span>
                     </button>
                 )}
 
@@ -432,7 +427,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                     {previousNode ? t('strategicMap.inside', { title: previousNode.title }) : t('strategicMap.masterStrategy')}
                                 </div>
                                 
-                                <div className="flex flex-col items-center justify-center gap-2">
+                                <div className="flex flex-col items-center justify-center gap-2 mt-8">
                                     {isEditing ? (
                                         <div className="flex items-center gap-2 w-full max-w-lg">
                                             <input 
@@ -545,7 +540,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                     <div className="w-12 h-12 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: `${traitColor}22` }}>
                                                         <Plus size={24} className="group-hover:scale-110 transition-transform" />
                                                     </div>
-                                                    <span className="font-bold tracking-wide uppercase text-xs" style={{ color: traitColor }}>Añade otra tarea</span>
+                                                    <span className="font-bold tracking-wide uppercase text-xs" style={{ color: traitColor }}>{t('smartTasks.addAnotherTask', 'Add another task')}</span>
                                                 </button>
                                             </div>
                                         ) : (
@@ -581,7 +576,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                                     <Plus size={24} />
                                                                 </div>
                                                                 <span className="font-bold text-lg transition-colors" style={{ color: traitColor }}>{child.title}</span>
-                                                                <span className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: `${traitColor}88` }}>Crear Nuevo Bloque</span>
+                                                                <span className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: `${traitColor}88` }}>{t('smartTasks.createNewBlock', 'Create New Block')}</span>
                                                             </motion.button>
                                                         );
                                                     }

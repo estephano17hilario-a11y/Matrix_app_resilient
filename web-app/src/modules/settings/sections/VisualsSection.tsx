@@ -6,6 +6,7 @@ import { useSettings } from '../SettingsContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { THEMES, ThemeId } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -19,6 +20,7 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
 ];
 
 export const VisualsSection = () => {
+  const { t } = useTranslation();
   const { currentTheme, setTheme, vividMode, toggleVividMode, dashboardStyle, setDashboardStyle } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
@@ -56,8 +58,8 @@ export const VisualsSection = () => {
   return (
     <div className="space-y-8 pb-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">Visual</h2>
-        <p className="text-white/40 text-sm">Customize themes and display settings.</p>
+        <h2 className="text-lg font-semibold text-white">{t('settings.tabs.design', 'Visual')}</h2>
+        <p className="text-white/40 text-sm">{t('settings.visualDesc', 'Customize themes and display settings.')}</p>
       </div>
 
       <div className="space-y-4">
@@ -75,8 +77,8 @@ export const VisualsSection = () => {
                 <Eye size={18} className="text-amber-400" />
               </div>
               <div>
-                <div className="text-base font-bold text-white tracking-tight">Vivid Mode</div>
-                <div className="text-xs text-white/40 font-medium">Boost saturation for OLED displays</div>
+                <div className="text-base font-bold text-white tracking-tight">{t('settings.vividMode', 'Vivid Mode')}</div>
+                <div className="text-xs text-white/40 font-medium">{t('settings.vividModeDesc', 'Boost saturation for OLED displays')}</div>
               </div>
             </div>
             <button
@@ -112,10 +114,8 @@ export const VisualsSection = () => {
                 <Layers size={18} className="text-blue-400" />
               </div>
               <div>
-                <div className="text-base font-bold text-white tracking-tight">Interface Style</div>
-                <div className="text-xs text-white/40 font-medium">
-                  {dashboardStyle === 'GLASS' ? 'High fidelity visual effects' : dashboardStyle === 'LIQUID' ? 'Balanced visual effects' : 'Battery saver, flat design'}
-                </div>
+                <div className="text-base font-bold text-white tracking-tight">{t('settings.dashboardStyle', 'Interface Style')}</div>
+                <div className="text-xs text-white/40 font-medium">{t('settings.dashboardStyleDesc', 'Select UI style')}</div>
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@ export const VisualsSection = () => {
                   dashboardStyle === style ? "bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-blue-500/30" : "text-white/40 hover:text-white/70 hover:bg-white/[0.02]"
                 )}
               >
-                {style}
+                {style === 'BORDER' ? t('settings.styleBorder', 'BORDER') : style === 'LIQUID' ? t('settings.styleLiquid', 'LIQUID') : t('settings.styleGlass', 'GLASS')}
               </button>
             ))}
           </div>
@@ -138,7 +138,7 @@ export const VisualsSection = () => {
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white tracking-wide">Themes</h3>
+            <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.visualTheme', 'Themes')}</h3>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
           </div>
 
@@ -158,8 +158,8 @@ export const VisualsSection = () => {
               <div 
                 className="bg-black/90 border border-white/20 px-8 py-4 rounded-full shadow-lg flex flex-col items-center gap-1 animate-enter-view hover:bg-black transition-colors"
               >
-                <span className="text-white font-bold tracking-widest text-sm uppercase">Tap anywhere to exit</span>
-                <span className="text-white/50 text-[10px] uppercase tracking-wider">Preview Mode</span>
+                <span className="text-white font-bold tracking-widest text-sm uppercase">{t('settings.tapToExit', 'Tap anywhere to exit')}</span>
+                <span className="text-white/50 text-[10px] uppercase tracking-wider">{t('settings.previewMode', 'Preview Mode')}</span>
               </div>
             </div>,
             document.body
@@ -179,7 +179,7 @@ export const VisualsSection = () => {
                   )}
                 >
                   <Icon size={14} className={cn("transition-transform", isSelected && "scale-110")} />
-                  {cat.label}
+                  {t(`settings.categories.${cat.id}`, cat.label)}
                 </button>
               );
             })}
@@ -213,7 +213,7 @@ export const VisualsSection = () => {
                   <button
                     onClick={(e) => handlePreview(e, theme.id)}
                     className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-white/20 hover:scale-110 shadow-lg z-20"
-                    title="Preview Theme"
+                    title={t('settings.previewTheme', 'Preview Theme')}
                   >
                     <Eye size={14} className="text-white" />
                   </button>

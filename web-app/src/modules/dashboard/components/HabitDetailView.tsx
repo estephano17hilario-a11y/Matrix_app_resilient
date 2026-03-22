@@ -170,12 +170,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const [isLoading, setIsLoading] = useState(true);
     const activeItem = habit || project || null;
 
-    // Simulate loading for skeleton effect
+    // Removed fake loading to ensure 0 delay as requested
     useEffect(() => {
         if (activeItem) {
-            setIsLoading(true);
-            const timer = setTimeout(() => setIsLoading(false), 400);
-            return () => clearTimeout(timer);
+            setIsLoading(false);
         }
     }, [activeItem]);
 
@@ -622,7 +620,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         className="flex items-center gap-1 text-blue-400 font-medium active:opacity-70 transition-opacity"
                     >
                         <ChevronLeft size={24} />
-                        <span className="text-[17px]">Atrás</span>
+                        <span className="text-[17px]">{t('common.back', 'Back')}</span>
                     </button>
                     
                     <h2 className="text-[17px] font-bold text-white tracking-tight absolute left-1/2 -translate-x-1/2">
@@ -916,7 +914,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 </div>
                                 <div className="px-2 space-y-2">
                                     <div className="flex items-center justify-between text-[11px]">
-                                        <span className="text-zinc-400 font-semibold uppercase tracking-wide">Relación</span>
+                                        <span className="text-zinc-400 font-semibold uppercase tracking-wide">{t('habits.detail.ratio', 'Ratio')}</span>
                                         <span className="text-white/80 font-medium">
                                             {formatValue(summaryValue, habit?.type, unitLabel, isTimeBased)} / {formatValue(goalValue, habit?.type, unitLabel, isTimeBased)}
                                         </span>
@@ -940,7 +938,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
                         {/* 2. GOAL SUMMARY (Line Chart) */}
                         <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
-                            <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide mb-6">RESUMEN DE METAS</h3>
+                            <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide mb-6">{t('habits.detail.goalSummary', 'GOAL SUMMARY')}</h3>
                             
                             <div className="flex justify-between items-start mb-8">
                                 <div>
@@ -955,7 +953,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-2 mb-1">
                                         <div className="w-2 h-2 rounded-full bg-zinc-600" />
-                                        <span className="text-[13px] text-zinc-400">Meta estimada</span>
+                                        <span className="text-[13px] text-zinc-400">{t('habits.detail.estimatedGoal', 'Estimated goal')}</span>
                                     </div>
                                     <div className="text-2xl font-bold text-white tracking-tight mr-4">
                                         <FormattedValue value={goalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-end" />
@@ -977,10 +975,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 3. WORKED HOURS (Bar Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-800/40 backdrop-blur-sm rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
+                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide">
-                                    {isTimeBased ? 'HORAS TRABAJADAS' : 'PROGRESO'}
+                                    {isTimeBased ? t('habits.detail.hoursWorked', 'HOURS WORKED') : t('habits.detail.progress', 'PROGRESS')}
                                 </h3>
                                 <button className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors">
                                     <Share2 size={16} />
@@ -991,13 +989,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
                             <div className="flex justify-between px-8 mb-8 mt-4">
                                 <div className="text-center">
-                                    <div className="text-zinc-500 text-xs font-medium mb-1">Total</div>
+                                    <div className="text-zinc-500 text-xs font-medium mb-1">{t('common.total', 'Total')}</div>
                                     <div className="text-2xl font-bold text-white tracking-tight">
                                         <FormattedValue value={totalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-zinc-500 text-xs font-medium mb-1">Promedio</div>
+                                    <div className="text-zinc-500 text-xs font-medium mb-1">{t('common.average', 'Average')}</div>
                                     <div className="text-2xl font-bold text-white tracking-tight">
                                         <FormattedValue value={averageValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
@@ -1092,9 +1090,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                     <span className="flex items-center gap-1 justify-center">
                                                         {t('dashboard.averageSession', 'Average Session')}
                                                         <Lock size={10} className="text-yellow-400" />
-                                                    </span>
+                                                    </span> as any
                                                 }
-                                                value="PRO"
+                                                value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span> as any}
                                                 onClick={() => onOpenPro && onOpenPro()}
                                             />
                                             <StatCard 
@@ -1102,9 +1100,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                     <span className="flex items-center gap-1 justify-center">
                                                         {t('dashboard.bestDay')}
                                                         <Lock size={10} className="text-yellow-400" />
-                                                    </span>
+                                                    </span> as any
                                                 }
-                                                value="PRO"
+                                                value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span> as any}
                                                 onClick={() => onOpenPro && onOpenPro()}
                                             />
                                         </>

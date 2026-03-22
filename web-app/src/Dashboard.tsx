@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
-import { ArrowUp, AlertTriangle } from 'lucide-react';
+import { ArrowUp, AlertTriangle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -21,22 +21,30 @@ import { RelapseModal } from './modules/dashboard/components/RelapseModal';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
 import { Quest, Habit, BadHabit, Project } from './types';
+import { PersistenceService } from './services/persistence';
 import { persistenceService } from './services/persistenceService';
 import { StrategicNode } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
 
 import { ConfirmationModal } from './components/ui/ConfirmationModal';
 import { HabitActionsModal } from './modules/dashboard/components/HabitActionsModal';
+import { BadHabitActionsModal } from './modules/dashboard/components/BadHabitActionsModal';
 
 import { ViewContainer } from './modules/dashboard/components/ViewContainer';
 import { ParticleLayer } from './modules/dashboard/components/ParticleLayer';
 import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
+import { StatsTutorialOverlay } from './components/StatsTutorialOverlay';
 import { cn } from './utils/cn';
 
 // Lazy Load Heavy Views
 const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
 const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
 const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
+import { updateDoc, doc } from './services/firebase';
+import { db } from './services/firebase';
+import toast from 'react-hot-toast';
+import { verifySubscriptionStatus } from './services/mercadoPagoService';
+
 const AchievementsScreen = lazy(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
 const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
 const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
@@ -45,6 +53,7 @@ const SettingsView = lazy(() => import('./modules/dashboard/SettingsView').then(
 const ProUpgradeModal = lazy(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
 const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
 const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
+import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
 
 const SuspenseFallback = () => (
     <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -172,6 +181,9 @@ export default function Dashboard() {
     // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
     const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS']));
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
+    const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
+    const [showStatsTutorial, setShowStatsTutorial] = useState(false);
 
     // Force re-render on language change
     useEffect(() => {
@@ -187,6 +199,58 @@ export default function Dashboard() {
 
     // ⚡ PERFORMANCE: Pre-load all heavy views after initial render for "Flash" switching
     useEffect(() => {
+        const checkSubscriptionStatus = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const paymentStatus = params.get('payment_status');
+            const plan = params.get('plan');
+            const preapprovalId = params.get('preapproval_id'); // MP appends this to the URL
+
+            if (paymentStatus === 'success' && plan && user?.uid) {
+                // Remove params from URL immediately to prevent refreshes from triggering it again
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                // AUDITORIA EXTREMA: Validate preapproval ID before giving PRO
+                if (!preapprovalId) {
+                    toast.error("Transacción inválida: No se detectó ID de suscripción.");
+                    return;
+                }
+
+                const toastId = toast.loading('Verificando pago en la bóveda de Mercado Pago...');
+                
+                try {
+                    const isAuthorized = await verifySubscriptionStatus(preapprovalId);
+                    
+                    if (!isAuthorized) {
+                        toast.dismiss(toastId); // Just dismiss quietly if they didn't pay
+                        return;
+                    }
+
+                    const now = new Date();
+                    if (plan === 'monthly') {
+                        now.setMonth(now.getMonth() + 1);
+                    } else if (plan === 'yearly') {
+                        now.setFullYear(now.getFullYear() + 1);
+                    }
+
+                    const userRef = doc(db, 'users', user.uid);
+                    await updateDoc(userRef, {
+                        plan: 'PRO',
+                        planExpiryDate: now.getTime(),
+                        subscriptionType: plan,
+                        subscriptionId: preapprovalId // Save it for future backend webhooks/audits
+                    });
+
+                    toast.success('Auditoría Completada: Autenticidad verificada.', { id: toastId });
+                    setShowDeluxSuccess(true);
+                } catch (e) {
+                    console.error("Failed to verify/update subscription status", e);
+                    toast.error('Error de red al verificar pago. Contacte a soporte.', { id: toastId });
+                }
+            }
+        };
+
+        checkSubscriptionStatus();
+
         let idleId: number | null = null;
         let prefetchTimeout: ReturnType<typeof setTimeout> | null = null;
         const prefetch = async () => {
@@ -291,6 +355,7 @@ export default function Dashboard() {
         badHabits,
         handleBadHabitConfirm,
         handleBadHabitRelapse,
+        handleDeleteBadHabit,
         vividMode,
         setVividMode,
         habitSectionControl,
@@ -305,9 +370,27 @@ export default function Dashboard() {
         handleEditSession,
         handleReorderHabits,
         handleReorderProjects,
+        handleReorderBadHabits,
         showStreakCelebration,
         setShowStreakCelebration
     } = useDashboardLogic();
+
+    useEffect(() => {
+        if (user?.uid) {
+            const tutorialKey = `matrix_stats_tutorial_seen_${user.uid}`;
+            const hasSeen = localStorage.getItem(tutorialKey);
+            const storedLang = localStorage.getItem('i18nextLng') || i18n.language || 'en';
+            if (!hasSeen) {
+                if (storedLang.startsWith('en')) {
+                    i18n.changeLanguage('en');
+                } else {
+                    i18n.changeLanguage('es');
+                }
+                setShowStatsTutorial(true);
+                localStorage.setItem(tutorialKey, 'true');
+            }
+        }
+    }, [user?.uid]);
 
     const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
@@ -317,7 +400,9 @@ export default function Dashboard() {
     useEffect(() => {
         const handleOpenQuest = () => setActiveModal('QUEST');
         const handleOpenHabit = () => setActiveModal('HABIT');
-        const handleOpenProject = () => setActiveModal('PROJECT');
+        const handleOpenProject = () => {
+            setActiveModal('PROJECT');
+        };
         const handleOpenBadHabit = () => setActiveModal('BAD_HABIT');
         const handleNavigateToStore = () => setCurrentView('STORE');
         const handleOpenProModal = () => setIsProModalOpen(true);
@@ -348,6 +433,7 @@ export default function Dashboard() {
     const [modalInitialContext, setModalInitialContext] = useState<any>(null);
     const [activeSmartProjectId, setActiveSmartProjectId] = useState<string | null>(null); // Added state for active project
     const [relapsingHabit, setRelapsingHabit] = useState<BadHabit | null>(null);
+    const [editingBadHabit, setEditingBadHabit] = useState<BadHabit | null>(null);
 
     // --- NAVIGATION HISTORY STACK ---
     // Tracks the history of views to support "Back to Previous Page" functionality
@@ -527,6 +613,7 @@ export default function Dashboard() {
 
     // --- HABIT ACTIONS & CONFIRMATION ---
     const [habitActionsHabit, setHabitActionsHabit] = useState<Habit | null>(null);
+    const [badHabitActionsHabit, setBadHabitActionsHabit] = useState<BadHabit | null>(null);
     const [confirmationModal, setConfirmationModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -545,8 +632,20 @@ export default function Dashboard() {
         setHabitActionsHabit(habit);
     };
 
+    const handleShowBadHabitActions = (habit: BadHabit) => {
+        setBadHabitActionsHabit(habit);
+    };
+
     const handleArchiveHabit = (habit: Habit) => {
         handleHabitUpdate(habit.id, { archived: !habit.archived });
+    };
+
+    const handleArchiveBadHabit = (habit: BadHabit) => {
+        if (!user?.uid) return;
+        const newHabits = badHabits.map(h => h.id === habit.id ? { ...h, archived: !h.archived } : h);
+        PersistenceService.saveCollection(user.uid, 'badHabits', newHabits);
+        // Dispatch custom event to trigger logic reload
+        window.dispatchEvent(new CustomEvent('reload-dashboard'));
     };
 
     const handleDeleteHabitRequest = (habit: Habit) => {
@@ -557,6 +656,17 @@ export default function Dashboard() {
             confirmText: t('common.delete', 'Eliminar'),
             variant: 'danger',
             onConfirm: () => handleDeleteHabit(habit.id),
+        });
+    };
+
+    const handleDeleteBadHabitRequest = (habit: BadHabit) => {
+        setConfirmationModal({
+            isOpen: true,
+            title: '¿Eliminar Vicio?',
+            message: `¿Estás seguro de que quieres eliminar "${habit.title}" permanentemente?`,
+            confirmText: 'Eliminar',
+            variant: 'danger',
+            onConfirm: () => handleDeleteBadHabit(habit.id),
         });
     };
 
@@ -624,6 +734,11 @@ export default function Dashboard() {
     const handleEditHabit = (habit: Habit) => {
         setEditingHabit(habit);
         setActiveModal('HABIT');
+    };
+
+    const handleEditBadHabit = (habit: BadHabit) => {
+        setEditingBadHabit(habit);
+        setActiveModal('BAD_HABIT');
     };
 
     const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
@@ -1018,8 +1133,25 @@ export default function Dashboard() {
                 lastStreakDate={user?.stats?.lastStreakDate}
             />
 
+            <DeluxSuccessOverlay 
+                isOpen={showDeluxSuccess}
+                onClose={() => setShowDeluxSuccess(false)}
+            />
+
+            <StatsTutorialOverlay 
+                isOpen={showStatsTutorial}
+                onClose={() => {
+                    setShowStatsTutorial(false);
+                    // Start interactive tour after stats tutorial
+                    if (user?.uid && !localStorage.getItem(`matrix_tour_seen_${user.uid}`)) {
+                        window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
+                        localStorage.setItem(`matrix_tour_seen_${user.uid}`, 'true');
+                    }
+                }}
+            />
+
             {notificationRoot && createPortal(
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                     {notifications.map(n => {
                         const NotifIcon = n.icon;
                         return (
@@ -1098,6 +1230,10 @@ export default function Dashboard() {
                                     onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
                                     onShowPro={() => setIsProModalOpen(true)}
                                     onShowSettings={() => setIsSettingsOpen(true)}
+                                    onShowSettingsWithTab={(tab) => {
+                                        setSettingsInitialTab(tab);
+                                        setIsSettingsOpen(true);
+                                    }}
                                     displayName={user?.displayName}
                                     email={user?.email}
                                     isPro={user?.plan === 'PRO'}
@@ -1143,14 +1279,14 @@ export default function Dashboard() {
                                             className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
                                             style={{ transform: 'translateZ(0)' }}
                                         >
-                                            MISIONES
+                                            {t('dashboard.tasks', 'TASKS')}
                                         </button>
                                         <button
                                             onClick={() => setTaskViewMode('STRATEGY')}
                                             className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
                                             style={{ transform: 'translateZ(0)' }}
                                         >
-                                            ESTRATEGIA
+                                            {t('dashboard.strategy', 'STRATEGY')}
                                         </button>
                                     </div>
                                 </div>
@@ -1178,25 +1314,44 @@ export default function Dashboard() {
                                 ) : (
                                     <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-32 overflow-y-auto pr-2 no-scrollbar">
                                          {smartProjects.length > 0 ? (
-                                            smartProjects.map((project) => (
-                                                <div key={project.id} className="rounded-3xl overflow-hidden border border-white/10 relative min-h-[500px] shrink-0 bg-gradient-to-br from-white/[0.05] via-transparent to-white/[0.02] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
-                                                    <Suspense fallback={<SuspenseFallback />}>
-                                                        <StrategicMapView 
-                                                            project={project} 
-                                                            quests={quests}
-                                                            attributes={attributes}
-                                                            onUpdateProject={handleUpdateSmartProject}
-                                                            onDeleteProject={() => handleDeleteSmartProject(project.id)}
-                                                            onDeleteNode={(nodeId) => handleDeleteSmartTaskNode(project.id, nodeId)}
-                                                            onCreateNew={() => setIsWizardOpen(true)}
-                                                            onAddSmartTask={(date) => handleOpenSmartTaskCreator(date, project.id)}
-                                                            onCompleteQuest={completeQuest}
-                                                            onDeleteQuest={handleDeleteQuest}
-                                                            onEditQuest={handleEditQuest}
-                                                        />
-                                                    </Suspense>
-                                                </div>
-                                            ))
+                                            <>
+                                                {smartProjects.map((project) => (
+                                                    <div key={project.id} className="rounded-3xl overflow-hidden border border-white/10 relative min-h-[500px] shrink-0 bg-gradient-to-br from-white/[0.05] via-transparent to-white/[0.02] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+                                                        <Suspense fallback={<SuspenseFallback />}>
+                                                            <StrategicMapView 
+                                                                project={project} 
+                                                                quests={quests}
+                                                                attributes={attributes}
+                                                                onUpdateProject={handleUpdateSmartProject}
+                                                                onDeleteProject={() => handleDeleteSmartProject(project.id)}
+                                                                onDeleteNode={(nodeId) => handleDeleteSmartTaskNode(project.id, nodeId)}
+                                                                onAddSmartTask={(date) => handleOpenSmartTaskCreator(date, project.id)}
+                                                                onCompleteQuest={completeQuest}
+                                                                onDeleteQuest={handleDeleteQuest}
+                                                                onEditQuest={handleEditQuest}
+                                                            />
+                                                        </Suspense>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => {
+                                                        const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;
+                                                        if (user?.plan !== 'PRO' && currentActive >= FREE_LIMITS.ACTIVE_STRATEGIES) {
+                                                            setIsProModalOpen(true);
+                                                            return;
+                                                        }
+                                                        setIsWizardOpen(true);
+                                                    }}
+                                                    className="w-full rounded-3xl overflow-hidden border-2 border-dashed border-white/10 relative min-h-[500px] shrink-0 bg-white/[0.02] hover:bg-white/[0.05] transition-colors flex flex-col items-center justify-center gap-4 group cursor-pointer"
+                                                >
+                                                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:bg-white/10">
+                                                        <Plus size={32} className="text-white/40 group-hover:text-white transition-colors" />
+                                                    </div>
+                                                    <span className="text-white/40 group-hover:text-white font-bold tracking-widest uppercase text-sm transition-colors">
+                                                        {t('dashboard.newStrategy', 'Create Strategy')}
+                                                    </span>
+                                                </button>
+                                            </>
                                         ) : (
                                             <div className="flex flex-col items-center justify-center h-full text-center p-8 border border-white/5 rounded-3xl bg-white/5">
                                                 <div className={`w-20 h-20 rounded-full ${archetypeTheme.bgLight} ring-1 ${archetypeTheme.ring} flex items-center justify-center mb-6 ${archetypeTheme.shadow}`}>
@@ -1234,18 +1389,18 @@ export default function Dashboard() {
                                     <div className="flex justify-center pt-2 pb-1 z-10 relative">
                                         <div className="flex p-1 bg-white/5 rounded-full border border-white/10 shadow-sm">
                                             <button
-                                                onClick={() => setHabitViewMode('PROTOCOLS')}
-                                                className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
-                                            >
-                                                PROTOCOLS
-                                            </button>
-                                            <button
-                                                data-tour="habit-vices-tab"
-                                                onClick={() => setHabitViewMode('VICES')}
-                                                className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
-                                            >
-                                                VICES
-                                            </button>
+                                            onClick={() => setHabitViewMode('PROTOCOLS')}
+                                            className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                        >
+                                            {t('dashboard.protocols', 'PROTOCOLS')}
+                                        </button>
+                                        <button
+                                            data-tour="habit-vices-tab"
+                                            onClick={() => setHabitViewMode('VICES')}
+                                            className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
+                                        >
+                                            {t('dashboard.vices', 'VICES')}
+                                        </button>
                                         </div>
                                     </div>
                                 )}
@@ -1263,6 +1418,7 @@ export default function Dashboard() {
                             onEditHabit={handleEditHabit}
                             onUpdateHabit={handleHabitUpdate}
                             onShowActions={handleShowHabitActions}
+                            onShowBadHabitActions={handleShowBadHabitActions}
                             onRelapseBadHabit={(habit) => {
                                 setRelapsingHabit(habit);
                                 setActiveModal('RELAPSE');
@@ -1271,6 +1427,7 @@ export default function Dashboard() {
                             isActive={currentView === 'HABITS'}
                             onOpenStreak={() => setCurrentView('STREAK')}
                             onReorder={handleReorderHabits}
+                            onReorderBadHabits={handleReorderBadHabits}
                             isPro={user?.plan === 'PRO'}
                             onOpenPro={() => setIsProModalOpen(true)}
                         />
@@ -1490,11 +1647,12 @@ export default function Dashboard() {
                     {activeModal === 'BAD_HABIT' && (
                         <BadHabitWizard 
                             isOpen={true}
-                            onClose={() => setActiveModal(null)}
+                            onClose={() => { setActiveModal(null); setEditingBadHabit(null); }}
                             onConfirm={handleBadHabitConfirm}
                             attributes={attributes}
                             isFirstIdentify={badHabits.length === 0}
                             onSwitchToHabit={() => setActiveModal('HABIT')}
+                            initialData={editingBadHabit || undefined}
                         />
                     )}
 
@@ -1532,6 +1690,14 @@ export default function Dashboard() {
                         onDelete={handleDeleteHabitRequest}
                     />
 
+                    <BadHabitActionsModal 
+                        habit={badHabitActionsHabit}
+                        onClose={() => setBadHabitActionsHabit(null)}
+                        onEdit={(h) => handleEditBadHabit(h)}
+                        onArchive={handleArchiveBadHabit}
+                        onDelete={handleDeleteBadHabitRequest}
+                    />
+
                     <ConfirmationModal
                         isOpen={confirmationModal.isOpen}
                         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
@@ -1554,6 +1720,7 @@ export default function Dashboard() {
                                 showProfile={showProfile}
                                 onToggleProfile={setShowProfile}
                                 onClose={() => setIsSettingsOpen(false)}
+                                initialTab={settingsInitialTab}
                                 defaultChartMode={defaultChartMode}
                                 onSetDefaultChartMode={setDefaultChartMode}
                                 attributes={attributes}

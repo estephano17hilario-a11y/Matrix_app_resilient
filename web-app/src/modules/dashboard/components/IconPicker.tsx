@@ -34,7 +34,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
     const [activeTab, setActiveTab] = useState<'icons' | 'colors'>('icons');
-    const [activeCategory, setActiveCategory] = useState('Todos');
+    const [activeCategory, setActiveCategory] = useState('All');
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(true);
     
@@ -63,7 +63,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
             return iconList.filter(name => name.toLowerCase().includes(lowerTerm));
         }
         
-        if (activeCategory === 'Todos') {
+        if (activeCategory === 'All') {
             return iconList;
         }
 
@@ -164,7 +164,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                         activeTab === 'icons' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
                                     )}
                                 >
-                                    Iconos
+                                    {t('habits.picker.icons', 'ICONS')}
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('colors')}
@@ -173,7 +173,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                         activeTab === 'colors' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
                                     )}
                                 >
-                                    Colores
+                                    {t('habits.picker.colors', 'COLORS')}
                                 </button>
                             </div>
 
@@ -183,12 +183,12 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                     <div className="h-full flex flex-col gap-3">
                                         {/* Search */}
                                         <div className="relative shrink-0">
-                                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                                            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
                                             <input 
-                                                type="text" 
+                                                type="text"
                                                 placeholder={t('common.searchIcon', 'Search icon...')}
                                                 value={searchTerm}
-                                                onChange={(e) => { setSearchTerm(e.target.value); setDisplayLimit(100); setActiveCategory('Todos'); }}
+                                                onChange={(e) => { setSearchTerm(e.target.value); setDisplayLimit(100); setActiveCategory('All'); }}
                                                 className="w-full h-10 bg-black/40 rounded-xl pl-10 pr-3 text-sm text-white placeholder:text-white/20 border border-white/5 focus:border-white/20 outline-none transition-colors"
                                             />
                                             {searchTerm && (
@@ -226,16 +226,16 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                             >
                                                                 <button
                                                                     onClick={() => {
-                                                                        setActiveCategory('Todos');
+                                                                        setActiveCategory('All');
                                                                         setShowCategoryDropdown(false);
                                                                     }}
                                                                     className={cn(
                                                                         "w-full px-3 py-2 rounded-lg text-xs font-bold text-left flex items-center justify-between transition-colors shrink-0",
-                                                                        activeCategory === 'Todos' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5 hover:text-white"
+                                                                        activeCategory === 'All' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5 hover:text-white"
                                                                     )}
                                                                 >
-                                                                    <span>TODOS</span>
-                                                                    {activeCategory === 'Todos' && <Check size={12} />}
+                                                                    <span>{t('habits.categories.all', 'ALL')}</span>
+                                                                    {activeCategory === 'All' && <Check size={12} />}
                                                                 </button>
                                                                 <div className="h-px bg-white/5 my-1 mx-2 shrink-0" />
                                                                 {Object.keys(ICON_CATEGORIES).map(cat => (
@@ -250,7 +250,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                                             activeCategory === cat ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5 hover:text-white"
                                                                         )}
                                                                     >
-                                                                        <span>{cat}</span>
+                                                                        <span>{t(`habits.categories.${cat.toLowerCase()}`, cat)}</span>
                                                                         {activeCategory === cat && <Check size={12} />}
                                                                     </button>
                                                                 ))}
@@ -261,13 +261,13 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
 
                                                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 shrink-0 flex-1 touch-pan-x">
                                                     <button
-                                                        onClick={() => setActiveCategory('Todos')}
+                                                        onClick={() => setActiveCategory('All')}
                                                         className={cn(
                                                             "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-colors border shrink-0",
-                                                            activeCategory === 'Todos' ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
+                                                            activeCategory === 'All' ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
                                                         )}
                                                     >
-                                                        Todos
+                                                        {t('habits.categories.all', 'ALL')}
                                                     </button>
                                                     {Object.keys(ICON_CATEGORIES).map(cat => (
                                                         <button
@@ -278,7 +278,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                                 activeCategory === cat ? "bg-white text-black border-white" : "bg-white/5 text-white/50 border-transparent hover:bg-white/10"
                                                             )}
                                                         >
-                                                            {cat}
+                                                            {t(`habits.categories.${cat.toLowerCase()}`, cat)}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -313,7 +313,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                             {displayedIcons.length === 0 && (
                                                 <div className="col-span-6 text-center py-12 text-white/30 text-xs flex flex-col items-center gap-2">
                                                     <Search size={24} className="opacity-50" />
-                                                    <span>No se encontraron iconos</span>
+                                                    <span>{t('habits.picker.noIconsFound', 'No icons found')}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -322,7 +322,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                     <div className="h-full overflow-y-auto p-1 space-y-6" onScroll={handleScroll}>
                                         {Object.entries(COLOR_PALETTE).map(([groupName, colors]) => (
                                             <div key={groupName} className="space-y-2">
-                                                <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-widest pl-1">{groupName}</h4>
+                                                <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-widest pl-1">{t(`habits.categories.${groupName.toLowerCase()}`, groupName)}</h4>
                                                 <div className="grid grid-cols-8 gap-2">
                                                     {colors.map(color => (
                                                         <button
@@ -361,7 +361,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                 className="relative mx-auto mb-3 w-fit rounded-full px-3 py-2 border border-white/20 bg-black/60 shadow-md flex items-center gap-2"
                                             >
                                                 <ArrowDown size={16} className="text-white/90" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Desliza</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">{t('habits.picker.swipe', 'Swipe')}</span>
                                             </motion.div>
                                         </motion.div>
                                     )}

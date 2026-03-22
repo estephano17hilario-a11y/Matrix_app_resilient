@@ -9,7 +9,6 @@ export const BarChart = React.memo(({
     showGrid = true,
     showBackground = true,
     className = "",
-    barClassName = "",
     stacked = false,
     yTicks,
     yTickFormatter,
@@ -24,7 +23,6 @@ export const BarChart = React.memo(({
     showGrid?: boolean;
     showBackground?: boolean;
     className?: string;
-    barClassName?: string;
     stacked?: boolean;
     yTicks?: number[];
     yTickFormatter?: (value: number) => string;
@@ -176,7 +174,7 @@ export const BarChart = React.memo(({
                                         >
                                              {/* Shine Effect */}
                                              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30 mix-blend-overlay" />
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
                                                 
                                                 {/* Bottom Grounding Shadow */}
                                                 <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />

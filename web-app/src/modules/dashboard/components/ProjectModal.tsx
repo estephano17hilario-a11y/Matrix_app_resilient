@@ -38,7 +38,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-
+    
     // Reset or Populate form on open
     useEffect(() => {
         if (isOpen) {

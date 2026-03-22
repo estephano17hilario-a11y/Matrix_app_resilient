@@ -14,7 +14,7 @@ interface MeshBackgroundProps {
   className?: string;
 }
 
-const DEFAULT_COLORS = ['#4f46e5', '#06b6d4', '#8b5cf6', '#ec4899'];
+// DEFAULT_COLORS is not used, removing.
 
 const COSMIC_PALETTES: Record<string, string[]> = {
   cosmic_void: ['#4f46e5', '#06b6d4', '#8b5cf6', '#ec4899'],
@@ -27,9 +27,13 @@ const COSMIC_PALETTES: Record<string, string[]> = {
 
 export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { theme } = useTheme();
+  const { theme, vicesMode } = useTheme();
   const isCosmicTheme = theme.startsWith('cosmic_');
-  const currentColors = COSMIC_PALETTES[theme] || COSMIC_PALETTES['cosmic_void'];
+  
+  // If vices mode is active, override cosmic colors with deep reds
+  const currentColors = vicesMode 
+    ? ['#dc2626', '#b91c1c', '#991b1b', '#7f1d1d'] // Red-600 to Red-900
+    : (COSMIC_PALETTES[theme] || COSMIC_PALETTES['cosmic_void']);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,7 +80,7 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       ctx.fillStyle = '#020204';
       ctx.fillRect(0, 0, w, h);
 
-      ctx.globalCompositeOperation = 'screen';
+      ctx.globalCompositeOperation = 'source-over';
 
       parsedOrbs.forEach((orb) => {
         const movementX = Math.sin(time * orb.speed + orb.phase) * 0.12;

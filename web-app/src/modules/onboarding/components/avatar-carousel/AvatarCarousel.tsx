@@ -89,7 +89,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
             }}
           />
           <div
-            className="absolute inset-0 mix-blend-screen"
+              className="absolute inset-0"
             style={{
               background: `radial-gradient(600px 400px at 50% 50%, ${accentHex}22 0%, transparent 70%)`
             }}

@@ -11,7 +11,7 @@ interface AvatarCarouselQuickProps {
 }
 
 export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClose }) => {
-  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
+  const { user, profile, updateProfileLocally } = useAuth();
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -24,7 +24,6 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
   }, [profile?.avatarId]);
 
   const currentAvatar = AVAILABLE_AVATARS[currentIndex];
-  const accentRgb = currentAvatar.themeColorRgb || '255 255 255';
   const accentHex = currentAvatar.themeColor || '#ffffff';
 
   const handleSelect = useCallback(async (avatarId: string) => {
@@ -42,14 +41,13 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
     try {
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, { avatarId }, { merge: true });
-      await refreshProfile();
       onClose?.();
     } catch (error) {
       console.warn("Avatar persistence failed:", error);
     } finally {
       setIsSaving(false);
     }
-  }, [user, profile?.avatarId, updateProfileLocally, refreshProfile, onClose]);
+  }, [user, profile?.avatarId, updateProfileLocally, onClose]);
 
   const handleNext = () => {
     setCurrentIndex(prev => (prev + 1) % AVAILABLE_AVATARS.length);
@@ -142,10 +140,10 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
             onClick={() => handleDotClick(index)}
             className={`w-8 h-8 rounded-lg overflow-hidden transition-all duration-150 ${
               index === currentIndex
-                ? 'ring-2 ring-white scale-110'
+                ? 'scale-110'
                 : 'opacity-50 hover:opacity-80'
             }`}
-            style={index === currentIndex ? { ringColor: avatar.themeColor } : {}}
+            style={index === currentIndex ? { boxShadow: `0 0 0 2px ${avatar.themeColor || '#fff'}` } : {}}
           >
             <img
               src={avatar.path}

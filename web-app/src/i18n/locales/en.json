@@ -73,7 +73,42 @@
       "gold": { "title": "Your Coins", "desc": "Gold is used in the store.", "sub": "Earn it by completing missions." },
       "streak": { "title": "Your Streak", "desc": "Consecutive days of action.", "sub": "If you miss a day, it resets to zero!" },
       "dock": { "title": "Navigation (Dock)", "desc": "Your main command center.", "sub": "Access the whole app from here." },
-      "create": { "title": "Create Mission", "desc": "The task creator will open automatically.", "sub": "Get ready!" }
+      "create": { "title": "Create Button", "desc": "Create missions, habits, or notes.", "sub": "This is your starting point." }
+    },
+    "stats": {
+      "xp": {
+        "title": "The Energy System (XP)",
+        "desc1": "<strong>Experience (XP)</strong> measures your overall progress. You earn XP by completing Habits, Tasks, and Focus Sessions.",
+        "levelsHeader": "XP to complete each Level:",
+        "level": "Level"
+      },
+      "tp": {
+        "title": "Trait Points (TP)",
+        "desc1": "<strong>Trait Points (TP)</strong> allow you to improve your specific attributes (Strength, Intelligence, Discipline, etc.).",
+        "desc2": "There are multiple <strong>Traits</strong> you can develop. You can change and manage them in the <strong>Attributes Zone</strong> to focus on what you need to improve most in your current life.",
+        "tip": "Assign tasks to different traits to level them up."
+      },
+      "gold": {
+        "title": "The Economy (Gold)",
+        "desc1": "<strong>Gold</strong> is the currency of LUX. You obtain it as a reward for your daily effort and by completing missions.",
+        "whatFor": "What is it used for?",
+        "point1": "Buy upgrades and rewards in the <strong>Store</strong>.",
+        "point2": "<strong>Pay for your Bad Habits:</strong> If you relapse, you can use Gold to mitigate the damage to your HP."
+      },
+      "hp": {
+        "title": "Vitality (HP) and Punishments",
+        "desc1": "Your <strong>HP (Health Points)</strong> is your vitality. If you commit <strong>Bad Habits</strong> and decide not to use Gold to pay the penalty, you will lose HP.",
+        "warning": "BEWARE OF REACHING 0!",
+        "desc2": "If your HP reaches 0, you will suffer a system failure: <strong>Your Account Level and the Levels of ALL your Attributes will be reduced by half.</strong>"
+      },
+      "tips": {
+        "title": "Tips in each section",
+        "desc1": "In several parts of the application you will find a small <strong>lightbulb</strong>. Don't hesitate to press it!",
+        "buttonTitle": "Interactive Tutorial",
+        "buttonDesc": "When pressed, it will activate a visual tour explaining exactly how the screen you are on works."
+      },
+      "next": "Next",
+      "start": "Start"
     },
     "tasks": {
       "intro": { "title": "Mission Center", "desc": "Manage your day-to-day here.", "sub": "Active missions appear here." },
@@ -92,7 +127,12 @@
     "focus": {
       "intro": { "title": "Focus Zone", "desc": "For deep work and projects.", "sub": "" },
       "stats": { "title": "Statistics", "desc": "Visualize your concentration hours.", "sub": "" },
-      "projects": { "title": "Your Projects", "desc": "Divide big goals into short sessions.", "sub": "" },
+      "projects": {
+    "deleteTitle": "Delete Project?",
+    "specificDays": "Specific Days",
+    "editProject": "Edit Project",
+    "newProject": "New Project"
+  },
       "create": { "title": "New Project", "desc": "Start planning your next big goal.", "sub": "The creator will open automatically." }
     },
     "store": {
@@ -355,6 +395,21 @@
     }
   },
   "tasks": {
+    "filterDate": "Timeline",
+    "filterTrait": "Attribute",
+    "filterType": "Type",
+    "filterDifficulty": "Difficulty",
+    "hideCompleted": "Hide Completed",
+    "all": "All",
+    "normal": "Normal",
+    "smart": "Smart",
+    "clear": "Clear",
+    "filterDateTabs": {
+      "ALL": "ALL",
+      "DAY": "DAY",
+      "WEEK": "WEEK",
+      "MONTH": "MONTH"
+    },
     "activeMissions": "Active Missions",
     "targets": "TARGETS",
     "empty": "No active missions."
@@ -381,6 +436,7 @@
     "streak": "Day Streak",
     "yourStory": "Your Story",
     "untitledPlaceholder": "Untitled Note",
+    "estimatedDuration": "Estimated Duration",
     "save": "Save",
     "notes": "Notes",
     "journal": "Journal",
@@ -417,6 +473,7 @@
       "10_YEARS": "10 Years",
       "5_YEARS": "5 Years",
       "1_YEAR": "Year",
+      "YEAR": "Year",
       "SEMESTER": "Semester",
       "QUARTER": "Quarter",
       "MONTH": "Month",
@@ -427,6 +484,7 @@
       "10_YEARS": "Decade {{index}}",
       "5_YEARS": "Lustrum {{index}}",
       "1_YEAR": "Year {{index}}",
+      "YEAR": "Year {{index}}",
       "SEMESTER": "Semester {{index}}",
       "QUARTER": "Quarter {{index}}",
       "MONTH": "Month {{index}}",
@@ -664,6 +722,56 @@
         "warning": "Stats will be preserved in general view, but you won't be able to filter by this project anymore."
     }
   },
+  "pro": {
+    "chooseYour": "Choose your",
+    "plan": "Plan",
+    "monthly": "Monthly",
+    "month": "mo",
+    "reg": "Reg",
+    "select": "Select",
+    "mostPopular": "Most popular",
+    "yearly": "Yearly",
+    "year": "yr",
+    "launchOffer": "LAUNCH OFFER",
+    "launchOfferDesc": "Take advantage of these special launch prices for a limited time. When the offer ends, they will rise to $9.90 and $99.90.",
+    "days": "Days",
+    "hrs": "Hrs",
+    "min": "Min",
+    "sec": "Sec",
+    "backToBenefits": "Back to benefits",
+    "offerEnds": "OFFER ENDS MAY 1ST",
+    "unleashYour": "Unleash your",
+    "truePower": "True Power",
+    "elevateDesc": "Elevate your existence to a cosmic level. No limits, no restrictions, just pure performance.",
+    "activateDelux": "Activate Delux",
+    "unlockedWord": "Unlocked",
+    "unlimitedWord": "Unlimited",
+    "unlimitedWordM": "Unlimited",
+    "features": {
+      "charts": {
+        "title": "Unlocked Charts",
+        "desc": "Visualize your progress and statistics without restrictions."
+      },
+      "strategies": {
+        "title": "Unlimited Strategies",
+        "desc": "Create and execute infinite strategies to dominate your day."
+      },
+      "habits": {
+        "title": "Unlimited Habits",
+        "desc": "Forge and track all the habits you need."
+      },
+      "projects": {
+        "title": "Unlimited Projects",
+        "desc": "Manage multiple simultaneous missions without borders."
+      },
+      "traits": {
+        "title": "All Traits Unlocked",
+        "desc": "Access the full spectrum of your avatar's customization."
+      }
+    },
+    "mercadoPagoError": "There was an error connecting to Mercado Pago. Try again.",
+    "mercadoPagoConnError": "Connection to Mercado Pago failed. Please check your internet connection and try again."
+  },
   "settings": {
     "title": "System Config",
     "subtitle": "Lux Environment Preferences",
@@ -685,8 +793,9 @@
     "vividModeDesc": "Boost saturation and brightness for OLED screens",
     "dashboardStyle": "Dashboard Style",
     "dashboardStyleDesc": "Select the appearance of the section selector",
-    "styleBorder": "Bordered",
-    "styleLiquid": "Liquid Glass",
+    "styleBorder": "BORDERED",
+    "styleLiquid": "LIQUID GLASS",
+    "styleGlass": "GLASS",
     "startupChart": "Startup Chart",
     "startupChartDesc": "Default visualization for system metrics",
     "chartRadar": "Radar / Spider",
@@ -701,16 +810,47 @@
     "developer": "Developer",
     "logout": "Terminate Session",
     "weekStartsOn": "Week Starts On",
-    "weekStartsOnDesc": "First day of week for calendars"
+    "weekStartsOnDesc": "First day of week for calendars",
+    "systemDesc": "Language, permissions, and navigation.",
+    "nativePermissions": "Native Permissions",
+    "nativePermissionsDesc": "System access for background sync",
+    "notifications": "Notifications",
+    "batteryOptimization": "Battery Optimization",
+    "sectionControls": "Section Controls",
+    "sectionControlsDesc": "Show habit section buttons",
+    "visualDesc": "Customize themes and display settings.",
+    "tapToExit": "Tap anywhere to exit",
+    "previewMode": "Preview Mode",
+    "activeTraits": "Active Traits",
+    "profileDesc": "Your identity and connection status.",
+    "session": "Session",
+    "terminateSession": "Terminate Session",
+    "safeLogout": "Safe logout and local data sync",
+    "unrestricted": "Unrestricted",
+    "disable": "Disable",
+    "enable": "Enable",
+    "active": "Active",
+    "operative": "Operative",
+    "previewTheme": "Preview Theme",
+    "categories": {
+      "all": "All",
+      "cosmic": "Cosmic",
+      "holo": "Holo",
+      "orbs": "Orbs",
+      "minimal": "Office",
+      "gradients": "Gradients"
+    }
   },
   "dashboard": {
-      "systemMetrics": "System Metrics",
+    "systemMetrics": "System Metrics",
     "activeMissions": "Active Missions",
     "radarAnalysis": "Radar Analysis",
     "listView": "List View",
     "level": "Lvl",
-    "tasks": "Tasks",
-    "strategy": "Strategy",
+    "tasks": "MISSIONS",
+    "strategy": "STRATEGY",
+    "protocols": "PROTOCOLS",
+    "vices": "VICES",
     "noStrategy": "No Active Strategy",
     "noStrategyDesc": "You haven't defined your Grand Strategy yet. Break down your ultimate goal into actionable steps.",
     "initProtocol": "Initialize Protocol",
@@ -875,6 +1015,13 @@
     "empty": "No active protocols.",
     "emptyVices": "No vices recorded. Stay clean.",
     "deleteAction": "Delete Habit",
+    "detail": {
+      "ratio": "Ratio",
+      "goalSummary": "GOAL SUMMARY",
+      "estimatedGoal": "Estimated goal",
+      "hoursWorked": "HOURS WORKED",
+      "progress": "PROGRESS"
+    },
     "deleteTitle": "Delete Habit?",
     "identifyEnemy": "Identify Enemy",
      "streak": "Streak",
@@ -905,14 +1052,42 @@
     "customizationOptional": "Customization (Optional)",
     "selectIconColor": "Select Icon & Color",
     "activateNotifications": "Activate Notifications",
-    "batteryOptimization": "Battery Optimization"
+    "batteryOptimization": "Battery Optimization",
+    "picker": {
+      "icons": "ICONS",
+      "colors": "COLORS",
+      "noIconsFound": "No icons found",
+      "swipe": "Swipe"
+    },
+    "categories": {
+      "all": "ALL",
+      "esenciales": "Essentials",
+      "salud": "Health",
+      "productividad": "Productivity",
+      "finanzas": "Finance",
+      "tecnología": "Technology",
+      "educación": "Education",
+      "hogar": "Home",
+      "viajes": "Travel",
+      "social": "Social",
+      "rojos": "Reds",
+      "rosas": "Pinks",
+      "naranjas": "Oranges",
+      "amarillos": "Yellows",
+      "marrones": "Browns",
+      "verdes": "Greens",
+      "cianes": "Cyans",
+      "azules": "Blues",
+      "violetas": "Violets",
+      "grises": "Grays"
+    }
   },
   "badHabits": {
     "wizard": {
       "reasonLabel": "Why do you want to quit?",
       "reasonPlaceholder": "Write your main reason for quitting this vice...",
       "gradualProcess": "Gradual Process",
-      "gradualDesc": "Goals increase gradually: 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days",
+      "gradualDesc": "Goals increase gradually: 1 → 3 → 7 → 14 → 30 → 60 → 90 → 130 → 180 → 240 → 310 → 365 days",
       "opportunityDay": "Opportunity Day",
       "opportunityDesc": "When you reach the goal, you have 1 day to indulge in the vice WITHOUT penalty. Your streak is maintained.",
       "quote": "The only way to win is not to play.",
@@ -935,12 +1110,39 @@
       "controlled": "Controlled",
       "dominated": "Dominated",
       "eradicated": "Eradicated"
-    }
+    },
+    "impact": "Impact",
+    "attribute": "Attribute",
+    "classic": "Classic",
+    "intelligent": "Intelligent",
+    "recommended": "Recommended",
+    "list": "List",
+    "manual": "Manual",
+    "purgeProtocol": "Purge Protocol",
+    "intelligentStreakSystem": "Intelligent Streak System",
+    "learnFromRelapses": "Learns from your relapses, does not penalize them",
+    "visualExample": "Visual Example",
+    "intelligentStreakActivated": "Intelligent Streak Activated",
+    "streakRetrogressed": "Streak Retrogressed",
+    "previous": "Previous",
+    "newGoal": "New Goal",
+    "hpPenalty": "HP Penalty",
+    "hpPenaltyDesc": "Health reduced as a consequence of breaking your streak before completing the goal.",
+    "confirmKeepProgress": "Confirm & Keep Progress",
+    "acceptPenalty": "Accept Penalty",
+    "reorderTitle": "Reorder Vices",
+    "protocolFailure": "Protocol Failure",
+    "missingGold": "MISSING",
+    "cancelFalseAlarm": "Cancel (False Alarm)"
   },
   "projects": {
     "deleteTitle": "Delete Project?",
     "specificDays": "Specific Days",
     "editProject": "Edit Project",
     "newProject": "New Project"
+  },
+  "smartTasks": {
+    "addAnotherTask": "Add another task",
+    "createNewBlock": "Create New Block"
   }
 }

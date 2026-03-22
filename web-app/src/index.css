@@ -47,8 +47,8 @@
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     /* Beautiful premium fallback without GPU cost */
-    background: linear-gradient(135deg, rgb(var(--color-bg-depth) / 0.92) 0%, rgb(var(--color-bg-depth) / 0.8) 100%) !important;
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.3) !important;
+    background: linear-gradient(135deg, rgb(var(--color-bg-depth) / 0.95) 0%, rgb(var(--color-bg-depth) / 0.85) 100%) !important;
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.5) !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
   }
 
@@ -57,11 +57,20 @@
   [class*="blur-"] {
     filter: none !important;
     -webkit-filter: none !important;
+    opacity: 0.9 !important;
   }
 
-  /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING */
+  /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING AND FIX BLACK PARPADEO */
   * {
     /* Only allow opacity and transform to be animated */
+    will-change: auto;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Exception for critical UI feedback */
+  .animate-spin {
+     animation-duration: 1s !important;
   }
 
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
@@ -75,7 +84,7 @@
 
       /* Reduce regular blurs significantly for mobile to prevent black screens */
       .blur-3xl, .blur-2xl, .blur-xl, .blur-lg {
-          filter: blur(2px) !important;
+          filter: none !important;
           opacity: 0.8;
           transform: translateZ(0);
       }
@@ -513,6 +522,52 @@
     @apply h-full rounded-full transition-all duration-700 ease-out;
     /* Glow at the tip */
     box-shadow: 2px 0 8px rgba(255, 255, 255, 0.5);
+  }
+
+  .liquid-glass-header {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
+      0 4px 16px -4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .liquid-glass-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--trait-color, rgba(255, 255, 255, 0.4)) 50%,
+      transparent 100%
+    );
+    opacity: 0.8;
+  }
+
+  .liquid-glass-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      var(--trait-color-alpha, rgba(139, 92, 246, 0.08)) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
   }
 
   /* 

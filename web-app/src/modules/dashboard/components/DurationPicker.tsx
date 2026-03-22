@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Minus, Plus } from 'lucide-react';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 interface DurationPickerProps {
     value: number; // in minutes
@@ -11,6 +12,7 @@ interface DurationPickerProps {
 type Mode = 'MINUTES' | 'HOURS';
 
 export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange }) => {
+    const { t } = useTranslation();
     // Determine initial mode based on value
     // If value is a multiple of 60 and > 0, default to HOURS, else MINUTES
     const [mode, setMode] = useState<Mode>(() => {
@@ -77,8 +79,8 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
 
     return (
         <div className="w-full bg-[#0a0a0a] rounded-xl border border-white/10 p-3 overflow-hidden relative group">
-            {/* Ambient Glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            {/* Ambient Glow - Premium & Lightweight (No heavy blur to avoid GPU lag/black flickers) */}
+            <div className="absolute -top-16 -right-16 w-56 h-56 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.25)_0%,rgba(99,102,241,0.1)_35%,transparent_70%)] pointer-events-none transform-gpu opacity-80" />
             
             <div className="relative z-10 flex flex-col gap-3">
                 {/* Header & Toggle */}
@@ -87,7 +89,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
                         <div className="p-1 rounded-md bg-white/5">
                             <Clock size={12} className="text-indigo-400" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Duración Estimada</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{t('common.estimatedDuration', 'Estimated Duration')}</span>
                     </div>
                     
                     <div className="flex bg-black/40 p-1 rounded-lg border border-white/5">

@@ -41,18 +41,26 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
   const goalHours = Math.floor(goalMinutes / 60);
   const goalRemainingMins = goalMinutes % 60;
 
-  return (
-    <motion.div
-      layout
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onClick?.(project)}
-      className="group relative bg-black/40 border border-white/10 shadow-sm rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden hover:bg-white/10"
-    >
-        <div 
-            className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500" 
-            style={{ background: `linear-gradient(180deg, ${baseColor}12 0%, transparent 60%)` }}
-        />
+  const toRgba = (hex: string, alpha: number) => {
+      const normalized = hex.replace('#', '');
+      if (normalized.length !== 6) return `rgba(255,255,255,${alpha})`;
+      const r = parseInt(normalized.slice(0, 2), 16);
+      const g = parseInt(normalized.slice(2, 4), 16);
+      const b = parseInt(normalized.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+  
+  const shadowColor = toRgba(baseColor, 0.2);
+  const customBoxShadow = `0 10px 15px -3px ${shadowColor}, 0 4px 6px -4px ${shadowColor}`;
 
+  return (
+      <motion.div
+         layout
+         whileTap={{ scale: 0.98 }}
+         onClick={() => onClick?.(project)}
+         className="group relative bg-[#111113]/80 bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] hover:border-white/[0.15] shadow-lg rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden"
+         style={{ boxShadow: customBoxShadow }}
+       >
       <div className="relative flex items-center gap-5">
         {/* Left: Enter/Focus Button (Not Play) */}
         <button 
@@ -118,7 +126,7 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
 
           {/* Progress Bar Row */}
           <div className="flex items-center gap-3 mt-2">
-            <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden relative">
+            <div className="flex-1 h-3 bg-black/60 rounded-full overflow-hidden relative">
                 <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${visualPercent}%` }}

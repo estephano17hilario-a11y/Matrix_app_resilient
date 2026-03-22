@@ -107,6 +107,9 @@ export interface BadHabit {
   intelligentStreak?: boolean;
   currentTarget?: number;
   reachedDays?: number;
+  lastCheckedDate?: string;
+  archived?: boolean;
+  order?: number;
 }
 
 export interface Project {

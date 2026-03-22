@@ -43,9 +43,9 @@ export const useLongPress = (
     onMouseDown: (e: React.MouseEvent) => start(e),
     onTouchStart: (e: React.TouchEvent) => start(e),
     onMouseUp: (e: React.MouseEvent) => clear(e),
-    onMouseLeave: (e: React.MouseEvent) => clear(e, false),
+    onMouseLeave: (e: React.MouseEvent) => clear(e),
     onTouchEnd: (e: React.TouchEvent) => clear(e),
     // Mobile specific: cancel on move to allow scrolling
-    onTouchMove: (e: React.TouchEvent) => clear(e, false) 
+    onTouchMove: (e: React.TouchEvent) => clear(e) 
   };
 };

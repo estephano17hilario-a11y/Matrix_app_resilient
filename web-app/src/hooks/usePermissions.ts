@@ -5,7 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'react-hot-toast';
 
 export interface PermissionStatus {
-    notifications: 'granted' | 'denied' | 'prompt' | 'unknown';
+    notifications: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' | 'unknown';
     exactAlarms: 'granted' | 'denied' | 'unknown'; // Android 12+
 }
 

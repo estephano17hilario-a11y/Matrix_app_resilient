@@ -43,7 +43,7 @@ export const SmartDurationPicker: React.FC<SmartDurationPickerProps> = ({ startD
                 {[
                     { label: `3 ${t('common.time.months')}`, months: 3 },
                     { label: `6 ${t('common.time.months')}`, months: 6 },
-                    { label: `1 ${t('strategicMap.levels.1_YEAR')}`, months: 12 },
+                    { label: `1 ${t('strategicMap.levels.YEAR')}`, months: 12 },
                     { label: `5 ${t('common.time.years')}`, months: 60 },
                 ].map((preset) => (
                     <button

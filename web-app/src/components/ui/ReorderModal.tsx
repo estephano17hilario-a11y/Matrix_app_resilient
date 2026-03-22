@@ -2,9 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, GripVertical, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Habit, Project } from '../../types';
 
-interface ReorderModalProps<T extends Habit | Project> {
+interface ReorderItemBase {
+  id: string;
+  title: string;
+  order?: number;
+}
+
+interface ReorderModalProps<T extends ReorderItemBase> {
   isOpen: boolean;
   onClose: () => void;
   items: T[];
@@ -13,7 +18,7 @@ interface ReorderModalProps<T extends Habit | Project> {
   getItemColor?: (item: T) => string;
 }
 
-export const ReorderModal = <T extends Habit | Project>({ 
+export const ReorderModal = <T extends ReorderItemBase>({ 
   isOpen, 
   onClose, 
   items, 

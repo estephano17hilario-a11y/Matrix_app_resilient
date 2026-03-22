@@ -97,9 +97,6 @@ export const ArchetypeSelector: React.FC<ArchetypeSelectorProps> = ({ onClose })
       await setDoc(userRef, { archetype }, { merge: true });
       
       console.log("ArchetypeSelector: Firestore updated");
-
-      // 3. Refresh Context
-      await refreshProfile();
       
       if (onClose) {
         setTimeout(onClose, 500);

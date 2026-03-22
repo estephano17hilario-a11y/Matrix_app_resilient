@@ -58,35 +58,37 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
 
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { PersistenceService } from './persistence';
 
-// Initialize GoogleAuth on web (not needed on Android but good for dev)
-if (Capacitor.getPlatform() === 'web') {
-  GoogleAuth.initialize({
-    clientId: '337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-    grantOfflineAccess: true,
-  });
-}
+GoogleAuth.initialize({
+  clientId: '337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com',
+  scopes: ['profile', 'email'],
+  grantOfflineAccess: true,
+});
 
 export const loginWithGoogle = async (): Promise<User | null> => {
   try {
     if (Capacitor.isNativePlatform()) {
-      // Flujo nativo para Android / iOS
       const googleUser = await GoogleAuth.signIn();
       const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
       const result = await signInWithCredential(auth, credential);
-      await initializeUserDocument(result.user, { isAnonymous: false });
-      return result.user;
+      if (result.user) {
+        PersistenceService.setSession(result.user.uid);
+        await initializeUserDocument(result.user, { isAnonymous: false });
+        return result.user;
+      }
+      return null;
     } else {
-      // Flujo web
       googleProvider.addScope('profile');
       googleProvider.addScope('email');
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
-      await initializeUserDocument(user, { isAnonymous: false });
-
-      return user;
+      if (user) {
+        PersistenceService.setSession(user.uid);
+        await initializeUserDocument(user, { isAnonymous: false });
+        return user;
+      }
+      return null;
     }
   } catch (error: any) {
     if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/cancelled-popup-request') {
@@ -101,6 +103,7 @@ export const loginAsGuest = async (name: string): Promise<User> => {
     try {
         const result = await signInAnonymously(auth);
         const user = result.user;
+        PersistenceService.setSession(user.uid);
         
         await updateProfile(user, { displayName: name });
         

@@ -10,7 +10,7 @@ interface AvatarSelectorProps {
 }
 
 export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
-  const { user, profile, refreshProfile, updateProfileLocally } = useAuth();
+  const { user, profile, updateProfileLocally } = useAuth();
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | undefined>(profile?.avatarId);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,9 +54,6 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
 
       console.log("AvatarSelector: Firestore updated");
 
-      // 4. Refresh Context to propagate changes to the rest of the app
-      await refreshProfile();
-      
       // 5. Optional: Close modal after short delay
       if (onClose) {
         setTimeout(onClose, 500);

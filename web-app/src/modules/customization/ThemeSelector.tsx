@@ -58,7 +58,7 @@ export const ThemeSelector: React.FC = () => {
               {/* Active Indicator (Glow) */}
               {isActive && (
                 <div 
-                    className="absolute inset-0 opacity-30 mix-blend-overlay"
+                    className="absolute inset-0 opacity-30"
                     style={{ 
                         background: `radial-gradient(circle at center, rgb(${themeOption.colors.primaryGlow}), transparent 70%)` 
                     }}

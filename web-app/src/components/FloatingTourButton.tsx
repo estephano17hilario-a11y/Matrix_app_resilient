@@ -16,6 +16,12 @@ export const FloatingTourButton: React.FC<FloatingTourButtonProps> = ({ currentV
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const handleStartTour = () => startTour('onboarding');
+    window.addEventListener('start-onboarding-tour', handleStartTour);
+    return () => window.removeEventListener('start-onboarding-tour', handleStartTour);
+  }, [startTour]);
+
   if (isActive) return null;
 
   const getTourId = () => {

@@ -169,7 +169,7 @@ const GlitchOverlay = React.memo(() => {
     
     return (
         <motion.div
-          className="absolute inset-0 rounded-full bg-red-500/10 pointer-events-none mix-blend-overlay"
+          className="absolute inset-0 rounded-full bg-red-500/10 pointer-events-none"
           animate={{ opacity: [0, 0.2, 0] }}
           transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.1 }}
         />
