@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
-import { AdShard } from './components/AdShard';
 import { StoreItem } from '../../services/economyService';
 import { 
     Coins, Zap, Palette, ShoppingBag, 

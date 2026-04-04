@@ -109,7 +109,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             playAlarm(); // Call the custom beautiful alarm sound
 
             // Show a web notification if permitted, so they know if they are in another tab
-            if ('Notification' in window && Notification.permission === 'granted') {
+            if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                 try {
                     new Notification('Focus Complete!', {
                         body: `You finished your session for ${project.title}. Claim victory!`,

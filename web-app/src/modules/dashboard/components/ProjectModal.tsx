@@ -218,20 +218,25 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         setExpandedBlock(block);
     };
 
-    if (!isOpen) return null;
-
     if (typeof document === 'undefined') return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
-            <motion.div 
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative z-10 w-full max-w-[400px]"
-            >
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+                >
+                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
+                    <motion.div 
+                        initial={{ scale: 0.95, y: 10, opacity: 0 }}
+                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                        exit={{ scale: 0.95, y: 10, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="relative z-10 w-full max-w-[400px]"
+                    >
                 <div 
                     className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
                     style={{
@@ -283,7 +288,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-4 pb-4 space-y-3"
                                     >
                                         {/* Title */}
@@ -418,7 +423,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
                                         <div className="flex items-center gap-2 mb-1"><Target size={14} className="text-cyan-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.goalCalculation')}</span></div>
@@ -641,7 +646,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Pomodoro */}
@@ -789,7 +794,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                     </div>
                 </div>
             </motion.div>
-        </div>,
+                </motion.div>
+            )}
+        </AnimatePresence>,
         document.body
     );
 }, (prev, next) => {

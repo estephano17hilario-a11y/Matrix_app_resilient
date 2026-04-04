@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
@@ -93,8 +94,6 @@ export const QuestModal = React.memo(({
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    if (!isOpen) return null;
-
     const handleConfirm = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -137,19 +136,32 @@ export const QuestModal = React.memo(({
     ];
 
     return createPortal(
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/95" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-[360px]">
-                <div 
-                    className="rounded-[2rem] p-4 overflow-visible relative transition-all duration-500" 
-                    style={{
-                        background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
-                        border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
-                        boxShadow: attrId 
-                            ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
-                            : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
-                    }}
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[500] flex items-center justify-center p-4"
                 >
+                    <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+                    <motion.div 
+                        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="relative z-10 w-full max-w-[360px]"
+                    >
+                        <div 
+                            className="rounded-[2rem] p-4 overflow-visible relative transition-all duration-300" 
+                            style={{
+                                background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
+                                border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
+                                boxShadow: attrId 
+                                    ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
+                                    : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
+                            }}
+                        >
                     {/* Header */}
                     <div className="flex justify-between items-center mb-4 px-1">
                         <div className="flex items-center gap-3">
@@ -375,8 +387,8 @@ export const QuestModal = React.memo(({
                         </button>
                     </div>
                 </div>
-            </div>
-
+            </motion.div>
+            
             <DateSelectionModal 
                 isOpen={isDateModalOpen}
                 onClose={() => setIsDateModalOpen(false)}
@@ -384,7 +396,9 @@ export const QuestModal = React.memo(({
                 mode="DAY"
                 currentDate={parseLocalDate(deadline)}
             />
-        </div>,
+        </motion.div>
+        )}
+    </AnimatePresence>,
         document.body
     );
 });

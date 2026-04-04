@@ -230,7 +230,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     >
                             {/* Habit Consistency Chart (Moved inside to prevent layout shifts during exit animation) */}
                             {!showArchived && (
-                                <div className="w-full max-w-[600px] mb-1 pt-1">
+                                <div className="w-full max-w-[440px] mb-1 pt-1">
                                     <HabitConsistencyChart 
                                         habits={habits} 
                                         onOpenStreak={onOpenStreak} 

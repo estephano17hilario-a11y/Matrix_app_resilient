@@ -217,16 +217,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     }, [onInteractionEnd]);
 
     const openConfigModal = useCallback(() => {
-        // Always require PIN to open settings if PIN is set
-        if (config.security.pin) {
-            setPendingAction(() => () => {
-                setConfigOpen(true);
-            });
-            setShowPasswordPrompt(true);
-        } else {
-            setConfigOpen(true);
-        }
-    }, [config.security.pin]);
+        setConfigOpen(true);
+    }, []);
 
     // Secure Notes Hub
     const [showSecureHub, setShowSecureHub] = useState(false);

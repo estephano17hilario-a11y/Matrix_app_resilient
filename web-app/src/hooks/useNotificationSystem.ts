@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -6,12 +6,24 @@ import FocusSession from '../plugins/FocusPlugin';
 import { notificationService } from '../services/notificationService';
 import { toast } from 'react-hot-toast';
 
-export const useNotificationSystem = () => {
+export const useNotificationSystem = (isEnabled: boolean) => {
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
+    if (!isEnabled || hasInitializedRef.current) {
+      return;
+    }
+
+    hasInitializedRef.current = true;
+
     const initSystem = async () => {
       if (!Capacitor.isNativePlatform()) {
           // Web Init
-          await notificationService.initialize();
+          try {
+            await notificationService.initialize();
+          } catch (e) {
+            console.warn("No se pudieron activar las notificaciones, pero la app sigue:", e);
+          }
           return;
       }
 
@@ -76,5 +88,5 @@ export const useNotificationSystem = () => {
     };
 
     initSystem();
-  }, []);
+  }, [isEnabled]);
 };

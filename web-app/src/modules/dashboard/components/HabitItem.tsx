@@ -183,7 +183,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
 
         {/* Radial Gradient Blur Background */}
         <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-[0.20] pointer-events-none group-hover:opacity-[0.30] transition-opacity duration-300" 
+            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-300" 
             style={{ 
                 background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`,
                 transform: 'translateZ(0)'

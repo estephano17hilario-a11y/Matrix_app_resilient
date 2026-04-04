@@ -306,7 +306,7 @@ export const TransactionService = {
     /**
      * Atomically halves user level and all attributes when HP reaches 0
      */
-    halveStats: async (userId: string, currentAttributes: any[], currentLevel: number, currentXp: number) => {
+    halveStats: async (userId: string, currentAttributes: any[], currentLevel: number) => {
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', userId);
 

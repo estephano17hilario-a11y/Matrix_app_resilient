@@ -88,7 +88,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
         >
             {/* Radial Gradient Blur Background */}
             <div 
-                className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-500" 
+                className="absolute top-0 right-0 w-48 h-48 opacity-[0.40] pointer-events-none group-hover:opacity-[0.50] transition-opacity duration-500" 
                 style={{ 
                     background: `radial-gradient(circle, ${accentColor} 0%, transparent 70%)`,
                     transform: 'translateZ(0)'

@@ -184,10 +184,9 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-150">
                                     <div className="space-y-3">
                                         <label className="text-xs font-bold text-white/40 uppercase tracking-widest block">{t('notes.quickActions', 'Quick Actions')}</label>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-2 gap-3">
                                             {[
                                                 { id: 'BIRTHDAY', icon: Cake, label: 'Memories' },
-                                                { id: 'TARGET', icon: Target, label: 'Goals' },
                                                 { id: 'KEY', icon: Key, label: 'Vault' }
                                             ].map(btn => {
                                                 const isSelected = config.enabledFeatures.includes(btn.id);

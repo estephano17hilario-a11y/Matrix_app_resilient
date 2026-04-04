@@ -180,8 +180,9 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                 data-tour="dock"
                 initial={false}
                 animate={{ y: isHidden ? '200%' : '0%' }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.6 }}
                 className="fixed bottom-10 left-0 right-0 z-[400] flex justify-center pointer-events-none"
+                style={{ willChange: "transform", pointerEvents }}
             >
                 <motion.div 
                     initial={false}
@@ -234,7 +235,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                                 data-tour="dock-main-btn"
                                 onClick={() => onToggle(!isOpen)}
                                 className={`
-                                    w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                                    w-12 h-12 rounded-full flex items-center justify-center transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu 
                                     ${isOpen
                                         ? 'bg-zinc-800/80 rotate-45 border border-white/10 text-white hover:bg-zinc-700'
                                         : 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)]'
@@ -267,34 +268,33 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
         <>
         <Backdrop />
         <motion.div 
-            data-tour="dock"
-            initial={false}
-            animate={{ y: isHidden ? '200%' : '0%' }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center"
-            style={{ willChange: "transform", pointerEvents }}
-        >
-           <motion.div 
-                layout
+                data-tour="dock"
                 initial={false}
-                animate={{ 
-                    height: isOpen ? dynamicHeight : 70,
-                    borderRadius: isOpen ? 32 : 34,
-                    width: '85vw',
-                    maxWidth: 330
-                }}
-                transition={{ 
-                    type: "spring", 
-                    stiffness: 400, 
-                    damping: 28,
-                    mass: 0.8
-                }}
-                className={containerClass}
-                style={{ overflow: 'visible' }}
-             >
+                animate={{ y: isHidden ? '200%' : '0%' }}
+                transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.6 }}
+                className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center"
+                style={{ willChange: "transform", pointerEvents }}
+            >
+           <motion.div 
+                    layout
+                    initial={false}
+                    animate={{ 
+                        height: isOpen ? dynamicHeight : 72,
+                        borderRadius: isOpen ? 32 : 36,
+                        width: '85vw',
+                        maxWidth: 320
+                    }}
+                    transition={{ 
+                        type: "tween", 
+                        ease: [0.22, 1, 0.36, 1],
+                        duration: 0.6
+                    }}
+                    className={containerClass}
+                    style={{ overflow: 'visible' }}
+                 >
              <div className={`absolute inset-0 overflow-hidden rounded-[inherit] z-10 ${isOpen ? 'bg-black/90' : 'bg-transparent'}`}>
                 <div className="relative w-full h-full">
-                <div className={`pointer-events-auto absolute bottom-[80px] left-0 right-0 px-5 grid grid-cols-2 gap-2 transition-all duration-300 ease-out ${isOpen ? 'opacity-100 translate-y-0 delay-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                <div className={`pointer-events-auto absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isOpen ? 'opacity-100 translate-y-0 delay-[50ms]' : 'opacity-0 translate-y-4 pointer-events-none delay-0'}`}>
                     
                     <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
                        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
@@ -311,10 +311,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
                     </div>
 
                     <div className="col-span-1 flex items-center justify-center h-full -mt-1">
-                        <button data-tour="dock-main-btn" onClick={() => onToggle(!isOpen)} className={`premium-fab z-20 flex items-center justify-center transition-all duration-400 cubic-bezier(0.19, 1, 0.22, 1) transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
-                            {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-300 relative z-10" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md relative z-10" />)}
-                        </button>
-                    </div>
+                          <button data-tour="dock-main-btn" onClick={() => onToggle(!isOpen)} className={`premium-fab z-20 flex items-center justify-center transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] transform-gpu backface-hidden ${isOpen ? 'w-16 h-12 translate-y-[2px]' : 'w-14 h-14 hover:scale-105'}`}>
+                                {isOpen ? (<ChevronDown size={28} className="text-white animate-in zoom-in duration-[600ms] relative z-10" strokeWidth={2.5} />) : (<Plus size={28} strokeWidth={3} className="text-white drop-shadow-md relative z-10" />)}
+                            </button>
+                      </div>
 
                     <div className="col-span-2 flex items-center justify-around h-full">
                         {rightItems.map(id => renderLegacyDockButton(id))}

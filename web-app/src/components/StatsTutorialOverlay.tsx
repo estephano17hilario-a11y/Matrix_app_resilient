@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Star, Coins, Heart, Skull, Dna, ArrowRight, X, Sparkles, Lightbulb } from 'lucide-react';
+import { Zap, Coins, Heart, Skull, Dna, ArrowRight, X, Sparkles, Lightbulb } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface StatsTutorialOverlayProps {

@@ -85,9 +85,9 @@ export const useDashboardLogic = () => {
         if (luxUser.uid === authProfile.uid) {
             return {
                 ...luxUser,
-                // Prefer Auth Profile for Identity fields (updated via Settings)
+                // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
                 avatarId: authProfile.avatarId || luxUser.avatarId,
-                displayName: authProfile.displayName || luxUser.displayName,
+                displayName: (luxUser.displayName && luxUser.displayName !== 'Operator') ? luxUser.displayName : (authProfile.displayName || luxUser.displayName),
                 // Prefer Lux for Game Stats (updated via Game Loop)
                 stats: luxUser.stats
             };
@@ -730,6 +730,8 @@ export const useDashboardLogic = () => {
                 return { ...attr, icon: def?.icon, color: def?.color || attr.color, label: def?.label || attr.label };
             });
             setAttributes(enriched);
+        } else {
+            setAttributes([]);
         }
         setAreAttributesLoaded(true);
     };
@@ -3869,7 +3871,7 @@ export const useDashboardLogic = () => {
                     color: '#ef4444'
                 });
 
-                TransactionService.halveStats(user.uid, attributes, player.level, player.xp).then(({ newLevel, newXp }) => {
+                TransactionService.halveStats(user.uid, attributes, player.level).then(({ newLevel, newXp }) => {
                     setPlayer(prev => ({
                         ...prev,
                         level: newLevel,

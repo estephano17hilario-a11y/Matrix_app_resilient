@@ -24,7 +24,7 @@ const STORE_ITEMS: StoreItem[] = [
     price: 500,
     category: 'power_up',
     iconName: 'Zap',
-    effect: { type: 'heal', value: 20 }
+    effect: { type: 'heal', value: 10 }
   },
   {
     id: 'potion_xp_restore',

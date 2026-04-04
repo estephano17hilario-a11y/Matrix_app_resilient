@@ -52,7 +52,8 @@ import {
     writeBatch as firestoreWriteBatch,
     WriteBatch
 } from 'firebase/firestore';
-import { getMessaging, Messaging, getToken, onMessage } from 'firebase/messaging';
+import { Capacitor } from '@capacitor/core';
+import type { Messaging } from 'firebase/messaging';
 
 // --- 1. CONFIGURATION ---
 const firebaseConfig = {
@@ -105,7 +106,8 @@ if (isConfigValid) {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager()
-            })
+            }),
+            experimentalForceLongPolling: true
         });
         console.log("💎 MATRIX: Offline Persistence Enabled (Multi-Tab)");
     } catch (err: any) {
@@ -116,16 +118,28 @@ if (isConfigValid) {
             console.warn("⚠️ MATRIX: Browser doesn't support persistence.");
         }
         // Fallback to default
-        db = getFirestore(app); 
+        db = initializeFirestore(app, {
+            experimentalForceLongPolling: true
+        }); 
     }
 
     // 🔔 MESSAGING (Optional)
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      try {
-        messaging = getMessaging(app);
-      } catch (e) {
-        console.warn("⚠️ MATRIX: Messaging not supported in this environment.");
-      }
+    if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') {
+      import('firebase/messaging').then(async ({ getMessaging, isSupported }) => {
+        try {
+          const supported = await isSupported();
+          if (!supported) {
+            console.warn("⚠️ MATRIX: Web messaging is not supported in this environment.");
+            return;
+          }
+          messaging = getMessaging(app);
+          console.log("Mensajería web inicializada correctamente.");
+        } catch (e) {
+          console.warn("⚠️ MATRIX: Messaging not supported in this environment.", e);
+        }
+      }).catch(err => {
+        console.warn("⚠️ MATRIX: Error dynamically importing firebase/messaging", err);
+      });
     }
 
   } catch (error) {
@@ -142,7 +156,7 @@ if (isConfigValid) {
   db = {} as any;
 }
 
-export { app, auth, db, messaging, getToken, onMessage };
+export { app, auth, db, messaging };
 
 const TRANSIENT_CODES = new Set([
   'aborted',

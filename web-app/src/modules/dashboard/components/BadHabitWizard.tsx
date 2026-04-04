@@ -188,17 +188,18 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     const getStepCount = () => intelligentStreak ? 4 : 3;
 
-    if (!isOpen || typeof document === 'undefined') return null;
+    if (typeof document === 'undefined') return null;
 
     return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans"
+                >
+                    <div
                         className="absolute inset-0 bg-[#030303]/80"
                         onClick={handleClose}
                     />
@@ -773,7 +774,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                             </div>
                         </div>
                     </motion.div>
-                </div>
+                </motion.div>
             )}
         </AnimatePresence>,
         document.body

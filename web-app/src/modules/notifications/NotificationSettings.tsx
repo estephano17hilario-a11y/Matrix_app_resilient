@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { LiquidButton } from '../../components/ui/LiquidButton';
 import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
+import FocusSession from '../../plugins/FocusPlugin';
 
 interface NotificationConfig {
   enabled: boolean;
@@ -40,7 +42,14 @@ export const NotificationSettings: React.FC = () => {
 
   const checkNativePerms = async () => {
      // Check permissions based on platform
-     if (Notification && Notification.permission) {
+     if (Capacitor.isNativePlatform()) {
+         try {
+             const perms = await FocusSession.checkPermissions();
+             setPermissionStatus(perms.notifications ? 'granted' : 'default');
+         } catch (e) {
+             console.error("Failed to check native permissions", e);
+         }
+     } else if (typeof Notification !== 'undefined' && Notification.permission) {
          setPermissionStatus(Notification.permission);
      }
   };
@@ -117,7 +126,9 @@ export const NotificationSettings: React.FC = () => {
   };
 
   const handleEnableNotifications = () => {
-     if (Notification.permission === 'default') {
+     if (Capacitor.isNativePlatform()) {
+         setShowPermissionModal(true);
+     } else if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
          setShowPermissionModal(true);
      } else {
          executePermissionRequest();

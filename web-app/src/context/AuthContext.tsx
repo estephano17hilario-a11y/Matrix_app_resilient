@@ -202,19 +202,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         return createOrFillProfile(1);
                     }
                     
-                    const defaultData = {
+                    const defaultData: any = {
                         uid: currentUser.uid,
                         email: currentUser.email,
-                        displayName: currentUser.displayName || "Operator",
                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
                         archetype: 'NEO',
                         stats: DEFAULT_USER_STATS,
                         theme: 'MATRIX',
                         createdAt: Date.now(),
-                        lastLoginAt: Date.now(),
-                        onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 }
+                        lastLoginAt: Date.now()
                     };
-                    await setDoc(userRef, defaultData);
+                    
+                    if (currentUser.displayName) {
+                        defaultData.displayName = currentUser.displayName;
+                    }
+                    
+                    // Solo inicializamos el onboarding si realmente no existe nada (AuthContext fallback)
+                    // No sobreescribimos con completedAt: 0 para evitar borrar el onboarding completado por OnboardingFlow
+                    await setDoc(userRef, defaultData, { merge: true });
                 } else {
                     await setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
                 }

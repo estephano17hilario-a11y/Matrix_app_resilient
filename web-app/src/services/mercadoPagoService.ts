@@ -27,13 +27,27 @@ export const createCheckoutPreference = async (
 
   const payerEmail = `customer_${Date.now()}@test.com`; 
 
+  const currencyId = import.meta.env.VITE_MP_CURRENCY || 'PEN'; // Por defecto PEN para cuentas de Perú
+  
+  // Ajuste de precios para monedas locales comunes en LATAM para evitar rechazo por montos muy bajos
+  let finalPrice = price;
+  if (currencyId === 'ARS') {
+    finalPrice = isMonthly ? 4990 : 49900;
+  } else if (currencyId === 'MXN') {
+    finalPrice = isMonthly ? 99 : 990;
+  } else if (currencyId === 'COP') {
+    finalPrice = isMonthly ? 19900 : 199000;
+  } else if (currencyId === 'PEN') {
+    finalPrice = isMonthly ? 19.90 : 199.90;
+  }
+
   const preapprovalData = {
     reason: title,
     auto_recurring: {
       frequency: isMonthly ? 1 : 12,
       frequency_type: "months",
-      transaction_amount: price,
-      currency_id: "USD"
+      transaction_amount: finalPrice,
+      currency_id: currencyId
     },
     back_url: `${baseUrl}?payment_status=success&plan=${planType}`,
     payer_email: payerEmail
@@ -58,7 +72,7 @@ export const createCheckoutPreference = async (
       });
       ok = response.status >= 200 && response.status < 300;
       data = response.data;
-      if (!ok) console.error('Mercado Pago Error Status:', response.status);
+      if (!ok) console.error('Mercado Pago Error Status:', response.status, data);
     } else {
       // Standard fetch for web/dev
       const response = await fetch(`${apiUrl}/preapproval`, {
@@ -70,7 +84,10 @@ export const createCheckoutPreference = async (
         body: JSON.stringify(preapprovalData)
       });
       ok = response.ok;
-      if (!ok) console.error('Mercado Pago Error Status:', response.status);
+      if (!ok) {
+        const errText = await response.text();
+        console.error('Mercado Pago Error Status:', response.status, errText);
+      }
       else data = await response.json();
     }
 

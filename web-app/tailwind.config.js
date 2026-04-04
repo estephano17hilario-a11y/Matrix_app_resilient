@@ -19,14 +19,14 @@ export default {
         ],
       },
       backdropBlur: {
-        xs: '2px',
-        sm: '4px',
-        DEFAULT: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '24px',
-        '2xl': '24px', // Capped at 24px for mobile performance
-        '3xl': '24px', // Capped at 24px for mobile performance
+        xs: '0px',
+        sm: '0px',
+        DEFAULT: '0px',
+        md: '0px',
+        lg: '0px',
+        xl: '0px',
+        '2xl': '0px', 
+        '3xl': '0px', 
       },
       transitionTimingFunction: {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',

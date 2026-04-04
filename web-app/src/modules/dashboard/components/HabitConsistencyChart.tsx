@@ -410,7 +410,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     const showTicks = timeframe === 'MONTH';
 
     return (
-        <div data-tour="habit-chart" className="w-full bg-[#0a0a0a]/70 rounded-[32px] p-4 border border-white/5 shadow-md overflow-hidden relative group">
+        <div data-tour="habit-chart" className="w-full max-w-[440px] mx-auto bg-[#0a0a0a]/70 rounded-[32px] p-4 border border-white/5 shadow-md overflow-hidden relative group">
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-70 pointer-events-none" />
             <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
             <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />

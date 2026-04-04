@@ -1,4 +1,4 @@
-import { messaging, getToken, onMessage, db, doc, setDoc, auth } from './firebase';
+import { messaging, db, doc, setDoc, auth } from './firebase';
 import { toast } from 'react-hot-toast';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -19,10 +19,10 @@ export const notificationService = {
    * Initialize Notifications (Hybrid Strategy)
    */
   initialize: async (): Promise<NotificationInitResult> => {
-    if (Capacitor.isNativePlatform()) {
-      return await notificationService.initNative();
-    } else {
+    if (!Capacitor.isNativePlatform()) {
       return await notificationService.initWeb();
+    } else {
+      return await notificationService.initNative();
     }
   },
 
@@ -115,7 +115,13 @@ export const notificationService = {
   // --- WEB (PWA) STRATEGY ---
   initWeb: async (): Promise<NotificationInitResult> => {
     try {
-      if (!('Notification' in window)) {
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        return { success: false, error: 'unsupported_browser' };
+      }
+
+      const { getToken, isSupported } = await import('firebase/messaging');
+      const supported = await isSupported();
+      if (!supported) {
         return { success: false, error: 'unsupported_browser' };
       }
 
@@ -188,13 +194,15 @@ export const notificationService = {
 
     if (!messaging) return new Promise(() => {});
     return new Promise((resolve) => {
-      onMessage(messaging!, (payload) => {
-        console.log("Notification Service: Foreground Message received", payload);
-        toast(payload.notification?.title || 'New Message', {
-            icon: '🔔',
-            duration: 5000,
+      import('firebase/messaging').then(({ onMessage }) => {
+        onMessage(messaging!, (payload) => {
+          console.log("Notification Service: Foreground Message received", payload);
+          toast(payload.notification?.title || 'New Message', {
+              icon: '🔔',
+              duration: 5000,
+          });
+          resolve(payload);
         });
-        resolve(payload);
       });
     });
   },
@@ -255,7 +263,10 @@ export const notificationService = {
   },
 
   scheduleHabitReminder: async (habitId: string, title: string, time: string, days: number[]) => {
-      if (!Capacitor.isNativePlatform()) return;
+      if (!Capacitor.isNativePlatform()) {
+          console.log(`Web fallback: Habit reminder for ${title} scheduled for ${time} on days ${days}`);
+          return;
+      }
 
       try {
           // Generate Numeric ID base from Habit ID hash (0-999999) + 2000 offset
@@ -314,7 +325,10 @@ export const notificationService = {
   },
 
   scheduleProjectReminder: async (projectId: string, title: string, time: string, days: number[]) => {
-      if (!Capacitor.isNativePlatform()) return;
+      if (!Capacitor.isNativePlatform()) {
+          console.log(`Web fallback: Project reminder for ${title} scheduled for ${time} on days ${days}`);
+          return;
+      }
 
       try {
           const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -370,7 +384,17 @@ export const notificationService = {
   },
 
   scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date) => {
-      if (!Capacitor.isNativePlatform()) return;
+      if (!Capacitor.isNativePlatform()) {
+          const diff = dueDate.getTime() - Date.now();
+          if (diff > 0 && diff < 86400000) { // Only schedule if within 24 hours for web
+              setTimeout(() => {
+                  if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+                      new Notification("Task Due", { body: title, icon: '/vite.svg' });
+                  }
+              }, diff);
+          }
+          return;
+      }
 
       try {
           const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

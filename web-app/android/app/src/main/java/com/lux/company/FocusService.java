@@ -79,16 +79,7 @@ public class FocusService extends Service {
             startTimer(durationSec * 1000);
             
             Notification notification = buildNotification();
-            if (Build.VERSION.SDK_INT >= 34) { // Android 14 (UPSIDE_DOWN_CAKE)
-                try {
-                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
-                } catch (Exception e) {
-                    // Fallback for older types or if special use fails
-                    startForeground(NOTIFICATION_ID, notification);
-                }
-            } else {
-                startForeground(NOTIFICATION_ID, notification);
-            }
+            startForeground(NOTIFICATION_ID, notification);
 
         } else if (ACTION_STOP.equals(action)) {
             stopTimer();

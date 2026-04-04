@@ -184,7 +184,16 @@ export const AuthView = () => {
             if (result?.user) {
                 setIsLoading(true);
                 PersistenceService.setSession(result.user.uid);
-                await retryOperation(() => initializeUserDocument(result.user, { isAnonymous: false }));
+                await retryOperation(() => initializeUserDocument(result.user, { 
+                    isAnonymous: false,
+                    onboarding: {
+                        successDefinition: "Becoming the One",
+                        obstacles: [],
+                        coachingTone: "Stoic",
+                        completedAt: 0,
+                        language: localStorage.getItem('i18nextLng') || 'en'
+                    }
+                }));
                 setIsLoading(false);
             }
         } catch (e: any) {
@@ -245,18 +254,21 @@ export const AuthView = () => {
 
         const userCred = await retryOperation(() => createUserWithEmailAndPassword(auth, email.trim(), password));
 
-        await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
-
-        await retryOperation(() => initializeUserDocument(userCred.user, {
-            displayName: name.trim(),
-            onboarding: {
-                language: localStorage.getItem('i18nextLng') || 'en',
-                completedAt: 0,
-                successDefinition: "Becoming the One",
-                obstacles: [],
-                coachingTone: "Stoic"
-            }
-        }));
+        try {
+            await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
+            await retryOperation(() => initializeUserDocument(userCred.user, {
+                displayName: name.trim(),
+                onboarding: {
+                    language: localStorage.getItem('i18nextLng') || 'en',
+                    completedAt: 0,
+                    successDefinition: "Becoming the One",
+                    obstacles: [],
+                    coachingTone: "Stoic"
+                }
+            }));
+        } catch (initErr) {
+            console.warn("Secondary profile initialization failed, but user is created.", initErr);
+        }
         
         PersistenceService.setSession(userCred.user.uid);
         setIsLoading(false);
@@ -288,7 +300,11 @@ export const AuthView = () => {
         const userCred = await retryOperation(() => signInWithEmailAndPassword(auth, email.trim(), password));
         PersistenceService.setSession(userCred.user.uid);
         
-        await retryOperation(() => initializeUserDocument(userCred.user));
+        try {
+            await retryOperation(() => initializeUserDocument(userCred.user));
+        } catch (initErr) {
+            console.warn("Secondary profile initialization failed, but user is logged in.", initErr);
+        }
         
         setIsLoading(false);
     } catch (err: any) {

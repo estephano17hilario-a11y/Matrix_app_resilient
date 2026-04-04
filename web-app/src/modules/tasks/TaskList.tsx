@@ -592,7 +592,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
       <div 
         ref={listContainerRef} 
         onScroll={handleScroll}
-        className="flex flex-col pb-48 gap-3 flex-1 min-h-0 overflow-y-auto overscroll-contain will-change-scroll"
+        className="flex flex-col pb-48 gap-3 flex-1 min-h-0"
       >
           {sortedQuests.length === 0 ? (
              <div className="py-10 text-center text-white/20 italic">

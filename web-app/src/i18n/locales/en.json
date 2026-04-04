@@ -26,6 +26,18 @@
       "title": "Configuring Reality..."
     }
   },
+  "streak": {
+    "title": "Daily Protocol",
+    "secured": "Streak Secured!",
+    "active": "Streak Active",
+    "tomorrow": "Come back tomorrow to continue",
+    "pending": "pending actions",
+    "req": {
+      "tasks": "Complete 2 Tasks",
+      "habits": "Complete 1 Habit",
+      "focus": "1 Hour Focus"
+    }
+  },
   "rewards": {
     "title": "Rewards",
     "xp": "XP",
@@ -312,7 +324,7 @@
     "emptyCollection": "Empty Collection",
     "emptyCategory": "No items in this category",
     "items": {
-        "potion_hp_small": { "name": "Neural Repair Kit", "desc": "Restores 20 HP instantly. Essential for system maintenance." },
+        "potion_hp_small": { "name": "Neural Repair Kit", "desc": "Restores 10 HP instantly. Essential for system maintenance." },
         "potion_xp_restore": { "name": "Memory Recovery", "desc": "Restores XP lost from inactivity or penalties." },
         "redemption_token": { "name": "Streak Restoration", "desc": "Repairs a broken streak. A second chance for perfection." },
         "freeze_streak": { "name": "Time Freeze", "desc": "Freezes your streak for 24 hours. Use before a busy day." },

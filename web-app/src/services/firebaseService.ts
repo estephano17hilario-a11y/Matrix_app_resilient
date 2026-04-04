@@ -27,10 +27,9 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
   const userDoc = await getDoc(userDocRef);
 
   if (!userDoc.exists()) {
-    const defaultData = {
+    const defaultData: any = {
       uid: user.uid,
       email: user.email,
-      displayName: additionalData.displayName || user.displayName || 'Operator',
       photoURL: user.photoURL || null,
       plan: 'FREE',
       archetype: 'NEO',
@@ -47,12 +46,25 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
       },
       ...additionalData
     };
-    await setDoc(userDocRef, defaultData);
+    
+    // Only set displayName if it's explicitly provided in additionalData or user object
+    if (additionalData.displayName) {
+        defaultData.displayName = additionalData.displayName;
+    } else if (user.displayName) {
+        defaultData.displayName = user.displayName;
+    }
+    
+    // We use merge: true to avoid race conditions with onAuthStateChanged
+    await setDoc(userDocRef, defaultData, { merge: true });
     return defaultData;
   } else {
-    // If it exists, just update lastLoginAt
-    await setDoc(userDocRef, { lastLoginAt: Date.now() }, { merge: true });
-    return userDoc.data();
+    // If it exists, just update lastLoginAt and any additional data passed (like displayName)
+    const updateData = { 
+      lastLoginAt: Date.now(),
+      ...additionalData
+    };
+    await setDoc(userDocRef, updateData, { merge: true });
+    return { ...userDoc.data(), ...updateData };
   }
 };
 
@@ -60,21 +72,42 @@ import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { PersistenceService } from './persistence';
 
-GoogleAuth.initialize({
-  clientId: '337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com',
-  scopes: ['profile', 'email'],
-  grantOfflineAccess: true,
-});
+if (Capacitor.isNativePlatform()) {
+  try {
+    GoogleAuth.initialize({
+      clientId: '337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com',
+      scopes: ['profile', 'email'],
+      grantOfflineAccess: true,
+    });
+  } catch (e) {
+    console.warn("GoogleAuth initialization failed:", e);
+  }
+}
 
 export const loginWithGoogle = async (): Promise<User | null> => {
   try {
+    const currentLanguage = localStorage.getItem('i18nextLng') || 'en';
+    
     if (Capacitor.isNativePlatform()) {
       const googleUser = await GoogleAuth.signIn();
       const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
       const result = await signInWithCredential(auth, credential);
       if (result.user) {
         PersistenceService.setSession(result.user.uid);
-        await initializeUserDocument(result.user, { isAnonymous: false });
+        try {
+            await initializeUserDocument(result.user, { 
+                isAnonymous: false,
+                onboarding: {
+                    successDefinition: "Becoming the One",
+                    obstacles: [],
+                    coachingTone: "Stoic",
+                    completedAt: 0,
+                    language: currentLanguage
+                }
+            });
+        } catch(e) {
+            console.warn("Secondary profile initialization failed:", e);
+        }
         return result.user;
       }
       return null;
@@ -85,7 +118,20 @@ export const loginWithGoogle = async (): Promise<User | null> => {
       const user = result.user;
       if (user) {
         PersistenceService.setSession(user.uid);
-        await initializeUserDocument(user, { isAnonymous: false });
+        try {
+            await initializeUserDocument(user, { 
+                isAnonymous: false,
+                onboarding: {
+                    successDefinition: "Becoming the One",
+                    obstacles: [],
+                    coachingTone: "Stoic",
+                    completedAt: 0,
+                    language: currentLanguage
+                }
+            });
+        } catch(e) {
+            console.warn("Secondary profile initialization failed:", e);
+        }
         return user;
       }
       return null;
@@ -105,13 +151,16 @@ export const loginAsGuest = async (name: string): Promise<User> => {
         const user = result.user;
         PersistenceService.setSession(user.uid);
         
-        await updateProfile(user, { displayName: name });
-        
-        await initializeUserDocument(user, { 
-            displayName: name,
-            isAnonymous: true,
-            email: null
-        });
+        try {
+            await updateProfile(user, { displayName: name });
+            await initializeUserDocument(user, { 
+                displayName: name,
+                isAnonymous: true,
+                email: null
+            });
+        } catch(e) {
+            console.warn("Secondary profile initialization failed:", e);
+        }
 
         return user;
     } catch (error) {

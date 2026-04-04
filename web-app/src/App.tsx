@@ -10,7 +10,7 @@ import { RewardProvider } from '@/modules/rewards/context/RewardContext';
 import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
@@ -23,7 +23,8 @@ const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
-  useNotificationSystem(); // Initialize Notifications System-Wide
+  const canEnterLux = !!user || !!profile;
+  useNotificationSystem(canEnterLux);
 
   useEffect(() => {
     if (user || profile) {
@@ -42,7 +43,6 @@ const AppRoutes = () => {
   // Determine what to show in the content layer
   const renderContent = () => {
     // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
-    const canEnterLux = !!user || !!profile;
     const shouldShowLoading = (isLoading && !profile) || (user && (!profile || profile.isSkeleton));
 
     if (shouldShowLoading) {

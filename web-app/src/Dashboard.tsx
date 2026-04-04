@@ -1634,7 +1634,6 @@ export default function Dashboard() {
                         onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
                     />
                     <ProjectModal 
-                        key={modalInitialContext?.id || (activeModal === 'PROJECT' ? 'new-project' : 'closed')}
                         isOpen={activeModal === 'PROJECT'} 
                         onClose={() => { setActiveModal(null); setModalInitialContext(null); }} 
                         attributes={attributes} 
@@ -1644,17 +1643,15 @@ export default function Dashboard() {
                         initialData={modalInitialContext || undefined}
                     />
 
-                    {activeModal === 'BAD_HABIT' && (
-                        <BadHabitWizard 
-                            isOpen={true}
-                            onClose={() => { setActiveModal(null); setEditingBadHabit(null); }}
-                            onConfirm={handleBadHabitConfirm}
-                            attributes={attributes}
-                            isFirstIdentify={badHabits.length === 0}
-                            onSwitchToHabit={() => setActiveModal('HABIT')}
-                            initialData={editingBadHabit || undefined}
-                        />
-                    )}
+                    <BadHabitWizard 
+                        isOpen={activeModal === 'BAD_HABIT'}
+                        onClose={() => { setActiveModal(null); setEditingBadHabit(null); }}
+                        onConfirm={handleBadHabitConfirm}
+                        attributes={attributes}
+                        isFirstIdentify={badHabits.length === 0}
+                        onSwitchToHabit={() => setActiveModal('HABIT')}
+                        initialData={editingBadHabit || undefined}
+                    />
 
                     {activeModal === 'RELAPSE' && relapsingHabit && (
                         <RelapseModal 

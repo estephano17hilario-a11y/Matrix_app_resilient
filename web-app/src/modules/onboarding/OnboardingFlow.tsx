@@ -111,16 +111,11 @@ export function OnboardingFlow() {
     // 1. VISUAL FEEDBACK: INSTANT
     setStep('saving');
 
-    // 2. FAILSAFE: Set reload timer BEFORE anything else
-    // If we haven't unmounted (switched to Dashboard) in 2s, something is wrong.
+    // Remove the window.location.reload() failsafe as it causes infinite loops 
+    // if the network is just slow or offline but optimistic UI worked.
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-    safetyTimerRef.current = setTimeout(() => {
-        console.warn("[Onboarding] Navigation stuck, forcing reload...");
-        window.location.reload();
-    }, 2000);
 
     // 3. OPTIMISTIC UPDATE: The Critical Path
-    // We execute this synchronously to trigger React render cycle immediately
     const completionTs = Date.now();
     
     const updatedOnboarding = {
@@ -139,7 +134,12 @@ export function OnboardingFlow() {
        avatarId: selectedAvatarId ?? profile?.avatarId
     };
 
-    console.log("[Onboarding] ⚡ INSTANT UPDATE TRIGGERED", localUpdates);
+    console.log("[Onboarding] ⚡ PREPARING FIRESTORE UPDATE", localUpdates);
+    
+    // 🔥 OPTIMISTIC UPDATE FIRST: Instantly trigger navigation and update UI
+    if (profile) {
+        updateProfileLocally(localUpdates);
+    }
     
     try {
         if (typeof window !== 'undefined') {
@@ -147,6 +147,7 @@ export function OnboardingFlow() {
             localStorage.setItem('matrix_last_view', 'TASKS');
         }
         
+        // Background Save process (does not block UI)
         const userRef = doc(db, "users", userId);
         
         // Wait for it to ensure no data loss on logout
@@ -167,36 +168,33 @@ export function OnboardingFlow() {
                 level: 1,
                 xp: 0,
                 maxXp: 100,
-                color: trait.color,
-                icon: trait.icon
+                color: trait.color
+                // icon: trait.icon // Removed to prevent Firestore crash (Unsupported field value: custom object)
             });
             return acc;
         }, []);
 
-        // Local Persistence (Sync but fast enough usually, deferred now)
-        PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
-
-        // Background Firebase Attributes
+        // Save Background Firebase Attributes first
         const attrPromises = attributesToSave.map(attr => 
             persistenceService.attributes.save(userId, attr)
         );
 
-        // We await for debugging, but user is already gone hopefully
         await Promise.all(attrPromises);
         console.log("[Onboarding] ✅ Background save complete");
 
-        // Clear safety timer
-        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+        // Local Persistence (Sync but fast enough usually, deferred now)
+        // We do this after Firestore so the local cache is fresh
+        PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
 
-        // This triggers AuthContext -> App.tsx re-render -> Dashboard mount
-        if (profile) {
-           updateProfileLocally(localUpdates);
-        }
+        // Clear safety timer early since we are successfully processing
+        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+        
+        console.log("[Onboarding] ✅ Firebase save resolved successfully");
 
     } catch (e) {
         console.error("[Onboarding] Error saving data:", e);
-        // Still try to let them in even if offline save failed
-        if (profile) updateProfileLocally(localUpdates);
+        // Clear safety timer even on error, navigation was already triggered
+        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     }
   };
 
@@ -216,6 +214,7 @@ export function OnboardingFlow() {
         <AnimatePresence>
           {step !== 'saving' && (
               <motion.div 
+                key="progress-indicator"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -262,6 +261,7 @@ export function OnboardingFlow() {
                 <div className="min-h-full w-full flex flex-col items-center justify-start max-w-4xl mx-auto px-4 py-24">
                   <div className="text-center mb-10 flex-shrink-0 max-w-2xl mx-auto px-4">
                       <motion.div
+                        key="traits-title"
                         initial={{ opacity: 1, y: 0 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-4"
@@ -276,6 +276,7 @@ export function OnboardingFlow() {
                       
                       {selectedTraits.length < 3 && (
                          <motion.div 
+                            key="traits-validation"
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             className="text-sm text-red-300 mt-2 font-medium bg-red-500/15 py-2 px-4 rounded-full inline-block border border-red-500/30 bg-gradient-to-b from-white/5 to-transparent"
@@ -385,6 +386,7 @@ export function OnboardingFlow() {
                 <AnimatePresence>
                   {showScrollHint && (
                     <motion.div
+                      key="scroll-hint"
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
@@ -444,6 +446,7 @@ export function OnboardingFlow() {
               className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-[9999] pointer-events-none bg-gradient-to-t from-black/80 to-transparent"
             >
               <motion.button
+                key="traits-action-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleNext();

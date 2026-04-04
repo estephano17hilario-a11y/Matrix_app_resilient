@@ -195,14 +195,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[500] flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/40" onClick={!isSubmitting ? handleClose : undefined} />
+                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? handleClose : undefined} />
                     <motion.div 
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative z-10 w-full max-w-[360px]"
-            >
+                        initial={{ scale: 0.95, y: 10, opacity: 0 }}
+                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                        exit={{ scale: 0.95, y: 10, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="relative z-10 w-full max-w-[360px]"
+                    >
                 <div 
                     className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
                     style={{
@@ -269,6 +269,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-2"
                                     >
                                         {/* Title */}
@@ -414,6 +415,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Frequency */}
@@ -671,6 +673,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
                                         {/* Estimated Time */}

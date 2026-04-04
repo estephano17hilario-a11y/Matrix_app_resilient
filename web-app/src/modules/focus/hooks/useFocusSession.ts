@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Project } from '../../../types';
 import FocusSession from '../../../plugins/FocusPlugin';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export interface FocusSessionState {
     projectId: string;
@@ -105,19 +106,19 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                     await FocusSession.pause().catch(console.error);
                 } else {
                     // 🛡️ AGGRESSIVE PERMISSION REQUEST
-                    // We try LocalNotifications first, then generic Push if available
-                    try {
-                        const perm = await LocalNotifications.checkPermissions();
-                        if (perm.display !== 'granted') {
-                             console.log("⚠️ Requesting Notification Permission (Local)...");
-                             const req = await LocalNotifications.requestPermissions();
-                             if (req.display !== 'granted') {
-                                 // Fallback: try to alert user or just proceed
-                                 console.warn("🚫 Notification Permission Denied by User");
-                             }
+                    if (Capacitor.isNativePlatform()) {
+                        try {
+                            const perm = await LocalNotifications.checkPermissions();
+                            if (perm.display !== 'granted') {
+                                 console.log("⚠️ Requesting Notification Permission (Local)...");
+                                 const req = await LocalNotifications.requestPermissions();
+                                 if (req.display !== 'granted') {
+                                     console.warn("🚫 Notification Permission Denied by User");
+                                 }
+                            }
+                        } catch (e) {
+                            console.error("Error checking permissions", e);
                         }
-                    } catch (e) {
-                        console.error("Error checking permissions", e);
                     }
 
                     await FocusSession.start({ 
