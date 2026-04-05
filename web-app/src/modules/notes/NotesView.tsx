@@ -547,10 +547,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                         )}
                         {config.enabledFeatures.includes('KEY') && (
                             <button 
-                                onClick={openSecureHub} 
-                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${showSecureHub ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'}`}
+                                onClick={() => {
+                                    if (!isPro) {
+                                        onShowPro?.();
+                                        return;
+                                    }
+                                    openSecureHub();
+                                }} 
+                                className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all ${showSecureHub ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'}`}
                             >
                                 <Lock size={14} />
+                                {!isPro && (
+                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-yellow-500 rounded-full border-2 border-[#161616] flex items-center justify-center">
+                                        <Lock size={8} className="text-black" />
+                                    </div>
+                                )}
                             </button>
                         )}
 

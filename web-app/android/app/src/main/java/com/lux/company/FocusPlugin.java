@@ -22,6 +22,9 @@ public class FocusPlugin extends Plugin {
         JSObject ret = new JSObject();
         Context context = getContext();
 
+        // Create channels so they appear in system settings before service starts
+        createNotificationChannels(context);
+
         // 1. Check Notification Permission
         boolean notifications = NotificationManagerCompat.from(context).areNotificationsEnabled();
         
@@ -186,5 +189,48 @@ public class FocusPlugin extends Plugin {
             }
             call.resolve();
         });
+    }
+
+    private void createNotificationChannels(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.app.NotificationManager manager = context.getSystemService(android.app.NotificationManager.class);
+            if (manager == null) return;
+
+            // Ongoing session channel (No sound, no vibration)
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                    "FocusSessionChannel_v4",
+                    "Focus Session",
+                    android.app.NotificationManager.IMPORTANCE_LOW // LOW IMPORTANCE for silent ongoing
+            );
+            channel.setDescription("Shows active focus session timer");
+            channel.setSound(null, null); // No sound
+            channel.enableVibration(false); // No vibration
+            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(channel);
+
+            // Completion Alarm channel (Gentle sound, vibration)
+            android.app.NotificationChannel alarmChannel = new android.app.NotificationChannel(
+                    "FocusAlarmChannel_v2",
+                    "Focus Session Complete",
+                    android.app.NotificationManager.IMPORTANCE_HIGH // HIGH IMPORTANCE
+            );
+            alarmChannel.setDescription("Rings when a focus session finishes");
+            
+            // Set default alarm sound with robust fallback
+            android.net.Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+            android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .build();
+            if (soundUri != null) {
+                alarmChannel.setSound(soundUri, audioAttributes);
+            }
+            alarmChannel.enableVibration(true);
+            long[] vibrationPattern = {0, 1000, 500, 1000, 500, 1000}; // strong vibration
+            alarmChannel.setVibrationPattern(vibrationPattern);
+            alarmChannel.setBypassDnd(true); // Attempt to bypass Do Not Disturb for critical alarms
+            alarmChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(alarmChannel);
+        }
     }
 }

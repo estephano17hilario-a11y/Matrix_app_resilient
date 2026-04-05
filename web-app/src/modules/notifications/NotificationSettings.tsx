@@ -151,12 +151,13 @@ export const NotificationSettings: React.FC = () => {
       {/* Permission Soft Prompt Modal */}
       <AnimatePresence>
         {showPermissionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90">
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-zinc-900 border border-white/10 p-6 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-[#111] border border-white/10 p-6 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden"
             >
                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500" />
                
@@ -206,10 +207,11 @@ export const NotificationSettings: React.FC = () => {
       <AnimatePresence>
         {permissionStatus === 'granted' && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-6 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
           >
             {/* DAILY PROTOCOL REMINDER */}
             <div className="space-y-4">
@@ -228,8 +230,9 @@ export const NotificationSettings: React.FC = () => {
 
                {config.dailyReminder && (
                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.15 }}
                     className="bg-black/20 rounded-lg p-4 space-y-4 border border-white/5"
                  >
                     <div className="flex items-center justify-between">

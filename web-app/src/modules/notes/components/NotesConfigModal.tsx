@@ -63,6 +63,10 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
     }, [isOpen]);
 
     const toggleFeature = (id: string) => {
+        if (id === 'KEY' && !isPro) {
+            if (onOpenPro) onOpenPro();
+            return;
+        }
         setConfig(prev => ({
             ...prev,
             enabledFeatures: prev.enabledFeatures.includes(id) 
@@ -194,11 +198,16 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                                     <button
                                                         key={btn.id}
                                                         onClick={() => toggleFeature(btn.id)}
-                                                        className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all duration-300 ${isSelected ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10 hover:text-white'}`}
+                                                        className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all duration-300 ${isSelected ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10 hover:text-white'}`}
                                                     >
                                                         <btn.icon size={24} />
                                                         <span className="text-[10px] font-bold uppercase tracking-wider">{btn.label}</span>
                                                         {isSelected && <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                                        {btn.id === 'KEY' && !isPro && (
+                                                            <div className="absolute top-2 right-2 text-yellow-500">
+                                                                <Lock size={12} />
+                                                            </div>
+                                                        )}
                                                     </button>
                                                 );
                                             })}

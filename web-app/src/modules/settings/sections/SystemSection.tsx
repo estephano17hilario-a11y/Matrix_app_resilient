@@ -9,6 +9,8 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import toast from 'react-hot-toast';
 
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 export const SystemSection = () => {
   const { t, i18n } = useTranslation();
   const { habitSectionControl, updateHabitSectionControl, defaultChartMode, setDefaultChartMode, weekStartDay, updateWeekStartDay } = useSettings();
@@ -66,7 +68,15 @@ export const SystemSection = () => {
       return;
     }
     try {
-      await FocusSession.openNotificationSettings();
+      // First try native prompt (works on Android 13+)
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display === 'granted') {
+        setPermissions(prev => ({ ...prev, notifications: true }));
+        toast.success(t('settings.notificationsEnabled', 'Notifications enabled'));
+      } else {
+        // Fallback to settings if prompt was dismissed/denied or unsupported
+        await FocusSession.openNotificationSettings();
+      }
     } catch (e) {
       toast.error("Failed to open notification settings");
     }

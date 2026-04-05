@@ -25,6 +25,8 @@ interface ActiveSessionViewProps {
 
 import { useAudioAlarm } from '../hooks/useAudioAlarm';
 
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     project,
     attribute,

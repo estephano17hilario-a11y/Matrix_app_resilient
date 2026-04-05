@@ -63,6 +63,13 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
       lastLoginAt: Date.now(),
       ...additionalData
     };
+
+    // FIX: Never overwrite onboarding progress for existing users
+    // This prevents the Google Sign-In redirect loop where users are asked to create their account again
+    if (updateData.onboarding) {
+        delete updateData.onboarding;
+    }
+
     await setDoc(userDocRef, updateData, { merge: true });
     return { ...userDoc.data(), ...updateData };
   }

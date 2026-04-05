@@ -136,17 +136,35 @@ export function OnboardingFlow() {
 
     console.log("[Onboarding] ⚡ PREPARING FIRESTORE UPDATE", localUpdates);
     
-    // 🔥 OPTIMISTIC UPDATE FIRST: Instantly trigger navigation and update UI
+    // 🔥 1. PREPARE ATTRIBUTES FIRST (Prevent Race Condition with Dashboard)
+    const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
+        const trait = TRAITS_LIST.find(t => t.id === id);
+        if (!trait) return acc;
+        acc.push({
+            id: trait.id,
+            label: trait.label,
+            level: 1,
+            xp: 0,
+            maxXp: 100,
+            color: trait.color
+        });
+        return acc;
+    }, []);
+
+    // 🚀 FIX: Save to Local Cache FIRST so Dashboard has them instantly when it mounts!
+    PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
+
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('lux_last_view', 'TASKS');
+        localStorage.setItem('matrix_last_view', 'TASKS');
+    }
+
+    // 🔥 2. OPTIMISTIC UPDATE: Instantly trigger navigation and update UI
     if (profile) {
         updateProfileLocally(localUpdates);
     }
     
     try {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('lux_last_view', 'TASKS');
-            localStorage.setItem('matrix_last_view', 'TASKS');
-        }
-        
         // Background Save process (does not block UI)
         const userRef = doc(db, "users", userId);
         
@@ -158,33 +176,13 @@ export function OnboardingFlow() {
             updatedAt: Date.now()
         }, { merge: true });
 
-        // Fire & Forget Attributes Save
-        const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
-            const trait = TRAITS_LIST.find(t => t.id === id);
-            if (!trait) return acc;
-            acc.push({
-                id: trait.id,
-                label: trait.label,
-                level: 1,
-                xp: 0,
-                maxXp: 100,
-                color: trait.color
-                // icon: trait.icon // Removed to prevent Firestore crash (Unsupported field value: custom object)
-            });
-            return acc;
-        }, []);
-
-        // Save Background Firebase Attributes first
+        // Save Background Firebase Attributes
         const attrPromises = attributesToSave.map(attr => 
             persistenceService.attributes.save(userId, attr)
         );
 
         await Promise.all(attrPromises);
         console.log("[Onboarding] ✅ Background save complete");
-
-        // Local Persistence (Sync but fast enough usually, deferred now)
-        // We do this after Firestore so the local cache is fresh
-        PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
 
         // Clear safety timer early since we are successfully processing
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -298,7 +296,7 @@ export function OnboardingFlow() {
                               </button>
                           </div>
                       ) : (
-                      <div className="relative rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-sm">
+                      <div className="relative rounded-3xl border border-white/10 bg-[#0a0a0f] p-4 sm:p-6">
                         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-3xl" />
                         <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                           {TRAITS_LIST.map((trait, index) => {
