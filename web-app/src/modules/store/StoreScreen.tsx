@@ -130,7 +130,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
   const filters = useMemo(() => ([
       { id: 'all', label: 'store.filters.all' },
       { id: 'power_up', label: 'store.filters.power_up' },
-      { id: 'inventory', label: 'Inventario' }
+      { id: 'inventory', label: 'store.filters.inventory' }
   ]), []);
 
   const filteredItems = useMemo(() => {
@@ -284,7 +284,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
                                     disabled={isTransactionPending}
                                     className="w-full py-2.5 rounded-xl font-semibold text-[13px] tracking-wide transition-all active:scale-[0.98] bg-white text-black hover:bg-white/90"
                                 >
-                                    Usar
+                                    {t('store.inventory.use')}
                                 </button>
                             </motion.div>
                         );
@@ -295,7 +295,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
                             className="text-center py-20 text-white/20"
                         >
                             <ShoppingBag className="mx-auto mb-3 opacity-30" size={40} strokeWidth={1.5} />
-                            <p className="text-sm font-medium">Inventario vacío</p>
+                            <p className="text-sm font-medium">{t('store.inventory.empty')}</p>
                         </motion.div>
                     )
                 )}

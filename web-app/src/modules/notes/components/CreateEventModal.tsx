@@ -57,9 +57,11 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
         }
     }, [isOpen, initialEvent]);
 
+    const isFormComplete = title.trim() !== '' && date !== '' && time !== '' && notes.trim() !== '';
+
     const handleSave = () => {
-        if (!title || !date) {
-            toast.error("Please fill in all required fields");
+        if (!isFormComplete) {
+            toast.error("Please fill in all required fields (including notes and time)");
             return;
         }
 
@@ -266,10 +268,15 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
                         <div className="p-6 pt-2 border-t border-white/5">
                             <button 
                                 onClick={handleSave}
-                                className="w-full py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-white/10"
+                                disabled={!isFormComplete}
+                                className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl
+                                    ${isFormComplete 
+                                        ? 'bg-white text-black hover:scale-[1.02] active:scale-[0.98] shadow-white/10' 
+                                        : 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5'}
+                                `}
                             >
                                 <Check size={18} />
-                                Confirm Event
+                                {isFormComplete ? 'Confirm Event' : 'Fill All Fields'}
                             </button>
                             {initialEvent && onDelete && (
                                 <button 

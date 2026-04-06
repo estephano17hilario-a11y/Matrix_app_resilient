@@ -61,7 +61,7 @@
     },
     "gold": {
       "title": "Monedas de Oro",
-      "description": "Ganadas al completar tareas. Úsalas en la tienda para comprar potenciadores y artículos especiales."
+      "description": "Ganadas al completar tareas. Úsalas para comprar cosméticos, potenciadores y gestionar tus hábitos de manera controlada."
     },
     "streak": {
       "title": "Racha",
@@ -82,7 +82,7 @@
     "onboarding": {
       "welcome": { "title": "¡Bienvenido a Lux!", "desc": "Tu sistema de gestión de vida.", "sub": "Vamos a dar un recorrido interactivo." },
       "xp": { "title": "Barra de XP", "desc": "Completa tareas para ganar experiencia.", "sub": "Sube de nivel para desbloquear habilidades." },
-      "gold": { "title": "Tus Monedas", "desc": "El oro se usa en la tienda.", "sub": "Gánalo completando misiones." },
+      "gold": { "title": "Tus Monedas", "desc": "Compra cosméticos y potenciadores.", "sub": "Gestiona tus hábitos de manera controlada." },
       "streak": { "title": "Tu Racha", "desc": "Días consecutivos en acción.", "sub": "¡Si pierdes un día, vuelve a cero!" },
       "dock": { "title": "Navegación (Dock)", "desc": "Tu centro de comando principal.", "sub": "Desde aquí accedes a toda la app." },
       "create": { "title": "Crear Misión", "desc": "El creador de tareas se abrirá automáticamente.", "sub": "¡Prepárate!" }
@@ -104,8 +104,8 @@
         "title": "La Economía (Oro)",
         "desc1": "El <strong>Oro</strong> es la moneda de LUX. Lo obtienes como recompensa por tu esfuerzo diario y al completar misiones.",
         "whatFor": "¿Para qué sirve?",
-        "point1": "Comprar mejoras y recompensas en la <strong>Tienda</strong>.",
-        "point2": "<strong>Pagar por tus Malos Hábitos:</strong> Si recaes, puedes usar Oro para mitigar el daño a tu HP."
+        "point1": "Comprar **Cosméticos**, **Potenciadores** y mejoras exclusivas en la <strong>Tienda</strong>.",
+        "point2": "<strong>Gestionar tus Malos Hábitos:</strong> Si recaes, puedes usar Oro para pagar la penalización de manera más controlada y evitar perder HP."
       },
       "hp": {
         "title": "Vitalidad (HP) y Castigos",
@@ -352,7 +352,12 @@
     "filters": {
       "all": "Todo",
       "power_up": "Mejoras",
-      "theme": "Temas"
+      "theme": "Temas",
+      "inventory": "Inventario"
+    },
+    "inventory": {
+      "empty": "Inventario vacío",
+      "use": "Usar"
     },
     "others": "Otros",
     "emptyCollection": "Colección Vacía",
@@ -770,7 +775,7 @@
     "min": "Min",
     "sec": "Seg",
     "backToBenefits": "Volver a los beneficios",
-    "offerEnds": "LA OFERTA TERMINA EL 1 DE MAYO",
+    "offerEnds": "LA OFERTA TERMINA EL 31 DE MAYO",
     "unleashYour": "Desata tu",
     "truePower": "Verdadero Poder",
     "elevateDesc": "Eleva tu existencia a un nivel cósmico. Sin límites, sin restricciones, solo rendimiento puro.",

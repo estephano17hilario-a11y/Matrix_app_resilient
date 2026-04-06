@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
 import { hashPin } from '../../../utils/crypto';
 import { SecurityGate } from '../../../components/ui/SecurityGate';
+import { useAuth } from '../../../context/AuthContext';
 
 interface SecureItem {
     id: string;
@@ -26,6 +27,11 @@ interface SecureNotesHubProps {
 const PIN_LENGTH = 5;
 
 export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesHubProps) => {
+    const { user } = useAuth();
+    const pinHashKey = user?.uid ? `secure_vault_pin_hash_${user.uid}` : 'secure_vault_pin_hash';
+    const legacyPinKey = user?.uid ? `secure_vault_pin_${user.uid}` : 'secure_vault_pin';
+    const vaultDataKey = user?.uid ? `secure_vault_data_${user.uid}` : 'secure_vault_data';
+
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [pin, setPin] = useState('');
     const [setupPin, setSetupPin] = useState('');
@@ -56,31 +62,35 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
         
         // HOWEVER: The user complained about data loss.
         // This usually happens if we initialize state with empty array [], 
-        // and then effect saves that empty array to localStorage, overwriting existing data.
+        // and then the save effect triggers immediately and overwrites localStorage with [].
+        // So we must load ONLY ONCE when the component mounts, or carefully check if it's the initial load.
         
-        // FIX: Only save if we have loaded data OR if we explicitly know we have no data.
-        // Better yet: Load synchronously or ensure we don't save empty state over existing state 
-        // unless it's intentional.
-        
-        const savedData = localStorage.getItem('secure_vault_data');
-        const savedPin = localStorage.getItem('secure_vault_pin');
-        const savedPinHash = localStorage.getItem('secure_vault_pin_hash');
-
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                if (Array.isArray(parsed)) {
-                    setItems(parsed);
+        const loadSavedData = () => {
+            const savedData = localStorage.getItem(vaultDataKey);
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    // Only set if we haven't already populated it, or if it's explicitly a refresh
+                    if (parsed && Array.isArray(parsed)) {
+                        setItems(parsed);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse secure vault data", e);
                 }
-            } catch (e) {
-                console.error("Failed to parse vault items", e);
             }
-        }
+        };
 
+        if (isOpen && items.length === 0) {
+             loadSavedData();
+        }
+        
+        const savedPin = localStorage.getItem(legacyPinKey);
+        const savedPinHash = localStorage.getItem(pinHashKey);
+        
         if (!savedPin && !savedPinHash) {
             setIsSetupMode(true);
         }
-    }, [isOpen]); // Reload when opened to ensure fresh data
+    }, [isOpen, pinHashKey, legacyPinKey, vaultDataKey]); // Reload when opened to ensure fresh data
 
     // Save Data
     useEffect(() => {
@@ -88,21 +98,21 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
         // OR if we have items to save.
         // If locked and items is empty, it might mean we haven't loaded yet.
         if (isUnlocked || items.length > 0) {
-            localStorage.setItem('secure_vault_data', JSON.stringify(items));
+            localStorage.setItem(vaultDataKey, JSON.stringify(items));
         }
-    }, [items, isUnlocked]);
+    }, [items, isUnlocked, vaultDataKey]);
 
     const handlePinSubmit = async (inputPin: string) => {
-        const savedPinHash = localStorage.getItem('secure_vault_pin_hash');
+        const savedPinHash = localStorage.getItem(pinHashKey);
         
         if (isSetupMode) {
             if (setupPin) {
                 // Confirming PIN
                 if (inputPin === setupPin) {
                     const hashed = await hashPin(inputPin);
-                    localStorage.setItem('secure_vault_pin_hash', hashed);
+                    localStorage.setItem(pinHashKey, hashed);
                     // Clear plain text legacy pin if exists
-                    localStorage.removeItem('secure_vault_pin');
+                    localStorage.removeItem(legacyPinKey);
                     setIsSetupMode(false);
                     setIsUnlocked(true);
                     setPin('');
@@ -121,14 +131,14 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
         } else {
             // Unlocking
             // Fallback for legacy plain text PIN during transition
-            const legacyPin = localStorage.getItem('secure_vault_pin');
+            const legacyPin = localStorage.getItem(legacyPinKey);
             const hashedInput = await hashPin(inputPin);
             
             if (savedPinHash === hashedInput || (legacyPin && inputPin === legacyPin)) {
                 if (legacyPin && inputPin === legacyPin) {
                     // Upgrade to hash silently
-                    localStorage.setItem('secure_vault_pin_hash', hashedInput);
-                    localStorage.removeItem('secure_vault_pin');
+                    localStorage.setItem(pinHashKey, hashedInput);
+                    localStorage.removeItem(legacyPinKey);
                 }
                 setIsUnlocked(true);
                 setPin('');

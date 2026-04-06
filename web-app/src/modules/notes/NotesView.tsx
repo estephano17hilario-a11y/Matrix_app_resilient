@@ -18,6 +18,7 @@ import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
+import { useAuth } from '../../context/AuthContext';
 
 // Constants
 const MOODS = [
@@ -100,9 +101,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const [isRecoveryMode, setIsRecoveryMode] = useState(false);
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
+    const { user } = useAuth();
+
     // Load Config from LocalStorage
     useEffect(() => {
-        const savedConfig = localStorage.getItem('notes_config_v2');
+        const configKey = user?.uid ? `notes_config_v2_${user.uid}` : 'notes_config_v2';
+        const savedConfig = localStorage.getItem(configKey);
         if (savedConfig) {
             try {
                 const parsed = JSON.parse(savedConfig);
@@ -120,7 +124,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             }
         } else {
              // Migration from old config if exists
-             const oldConfig = localStorage.getItem('notes_config');
+             const oldConfigKey = user?.uid ? `notes_config_${user.uid}` : 'notes_config';
+             const oldConfig = localStorage.getItem(oldConfigKey);
              if (oldConfig) {
                  try {
                      const parsed = JSON.parse(oldConfig);
@@ -133,14 +138,26 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                          }
                      }));
                  } catch(e) {}
+             } else {
+                 // Reset config if no config is found for this user
+                 setConfig({
+                     enabledFeatures: [],
+                     security: {
+                         pin: '',
+                         recoveryMethod: 'PASSWORD',
+                         protectedAreas: { memories: false, notes: false, charts: false, journal: false }
+                     }
+                 });
+                 setIsLocked(false);
              }
         }
-    }, []);
+    }, [user?.uid]);
 
     // Save Config Helper
     const handleSaveConfig = (newConfig: NotesConfig) => {
         setConfig(newConfig);
-        localStorage.setItem('notes_config_v2', JSON.stringify(newConfig));
+        const configKey = user?.uid ? `notes_config_v2_${user.uid}` : 'notes_config_v2';
+        localStorage.setItem(configKey, JSON.stringify(newConfig));
         
         // Update lock state based on new config and current subView
         const isProtected = subView === 'NOTES' 
@@ -170,17 +187,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     // Events Hub
     const [showEventsHub, setShowEventsHub] = useState(false);
     const [specialEvents, setSpecialEvents] = useState<any[]>([]);
+    const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
 
     // Load Special Events for Calendar Integration
     useEffect(() => {
         const loadEvents = () => {
-            const saved = localStorage.getItem('special_events');
+            const eventsKey = user?.uid ? `special_events_${user.uid}` : 'special_events';
+            const saved = localStorage.getItem(eventsKey);
             if (saved) {
                 try {
                     setSpecialEvents(JSON.parse(saved));
                 } catch (e) {
                     console.error("Failed to load special events", e);
                 }
+            } else {
+                setSpecialEvents([]);
             }
         };
         
@@ -194,7 +215,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             window.removeEventListener('storage', loadEvents);
             window.removeEventListener('special_events_updated', loadEvents);
         };
-    }, []);
+    }, [user?.uid]);
     
     const openEventsHub = useCallback(() => {
         if (config.security.protectedAreas.memories) {
@@ -742,7 +763,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                             backgroundColor: bgColor,
                                                             boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
                                                         }}
-                                                        className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform active:scale-90 group overflow-hidden border ${!isFuture ? 'hover:bg-white/5' : 'opacity-30 cursor-not-allowed'}`}
+                                                        className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform group overflow-hidden border ${!isFuture || specialEvent ? 'hover:bg-white/5 active:scale-90 cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
                                                     >
                                                         {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
                                                         {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
@@ -750,17 +771,23 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                                         {/* Special Event Indicator */}
                                                         {specialEvent && (
                                                             <div className="absolute top-1 left-1 z-30">
-                                                                <div className="w-4 h-4 flex items-center justify-center rounded-full bg-pink-500 text-white shadow-lg animate-bounce">
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
+                                                                    className="w-4 h-4 flex items-center justify-center rounded-full bg-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.5)] hover:scale-125 transition-transform"
+                                                                >
                                                                     <Gift size={10} />
-                                                                </div>
+                                                                </button>
                                                             </div>
                                                         )}
 
                                                         <div className="flex-1 flex items-center justify-center z-10 w-full relative">
                                                             {specialEvent ? (
-                                                                <span className="text-2xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
+                                                                    className="text-2xl hover:scale-110 transition-transform duration-300 drop-shadow-md"
+                                                                >
                                                                     {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
-                                                                </span>
+                                                                </button>
                                                             ) : mood ? (
                                                                 // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?
                                                                 // User wants: "ambos emoji como el numero de la fecha, convivan y se puedan ver ambos"
@@ -789,28 +816,44 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                                             <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
                                             
                                             <div className="space-y-1">
-                                                {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture }) => {
+                                                {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent }) => {
                                                      const entryThemeId = entry?.theme || 'slate';
                                                      const entryColor = themeColorMap.get(entryThemeId) || '#fff';
                                                      return (
                                                     <div key={day} className="relative group">
                                                         <button 
-                                                            onClick={() => !isFuture && openJournal(date)}
-                                                            disabled={isFuture}
+                                                            onClick={() => {
+                                                                if (specialEvent) {
+                                                                    setSelectedMemory(specialEvent);
+                                                                } else if (!isFuture) {
+                                                                    openJournal(date);
+                                                                }
+                                                            }}
+                                                            disabled={isFuture && !specialEvent}
                                                             data-tour={isToday ? "journal-today-btn" : undefined}
                                                             style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
                                                             className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2
-                                                                ${!isFuture ? 'hover:bg-white/5 active:scale-[0.995] transition-transform' : 'opacity-30 cursor-not-allowed'}
+                                                                ${!isFuture || specialEvent ? 'hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer' : 'opacity-30 cursor-not-allowed'}
                                                             `}
                                                         >
                                                             <span className={`text-xs font-mono font-bold w-6 text-right ${isToday ? 'text-white' : 'text-white/20'}`}>{day < 10 ? `0${day}` : day}</span>
                                                             <div className="flex-1 flex flex-col relative">
                                                                 <div className="flex items-center justify-between gap-4 pb-1">
-                                                                    {entry ? (
-                                                                        <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
-                                                                    ) : (
-                                                                        <span className="text-base text-white/10 font-serif italic">Empty page...</span>
-                                                                    )}
+                                                                    <div className="flex items-center gap-3">
+                                                                        {specialEvent && (
+                                                                            <span 
+                                                                                onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
+                                                                                className="text-lg hover:scale-110 transition-transform duration-300 drop-shadow-md cursor-pointer"
+                                                                            >
+                                                                                {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+                                                                            </span>
+                                                                        )}
+                                                                        {entry ? (
+                                                                            <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
+                                                                        ) : (
+                                                                            <span className="text-base text-white/10 font-serif italic">Empty page...</span>
+                                                                        )}
+                                                                    </div>
                                                                     {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
                                                                 </div>
                                                                 <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
@@ -1024,6 +1067,76 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             }
                         `}
                      </style>
+                </div>,
+                document.body
+            )}
+
+            {/* Memory Details Modal (No framer-motion) */}
+            {selectedMemory && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out animate-in fade-in"
+                        onClick={() => setSelectedMemory(null)}
+                    />
+                    <div 
+                        className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    >
+                        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-pink-500/20 to-transparent rounded-t-[32px] pointer-events-none" />
+                        
+                        <div className="flex justify-between items-start relative z-10">
+                            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-inner">
+                                {selectedMemory.type === 'BIRTHDAY' ? '🎂' : (selectedMemory.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+                            </div>
+                            <button 
+                                onClick={() => setSelectedMemory(null)}
+                                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-1 relative z-10">
+                            <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{selectedMemory.title}</h3>
+                            <div className="flex items-center gap-2 text-pink-400">
+                                <Gift size={14} />
+                                <span className="text-xs font-bold uppercase tracking-widest">{selectedMemory.type}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4 relative z-10">
+                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                                <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                                    <Calendar size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-0.5">Date & Time</p>
+                                    <p className="text-sm font-semibold text-white">
+                                        {new Date(selectedMemory.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                        {selectedMemory.time && ` • ${selectedMemory.time}`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {selectedMemory.notes && (
+                                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-white/40">
+                                        <AlignLeft size={14} />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">Note</span>
+                                    </div>
+                                    <p className="text-sm text-white/80 leading-relaxed font-medium">
+                                        {selectedMemory.notes}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={() => setSelectedMemory(null)}
+                            className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 mt-2 relative z-10"
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>,
                 document.body
             )}

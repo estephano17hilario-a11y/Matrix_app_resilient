@@ -12,6 +12,7 @@ import { auth, db, configStatus } from '../services/firebase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
 import { PersistenceService } from '../services/persistence';
+import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -157,6 +158,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (cached && cached.uid === currentUser.uid) {
              console.log("⚡ MATRIX: Restored from cache.");
              setProfile(cached);
+        } else {
+            // Optimistic UI to prevent black flickers
+            setProfile({
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName || "",
+                photoURL: currentUser.photoURL,
+                plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                archetype: 'NEO',
+                stats: DEFAULT_USER_STATS,
+                theme: 'MATRIX',
+                createdAt: Date.now(),
+                lastLoginAt: Date.now(),
+                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                isSkeleton: false // Set to false to instantly unblock UI and skip LoadingScreen
+            });
         }
 
         // Set safety timer - MUST unblock UI no matter what
@@ -193,18 +210,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          
          const createOrFillProfile = async (attempts = 0) => {
             try {
-                const userSnap = await getDoc(userRef);
+                let exists = false;
+                let dataToSet: any = {};
+                let snapData: any = null;
                 
-                if (!userSnap.exists()) {
-                    // Give AuthView a moment to complete its initializeUserDocument if this is a fresh registration
-                    if (attempts === 0) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        return createOrFillProfile(1);
+                try {
+                    const userSnap = await getDoc(userRef);
+                    exists = userSnap.exists();
+                    if (exists) {
+                        snapData = userSnap.data();
+                        dataToSet = snapData || {};
                     }
-                    
+                } catch (e) {
+                    console.warn("⚠️ MATRIX: getDoc failed in createOrFillProfile. Network or permissions issue. Proceeding with optimistic merge.", e);
+                }
+                
+                if (!exists) {
+                    // Fresh registration - create document immediately (0 delay)
                     const defaultData: any = {
                         uid: currentUser.uid,
-                        email: currentUser.email,
+                        email: currentUser.email || null,
+                        photoURL: currentUser.photoURL || null,
                         plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
                         archetype: 'NEO',
                         stats: DEFAULT_USER_STATS,
@@ -217,65 +243,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         defaultData.displayName = currentUser.displayName;
                     }
                     
-                    // Solo inicializamos el onboarding si realmente no existe nada (AuthContext fallback)
-                    // No sobreescribimos con completedAt: 0 para evitar borrar el onboarding completado por OnboardingFlow
-                    await setDoc(userRef, defaultData, { merge: true });
+                    // Solo inicializamos el onboarding si realmente no existe nada
+                    const cleanData = sanitizeFirestoreData(defaultData);
+                    await setDoc(userRef, cleanData, { merge: true });
+                    dataToSet = { ...dataToSet, ...cleanData };
                 } else {
                     await setDoc(userRef, { lastLoginAt: Date.now() }, { merge: true });
+                    if (snapData) {
+                        dataToSet = snapData;
+                    }
                 }
                 
                 clearSafetyTimer();
 
-                const finalSnap = await getDoc(userRef);
+                const data = dataToSet as UserProfile;
+                let resolvedOnboarding = data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                const localCache = PersistenceService.getProfile(currentUser.uid);
                 
-                if (finalSnap.exists()) {
-                    const data = finalSnap.data() as UserProfile;
-                    let resolvedOnboarding = data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
-                    const localCache = PersistenceService.getProfile(currentUser.uid);
-                    
-                    if (localCache?.onboarding?.completedAt && localCache.onboarding.completedAt > (resolvedOnboarding.completedAt || 0)) {
-                        resolvedOnboarding = localCache.onboarding;
-                    }
+                let needsFirestoreHeal = false;
 
-                    const finalProfile: UserProfile = {
-                        ...data,
-                        uid: currentUser.uid,
-                        displayName: data.displayName || currentUser.displayName || "",
-                        stats: data.stats || DEFAULT_USER_STATS,
-                        archetype: data.archetype || 'NEO',
-                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : (data.plan || 'FREE'),
-                        theme: data.theme || 'MATRIX',
-                        createdAt: data.createdAt || Date.now(),
-                        lastLoginAt: Date.now(),
-                        onboarding: resolvedOnboarding,
-                        isSkeleton: false
-                    };
+                // If Firestore is missing completedAt but cache has it, use cache and heal Firestore
+                if (localCache?.onboarding?.completedAt && localCache.onboarding.completedAt > (resolvedOnboarding.completedAt || 0)) {
+                    resolvedOnboarding = localCache.onboarding;
+                    needsFirestoreHeal = true;
+                }
+                
+                // If onboarding is marked as not completed, but they have stats/xp or a plan, they clearly finished it.
+                if (!resolvedOnboarding.completedAt && (data.stats?.level > 1 || data.stats?.xp > 0 || data.plan === 'PRO')) {
+                    resolvedOnboarding.completedAt = data.createdAt || Date.now();
+                    needsFirestoreHeal = true;
+                }
 
-                    console.log("✅ MATRIX: Profile loaded from Firestore.");
-                    setProfile(finalProfile);
-                    PersistenceService.saveProfile(finalProfile);
-                } else {
-                     // Should never happen since we just wrote it, but handle gracefully
-                     console.warn("⚠️ MATRIX: Profile still not found after write.");
-                    const fallback: UserProfile = {
-                        uid: currentUser.uid,
-                        email: currentUser.email,
-                        displayName: currentUser.displayName || "",
-                        photoURL: currentUser.photoURL,
-                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
-                         archetype: 'NEO',
-                         stats: DEFAULT_USER_STATS,
-                         theme: 'MATRIX',
-                         createdAt: Date.now(),
-                         lastLoginAt: Date.now(),
-                         onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
-                         isSkeleton: false
-                     };
-                     setProfile(fallback);
-                     PersistenceService.saveProfile(fallback);
-                 }
+                if (needsFirestoreHeal) {
+                    console.log("🩹 MATRIX: Healing missing onboarding state in Firestore");
+                    setDoc(userRef, { onboarding: resolvedOnboarding }, { merge: true }).catch(console.error);
+                }
+
+                const finalProfile: UserProfile = {
+                    ...data,
+                    uid: currentUser.uid,
+                    displayName: data.displayName || currentUser.displayName || "",
+                    stats: data.stats || DEFAULT_USER_STATS,
+                    archetype: data.archetype || 'NEO',
+                    plan: ENABLE_GLOBAL_PRO ? 'PRO' : (data.plan || 'FREE'),
+                    theme: data.theme || 'MATRIX',
+                    createdAt: data.createdAt || Date.now(),
+                    lastLoginAt: Date.now(),
+                    onboarding: resolvedOnboarding,
+                    isSkeleton: false
+                };
+
+                console.log("✅ MATRIX: Profile loaded from Firestore.");
+                setProfile(finalProfile);
+                PersistenceService.saveProfile(finalProfile);
                  
-                 setIsLoading(false);
+                setIsLoading(false);
                  
              } catch (err) {
                  console.error("🔥 MATRIX: Profile create/fetch error:", err);
@@ -284,6 +306,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                      return createOrFillProfile(attempts + 1);
                  }
                  clearSafetyTimer();
+                 
+                 // Before falling back to an empty profile, try cache again!
+                 const localCache = PersistenceService.getProfile(currentUser.uid);
+                 if (localCache && localCache.uid === currentUser.uid && localCache.onboarding?.completedAt) {
+                     console.log("🩹 MATRIX: Fetch failed. Restored from cache completely.");
+                     setProfile(localCache);
+                     setIsLoading(false);
+                     return;
+                 }
+
                  // Even on total failure, unblock the user with a minimal profile
                 const fallback: UserProfile = {
                     uid: currentUser.uid,

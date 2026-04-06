@@ -11,6 +11,7 @@ import { SpecialEvent } from './types';
 import { getNextEventDate } from './utils';
 
 import { FREE_LIMITS } from '../../../config/limits';
+import { useAuth } from '../../../context/AuthContext';
 
 interface SpecialEventsHubProps {
     isOpen: boolean;
@@ -27,20 +28,19 @@ const EVENT_TYPES = {
 };
 
 export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpenPro }: SpecialEventsHubProps) => {
+    const { user } = useAuth();
+    const eventsKey = user?.uid ? `special_events_${user.uid}` : 'special_events';
+
     const [events, setEvents] = useState<SpecialEvent[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<SpecialEvent | null>(null);
+    const isLoaded = React.useRef(false);
 
     // Load events from localStorage on mount (lazily)
     useEffect(() => {
-        // FIX: Re-load on open to avoid stale state if updated elsewhere
-        // And ensure we don't overwrite with empty state if we haven't loaded yet.
-        const saved = localStorage.getItem('special_events');
+        const saved = localStorage.getItem(eventsKey);
         if (saved) {
             try {
-                // Merge with existing events if any, but prefer saved ones for persistence
-                // Actually, if we use lazy state initialization, we don't need this effect unless for sync.
-                // But user complained about data loss.
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     setEvents(parsed);
@@ -49,71 +49,18 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                 console.error("Failed to parse events", e);
             }
         }
-    }, [isOpen]);
+        // Mark as loaded so subsequent changes are saved
+        isLoaded.current = true;
+    }, [isOpen, eventsKey]);
 
-    // Save events whenever they change
-    useEffect(() => {
-        // PREVENT DATA LOSS: Only save if we have items OR if we are sure we want to save empty state.
-        // This is tricky because if user deletes all events, we want to save [].
-        // But if initial load failed, we might have [].
-        // Let's assume if we are inside the component and 'events' changed, it's a valid change.
-        // BUT, to be safe against the "initial empty render overwriting storage" issue:
-        // We can check if we have loaded at least once. 
-        // For now, let's trust that useEffect above runs first.
-        // A safer way is to check if 'events' is empty and localStorage has data, don't overwrite?
-        // No, that prevents deleting all.
-        
-        // The real fix is ensuring the initial state is lazy loaded properly, which we do above.
-        // But let's add a check:
-        if (events.length > 0) {
-             localStorage.setItem('special_events', JSON.stringify(events));
-        } else {
-             // If events is empty, only save if we previously had data (meaning we deleted it)
-             // OR if we are sure.
-             // For now, let's just save. The issue likely was the initial render [] triggering a save before the effect loaded data.
-             // But the effect above runs on mount. This effect also runs on mount.
-             // If this effect runs before the load effect, it saves [].
-             
-             // REACT 18: Effects run after paint.
-             // The load effect runs. Sets state.
-             // The save effect runs.
-             
-             // Actually, dependencies matter.
-             // If we just loaded, we don't need to save.
-             // Let's rely on the fact that if we just loaded, events state will update, triggering this.
-             // But the initial render has events=[].
-             // Does this effect run for the initial render? YES.
-             // So it saves [] immediately! THIS IS THE BUG.
-             
-             // FIX: Don't save on first render if empty.
-             // We can use a ref to track if we have loaded.
-        }
-    }, [events]);
-    
-    // BETTER FIX FOR PERSISTENCE:
-    // Use a ref to track if initial load is done.
-    const isLoaded = React.useRef(false);
-    
+    // Save events whenever they change, but ONLY if we have already loaded
     useEffect(() => {
         if (isLoaded.current) {
-             localStorage.setItem('special_events', JSON.stringify(events));
+             localStorage.setItem(eventsKey, JSON.stringify(events));
+             // Dispatch event so the calendar (NotesView) reloads
+             window.dispatchEvent(new Event('special_events_updated'));
         }
-    }, [events]);
-    
-    useEffect(() => {
-        // Mark as loaded after the first load effect
-        // We can do this inside the load effect actually.
-        const saved = localStorage.getItem('special_events');
-        if (saved) {
-             try {
-                 const parsed = JSON.parse(saved);
-                 if (Array.isArray(parsed)) {
-                     setEvents(parsed);
-                 }
-             } catch(e) {}
-        }
-        isLoaded.current = true;
-    }, [isOpen]); // Re-run on open to sync, and mark loaded.
+    }, [events, eventsKey]);
 
     const handleOpenCreateModal = () => {
         if (!isPro && events.length >= FREE_LIMITS.NOTES) {
@@ -192,45 +139,50 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                 >
                     {/* Background Effects */}
                     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-pink-500/10 blur-[60px] md:blur-[120px]" />
-                        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-500/10 blur-[60px] md:blur-[120px]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#050505] to-[#050505]" />
+                        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-pink-500/5 blur-[80px] md:blur-[120px]" />
+                        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-500/5 blur-[80px] md:blur-[120px]" />
                     </div>
 
-                    {/* Fullscreen Header - No HUD */}
-            <div className="pt-safe-top pt-12 px-6 pb-8 border-b border-white/5 flex justify-between items-end bg-gradient-to-b from-pink-500/5 to-transparent h-52 shrink-0">
-                <div className="pb-2">
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 mb-3"
-                    >
-                        <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-500">
-                            <Gift size={26} />
+                    {/* Scrollable Container for both Header and Content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 pb-32">
+                        {/* Fullscreen Header - Scrollable with content */}
+                        <div className="pt-safe-top pt-12 px-6 pb-8 border-b border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-end bg-transparent shrink-0 relative gap-6">
+                            <div className="pb-2 flex-1">
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-3 mb-3"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.2)]">
+                                        <Gift size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em]">Memories</span>
+                                </motion.div>
+                                <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter drop-shadow-md">Celebrations</h2>
+                            </div>
+                            
+                            {/* Actions - Now positioned nicely and responsive */}
+                            <div className="flex items-center gap-3 pb-2 absolute top-12 right-6 sm:static sm:self-end">
+                                {onOpenSettings && (
+                                    <button 
+                                        onClick={onOpenSettings}
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-md shadow-sm"
+                                    >
+                                        <Settings size={20} className="sm:w-6 sm:h-6" />
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={onClose}
+                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-md shadow-sm"
+                                >
+                                    <X size={20} className="sm:w-6 sm:h-6" />
+                                </button>
+                            </div>
                         </div>
-                        <span className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em]">Memories</span>
-                    </motion.div>
-                    <h2 className="text-5xl font-black text-white tracking-tighter">Celebrations</h2>
-                </div>
-                <div className="flex items-center gap-3 pb-2">
-                    {onOpenSettings && (
-                        <button 
-                            onClick={onOpenSettings}
-                            className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5"
-                        >
-                            <Settings size={24} />
-                        </button>
-                    )}
-                    <button 
-                        onClick={onClose}
-                        className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5"
-                    >
-                        <X size={24} />
-                    </button>
-                </div>
-            </div>
 
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6 pb-32">
+                        {/* Content */}
+                        <div className="p-6">
                         {events.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-60">
                                 <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5 animate-pulse relative">
@@ -253,12 +205,12 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                                 {/* Add Button Card */}
                                 <button 
                                     onClick={handleOpenCreateModal}
-                                    className="group relative aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-6 hover:border-white/20"
+                                    className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[24px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm"
                                 >
-                                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner">
-                                        <Plus size={32} className="text-white/60 group-hover:text-white" />
+                                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner">
+                                        <Plus size={24} className="text-white/60 group-hover:text-white" />
                                     </div>
-                                    <span className="text-sm font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80">Add Event</span>
+                                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80">Add Event</span>
                                 </button>
 
                                 {/* Event Cards */}
@@ -271,55 +223,55 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                             return (
                                 <motion.div 
                                     key={event.id} 
-                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     onClick={() => handleEditEvent(event)}
-                                    className="relative group aspect-[4/3] rounded-[32px] bg-[#111] border border-white/5 p-8 flex flex-col justify-between overflow-hidden hover:border-white/10 transition-colors shadow-lg cursor-pointer"
+                                    className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[24px] bg-[#111] border border-white/5 p-6 flex flex-col justify-between overflow-hidden hover:border-white/10 transition-all shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1"
                                 >
-                                    <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
+                                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
-                                            className="p-3 rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md border border-white/5"
+                                            className="p-2.5 rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md border border-white/5"
                                         >
-                                            <Edit2 size={18} />
+                                            <Edit2 size={16} />
                                         </button>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
-                                            className="p-3 rounded-full bg-black/50 text-red-400 hover:bg-red-500/20 transition-colors backdrop-blur-md border border-white/5"
+                                            className="p-2.5 rounded-full bg-black/50 text-red-400 hover:bg-red-500/20 transition-colors backdrop-blur-md border border-white/5"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                     
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                    <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-2xl md:blur-3xl opacity-10 pointer-events-none" style={{ backgroundColor: EVENT_TYPES[event.type].color }} />
+                                    <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full blur-[40px] opacity-15 pointer-events-none" style={{ backgroundColor: EVENT_TYPES[event.type].color }} />
                                     
                                     <div className="flex justify-between items-start relative z-10">
-                                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 shadow-inner" style={{ color: EVENT_TYPES[event.type].color }}>
-                                            <TypeIcon size={24} />
+                                        <div className="p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner" style={{ color: EVENT_TYPES[event.type].color }}>
+                                            <TypeIcon size={20} />
                                         </div>
                                         {isToday ? (
-                                            <span className="px-4 py-1.5 rounded-full bg-pink-500 text-white text-xs font-bold uppercase tracking-wide animate-pulse shadow-[0_0_20px_rgba(236,72,153,0.4)]">
+                                            <span className="px-3 py-1 rounded-full bg-pink-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse shadow-[0_0_15px_rgba(236,72,153,0.4)]">
                                                 Today!
                                             </span>
                                         ) : (
-                                            <span className="px-4 py-1.5 rounded-full bg-white/5 text-white/40 text-xs font-bold uppercase tracking-wide border border-white/5">
+                                            <span className="px-3 py-1 rounded-full bg-white/5 text-white/40 text-[10px] font-bold uppercase tracking-wider border border-white/5">
                                                 {daysLeft > 0 ? `${daysLeft} days left` : 'Passed'}
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="relative z-10">
-                                        <h3 className="text-2xl font-bold text-white mb-2 truncate tracking-tight">{event.title}</h3>
-                                        <div className="flex items-center gap-3 text-white/40 text-sm font-medium">
-                                            <Calendar size={14} />
+                                        <h3 className="text-xl sm:text-2xl font-bold text-white mb-1.5 truncate tracking-tight drop-shadow-sm">{event.title}</h3>
+                                        <div className="flex items-center gap-2 text-white/40 text-xs font-medium">
+                                            <Calendar size={12} />
                                             {format(nextDate, 'MMMM do, yyyy')}
                                             {event.recurrence && event.recurrence !== 'NONE' && (
-                                                <Repeat size={12} className="opacity-50" />
+                                                <Repeat size={10} className="opacity-50" />
                                             )}
                                         </div>
                                         {event.notifyTime && (
-                                                <div className="inline-flex items-center gap-2 text-white/30 text-xs font-mono mt-2 bg-white/5 self-start px-2 py-1 rounded-lg border border-white/5">
+                                                <div className="inline-flex items-center gap-1.5 text-white/30 text-[10px] font-mono mt-2.5 bg-white/5 self-start px-2 py-1 rounded-lg border border-white/5 backdrop-blur-sm">
                                                     <Bell size={10} />
                                                     {event.notifyTime}
                                                 </div>
@@ -328,8 +280,9 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                                 </motion.div>
                             );
                         })}
-                    </div>
-                )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <CreateEventModal 

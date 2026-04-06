@@ -46,11 +46,6 @@ const LandingView = ({ onStart, onLogin, onGoogleLogin, isLoading }: { onStart: 
       className="flex flex-col items-center justify-center w-full space-y-8"
     >
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 mb-4">
-          <Sparkles className="w-3 h-3" />
-          <span>Lux OS 2.0</span>
-        </div>
-        
         <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white">
           Lux
         </h1>
@@ -105,8 +100,8 @@ const LandingView = ({ onStart, onLogin, onGoogleLogin, isLoading }: { onStart: 
 const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: () => void, onBack: () => void, currentLang: string, onChangeLang: (l: string) => void }) => {
   const { t } = useTranslation();
   const languages = [
-    { code: 'en', label: t('onboarding.language.en.name', 'English'), sub: t('onboarding.language.en.region', 'International') },
-    { code: 'es', label: t('onboarding.language.es.name', 'Español'), sub: t('onboarding.language.es.region', 'Latam / España') },
+    { code: 'en', flag: '🇺🇸', label: t('onboarding.language.en.name', 'English'), sub: t('onboarding.language.en.region', 'United States') },
+    { code: 'es', flag: '🇪🇸', label: t('onboarding.language.es.name', 'Español'), sub: t('onboarding.language.es.region', 'España / Latinoamérica') },
   ];
 
   return (
@@ -115,7 +110,7 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0 }}
-      className="w-full max-w-sm"
+      className="w-full max-w-sm flex flex-col"
     >
       <div className="flex items-center justify-between mb-8">
         <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors">
@@ -125,32 +120,40 @@ const LanguageView = ({ onNext, onBack, currentLang, onChangeLang }: { onNext: (
         <div className="w-9" />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 mb-8">
         {languages.map((lang) => (
           <button
             key={lang.code}
-            onClick={() => {
-              onChangeLang(lang.code);
-              setTimeout(onNext, 50); // Instant feeling
-            }}
+            onClick={() => onChangeLang(lang.code)}
             className={`w-full p-4 rounded-xl border flex items-center justify-between transition-colors duration-150 active:scale-95 ${
               currentLang === lang.code 
                 ? 'bg-indigo-500/10 border-indigo-500/50' 
                 : 'bg-[#0a0a0f] border-white/5 hover:bg-white/5'
             }`}
           >
-            <div className="text-left">
-              <div className={`font-bold text-lg ${currentLang === lang.code ? 'text-white' : 'text-white/70'}`}>
-                {lang.label}
-              </div>
-              <div className="text-xs text-white/40 font-medium tracking-wide">
-                {lang.sub}
+            <div className="flex items-center gap-4">
+              <span className="text-3xl leading-none">{lang.flag}</span>
+              <div className="text-left">
+                <div className={`font-bold text-lg ${currentLang === lang.code ? 'text-white' : 'text-white/70'}`}>
+                  {lang.label}
+                </div>
+                <div className="text-xs text-white/40 font-medium tracking-wide">
+                  {lang.sub}
+                </div>
               </div>
             </div>
             {currentLang === lang.code && <Sparkles className="w-5 h-5 text-indigo-400" />}
           </button>
         ))}
       </div>
+
+      <button
+        onClick={onNext}
+        className="w-full h-14 bg-white text-black rounded-xl font-bold text-lg tracking-tight transition-transform active:scale-95 flex items-center justify-center gap-2"
+      >
+        <span>{t('rewards.continue', 'Continuar')}</span>
+        <ArrowRight className="w-5 h-5" />
+      </button>
     </motion.div>
   );
 };
@@ -265,7 +268,7 @@ export const AuthView = () => {
                     obstacles: [],
                     coachingTone: "Stoic"
                 }
-            }));
+            }, true)); // isNewRegistration = true
         } catch (initErr) {
             console.warn("Secondary profile initialization failed, but user is created.", initErr);
         }
@@ -382,9 +385,32 @@ export const AuthView = () => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={FAST_TRANSITION}
-                    className="w-full max-w-sm"
+                    className="w-full max-w-sm relative"
                 >
-                    <div className="p-6 sm:p-8 bg-[#0a0a0f] border border-white/10 rounded-2xl">
+                    {/* Animated Exquisite Cosmic Container Background */}
+                    <div 
+                        className={`
+                            absolute inset-0 rounded-2xl transition-all duration-1000 ease-out pointer-events-none
+                            ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
+                              (view === 'LOGIN' && isEmailValid && isPasswordValid) 
+                                ? 'opacity-100 scale-100' 
+                                : 'opacity-0 scale-95'
+                            }
+                        `}
+                        style={{
+                            background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0.4) 60%, rgba(0,0,0,0) 100%)',
+                            boxShadow: '0 0 40px -10px rgba(99, 102, 241, 0.3), inset 0 0 20px -5px rgba(139, 92, 246, 0.2)'
+                        }}
+                    />
+
+                    <div className={`
+                        relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-1000 ease-out border
+                        ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
+                          (view === 'LOGIN' && isEmailValid && isPasswordValid)
+                            ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm'
+                            : 'bg-[#0a0a0f] border-white/10'
+                        }
+                    `}>
                         <div className="flex items-center mb-6">
                             <button 
                                 onClick={() => setView(view === 'LOGIN' ? 'LANDING' : 'REGISTER_LANG')}
@@ -467,20 +493,25 @@ export const AuthView = () => {
                                 type="submit"
                                 disabled={isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))}
                                 className={`
-                                    w-full h-12 mt-6 font-bold rounded-xl transition-all flex items-center justify-center gap-2
+                                    w-full h-14 mt-6 font-bold rounded-xl transition-all duration-500 flex items-center justify-center gap-2 relative overflow-hidden group
                                     ${isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))
                                         ? 'bg-white/5 text-white/30 cursor-not-allowed' 
-                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
+                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95 shadow-[0_0_20px_-5px_rgba(99,102,241,0.5)]'
                                     }
                                 `}
                             >
+                                {/* Cosmic Glow inside button when active */}
+                                {!(isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))) && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_2s_infinite]" />
+                                )}
+                                
                                 {isLoading ? (
                                     <Loader2 className="w-5 h-5 animate-spin text-white/70" />
                                 ) : (
-                                    <>
-                                        <span>{view === 'LOGIN' ? t('auth.login.button', 'Enter Matrix') : t('auth.register.button', 'Initialize System')}</span>
+                                    <div className="relative z-10 flex items-center gap-2">
+                                        <span className="text-[15px] tracking-wide">{view === 'LOGIN' ? t('auth.login.button', 'Enter Matrix') : t('auth.register.button', 'Create Account')}</span>
                                         <ArrowRight className="w-4 h-4" />
-                                    </>
+                                    </div>
                                 )}
                             </button>
 

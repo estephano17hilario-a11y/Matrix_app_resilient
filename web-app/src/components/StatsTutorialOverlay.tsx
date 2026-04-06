@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Coins, Heart, Skull, Dna, ArrowRight, X, Sparkles, Lightbulb } from 'lucide-react';
+import { Zap, Coins, Heart, Skull, Dna, ArrowRight, X, Sparkles, Lightbulb, Flame } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface StatsTutorialOverlayProps {
@@ -33,83 +33,107 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
 
     const tutorialSteps = [
         {
-            title: t('tour.stats.xp.title', "El Sistema de Energía (XP)"),
+            title: t('tour.stats.xp.title', "Energy System (XP)"),
             icon: Zap,
             color: "#f472b6", // fuchsia-400
             content: (
-                <div className="space-y-3 text-sm text-white/80">
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.xp.desc1', "La <strong>Experiencia (XP)</strong> mide tu progreso general. Ganas XP completando Hábitos, Tareas y Sesiones de Enfoque.") }} />
-                    <div className="bg-black/30 p-3 rounded-xl border border-fuchsia-500/20">
-                        <p className="font-bold text-fuchsia-300 mb-2 flex items-center gap-2">
+                <div className="space-y-4 text-sm text-white/80">
+                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.xp.desc1', "<strong>Experience (XP)</strong> measures your overall progress. Earn XP by completing Habits, Tasks, and Focus Sessions.") }} />
+                    
+                    <div className="bg-fuchsia-500/5 p-4 rounded-2xl border border-fuchsia-500/10 backdrop-blur-sm">
+                        <p className="font-bold text-fuchsia-300 mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] opacity-60">
                             <Sparkles size={14} className="text-fuchsia-400" />
-                            {t('tour.stats.xp.levelsHeader', "XP para completar cada Nivel:")}
+                            {t('tour.stats.xp.levelsHeader', "XP per Level:")}
                         </p>
-                        <ul className="space-y-1.5 text-xs">
-                            <li className="flex justify-between items-center bg-fuchsia-500/10 px-2 py-1 rounded-md border border-fuchsia-500/10">
-                                <span>{t('tour.stats.xp.level', "Nivel")} 1</span> <span className="font-black text-fuchsia-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">80 XP</span>
-                            </li>
-                            <li className="flex justify-between items-center bg-fuchsia-500/10 px-2 py-1 rounded-md border border-fuchsia-500/10">
-                                <span>{t('tour.stats.xp.level', "Nivel")} 2</span> <span className="font-black text-fuchsia-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">100 XP</span>
-                            </li>
-                            <li className="flex justify-between items-center bg-fuchsia-500/10 px-2 py-1 rounded-md border border-fuchsia-500/10">
-                                <span>{t('tour.stats.xp.level', "Nivel")} 5</span> <span className="font-black text-fuchsia-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">220 XP</span>
-                            </li>
-                            <li className="flex justify-between items-center bg-fuchsia-500/10 px-2 py-1 rounded-md border border-fuchsia-500/10">
-                                <span>{t('tour.stats.xp.level', "Nivel")} 10</span> <span className="font-black text-fuchsia-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">420 XP</span>
-                            </li>
-                            <li className="flex justify-between items-center bg-fuchsia-500/10 px-2 py-1 rounded-md border border-fuchsia-500/10">
-                                <span>{t('tour.stats.xp.level', "Nivel")} 20</span> <span className="font-black text-fuchsia-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">820 XP</span>
-                            </li>
-                        </ul>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            {[
+                                { lvl: 1, xp: 80 },
+                                { lvl: 2, xp: 100 },
+                                { lvl: 5, xp: 220 },
+                                { lvl: 10, xp: 420 }
+                            ].map((item) => (
+                                <div key={item.lvl} className="flex justify-between items-center bg-fuchsia-500/10 px-3 py-2 rounded-xl border border-fuchsia-500/10">
+                                    <span className="opacity-60">{t('tour.stats.xp.level', "Lvl")} {item.lvl}</span>
+                                    <span className="font-black text-fuchsia-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.3)]">{item.xp} XP</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )
         },
         {
-            title: t('tour.stats.tp.title', "Puntos de Rasgo (TP)"),
+            title: t('tour.stats.tp.title', "Trait Points (TP)"),
             icon: Dna,
             color: "#22d3ee", // cyan-400
             content: (
-                <div className="space-y-3 text-sm text-white/80">
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.tp.desc1', "Los <strong>Puntos de Rasgo (TP)</strong> te permiten mejorar tus atributos específicos (Fuerza, Inteligencia, Disciplina, etc.).") }} />
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.tp.desc2', "Existen múltiples <strong>Rasgos</strong> que puedes desarrollar. Puedes cambiarlos y gestionarlos en la <strong>Zona de Atributos</strong> para enfocarte en lo que más necesitas mejorar en tu vida actual.") }} />
-                    <div className="flex items-center gap-2 p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20 text-cyan-200 text-xs">
-                        <Sparkles size={14} />
-                        <span>{t('tour.stats.tp.tip', "Asigna tareas a diferentes rasgos para subirlos de nivel.")}</span>
-                    </div>
+                <div className="space-y-4 text-sm text-white/80">
+                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.tp.desc1', "<strong>Trait Points (TP)</strong> allow you to improve your specific attributes (Strength, Intelligence, Discipline, etc.).") }} />
+                    
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className="p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/10 flex items-start gap-3"
+                    >
+                        <div className="w-9 h-9 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
+                            <Sparkles size={18} className="text-cyan-400" />
+                        </div>
+                        <p className="text-[13px] leading-relaxed py-1">
+                            {t('tour.stats.tp.tip', "Assign tasks to different traits to level them up and unlock new abilities.")}
+                        </p>
+                    </motion.div>
                 </div>
             )
         },
         {
-            title: t('tour.stats.gold.title', "La Economía (Oro)"),
+            title: t('tour.stats.gold.title', "The Economy (Gold)"),
             icon: Coins,
             color: "#fbbf24", // amber-400
             content: (
-                <div className="space-y-3 text-sm text-white/80">
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.desc1', "El <strong>Oro</strong> es la moneda de LUX. Lo obtienes como recompensa por tu esfuerzo diario y al completar misiones.") }} />
-                    <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-                        <p className="font-bold text-amber-300 mb-1">{t('tour.stats.gold.whatFor', "¿Para qué sirve?")}</p>
-                        <ul className="list-disc list-inside pl-4 space-y-1 text-xs">
-                            <li dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point1', "Comprar mejoras y recompensas en la <strong>Tienda</strong>.") }} />
-                            <li dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point2', "<strong>Pagar por tus Malos Hábitos:</strong> Si recaes, puedes usar Oro para mitigar el daño a tu HP.") }} />
-                        </ul>
+                <div className="space-y-4 text-sm text-white/80">
+                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.desc1', "<strong>Gold</strong> is the currency of LUX. You obtain it as a reward for your daily effort and by completing missions.") }} />
+                    
+                    <div className="space-y-2">
+                        <p className="font-bold text-amber-300 text-[10px] uppercase tracking-[0.1em] opacity-60">{t('tour.stats.gold.whatFor', "What is it used for?")}</p>
+                        
+                        <div className="grid gap-2.5">
+                            <motion.div 
+                                whileHover={{ x: 5 }}
+                                className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-300 hover:bg-amber-500/10 hover:border-amber-500/20"
+                            >
+                                <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
+                                    <Sparkles size={18} className="text-amber-400" />
+                                </div>
+                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point1', "Buy **Cosmetics**, **Power-ups**, and exclusive upgrades in the <strong>Store</strong>.") }} />
+                            </motion.div>
+
+                            <motion.div 
+                                whileHover={{ x: 5 }}
+                                className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-300 hover:bg-amber-500/10 hover:border-amber-500/20"
+                            >
+                                <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
+                                    <Flame size={18} className="text-amber-400" />
+                                </div>
+                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point2', "<strong>Manage your Bad Habits:</strong> If you relapse, you can use Gold to pay the penalty in a more controlled way and avoid losing HP.") }} />
+                            </motion.div>
+                        </div>
                     </div>
                 </div>
             )
         },
         {
-            title: t('tour.stats.hp.title', "Vitalidad (HP) y Castigos"),
+            title: t('tour.stats.hp.title', "Vitality (HP) & Penalties"),
             icon: Heart,
             color: "#fb7185", // rose-400
             content: (
-                <div className="space-y-3 text-sm text-white/80">
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.hp.desc1', "Tu <strong>HP (Health Points)</strong> es tu vitalidad. Si cometes <strong>Malos Hábitos</strong> y decides no usar Oro para pagar la penalización, perderás HP.") }} />
-                    <div className="bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
-                        <div className="flex items-center gap-2 font-bold text-rose-400 mb-2">
-                            <Skull size={16} />
-                            <span>{t('tour.stats.hp.warning', "¡CUIDADO CON LLEGAR A 0!")}</span>
+                <div className="space-y-4 text-sm text-white/80">
+                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.hp.desc1', "Your <strong>HP (Health Points)</strong> is your vitality. If you commit <strong>Bad Habits</strong> and choose not to use Gold to pay the penalty, you will lose HP.") }} />
+                    
+                    <div className="bg-rose-500/5 p-4 rounded-2xl border border-rose-500/10 relative overflow-hidden">
+                        <div className="flex items-center gap-2 font-bold text-rose-400 mb-3 text-[10px] uppercase tracking-[0.1em]">
+                            <Skull size={16} className="animate-pulse" />
+                            <span>{t('tour.stats.hp.warning', "BEWARE OF REACHING 0!")}</span>
                         </div>
-                        <p className="text-xs" dangerouslySetInnerHTML={{ __html: t('tour.stats.hp.desc2', "Si tu HP llega a 0, sufrirás una falla en el sistema: <strong>Tu Nivel de Cuenta y los Niveles de TODOS tus Atributos se reducirán a la mitad.</strong>") }} />
+                        <p className="text-[12px] leading-relaxed opacity-90" dangerouslySetInnerHTML={{ __html: t('tour.stats.hp.desc2', "If your HP reaches 0, you will suffer a system failure: <strong>Your Account Level and ALL Attribute Levels will be reduced by half.</strong>") }} />
                     </div>
                 </div>
             )

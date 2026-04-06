@@ -149,7 +149,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                 {/* Close Button */}
                                 <button 
                                     onClick={onClose}
-                                    className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full z-20 backdrop-blur-sm border border-white/5"
+                                    className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full z-20 border border-white/5"
                                 >
                                     <X size={16} />
                                 </button>

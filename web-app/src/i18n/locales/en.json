@@ -61,7 +61,7 @@
     },
     "gold": {
       "title": "Gold Coins",
-      "description": "Earned by completing tasks. Use them in the store to buy power-ups and special items."
+      "description": "Earned by completing tasks. Use them to buy cosmetics, power-ups, and manage your habits in a controlled way."
     },
     "streak": {
       "title": "Streak",
@@ -82,7 +82,7 @@
     "onboarding": {
       "welcome": { "title": "Welcome to Lux!", "desc": "Your life management system.", "sub": "Let's take an interactive tour." },
       "xp": { "title": "XP Bar", "desc": "Complete tasks to gain experience.", "sub": "Level up to unlock abilities." },
-      "gold": { "title": "Your Coins", "desc": "Gold is used in the store.", "sub": "Earn it by completing missions." },
+      "gold": { "title": "Your Coins", "desc": "Buy cosmetics and power-ups.", "sub": "Manage your habits in a controlled way." },
       "streak": { "title": "Your Streak", "desc": "Consecutive days of action.", "sub": "If you miss a day, it resets to zero!" },
       "dock": { "title": "Navigation (Dock)", "desc": "Your main command center.", "sub": "Access the whole app from here." },
       "create": { "title": "Create Button", "desc": "Create missions, habits, or notes.", "sub": "This is your starting point." }
@@ -104,8 +104,8 @@
         "title": "The Economy (Gold)",
         "desc1": "<strong>Gold</strong> is the currency of LUX. You obtain it as a reward for your daily effort and by completing missions.",
         "whatFor": "What is it used for?",
-        "point1": "Buy upgrades and rewards in the <strong>Store</strong>.",
-        "point2": "<strong>Pay for your Bad Habits:</strong> If you relapse, you can use Gold to mitigate the damage to your HP."
+        "point1": "Buy **Cosmetics**, **Power-ups**, and exclusive upgrades in the <strong>Store</strong>.",
+        "point2": "<strong>Manage your Bad Habits:</strong> If you relapse, you can use Gold to pay the penalty in a more controlled way and avoid losing HP."
       },
       "hp": {
         "title": "Vitality (HP) and Punishments",
@@ -318,7 +318,12 @@
     "filters": {
       "all": "All",
       "power_up": "Power Ups",
-      "theme": "Themes"
+      "theme": "Themes",
+      "inventory": "Inventory"
+    },
+    "inventory": {
+      "empty": "Empty inventory",
+      "use": "Use"
     },
     "others": "Others",
     "emptyCollection": "Empty Collection",
@@ -751,7 +756,7 @@
     "min": "Min",
     "sec": "Sec",
     "backToBenefits": "Back to benefits",
-    "offerEnds": "OFFER ENDS MAY 1ST",
+    "offerEnds": "OFFER ENDS MAY 31ST",
     "unleashYour": "Unleash your",
     "truePower": "True Power",
     "elevateDesc": "Elevate your existence to a cosmic level. No limits, no restrictions, just pure performance.",

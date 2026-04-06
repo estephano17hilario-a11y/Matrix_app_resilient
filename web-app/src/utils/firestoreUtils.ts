@@ -42,7 +42,7 @@ export const normalizeUserProfile = (data: any): UserData => {
     return {
         uid: data.uid || '',
         email: data.email || null,
-        displayName: data.displayName || 'Operator',
+        displayName: data.displayName || '',
         photoURL: data.photoURL || null,
         plan: data.plan || 'FREE',
         archetype: data.archetype || 'NEO',

@@ -91,6 +91,7 @@ public class FocusPlugin extends Plugin {
     @PluginMethod
     public void openNotificationSettings(PluginCall call) {
         try {
+            createNotificationChannels(getContext());
             Intent intent = new Intent();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);

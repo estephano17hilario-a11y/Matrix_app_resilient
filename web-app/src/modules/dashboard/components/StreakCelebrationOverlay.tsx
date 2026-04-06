@@ -83,7 +83,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/90"
                         style={{
                             background: 'radial-gradient(circle at center, rgba(2,2,4,0.8) 0%, rgba(0,0,0,0.95) 100%)'
                         }}
@@ -157,7 +157,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.8, type: "spring", stiffness: 300, damping: 20 }}
-                            className="w-full bg-white/5 rounded-3xl p-4 border border-white/10 backdrop-blur-md shadow-2xl"
+                            className="w-full bg-white/5 rounded-3xl p-4 border border-white/10 shadow-2xl"
                         >
                             <div className="flex justify-between items-center w-full px-1">
                                 {weekData.map((day, i) => (

@@ -153,7 +153,7 @@ export const NeuralSection = () => {
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
           </div>
 
-          <div className="bg-white/[0.03] border border-white/[0.05] rounded-[20px] p-3 max-h-[40vh] overflow-y-auto custom-scrollbar">
+          <div className="bg-white/[0.03] border border-white/[0.05] rounded-[20px] p-3">
             <div className="space-y-2">
               {availableTraits.map(trait => (
                 <button

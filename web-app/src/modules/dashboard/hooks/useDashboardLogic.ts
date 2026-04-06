@@ -87,7 +87,7 @@ export const useDashboardLogic = () => {
                 ...luxUser,
                 // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
                 avatarId: authProfile.avatarId || luxUser.avatarId,
-                displayName: (luxUser.displayName && luxUser.displayName !== 'Operator') ? luxUser.displayName : (authProfile.displayName || luxUser.displayName),
+                displayName: luxUser.displayName || authProfile.displayName,
                 // Prefer Lux for Game Stats (updated via Game Loop)
                 stats: luxUser.stats
             };
@@ -3339,44 +3339,6 @@ export const useDashboardLogic = () => {
             console.error("Error deleting habit:", error);
         }
     }, [user, habits, dailyLimits]);
-
-    // --- THE GREAT RESET (CANVAS WIPE) ---
-    useEffect(() => {
-        if (!user?.uid) return;
-        const resetKey = `MATRIX_RESET_V3_${user.uid}`;
-        const hasReset = localStorage.getItem(resetKey);
-        if (!hasReset) {
-            console.log("🚨 PERFORMING GREAT RESET (CANVAS WIPE) 🚨");
-
-            // 1. Clear Local State (except badHabits to preserve user progress)
-            setProjects([]);
-            setQuests([]);
-            setHabits([]);
-            setSmartProjects([]);
-
-            // 2. Clear Persistence Cache (except badHabits)
-            PersistenceService.clearCollectionSafe(user.uid, 'projects');
-            PersistenceService.clearCollectionSafe(user.uid, 'quests');
-            PersistenceService.clearCollectionSafe(user.uid, 'habits');
-            PersistenceService.clearCollectionSafe(user.uid, 'smartProjects');
-
-            // 3. Mark as done (per user)
-            localStorage.setItem(resetKey, 'true');
-
-            // 4. Force reload window to ensure clean slate? No, state update should be enough.
-            // But let's add a notification
-            setTimeout(() => {
-                 addNotification({
-                    type: 'SYSTEM',
-                    label: 'SYSTEM RESET',
-                    fromLevel: 'Canvas',
-                    toLevel: 'Clean',
-                    icon: Trash2,
-                    color: '#ef4444'
-                });
-            }, 1000);
-        }
-    }, [user?.uid, addNotification]);
 
     const handleProjectConfirm = useCallback(async (projectData: Partial<Project>) => {
         console.log("💎 [DashboardLogic] Handling Project Confirm:", projectData);

@@ -74,13 +74,9 @@ export const useNotificationSystem = (isEnabled: boolean) => {
         // This registers listeners and tokens
         await notificationService.initialize();
 
-        // 4. Focus Plugin Handshake (Android Foreground Service Permission)
-        // This ensures the native service has what it needs
-        await FocusSession.checkPermissions().then(perms => {
-            if (!perms.notifications) {
-                FocusSession.openNotificationSettings();
-            }
-        });
+        // 4. Focus Plugin Handshake
+        // Just checking permissions is enough to trigger channel creation
+        await FocusSession.checkPermissions();
 
       } catch (error) {
         console.error("❌ Notification System Failure:", error);

@@ -14,6 +14,7 @@ import {
   getDoc 
 } from './firebase';
 import { DEFAULT_USER_STATS } from '../types/User';
+import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 
 /**
  * SERVICE: Firebase Authentication & User Data
@@ -22,56 +23,73 @@ import { DEFAULT_USER_STATS } from '../types/User';
 
 const googleProvider = new GoogleAuthProvider();
 
-export const initializeUserDocument = async (user: User, additionalData: any = {}) => {
+export const initializeUserDocument = async (user: User, additionalData: any = {}, isNewRegistration: boolean = false) => {
   const userDocRef = doc(db, 'users', user.uid);
-  const userDoc = await getDoc(userDocRef);
-
-  if (!userDoc.exists()) {
-    const defaultData: any = {
-      uid: user.uid,
-      email: user.email,
-      photoURL: user.photoURL || null,
-      plan: 'FREE',
-      archetype: 'NEO',
-      stats: DEFAULT_USER_STATS,
-      theme: 'MATRIX',
-      createdAt: Date.now(),
-      lastLoginAt: Date.now(),
-      onboarding: {
-        successDefinition: "Becoming the One",
-        obstacles: [],
-        coachingTone: "Stoic",
-        completedAt: 0,
-        language: "en"
-      },
-      ...additionalData
-    };
+  
+  try {
+    // If we know it's a new registration, skip getDoc to avoid permission-denied race conditions
+    let exists = false;
+    let existingData = {};
     
-    // Only set displayName if it's explicitly provided in additionalData or user object
-    if (additionalData.displayName) {
-        defaultData.displayName = additionalData.displayName;
-    } else if (user.displayName) {
-        defaultData.displayName = user.displayName;
-    }
-    
-    // We use merge: true to avoid race conditions with onAuthStateChanged
-    await setDoc(userDocRef, defaultData, { merge: true });
-    return defaultData;
-  } else {
-    // If it exists, just update lastLoginAt and any additional data passed (like displayName)
-    const updateData = { 
-      lastLoginAt: Date.now(),
-      ...additionalData
-    };
-
-    // FIX: Never overwrite onboarding progress for existing users
-    // This prevents the Google Sign-In redirect loop where users are asked to create their account again
-    if (updateData.onboarding) {
-        delete updateData.onboarding;
+    if (!isNewRegistration) {
+      try {
+        const userDoc = await getDoc(userDocRef);
+        exists = userDoc.exists();
+        if (exists) {
+          existingData = userDoc.data() || {};
+        }
+      } catch (e) {
+        console.warn("getDoc failed in initializeUserDocument, assuming it might not exist or offline:", e);
+      }
     }
 
-    await setDoc(userDocRef, updateData, { merge: true });
-    return { ...userDoc.data(), ...updateData };
+    if (isNewRegistration || !exists) {
+      const defaultData: any = {
+        uid: user.uid,
+        email: user.email || null,
+        photoURL: user.photoURL || null,
+        plan: 'FREE',
+        archetype: 'NEO',
+        stats: DEFAULT_USER_STATS,
+        theme: 'MATRIX',
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+        onboarding: {
+          successDefinition: "Becoming the One",
+          obstacles: [],
+          coachingTone: "Stoic",
+          completedAt: 0,
+          language: "en"
+        },
+        ...additionalData
+      };
+      
+      if (additionalData.displayName) {
+          defaultData.displayName = additionalData.displayName;
+      } else if (user.displayName) {
+          defaultData.displayName = user.displayName;
+      }
+      
+      const cleanData = sanitizeFirestoreData(defaultData);
+      await setDoc(userDocRef, cleanData, { merge: true });
+      return cleanData;
+    } else {
+      const updateData = { 
+        lastLoginAt: Date.now(),
+        ...additionalData
+      };
+
+      if (updateData.onboarding) {
+          delete updateData.onboarding;
+      }
+
+      const cleanUpdate = sanitizeFirestoreData(updateData);
+      await setDoc(userDocRef, cleanUpdate, { merge: true });
+      return { ...existingData, ...cleanUpdate };
+    }
+  } catch (err) {
+    console.error("Critical error in initializeUserDocument:", err);
+    throw err;
   }
 };
 

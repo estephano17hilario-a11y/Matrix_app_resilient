@@ -12,6 +12,8 @@ import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 
+import { sanitizeFirestoreData } from '../../utils/firestoreUtils';
+
 // Modified steps: Removed 'intro' and 'language' as they are now pre-auth
 type Step = 'avatar' | 'traits' | 'saving';
 
@@ -169,12 +171,14 @@ export function OnboardingFlow() {
         const userRef = doc(db, "users", userId);
         
         // Wait for it to ensure no data loss on logout
-        await setDoc(userRef, {
+        const onboardingDataToSave = sanitizeFirestoreData({
             avatarId: selectedAvatarId ?? profile?.avatarId,
             onboarding: updatedOnboarding,
             archetype: 'NEO',
             updatedAt: Date.now()
-        }, { merge: true });
+        });
+        
+        await setDoc(userRef, onboardingDataToSave, { merge: true });
 
         // Save Background Firebase Attributes
         const attrPromises = attributesToSave.map(attr => 
@@ -228,7 +232,7 @@ export function OnboardingFlow() {
         <div className="flex-1 w-full relative overflow-hidden">
           <AnimatePresence mode="wait">
             {/* STEP 1: AVATAR SELECTION */}
-            {step === 'avatar' && !selectedAvatarId && (
+            {step === 'avatar' && (
                <motion.div 
                  key="avatar-carousel"
                  initial={{ opacity: 0 }}
@@ -247,14 +251,14 @@ export function OnboardingFlow() {
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                className="absolute inset-0 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50 pointer-events-auto"
+                style={{ opacity: 1, visibility: 'visible' }}
                 ref={traitsScrollRef}
                 onScroll={(event) => {
                   if (showScrollHint && event.currentTarget.scrollTop > 24) {
                     setShowScrollHint(false);
                   }
                 }}
-                className="absolute inset-0 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50 pointer-events-auto"
-                style={{ opacity: 1, visibility: 'visible' }}
               >
                 <div className="min-h-full w-full flex flex-col items-center justify-start max-w-4xl mx-auto px-4 py-24">
                   <div className="text-center mb-10 flex-shrink-0 max-w-2xl mx-auto px-4">
@@ -309,6 +313,7 @@ export function OnboardingFlow() {
                               return (
                                     <motion.button
                                         key={trait.id}
+                                        type="button"
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ 
                                             opacity: isMaxReached ? 0.5 : 1, 

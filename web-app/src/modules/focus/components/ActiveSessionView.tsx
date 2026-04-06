@@ -25,6 +25,7 @@ interface ActiveSessionViewProps {
 
 import { useAudioAlarm } from '../hooks/useAudioAlarm';
 
+import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
@@ -81,7 +82,20 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
     // Handlers for Smart Buttons
     const handleEnableNotifications = async () => {
-        await FocusSession.openNotificationSettings();
+        try {
+            if (Capacitor.isNativePlatform()) {
+                const perm = await LocalNotifications.requestPermissions();
+                if (perm.display !== 'granted') {
+                    await FocusSession.openNotificationSettings();
+                } else {
+                    checkAllPermissions(); // Refresh UI
+                }
+            } else {
+                await FocusSession.openNotificationSettings();
+            }
+        } catch (e) {
+            await FocusSession.openNotificationSettings();
+        }
     };
 
     const handleDisableBatteryOpt = async () => {

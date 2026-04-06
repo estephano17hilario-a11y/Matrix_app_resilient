@@ -115,16 +115,29 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
           </div>
 
           {/* Text Area */}
-          <div className="h-40 flex flex-col items-center justify-start">
+          <div className="h-auto min-h-40 flex flex-col items-center justify-start mt-4">
             <AnimatePresence>
               {stage >= 2 && (
                 <motion.h1
+                  initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                >
+                  ¡GRACIAS!
+                </motion.h1>
+              )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {stage >= 2 && (
+                <motion.h2
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter"
+                  transition={{ delay: 0.2 }}
+                  className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tighter"
                 >
-                  AHORA ERES <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">DELUX</span>
-                </motion.h1>
+                  AHORA ERES <span className="text-transparent bg-clip-text bg-[length:200%_auto] animate-[gradient-x_3s_ease_infinite] bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_20px_rgba(217,70,239,0.8)]">DELUX</span>
+                </motion.h2>
               )}
             </AnimatePresence>
 
@@ -133,9 +146,9 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-lg md:text-xl text-white/60 font-medium max-w-md mx-auto"
+                  className="text-lg md:text-xl text-white/80 font-medium max-w-lg mx-auto leading-relaxed"
                 >
-                  Camina hacia el futuro. Los límites han sido removidos de tu sistema.
+                  Tu apoyo nos permite seguir creando la mejor herramienta del universo. Camina hacia el futuro, los límites han sido removidos.
                 </motion.p>
               )}
             </AnimatePresence>

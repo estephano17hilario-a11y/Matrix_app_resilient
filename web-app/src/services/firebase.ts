@@ -106,8 +106,7 @@ if (isConfigValid) {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager()
-            }),
-            experimentalForceLongPolling: true
+            })
         });
         console.log("💎 MATRIX: Offline Persistence Enabled (Multi-Tab)");
     } catch (err: any) {
@@ -117,10 +116,8 @@ if (isConfigValid) {
         } else if (err.code === 'unimplemented') {
             console.warn("⚠️ MATRIX: Browser doesn't support persistence.");
         }
-        // Fallback to default
-        db = initializeFirestore(app, {
-            experimentalForceLongPolling: true
-        }); 
+        // Fallback to default without experimental long polling to prevent ERR_ABORTED logs
+        db = getFirestore(app); 
     }
 
     // 🔔 MESSAGING (Optional)
@@ -212,7 +209,8 @@ const safeSetDoc = async <T>(
   options?: { merge?: boolean },
   ensureSync: boolean = false
 ) => {
-  const result = await withRetry(() => firestoreSetDoc(ref, data as any, options as any), `setDoc(${ref.path})`);
+  const args = options ? [ref, data as any, options as any] : [ref, data as any];
+  const result = await withRetry(() => (firestoreSetDoc as any)(...args), `setDoc(${ref.path})`);
   if (ensureSync && (db as any)) await awaitSync(db);
   return result;
 };

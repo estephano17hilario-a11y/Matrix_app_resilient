@@ -21,20 +21,20 @@ const CENTER_X = VIEWBOX_WIDTH / 2;
 const TOP_PADDING = 60;  // Padding for the first node
 
 export const getTargetPercentage = (day: number) => {
-    if (day <= 7) return 60;
-    if (day <= 14) return 67;
-    if (day <= 30) return 75;
-    if (day <= 60) return 80;
+    if (day <= 7) return 50;
+    if (day <= 14) return 60;
+    if (day <= 30) return 67;
+    if (day <= 60) return 75;
     if (day <= 90) return 80;
     return 85;
 };
 
 export const getNextLevelPercentage = (day: number) => {
-    if (day < 7) return 67;
-    if (day < 14) return 75;
-    if (day < 30) return 80;
-    if (day < 60) return 80;
-    if (day < 90) return 85;
+    if (day <= 7) return 60;
+    if (day <= 14) return 67;
+    if (day <= 30) return 75;
+    if (day <= 60) return 80;
+    if (day <= 90) return 85;
     return 85;
 };
 
@@ -164,6 +164,9 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
         return () => clearTimeout(timer);
     }, []);
 
+    const targetPercentage = getTargetPercentage(currentStreak);
+    const isTodayCompleted = todayProgress >= targetPercentage;
+
     return (
         <motion.div 
             initial={{ opacity: 0 }}
@@ -171,35 +174,21 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-[#020204] text-white flex flex-col h-full w-full overflow-hidden font-sans"
         >
-            {/* Background Ambience (Ultra-Elegant Mesh Gradient - Static & High Perf) */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Primary Mesh Layer */}
+            {/* Background Ambience (Optimized for Performance) */}
+            <div className={cn("absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-700", isTodayCompleted ? "bg-[#040812]" : "bg-[#020204]")}>
                 <div 
-                    className="absolute inset-0 opacity-80"
+                    className={cn("absolute inset-0 transition-opacity duration-700", isTodayCompleted ? "opacity-100" : "opacity-40")}
                     style={{
-                        background: `
-                            radial-gradient(at 0% 0%, #1e1b4b 0%, transparent 50%),
-                            radial-gradient(at 100% 0%, #312e81 0%, transparent 50%),
-                            radial-gradient(at 100% 100%, #1e3a8a 0%, transparent 50%),
-                            radial-gradient(at 0% 100%, #172554 0%, transparent 50%),
-                            radial-gradient(at 50% 50%, #1e1b4b 0%, transparent 50%)
+                        background: isTodayCompleted ? `
+                            radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 70%),
+                            radial-gradient(circle at 50% 100%, rgba(99, 102, 241, 0.15) 0%, transparent 70%),
+                            radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 80%)
+                        ` : `
+                            radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 70%),
+                            radial-gradient(circle at 50% 100%, #172554 0%, transparent 70%)
                         `
                     }}
                 />
-                {/* Secondary Accent Layer (Mesh Style) */}
-                <div 
-                    className="absolute inset-0 opacity-40 mix-blend-screen"
-                    style={{
-                        background: `
-                            radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.2) 0%, transparent 40%),
-                            radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
-                            radial-gradient(circle at 80% 10%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
-                            radial-gradient(circle at 20% 90%, rgba(236, 72, 153, 0.1) 0%, transparent 40%)
-                        `
-                    }}
-                />
-                {/* Subtle Grain Texture for high-end feel */}
-                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
             </div>
 
             {/* --- HEADER --- */}
@@ -210,7 +199,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                     <div className="relative flex items-center justify-between px-4 py-4">
                         <button 
                             onClick={onClose}
-                            className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-all active:scale-95 backdrop-blur-xl"
+                            className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-all active:scale-95"
                         >
                             <ArrowLeft className="w-6 h-6 text-white/90" />
                         </button>
@@ -223,15 +212,15 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             </div>
                         </div>
 
-                        <div className="p-2.5 rounded-2xl bg-amber-500/5 border border-amber-500/10 backdrop-blur-xl">
-                            <Flame className="w-6 h-6 text-amber-500 fill-amber-500/40" />
+                        <div className={cn("p-2.5 rounded-2xl border transition-all duration-500", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
+                            <Flame className={cn("w-6 h-6 transition-all duration-500", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
                         </div>
                     </div>
 
                     {/* Stats Row (No more black boxes - Pure transparency) */}
                     <div className="relative grid grid-cols-2 divide-x divide-white/5 border-y border-white/5">
-                        <HeaderStat label={t('dashboard.dailyGoal', 'DAILY GOAL')} value={`${getNextLevelPercentage(currentStreak)}%`} />
-                        <HeaderStat label={t('dashboard.todayProgress', 'TODAY PROGRESS')} value={`${todayProgress}%`} colorClass={todayProgress >= getNextLevelPercentage(currentStreak) ? "text-orange-400" : "text-cyan-400"} />
+                        <HeaderStat label={t('dashboard.dailyGoal', 'DAILY GOAL')} value={`${targetPercentage}%`} />
+                        <HeaderStat label={t('dashboard.todayProgress', 'TODAY PROGRESS')} value={`${todayProgress}%`} colorClass={isTodayCompleted ? "text-orange-400" : "text-cyan-400"} />
                     </div>
                 </div>
 
@@ -250,28 +239,17 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                         >
                             <defs>
                                 <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#f97316" />
-                                    <stop offset="50%" stopColor="#fb923c" />
-                                    <stop offset="100%" stopColor="#fbbf24" />
+                                    <stop offset="0%" stopColor="#f59e0b" />
+                                    <stop offset="50%" stopColor="#f97316" />
+                                    <stop offset="100%" stopColor="#ec4899" />
                                 </linearGradient>
-                                <linearGradient id="glowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
-                                    <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.3" />
-                                </linearGradient>
-                                <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
-                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                                    <feMerge>
-                                        <feMergeNode in="coloredBlur"/>
-                                        <feMergeNode in="SourceGraphic"/>
-                                    </feMerge>
-                                </filter>
                             </defs>
                             
                             {/* Background Track - Dim */}
                             <path 
                                 d={pathD} 
                                 fill="none" 
-                                stroke="rgba(255,255,255,0.03)" 
+                                stroke="rgba(255,255,255,0.05)" 
                                 strokeWidth="4" 
                                 strokeLinecap="round"
                             />
@@ -284,10 +262,9 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                                     stroke="url(#pathGradient)" 
                                     strokeWidth="4" 
                                     strokeLinecap="round"
-                                    filter="url(#pathGlow)"
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
-                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
                                 />
                             )}
 
@@ -402,8 +379,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
     }
 
     if (isCurrent) {
-        const displayPercentage = isMilestone ? nextLevelPercentage : targetPercentage;
-        const isAchieved = progress >= displayPercentage;
+        const isAchieved = progress >= targetPercentage;
 
         return (
             <motion.div
@@ -416,29 +392,27 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     className="absolute -inset-1 rounded-full opacity-70 group-hover:opacity-90 transition-opacity duration-300"
                     style={{ 
                         boxShadow: isAchieved 
-                            ? '0 0 25px rgba(249,115,22,0.4)' 
-                            : '0 0 20px rgba(16,185,129,0.3)'
+                            ? '0 0 25px rgba(16,185,129,0.4)' 
+                            : '0 0 15px rgba(var(--color-avatar-accent), 0.15)'
                     }}
                 />
                 
                 <div className={cn(
                     "relative flex items-center gap-3 pl-2 pr-5 py-2.5 bg-[#0f0f0f] border rounded-[1.8rem] shadow-lg transition-colors duration-300",
-                    isMilestone 
-                        ? (isAchieved ? "border-orange-500/60" : "border-amber-500/50") 
-                        : (isAchieved ? "border-orange-500/40" : "border-emerald-500/30")
+                    isAchieved ? "border-emerald-500/60" : "border-transparent"
                 )}>
                     <div className={cn(
                         "flex items-center justify-center w-11 h-11 rounded-xl border",
-                        isMilestone 
-                            ? (isAchieved ? "bg-orange-500/20 border-orange-500/50" : "bg-amber-500/20 border-amber-500/50") 
-                            : (isAchieved ? "bg-orange-500/20 border-orange-500/40" : "bg-emerald-500/20 border-emerald-500/40")
-                    )}>
+                        isAchieved ? "bg-emerald-500/20 border-emerald-500/50" : "border-transparent"
+                    )}
+                    style={!isAchieved ? { backgroundColor: 'rgba(var(--color-avatar-accent), 0.05)' } : {}}
+                    >
                         {isAchieved ? (
-                            <CheckCircle2 className={cn("w-6 h-6", isMilestone ? "text-orange-400" : "text-orange-400")} />
+                            <CheckCircle2 className={cn("w-6 h-6", "text-emerald-400")} />
                         ) : (
                             <div className="relative w-full h-full flex items-center justify-center">
-                                <Circle className="w-6 h-6 opacity-80" />
-                                <div className={cn("absolute inset-0 rounded-lg opacity-25", isMilestone ? "bg-amber-500" : "bg-emerald-500")} />
+                                <Circle className="w-6 h-6 opacity-60" style={{ color: 'rgb(var(--color-avatar-accent))' }} />
+                                <div className="absolute inset-0 rounded-lg opacity-10" style={{ backgroundColor: 'rgb(var(--color-avatar-accent))' }} />
                             </div>
                         )}
                     </div>
@@ -446,22 +420,26 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     <div className="flex flex-col">
                         <span className={cn(
                             "text-[8px] font-black uppercase tracking-[0.15em] mb-0.5",
-                            isMilestone ? "text-amber-400" : "text-emerald-500"
-                        )}>
+                            isAchieved ? "text-emerald-400" : "opacity-80"
+                        )}
+                        style={!isAchieved ? { color: 'rgb(var(--color-avatar-accent))' } : {}}
+                        >
                             {isMilestone ? "HOY - NUEVO NIVEL" : "HOY"}
                         </span>
                         <span className={cn(
                             "text-sm font-black tracking-tight",
-                            isAchieved ? "text-orange-400" : "text-white"
+                            isAchieved ? "text-emerald-400" : "text-white/90"
                         )}>
-                            {isAchieved ? "Completado" : `${displayPercentage}% Requerido`}
+                            {isAchieved ? "Completado" : `${targetPercentage}% Requerido`}
                         </span>
                     </div>
 
                     <div className={cn(
                         "absolute -right-1 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-[2px] border-[#020204]",
-                        isAchieved ? "bg-orange-500" : (isMilestone ? "bg-amber-500" : "bg-emerald-500")
-                    )} />
+                        isAchieved ? "bg-emerald-500" : "opacity-80"
+                    )}
+                    style={!isAchieved ? { backgroundColor: 'rgb(var(--color-avatar-accent))' } : {}}
+                    />
                 </div>
             </motion.div>
         );

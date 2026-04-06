@@ -23,10 +23,10 @@ interface HabitConsistencyChartProps {
 type TimeFrame = 'WEEK' | 'MONTH' | 'YEAR';
 
 const getRequiredPercentForDay = (day: number) => {
-    if (day <= 7) return 60;
-    if (day <= 14) return 67;
-    if (day <= 30) return 75;
-    if (day <= 60) return 80;
+    if (day <= 7) return 50;
+    if (day <= 14) return 60;
+    if (day <= 30) return 67;
+    if (day <= 60) return 75;
     if (day <= 90) return 80;
     return 85;
 };
@@ -501,8 +501,18 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         </div>
                         <div className="flex items-center gap-2 relative z-10">
                             <div className="relative">
-                                <Flame size={20} className="text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500 transition-all duration-500 group-hover/streak:scale-110" />
-                                <div className="absolute inset-0 bg-orange-500/20 blur-sm rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
+                                <Flame 
+                                    size={20} 
+                                    className={cn(
+                                        "transition-all duration-500 group-hover/streak:scale-110",
+                                        todayStats.percent >= todayStats.requiredToday 
+                                            ? "text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500" 
+                                            : "text-zinc-600 fill-zinc-800/50 group-hover/streak:text-orange-500/50"
+                                    )} 
+                                />
+                                {todayStats.percent >= todayStats.requiredToday && (
+                                    <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
+                                )}
                             </div>
                             <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
                                 {stats.streak} <span className="text-sm font-normal text-zinc-500">{t('dashboard.days')}</span>
