@@ -67,7 +67,15 @@ public class FocusPlugin extends Plugin {
             }
             call.resolve();
         } catch (Exception e) {
-            call.reject("Failed to request battery permission", e);
+            try {
+                // Fallback to battery optimization settings list
+                Intent fallbackIntent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                fallbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallbackIntent);
+                call.resolve();
+            } catch (Exception fallbackErr) {
+                call.reject("Failed to request battery permission", fallbackErr);
+            }
         }
     }
 

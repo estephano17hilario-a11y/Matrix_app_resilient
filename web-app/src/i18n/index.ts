@@ -25,17 +25,27 @@ const canUseStorage = (() => {
 })();
 
 const getStoredLanguage = () => {
-  if (!canUseStorage) return null;
-  try {
-    const stored = localStorage.getItem('i18nextLng');
-    if (stored) {
-      if (stored.startsWith('en')) return 'en';
-      if (stored.startsWith('es')) return 'es';
+  if (canUseStorage) {
+    try {
+      const stored = localStorage.getItem('i18nextLng');
+      if (stored) {
+        if (stored.startsWith('en')) return 'en';
+        if (stored.startsWith('es')) return 'es';
+      }
+    } catch {
+      // ignore
     }
-    return stored;
-  } catch {
-    return null;
   }
+  
+  // Si no hay idioma guardado, analizamos el del dispositivo
+  if (typeof navigator !== 'undefined' && navigator.language) {
+    const browserLang = navigator.language.toLowerCase();
+    if (browserLang.startsWith('es')) return 'es';
+    if (browserLang.startsWith('en')) return 'en';
+  }
+  
+  // "y si no se identifca nada osea el "else" sera en ingles"
+  return 'en';
 };
 
 i18n
@@ -43,9 +53,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    // Start with Spanish if no language is detected/stored
-    lng: getStoredLanguage() || 'es', 
-    fallbackLng: 'es', 
+    lng: getStoredLanguage(), // detecta o usa default
+    fallbackLng: 'en', // fallback a inglés
     supportedLngs: ['es', 'en'],
     debug: true, // Enable debug to see what's happening in console
     interpolation: {

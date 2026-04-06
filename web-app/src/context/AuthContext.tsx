@@ -235,7 +235,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 let dataToSet: any = {};
                 let snapData: any = null;
                 
-                let getDocFailed = false;
                 try {
                     const userSnap = await getDoc(userRef);
                     exists = userSnap.exists();
@@ -245,7 +244,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } catch (e) {
                     console.warn("⚠️ MATRIX: getDoc failed in createOrFillProfile. Network or permissions issue. Proceeding with optimistic merge.", e);
-                    getDocFailed = true;
                     throw e; // Force a retry if we cannot read the profile!
                 }
                 

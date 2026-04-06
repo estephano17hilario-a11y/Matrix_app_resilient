@@ -69,15 +69,22 @@ export const SystemSection = () => {
     }
     try {
       // First try native prompt (works on Android 13+)
-      const perm = await LocalNotifications.requestPermissions();
-      if (perm.display === 'granted') {
-        setPermissions(prev => ({ ...prev, notifications: true }));
-        toast.success(t('settings.notificationsEnabled', 'Notifications enabled'));
-      } else {
-        // Fallback to settings if prompt was dismissed/denied or unsupported
-        await FocusSession.openNotificationSettings();
+      try {
+        const perm = await LocalNotifications.requestPermissions();
+        if (perm.display === 'granted') {
+          setPermissions(prev => ({ ...prev, notifications: true }));
+          toast.success(t('settings.notificationsEnabled', 'Notifications enabled'));
+          return;
+        }
+      } catch (promptError) {
+        console.warn("Native permission prompt failed, falling back to settings", promptError);
       }
+      
+      // Fallback to settings if prompt was dismissed/denied or unsupported
+      await FocusSession.openNotificationSettings();
+      toast.success("Opening notification settings...");
     } catch (e) {
+      console.error(e);
       toast.error("Failed to open notification settings");
     }
   };
@@ -91,6 +98,7 @@ export const SystemSection = () => {
       await FocusSession.requestBatteryPermission();
       toast.success("Opening battery settings...");
     } catch (e) {
+      console.error(e);
       toast.error("Failed to open battery settings");
     }
   };
@@ -103,16 +111,10 @@ export const SystemSection = () => {
         </div>
 
       <div className="space-y-4">
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-            style={{ 
-              background: `radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)`,
-              willChange: 'opacity'
-            }} 
-          />
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+        {/* Language */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
               <Globe size={18} className="text-indigo-400" />
             </div>
             <div>
@@ -121,45 +123,39 @@ export const SystemSection = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 relative z-10">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => changeLanguage('en')}
               className={cn(
-                "flex items-center justify-center gap-2 py-3 rounded-[16px] transition-all duration-300 text-sm font-black active:scale-95",
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
                 i18n.language === 'en' 
-                  ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]" 
-                  : "bg-black/40 text-white/50 border border-white/[0.03] hover:border-white/[0.08] hover:text-white"
+                  ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
               )}
             >
-              <span className="text-lg drop-shadow-md">🇺🇸</span>
+              <span className="text-lg">🇺🇸</span>
               <span>English</span>
             </button>
             <button
               onClick={() => changeLanguage('es')}
               className={cn(
-                "flex items-center justify-center gap-2 py-3 rounded-[16px] transition-all duration-300 text-sm font-black active:scale-95",
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
                 i18n.language === 'es' 
-                  ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]" 
-                  : "bg-black/40 text-white/50 border border-white/[0.03] hover:border-white/[0.08] hover:text-white"
+                  ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
               )}
             >
-              <span className="text-lg drop-shadow-md">🇪🇸</span>
+              <span className="text-lg">🇪🇸</span>
               <span>Español</span>
             </button>
           </div>
         </div>
 
+        {/* Native Permissions */}
         {isNative && (
-          <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-            <div 
-              className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-              style={{ 
-                background: `radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)`,
-                willChange: 'opacity'
-              }} 
-            />
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
                 <Smartphone size={18} className="text-emerald-400" />
               </div>
               <div>
@@ -168,42 +164,42 @@ export const SystemSection = () => {
               </div>
             </div>
 
-            <div className="space-y-3 relative z-10">
-              <div className="flex items-center justify-between p-3 rounded-[16px] bg-black/40 border border-white/[0.03] hover:border-white/[0.06] transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                 <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl transition-all duration-300", permissions.notifications ? "bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-white/[0.03]")}>
-                    <Bell size={18} className={cn("transition-colors", permissions.notifications ? "text-emerald-400" : "text-white/40")} />
+                  <div className={cn("p-2 rounded-lg", permissions.notifications ? "bg-emerald-500/20" : "bg-white/5")}>
+                    <Bell size={18} className={permissions.notifications ? "text-emerald-400" : "text-white/40"} />
                   </div>
-                  <span className={cn("text-sm font-bold transition-colors", permissions.notifications ? "text-white" : "text-white/70")}>{t('settings.notifications', 'Notifications')}</span>
+                  <span className="text-sm font-bold text-white/90">{t('settings.notifications', 'Notifications')}</span>
                 </div>
                 <button
                   onClick={handleRequestNotifications}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 active:scale-95",
+                    "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors duration-150 active:scale-95",
                     permissions.notifications 
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                      : "bg-white text-black hover:scale-105 shadow-[0_5px_20px_rgba(255,255,255,0.2)]"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                      : "bg-white text-black hover:bg-gray-200"
                   )}
                 >
                   {permissions.notifications ? t('settings.active', 'Active') : t('settings.enable', 'Enable')}
                 </button>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-[16px] bg-black/40 border border-white/[0.03] hover:border-white/[0.06] transition-colors">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                 <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl transition-all duration-300", permissions.battery ? "bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-white/[0.03]")}>
-                    <BatteryMedium size={18} className={cn("transition-colors", permissions.battery ? "text-emerald-400" : "text-white/40")} />
+                  <div className={cn("p-2 rounded-lg", permissions.battery ? "bg-emerald-500/20" : "bg-white/5")}>
+                    <BatteryMedium size={18} className={permissions.battery ? "text-emerald-400" : "text-white/40"} />
                   </div>
-                  <span className={cn("text-sm font-bold transition-colors", permissions.battery ? "text-white" : "text-white/70")}>{t('settings.batteryOptimization', 'Battery Optimization')}</span>
+                  <span className="text-sm font-bold text-white/90">{t('settings.batteryOptimization', 'Battery Optimization')}</span>
                 </div>
                 <button
                   onClick={handleRequestBattery}
                   disabled={permissions.battery}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 active:scale-95",
+                    "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors duration-150 active:scale-95",
                     permissions.battery 
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default" 
-                      : "bg-white text-black hover:scale-105 shadow-[0_5px_20px_rgba(255,255,255,0.2)]"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default" 
+                      : "bg-white text-black hover:bg-gray-200"
                   )}
                 >
                   {permissions.battery ? t('settings.unrestricted', 'Unrestricted') : t('settings.disable', 'Disable')}
@@ -213,17 +209,11 @@ export const SystemSection = () => {
           </div>
         )}
 
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-            style={{ 
-              background: `radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)`,
-              willChange: 'opacity'
-            }} 
-          />
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+        {/* Chart Style */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
                 <BarChart3 size={18} className="text-cyan-400" />
               </div>
               <div>
@@ -232,12 +222,12 @@ export const SystemSection = () => {
               </div>
             </div>
 
-            <div className="flex bg-black/40 rounded-[16px] p-1 border border-white/[0.03] shadow-inner">
+            <div className="flex bg-white/5 rounded-xl p-1 border border-white/5">
               <button
                 onClick={() => setDefaultChartMode('RADAR')}
                 className={cn(
-                  "p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center active:scale-95",
-                  defaultChartMode === 'RADAR' ? "bg-cyan-500/10 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] border border-cyan-500/20" : "text-white/30 hover:text-white/70 hover:bg-white/[0.02] border border-transparent"
+                  "p-2 rounded-lg transition-colors duration-150 flex items-center justify-center active:scale-95",
+                  defaultChartMode === 'RADAR' ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-white/40 hover:text-white/80 hover:bg-white/10 border border-transparent"
                 )}
               >
                 <Hexagon size={16} />
@@ -245,8 +235,8 @@ export const SystemSection = () => {
               <button
                 onClick={() => setDefaultChartMode('BAR')}
                 className={cn(
-                  "p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center active:scale-95",
-                  defaultChartMode === 'BAR' ? "bg-cyan-500/10 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] border border-cyan-500/20" : "text-white/30 hover:text-white/70 hover:bg-white/[0.02] border border-transparent"
+                  "p-2 rounded-lg transition-colors duration-150 flex items-center justify-center active:scale-95",
+                  defaultChartMode === 'BAR' ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-white/40 hover:text-white/80 hover:bg-white/10 border border-transparent"
                 )}
               >
                 <BarChart3 size={16} />
@@ -255,17 +245,11 @@ export const SystemSection = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-            style={{ 
-              background: `radial-gradient(circle, rgba(217,70,239,0.4) 0%, transparent 70%)`,
-              willChange: 'opacity'
-            }} 
-          />
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center border border-fuchsia-500/20">
+        {/* Section Controls */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center border border-fuchsia-500/20">
                 <Settings2 size={18} className="text-fuchsia-400" />
               </div>
               <div>
@@ -277,32 +261,26 @@ export const SystemSection = () => {
             <button
               onClick={() => updateHabitSectionControl(habitSectionControl === 'VISIBLE' ? 'HIDDEN' : 'VISIBLE')}
               className={cn(
-                "w-14 h-8 rounded-full transition-all duration-300 relative shadow-inner border",
+                "w-12 h-6 rounded-full transition-colors duration-150 relative border",
                 habitSectionControl === 'VISIBLE' 
-                  ? "bg-fuchsia-500/20 border-fuchsia-500/30 shadow-[0_0_15px_rgba(217,70,239,0.2)]" 
-                  : "bg-black/50 border-white/[0.05]"
+                  ? "bg-fuchsia-500/30 border-fuchsia-500/50" 
+                  : "bg-white/10 border-white/10"
               )}
             >
               <div
                 className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.5)] transition-all duration-300",
-                  habitSectionControl === 'VISIBLE' ? "bg-fuchsia-400 left-[30px]" : "bg-white/40 left-1.5"
+                  "absolute top-0.5 w-4 h-4 rounded-full transition-all duration-150",
+                  habitSectionControl === 'VISIBLE' ? "bg-fuchsia-400 left-[26px]" : "bg-white/60 left-1"
                 )}
               />
             </button>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-            style={{ 
-              background: `radial-gradient(circle, rgba(14,165,233,0.4) 0%, transparent 70%)`,
-              willChange: 'opacity'
-            }} 
-          />
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+        {/* Week Starts On */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
               <Calendar size={18} className="text-cyan-400" />
             </div>
             <div>
@@ -311,29 +289,29 @@ export const SystemSection = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 relative z-10">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => updateWeekStartDay(1)}
               className={cn(
-                "flex items-center justify-center gap-2 py-3 rounded-[16px] transition-all duration-300 text-sm font-black active:scale-95",
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
                 weekStartDay === 1 
-                  ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]" 
-                  : "bg-black/40 text-white/50 border border-white/[0.03] hover:border-white/[0.08] hover:text-white"
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
               )}
             >
-              <span className="text-lg drop-shadow-md">📅</span>
+              <span className="text-lg">📅</span>
               <span>{t('common.monday', 'Monday')}</span>
             </button>
             <button
               onClick={() => updateWeekStartDay(0)}
               className={cn(
-                "flex items-center justify-center gap-2 py-3 rounded-[16px] transition-all duration-300 text-sm font-black active:scale-95",
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
                 weekStartDay === 0 
-                  ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]" 
-                  : "bg-black/40 text-white/50 border border-white/[0.03] hover:border-white/[0.08] hover:text-white"
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
               )}
             >
-              <span className="text-lg drop-shadow-md">🗓️</span>
+              <span className="text-lg">🗓️</span>
               <span>{t('common.sunday', 'Sunday')}</span>
             </button>
           </div>

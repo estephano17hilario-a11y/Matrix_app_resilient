@@ -379,12 +379,12 @@ export default function Dashboard() {
         if (user?.uid) {
             const tutorialKey = `matrix_stats_tutorial_seen_${user.uid}`;
             const hasSeen = localStorage.getItem(tutorialKey);
-            const storedLang = localStorage.getItem('i18nextLng') || i18n.language || 'en';
+            const storedLang = localStorage.getItem('i18nextLng') || i18n.language || navigator.language || 'en';
             if (!hasSeen) {
-                if (storedLang.startsWith('en')) {
-                    i18n.changeLanguage('en');
-                } else {
+                if (storedLang.startsWith('es')) {
                     i18n.changeLanguage('es');
+                } else {
+                    i18n.changeLanguage('en');
                 }
                 setShowStatsTutorial(true);
                 localStorage.setItem(tutorialKey, 'true');
