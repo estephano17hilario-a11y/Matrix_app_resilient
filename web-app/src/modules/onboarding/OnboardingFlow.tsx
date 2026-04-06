@@ -166,6 +166,11 @@ export function OnboardingFlow() {
         updateProfileLocally(localUpdates);
     }
     
+    // Also save directly to PersistenceService to guarantee it's there on next boot
+    // even if Firestore is slow.
+    const mergedProfile = { ...profile, ...localUpdates };
+    PersistenceService.saveProfile(mergedProfile as any);
+    
     try {
         // Background Save process (does not block UI)
         const userRef = doc(db, "users", userId);

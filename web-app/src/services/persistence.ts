@@ -173,13 +173,13 @@ const parseEnvelope = <T>(raw: string | null, uid: string): PersistedEnvelope<T>
        return parsed;
     } 
     
-    // MIGRATION STRATEGY (V1 -> V2)
-    // If version is 1, we try to accept it if valid, but we don't verify checksum strictly 
-    // because V1 had unstable stringify and weak hash.
-    // We implicitly "trust" V1 data if it parses correctly, to allow migration.
-    if (parsed.v === 1) {
-        console.log("♻️ MATRIX MEMORY: Migrating V1 data for", uid);
-        return parsed; // Return it so it can be re-saved as V2
+    // MIGRATION STRATEGY (V1 -> V2 -> V3)
+    // If version is 1 or 2, we try to accept it if valid, but we don't verify checksum strictly 
+    // because older versions had unstable stringify and weak hash.
+    // We implicitly "trust" older data if it parses correctly, to allow migration.
+    if (parsed.v === 1 || parsed.v === 2) {
+        console.log(`♻️ MATRIX MEMORY: Migrating V${parsed.v} data for`, uid);
+        return parsed; // Return it so it can be re-saved as current version
     }
 
     return null;

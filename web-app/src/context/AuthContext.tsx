@@ -172,7 +172,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              console.log("⚡ MATRIX: Restored from cache.");
              
              // 🩹 HEAL POISONED CACHE: If the previous bug corrupted completedAt to 0, fix it instantly before rendering
-             if (!cached.onboarding?.completedAt && (cached.stats?.level > 1 || cached.stats?.xp > 0 || cached.plan === 'PRO' || cached.avatarId)) {
+             const hasLocalAttributes = PersistenceService.hasCollectionCache(currentUser.uid, 'attributes');
+             if (!cached.onboarding?.completedAt && (cached.stats?.level > 1 || cached.stats?.xp > 0 || cached.plan === 'PRO' || cached.avatarId || hasLocalAttributes)) {
                  cached.onboarding = cached.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
                  cached.onboarding.completedAt = cached.createdAt || Date.now();
                  PersistenceService.saveProfile(cached); // Save healed cache
@@ -207,8 +208,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                      console.log("🩹 MATRIX: Preserving existing profile, just removing skeleton flag.");
                      return { ...prev, isSkeleton: false };
                  }
-                 console.log("🩹 MATRIX: Creating brand new fallback profile from safety timer.");
-                    return {
+                 
+                 // If we have no profile (no cache), check if they are likely a new user
+                 const creationTime = currentUser.metadata.creationTime ? new Date(currentUser.metadata.creationTime).getTime() : 0;
+                 const lastSignInTime = currentUser.metadata.lastSignInTime ? new Date(currentUser.metadata.lastSignInTime).getTime() : 0;
+                 const isLikelyNewUser = Math.abs(lastSignInTime - creationTime) < 60000;
+                 
+                 if (!isLikelyNewUser) {
+                     console.error("⛔ MATRIX: Blocked existing user from entering with blank profile (Safety Timer) to prevent data overwrite.");
+                     setError("Network Error: Could not load your profile. Please check your internet connection.");
+                     signOut(auth).catch(() => {});
+                     return null; // Return null so they don't enter the app in a broken state
+                 }
+
+                 console.log("🩹 MATRIX: Creating brand new fallback profile from safety timer for likely new user.");
+                 return {
                         uid: currentUser.uid,
                         email: currentUser.email,
                         displayName: currentUser.displayName || "",
@@ -249,6 +263,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 
                 if (!exists) {
                     // Fresh registration - create document immediately (0 delay)
+                    // Retrieve display name from session storage if it was set during registration
+                    const storedDisplayName = sessionStorage.getItem('MATRIX_NEW_USER_DISPLAY_NAME');
+                    if (storedDisplayName) {
+                        sessionStorage.removeItem('MATRIX_NEW_USER_DISPLAY_NAME');
+                    }
+
                     const defaultData: any = {
                         uid: currentUser.uid,
                         email: currentUser.email || null,
@@ -258,10 +278,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         stats: DEFAULT_USER_STATS,
                         theme: 'MATRIX',
                         createdAt: Date.now(),
-                        lastLoginAt: Date.now()
+                        lastLoginAt: Date.now(),
+                        onboarding: {
+                            language: localStorage.getItem('i18nextLng') || 'en',
+                            completedAt: 0,
+                            successDefinition: "Becoming the One",
+                            obstacles: [],
+                            coachingTone: "Stoic"
+                        }
                     };
                     
-                    if (currentUser.displayName) {
+                    if (storedDisplayName) {
+                        defaultData.displayName = storedDisplayName;
+                    } else if (currentUser.displayName) {
                         defaultData.displayName = currentUser.displayName;
                     }
                     
@@ -291,7 +320,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 
                 // If onboarding is marked as not completed, but they have stats/xp, a plan, or an avatarId, they clearly finished it.
-                if (!resolvedOnboarding.completedAt && (data.stats?.level > 1 || data.stats?.xp > 0 || data.plan === 'PRO' || data.avatarId)) {
+                // FIX: Also check if they have traits (attributes collection) in local cache to heal new users who just selected them
+                const hasLocalAttributes = PersistenceService.hasCollectionCache(currentUser.uid, 'attributes');
+                if (!resolvedOnboarding.completedAt && (data.stats?.level > 1 || data.stats?.xp > 0 || data.plan === 'PRO' || data.avatarId || hasLocalAttributes)) {
                     resolvedOnboarding.completedAt = data.createdAt || Date.now();
                     needsFirestoreHeal = true;
                 }
@@ -332,21 +363,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  // Before falling back to an empty profile, try cache again!
                  const localCache = PersistenceService.getProfile(currentUser.uid);
                  
-                 // 🩹 HEAL POISONED CACHE
-                 if (localCache && !localCache.onboarding?.completedAt && (localCache.stats?.level > 1 || localCache.stats?.xp > 0 || localCache.plan === 'PRO' || localCache.avatarId)) {
-                     localCache.onboarding = localCache.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
-                     localCache.onboarding.completedAt = localCache.createdAt || Date.now();
-                     PersistenceService.saveProfile(localCache);
+                 if (localCache) {
+                     // 🩹 HEAL POISONED CACHE
+                     const hasLocalAttributes = PersistenceService.hasCollectionCache(currentUser.uid, 'attributes');
+                     if (!localCache.onboarding?.completedAt && (localCache.stats?.level > 1 || localCache.stats?.xp > 0 || localCache.plan === 'PRO' || localCache.avatarId || hasLocalAttributes)) {
+                         localCache.onboarding = localCache.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                         localCache.onboarding.completedAt = localCache.createdAt || Date.now();
+                         PersistenceService.saveProfile(localCache);
+                     }
+
+                     if (localCache.uid === currentUser.uid && localCache.onboarding?.completedAt) {
+                         console.log("🩹 MATRIX: Fetch failed. Restored from cache completely.");
+                         setProfile(localCache);
+                         setIsLoading(false);
+                         return;
+                     }
                  }
 
-                 if (localCache && localCache.uid === currentUser.uid && localCache.onboarding?.completedAt) {
-                     console.log("🩹 MATRIX: Fetch failed. Restored from cache completely.");
-                     setProfile(localCache);
+                 // Determine if this is truly a brand new user or an existing user failing to load
+                 const creationTime = currentUser.metadata.creationTime ? new Date(currentUser.metadata.creationTime).getTime() : 0;
+                 const lastSignInTime = currentUser.metadata.lastSignInTime ? new Date(currentUser.metadata.lastSignInTime).getTime() : 0;
+                 // If creation time and last sign in time are very close, it's a new registration
+                 const isLikelyNewUser = Math.abs(lastSignInTime - creationTime) < 60000;
+
+                 if (!isLikelyNewUser) {
+                     // DANGER: Existing user, no local cache, fetch failed. 
+                     // We MUST NOT let them in with a blank profile, or they will overwrite their real data!
+                     console.error("⛔ MATRIX: Blocked existing user from entering with blank profile to prevent data overwrite.");
+                     setError("Network Error: Could not load your profile. Please check your internet connection.");
                      setIsLoading(false);
+                     
+                     // Sign them out so they don't get stuck in a broken state
+                     signOut(auth).catch(() => {});
                      return;
                  }
 
-                 // Even on total failure, unblock the user with a minimal profile
+                 // Even on total failure, unblock the NEW user with a minimal profile
                 const fallback: UserProfile = {
                     uid: currentUser.uid,
                     email: currentUser.email,

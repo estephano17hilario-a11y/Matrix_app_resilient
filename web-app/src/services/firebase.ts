@@ -105,10 +105,10 @@ if (isConfigValid) {
     try {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
-                tabManager: persistentMultipleTabManager()
+                tabManager: Capacitor.isNativePlatform() ? undefined : persistentMultipleTabManager()
             })
         });
-        console.log("💎 MATRIX: Offline Persistence Enabled (Multi-Tab)");
+        console.log("💎 MATRIX: Offline Persistence Enabled");
     } catch (err: any) {
         // Fallback if already initialized or error
         if (err.code === 'failed-precondition') {
@@ -175,11 +175,11 @@ const withRetry = async <T>(op: () => Promise<T>, label: string, maxRetries = 5)
     } catch (e: any) {
       lastError = e;
       const code = e?.code || e?.name || 'unknown';
-      const isTransient = TRANSIENT_CODES.has(code);
+      const isTransient = TRANSIENT_CODES.has(code) || code.includes('network') || code.includes('offline');
       if (!isTransient && attempt > 0) break;
       if (!isTransient && attempt === 0) {
-      } else if (!isTransient) {
-        break;
+          // Si es un error no transitorio (ej: permission-denied), fallar de inmediato
+          break;
       }
       const backoff = Math.min(200 * 2 ** attempt, 2000) + Math.floor(Math.random() * 150);
       attempt += 1;
@@ -210,9 +210,15 @@ const safeSetDoc = async <T>(
   ensureSync: boolean = false
 ) => {
   const args = options ? [ref, data as any, options as any] : [ref, data as any];
-  const result = await withRetry(() => (firestoreSetDoc as any)(...args), `setDoc(${ref.path})`);
-  if (ensureSync && (db as any)) await awaitSync(db);
-  return result;
+  // Fire-and-forget: No esperamos a ensureSync en móviles para no bloquear la UI.
+  // Dejamos que IndexedDB se encargue de subirlo en background.
+  const promise = withRetry(() => (firestoreSetDoc as any)(...args), `setDoc(${ref.path})`, 1);
+  
+  if (ensureSync && (db as any) && !Capacitor.isNativePlatform()) {
+      await awaitSync(db);
+  }
+  
+  return promise;
 };
 
 const safeUpdateDoc = async <T>(
@@ -220,9 +226,11 @@ const safeUpdateDoc = async <T>(
   data: Partial<T>,
   ensureSync: boolean = false
 ) => {
-  const result = await withRetry(() => firestoreUpdateDoc(ref as any, data as any), `updateDoc(${(ref as any).path})`);
-  if (ensureSync && (db as any)) await awaitSync(db);
-  return result;
+  const promise = withRetry(() => firestoreUpdateDoc(ref as any, data as any), `updateDoc(${(ref as any).path})`, 1);
+  if (ensureSync && (db as any) && !Capacitor.isNativePlatform()) {
+      await awaitSync(db);
+  }
+  return promise;
 };
 
 const safeAddDoc = async <T>(
@@ -230,32 +238,25 @@ const safeAddDoc = async <T>(
   data: T,
   ensureSync: boolean = false
 ) => {
-  const result = await withRetry(() => firestoreAddDoc(coll as any, data as any), `addDoc(${coll.path})`);
-  if (ensureSync && (db as any)) await awaitSync(db);
-  return result;
+  const promise = withRetry(() => firestoreAddDoc(coll as any, data as any), `addDoc(${coll.path})`, 1);
+  if (ensureSync && (db as any) && !Capacitor.isNativePlatform()) {
+      await awaitSync(db);
+  }
+  return promise;
 };
 
 const patchedWriteBatch = (firestore: Firestore): WriteBatch => {
   const batch = firestoreWriteBatch(firestore);
   const originalCommit = (batch as any).commit.bind(batch);
   (batch as any).commit = async () => {
-    const res = await withRetry(() => originalCommit(), 'batch.commit');
-    await awaitSync(firestore);
+    // Para operaciones por lotes, delegamos la sincronización enteramente a Firestore.
+    // Esto evita bloqueos de UI en redes inestables (como móviles)
+    // El SDK de Firebase se encargará de encolarlo si está offline.
+    const res = await withRetry(() => originalCommit(), 'batch.commit', 1);
     return res;
   };
   return batch;
 };
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    try { enableNetwork(db as any); } catch { }
-  });
-  window.addEventListener('offline', () => {
-    try { disableNetwork(db as any); } catch { }
-  });
-}
-
-
 
 export const configStatus = {
     isValid: !!isConfigValid,

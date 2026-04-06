@@ -30,6 +30,7 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
     // If we know it's a new registration, skip getDoc to avoid permission-denied race conditions
     let exists = false;
     let existingData = {};
+    let getDocFailed = false;
     
     if (!isNewRegistration) {
       try {
@@ -40,10 +41,12 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
         }
       } catch (e) {
         console.warn("getDoc failed in initializeUserDocument, assuming it might not exist or offline:", e);
+        getDocFailed = true;
       }
     }
 
-    if (isNewRegistration || !exists) {
+    // Si es un registro nuevo confirmado, o si estamos 100% seguros de que no existe (getDoc funcionó y devolvió exists=false)
+    if (isNewRegistration || (!exists && !getDocFailed)) {
       const defaultData: any = {
         uid: user.uid,
         email: user.email || null,
@@ -57,7 +60,6 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
         ...additionalData
       };
 
-      // Solo añadimos onboarding por defecto si additionalData no lo trae y no tenemos datos existentes
       if (!defaultData.onboarding) {
         defaultData.onboarding = {
           successDefinition: "Becoming the One",
@@ -75,25 +77,25 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
       }
       
       const cleanData = sanitizeFirestoreData(defaultData);
-      
-      // PROTECCIÓN CRÍTICA: No sobrescribir el estado de onboarding si ya existe en la base de datos (merge profundo)
-      // En lugar de enviar el objeto onboarding entero que reemplazaría los campos, evitamos enviarlo si es un inicio de sesión dudoso
-      if (!isNewRegistration && !exists) {
-          // Si falló getDoc, asumimos que no existe pero para evitar borrar datos con merge: true, 
-          // quitamos el onboarding de los datos por defecto para que Firestore mantenga el que ya tiene si es que existe.
-          delete cleanData.onboarding;
-      }
-
       await setDoc(userDocRef, cleanData, { merge: true });
       return cleanData;
     } else {
+      // Si ya existe O si getDoc falló (no sabemos si existe o no, así que NO sobrescribimos nada crítico)
       const updateData = { 
         lastLoginAt: Date.now(),
         ...additionalData
       };
 
+      // NUNCA sobrescribir el onboarding si getDoc falló o si el documento ya existe
       if (updateData.onboarding) {
           delete updateData.onboarding;
+      }
+      // Tampoco sobrescribir plan, stats, o theme accidentalmente si venían en additionalData
+      if (getDocFailed) {
+          delete updateData.plan;
+          delete updateData.stats;
+          delete updateData.theme;
+          delete updateData.archetype;
       }
 
       const cleanUpdate = sanitizeFirestoreData(updateData);

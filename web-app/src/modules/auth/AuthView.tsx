@@ -259,16 +259,9 @@ export const AuthView = () => {
 
         try {
             await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
-            await retryOperation(() => initializeUserDocument(userCred.user, {
-                displayName: name.trim(),
-                onboarding: {
-                    language: localStorage.getItem('i18nextLng') || 'en',
-                    completedAt: 0,
-                    successDefinition: "Becoming the One",
-                    obstacles: [],
-                    coachingTone: "Stoic"
-                }
-            }, true)); // isNewRegistration = true
+            // En lugar de inicializar el documento aquí (lo que a menudo falla en Web porque el componente se desmonta),
+            // lo guardamos en un caché especial para que AuthContext lo recoja.
+            sessionStorage.setItem('MATRIX_NEW_USER_DISPLAY_NAME', name.trim());
         } catch (initErr) {
             console.warn("Secondary profile initialization failed, but user is created.", initErr);
         }
