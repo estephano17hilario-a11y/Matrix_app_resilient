@@ -247,28 +247,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
     <AnimatePresence onExitComplete={() => setMounted(false)}>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
-          <style>{`
-            @keyframes galacticWave {
-              0% { background-position: 0% 50%; }
-              100% { background-position: 200% 50%; }
-            }
-            .text-galactic {
-              background: linear-gradient(
-                90deg,
-                #00e1fd 0%,
-                #8a2be2 25%,
-                #ff0844 50%,
-                #8a2be2 75%,
-                #00e1fd 100%
-              );
-              background-size: 200% 100%;
-              color: transparent;
-              -webkit-background-clip: text;
-              background-clip: text;
-              animation: galacticWave 3s linear infinite;
-              display: inline-block;
-            }
-          `}</style>
+          {/* Text-galactic style moved to index.css */}
           {/* Background Backdrop - Pure black for OLEDs, zero blur for max performance */}
           <motion.div 
             initial={{ opacity: 0 }}

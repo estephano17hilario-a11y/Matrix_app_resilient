@@ -75,30 +75,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       PersistenceService.clearSession();
       sessionStorage.setItem('MATRIX_INTENTIONAL_LOGOUT', 'true');
       
-      try {
-          await Promise.race([
-              waitForPendingWrites(db),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 3000))
-          ]);
-      } catch (e) {
-          console.warn("⚠️ MATRIX: Sync timeout on logout.");
-      }
-
-      await signOut(auth);
-      
-      // FIX: Ensure Google Auth is also signed out so the account picker shows next time
-      try {
-          const { Capacitor } = await import('@capacitor/core');
-          if (Capacitor.isNativePlatform()) {
-              const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-              await GoogleAuth.signOut();
-          }
-      } catch (e) {
-          console.warn("⚠️ GoogleAuth signOut failed:", e);
-      }
-
+      // 🔥 FAST LOGOUT: Clear UI immediately (0 delay)
       setUser(null);
       setProfile(null);
+      
+      // Let the sync and actual signOut happen in the background
+      setTimeout(async () => {
+        try {
+            await Promise.race([
+                waitForPendingWrites(db),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 1000))
+            ]);
+        } catch (e) {
+            console.warn("⚠️ MATRIX: Sync timeout on logout.");
+        }
+
+        await signOut(auth);
+        
+        // FIX: Ensure Google Auth is also signed out so the account picker shows next time
+        try {
+            const { Capacitor } = await import('@capacitor/core');
+            if (Capacitor.isNativePlatform()) {
+                const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+                await GoogleAuth.signOut();
+            }
+        } catch (e) {
+            console.warn("⚠️ GoogleAuth signOut failed:", e);
+        }
+      }, 0);
+
     } catch (error: any) {
       console.error("Logout Error:", error);
       setError(error.message);
@@ -139,6 +144,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  setProfile(null);
              } else {
                  console.log("ℹ️ MATRIX: Entering Zombie/Offline Mode.");
+                 
+                 // 🩹 HEAL POISONED CACHE
+                 if (!cached.onboarding?.completedAt && (cached.stats?.level > 1 || cached.stats?.xp > 0 || cached.plan === 'PRO' || cached.avatarId)) {
+                     cached.onboarding = cached.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                     cached.onboarding.completedAt = cached.createdAt || Date.now();
+                     PersistenceService.saveProfile(cached);
+                 }
+                 
                  setProfile(cached);
                  setUser({ uid: cached.uid, email: cached.email, displayName: cached.displayName } as User);
              }
@@ -157,9 +170,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const cached = PersistenceService.getProfile();
         if (cached && cached.uid === currentUser.uid) {
              console.log("⚡ MATRIX: Restored from cache.");
+             
+             // 🩹 HEAL POISONED CACHE: If the previous bug corrupted completedAt to 0, fix it instantly before rendering
+             if (!cached.onboarding?.completedAt && (cached.stats?.level > 1 || cached.stats?.xp > 0 || cached.plan === 'PRO' || cached.avatarId)) {
+                 cached.onboarding = cached.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                 cached.onboarding.completedAt = cached.createdAt || Date.now();
+                 PersistenceService.saveProfile(cached); // Save healed cache
+             }
+             
              setProfile(cached);
         } else {
-            // Optimistic UI to prevent black flickers
+            // Optimistic UI to prevent black flickers, but keep skeleton TRUE to prevent flash of Onboarding
             setProfile({
                 uid: currentUser.uid,
                 email: currentUser.email,
@@ -172,7 +193,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 createdAt: Date.now(),
                 lastLoginAt: Date.now(),
                 onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
-                isSkeleton: false // Set to false to instantly unblock UI and skip LoadingScreen
+                isSkeleton: true // Set to true to wait for real Firestore data before routing
             });
         }
 
@@ -214,6 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 let dataToSet: any = {};
                 let snapData: any = null;
                 
+                let getDocFailed = false;
                 try {
                     const userSnap = await getDoc(userRef);
                     exists = userSnap.exists();
@@ -223,6 +245,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } catch (e) {
                     console.warn("⚠️ MATRIX: getDoc failed in createOrFillProfile. Network or permissions issue. Proceeding with optimistic merge.", e);
+                    getDocFailed = true;
+                    throw e; // Force a retry if we cannot read the profile!
                 }
                 
                 if (!exists) {
@@ -268,8 +292,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     needsFirestoreHeal = true;
                 }
                 
-                // If onboarding is marked as not completed, but they have stats/xp or a plan, they clearly finished it.
-                if (!resolvedOnboarding.completedAt && (data.stats?.level > 1 || data.stats?.xp > 0 || data.plan === 'PRO')) {
+                // If onboarding is marked as not completed, but they have stats/xp, a plan, or an avatarId, they clearly finished it.
+                if (!resolvedOnboarding.completedAt && (data.stats?.level > 1 || data.stats?.xp > 0 || data.plan === 'PRO' || data.avatarId)) {
                     resolvedOnboarding.completedAt = data.createdAt || Date.now();
                     needsFirestoreHeal = true;
                 }
@@ -309,6 +333,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  
                  // Before falling back to an empty profile, try cache again!
                  const localCache = PersistenceService.getProfile(currentUser.uid);
+                 
+                 // 🩹 HEAL POISONED CACHE
+                 if (localCache && !localCache.onboarding?.completedAt && (localCache.stats?.level > 1 || localCache.stats?.xp > 0 || localCache.plan === 'PRO' || localCache.avatarId)) {
+                     localCache.onboarding = localCache.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 };
+                     localCache.onboarding.completedAt = localCache.createdAt || Date.now();
+                     PersistenceService.saveProfile(localCache);
+                 }
+
                  if (localCache && localCache.uid === currentUser.uid && localCache.onboarding?.completedAt) {
                      console.log("🩹 MATRIX: Fetch failed. Restored from cache completely.");
                      setProfile(localCache);

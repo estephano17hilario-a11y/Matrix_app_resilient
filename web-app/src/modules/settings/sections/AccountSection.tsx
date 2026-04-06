@@ -7,6 +7,7 @@ import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
 import { updateProfile } from 'firebase/auth';
 import { auth, db, doc, setDoc } from '../../../services/firebase';
 import { useTranslation } from 'react-i18next';
+import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
 export const AccountSection = () => {
   const { t } = useTranslation();
@@ -16,6 +17,7 @@ export const AccountSection = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
 
@@ -130,7 +132,13 @@ export const AccountSection = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-light text-white truncate">{formattedName}</h3>
+                <h3 className={`text-sm truncate ${
+                  profile?.plan === 'PRO' || user?.plan === 'PRO' 
+                    ? 'font-black text-galactic drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]'
+                    : 'font-light text-white'
+                }`}>
+                  {formattedName}
+                </h3>
                 <button
                   onClick={handleStartEdit}
                   className="text-white/30 hover:text-white/80 transition-colors"
@@ -155,18 +163,37 @@ export const AccountSection = () => {
         </div>
 
         <button
-          onClick={logout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="w-full flex items-center gap-4 p-5 bg-gradient-to-br from-red-500/5 to-red-900/10 hover:from-red-500/10 hover:to-red-900/20 rounded-[20px] border border-red-500/10 hover:border-red-500/30 transition-all group active:scale-[0.98]"
         >
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 group-hover:text-red-300 transition-colors group-hover:scale-110 duration-300">
             <LogOut size={20} />
           </div>
           <div className="text-left">
-            <span className="block text-red-200 font-bold text-base group-hover:text-white transition-colors tracking-tight">{t('settings.terminateSession', 'Terminate Session')}</span>
-            <span className="block text-red-500/50 text-xs font-medium mt-0.5">{t('settings.safeLogout', 'Safe logout and local data sync')}</span>
+            <span className="block text-red-200 font-bold text-base group-hover:text-white transition-colors tracking-tight">
+              {t('settings.logoutAccount', 'Sign out of this account')}
+            </span>
+            <span className="block text-red-500/50 text-xs font-medium mt-0.5">
+              {t('settings.safeLogout', 'Safe logout and local data sync')}
+            </span>
           </div>
         </button>
       </div>
+
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          // Small timeout to allow the modal exit animation to start, making it feel smoother and faster without freezing the UI.
+          setTimeout(() => logout(), 50);
+        }}
+        title={t('settings.logoutConfirmTitle', 'ARE YOU SURE?')}
+        message={t('settings.logoutConfirmMessage', 'You are about to sign out. Your data is safely synced.')}
+        confirmText={t('settings.logoutConfirmBtn', 'Yes, Sign Out')}
+        cancelText={t('settings.cancel', 'Cancel')}
+        variant="danger"
+      />
     </div>
   );
 };

@@ -90,7 +90,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
             color: "#fbbf24", // amber-400
             content: (
                 <div className="space-y-4 text-sm text-white/80">
-                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.desc1', "<strong>Gold</strong> is the currency of LUX. You obtain it as a reward for your daily effort and by completing missions.") }} />
+                    <p dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.desc1', "<strong>Gold</strong> is the currency of LUX, earned through daily effort and missions.") }} />
                     
                     <div className="space-y-2">
                         <p className="font-bold text-amber-300 text-[10px] uppercase tracking-[0.1em] opacity-60">{t('tour.stats.gold.whatFor', "What is it used for?")}</p>
@@ -103,7 +103,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
                                 <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
                                     <Sparkles size={18} className="text-amber-400" />
                                 </div>
-                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point1', "Buy **Cosmetics**, **Power-ups**, and exclusive upgrades in the <strong>Store</strong>.") }} />
+                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point1', "Buy <strong>Cosmetics</strong>, <strong>Power-ups</strong>, and upgrades in the <strong>Store</strong>.") }} />
                             </motion.div>
 
                             <motion.div 
@@ -113,7 +113,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
                                 <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
                                     <Flame size={18} className="text-amber-400" />
                                 </div>
-                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point2', "<strong>Manage your Bad Habits:</strong> If you relapse, you can use Gold to pay the penalty in a more controlled way and avoid losing HP.") }} />
+                                <p className="text-[13px] leading-relaxed py-1" dangerouslySetInnerHTML={{ __html: t('tour.stats.gold.point2', "<strong>Pay Penalties:</strong> Use Gold when you relapse to avoid losing HP.") }} />
                             </motion.div>
                         </div>
                     </div>

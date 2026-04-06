@@ -102,10 +102,10 @@
       },
       "gold": {
         "title": "La Economía (Oro)",
-        "desc1": "El <strong>Oro</strong> es la moneda de LUX. Lo obtienes como recompensa por tu esfuerzo diario y al completar misiones.",
+        "desc1": "El <strong>Oro</strong> es la moneda de LUX, obtenida por tu esfuerzo diario y misiones.",
         "whatFor": "¿Para qué sirve?",
-        "point1": "Comprar **Cosméticos**, **Potenciadores** y mejoras exclusivas en la <strong>Tienda</strong>.",
-        "point2": "<strong>Gestionar tus Malos Hábitos:</strong> Si recaes, puedes usar Oro para pagar la penalización de manera más controlada y evitar perder HP."
+        "point1": "Compra <strong>Cosméticos</strong>, <strong>Potenciadores</strong> y mejoras en la <strong>Tienda</strong>.",
+        "point2": "<strong>Paga Penalizaciones:</strong> Usa Oro al recaer para evitar perder HP."
       },
       "hp": {
         "title": "Vitalidad (HP) y Castigos",
@@ -861,6 +861,11 @@
     "profileDesc": "Tu identidad y estado de conexión.",
     "session": "Sesión",
     "terminateSession": "Finalizar Sesión",
+    "logoutAccount": "Salir de esta cuenta",
+    "logoutConfirmTitle": "¿ESTÁS SEGURO?",
+    "logoutConfirmMessage": "Estás a punto de salir de tu cuenta. Tus datos están guardados de forma segura.",
+    "logoutConfirmBtn": "Sí, Salir de esta cuenta",
+    "cancel": "Cancelar",
     "safeLogout": "Cierre de sesión seguro y sincronización local",
     "unrestricted": "Sin restricciones",
     "disable": "Desactivar",

@@ -102,10 +102,10 @@
       },
       "gold": {
         "title": "The Economy (Gold)",
-        "desc1": "<strong>Gold</strong> is the currency of LUX. You obtain it as a reward for your daily effort and by completing missions.",
+        "desc1": "<strong>Gold</strong> is the currency of LUX, earned through daily effort and missions.",
         "whatFor": "What is it used for?",
-        "point1": "Buy **Cosmetics**, **Power-ups**, and exclusive upgrades in the <strong>Store</strong>.",
-        "point2": "<strong>Manage your Bad Habits:</strong> If you relapse, you can use Gold to pay the penalty in a more controlled way and avoid losing HP."
+        "point1": "Buy <strong>Cosmetics</strong>, <strong>Power-ups</strong>, and upgrades in the <strong>Store</strong>.",
+        "point2": "<strong>Pay Penalties:</strong> Use Gold when you relapse to avoid losing HP."
       },
       "hp": {
         "title": "Vitality (HP) and Punishments",
@@ -842,6 +842,11 @@
     "profileDesc": "Your identity and connection status.",
     "session": "Session",
     "terminateSession": "Terminate Session",
+    "logoutAccount": "Sign out of this account",
+    "logoutConfirmTitle": "ARE YOU SURE?",
+    "logoutConfirmMessage": "You are about to sign out. Your data is safely synced.",
+    "logoutConfirmBtn": "Yes, Sign Out",
+    "cancel": "Cancel",
     "safeLogout": "Safe logout and local data sync",
     "unrestricted": "Unrestricted",
     "disable": "Disable",

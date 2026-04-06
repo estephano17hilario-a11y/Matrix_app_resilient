@@ -54,15 +54,19 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
         theme: 'MATRIX',
         createdAt: Date.now(),
         lastLoginAt: Date.now(),
-        onboarding: {
+        ...additionalData
+      };
+
+      // Solo añadimos onboarding por defecto si additionalData no lo trae y no tenemos datos existentes
+      if (!defaultData.onboarding) {
+        defaultData.onboarding = {
           successDefinition: "Becoming the One",
           obstacles: [],
           coachingTone: "Stoic",
           completedAt: 0,
           language: "en"
-        },
-        ...additionalData
-      };
+        };
+      }
       
       if (additionalData.displayName) {
           defaultData.displayName = additionalData.displayName;
@@ -71,6 +75,15 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
       }
       
       const cleanData = sanitizeFirestoreData(defaultData);
+      
+      // PROTECCIÓN CRÍTICA: No sobrescribir el estado de onboarding si ya existe en la base de datos (merge profundo)
+      // En lugar de enviar el objeto onboarding entero que reemplazaría los campos, evitamos enviarlo si es un inicio de sesión dudoso
+      if (!isNewRegistration && !exists) {
+          // Si falló getDoc, asumimos que no existe pero para evitar borrar datos con merge: true, 
+          // quitamos el onboarding de los datos por defecto para que Firestore mantenga el que ya tiene si es que existe.
+          delete cleanData.onboarding;
+      }
+
       await setDoc(userDocRef, cleanData, { merge: true });
       return cleanData;
     } else {

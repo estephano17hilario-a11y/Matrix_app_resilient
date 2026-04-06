@@ -189,10 +189,10 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                                 onShowSettingsWithTab('account');
                             }
                         }}
-                        className={`text-xs sm:text-sm font-bold tracking-tight truncate max-w-[100px] sm:max-w-[140px] transition-all cursor-pointer ${
+                        className={`text-xs sm:text-sm tracking-tight truncate max-w-[100px] sm:max-w-[140px] transition-all cursor-pointer ${
                             isPro 
-                            ? 'animate-[gradient-x_3s_ease_infinite] bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-[length:200%_auto] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(217,70,239,0.5)] hover:scale-105' 
-                            : 'text-white drop-shadow-md hover:text-cyan-400'
+                            ? 'font-black text-galactic drop-shadow-[0_0_8px_rgba(217,70,239,0.5)] hover:scale-105' 
+                            : 'font-bold text-white drop-shadow-md hover:text-cyan-400'
                         }`}
                     >
                         {formattedName}
