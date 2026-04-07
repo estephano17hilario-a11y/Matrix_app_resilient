@@ -101,9 +101,13 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
         await retryOperation(() => setDoc(userDocRef, cleanData, { merge: true }));
         
         // En móviles, ESPERAR a que la base de datos confirme la escritura antes de continuar
+        // pero con un TIMEOUT ESTRICTO para no colgar la aplicación si la red falla.
         if (Capacitor.isNativePlatform()) {
             try {
-                await waitForPendingWrites(db);
+                await Promise.race([
+                    waitForPendingWrites(db),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
+                ]);
                 console.log("💎 MATRIX: Mobile write confirmed.");
             } catch (e) {
                 console.warn("⚠️ MATRIX: Mobile write confirmation timed out, but proceeding.");

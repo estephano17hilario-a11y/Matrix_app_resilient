@@ -106,7 +106,10 @@ if (isConfigValid) {
         db = initializeFirestore(app, {
             localCache: persistentLocalCache({
                 tabManager: Capacitor.isNativePlatform() ? undefined : persistentMultipleTabManager()
-            })
+            }),
+            // CRITICAL FIX FOR CAPACITOR: WebSockets often fail or get blocked in Android WebViews,
+            // preventing writes from ever reaching the server despite "optimistic" local success.
+            experimentalForceLongPolling: Capacitor.isNativePlatform()
         });
         console.log("💎 MATRIX: Offline Persistence Enabled");
     } catch (err: any) {
