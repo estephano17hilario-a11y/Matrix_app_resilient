@@ -255,18 +255,19 @@ export const AuthView = () => {
             throw new Error(t('auth.errors.network', "No network connection. Please check your internet and try again."));
         }
 
+        // 1. CREATE USER IN AUTH
         const userCred = await retryOperation(() => createUserWithEmailAndPassword(auth, email.trim(), password));
 
-        try {
-            await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
-            // En lugar de inicializar el documento aquí (lo que a menudo falla en Web porque el componente se desmonta),
-            // lo guardamos en un caché especial para que AuthContext lo recoja.
-            sessionStorage.setItem('MATRIX_NEW_USER_DISPLAY_NAME', name.trim());
-        } catch (initErr) {
-            console.warn("Secondary profile initialization failed, but user is created.", initErr);
-        }
+        // 2. UPDATE PROFILE
+        await retryOperation(() => updateProfile(userCred.user, { displayName: name.trim() }));
         
+        // 3. ATOMIC INITIALIZATION IN FIRESTORE
+        // We block here until the document is created. No more passing to AuthContext.
+        await retryOperation(() => initializeUserDocument(userCred.user, { displayName: name.trim() }));
+        
+        // 4. SAVE SESSION
         PersistenceService.setSession(userCred.user.uid);
+        
         setIsLoading(false);
     } catch (err: any) {
         console.error('Registration error:', err);
@@ -293,14 +294,14 @@ export const AuthView = () => {
             throw new Error(t('auth.errors.network', "No network connection. Please check your internet and try again."));
         }
 
+        // 1. LOGIN
         const userCred = await retryOperation(() => signInWithEmailAndPassword(auth, email.trim(), password));
-        PersistenceService.setSession(userCred.user.uid);
         
-        try {
-            await retryOperation(() => initializeUserDocument(userCred.user));
-        } catch (initErr) {
-            console.warn("Secondary profile initialization failed, but user is logged in.", initErr);
-        }
+        // 2. ENSURE DOCUMENT EXISTS (And update lastLoginAt)
+        await retryOperation(() => initializeUserDocument(userCred.user));
+
+        // 3. SAVE SESSION
+        PersistenceService.setSession(userCred.user.uid);
         
         setIsLoading(false);
     } catch (err: any) {
