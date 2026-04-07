@@ -107,7 +107,13 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       });
 
       ctx.globalCompositeOperation = 'source-over';
-      animationFrameId = requestAnimationFrame(render);
+      
+      // OPTIMIZATION: Check if mobile to disable continuous animation
+      const isMobile = window.innerWidth < 768;
+      
+      if (!isMobile) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();

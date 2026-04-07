@@ -41,21 +41,21 @@
 
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
   /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius */
-  .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur {
-    backdrop-filter: blur(2px) !important;
-    -webkit-backdrop-filter: blur(2px) !important;
+  .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur, .backdrop-blur-sm {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     /* FIX FOR BLACK FLICKERING BUG ON MOBILE WEBVIEW/SAFARI */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
+    transform: translateZ(0);
+    background-color: rgba(10, 10, 10, 0.85) !important; /* Fallback solid semi-transparent */
   }
 
   /* Cap expensive filters globally to prevent GPU overload while keeping the aesthetic */
   .blur-3xl, .blur-\[100px\], .blur-\[120px\], .blur-\[80px\], .blur-\[90px\], .blur-2xl, .blur-\[60px\] {
-    filter: blur(10px) !important;
-    -webkit-filter: blur(10px) !important;
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+    filter: none !important;
+    -webkit-filter: none !important;
+    display: none !important; /* Often used for decorative glowing orbs that kill performance */
   }
 
   /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING AND FIX BLACK PARPADEO */
@@ -72,16 +72,17 @@
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
   @media (max-width: 768px) {
       /* Optimize blurs on mobile - Cap max blur radius for performance */
-      .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur {
-        backdrop-filter: blur(1px) !important;
-        -webkit-backdrop-filter: blur(1px) !important;
+      .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur, .backdrop-blur-sm {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background-color: rgba(10, 10, 10, 0.95) !important;
       }
 
       /* Reduce regular blurs significantly for mobile to prevent black screens */
       .blur-3xl, .blur-\[100px\], .blur-\[120px\], .blur-\[80px\], .blur-\[90px\], .blur-2xl, .blur-\[60px\] {
-          filter: blur(4px) !important;
-          -webkit-filter: blur(4px) !important;
-          transform: translate3d(0,0,0);
+          filter: none !important;
+          -webkit-filter: none !important;
+          display: none !important;
       }
 
       /* Reduce particle counts or complex animations */
@@ -120,20 +121,24 @@
 
     /* Reduce regular blurs significantly */
     .blur-3xl, .blur-2xl, .blur-xl {
-        filter: blur(16px) !important;
-        -webkit-filter: blur(16px) !important;
-        transform: translateZ(0); /* Force GPU */
+        filter: none !important;
+        -webkit-filter: none !important;
+        display: none !important;
     }
 
     /* OPTIMIZE ANIMATIONS INSTEAD OF DISABLING THEM COMPLETELY */
     /* Fast, snappy transitions for a "0 delay" premium feel without layout thrashing */
     * {
-        /* We don't disable everything, we just force fast transform/opacity transitions */
+        /* Only override CSS animations, don't break Framer Motion inline styles with transition !important */
+        animation-duration: 0.15s !important;
     }
     
     /* Re-enable specific safe animations if needed, but default to SNAP for 0 delay feel */
-    .animate-spin, .animate-pulse {
+    .animate-spin {
         animation-duration: 1s !important;
+    }
+    .animate-pulse {
+        animation-duration: 1.5s !important;
     }
 
     /* INSTANT TOUCH FEEDBACK - "The 0 Delay Feel" */
