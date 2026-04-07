@@ -245,6 +245,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          
          const createOrFillProfile = async (attempts = 0) => {
             try {
+                // WAIT FOR FIREBASE AUTH TOKEN PROPAGATION TO FIRESTORE RULES
+                // This is critical for new registrations where the token needs a moment to be valid in Firestore
+                await currentUser.getIdToken(true);
+                if (attempts === 0) {
+                    await new Promise(r => setTimeout(r, 500)); // Give rules engine 500ms to digest the new identity
+                }
+
                 let exists = false;
                 let dataToSet: any = {};
                 let snapData: any = null;

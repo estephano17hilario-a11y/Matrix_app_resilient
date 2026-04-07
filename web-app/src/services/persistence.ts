@@ -10,7 +10,7 @@ const KEYS = {
   SESSION_UID: 'MATRIX_ACTIVE_SESSION_UID'
 };
 
-const STORAGE_VERSION = 4; // BUMPED TO 4: FORCES COMPLETE INVALIDATION OF OLD CACHES (GHOST ACCOUNTS)
+const STORAGE_VERSION = 3; // Bumped to force fresh sync from Firestore
 
 type PersistedEnvelope<T> = {
   v: number;
