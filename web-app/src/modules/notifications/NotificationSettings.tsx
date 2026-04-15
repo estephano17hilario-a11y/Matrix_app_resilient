@@ -57,7 +57,7 @@ export const NotificationSettings: React.FC = () => {
   const loadSettings = async () => {
     if (!user) return;
     try {
-      const ref = doc(db, 'users', user.uid, 'settings', 'notifications');
+      const ref = doc(db, 'users', user.id, 'settings', 'notifications');
       const snap = await getDoc(ref);
       if (snap.exists()) {
         setConfig(snap.data() as NotificationConfig);
@@ -73,7 +73,7 @@ export const NotificationSettings: React.FC = () => {
     if (!user) return;
     setConfig(newConfig);
     try {
-      const ref = doc(db, 'users', user.uid, 'settings', 'notifications');
+      const ref = doc(db, 'users', user.id, 'settings', 'notifications');
       await setDoc(ref, newConfig, { merge: true });
 
       // TRIGGER LOCAL SCHEDULING (MOBILE OFFLINE SUPPORT)

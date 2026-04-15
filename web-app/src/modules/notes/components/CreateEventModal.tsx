@@ -99,7 +99,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        className="absolute inset-0 bg-black/80 backdrop-blur-sm transform-gpu"
                     />
                     
                     <motion.div 
@@ -111,7 +111,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
                         {/* Header Image / Gradient */}
                         <div className="h-32 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 relative flex items-end p-6">
                             <div className="absolute top-4 right-4">
-                                <button onClick={onClose} className="p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/60 hover:text-white transition-colors backdrop-blur-sm">
+                                <button onClick={onClose} className="p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/60 hover:text-white transition-colors backdrop-blur-sm transform-gpu">
                                     <X size={18} />
                                 </button>
                             </div>

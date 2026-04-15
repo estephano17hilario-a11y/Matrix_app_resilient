@@ -186,7 +186,7 @@ export const AuthView = () => {
             const result = await getRedirectResult(auth);
             if (result?.user) {
                 setIsLoading(true);
-                PersistenceService.setSession(result.user.uid);
+                PersistenceService.setSession(result.user.id);
                 await retryOperation(() => initializeUserDocument(result.user, { 
                     isAnonymous: false,
                     onboarding: {
@@ -266,7 +266,7 @@ export const AuthView = () => {
         await retryOperation(() => initializeUserDocument(userCred.user, { displayName: name.trim() }));
         
         // 4. SAVE SESSION
-        PersistenceService.setSession(userCred.user.uid);
+        PersistenceService.setSession(userCred.user.id);
         
         setIsLoading(false);
     } catch (err: any) {
@@ -301,7 +301,7 @@ export const AuthView = () => {
         await retryOperation(() => initializeUserDocument(userCred.user));
 
         // 3. SAVE SESSION
-        PersistenceService.setSession(userCred.user.uid);
+        PersistenceService.setSession(userCred.user.id);
         
         setIsLoading(false);
     } catch (err: any) {
@@ -401,7 +401,7 @@ export const AuthView = () => {
                         relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-1000 ease-out border
                         ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
                           (view === 'LOGIN' && isEmailValid && isPasswordValid)
-                            ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm'
+                            ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm transform-gpu'
                             : 'bg-[#0a0a0f] border-white/10'
                         }
                     `}>

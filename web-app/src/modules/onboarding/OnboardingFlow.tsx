@@ -72,7 +72,7 @@ export function OnboardingFlow() {
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'en';
 
   const handleNext = async () => {
-    console.log('[Onboarding] handleNext triggered', { step, selectedTraits, userId: user?.uid });
+    console.log('[Onboarding] handleNext triggered', { step, selectedTraits, userId: user?.id });
     
     if (step === 'traits') {
       if (selectedTraits.length < 3) {
@@ -102,7 +102,7 @@ export function OnboardingFlow() {
   };
 
   const handleSubmit = async () => {
-    const userId = user?.uid || profile?.uid;
+    const userId = user?.id || profile?.uid;
     
     if (!userId) {
       console.error('[Onboarding] No user ID found');

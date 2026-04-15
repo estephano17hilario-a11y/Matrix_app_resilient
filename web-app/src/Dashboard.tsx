@@ -205,7 +205,7 @@ export default function Dashboard() {
             const plan = params.get('plan');
             const preapprovalId = params.get('preapproval_id'); // MP appends this to the URL
 
-            if (paymentStatus === 'success' && plan && user?.uid) {
+            if (paymentStatus === 'success' && plan && user?.id) {
                 // Remove params from URL immediately to prevent refreshes from triggering it again
                 window.history.replaceState({}, document.title, window.location.pathname);
 
@@ -232,7 +232,7 @@ export default function Dashboard() {
                         now.setFullYear(now.getFullYear() + 1);
                     }
 
-                    const userRef = doc(db, 'users', user.uid);
+                    const userRef = doc(db, 'users', user.id);
                     await updateDoc(userRef, {
                         plan: 'PRO',
                         planExpiryDate: now.getTime(),
@@ -376,8 +376,8 @@ export default function Dashboard() {
     } = useDashboardLogic();
 
     useEffect(() => {
-        if (user?.uid) {
-            const tutorialKey = `matrix_stats_tutorial_seen_${user.uid}`;
+        if (user?.id) {
+            const tutorialKey = `matrix_stats_tutorial_seen_${user.id}`;
             const hasSeen = localStorage.getItem(tutorialKey);
             const storedLang = localStorage.getItem('i18nextLng') || i18n.language || navigator.language || 'en';
             if (!hasSeen) {
@@ -390,7 +390,7 @@ export default function Dashboard() {
                 localStorage.setItem(tutorialKey, 'true');
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
@@ -641,9 +641,9 @@ export default function Dashboard() {
     };
 
     const handleArchiveBadHabit = (habit: BadHabit) => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         const newHabits = badHabits.map(h => h.id === habit.id ? { ...h, archived: !h.archived } : h);
-        PersistenceService.saveCollection(user.uid, 'badHabits', newHabits);
+        PersistenceService.saveCollection(user.id, 'badHabits', newHabits);
         // Dispatch custom event to trigger logic reload
         window.dispatchEvent(new CustomEvent('reload-dashboard'));
     };
@@ -762,11 +762,11 @@ export default function Dashboard() {
         const targetId = projectId || smartProject?.id;
         const targetProject = projectId ? smartProjects.find(p => p.id === projectId) : smartProject;
 
-        if (!targetId || !targetProject || !user?.uid) return;
+        if (!targetId || !targetProject || !user?.id) return;
 
         try {
             // 1. Delete the Project itself
-            await persistenceService.smartProjects.delete(user.uid, targetId);
+            await persistenceService.smartProjects.delete(user.id, targetId);
             
             // Update Local State
             setSmartProjects(prev => prev.filter(p => p.id !== targetId));
@@ -784,7 +784,7 @@ export default function Dashboard() {
             // 3. Delete all associated quests from Persistence
             // We run these in parallel for speed, but catching errors individually to ensure best effort
             await Promise.all(idsToDelete.map(id => 
-                persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
+                persistenceService.quests.delete(user.id, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
             ));
 
             // 4. Update State
@@ -801,7 +801,7 @@ export default function Dashboard() {
 
     const handleDeleteSmartTaskNode = async (projectId: string, nodeId: string) => {
         const targetProject = smartProjects.find(p => p.id === projectId);
-        if (!targetProject || !user?.uid) return;
+        if (!targetProject || !user?.id) return;
 
         try {
              // 1. Logic to find and remove node, collecting all deleted IDs (including children)
@@ -850,12 +850,12 @@ export default function Dashboard() {
 
              // 2. Update Project in Persistence
              const newProject = { ...targetProject, rootNode: newRoot };
-             await persistenceService.smartProjects.update(user.uid, targetProject.id, newProject);
+             await persistenceService.smartProjects.update(user.id, targetProject.id, newProject);
 
              // 3. Delete associated quests from Persistence
              if (deletedIds.length > 0) {
                 await Promise.all(deletedIds.map(id => 
-                    persistenceService.quests.delete(user.uid, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
+                    persistenceService.quests.delete(user.id, id).catch((e: any) => console.warn(`Failed to delete quest ${id}`, e))
                 ));
              }
 
@@ -1143,9 +1143,9 @@ export default function Dashboard() {
                 onClose={() => {
                     setShowStatsTutorial(false);
                     // Start interactive tour after stats tutorial
-                    if (user?.uid && !localStorage.getItem(`matrix_tour_seen_${user.uid}`)) {
+                    if (user?.id && !localStorage.getItem(`matrix_tour_seen_${user.id}`)) {
                         window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
-                        localStorage.setItem(`matrix_tour_seen_${user.uid}`, 'true');
+                        localStorage.setItem(`matrix_tour_seen_${user.id}`, 'true');
                     }
                 }}
             />
@@ -1162,7 +1162,7 @@ export default function Dashboard() {
                                 animate={{ opacity: 1, scale: 1, y: 0 }} 
                                 exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "backIn" } }} 
                                 transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
-                                className="relative overflow-hidden backdrop-blur-sm border border-yellow-500/20 bg-[#0a0a0a]/80 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+                                className="relative overflow-hidden backdrop-blur-sm transform-gpu border border-yellow-500/20 bg-[#0a0a0a]/80 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
                                 style={{ willChange: 'transform, opacity' }}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
@@ -1534,16 +1534,16 @@ export default function Dashboard() {
                                         setQuests(prev => [...newQuests, ...prev]);
                                         
                                         // Save to Reality (Persistence)
-                                        if (user?.uid) {
+                                        if (user?.id) {
                                             // Save Quests
                                             newQuests.forEach(q => {
-                                                persistenceService.quests.save(user.uid, q).catch((err: any) => 
+                                                persistenceService.quests.save(user.id, q).catch((err: any) => 
                                                     console.error("Failed to save smart quest:", err)
                                                 );
                                             });
                                             
                                             // Save Strategic Map
-                                            persistenceService.smartProjects.save(user.uid, project).catch((err: any) => 
+                                            persistenceService.smartProjects.save(user.id, project).catch((err: any) => 
                                                     console.error("Failed to save smart project:", err)
                                                 );
                                             }

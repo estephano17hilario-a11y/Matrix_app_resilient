@@ -37,7 +37,8 @@ export interface DailyLimits {
 }
 
 export interface UserProfile {
-  uid: string;
+  id: string; // Used to be uid, migrated to Supabase id
+  uid: string; // Kept for backward compatibility
   email: string | null;
   displayName: string | null;
   photoURL: string | null;

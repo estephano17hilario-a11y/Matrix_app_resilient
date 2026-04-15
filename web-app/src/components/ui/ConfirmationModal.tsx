@@ -58,7 +58,7 @@ export const ConfirmationModal = memo(({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.15 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu"
                         style={{ willChange: 'opacity' }}
                     />
                     

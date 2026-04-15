@@ -28,9 +28,9 @@ const PIN_LENGTH = 5;
 
 export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesHubProps) => {
     const { user } = useAuth();
-    const pinHashKey = user?.uid ? `secure_vault_pin_hash_${user.uid}` : 'secure_vault_pin_hash';
-    const legacyPinKey = user?.uid ? `secure_vault_pin_${user.uid}` : 'secure_vault_pin';
-    const vaultDataKey = user?.uid ? `secure_vault_data_${user.uid}` : 'secure_vault_data';
+    const pinHashKey = user?.id ? `secure_vault_pin_hash_${user.id}` : 'secure_vault_pin_hash';
+    const legacyPinKey = user?.id ? `secure_vault_pin_${user.id}` : 'secure_vault_pin';
+    const vaultDataKey = user?.id ? `secure_vault_data_${user.id}` : 'secure_vault_data';
 
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [pin, setPin] = useState('');
@@ -405,7 +405,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
                             <button 
                                 onClick={() => setIsUnlocked(false)}
-                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-md"
+                                className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-sm transform-gpu"
                             >
                                 <LogOut size={12} />
                                 Lock Vault
@@ -470,7 +470,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
         <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm transform-gpu"
             />
             <motion.div 
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}

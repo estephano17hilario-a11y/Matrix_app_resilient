@@ -7,7 +7,7 @@ const PHANTOM_DB_KEY = 'MATRIX_PHANTOM_DB';
 const saveSession = (user: User | null) => {
     if (user) {
         localStorage.setItem(PHANTOM_SESSION_KEY, JSON.stringify({
-            uid: user.uid,
+            uid: user.id,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL

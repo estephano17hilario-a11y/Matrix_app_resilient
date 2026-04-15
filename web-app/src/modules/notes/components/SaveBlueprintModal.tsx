@@ -47,7 +47,7 @@ export const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({ isOpen, 
             accentColor
         };
         
-        await saveBlueprint(user.uid, newBlueprint);
+        await saveBlueprint(user.id, newBlueprint);
         onClose();
         setName('');
     } catch (e) {

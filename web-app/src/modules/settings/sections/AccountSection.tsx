@@ -4,8 +4,7 @@ import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getAvatarPath } from '../../../config/avatars';
 import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
-import { updateProfile } from 'firebase/auth';
-import { auth, db, doc, setDoc } from '../../../services/firebase';
+import { supabase } from '../../../services/supabase';
 import { useTranslation } from 'react-i18next';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 
@@ -48,13 +47,13 @@ export const AccountSection = () => {
 
     setIsSavingName(true);
     try {
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: newName });
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        await supabase.auth.updateUser({ data: { display_name: newName } });
       }
 
       if (user?.uid) {
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, { displayName: newName }, { merge: true });
+        await supabase.from('users').update({ display_name: newName }).eq('id', user.uid);
         updateProfileLocally({ displayName: newName });
       }
 

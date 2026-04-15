@@ -36,27 +36,27 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => 
   }, [subtasks]);
 
   const saveImmediate = useCallback(async (newSubtasks: Subtask[]) => {
-    if (!user?.uid || !taskId) return;
+    if (!user?.id || !taskId) return;
 
     try {
-      const taskRef = doc(db, 'users', user.uid, 'quests', taskId);
+      const taskRef = doc(db, 'users', user.id, 'quests', taskId);
       await updateDoc(taskRef, {
         subtasks: newSubtasks
       });
     } catch (error) {
       console.error('Error syncing subtasks:', error);
     }
-  }, [user?.uid, taskId]);
+  }, [user?.id, taskId]);
 
   const saveToFirestore = useCallback((newSubtasks: Subtask[]) => {
-    if (!user?.uid || !taskId) return;
+    if (!user?.id || !taskId) return;
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
       void saveImmediate(newSubtasks);
     }, 500);
-  }, [user?.uid, taskId, saveImmediate]);
+  }, [user?.id, taskId, saveImmediate]);
 
   useEffect(() => {
     return () => {

@@ -1,16 +1,9 @@
 import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
-import { 
-  User, 
-  onAuthStateChanged,
-  signOut,
-  doc, 
-  getDoc,
-  waitForPendingWrites
-} from '../services/firebase';
-import { auth, db, configStatus } from '../services/firebase';
+import { supabase, configStatus } from '../services/supabase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { PersistenceService } from '../services/persistence';
+import { User } from '@supabase/supabase-js';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -49,8 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("💾 MATRIX: Ensuring data persistence before disconnect...");
       
-      if (user?.uid) {
-        PersistenceService.clearUserCache(user.uid);
+      if (user?.id) {
+        PersistenceService.clearUserCache(user.id);
       }
       PersistenceService.clearSession();
       sessionStorage.setItem('MATRIX_INTENTIONAL_LOGOUT', 'true');
@@ -59,14 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(null);
       
       setTimeout(async () => {
-        try {
-            await Promise.race([
-                waitForPendingWrites(db),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 1000))
-            ]);
-        } catch (e) {}
-
-        await signOut(auth);
+        await supabase.auth.signOut();
         
         try {
             if (Capacitor.isNativePlatform()) {
@@ -84,12 +70,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!configStatus.isValid) {
-        console.warn("⚠️ MATRIX: Running in PHANTOM MODE (No Firebase Config).");
+        console.warn("⚠️ MATRIX: Running in PHANTOM MODE (No Supabase Config).");
         setIsLoading(false);
         return;
     }
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser: User | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user || null;
       try {
         if (!currentUser) {
           const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
@@ -105,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  setProfile(null);
              } else {
                  setProfile(cached);
-                 setUser({ uid: cached.uid, email: cached.email, displayName: cached.displayName } as User);
+                 setUser({ id: cached.uid, email: cached.email, user_metadata: { full_name: cached.displayName } } as unknown as User);
              }
           }
           
@@ -114,21 +101,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // --- USER IS LOGGED IN ---
-        console.log("🔐 MATRIX: User logged in:", currentUser.uid);
+        console.log("🔐 MATRIX: User logged in:", currentUser.id);
         setUser(currentUser);
         setError(null);
         
         // 1. Show cached profile immediately if available
-        const cached = PersistenceService.getProfile(currentUser.uid);
+        const cached = PersistenceService.getProfile(currentUser.id);
         if (cached) {
              setProfile(cached);
         } else {
             // Optimistic Skeleton while we fetch
             setProfile({
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName || "",
-                photoURL: currentUser.photoURL,
+                id: currentUser.id,
+                uid: currentUser.id,
+                email: currentUser.email || null,
+                displayName: currentUser.user_metadata?.full_name || "",
+                photoURL: currentUser.user_metadata?.avatar_url || null,
                 plan: 'FREE',
                 archetype: 'NEO',
                 stats: DEFAULT_USER_STATS,
@@ -140,41 +128,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
         }
 
-        // 2. Fetch the real document from Firestore
+        // 2. Fetch the real document from Supabase
         const fetchProfile = async (attempts = 0) => {
             try {
-                const userRef = doc(db, "users", currentUser.uid);
-                const userSnap = await getDoc(userRef);
+                const { data: userData, error } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
                 
-                if (userSnap.exists()) {
-                    const data = userSnap.data() as UserProfile;
+                if (userData && !error) {
                     const finalProfile: UserProfile = {
-                        ...data,
-                        uid: currentUser.uid,
-                        displayName: data.displayName || currentUser.displayName || "",
-                        stats: data.stats || DEFAULT_USER_STATS,
-                        archetype: data.archetype || 'NEO',
-                        plan: data.plan || 'FREE',
-                        theme: data.theme || 'MATRIX',
-                        createdAt: data.createdAt || Date.now(),
-                        onboarding: data.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                        ...userData,
+                        uid: currentUser.id,
+                        displayName: userData.display_name || currentUser.user_metadata?.full_name || "",
+                        photoURL: userData.photo_url || currentUser.user_metadata?.avatar_url,
+                        stats: userData.stats || DEFAULT_USER_STATS,
+                        archetype: userData.archetype || 'NEO',
+                        plan: userData.plan || 'FREE',
+                        theme: userData.theme || 'MATRIX',
+                        createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+                        onboarding: userData.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 },
                         isSkeleton: false
                     };
                     
-                    console.log("✅ MATRIX: Profile loaded from Firestore.");
+                    console.log("✅ MATRIX: Profile loaded from Supabase.");
                     setProfile(finalProfile);
                     PersistenceService.saveProfile(finalProfile);
                     setIsLoading(false);
                 } else {
                     // IF DOCUMENT DOES NOT EXIST YET:
-                    // Because we decoupled Auth creation from Firestore creation in AuthView,
-                    // the document might still be writing. We retry a few times.
                     if (attempts < 5) {
                         console.log(`⏳ MATRIX: Profile document not found yet. Retrying (${attempts + 1}/5)...`);
                         await new Promise(r => setTimeout(r, 1000));
                         return fetchProfile(attempts + 1);
                     } else {
-                        // After 5 seconds, if still no document, it's a critical error.
                         throw new Error("Profile creation timed out. Please try logging in again.");
                     }
                 }
@@ -205,7 +189,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+        subscription.unsubscribe();
+    };
   }, []);
 
   const value = useMemo(() => ({

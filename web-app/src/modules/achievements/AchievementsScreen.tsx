@@ -30,7 +30,7 @@ const CategoryTab = ({
     {isActive && (
       <motion.div
         layoutId="activeTab"
-        className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm"
+        className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm transform-gpu"
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       />
     )}
@@ -91,8 +91,8 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
         relative group flex flex-col p-4 sm:p-5 text-left h-full min-w-0
         rounded-[24px] border transition-all duration-500 overflow-hidden
         ${isUnlocked 
-          ? 'bg-gray-900/50 backdrop-blur-sm border-white/10 shadow-md hover:shadow-md' 
-          : 'bg-black/30 backdrop-blur-sm border-white/5 opacity-70'}
+          ? 'bg-gray-900/50 backdrop-blur-sm transform-gpu border-white/10 shadow-md hover:shadow-md' 
+          : 'bg-black/30 backdrop-blur-sm transform-gpu border-white/5 opacity-70'}
       `}
     >
       {/* Shine Effect */}
@@ -209,7 +209,7 @@ export const AchievementsScreen: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-4 bg-black/50 backdrop-blur-sm border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
+            className="flex items-center gap-4 bg-black/50 backdrop-blur-sm transform-gpu border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
           >
             <div className="text-right">
               <span className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('achievements.sync')}</span>

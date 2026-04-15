@@ -375,7 +375,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
             {/* FILTERS PANEL - Simplified Animation */}
             {showFilters && (
                 <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div ref={filtersRef} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
+                  <div ref={filtersRef} className="bg-black/40 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
                     
                     {/* Reset Button */}
                     <button 

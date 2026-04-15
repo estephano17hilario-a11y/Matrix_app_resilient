@@ -41,7 +41,7 @@
 
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
   /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius */
-  .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur {
+  .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur {
     backdrop-filter: blur(2px) !important;
     -webkit-backdrop-filter: blur(2px) !important;
     /* FIX FOR BLACK FLICKERING BUG ON MOBILE WEBVIEW/SAFARI */
@@ -72,7 +72,7 @@
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
   @media (max-width: 768px) {
       /* Optimize blurs on mobile - Cap max blur radius for performance */
-      .backdrop-blur-3xl, .backdrop-blur-2xl, .backdrop-blur-xl, .backdrop-blur-lg, .backdrop-blur-md, .backdrop-blur {
+      .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur-sm transform-gpu, .backdrop-blur {
         backdrop-filter: blur(1px) !important;
         -webkit-backdrop-filter: blur(1px) !important;
       }
@@ -261,28 +261,28 @@
   }
 
   /* NO BLUR OVERRIDES FOR SERIOUS THEMES */
-  [data-theme='modern_dark'] .backdrop-blur-lg,
-  [data-theme='modern_dark'] .backdrop-blur-md,
-  [data-theme='modern_dark'] .backdrop-blur-xl,
-  [data-theme='modern_dark'] .backdrop-blur-3xl,
-  [data-theme='graphite'] .backdrop-blur-lg,
-  [data-theme='graphite'] .backdrop-blur-md,
-  [data-theme='graphite'] .backdrop-blur-xl,
-  [data-theme='graphite'] .backdrop-blur-3xl,
-  [data-theme='modern_light'] .backdrop-blur-lg,
-  [data-theme='modern_light'] .backdrop-blur-md,
-  [data-theme='modern_light'] .backdrop-blur-xl,
-  [data-theme='modern_light'] .backdrop-blur-3xl {
+  [data-theme='modern_dark'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_dark'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_dark'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_dark'] .backdrop-blur-sm transform-gpu,
+  [data-theme='graphite'] .backdrop-blur-sm transform-gpu,
+  [data-theme='graphite'] .backdrop-blur-sm transform-gpu,
+  [data-theme='graphite'] .backdrop-blur-sm transform-gpu,
+  [data-theme='graphite'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_light'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_light'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_light'] .backdrop-blur-sm transform-gpu,
+  [data-theme='modern_light'] .backdrop-blur-sm transform-gpu {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
-  .android-webview .backdrop-blur-sm,
-  .android-webview .backdrop-blur-md,
-  .android-webview .backdrop-blur-lg,
-  .android-webview .backdrop-blur-xl,
-  .android-webview .backdrop-blur-2xl,
-  .android-webview .backdrop-blur-3xl {
+  .android-webview .backdrop-blur-sm transform-gpu,
+  .android-webview .backdrop-blur-sm transform-gpu,
+  .android-webview .backdrop-blur-sm transform-gpu,
+  .android-webview .backdrop-blur-sm transform-gpu,
+  .android-webview .backdrop-blur-sm transform-gpu,
+  .android-webview .backdrop-blur-sm transform-gpu {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }

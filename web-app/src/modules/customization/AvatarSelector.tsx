@@ -47,7 +47,7 @@ export const AvatarSelector: React.FC<AvatarSelectorProps> = ({ onClose }) => {
 
     try {
       // 3. Update Firestore (Persistence)
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user.id);
       await setDoc(userRef, {
         avatarId: avatarId
       }, { merge: true });

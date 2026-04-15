@@ -105,7 +105,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
     // Load Config from LocalStorage
     useEffect(() => {
-        const configKey = user?.uid ? `notes_config_v2_${user.uid}` : 'notes_config_v2';
+        const configKey = user?.id ? `notes_config_v2_${user.id}` : 'notes_config_v2';
         const savedConfig = localStorage.getItem(configKey);
         if (savedConfig) {
             try {
@@ -124,7 +124,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             }
         } else {
              // Migration from old config if exists
-             const oldConfigKey = user?.uid ? `notes_config_${user.uid}` : 'notes_config';
+             const oldConfigKey = user?.id ? `notes_config_${user.id}` : 'notes_config';
              const oldConfig = localStorage.getItem(oldConfigKey);
              if (oldConfig) {
                  try {
@@ -151,12 +151,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                  setIsLocked(false);
              }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     // Save Config Helper
     const handleSaveConfig = (newConfig: NotesConfig) => {
         setConfig(newConfig);
-        const configKey = user?.uid ? `notes_config_v2_${user.uid}` : 'notes_config_v2';
+        const configKey = user?.id ? `notes_config_v2_${user.id}` : 'notes_config_v2';
         localStorage.setItem(configKey, JSON.stringify(newConfig));
         
         // Update lock state based on new config and current subView
@@ -192,7 +192,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     // Load Special Events for Calendar Integration
     useEffect(() => {
         const loadEvents = () => {
-            const eventsKey = user?.uid ? `special_events_${user.uid}` : 'special_events';
+            const eventsKey = user?.id ? `special_events_${user.id}` : 'special_events';
             const saved = localStorage.getItem(eventsKey);
             if (saved) {
                 try {
@@ -215,7 +215,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             window.removeEventListener('storage', loadEvents);
             window.removeEventListener('special_events_updated', loadEvents);
         };
-    }, [user?.uid]);
+    }, [user?.id]);
     
     const openEventsHub = useCallback(() => {
         if (config.security.protectedAreas.memories) {
@@ -281,7 +281,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const notesContainerRef = useRef<HTMLDivElement | null>(null);
 
     const openNote = useCallback((note: Note) => { 
-        setEditorMode('NOTE'); setDraftId(note.id); setDraftTitle(note.title); setDraftBlocks(note.blocks); setDraftTheme(note.theme || 'slate'); setDraftProjectId(note.projectId); onInteractionStart(); 
+        setEditorMode('NOTE'); 
+        setDraftId(note.id); 
+        setDraftTitle(note.title || ''); 
+        setDraftBlocks(note.blocks || [{ id: 'init-1', type: 'text', content: '' }]); 
+        setDraftTheme(note.theme || 'slate'); 
+        setDraftProjectId(note.projectId); 
+        onInteractionStart(); 
     }, [onInteractionStart]);
     
     const createNote = useCallback(() => { 
@@ -621,7 +627,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
                             className="overflow-hidden px-4 relative z-10"
                         >
-                            <div className="bg-[#0a0a0a]/60 backdrop-blur-[2px] border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
+                            <div className="bg-[#0a0a0a]/60 backdrop-blur-sm transform-gpu border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
                                 {/* Projects Filter */}
                                 <div className="flex flex-col gap-2">
                                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByProject', 'Filter by Project')}</span>
@@ -660,7 +666,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 animate-in slide-in-from-left-4 fade-in duration-500 px-4">
                         {isLocked ? (
                             <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
-                                <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-[2px]">
+                                <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu">
                                     <Lock size={48} className="text-white/20" />
                                 </div>
                                 <span className="text-xs font-bold uppercase tracking-widest opacity-60">Section Locked</span>
@@ -710,7 +716,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-500">
                         {isLocked ? (
                             <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
-                                <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-[2px]">
+                                <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu">
                                     <Lock size={48} className="text-white/20" />
                                 </div>
                                 <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
@@ -1075,7 +1081,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             {selectedMemory && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
                     <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out animate-in fade-in"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu transition-opacity duration-300 ease-out animate-in fade-in"
                         onClick={() => setSelectedMemory(null)}
                     />
                     <div 

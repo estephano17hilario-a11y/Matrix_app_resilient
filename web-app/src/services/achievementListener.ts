@@ -14,7 +14,7 @@ export const checkAchievements = async (
   attributes?: Attribute[],
   triggerCategory?: AchievementCategory
 ): Promise<Achievement[]> => {
-  if (!user || !user.uid) return [];
+  if (!user || !user.id) return [];
 
   // 1. Identify what we already have (DB + Session Cache)
   const unlockedIds = new Set([
@@ -44,7 +44,7 @@ export const checkAchievements = async (
 
   // 4. Update "The Source" (Firestore)
   if (newAchievements.length > 0) {
-    const userRef = doc(db, 'users', user.uid);
+    const userRef = doc(db, 'users', user.id);
     
     // Construct the atomic update
     const updates: any = {

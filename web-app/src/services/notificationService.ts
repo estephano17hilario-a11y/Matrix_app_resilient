@@ -1,4 +1,4 @@
-import { messaging, db, doc, setDoc, auth } from './firebase';
+import { supabase } from './supabase';
 import { toast } from 'react-hot-toast';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
@@ -75,7 +75,7 @@ export const notificationService = {
         toast(notification.title || 'New Message', {
            icon: '📱',
            duration: 6000,
-           className: '!bg-[#050505]/90 !backdrop-blur-sm !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
+           className: '!bg-[#050505]/90 !backdrop-blur-sm transform-gpu !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
            style: {
              // Overridden by className, but kept for backup
              background: '#050505',
@@ -119,43 +119,14 @@ export const notificationService = {
         return { success: false, error: 'unsupported_browser' };
       }
 
-      const { getToken, isSupported } = await import('firebase/messaging');
-      const supported = await isSupported();
-      if (!supported) {
-        return { success: false, error: 'unsupported_browser' };
-      }
-
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.warn("Notification Service: Permission denied.");
         return { success: false, error: 'denied' };
       }
 
-      // Check VAPID Key validity
-      if (!messaging || VAPID_KEY.includes('YOUR_VAPID_KEY')) {
-        console.warn("VAPID Key is not configured. Switching to Local-Only mode.");
-        return { success: true, token: 'local-only-mode' };
-      }
-
-      try {
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-        if (token) {
-          console.log("Notification Service: Web Token received", token);
-          await notificationService.saveTokenToDatabase(token, 'web');
-          return { success: true, token };
-        } else {
-          console.warn("Notification Service: No registration token available.");
-          return { success: false, error: 'no_token' };
-        }
-      } catch (tokenError: any) {
-         // Specific handling for common errors
-         if (tokenError.message?.includes('unregistered') || tokenError.code === 'messaging/failed-registration-token') {
-             return { success: false, error: 'service_worker_issue', details: tokenError };
-         }
-         // Fallback to local only if FCM fails
-         console.warn("FCM Registration failed, falling back to local notifications", tokenError);
-         return { success: true, token: 'local-only-fallback' };
-      }
+      console.warn("Web Push is currently disabled in favor of Native Push.");
+      return { success: true, token: 'local-only-mode' };
     } catch (error: any) {
       console.error("Notification Service: Error during initialization", error);
       return { success: false, error: 'unknown', details: error.message };
@@ -163,23 +134,24 @@ export const notificationService = {
   },
 
   /**
-   * Save Token to Firestore
+   * Save Token to Supabase
    */
   saveTokenToDatabase: async (token: string, type: 'web' | 'mobile') => {
-    const user = auth.currentUser;
-    if (!user) return;
-
     try {
-      const tokenRef = doc(db, 'users', user.uid, 'fcmTokens', token);
-      await setDoc(tokenRef, {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('fcm_tokens').upsert({
+        user_id: user.id,
         token: token,
-        createdAt: new Date().toISOString(),
-        lastSeen: new Date().toISOString(),
-        deviceType: type,
+        created_at: new Date().toISOString(),
+        last_seen: new Date().toISOString(),
+        device_type: type,
         platform: Capacitor.getPlatform(),
-        userAgent: navigator.userAgent
-      }, { merge: true });
+        user_agent: navigator.userAgent
+      }, { onConflict: 'token' });
       
+      if (error) throw error;
       console.log("Notification Service: Token saved to database.");
     } catch (error) {
       console.error("Notification Service: Error saving token", error);
@@ -192,19 +164,8 @@ export const notificationService = {
   onMessageListener: () => {
     if (Capacitor.isNativePlatform()) return Promise.resolve(); // Handled by Native Listeners
 
-    if (!messaging) return new Promise(() => {});
-    return new Promise((resolve) => {
-      import('firebase/messaging').then(({ onMessage }) => {
-        onMessage(messaging!, (payload) => {
-          console.log("Notification Service: Foreground Message received", payload);
-          toast(payload.notification?.title || 'New Message', {
-              icon: '🔔',
-              duration: 5000,
-          });
-          resolve(payload);
-        });
-      });
-    });
+    // Web Push disabled in favor of Native Push
+    return new Promise(() => {});
   },
 
   /**

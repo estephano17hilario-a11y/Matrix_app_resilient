@@ -59,7 +59,7 @@ const AppRoutes = () => {
 
     return (
       <div className="w-full h-full">
-        <LuxProvider userId={user?.uid || profile?.uid || 'phantom-user'}>
+        <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <RewardProvider>
               <NotesProvider>

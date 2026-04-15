@@ -1,27 +1,10 @@
-import { 
-  auth, 
-  db,
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithRedirect,
-  signInWithCredential,
-  signOut as firebaseSignOut,
-  signInAnonymously,
-  updateProfile,
-  setDoc,
-  User,
-  doc, 
-  getDoc,
-  waitForPendingWrites
-} from './firebase';
+import { supabase } from './supabase';
+import { User } from '@supabase/supabase-js';
 import { DEFAULT_USER_STATS } from '../types/User';
-import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { PersistenceService } from './persistence';
 import { retryOperation } from '../utils/networkUtils';
-
-const googleProvider = new GoogleAuthProvider();
 
 if (Capacitor.isNativePlatform()) {
   try {
@@ -40,45 +23,30 @@ if (Capacitor.isNativePlatform()) {
  * This is the ONLY place where a user document is created.
  */
 export const initializeUserDocument = async (user: User, additionalData: any = {}) => {
-  const userDocRef = doc(db, 'users', user.uid);
-  
   try {
-    // 1. FORZAR PROPAGACIÓN DEL TOKEN A LAS REGLAS DE FIRESTORE
-    await user.getIdToken(true);
-    
-    // 2. DELAY ESTRATÉGICO PARA CAPACITOR (Permitir que el motor de reglas procese el token)
-    const delayMs = Capacitor.isNativePlatform() ? 1500 : 500;
-    await new Promise(r => setTimeout(r, delayMs));
+    // INTENTAR LEER SI YA EXISTE EN SUPABASE
+    const { data: existingData, error: getError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-    // 3. INTENTAR LEER SI YA EXISTE
-    let exists = false;
-    let existingData = {};
-    let getDocFailed = false;
+    const exists = !!existingData && !getError;
 
-    try {
-        const userDoc = await getDoc(userDocRef);
-        exists = userDoc.exists();
-        if (exists) {
-            existingData = userDoc.data() || {};
-        }
-    } catch (e) {
-        console.warn("⚠️ MATRIX: getDoc failed in initializeUserDocument. Assuming network issue.", e);
-        getDocFailed = true;
-    }
-
-    // 4. CREACIÓN DE NUEVO USUARIO ATÓMICA
-    if (!exists && !getDocFailed) {
-        console.log("💎 MATRIX: Creating fresh user document atomically...");
+    // CREACIÓN DE NUEVO USUARIO
+    if (!exists) {
+        console.log("💎 MATRIX: Creating fresh user document in Supabase...");
         const defaultData: any = {
-            uid: user.uid,
+            id: user.id, // Supabase usa 'id' en lugar de 'uid'
             email: user.email || null,
-            photoURL: user.photoURL || null,
+            photo_url: user.user_metadata?.avatar_url || null, // Supabase metadata
             plan: 'FREE',
+            es_pro: false,
             archetype: 'NEO',
             stats: DEFAULT_USER_STATS,
             theme: 'MATRIX',
-            createdAt: Date.now(),
-            lastLoginAt: Date.now(),
+            created_at: new Date().toISOString(),
+            last_login_at: new Date().toISOString(),
             onboarding: {
                 successDefinition: "Becoming the One",
                 obstacles: [],
@@ -90,51 +58,29 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
         };
 
         if (additionalData.displayName) {
-            defaultData.displayName = additionalData.displayName;
-        } else if (user.displayName) {
-            defaultData.displayName = user.displayName;
+            defaultData.display_name = additionalData.displayName;
+        } else if (user.user_metadata?.full_name) {
+            defaultData.display_name = user.user_metadata.full_name;
         }
 
-        const cleanData = sanitizeFirestoreData(defaultData);
+        const { error: insertError } = await retryOperation(async () => await supabase.from('users').insert(defaultData));
+        if (insertError) throw insertError;
         
-        // Escritura Atómica
-        await retryOperation(() => setDoc(userDocRef, cleanData, { merge: true }));
-        
-        // En móviles, ESPERAR a que la base de datos confirme la escritura antes de continuar
-        // pero con un TIMEOUT ESTRICTO para no colgar la aplicación si la red falla.
-        if (Capacitor.isNativePlatform()) {
-            try {
-                await Promise.race([
-                    waitForPendingWrites(db),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
-                ]);
-                console.log("💎 MATRIX: Mobile write confirmed.");
-            } catch (e) {
-                console.warn("⚠️ MATRIX: Mobile write confirmation timed out, but proceeding.");
-            }
-        }
-        
-        return cleanData;
+        return defaultData;
     } else {
-        // 5. ACTUALIZACIÓN SEGURA DE USUARIO EXISTENTE
-        console.log("💎 MATRIX: Updating existing user login timestamp...");
-        const updateData = { 
-            lastLoginAt: Date.now(),
-            ...additionalData
+        // ACTUALIZACIÓN DE USUARIO EXISTENTE
+        console.log("💎 MATRIX: Updating existing user login timestamp in Supabase...");
+        const updateData: any = { 
+            last_login_at: new Date().toISOString(),
         };
 
-        // PROTECCIÓN ABSOLUTA: Nunca sobrescribir datos críticos si falló la lectura
-        if (updateData.onboarding) delete updateData.onboarding;
-        if (getDocFailed) {
-            delete updateData.plan;
-            delete updateData.stats;
-            delete updateData.theme;
-            delete updateData.archetype;
-        }
+        if (additionalData.displayName) updateData.display_name = additionalData.displayName;
+        if (additionalData.isAnonymous !== undefined) updateData.isAnonymous = additionalData.isAnonymous;
 
-        const cleanUpdate = sanitizeFirestoreData(updateData);
-        await retryOperation(() => setDoc(userDocRef, cleanUpdate, { merge: true }));
-        return { ...existingData, ...cleanUpdate };
+        const { error: updateError } = await retryOperation(async () => await supabase.from('users').update(updateData).eq('id', user.id));
+        if (updateError) throw updateError;
+        
+        return { ...existingData, ...updateData };
     }
   } catch (err) {
     console.error("⛔ CRITICAL ERROR in initializeUserDocument:", err);
@@ -148,42 +94,50 @@ export const loginWithGoogle = async (): Promise<User | null> => {
 
     if (Capacitor.isNativePlatform()) {
       const googleUser = await GoogleAuth.signIn();
-      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-      const result = await signInWithCredential(auth, credential);
-      user = result.user;
+      const { data, error } = await supabase.auth.signInWithIdToken({ 
+        provider: 'google', 
+        token: googleUser.authentication.idToken 
+      });
+      if (error) throw error;
+      user = data.user;
     } else {
-      googleProvider.addScope('profile');
-      googleProvider.addScope('email');
-      const result = await signInWithPopup(auth, googleProvider);
-      user = result.user;
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      // In web OAuth with redirect, the user is not returned immediately
+      // The session will be picked up by onAuthStateChange
+      return null; 
     }
 
     if (user) {
-        // BLOCKING INITIALIZATION: No dejamos que continúe hasta que Firestore esté listo
         await initializeUserDocument(user, { isAnonymous: false });
-        PersistenceService.setSession(user.uid);
+        PersistenceService.setSession(user.id);
         return user;
     }
     return null;
   } catch (error: any) {
-    if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/cancelled-popup-request') {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
+    console.error("Google Login Error:", error);
     throw error;
   }
 };
 
 export const loginAsGuest = async (name: string): Promise<User> => {
     try {
-        const result = await signInAnonymously(auth);
-        const user = result.user;
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
         
-        await updateProfile(user, { displayName: name });
-        // BLOCKING INITIALIZATION
+        const user = data.user;
+        if (!user) throw new Error("No user returned from anonymous login");
+        
+        await supabase.auth.updateUser({ data: { full_name: name } });
+        
         await initializeUserDocument(user, { displayName: name, isAnonymous: true, email: null });
         
-        PersistenceService.setSession(user.uid);
+        PersistenceService.setSession(user.id);
         return user;
     } catch (error) {
         console.error("Guest Login Failed:", error);
@@ -193,7 +147,8 @@ export const loginAsGuest = async (name: string): Promise<User> => {
 
 export const logout = async (): Promise<void> => {
   try {
-    await firebaseSignOut(auth);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   } catch (error) {
     console.error("Disconnection Error:", error);
     throw error;
@@ -202,11 +157,11 @@ export const logout = async (): Promise<void> => {
 
 export const checkUserExists = async (uid: string): Promise<boolean> => {
   try {
-    const userDocRef = doc(db, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
-    return userDoc.exists();
+    const { data, error } = await supabase.from('users').select('id').eq('id', uid).single();
+    if (error || !data) return false;
+    return true;
   } catch (error) {
     console.error("Database Query Failed:", error);
-    return false; // Fail safe
+    return false;
   }
 };

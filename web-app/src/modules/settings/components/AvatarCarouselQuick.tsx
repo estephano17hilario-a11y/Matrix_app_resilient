@@ -39,7 +39,7 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
     }
 
     try {
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user.id);
       await setDoc(userRef, { avatarId }, { merge: true });
       onClose?.();
     } catch (error) {

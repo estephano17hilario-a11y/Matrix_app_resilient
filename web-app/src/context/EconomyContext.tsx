@@ -62,13 +62,13 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isTransactionPending, setIsTransactionPending] = useState(false);
 
   const purchase = useCallback(async (item: StoreItem): Promise<boolean> => {
-    if (!user?.uid) return false;
+    if (!user?.id) return false;
     
     setIsTransactionPending(true);
     // Haptic feedback start
     if (navigator.vibrate) navigator.vibrate(20);
 
-    const result = await purchaseItem(user.uid, item);
+    const result = await purchaseItem(user.id, item);
     
     setIsTransactionPending(false);
 
@@ -81,14 +81,14 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       return false;
     }
-  }, [user?.uid]);
+  }, [user?.id]);
 
   const useItem = useCallback(async (itemId: string): Promise<boolean> => {
-      if (!user?.uid) return false;
+      if (!user?.id) return false;
       setIsTransactionPending(true);
       
       const storeItem = STORE_ITEMS.find(i => i.id === itemId);
-      const result = await consumeItem(user.uid, itemId, storeItem?.effect);
+      const result = await consumeItem(user.id, itemId, storeItem?.effect);
       
       setIsTransactionPending(false);
       
@@ -97,28 +97,28 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
       
       return result.success;
-  }, [user?.uid]);
+  }, [user?.id]);
 
   const watchAd = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
     setIsTransactionPending(true);
     
     // Simulate Ad duration
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    await addGold(user.uid, 50);
+    await addGold(user.id, 50);
     setIsTransactionPending(false);
     
     if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
-  }, [user?.uid]);
+  }, [user?.id]);
 
   const grantAdReward = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.id) return;
     setIsTransactionPending(true);
-    await addGold(user.uid, 50);
+    await addGold(user.id, 50);
     setIsTransactionPending(false);
     if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
-  }, [user?.uid]);
+  }, [user?.id]);
 
   const consume = useItem;
   const inventory = useMemo(() => (user?.inventory || []) as InventoryItem[], [user?.inventory]);

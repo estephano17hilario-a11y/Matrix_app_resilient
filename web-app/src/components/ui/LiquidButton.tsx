@@ -27,7 +27,7 @@ export const LiquidButton: React.FC<LiquidButtonProps> = ({
 
   const variants = {
     primary: "bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
-    secondary: "bg-white/10 backdrop-blur-sm hover:bg-white/15",
+    secondary: "bg-white/10 backdrop-blur-sm transform-gpu hover:bg-white/15",
     danger: "bg-gradient-to-r from-rose-500 to-red-600 shadow-rose-500/50 shadow-lg",
   };
 

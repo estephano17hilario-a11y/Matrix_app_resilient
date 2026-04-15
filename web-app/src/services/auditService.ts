@@ -30,7 +30,7 @@ export const AuditLogger = {
         action,
         collection: collectionName,
         documentId,
-        userId: user.uid,
+        userId: user.id,
         timestamp: serverTimestamp(),
         details: details ? JSON.stringify(details) : null,
         deviceInfo: navigator.userAgent
@@ -41,7 +41,7 @@ export const AuditLogger = {
       // Pero por simplicidad y costos, lo guardaremos en una subcolección del usuario por ahora,
       // protegida por reglas de seguridad (create: true, update/delete: false).
       
-      await addDoc(collection(db, 'users', user.uid, 'audit_logs'), logEntry);
+      await addDoc(collection(db, 'users', user.id, 'audit_logs'), logEntry);
       
       console.log(`[AUDIT] ${action} on ${collectionName}/${documentId}`);
     } catch (error) {

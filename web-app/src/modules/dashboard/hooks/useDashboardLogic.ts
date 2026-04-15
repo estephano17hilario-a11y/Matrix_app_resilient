@@ -82,7 +82,7 @@ export const useDashboardLogic = () => {
         if (!authProfile) return luxUser;
         
         // If UIDs match, merge carefully
-        if (luxUser.uid === authProfile.uid) {
+        if (luxUser.id === authProfile.uid || luxUser.id === authProfile.id) {
             return {
                 ...luxUser,
                 // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
@@ -156,70 +156,70 @@ export const useDashboardLogic = () => {
 
     const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID' | 'GLASS') => {
         setDashboardStyle(style);
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { dashboardStyle: style }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { dashboardStyle: style }, { merge: true });
             } catch (e) {
                 console.error("Failed to save dashboard style", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const updateAvatarShape = useCallback(async (shape: 'CIRCLE' | 'SQUARE') => {
         setAvatarShape(shape);
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { avatarShape: shape }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { avatarShape: shape }, { merge: true });
             } catch (e) {
                 console.error("Failed to save avatar shape", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const updateHabitSectionControl = useCallback(async (control: 'VISIBLE' | 'HIDDEN') => {
         setHabitSectionControl(control);
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { habitSectionControl: control }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { habitSectionControl: control }, { merge: true });
             } catch (e) {
                 console.error("Failed to save habit section control", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const updateAllowDockSectionSwitch = useCallback(async (allow: boolean) => {
         setAllowDockSectionSwitch(allow);
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { allowDockSectionSwitch: allow }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { allowDockSectionSwitch: allow }, { merge: true });
             } catch (e) {
                 console.error("Failed to save allow dock section switch", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const updateDockConfig = useCallback(async (config: DockConfig) => {
         setDockConfig(config);
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { dockConfig: config }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { dockConfig: config }, { merge: true });
             } catch (e) {
                 console.error("Failed to save dock config", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const updateWeekStartDay = useCallback(async (day: 0 | 1) => {
         setWeekStartDay(day);
         localStorage.setItem('weekStartDay', day.toString());
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.uid), { weekStartDay: day }, { merge: true });
+                await setDoc(doc(db, 'users', user.id), { weekStartDay: day }, { merge: true });
             } catch (e) {
                 console.error("Failed to save week start day", e);
             }
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     // Sticky HUD updater removed
 
@@ -493,10 +493,10 @@ export const useDashboardLogic = () => {
     }, [user, calculateNextXp]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
 
-        const cached = PersistenceService.getProfile(user.uid);
-        if (!cached || cached.uid !== user.uid) return;
+        const cached = PersistenceService.getProfile(user.id);
+        if (!cached || cached.uid !== user.id) return;
 
         const updatedProfile = {
             ...cached,
@@ -510,7 +510,7 @@ export const useDashboardLogic = () => {
         };
 
         PersistenceService.saveProfile(updatedProfile);
-    }, [player.xp, player.gold, player.level, player.nextXp, health, user?.uid, user?.isSkeleton]);
+    }, [player.xp, player.gold, player.level, player.nextXp, health, user?.id, user?.isSkeleton]);
 
 
 
@@ -557,7 +557,7 @@ export const useDashboardLogic = () => {
 
     // --- DAILY RESET & PENALTY LOGIC ---
     useEffect(() => {
-        if (!user?.uid || isDailyCheckDone) return;
+        if (!user?.id || isDailyCheckDone) return;
         if (user.isSkeleton) return; // 🛡️ SKELETON PROTECTION
 
         const processDailyReset = async () => {
@@ -620,7 +620,7 @@ export const useDashboardLogic = () => {
 
                 // 2. Prepare Batch
                 const batch = writeBatch(db);
-                const userRef = doc(db, 'users', user.uid);
+                const userRef = doc(db, 'users', user.id);
 
                 // 1.5 CHECK STREAK CONTINUITY (Global Streak)
                 const yesterday = new Date(today);
@@ -665,7 +665,7 @@ export const useDashboardLogic = () => {
                     
                     habits.forEach(h => {
                         if (h.completedToday) {
-                             const habitRef = doc(db, 'users', user.uid, 'habits', h.id);
+                             const habitRef = doc(db, 'users', user.id, 'habits', h.id);
                              batch.update(habitRef as any, { completedToday: false });
                         }
                     });
@@ -711,7 +711,7 @@ export const useDashboardLogic = () => {
         };
 
         processDailyReset();
-    }, [user?.uid, areHabitsLoaded, isDailyCheckDone, dailyLimits.date]);
+    }, [user?.id, areHabitsLoaded, isDailyCheckDone, dailyLimits.date]);
 
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const prevAttributes = useRef(attributes);
@@ -775,8 +775,8 @@ export const useDashboardLogic = () => {
 
     // --- LOAD PROJECTS, QUESTS, HABITS, NOTES, JOURNAL ---
     useEffect(() => {
-        if (!user?.uid) return;
-        const uid = user.uid;
+        if (!user?.id) return;
+        const uid = user.id;
         const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
         // TRACK LOADING STATE
@@ -948,30 +948,30 @@ export const useDashboardLogic = () => {
                 PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
             });
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     useEffect(() => {
-        if (!user?.uid || !areHabitsLoaded) return;
-        PersistenceService.saveCollection(user.uid, 'habits', habits);
-    }, [habits, user?.uid, areHabitsLoaded]);
+        if (!user?.id || !areHabitsLoaded) return;
+        PersistenceService.saveCollection(user.id, 'habits', habits);
+    }, [habits, user?.id, areHabitsLoaded]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         if (!questsHydratedRef.current) return;
-        PersistenceService.saveCollection(user.uid, 'quests', quests);
-    }, [quests, user?.uid]);
+        PersistenceService.saveCollection(user.id, 'quests', quests);
+    }, [quests, user?.id]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         if (!badHabitsHydratedRef.current) return;
-        PersistenceService.saveCollection(user.uid, 'badHabits', badHabits);
-    }, [badHabits, user?.uid]);
+        PersistenceService.saveCollection(user.id, 'badHabits', badHabits);
+    }, [badHabits, user?.id]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         if (!smartProjectsHydratedRef.current) return;
-        PersistenceService.saveCollection(user.uid, 'smartProjects', smartProjects);
-    }, [smartProjects, user?.uid]);
+        PersistenceService.saveCollection(user.id, 'smartProjects', smartProjects);
+    }, [smartProjects, user?.id]);
 
     // DEDUPLICATION: Auto-clean duplicate projects on load/update
     useEffect(() => {
@@ -999,12 +999,12 @@ export const useDashboardLogic = () => {
                 console.log("🧹 Auto-cleaning duplicate projects from state...");
                 const cleanProjects = Array.from(uniqueMap.values());
                 setProjects(cleanProjects);
-                if (user?.uid) {
-                    saveProjectsCache(user.uid, cleanProjects);
+                if (user?.id) {
+                    saveProjectsCache(user.id, cleanProjects);
                 }
             }
         }
-    }, [projects.length, user?.uid, saveProjectsCache]); // Run when count changes or user changes
+    }, [projects.length, user?.id, saveProjectsCache]); // Run when count changes or user changes
 
     useEffect(() => {
         if (projects.length > 0) {
@@ -1013,11 +1013,11 @@ export const useDashboardLogic = () => {
     }, [projects]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         if (!projectsHydratedRef.current) return;
         const shouldAllowEmpty = allowEmptyProjectsSaveRef.current;
         if (projects.length === 0 && !shouldAllowEmpty) {
-            const cached = PersistenceService.getCollection<Project>(user.uid, 'projects');
+            const cached = PersistenceService.getCollection<Project>(user.id, 'projects');
             if ((cached?.length ?? 0) > 0 || lastNonEmptyProjectsRef.current.length > 0) {
                 return;
             }
@@ -1025,14 +1025,14 @@ export const useDashboardLogic = () => {
         if (projects.length === 0 && shouldAllowEmpty) {
             allowEmptyProjectsSaveRef.current = false;
         }
-        saveProjectsCache(user.uid, projects);
-    }, [projects, user?.uid, saveProjectsCache]);
+        saveProjectsCache(user.id, projects);
+    }, [projects, user?.id, saveProjectsCache]);
 
     useEffect(() => {
-        if (!user?.uid || !areAttributesLoaded) return;
+        if (!user?.id || !areAttributesLoaded) return;
         const attrsForCache = attributes.map(({ icon, ...rest }) => rest);
-        PersistenceService.saveCollection(user.uid, 'attributes', attrsForCache);
-    }, [attributes, user?.uid, areAttributesLoaded]);
+        PersistenceService.saveCollection(user.id, 'attributes', attrsForCache);
+    }, [attributes, user?.id, areAttributesLoaded]);
 
     const addAttribute = async (traitId: string) => {
         // LIMIT CHECK: Active Traits
@@ -1062,8 +1062,8 @@ export const useDashboardLogic = () => {
             }
 
             // Update Counter
-            if (user?.uid) {
-                setDoc(doc(db, 'users', user.uid), {
+            if (user?.id) {
+                setDoc(doc(db, 'users', user.id), {
                     traitChanges: { count: newCount + 1, weekStart: newStart }
                 }, { merge: true });
             }
@@ -1089,8 +1089,8 @@ export const useDashboardLogic = () => {
         setAttributes(prev => [...prev, newAttr]);
 
         // Save to DB
-        if (!user?.uid) return;
-        await persistenceService.attributes.save(user.uid, newAttr);
+        if (!user?.id) return;
+        await persistenceService.attributes.save(user.id, newAttr);
     };
 
     const removeAttribute = async (traitId: string) => {
@@ -1114,14 +1114,14 @@ export const useDashboardLogic = () => {
             }
 
              // Update Counter
-            if (user?.uid) {
-                setDoc(doc(db, 'users', user.uid), {
+            if (user?.id) {
+                setDoc(doc(db, 'users', user.id), {
                     traitChanges: { count: newCount + 1, weekStart: newStart }
                 }, { merge: true });
             }
         }
 
-        if (!user?.uid) return;
+        if (!user?.id) return;
         
         // Find trait to archive
         const attrToArchive = attributes.find(a => a.id === traitId);
@@ -1139,12 +1139,12 @@ export const useDashboardLogic = () => {
             const batch = writeBatch(db);
             
             // 1. Delete Attribute Doc
-            const attrRef = doc(db, 'users', user.uid, 'attributes', traitId);
+            const attrRef = doc(db, 'users', user.id, 'attributes', traitId);
             batch.delete(attrRef);
 
             // 2. Archive Stats in User Doc
             if (attrToArchive) {
-                const userRef = doc(db, 'users', user.uid);
+                const userRef = doc(db, 'users', user.id);
                 batch.update(userRef, {
                     [`archivedTraits.${traitId}`]: {
                         level: attrToArchive.level,
@@ -1157,28 +1157,28 @@ export const useDashboardLogic = () => {
             // 3. Update Associated Items in Firestore
             habits.forEach(h => {
                 if (h.attribute === traitId) {
-                    const ref = doc(db, 'users', user.uid, 'habits', h.id);
+                    const ref = doc(db, 'users', user.id, 'habits', h.id);
                     batch.update(ref, { attribute: '' });
                 }
             });
             
             badHabits.forEach(h => {
                 if (h.attribute === traitId) {
-                    const ref = doc(db, 'users', user.uid, 'bad-habits', h.id);
+                    const ref = doc(db, 'users', user.id, 'bad-habits', h.id);
                     batch.update(ref, { attribute: '' });
                 }
             });
             
             projects.forEach(p => {
                 if (p.attribute === traitId) {
-                    const ref = doc(db, 'users', user.uid, 'projects', p.id);
+                    const ref = doc(db, 'users', user.id, 'projects', p.id);
                     batch.update(ref, { attribute: '' });
                 }
             });
             
             quests.forEach(q => {
                 if (q.attribute === traitId) {
-                    const ref = doc(db, 'users', user.uid, 'quests', q.id);
+                    const ref = doc(db, 'users', user.id, 'quests', q.id);
                     batch.update(ref, { attribute: '' });
                 }
             });
@@ -1191,10 +1191,10 @@ export const useDashboardLogic = () => {
 
     // --- AUTO-SAVE SETTINGS ---
     useEffect(() => {
-        if (user?.uid) {
-             persistenceService.settings.save(user.uid, { theme: currentTheme, showProfile, defaultChartMode });
+        if (user?.id) {
+             persistenceService.settings.save(user.id, { theme: currentTheme, showProfile, defaultChartMode });
         }
-    }, [currentTheme, showProfile, defaultChartMode, user?.uid]);
+    }, [currentTheme, showProfile, defaultChartMode, user?.id]);
 
     // --- DAILY RESET TRIGGER (Visibility + Midnight Timer) ---
     const [dailyResetTrigger, setDailyResetTrigger] = useState(0);
@@ -1225,7 +1225,7 @@ export const useDashboardLogic = () => {
 
     // --- DAILY RESET & STREAK LOGIC ---
     useEffect(() => {
-        if (!habits.length || !user?.uid) return;
+        if (!habits.length || !user?.id) return;
 
         const checkDailyReset = async () => {
             const today = new Date();
@@ -1292,7 +1292,7 @@ export const useDashboardLogic = () => {
                     if (newItem.checklist) {
                         updates.checklist = newItem.checklist;
                     }
-                    persistenceService.habits.update(user.uid, habit.id, updates);
+                    persistenceService.habits.update(user.id, habit.id, updates);
                 }
                 return newItem;
             });
@@ -1306,7 +1306,7 @@ export const useDashboardLogic = () => {
         checkDailyReset();
 
         const checkBadHabitsDaily = async () => {
-            if (!user?.uid) return;
+            if (!user?.id) return;
             const today = new Date();
             const todayStr = toLocalISOString(today);
 
@@ -1375,11 +1375,11 @@ export const useDashboardLogic = () => {
 
             if (hasChanges) {
                 setBadHabits(updatedBadHabits);
-                PersistenceService.saveCollection(user.uid, 'badHabits', updatedBadHabits);
+                PersistenceService.saveCollection(user.id, 'badHabits', updatedBadHabits);
 
                 for (const habit of updatedBadHabits) {
                     if (habit.intelligentStreak) {
-                        await persistenceService.badHabits.update(user.uid, habit.id, {
+                        await persistenceService.badHabits.update(user.id, habit.id, {
                             reachedDays: habit.reachedDays,
                             currentTarget: habit.currentTarget,
                             relapsedToday: habit.relapsedToday,
@@ -1416,7 +1416,7 @@ export const useDashboardLogic = () => {
         // Actually, if we update habits, 'habits' changes, effect runs again.
         // But if 'hasChanges' is false, it won't loop.
         // To be safe, let's use a flag or rely on the stability.
-    }, [habits.length, user?.uid, user?.stats?.streakFrozenUntil, dailyResetTrigger]); // Only run when count changes, user changes, or app becomes visible
+    }, [habits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger]); // Only run when count changes, user changes, or app becomes visible
 
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -1446,6 +1446,7 @@ export const useDashboardLogic = () => {
     const isFirstLoad = useRef(true);
     const isAttributesSync = useRef(true);
     const processingQuests = useRef<Set<string>>(new Set());
+    const processingHabits = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         // Skip notification on first load or if level hasn't increased
@@ -1493,7 +1494,7 @@ export const useDashboardLogic = () => {
     const isActivatingStreak = useRef(false);
 
     useEffect(() => {
-        if (!user?.uid || !user.stats) return;
+        if (!user?.id || !user.stats) return;
 
         const checkStreak = async () => {
             const today = toLocalISOString(new Date());
@@ -1516,7 +1517,7 @@ export const useDashboardLogic = () => {
                 
                 try {
                     const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
-                    const userRef = doc(db, 'users', user.uid);
+                    const userRef = doc(db, 'users', user.id);
                     await updateDoc(userRef, {
                         'stats.streak': newStreak,
                         'stats.lastStreakDate': today
@@ -1539,7 +1540,7 @@ export const useDashboardLogic = () => {
         };
 
         checkStreak();
-    }, [dailyLimits, user?.uid, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification]);
+    }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification]);
 
 
     // --- UNIFIED REWARD SYSTEM ---
@@ -1562,9 +1563,9 @@ export const useDashboardLogic = () => {
 
         // PERSISTENCE: Save new stats to Firestore immediately
         // 🛡️ SKELETON PROTECTION: Don't save if we are in skeleton mode
-        if (user?.uid && !user.isSkeleton) {
+        if (user?.id && !user.isSkeleton) {
             console.log(`[REWARD] Saving stats: Level ${newStats.level}, XP ${newStats.xp}, Gold ${newStats.gold}`);
-            TransactionService.awardExperience(user.uid, Math.floor(reward.xp), Math.floor(reward.gold), newLevel)
+            TransactionService.awardExperience(user.id, Math.floor(reward.xp), Math.floor(reward.gold), newLevel)
                 .catch(err => console.error("Error saving player stats:", err));
         }
     }, [calculateNextXp, user, player]); // Added player dependency
@@ -1573,7 +1574,7 @@ export const useDashboardLogic = () => {
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
 
     const updateAttributeXp = useCallback((attrId: string, amount: number) => {
-        if (!user?.uid || user.isSkeleton) return;
+        if (!user?.id || user.isSkeleton) return;
         
         // Optimistic update for quick UI feedback
         setAttributes(prev => {
@@ -1606,8 +1607,8 @@ export const useDashboardLogic = () => {
         });
         
         // SAVE TO FIRESTORE ATOMICALLY
-        TransactionService.updateAttributeXpAtomic(user.uid, attrId, amount).catch(console.error);
-    }, [user?.uid, user?.isSkeleton]);
+        TransactionService.updateAttributeXpAtomic(user.id, attrId, amount).catch(console.error);
+    }, [user?.id, user?.isSkeleton]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
         setAttributes(prev => {
@@ -1615,8 +1616,8 @@ export const useDashboardLogic = () => {
                 if (attr.id === attrId) {
                     const updatedAttr = { ...attr, ...updates };
                     // SAVE TO FIRESTORE
-                    if (user?.uid) {
-                        persistenceService.attributes.save(user.uid, updatedAttr);
+                    if (user?.id) {
+                        persistenceService.attributes.save(user.id, updatedAttr);
                     }
                     return updatedAttr;
                 }
@@ -1624,7 +1625,7 @@ export const useDashboardLogic = () => {
             });
             return newAttributes;
         });
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const spawnParticles = useCallback((x: number, y: number, color: string, Icon: React.ElementType, type = 'icon', targetId?: string) => {
         let tx: number | undefined, ty: number | undefined;
@@ -1658,23 +1659,23 @@ export const useDashboardLogic = () => {
     const updatePlayerLevel = useCallback(async (newLevel: number) => {
         setPlayer(prev => {
             const newStats = { ...prev, level: newLevel, nextXp: calculateNextXp(newLevel) };
-            if (user?.uid) {
-                setDoc(doc(db, 'users', user.uid), {
+            if (user?.id) {
+                setDoc(doc(db, 'users', user.id), {
                     'stats.level': newLevel,
                     'stats.nextXp': newStats.nextXp
                 }, { merge: true }).catch(console.error);
             }
             return newStats;
         });
-    }, [user?.uid, calculateNextXp]);
+    }, [user?.id, calculateNextXp]);
 
     const updateAttributeLevel = useCallback(async (attrId: string, newLevel: number) => {
         setAttributes(prev => {
             const newAttributes = prev.map(attr => {
                 if (attr.id === attrId) {
                     const updatedAttr = { ...attr, level: newLevel, maxXp: Math.floor(100 * Math.pow(1.2, newLevel - 1)) };
-                    if (user?.uid) {
-                        persistenceService.attributes.save(user.uid, updatedAttr);
+                    if (user?.id) {
+                        persistenceService.attributes.save(user.id, updatedAttr);
                     }
                     return updatedAttr;
                 }
@@ -1682,7 +1683,7 @@ export const useDashboardLogic = () => {
             });
             return newAttributes;
         });
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
         console.log("🏁 [SESSION COMPLETE] Triggered", { projectId, durationSeconds, type });
@@ -1876,13 +1877,13 @@ export const useDashboardLogic = () => {
                 nextProjects[targetIndex] = updatedProject;
 
                 // Save to Cache immediately
-                if (user?.uid) {
-                    saveProjectsCache(user.uid, nextProjects);
+                if (user?.id) {
+                    saveProjectsCache(user.id, nextProjects);
                 }
 
                 // 4. Save to Firestore (Side Effect inside setState is not ideal, but acceptable for optimistic UI here if we don't await)
-                if (user?.uid) {
-                    projectService.saveProject(user.uid, updatedProject)
+                if (user?.id) {
+                    projectService.saveProject(user.id, updatedProject)
                         .then(() => {
                             console.log("✅ Project saved to Firestore with new session");
                             // Notify success for manual entry or stopwatch
@@ -1904,7 +1905,7 @@ export const useDashboardLogic = () => {
         }
         
         // Update Limits, Stats and Attributes via TransactionService
-        if (user?.uid && (totalXp > 0 || totalGold > 0 || finalDurationSeconds > 0)) {
+        if (user?.id && (totalXp > 0 || totalGold > 0 || finalDurationSeconds > 0)) {
             const today = toLocalISOString(new Date());
             const isNewDay = dailyLimits.date !== today;
             let newXp = player.xp + totalXp;
@@ -1963,7 +1964,7 @@ export const useDashboardLogic = () => {
             }
 
             TransactionService.logFocusSession(
-                user.uid, 
+                user.id, 
                 finalDurationSeconds, 
                 totalXp, 
                 totalGold, 
@@ -2104,14 +2105,14 @@ export const useDashboardLogic = () => {
 
         setProjects(prev => {
             const next = prev.map(p => p.id === projectId ? updatedProject : p);
-            if (user?.uid) {
-                saveProjectsCache(user.uid, next);
+            if (user?.id) {
+                saveProjectsCache(user.id, next);
             }
             return next;
         });
 
         // 5. UPDATE ATTRIBUTES, 6. UPDATE PLAYER STATS, 8. UPDATE DAILY LIMITS
-        if (user?.uid) {
+        if (user?.id) {
             const today = toLocalISOString(new Date());
             const isNewDay = dailyLimits.date !== today;
             let newXp = player.xp + totalXp;
@@ -2171,7 +2172,7 @@ export const useDashboardLogic = () => {
             }
 
             TransactionService.logFocusSession(
-                user.uid,
+                user.id,
                 durationSeconds,
                 totalXp,
                 totalGold,
@@ -2184,8 +2185,8 @@ export const useDashboardLogic = () => {
         }
 
         // 7. PERSIST PROJECT
-        if (user?.uid) {
-            projectService.saveProject(user.uid, updatedProject)
+        if (user?.id) {
+            projectService.saveProject(user.id, updatedProject)
                 .catch(e => {
                     console.error("❌ Failed to save project:", e);
                     addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
@@ -2250,8 +2251,8 @@ export const useDashboardLogic = () => {
             const updatedProject = { ...target, sessions: newSessions, totalTime: newTotalTime };
             
             // Side effect: Save to Firestore
-            if (user?.uid) {
-                projectService.saveProject(user.uid, updatedProject)
+            if (user?.id) {
+                projectService.saveProject(user.id, updatedProject)
                     .then(() => console.log("✅ Session deleted and project saved"))
                     .catch(e => console.error("❌ Failed to save project after delete:", e));
             }
@@ -2260,7 +2261,7 @@ export const useDashboardLogic = () => {
         });
 
         // 3. Reverse Rewards & Limits using TransactionService
-        if (user?.uid) {
+        if (user?.id) {
             const today = toLocalISOString(new Date());
             const isNewDay = dailyLimits.date !== today;
             
@@ -2304,7 +2305,7 @@ export const useDashboardLogic = () => {
             setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rGold), level: newLevel, nextXp: newNextXp }));
 
             TransactionService.logFocusSession(
-                user.uid, 
+                user.id, 
                 rSec, 
                 rXp, 
                 rGold, 
@@ -2406,12 +2407,12 @@ export const useDashboardLogic = () => {
         setProjects(nextProjects);
         
         // Save Project
-        if (user?.uid) {
-            projectService.saveProject(user.uid, updatedProject).catch(console.error);
+        if (user?.id) {
+            projectService.saveProject(user.id, updatedProject).catch(console.error);
         }
 
         // 6. Update User Stats, Limits and Attributes via TransactionService
-        if (user?.uid) {
+        if (user?.id) {
             const today = toLocalISOString(new Date());
             const isNewDay = dailyLimits.date !== today;
 
@@ -2463,7 +2464,7 @@ export const useDashboardLogic = () => {
             }
 
             TransactionService.logFocusSession(
-                user.uid,
+                user.id,
                 durationDiff,
                 xpDiff,
                 goldDiff,
@@ -2487,7 +2488,7 @@ export const useDashboardLogic = () => {
             processingQuests.current.delete(quest.id);
         }, 500);
 
-        const userId = user?.uid;
+        const userId = user?.id;
 
         let rewardXp = 0;
         let rewardGold = 0;
@@ -2508,7 +2509,8 @@ export const useDashboardLogic = () => {
             
             const xpToRevert = typeof quest.rewardedXp === 'number' ? quest.rewardedXp : baseXp;
             const goldToRevert = typeof quest.rewardedGold === 'number' ? quest.rewardedGold : baseGold;
-            const traitXpToRevert = Math.floor(xpToRevert * 0.4);
+            // SYNC FIX: Revert exact amount of TP (1:1 ratio with XP as implemented in completion)
+            const traitXpToRevert = typeof quest.rewardedXp === 'number' ? quest.rewardedXp : baseXp;
 
             rewardXp = -xpToRevert;
             rewardGold = -goldToRevert;
@@ -2846,6 +2848,13 @@ export const useDashboardLogic = () => {
     const handleHabitClick = useCallback(async (e: React.MouseEvent, habit: Habit) => {
         e.stopPropagation();
         
+        // LOCKING: Prevent double-execution
+        if (processingHabits.current.has(habit.id)) return;
+        processingHabits.current.add(habit.id);
+        setTimeout(() => {
+            processingHabits.current.delete(habit.id);
+        }, 500);
+
         // 1. FEEDBACK
         if(navigator.vibrate) navigator.vibrate(habit.completedToday ? 5 : [5, 20, 5]);
         
@@ -2896,7 +2905,7 @@ export const useDashboardLogic = () => {
 
         // 5. ATOMIC PERSISTENCE
         try {
-            if (user?.uid) {
+            if (user?.id) {
                 const isNewDay = dailyLimits.date !== todayHistory;
                 let newXp = player.xp + rewards.rewardXp;
                 if (newXp < 0) newXp = 0;
@@ -2904,7 +2913,7 @@ export const useDashboardLogic = () => {
                 const newNextXp = calculateNextLevelXp(newLevel);
 
                 await TransactionService.toggleHabitCompletion(
-                    user.uid,
+                    user.id,
                     habit.id,
                     newHabit.completedToday,
                     rewards.rewardXp, 
@@ -2969,7 +2978,7 @@ export const useDashboardLogic = () => {
             return h;
         }));
 
-        if (user?.uid) {
+        if (user?.id) {
             if (isComplete) {
                 const isNewDay = dailyLimits.date !== todayHistory;
                 let newXp = player.xp + rewards.rewardXp;
@@ -2979,7 +2988,7 @@ export const useDashboardLogic = () => {
 
                 // Use Atomic Transaction for consistency
                 TransactionService.toggleHabitCompletion(
-                    user.uid,
+                    user.id,
                     validationHabit.id,
                     true,
                     rewards.rewardXp,
@@ -3000,7 +3009,7 @@ export const useDashboardLogic = () => {
                     validationHabit.attribute
                 );
             } else {
-                persistenceService.habits.update(user.uid, validationHabit.id, { 
+                persistenceService.habits.update(user.id, validationHabit.id, { 
                     currentValue: newCurrentValue 
                 });
             }
@@ -3044,8 +3053,8 @@ export const useDashboardLogic = () => {
             }
         }
 
-        if (user?.uid) {
-            persistenceService.quests.save(user.uid, quest);
+        if (user?.id) {
+            persistenceService.quests.save(user.id, quest);
         }
         setActiveModal(null);
     }, [user, quests]);
@@ -3055,7 +3064,7 @@ export const useDashboardLogic = () => {
         questsHydratedRef.current = true;
         setQuests(prev => prev.filter(q => q.id !== questId));
         try {
-            await persistenceService.quests.delete(user.uid, questId);
+            await persistenceService.quests.delete(user.id, questId);
         } catch (error) {
             console.error("Error deleting quest:", error);
         }
@@ -3077,7 +3086,7 @@ export const useDashboardLogic = () => {
                 const exists = prev.find(h => h.id === data.id);
                 if (exists) {
                     const updated = { ...exists, ...data } as Habit;
-                    if (user?.uid) persistenceService.habits.save(user.uid, updated);
+                    if (user?.id) persistenceService.habits.save(user.id, updated);
                     
                     // 🔔 NOTIFICATION SYNC (UPDATE)
                     if (updated.reminderTime) {
@@ -3102,7 +3111,7 @@ export const useDashboardLogic = () => {
                 ...data 
             } as Habit;
             
-            if (user?.uid) persistenceService.habits.save(user.uid, newHabit);
+            if (user?.id) persistenceService.habits.save(user.id, newHabit);
 
             // 🔔 NOTIFICATION SYNC (CREATE)
             if (newHabit.reminderTime) {
@@ -3122,7 +3131,7 @@ export const useDashboardLogic = () => {
         const todayKey = getHistoryDateKey(todayHistory);
 
         // ARCHIVE LOGIC: Update Daily Limits if archiving/unarchiving a completed habit
-        if (data.archived !== undefined && user?.uid) {
+        if (data.archived !== undefined && user?.id) {
             // Anti-cheat limit check for unarchiving
             if (data.archived === false && user?.plan !== 'PRO') {
                 const activeHabitsCount = habits.filter(h => !h.archived && !h.completedToday).length;
@@ -3145,7 +3154,7 @@ export const useDashboardLogic = () => {
 
                 // Update Firestore
                 try {
-                    const userRef = doc(db, 'users', user.uid);
+                    const userRef = doc(db, 'users', user.id);
                     // Optimistic update using the calculated value since we don't have increment imported in this scope (or maybe we do?)
                     // To be safe and consistent with handleDeleteHabit:
                     // We can't easily access the latest Firestore value here without a transaction/get.
@@ -3170,56 +3179,60 @@ export const useDashboardLogic = () => {
         let habitToReward: Habit | null = null;
         let isReversal = false;
 
-        setHabits(prev => prev.map(h => {
-            if (h.id !== habitId) return h;
-            let next = { ...h, ...data } as Habit;
+        const updatedHabitIndex = habits.findIndex(h => h.id === habitId);
+        if (updatedHabitIndex === -1) return;
+        
+        const h = habits[updatedHabitIndex];
+        let next = { ...h, ...data } as Habit;
 
-            if (h.type === 'QUANTITY' && typeof data.currentValue === 'number') {
-                const target = h.targetValue || 0;
-                const newValue = data.currentValue;
-                const wasComplete = h.completedToday;
-                const isNowComplete = target > 0 && newValue >= target;
+        if (h.type === 'QUANTITY' && typeof data.currentValue === 'number') {
+            const target = h.targetValue || 0;
+            const newValue = data.currentValue;
+            const wasComplete = h.completedToday;
+            const isNowComplete = target > 0 && newValue >= target;
 
-                if (isNowComplete && !wasComplete) {
-                    const nextHistory = [...(h.history || []), todayHistory];
-                    const nextStreak = (h.streak || 0) + 1;
-                    const nextTotal = (h.totalCompletions || 0) + 1;
-                    next = { ...next, completedToday: true, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
-                    habitToReward = h;
-                    isReversal = false;
-                } else if (!isNowComplete && wasComplete) {
-                    const nextHistory = (h.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
-                    const nextStreak = Math.max(0, (h.streak || 0) - 1);
-                    const nextTotal = Math.max(0, (h.totalCompletions || 0) - 1);
-                    next = { ...next, completedToday: false, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
-                    habitToReward = next; // Use the decremented state for reversal calculation if needed
-                    isReversal = true;
-                }
+            if (isNowComplete && !wasComplete) {
+                const nextHistory = [...(h.history || []), todayHistory];
+                const nextStreak = (h.streak || 0) + 1;
+                const nextTotal = (h.totalCompletions || 0) + 1;
+                next = { ...next, completedToday: true, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
+                habitToReward = h;
+                isReversal = false;
+            } else if (!isNowComplete && wasComplete) {
+                const nextHistory = (h.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
+                const nextStreak = Math.max(0, (h.streak || 0) - 1);
+                const nextTotal = Math.max(0, (h.totalCompletions || 0) - 1);
+                next = { ...next, completedToday: false, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
+                habitToReward = next; // Use the decremented state for reversal calculation if needed
+                isReversal = true;
             }
+        }
+        
+        if (h.type === 'CHECKLIST' && data.checklist) {
+            const wasComplete = h.completedToday;
+            const isNowComplete = data.checklist.every(item => item.completed);
             
-            // Checklist logic is usually handled by handleHabitClick via ChecklistModal calling onComplete
-            // but if handleHabitUpdate is used directly for checklist, we should handle it here too.
-            if (h.type === 'CHECKLIST' && data.checklist) {
-                const wasComplete = h.completedToday;
-                const isNowComplete = data.checklist.every(item => item.completed);
-                
-                if (isNowComplete && !wasComplete) {
-                    const nextHistory = [...(h.history || []), todayHistory];
-                    const nextStreak = (h.streak || 0) + 1;
-                    const nextTotal = (h.totalCompletions || 0) + 1;
-                    next = { ...next, completedToday: true, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
-                    habitToReward = h;
-                    isReversal = false;
-                } else if (!wasComplete && wasComplete) { // This condition is wrong, should be !isNowComplete && wasComplete
-                     // Fixed logic below
-                }
+            if (isNowComplete && !wasComplete) {
+                const nextHistory = [...(h.history || []), todayHistory];
+                const nextStreak = (h.streak || 0) + 1;
+                const nextTotal = (h.totalCompletions || 0) + 1;
+                next = { ...next, completedToday: true, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
+                habitToReward = h;
+                isReversal = false;
+            } else if (!isNowComplete && wasComplete) {
+                const nextHistory = (h.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
+                const nextStreak = Math.max(0, (h.streak || 0) - 1);
+                const nextTotal = Math.max(0, (h.totalCompletions || 0) - 1);
+                next = { ...next, completedToday: false, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
+                habitToReward = next;
+                isReversal = true;
             }
+        }
 
-            return next;
-        }));
+        setHabits(prev => prev.map(item => item.id === habitId ? next : item));
 
         // Handle Rewards and Persistence Atomically
-        if (habitToReward && user?.uid) {
+        if (habitToReward && user?.id) {
             const currentHabit = habitToReward as Habit;
             const isNowCompleted = !isReversal;
             // First get the rewards calculation locally to apply to TransactionService
@@ -3260,7 +3273,7 @@ export const useDashboardLogic = () => {
                 };
                 
                 // Save habit state first to be safe, though toggleHabitCompletion will update it
-                persistenceService.habits.update(user.uid, habitId, finalData as Habit).catch(console.error);
+                persistenceService.habits.update(user.id, habitId, finalData as Habit).catch(console.error);
 
                 const isNewDay = dailyLimits.date !== today;
                 let newXp = player.xp + rewardXp;
@@ -3275,7 +3288,7 @@ export const useDashboardLogic = () => {
                 }
 
                 TransactionService.toggleHabitCompletion(
-                    user.uid,
+                    user.id,
                     habitId,
                     isNowCompleted,
                     rewardXp,
@@ -3288,15 +3301,15 @@ export const useDashboardLogic = () => {
                     currentHabit.attribute
                 ).catch(console.error);
             }
-        } else if (user?.uid) {
+        } else if (user?.id) {
             // Find the updated habit to persist full state (No completion change)
             const updatedHabit = habits.find(h => h.id === habitId);
             if (updatedHabit) {
                 const finalData = { ...updatedHabit, ...data };
-                persistenceService.habits.update(user.uid, habitId, finalData as Habit).catch(console.error);
+                persistenceService.habits.update(user.id, habitId, finalData as Habit).catch(console.error);
             }
         }
-    }, [user?.uid, habits, dailyLimits, applyHabitRewards, triggerReward]);
+    }, [user?.id, habits, dailyLimits, applyHabitRewards, triggerReward]);
 
     const handleDeleteHabit = useCallback(async (habitId: string) => {
         if (!user) return;
@@ -3318,7 +3331,7 @@ export const useDashboardLogic = () => {
             
             // Sync with Firestore
             try {
-                const userRef = doc(db, 'users', user.uid);
+                const userRef = doc(db, 'users', user.id);
                 // We need to decrement habitsCompleted atomically
                 // But since we don't have 'increment' imported, we can just use the value we know locally
                 // or use updateDoc with the calculated value.
@@ -3334,7 +3347,7 @@ export const useDashboardLogic = () => {
         }
 
         try {
-            await persistenceService.habits.delete(user.uid, habitId);
+            await persistenceService.habits.delete(user.id, habitId);
         } catch (error) {
             console.error("Error deleting habit:", error);
         }
@@ -3414,8 +3427,8 @@ export const useDashboardLogic = () => {
                 ? prev.map(p => p.id === nextProject.id ? nextProject : p)
                 : [...prev, nextProject];
 
-            if (user?.uid) {
-                saveProjectsCache(user.uid, nextProjects);
+            if (user?.id) {
+                saveProjectsCache(user.id, nextProjects);
             }
             return nextProjects;
         });
@@ -3436,9 +3449,9 @@ export const useDashboardLogic = () => {
         }
 
         // Async Save (Outside State Update)
-        if (user?.uid && resolvedProject) {
+        if (user?.id && resolvedProject) {
             console.log("💾 [DashboardLogic] Saving Project to Firestore:", resolvedProject);
-            projectService.saveProject(user.uid, resolvedProject).catch(err => {
+            projectService.saveProject(user.id, resolvedProject).catch(err => {
                 console.error("Failed to save project:", err);
                 addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
             });
@@ -3449,7 +3462,7 @@ export const useDashboardLogic = () => {
 
     const handleDeleteProject = useCallback(async (projectId: string) => {
         console.log("🗑️ handleDeleteProject CALLED for:", projectId);
-        if (!user?.uid) {
+        if (!user?.id) {
             console.error("❌ No user ID found for delete");
             return;
         }
@@ -3466,11 +3479,11 @@ export const useDashboardLogic = () => {
             if (nextProjects.length === 0) {
                 allowEmptyProjectsSaveRef.current = true;
                 // Force clear cache immediately
-                PersistenceService.clearCollectionSafe(user.uid, 'projects');
+                PersistenceService.clearCollectionSafe(user.id, 'projects');
             }
             
             // Update cache
-            saveProjectsCache(user.uid, nextProjects);
+            saveProjectsCache(user.id, nextProjects);
             return nextProjects;
         });
 
@@ -3479,7 +3492,7 @@ export const useDashboardLogic = () => {
             console.log("☁️ Deleting from Firestore (HARD DELETE)...");
             
             // A. Delete the project document itself
-            await projectService.deleteProject(user.uid, projectId);
+            await projectService.deleteProject(user.id, projectId);
             
             // B. Optional: Delete associated sessions (if stored separately or in subcollection)
             // If sessions are inside the project object (which they seem to be based on types), 
@@ -3509,23 +3522,23 @@ export const useDashboardLogic = () => {
                 color: '#ef4444' 
             });
         }
-    }, [user?.uid, saveProjectsCache, addNotification]);
+    }, [user?.id, saveProjectsCache, addNotification]);
 
     const handleResetAllProjects = useCallback(async () => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         console.log("🚨 RESETTING ALL PROJECTS");
         
         // 1. Clear Local State
         setProjects([]);
-        PersistenceService.clearCollectionSafe(user.uid, 'projects');
+        PersistenceService.clearCollectionSafe(user.id, 'projects');
         allowEmptyProjectsSaveRef.current = true;
         
         // 2. Clear Firestore
         try {
-             const projectsRef = collection(db, 'users', user.uid, 'projects');
+             const projectsRef = collection(db, 'users', user.id, 'projects');
              const snapshot = await getDocs(projectsRef);
              const batch = writeBatch(db);
-             snapshot.docs.forEach(doc => {
+             snapshot.docs.forEach((doc: any) => {
                  batch.delete(doc.ref);
              });
              await batch.commit();
@@ -3538,7 +3551,7 @@ export const useDashboardLogic = () => {
         } catch (error) {
             console.error("Failed to reset projects", error);
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const handleUpdateProject = useCallback((updatedProject: Project) => {
         let blockedByLimit = false;
@@ -3557,8 +3570,8 @@ export const useDashboardLogic = () => {
             }
 
             const nextProjects = prev.map(p => p.id === updatedProject.id ? updatedProject : p);
-            if (user?.uid) {
-                saveProjectsCache(user.uid, nextProjects);
+            if (user?.id) {
+                saveProjectsCache(user.id, nextProjects);
             }
             return nextProjects;
         });
@@ -3581,10 +3594,10 @@ export const useDashboardLogic = () => {
             notificationService.cancelProjectReminder(updatedProject.id);
         }
 
-        if (user?.uid) {
-            projectService.saveProject(user.uid, updatedProject).catch(console.error);
+        if (user?.id) {
+            projectService.saveProject(user.id, updatedProject).catch(console.error);
         }
-    }, [user?.uid, saveProjectsCache]);
+    }, [user?.id, saveProjectsCache]);
 
     const handleToggleHabitDay = useCallback(async (habitId: string, date: string) => {
         const habit = habits.find(h => h.id === habitId);
@@ -3602,15 +3615,15 @@ export const useDashboardLogic = () => {
 
         setHabits(prev => prev.map(h => h.id === habitId ? { ...h, history: newHistory } : h));
 
-        if (user?.uid) {
+        if (user?.id) {
             try {
-                const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+                const habitRef = doc(db, 'users', user.id, 'habits', habitId);
                 await setDoc(habitRef, { history: newHistory }, { merge: true });
             } catch (e) {
                 console.error("Failed to toggle habit day", e);
             }
         }
-    }, [habits, user?.uid]);
+    }, [habits, user?.id]);
 
     // --- NOTE & SMART PROJECT STUBS (To Fix Dashboard Types) ---
     // These are required by Dashboard but might not be fully implemented in this hook yet.
@@ -3636,18 +3649,18 @@ export const useDashboardLogic = () => {
 
         setSmartProjects(prev => {
             const newProjects = prev.map(p => p.id === projectToSave.id ? projectToSave : p);
-            if (user?.uid) {
-                PersistenceService.saveCollection(user.uid, 'smartProjects', newProjects);
+            if (user?.id) {
+                PersistenceService.saveCollection(user.id, 'smartProjects', newProjects);
             }
             return newProjects;
         });
         
-        if (user?.uid) {
-             await persistenceService.smartProjects.save(user.uid, projectToSave);
+        if (user?.id) {
+             await persistenceService.smartProjects.save(user.id, projectToSave);
         }
 
         // TRIGGER REWARD
-        if (rewardToTrigger && user?.uid) {
+        if (rewardToTrigger && user?.id) {
              const { xp, gold } = rewardToTrigger;
              
              // 1. Calculate New Player Stats
@@ -3685,7 +3698,7 @@ export const useDashboardLogic = () => {
                      });
                      
                      // Persist Trait Atomically
-                     TransactionService.updateAttributeXpAtomic(user.uid, attr.id, traitXpGained).catch(console.error);
+                     TransactionService.updateAttributeXpAtomic(user.id, attr.id, traitXpGained).catch(console.error);
 
                      traitUpdateData = { 
                          id: attr.id, 
@@ -3700,7 +3713,7 @@ export const useDashboardLogic = () => {
              }
              
              // 4. Persist Player Stats Atomically
-             TransactionService.awardExperience(user.uid, xp, gold, newLevel).catch(console.error);
+             TransactionService.awardExperience(user.id, xp, gold, newLevel).catch(console.error);
              
              // 5. Trigger Visual Reward
              triggerReward(
@@ -3712,10 +3725,10 @@ export const useDashboardLogic = () => {
                  traitUpdateData
              );
         }
-    }, [user?.uid, smartProjects, player, attributes, triggerReward]);
+    }, [user?.id, smartProjects, player, attributes, triggerReward]);
 
     const handleBadHabitConfirm = useCallback(async (data: Partial<BadHabit>) => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
 
         // ⚡ DOPAMINE TRIGGER: Visual Confirmation
         addNotification({ 
@@ -3753,14 +3766,14 @@ export const useDashboardLogic = () => {
         }
 
         setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.uid, 'badHabits', newBadHabits);
+        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
 
-        await persistenceService.badHabits.save(user.uid, badHabit);
+        await persistenceService.badHabits.save(user.id, badHabit);
         setActiveModal(null);
-    }, [user?.uid, addNotification, spawnParticles, badHabits]);
+    }, [user?.id, addNotification, spawnParticles, badHabits]);
 
     const handleBadHabitRelapse = useCallback(async (habit: BadHabit, paymentMethod: 'GOLD' | 'HP') => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
 
         const today = new Date().toISOString();
         const isIntelligent = habit.intelligentStreak;
@@ -3789,15 +3802,15 @@ export const useDashboardLogic = () => {
                 const newHealth = Math.max(1, health - hpPenalty);
                 setHealth(newHealth);
 
-                if (user?.uid) {
-                    const cached = PersistenceService.getProfile(user.uid);
+                if (user?.id) {
+                    const cached = PersistenceService.getProfile(user.id);
                     if (cached) {
                         PersistenceService.saveProfile({
                             ...cached,
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.uid, 'hp', -hpPenalty, true).catch(console.error);
+                    TransactionService.updateStat(user.id, 'hp', -hpPenalty, true).catch(console.error);
                 }
 
                 addPlayerReward({
@@ -3822,7 +3835,7 @@ export const useDashboardLogic = () => {
                 const newHealth = Math.max(0, health - penalty.hp);
             setHealth(newHealth);
 
-            if (newHealth <= 0 && user?.uid) {
+            if (newHealth <= 0 && user?.id) {
                 // HALF LEVEL AND ATTRIBUTES!
                 addNotification({
                     type: 'SYSTEM',
@@ -3833,7 +3846,7 @@ export const useDashboardLogic = () => {
                     color: '#ef4444'
                 });
 
-                TransactionService.halveStats(user.uid, attributes, player.level).then(({ newLevel, newXp }) => {
+                TransactionService.halveStats(user.id, attributes, player.level).then(({ newLevel, newXp }) => {
                     setPlayer(prev => ({
                         ...prev,
                         level: newLevel,
@@ -3854,15 +3867,15 @@ export const useDashboardLogic = () => {
                 }).catch(console.error);
 
             } else {
-                if (user?.uid) {
-                    const cached = PersistenceService.getProfile(user.uid);
+                if (user?.id) {
+                    const cached = PersistenceService.getProfile(user.id);
                     if (cached) {
                         PersistenceService.saveProfile({
                             ...cached,
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.uid, 'hp', -penalty.hp, true).catch(console.error);
+                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true).catch(console.error);
                 }
 
                 addPlayerReward({
@@ -3883,82 +3896,82 @@ export const useDashboardLogic = () => {
 
         const newBadHabits = badHabits.map(h => h.id === habit.id ? updatedHabit : h);
         setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.uid, 'badHabits', newBadHabits);
+        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
 
-        await persistenceService.badHabits.save(user.uid, updatedHabit);
+        await persistenceService.badHabits.save(user.id, updatedHabit);
 
-    }, [user?.uid, health, addPlayerGold, addPlayerReward, updateAttributeXp, badHabits]);
+    }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, badHabits]);
 
     const handleDeleteBadHabit = useCallback(async (id: string) => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         
         const newBadHabits = badHabits.filter(h => h.id !== id);
         setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.uid, 'badHabits', newBadHabits);
+        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
         // Also remove from Firestore
-        const habitRef = doc(db, 'users', user.uid, 'badHabits', id);
+        const habitRef = doc(db, 'users', user.id, 'badHabits', id);
         await deleteDoc(habitRef);
-    }, [user?.uid, badHabits]);
+    }, [user?.id, badHabits]);
 
     const handleReorderHabits = useCallback(async (newOrder: Habit[]) => {
         // Optimistic update
         setHabits(newOrder);
         
-        if (!user?.uid) return;
+        if (!user?.id) return;
         
         try {
             const batch = writeBatch(db);
             newOrder.forEach((habit, index) => {
-                const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+                const habitRef = doc(db, 'users', user.id, 'habits', habit.id);
                 batch.update(habitRef, { order: index });
             });
             await batch.commit();
             
             // Update cache
-            PersistenceService.saveCollection(user.uid, 'habits', newOrder);
+            PersistenceService.saveCollection(user.id, 'habits', newOrder);
         } catch (error) {
             console.error("Failed to reorder habits:", error);
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const handleReorderProjects = useCallback(async (newOrder: Project[]) => {
         // Optimistic update
         setProjects(newOrder);
         
-        if (!user?.uid) return;
+        if (!user?.id) return;
         
         try {
             const batch = writeBatch(db);
             newOrder.forEach((project, index) => {
-                const projectRef = doc(db, 'users', user.uid, 'projects', project.id);
+                const projectRef = doc(db, 'users', user.id, 'projects', project.id);
                 batch.update(projectRef, { order: index });
             });
             await batch.commit();
              // Update cache
-            PersistenceService.saveCollection(user.uid, 'projects', newOrder);
+            PersistenceService.saveCollection(user.id, 'projects', newOrder);
         } catch (error) {
             console.error("Failed to reorder projects:", error);
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const handleReorderBadHabits = useCallback(async (newOrder: BadHabit[]) => {
         setBadHabits(newOrder);
         
-        if (!user?.uid) return;
+        if (!user?.id) return;
         
         try {
             const batch = writeBatch(db);
             newOrder.forEach((habit, index) => {
-                const habitRef = doc(db, 'users', user.uid, 'badHabits', habit.id);
+                const habitRef = doc(db, 'users', user.id, 'badHabits', habit.id);
                 batch.update(habitRef, { order: index });
             });
             await batch.commit();
             
-            PersistenceService.saveCollection(user.uid, 'badHabits', newOrder);
+            PersistenceService.saveCollection(user.id, 'badHabits', newOrder);
         } catch (error) {
             console.error("Failed to reorder bad habits:", error);
         }
-    }, [user?.uid]);
+    }, [user?.id]);
 
     return {
         user,

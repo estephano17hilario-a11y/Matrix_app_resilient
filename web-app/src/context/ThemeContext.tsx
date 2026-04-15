@@ -120,14 +120,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const lastThemeSyncUid = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user?.uid) {
+    if (!user?.id) {
       lastThemeSyncUid.current = null;
       return;
     }
 
-    if (lastThemeSyncUid.current === user.uid) return;
+    if (lastThemeSyncUid.current === user.id) return;
 
-    const localPrefs = profile?.uid === user.uid ? profile?.preferences : undefined;
+    const localPrefs = profile?.uid === user.id ? profile?.preferences : undefined;
     const localTheme = localPrefs?.theme;
     const localVivid = localPrefs?.vividMode;
 
@@ -141,13 +141,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const hasLocalTheme = !!localTheme;
     const hasLocalVivid = localVivid !== undefined;
     if (hasLocalTheme && hasLocalVivid) {
-      lastThemeSyncUid.current = user.uid;
+      lastThemeSyncUid.current = user.id;
       return;
     }
 
     const loadUserTheme = async () => {
       try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', user.id);
         const snapshot = await getDoc(userRef);
         if (snapshot.exists()) {
           const data = snapshot.data();
@@ -164,12 +164,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch (error) {
         console.error("Failed to sync theme from Lux:", error);
       } finally {
-        lastThemeSyncUid.current = user.uid;
+        lastThemeSyncUid.current = user.id;
       }
     };
 
     loadUserTheme();
-  }, [user?.uid, profile?.uid, profile?.preferences, theme, vividMode]);
+  }, [user?.id, profile?.uid, profile?.preferences, theme, vividMode]);
 
   // 2. Save to Firestore on change
   const setTheme = useCallback(async (newTheme: ThemeId) => {
@@ -177,7 +177,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     if (user) {
       try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', user.id);
         // We use setDoc with merge to ensure preferences object exists or is updated
         await setDoc(userRef, {
           preferences: { theme: newTheme }
@@ -192,7 +192,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setVividModeState(enabled);
     if (user) {
         try {
-          const userRef = doc(db, 'users', user.uid);
+          const userRef = doc(db, 'users', user.id);
           await setDoc(userRef, {
             preferences: { vividMode: enabled }
           }, { merge: true });

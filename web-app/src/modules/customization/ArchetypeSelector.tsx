@@ -93,7 +93,7 @@ export const ArchetypeSelector: React.FC<ArchetypeSelectorProps> = ({ onClose })
 
     try {
       // 2. Update Firestore
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', user.id);
       await setDoc(userRef, { archetype }, { merge: true });
       
       console.log("ArchetypeSelector: Firestore updated");

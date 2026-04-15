@@ -23,7 +23,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
     // 🚀 PERFORMANCE: Optimistic Loading from Cache
     // If we have a profile (even if offline), we assume we can load data
-    const activeUid = user?.uid || profile?.uid;
+    const activeUid = user?.id || profile?.uid;
     
     const [isLoading, setIsLoading] = useState(() => {
         if (!activeUid) return true;
@@ -111,7 +111,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [activeUid]);
 
     const updateNote = useCallback(async (note: Note) => {
-        if (!user?.uid) return { isNew: false };
+        if (!user?.id) return { isNew: false };
         const existing = notesRef.current;
         const isNew = !existing.some(n => n.id === note.id);
         let nextNotes: Note[] = [];
@@ -127,33 +127,33 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             nextNotes = [...prev, note];
             return nextNotes;
         });
-        PersistenceService.saveCollection(user.uid, 'notes', nextNotes.length ? nextNotes : existing);
-        PersistenceService.saveCollectionSafe(user.uid, 'notes', nextNotes.length ? nextNotes : existing);
+        PersistenceService.saveCollection(user.id, 'notes', nextNotes.length ? nextNotes : existing);
+        PersistenceService.saveCollectionSafe(user.id, 'notes', nextNotes.length ? nextNotes : existing);
 
         if (!isNew) {
-            await persistenceService.notes.update(user.uid, note.id, note);
+            await persistenceService.notes.update(user.id, note.id, note);
         } else {
-            await persistenceService.notes.save(user.uid, note);
+            await persistenceService.notes.save(user.id, note);
         }
         return { isNew };
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const deleteNote = useCallback(async (noteId: string) => {
-        if (!user?.uid) return;
+        if (!user?.id) return;
         let nextNotes: Note[] = [];
         setNotes(prev => {
             nextNotes = prev.filter(n => n.id !== noteId);
             return nextNotes;
         });
-        PersistenceService.saveCollection(user.uid, 'notes', nextNotes);
-        PersistenceService.saveCollectionSafe(user.uid, 'notes', nextNotes);
+        PersistenceService.saveCollection(user.id, 'notes', nextNotes);
+        PersistenceService.saveCollectionSafe(user.id, 'notes', nextNotes);
 
         // Persistence
-        await persistenceService.notes.delete(user.uid, noteId);
-    }, [user?.uid]);
+        await persistenceService.notes.delete(user.id, noteId);
+    }, [user?.id]);
 
     const updateJournal = useCallback(async (entry: JournalEntry) => {
-        if (!user?.uid) return { isNew: false };
+        if (!user?.id) return { isNew: false };
         const existing = journalRef.current;
         const isNew = !existing.some(e => e.id === entry.id);
         let nextEntries: JournalEntry[] = [];
@@ -169,16 +169,16 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             nextEntries = [...prev, entry];
             return nextEntries;
         });
-        PersistenceService.saveCollection(user.uid, 'journal', nextEntries.length ? nextEntries : existing);
-        PersistenceService.saveCollectionSafe(user.uid, 'journal', nextEntries.length ? nextEntries : existing);
+        PersistenceService.saveCollection(user.id, 'journal', nextEntries.length ? nextEntries : existing);
+        PersistenceService.saveCollectionSafe(user.id, 'journal', nextEntries.length ? nextEntries : existing);
 
         if (!isNew) {
-            await persistenceService.journal.update(user.uid, entry.id, entry);
+            await persistenceService.journal.update(user.id, entry.id, entry);
         } else {
-            await persistenceService.journal.save(user.uid, entry);
+            await persistenceService.journal.save(user.id, entry);
         }
         return { isNew };
-    }, [user?.uid]);
+    }, [user?.id]);
 
     const canCreateNote = useCallback(() => {
         if (profile?.plan === 'PRO') return true;

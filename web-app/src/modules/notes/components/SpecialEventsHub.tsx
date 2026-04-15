@@ -29,7 +29,7 @@ const EVENT_TYPES = {
 
 export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpenPro }: SpecialEventsHubProps) => {
     const { user } = useAuth();
-    const eventsKey = user?.uid ? `special_events_${user.uid}` : 'special_events';
+    const eventsKey = user?.id ? `special_events_${user.id}` : 'special_events';
 
     const [events, setEvents] = useState<SpecialEvent[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -167,14 +167,14 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                                 {onOpenSettings && (
                                     <button 
                                         onClick={onOpenSettings}
-                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-md shadow-sm"
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-sm transform-gpu shadow-sm"
                                     >
                                         <Settings size={20} className="sm:w-6 sm:h-6" />
                                     </button>
                                 )}
                                 <button 
                                     onClick={onClose}
-                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-md shadow-sm"
+                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-sm transform-gpu shadow-sm"
                                 >
                                     <X size={20} className="sm:w-6 sm:h-6" />
                                 </button>
@@ -231,13 +231,13 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                                     <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
-                                            className="p-2.5 rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md border border-white/5"
+                                            className="p-2.5 rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm transform-gpu border border-white/5"
                                         >
                                             <Edit2 size={16} />
                                         </button>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
-                                            className="p-2.5 rounded-full bg-black/50 text-red-400 hover:bg-red-500/20 transition-colors backdrop-blur-md border border-white/5"
+                                            className="p-2.5 rounded-full bg-black/50 text-red-400 hover:bg-red-500/20 transition-colors backdrop-blur-sm transform-gpu border border-white/5"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -271,7 +271,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
                                             )}
                                         </div>
                                         {event.notifyTime && (
-                                                <div className="inline-flex items-center gap-1.5 text-white/30 text-[10px] font-mono mt-2.5 bg-white/5 self-start px-2 py-1 rounded-lg border border-white/5 backdrop-blur-sm">
+                                                <div className="inline-flex items-center gap-1.5 text-white/30 text-[10px] font-mono mt-2.5 bg-white/5 self-start px-2 py-1 rounded-lg border border-white/5 backdrop-blur-sm transform-gpu">
                                                     <Bell size={10} />
                                                     {event.notifyTime}
                                                 </div>

@@ -280,17 +280,17 @@ const TourOverlay: React.FC<{
         {!isCenter && hole && (
           <>
             {/* Top */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute top-0 left-0 right-0 bg-black/70 backdrop-blur-sm pointer-events-auto" style={{ height: Math.max(0, hole.top) }} onClick={onEnd} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute top-0 left-0 right-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ height: Math.max(0, hole.top) }} onClick={onEnd} />
             {/* Bottom */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm pointer-events-auto" style={{ top: Math.min(windowSize.h, hole.bottom) }} onClick={onEnd} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.min(windowSize.h, hole.bottom) }} onClick={onEnd} />
             {/* Left */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: 0, width: Math.max(0, hole.left) }} onClick={onEnd} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: 0, width: Math.max(0, hole.left) }} onClick={onEnd} />
             {/* Right */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: Math.min(windowSize.w, hole.right), width: Math.max(0, windowSize.w - hole.right) }} onClick={onEnd} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: Math.min(windowSize.w, hole.right), width: Math.max(0, windowSize.w - hole.right) }} onClick={onEnd} />
           </>
         )}
         {isCenter && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto" onClick={onEnd} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" onClick={onEnd} />
         )}
       </AnimatePresence>
 
@@ -330,7 +330,7 @@ const TourOverlay: React.FC<{
         className="pointer-events-auto w-full max-w-[320px]"
         style={getTooltipPosition(step, hole, windowSize)}
       >
-        <div className="bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-[#1c1c1e]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
           <div className="p-5">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">

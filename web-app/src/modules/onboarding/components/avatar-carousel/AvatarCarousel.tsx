@@ -32,9 +32,6 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
 
   const currentAvatar = AVAILABLE_AVATARS[currentIndex];
   const accentRgb = currentAvatar.themeColorRgb || '255 255 255';
-  // accentHex is kept for future use or reference, ignoring linter warning
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const accentHex = currentAvatar.themeColor || '#ffffff';
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % AVAILABLE_AVATARS.length);

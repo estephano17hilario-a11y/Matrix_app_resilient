@@ -22,7 +22,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
         return;
     }
     try {
-      const data = await getBlueprints(user.uid);
+      const data = await getBlueprints(user.id);
       // Deduplicate blueprints based on ID
       const allBlueprints = [...defaultBlueprints, ...data];
       const uniqueBlueprints = Array.from(new Map(allBlueprints.map(item => [item.id, item])).values());
@@ -43,7 +43,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
     e.stopPropagation();
     if (!user) return;
     if (window.confirm('Delete this blueprint?')) {
-       await deleteBlueprint(user.uid, id);
+       await deleteBlueprint(user.id, id);
        fetchBlueprints();
     }
   };
