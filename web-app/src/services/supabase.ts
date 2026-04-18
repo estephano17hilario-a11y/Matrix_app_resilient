@@ -1,37 +1,62 @@
 import { createClient } from '@supabase/supabase-js';
+import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
-// Get environment variables or fallback to empty strings to prevent build crashes
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// IMPORTANTE: En Capacitor, asegúrate de que el build (npm run build) se ejecute 
+// CON el archivo .env presente antes de hacer 'npx cap sync'.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Status flag to know if Supabase is ready
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
-export const configStatus = {
-    isValid: isSupabaseConfigured,
-    hasKeys: isSupabaseConfigured,
-    missingKeys: isSupabaseConfigured ? [] : ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
-};
-
-if (!isSupabaseConfigured) {
-    console.warn(
-        '⚠️ MATRIX CORE: Supabase no está configurado. ' +
-        'Añade VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY a tu archivo .env'
+// 1. VALIDACIÓN ESTRICTA (FAIL-FAST)
+// Si no hay variables, tiramos error para que la build o el startup crasheen.
+// Es mejor un crash evidente que un fallo de red silencioso.
+if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+        "🛑 ERROR CRÍTICO: Variables de entorno de Supabase NO encontradas. " +
+        "Asegúrate de tener el archivo .env configurado y ejecutar 'npm run build' ANTES de compilar."
     );
 }
 
-// Initialize the single Supabase client
+export const isSupabaseConfigured = true;
+export const configStatus = {
+    isValid: true,
+    hasKeys: true,
+    missingKeys: []
+};
+
+console.log(`🔌 MATRIX CORE: Iniciando Supabase con URL: ${supabaseUrl.substring(0, 20)}...`);
+
+// 2. ALMACENAMIENTO NATIVO BLINDADO
+// El localStorage se borra en iOS/Android. Usamos @capacitor/preferences para la sesión.
+const capacitorStorage = {
+    getItem: async (key: string): Promise<string | null> => {
+        const { value } = await Preferences.get({ key });
+        return value;
+    },
+    setItem: async (key: string, value: string): Promise<void> => {
+        await Preferences.set({ key, value });
+    },
+    removeItem: async (key: string): Promise<void> => {
+        await Preferences.remove({ key });
+    },
+};
+
+// 3. INICIALIZACIÓN DEL CLIENTE
 export const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co', 
-    supabaseAnonKey || 'placeholder_key',
+    supabaseUrl, 
+    supabaseAnonKey,
     {
         auth: {
-            persistSession: true,
+            storage: Capacitor.isNativePlatform() ? capacitorStorage : window.localStorage,
             autoRefreshToken: true,
-            detectSessionInUrl: true
+            persistSession: true,
+            // En web necesitamos detectar session en URL por los magic links. 
+            // En nativo puro, puede causar problemas de ruteo y re-renders si la URL cambia.
+            detectSessionInUrl: !Capacitor.isNativePlatform()
         },
         global: {
             headers: {
-                apikey: supabaseAnonKey || 'placeholder_key'
+                'x-application-name': 'matrix-lux-app'
             }
         }
     }
@@ -45,12 +70,12 @@ export const db = {} as any;
 export type User = any;
 
 // Mock Firebase functions to fix build errors during migration
-export const doc = (...args: any[]) => ({ id: args.join('/') }) as any;
-export const collection = (...args: any[]) => ({ path: args.join('/') }) as any;
-export const getDocs = async (...args: any[]) => ({ docs: [] }) as any;
-export const setDoc = async (...args: any[]) => { return {} as any; };
-export const query = (...args: any[]) => args as any;
-export const getDoc = async (...args: any[]) => ({ exists: () => false, data: () => ({}) }) as any;
+export const doc: any = (...args: any[]) => ({ id: args.join('/') });
+export const collection: any = (...args: any[]) => ({ path: args.join('/') });
+export const getDocs: any = async (...args: any[]) => ({ docs: [] });
+export const setDoc: any = async (...args: any[]) => { return {}; };
+export const query: any = (...args: any[]) => args;
+export const getDoc: any = async (...args: any[]) => ({ exists: () => false, data: () => ({}) });
 export const runTransaction = async (db: any, updateFunction: any) => {
     const mockTransaction = {
         get: async () => ({ exists: () => false, data: () => ({}) }),
@@ -60,31 +85,31 @@ export const runTransaction = async (db: any, updateFunction: any) => {
     };
     return updateFunction(mockTransaction);
 };
-export const serverTimestamp = () => new Date().toISOString() as any;
-export const writeBatch = (...args: any[]) => ({
+export const serverTimestamp: any = () => new Date().toISOString();
+export const writeBatch: any = (...args: any[]) => ({
     set: () => {},
     update: () => {},
     delete: () => {},
     commit: async () => {}
-}) as any;
-export const increment = (n: number) => n as any;
-export const addDoc = async (...args: any[]) => ({ id: 'mock-id' }) as any;
-export const arrayUnion = (...args: any[]) => args as any;
-export const updateDoc = async (...args: any[]) => { return {} as any; };
-export const deleteDoc = async (...args: any[]) => { return {} as any; };
-export const getRedirectResult = async (...args: any[]) => null as any;
+});
+export const increment: any = (n: number) => n;
+export const addDoc: any = async (...args: any[]) => ({ id: 'mock-id' });
+export const arrayUnion: any = (...args: any[]) => args;
+export const updateDoc: any = async (...args: any[]) => { return {}; };
+export const deleteDoc: any = async (...args: any[]) => { return {}; };
+export const getRedirectResult: any = async (...args: any[]) => null;
 
 // Additional mock Firebase auth and firestore functions to prevent build errors
-export const onAuthStateChanged = (auth: any, callback: any) => { callback(null); return () => {}; } as any;
-export const signOut = async (...args: any[]) => { return {} as any; };
-export const waitForPendingWrites = async (...args: any[]) => { return {} as any; };
-export const GoogleAuthProvider = class {} as any;
-export const signInWithPopup = async (...args: any[]) => { return {} as any; };
-export const signInWithRedirect = async (...args: any[]) => { return {} as any; };
-export const signInWithCredential = async (...args: any[]) => { return {} as any; };
-export const signInAnonymously = async (...args: any[]) => { return {} as any; };
-export const updateProfile = async (...args: any[]) => { return {} as any; };
-export const onSnapshot = (...args: any[]) => { return () => {}; } as any;
+export const onAuthStateChanged: any = (auth: any, callback: any) => { callback(null); return () => {}; };
+export const signOut: any = async (...args: any[]) => { return {}; };
+export const waitForPendingWrites: any = async (...args: any[]) => { return {}; };
+export const GoogleAuthProvider: any = class {};
+export const signInWithPopup: any = async (...args: any[]) => { return {}; };
+export const signInWithRedirect: any = async (...args: any[]) => { return {}; };
+export const signInWithCredential: any = async (...args: any[]) => { return {}; };
+export const signInAnonymously: any = async (...args: any[]) => { return {}; };
+export const updateProfile: any = async (...args: any[]) => { return {}; };
+export const onSnapshot: any = (...args: any[]) => { return () => {}; };
 
 // Mock Firebase types
 export type Firestore = any;

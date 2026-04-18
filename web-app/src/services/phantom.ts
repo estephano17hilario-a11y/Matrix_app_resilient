@@ -1,4 +1,4 @@
-import { User } from 'firebase/auth';
+// Removed firebase dependency
 
 // --- PERSISTENCE HELPERS ---
 const PHANTOM_SESSION_KEY = 'MATRIX_PHANTOM_SESSION';

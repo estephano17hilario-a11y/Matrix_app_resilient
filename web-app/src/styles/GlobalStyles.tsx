@@ -128,7 +128,7 @@ export const GlobalStyles = React.memo(() => (
       background: conic-gradient(from 0deg, #06b6d4, transparent 40%, #ec4899, transparent 90%, #06b6d4);
       transform: translate(-50%, -50%);
       animation: orb-spin 10s linear infinite;
-      filter: blur(6px); z-index: -1; opacity: 0.6;
+      filter: blur(2px); z-index: -1; opacity: 0.6;
       will-change: transform;
     }
     @keyframes orb-spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }

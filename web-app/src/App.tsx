@@ -22,7 +22,7 @@ import { OnboardingFlow } from '@/modules/onboarding/OnboardingFlow';
 const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, isInitializing } = useAuth();
   const canEnterLux = !!user || !!profile;
   useNotificationSystem(canEnterLux);
 
@@ -33,12 +33,20 @@ const AppRoutes = () => {
   }, [user, profile]);
 
   // 🚀 PERFORMANCE: Hide Splash Screen ASAP (0 Delay)
+  // BUT ONLY AFTER isInitializing IS FALSE
   useEffect(() => {
     // Hide immediately if we have a profile (offline/cache) or when loading finishes
-    if (!isLoading || profile) {
+    // and ONLY if Supabase has finished its initial session check
+    if (!isInitializing && (!isLoading || profile)) {
       SplashScreen.hide().catch(() => {});
     }
-  }, [isLoading, profile]);
+  }, [isLoading, profile, isInitializing]);
+
+  // If Supabase is still thinking about the session, don't render ANYTHING.
+  // The native Splash Screen will stay visible, preventing flicker.
+  if (isInitializing) {
+    return null;
+  }
 
   // Determine what to show in the content layer
   const renderContent = () => {

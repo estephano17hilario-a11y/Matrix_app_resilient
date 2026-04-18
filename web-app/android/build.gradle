@@ -31,6 +31,20 @@ allprojects {
                 }
             }
         }
+        if (project.hasProperty('kotlinOptions')) {
+            project.kotlinOptions {
+                jvmTarget = '17'
+            }
+        }
+        
+        // Dynamically configure Kotlin compile tasks to avoid 'org' unknown property error
+        project.tasks.withType(Task).configureEach { task ->
+            if (task.name.startsWith('compile') && task.name.endsWith('Kotlin')) {
+                task.kotlinOptions {
+                    jvmTarget = '17'
+                }
+            }
+        }
     }
 }
 

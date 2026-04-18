@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true
     },
     CapacitorHttp: {
-      enabled: true
+      enabled: false // <--- CRÍTICO: Desactivado para no romper Supabase (interceptaba fetch global). Usa CapacitorHttp manualmente en tus APIs si necesitas bypass de CORS.
     },
     SplashScreen: {
       launchShowDuration: 0,

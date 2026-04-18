@@ -17,6 +17,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
   logout: () => Promise<void>;
   updateProfileLocally: (updates: Partial<UserProfile>) => void;
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(() => PersistenceService.getProfile());
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const updateProfileLocally = useCallback((updates: Partial<UserProfile>) => {
@@ -72,8 +74,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!configStatus.isValid) {
         console.warn("⚠️ MATRIX: Running in PHANTOM MODE (No Supabase Config).");
         setIsLoading(false);
+        setIsInitializing(false);
         return;
     }
+
+    const checkInitialSession = async () => {
+      try {
+        await supabase.auth.getSession();
+      } catch (e) {
+        console.error("Error verificando sesión de Supabase:", e);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    checkInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user || null;
@@ -198,10 +212,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     profile,
     isLoading,
+    isInitializing,
     error,
     logout,
     updateProfileLocally
-  }), [user, profile, isLoading, error, logout, updateProfileLocally]);
+  }), [user, profile, isLoading, isInitializing, error, logout, updateProfileLocally]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -87,7 +87,7 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
     throw err;
   }
 };
-
+//evaluamos la problematica de las circustancias y al mismo tiempo se hace la capacitacion de forma asincrona
 export const loginWithGoogle = async (): Promise<User | null> => {
   try {
     let user: User | null = null;
