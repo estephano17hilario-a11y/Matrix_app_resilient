@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { notificationService } from '../../services/notificationService';
+import { TimePicker } from '../../components/ui/TimePicker';
 import { db, doc, getDoc, setDoc } from '../../services/firebase';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { LiquidButton } from '../../components/ui/LiquidButton';
 import { useTranslation } from 'react-i18next';
@@ -237,11 +238,10 @@ export const NotificationSettings: React.FC = () => {
                  >
                     <div className="flex items-center justify-between">
                         <span className="text-white/60 text-sm">Sync Time</span>
-                        <input 
-                          type="time" 
+                        <TimePicker 
                           value={config.reminderTime}
-                          onChange={(e) => saveSettings({ ...config, reminderTime: e.target.value })}
-                          className="bg-white/10 border border-white/10 rounded px-3 py-1 text-white focus:outline-none focus:border-indigo-500"
+                          onChange={(val) => saveSettings({ ...config, reminderTime: val })}
+                          className="bg-white/10 border border-white/10 rounded px-3 py-1 text-white focus:outline-none focus:border-indigo-500 w-24"
                         />
                     </div>
 

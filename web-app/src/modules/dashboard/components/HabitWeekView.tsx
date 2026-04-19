@@ -8,9 +8,10 @@ interface HabitWeekViewProps {
   history: string[];
   activeColor?: string;
   onToggleDay: (date: string) => void;
+  weekStartDay?: 0 | 1;
 }
 
-export const HabitWeekView: React.FC<HabitWeekViewProps> = ({ history, activeColor, onToggleDay }) => {
+export const HabitWeekView: React.FC<HabitWeekViewProps> = ({ history, activeColor, onToggleDay, weekStartDay = 1 }) => {
   const today = new Date();
   const startOfWeek = getStartOfWeek(today);
   

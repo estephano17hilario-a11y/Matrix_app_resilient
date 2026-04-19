@@ -21,13 +21,15 @@ interface HabitItemProps {
   reduceMotion?: boolean;
   isDue?: boolean;
   completedOverride?: boolean;
+  viewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
+  weekStartDay?: 0 | 1;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onUpdate, onShowActions, isDue = true, completedOverride }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT' }: HabitItemProps) => {
   const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false);
   
   const today = new Date().getDay();
 
@@ -112,8 +114,9 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
   const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto' };
 
   const handleWrapperClick = () => {
-    // Expand for ALL habits to show details (description, frequency, rewards, etc.)
-    setIsExpanded(!isExpanded);
+    if (onClick) {
+      onClick(habit);
+    }
   };
 
   const percentage = React.useMemo(() => {
@@ -138,9 +141,11 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
   }, [habit.checklist, habit.type]);
 
   const wrapperProps = {
+        role: "button",
+        tabIndex: 0,
         onClick: handleWrapperClick,
         className: cn(
-          "group relative bg-[#050505]/90 border rounded-[24px] px-5 py-4 transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95",
+          "group relative bg-[#050505]/90 border rounded-[24px] px-5 py-4 transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
           allChecklistCompleted ? "border-emerald-500/30" : "border-white/5",
           !isDue && "opacity-60 grayscale",
           isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
@@ -246,14 +251,54 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
                 </span>
             )}
             
-            <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="text-white/40 ml-auto"
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                }}
+                className="ml-auto p-1 text-white/30 hover:text-white/60 transition-colors"
             >
-                <ChevronDown size={14} />
-            </motion.div>
+                <ChevronDown size={14} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
+            </button>
           </div>
+
+          {/* Inline Subtasks for Chronological View */}
+          {viewPreference === 'CHRONOLOGICAL' && habit.type === 'CHECKLIST' && habit.checklist && (
+              <div className="mt-3 space-y-1" onClick={e => e.stopPropagation()}>
+                  {habit.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)).map(item => (
+                      <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5" onClick={() => handleChecklistToggle(item.id, item.completed)}>
+                          <div
+                                  className={cn(
+                                      "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                      item.completed 
+                                          ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
+                                          : "bg-black/20 border-white/20 group-hover/item:border-white/40"
+                                  )}
+                                  style={{
+                                      backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined,
+                                      borderColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined
+                                  }}
+                              >
+                              {item.completed && <Check size={10} strokeWidth={3} />}
+                          </div>
+                          <span className={cn(
+                              "text-xs transition-colors truncate flex-1 font-medium",
+                              item.completed ? "text-white/30 line-through" : "text-white/80"
+                          )}>
+                              {item.text}
+                          </span>
+                          {item.reminderTime && (
+                              <span className={cn(
+                                  "text-[10px] font-bold tracking-wider flex items-center gap-1",
+                                  item.completed ? "text-white/20" : "text-orange-400"
+                              )}>
+                                  <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                              </span>
+                          )}
+                      </div>
+                  ))}
+              </div>
+          )}
 
           <AnimatePresence>
           {isExpanded && (
@@ -310,7 +355,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
                     </div>
 
                     {/* 4. Subtasks (If Checklist) */}
-                    {habit.type === 'CHECKLIST' && habit.checklist && (
+                    {habit.type === 'CHECKLIST' && habit.checklist && viewPreference !== 'CHRONOLOGICAL' && (
                         <div className="pt-2 border-t border-white/5 space-y-1">
                             <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Subtasks</span>
                             {habit.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)).map(item => (
@@ -335,6 +380,11 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
                                     )}>
                                         {item.text}
                                     </span>
+                                    {item.reminderTime && (
+                                        <span className="text-[10px] text-white/30 font-medium tracking-wider flex items-center gap-1">
+                                            <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -345,12 +395,12 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onEdit, onU
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 h-10">
+        <div className="flex items-center gap-3 h-11">
             <LiquidProgressCircle
                 percentage={percentage}
                 color={baseColor}
                 isCompleted={habit.completedToday}
-                size={36}
+                size={38}
                 onClick={(e) => {
                     e.stopPropagation();
                     if (!isDue) return;

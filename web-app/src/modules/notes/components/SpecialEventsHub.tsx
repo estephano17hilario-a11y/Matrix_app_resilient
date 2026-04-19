@@ -11,7 +11,7 @@ import { SpecialEvent } from './types';
 import { getNextEventDate } from './utils';
 
 import { FREE_LIMITS } from '../../../config/limits';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface SpecialEventsHubProps {
  isOpen: boolean;
@@ -135,13 +135,14 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  initial={{ opacity: 0 }} 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
- className="fixed inset-0 z-[9999] bg-[#050505] flex flex-col"
+ className="fixed inset-0 z-[9999] bg-transparent flex flex-col"
  >
  {/* Background Effects */}
  <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#050505] to-[#050505]" />
- <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-pink-500/5 blur-sm transform-gpu backface-hidden md:blur-sm transform-gpu backface-hidden " />
- <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-500/5 blur-sm transform-gpu backface-hidden md:blur-sm transform-gpu backface-hidden " />
+ <div className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm transform-gpu" />
+ <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent" />
+ <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pink-500/10 blur-sm transform-gpu backface-hidden will-change-transform opacity-40" />
+<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-sm transform-gpu backface-hidden will-change-transform opacity-40" />
  </div>
 
  {/* Scrollable Container for both Header and Content */}
@@ -185,8 +186,8 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <div className="p-6">
  {events.length === 0 ? (
  <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-60">
- <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5 animate-pulse relative">
- <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-500/20 to-transparent blur-sm transform-gpu backface-hidden " />
+ <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5 animate-pulse relative shadow-[0_0_40px_rgba(236,72,153,0.1)]">
+ <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-500/20 to-transparent blur-sm transform-gpu backface-hidden will-change-transform opacity-50" />
  <Calendar size={64} className="text-white/20 relative z-10" />
  </div>
  <div>
@@ -205,12 +206,13 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  {/* Add Button Card */}
  <button 
  onClick={handleOpenCreateModal}
- className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[24px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm"
+ className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm backdrop-blur-sm transform-gpu"
  >
- <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner">
+ <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[32px] pointer-events-none" />
+ <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner relative z-10">
  <Plus size={24} className="text-white/60 group-hover:text-white" />
  </div>
- <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80">Add Event</span>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80 relative z-10">Add Event</span>
  </button>
 
  {/* Event Cards */}
@@ -226,7 +228,10 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  onClick={() => handleEditEvent(event)}
- className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[24px] bg-[#111] border border-white/5 p-6 flex flex-col justify-between overflow-hidden hover:border-white/10 transition-all shadow-md cursor-pointer hover:shadow-xl hover:-translate-y-1"
+ className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[32px] bg-[#111]/80 backdrop-blur-sm transform-gpu border border-white/5 p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-white/20"
+ style={{
+   boxShadow: `0 8px 32px -8px ${EVENT_TYPES[event.type].color}20`,
+ }}
  >
  <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
  <button 
@@ -243,8 +248,23 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  </button>
  </div>
  
- <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
- <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full blur-sm transform-gpu backface-hidden opacity-15 pointer-events-none" style={{ backgroundColor: EVENT_TYPES[event.type].color }} />
+ {/* Ambient Background Tint */}
+ <div 
+   className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 pointer-events-none"
+   style={{ backgroundColor: EVENT_TYPES[event.type].color }}
+ />
+
+ {/* Ambient light from bottom right (replaces the hard circle) */}
+ <div 
+   className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-sm transform-gpu backface-hidden will-change-transform opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"
+   style={{ backgroundColor: EVENT_TYPES[event.type].color }}
+ />
+ 
+ {/* Elegant top gradient light */}
+ <div 
+   className="absolute top-0 left-0 right-0 h-1/2 opacity-10 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"
+   style={{ background: `linear-gradient(to bottom, ${EVENT_TYPES[event.type].color}, transparent)` }}
+ />
  
  <div className="flex justify-between items-start relative z-10">
  <div className="p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner" style={{ color: EVENT_TYPES[event.type].color }}>

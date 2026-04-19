@@ -105,7 +105,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
     <Container
       {...(isLite ? {} : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 } })}
       className={cn(
-        "relative rounded-[1.25rem] transition-all duration-300 mb-3 group overflow-hidden",
+        "relative rounded-[1.25rem] transition-all duration-300 mb-3 group overflow-hidden clickable",
         expanded ? "z-10" : "hover:z-10"
       )}
       style={{ 
@@ -134,7 +134,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
       <div 
         className="relative z-10 p-3 cursor-pointer" 
         onClick={() => {
-          if (!isLite) setExpanded(!expanded);
+          setExpanded(!expanded);
         }}
       >
         <div className="flex items-center gap-3.5">
@@ -269,7 +269,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
 
         <div className="overflow-hidden">
           <AnimatePresence initial={false}>
-            {expanded && !isLite && (
+            {expanded && (
               <motion.div
                 initial={{ opacity: 0, scaleY: 0.98 }}
                 animate={{ opacity: 1, scaleY: 1 }}
@@ -334,7 +334,14 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                     </button>
                 )}
 
-                <SubtaskManager taskId={quest.id} initialSubtasks={quest.subtasks} />
+                <SubtaskManager 
+                  taskId={quest.id} 
+                  initialSubtasks={quest.subtasks} 
+                  onSubtasksChange={(newSubtasks) => {
+                    // MUTATE the quest object so Dashboard doesn't overwrite it on next render
+                    quest.subtasks = newSubtasks;
+                  }}
+                />
 
                 {quest.deadline && (
                    <div className={cn(

@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { doc, updateDoc, db } from '../../../services/firebase';
 import { Subtask } from '../../../types';
 import { useLux } from '@/context/LuxContext';
+import { persistenceService } from '../../../services/persistenceService';
 
-export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => {
+export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onSubtasksChange?: (subtasks: Subtask[]) => void) => {
   const { user } = useLux();
   const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
   
@@ -39,8 +39,7 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => 
     if (!user?.id || !taskId) return;
 
     try {
-      const taskRef = doc(db, 'users', user.id, 'quests', taskId);
-      await updateDoc(taskRef, {
+      await persistenceService.quests.update(user.id, taskId, {
         subtasks: newSubtasks
       });
     } catch (error) {
@@ -77,33 +76,37 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = []) => 
 
     setSubtasks(prev => {
       const updated = [...prev, newSubtask];
+      if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
       return updated;
     });
-  }, [saveToFirestore]);
+  }, [saveToFirestore, onSubtasksChange]);
 
   const toggleSubtask = useCallback((subtaskId: string) => {
     setSubtasks(prev => {
       const updated = prev.map(t => 
         t.id === subtaskId ? { ...t, isCompleted: !t.isCompleted } : t
       );
+      if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
       return updated;
     });
-  }, [saveToFirestore]);
+  }, [saveToFirestore, onSubtasksChange]);
 
   const deleteSubtask = useCallback((subtaskId: string) => {
     setSubtasks(prev => {
       const updated = prev.filter(t => t.id !== subtaskId);
+      if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
       return updated;
     });
-  }, [saveToFirestore]);
+  }, [saveToFirestore, onSubtasksChange]);
 
   const reorderSubtasks = useCallback((newOrder: Subtask[]) => {
     setSubtasks(newOrder);
+    if (onSubtasksChange) onSubtasksChange(newOrder);
     saveToFirestore(newOrder);
-  }, [saveToFirestore]);
+  }, [saveToFirestore, onSubtasksChange]);
 
   return {
     subtasks,

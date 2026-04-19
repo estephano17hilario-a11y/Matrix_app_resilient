@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, X } from 'lucide-react';
 import { NoteBlock, NoteBlueprint } from '../../../types';
 import { saveBlueprint } from '../../../services/blueprintService';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 interface SaveBlueprintModalProps {

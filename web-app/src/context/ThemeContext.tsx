@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 import { doc, getDoc, setDoc, db } from '../services/firebase';
+import { supabase } from '../services/supabase';
 import { ThemeId, THEMES } from '../config/themes';
 import { boostColorSaturation } from '../utils/colorUtils';
 import { AVAILABLE_AVATARS } from '../config/avatars';
@@ -177,30 +178,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     if (user) {
       try {
-        const userRef = doc(db, 'users', user.id);
-        // We use setDoc with merge to ensure preferences object exists or is updated
-        await setDoc(userRef, {
-          preferences: { theme: newTheme }
-        }, { merge: true });
+        const prefs = { ...profile?.preferences, theme: newTheme };
+        await supabase.from('users').update({ preferences: prefs }).eq('id', user.id);
       } catch (error) {
         console.error("Failed to save theme to Lux:", error);
       }
     }
-  }, [user]);
+  }, [user, profile?.preferences]);
 
   const setVividMode = useCallback(async (enabled: boolean) => {
     setVividModeState(enabled);
     if (user) {
         try {
-          const userRef = doc(db, 'users', user.id);
-          await setDoc(userRef, {
-            preferences: { vividMode: enabled }
-          }, { merge: true });
+          const prefs = { ...profile?.preferences, vividMode: enabled };
+          await supabase.from('users').update({ preferences: prefs }).eq('id', user.id);
         } catch (error) {
           console.error("Failed to save vivid mode to Lux:", error);
         }
       }
-  }, [user]);
+  }, [user, profile?.preferences]);
 
   const value = useMemo(() => ({
     theme: activeTheme, // Provide the active theme (preview or real) to consumers

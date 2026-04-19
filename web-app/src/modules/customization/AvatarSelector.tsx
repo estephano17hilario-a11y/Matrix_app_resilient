@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_AVATARS } from '../../config/avatars';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { doc, setDoc, db } from '../../services/firebase';
 import { AvatarSelectorCard } from './components/AvatarSelectorCard';
 

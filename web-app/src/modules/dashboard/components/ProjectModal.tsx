@@ -6,9 +6,11 @@ import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { RewardPredictionPill } from './RewardPredictionPill';
+import { getWeekStartDay } from '../../../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { TimePicker } from '../../../components/ui/TimePicker';
 
 export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
@@ -198,18 +200,26 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         }
     };
 
-    const DAYS = t('modals.project.daysInitials', { returnObjects: true }) as string[];
+    const DAYS_RAW = t('modals.project.daysInitials', { returnObjects: true }) as string[];
+    const weekStart = getWeekStartDay();
+    const DAYS = useMemo(() => {
+        return weekStart === 1 
+            ? [...DAYS_RAW.slice(1).map((l, i) => ({ label: l, index: i + 1 })), { label: DAYS_RAW[0], index: 0 }]
+            : DAYS_RAW.map((l, i) => ({ label: l, index: i }));
+    }, [DAYS_RAW, weekStart]);
 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && attrId !== '';
-    const isBlock2Valid = goalTarget > 0 && (
-        goalFreq === 'DAILY' || 
-        (goalFreq === 'WEEKLY' && workingDays.length > 0) ||
-        (goalFreq === 'MONTHLY' && (
-            (monthlyType === 'SPECIFIC_DATES' && workingDays.length > 0) ||
-            (monthlyType === 'FLEXIBLE_COUNT' && monthlyFlexibleCount > 0)
-        ))
-    );
+    const isBlock2Valid = (() => {
+        if (goalTarget <= 0) return false;
+        if (goalFreq === 'DAILY') return true;
+        if (goalFreq === 'WEEKLY') return workingDays.length > 0;
+        if (goalFreq === 'MONTHLY') {
+            if (monthlyType === 'SPECIFIC_DATES') return workingDays.length > 0 || monthlyLastDay;
+            if (monthlyType === 'FLEXIBLE_COUNT') return monthlyFlexibleCount > 0;
+        }
+        return false;
+    })();
     const isBlock3Valid = pomoDuration > 0 && reminder !== '';
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
@@ -482,13 +492,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.workingDays')}</span>
                                                 </div>
                                                 <div className="flex justify-between gap-1">
-                                                    {DAYS.map((d, i) => (
+                                                    {DAYS.map(({ label, index }) => (
                                                         <button 
-                                                            key={i} 
-                                                            onClick={() => toggleDay(i)}
-                                                            className={`w-7 h-7 rounded-lg text-[9px] font-bold transition-all ${workingDays.includes(i) ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                            key={index} 
+                                                            onClick={() => toggleDay(index)}
+                                                            className={`w-7 h-7 rounded-lg text-[9px] font-bold transition-all ${workingDays.includes(index) ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
                                                         >
-                                                            {d}
+                                                            {label}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -662,20 +672,18 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
 
                                         {/* Reminder */}
                                         <div className="space-y-2">
-                                            <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 group">
+                                            <div className="bg-black/20 rounded-xl p-2.5 border border-white/5 group relative">
                                                 <div className="flex items-center gap-2 mb-1"><Bell size={14} className="text-purple-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.alert')}</span></div>
-                                                <input 
-                                                    type="time" 
-                                                    value={reminder} 
-                                                    onChange={(e) => {
-                                                        setReminder(e.target.value);
-                                                        if (e.target.value && permissions.notifications !== 'granted') {
+                                                <TimePicker 
+                                                    value={reminder}
+                                                    onChange={(val) => {
+                                                        setReminder(val);
+                                                        if (val && permissions.notifications !== 'granted') {
                                                             requestPermissions();
                                                         }
-                                                    }} 
-                                                    className="bg-transparent text-xl font-black text-white outline-none w-full z-10 relative" 
+                                                    }}
+                                                    className="text-xl font-black text-white w-full z-10 relative"
                                                 />
-                                                {!reminder && <span className="absolute left-6 bottom-6 text-xs font-bold text-white/20 pointer-events-none">{t('modals.project.off')}</span>}
                                             </div>
 
                                             {/* Permission & Battery Checks */}

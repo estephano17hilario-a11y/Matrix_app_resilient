@@ -92,7 +92,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     });
     const [inputMode, setInputMode] = useState<'LIST' | 'CUSTOM'>('CUSTOM');
     const [viceList, setViceList] = useState<string[]>([
-        'Procrastinar', 'Redes sociales', 'Fap', 'Comida chatarra', 'Alcohol', 'Videojuegos'
+        t('badHabits.tags.procrastinate', 'Procrastinar'),
+        t('badHabits.tags.socialMedia', 'Redes sociales'),
+        t('badHabits.tags.junkFood', 'Comida chatarra'),
+        t('badHabits.tags.fap', 'Fap')
     ]);
     const [listDraft, setListDraft] = useState('');
     const [intelligentStreak, setIntelligentStreak] = useState(initialData?.intelligentStreak || false);
@@ -121,7 +124,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         }
         setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
         setViceList([
-            'Procrastinar', 'Redes sociales', 'Fap', 'Comida chatarra', 'Alcohol', 'Videojuegos'
+            t('badHabits.tags.procrastinate', 'Procrastinar'),
+            t('badHabits.tags.socialMedia', 'Redes sociales'),
+            t('badHabits.tags.junkFood', 'Comida chatarra'),
+            t('badHabits.tags.fap', 'Fap')
         ]);
         setListDraft('');
     }, [isOpen, isFirstIdentify]);
@@ -143,6 +149,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     };
 
     const handleConfirm = () => {
+        const calculatedHp = impactLevel * 5;
+        const calculatedXp = impactLevel * 10;
+        const calculatedGold = impactLevel * 20;
+
         onConfirm({
             ...(initialData || {}),
             title,
@@ -152,7 +162,12 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             timeConsumed: minutes,
             intelligentStreak,
             currentTarget: initialData ? (intelligentStreak ? (initialData.currentTarget || 1) : undefined) : (intelligentStreak ? 1 : undefined),
-            reachedDays: initialData ? (intelligentStreak ? (initialData.reachedDays || 0) : undefined) : 0
+            reachedDays: initialData ? (intelligentStreak ? (initialData.reachedDays || 0) : undefined) : 0,
+            penalties: {
+                hp: calculatedHp,
+                xp: calculatedXp,
+                gold: calculatedGold
+            }
         });
         onClose();
         
@@ -238,11 +253,11 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                         )}
                                     </motion.div>
                                     <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                                        {step === 1 && "Identificar Anomalía"}
-                                        {step === 2 && "Diagnóstico del Fallo"}
-                                        {step === 3 && !intelligentStreak && "Ejecutar Eliminación"}
-                                        {step === 3 && intelligentStreak && "Sistema Inteligente"}
-                                        {step === 4 && "Ejecutar Eliminación"}
+                                        {step === 1 && t('badHabits.wizard.step1', 'Identificar Anomalía')}
+                                        {step === 2 && t('badHabits.wizard.step2', 'Diagnóstico del Fallo')}
+                                        {step === 3 && !intelligentStreak && t('badHabits.wizard.step3Normal', 'Ejecutar Eliminación')}
+                                        {step === 3 && intelligentStreak && t('badHabits.wizard.step3Intelligent', 'Sistema Inteligente')}
+                                        {step === 4 && t('badHabits.wizard.step4', 'Ejecutar Eliminación')}
                                     </h2>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -252,10 +267,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 onClick={onSwitchToHabit}
                                                 className="px-3 py-1 rounded-full text-white/40 text-[10px] font-bold hover:text-white transition-colors"
                                             >
-                                                Hábito
+                                                {t('habits.habit', 'Hábito')}
                                             </button>
                                             <div className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold shadow-sm">
-                                                Vicio
+                                                {t('habits.vice', 'Vicio')}
                                             </div>
                                         </div>
                                     )}
@@ -291,7 +306,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-6"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
@@ -340,7 +355,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                         : 'bg-white/[0.03] text-white/20 border border-white/5 cursor-not-allowed'
                                                                 }`}
                                                             >
-                                                                Agregar
+                                                                {t('common.add', 'Agregar')}
                                                             </button>
                                                         </div>
                                                         <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar pb-1">
@@ -379,7 +394,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
                                             <div className="space-y-3 pb-2">
                                                 <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
-                                                    Afecta a tu atributo:
+                                                    {t('badHabits.wizard.affectsAttribute', 'Afecta a tu atributo:')}
                                                 </label>
                                                 <div className="grid grid-cols-2 gap-2 pr-1">
                                                     {attributes.map(attr => (
@@ -422,7 +437,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-6"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="space-y-3">
                                                 <label className="text-[12px] sm:text-sm font-medium text-white/60 ml-1">
@@ -439,7 +454,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             <div className="space-y-4">
                                                 <label className="text-[12px] sm:text-sm font-medium text-rose-400 ml-1 flex items-center gap-1.5">
                                                     <AlertTriangle size={13} />
-                                                    Impacto Negativo
+                                                    {t('badHabits.wizard.negativeImpact', 'Impacto Negativo')}
                                                 </label>
                                                 <div className="grid grid-cols-5 gap-2">
                                                     {[1, 2, 3, 4, 5].map((level) => (
@@ -449,7 +464,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             className={`
                                                                 h-11 rounded-xl font-bold text-base transition-all border
                                                                 ${impactLevel === level
-                                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] scale-105 z-10'
+                                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.3)] scale-105 z-10'
                                                                     : 'bg-white/[0.03] text-white/20 border-white/[0.05] hover:bg-white/[0.06] hover:text-white/60 hover:border-white/10'}
                                                             `}
                                                         >
@@ -458,11 +473,11 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     ))}
                                                 </div>
                                                 <div className="text-center text-[12px] font-medium text-rose-200/50 h-5 tracking-wide">
-                                                    {impactLevel === 1 && "Leve - Molestia menor"}
-                                                    {impactLevel === 2 && "Bajo - Interferencia ocasional"}
-                                                    {impactLevel === 3 && "Moderado - Afecta el rendimiento"}
-                                                    {impactLevel === 4 && "Alto - Daño significativo"}
-                                                    {impactLevel === 5 && "CRÍTICO - Colapso inminente"}
+                                                    {impactLevel === 1 && t('badHabits.wizard.impactLevel1', 'Leve - Molestia menor')}
+                                                    {impactLevel === 2 && t('badHabits.wizard.impactLevel2', 'Bajo - Interferencia ocasional')}
+                                                    {impactLevel === 3 && t('badHabits.wizard.impactLevel3', 'Moderado - Afecta el rendimiento')}
+                                                    {impactLevel === 4 && t('badHabits.wizard.impactLevel4', 'Alto - Daño significativo')}
+                                                    {impactLevel === 5 && t('badHabits.wizard.impactLevel5', 'CRÍTICO - Colapso inminente')}
                                                 </div>
                                             </div>
 
@@ -470,7 +485,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <div className="flex items-center justify-between ml-1">
                                                     <label className="text-[12px] sm:text-sm font-medium text-white/60 flex items-center gap-1.5">
                                                         <Brain size={13} className="text-violet-400" />
-                                                        Modo Inteligencia Artificial
+                                                        {t('badHabits.wizard.aiMode', 'Modo Inteligencia Artificial')}
                                                     </label>
                                                     <motion.button
                                                         whileHover={{ scale: 1.1 }}
@@ -495,18 +510,18 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                                                 <h4 className="text-[13px] font-bold text-violet-200 mb-2 flex items-center gap-2">
                                                                     <Sparkles size={14} className="text-violet-400 animate-pulse" />
-                                                                    ¿Qué es la Racha Inteligente?
+                                                                    {t('badHabits.wizard.whatIsIntelligentStreak', '¿Qué es la Racha Inteligente?')}
                                                                 </h4>
                                                                 <p className="text-[11px] text-violet-100/70 leading-relaxed mb-2">
-                                                                    Es un sistema revolucionario que entiende que somos humanos. En lugar de castigarte brutalmente por un error y volver a cero (lo cual destruye la motivación), utiliza un <span className="font-semibold text-violet-300">algoritmo de progreso escalonado</span>.
+                                                                    {t('badHabits.wizard.intelligentStreakDesc1', 'Es un sistema revolucionario que entiende que somos humanos. En lugar de castigarte brutalmente por un error y volver a cero (lo cual destruye la motivación), utiliza un ')}<span className="font-semibold text-violet-300">{t('badHabits.wizard.intelligentStreakDesc2', 'algoritmo de progreso escalonado')}</span>.
                                                                 </p>
                                                                 <ul className="text-[11px] text-violet-100/60 space-y-1.5 list-disc pl-4 mb-2">
-                                                                    <li><strong className="text-violet-200">Metas Graduales:</strong> Empiezas con 1 día, luego 3, 7, 14, 30...</li>
-                                                                    <li><strong className="text-emerald-300">Días de Oportunidad:</strong> Al cumplir una meta, ganas un día donde puedes cometer el vicio SIN perder tu racha.</li>
-                                                                    <li><strong className="text-rose-300">Caída Suave:</strong> Si fallas, no vuelves a cero. Solo retrocedes a la meta anterior.</li>
+                                                                    <li><strong className="text-violet-200">{t('badHabits.wizard.gradualGoals', 'Metas Graduales:')}</strong> {t('badHabits.wizard.gradualGoalsDesc', 'Empiezas con 1 día, luego 3, 7, 14, 30...')}</li>
+                                                                    <li><strong className="text-emerald-300">{t('badHabits.wizard.opportunityDays', 'Días de Oportunidad:')}</strong> {t('badHabits.wizard.opportunityDaysDesc', 'Al cumplir una meta, ganas un día donde puedes cometer el vicio SIN perder tu racha.')}</li>
+                                                                    <li><strong className="text-rose-300">{t('badHabits.wizard.softFall', 'Caída Suave:')}</strong> {t('badHabits.wizard.softFallDesc', 'Si fallas, no vuelves a cero. Solo retrocedes a la meta anterior.')}</li>
                                                                 </ul>
                                                                 <p className="text-[11px] text-violet-300/80 font-medium italic mt-2 border-t border-violet-500/20 pt-2">
-                                                                    "Perfecto para vicios difíciles de dejar de golpe, creando un camino realista hacia la libertad."
+                                                                    {t('badHabits.wizard.intelligentStreakQuote', '"Perfecto para vicios difíciles de dejar de golpe, creando un camino realista hacia la libertad."')}
                                                                 </p>
                                                             </div>
                                                         </motion.div>
@@ -518,7 +533,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     onClick={() => setIntelligentStreak(!intelligentStreak)}
                                                     className={`w-full p-4 rounded-2xl border transition-all duration-300 text-left ${
                                                         intelligentStreak
-                                                            ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/30 shadow-[0_0_20px_rgba(139,92,246,0.1)]'
+                                                            ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'
                                                             : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
                                                     }`}
                                                 >
@@ -529,10 +544,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             </div>
                                                             <div>
                                                                 <div className={`text-[13px] font-semibold ${intelligentStreak ? 'text-violet-200' : 'text-white/80'}`}>
-                                                                    Racha Inteligente
+                                                                    {t('badHabits.wizard.intelligentStreak', 'Racha Inteligente')}
                                                                 </div>
                                                                 <div className="text-[11px] text-white/40 mt-0.5">
-                                                                    Proceso gradual sin penalización
+                                                                    {t('badHabits.wizard.gradualProcessNoPenalty', 'Proceso gradual sin penalización')}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -558,7 +573,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="bg-gradient-to-br from-violet-950/20 to-indigo-950/20 border border-violet-500/15 rounded-2xl p-5 mb-5">
                                                 <div className="flex items-center gap-2.5 mb-4">
@@ -601,9 +616,9 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             <RotateCcw size={14} className="text-rose-400" />
                                                         </div>
                                                         <div>
-                                                            <div className="text-[12px] font-semibold text-rose-200 mb-1">Regresa, no penaliza</div>
+                                                            <div className="text-[12px] font-semibold text-rose-200 mb-1">{t('badHabits.wizard.returnNoPenalty', 'Regresa, no penaliza')}</div>
                                                             <div className="text-[11px] text-white/50 leading-relaxed">
-                                                                Si fallas, vuelves a la meta anterior. No pierdes todo, solo retrocedes un nivel.
+                                                                {t('badHabits.wizard.returnNoPenaltyDesc', 'Si fallas, vuelves a la meta anterior. No pierdes todo, solo retrocedes un nivel.')}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -636,7 +651,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <div className="flex items-start gap-2.5">
                                                     <Info size={15} className="text-amber-400 mt-0.5 shrink-0" />
                                                     <p className="text-[11px] text-amber-200/70 leading-relaxed">
-                                                        Si estás en la meta de 14 días y fallas el día 10, volverás a la meta de 7 días. ¡No se reinicia a 0!
+                                                        {t('badHabits.wizard.intelligentStreakExample', 'Si estás en la meta de 14 días y fallas el día 10, volverás a la meta de 7 días. ¡No se reinicia a 0!')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -652,12 +667,12 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6 flex flex-col"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
                                             <div className="bg-rose-950/15 border border-rose-500/15 rounded-2xl p-5 mb-5">
                                                 <h3 className="text-[14px] font-semibold text-rose-200 mb-3 flex items-center gap-2">
                                                     <Flame size={16} className="text-rose-500" />
-                                                    Tiempo por Sesión
+                                                    {t('badHabits.wizard.timePerSession', 'Tiempo por Sesión')}
                                                 </h3>
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between text-sm items-end">
@@ -683,6 +698,23 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </div>
                                             </div>
 
+                                            <div className="space-y-3 mb-5 flex-1">
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.reason', 'Reason')}</span>
+                                                    <span className="text-[12px] text-white/80 font-medium truncate max-w-[200px] text-right">{reason}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.impact', 'Impact')}</span>
+                                                    <span className="text-[12px] text-rose-400 font-medium">Nivel {impactLevel}/5</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                                    <span className="text-[12px] text-white/50">{t('badHabits.attribute', 'Attribute')}</span>
+                                                    <span className="text-[12px] text-white/80 font-medium">
+                                                        {attributes.find(a => a.id === attribute)?.label.replace('traits.', '') || 'General'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
                                             <div className="text-center space-y-2 mt-auto mb-4">
                                                 <p className="text-[13px] text-white/35 italic">
                                                     {t('badHabits.wizard.quote', 'The only way to win is not to play.')}
@@ -700,10 +732,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
-                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-6 flex flex-col"
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
-                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_30px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
-                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
+                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
+                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
                                                     {intelligentStreak ? (
                                                         <Sparkles size={28} className="text-violet-300" />
                                                     ) : (
@@ -767,7 +799,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             : 'bg-white/8 text-white/20 cursor-not-allowed'}
                                     `}
                                 >
-                                    <span>{step === getStepCount() ? 'Activar' : 'Continuar'}</span>
+                                    <span>{step === getStepCount() ? t('common.activate', 'Activar') : t('common.continue', 'Continuar')}</span>
                                     {step < getStepCount() && <ChevronRight size={16} />}
                                     {step === getStepCount() && <ShieldAlert size={15} />}
                                 </motion.button>

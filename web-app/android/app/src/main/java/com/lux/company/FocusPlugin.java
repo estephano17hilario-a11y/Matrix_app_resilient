@@ -127,9 +127,9 @@ public class FocusPlugin extends Plugin {
         
         // Start Foreground Service
         Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction("START");
-        intent.putExtra("duration", duration);
-        intent.putExtra("mode", mode);
+        intent.setAction(FocusService.ACTION_START);
+        intent.putExtra(FocusService.EXTRA_DURATION, duration);
+        intent.putExtra(FocusService.EXTRA_MODE, mode);
         intent.putExtra("projectName", projectName);
         intent.putExtra("projectColor", projectColor);
         intent.putExtra("projectIcon", projectIcon);
@@ -146,7 +146,7 @@ public class FocusPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction("STOP");
+        intent.setAction(FocusService.ACTION_STOP);
         getContext().startService(intent);
         call.resolve();
     }
@@ -154,7 +154,7 @@ public class FocusPlugin extends Plugin {
     @PluginMethod
     public void pause(PluginCall call) {
         Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction("PAUSE");
+        intent.setAction(FocusService.ACTION_PAUSE);
         getContext().startService(intent);
         call.resolve();
     }
@@ -162,7 +162,7 @@ public class FocusPlugin extends Plugin {
     @PluginMethod
     public void resume(PluginCall call) {
         Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction("RESUME");
+        intent.setAction(FocusService.ACTION_RESUME);
         getContext().startService(intent);
         call.resolve();
     }

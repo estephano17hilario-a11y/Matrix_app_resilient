@@ -70,6 +70,7 @@ export interface Habit {
     completed: boolean;
     color?: string; // Custom color for this item
     days?: number[]; // Specific days this item should appear [0-6]
+    reminderTime?: string; // Optional alarm/reminder time for this subtask
   }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
@@ -86,6 +87,7 @@ export interface Habit {
   order?: number;
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
+  lastUpdatedDate?: string; // Tracks the last date any progress was made (to reset correctly)
 }
 
 export interface BadHabit {

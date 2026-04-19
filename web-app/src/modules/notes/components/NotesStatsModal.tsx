@@ -69,9 +69,9 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay, isLocked, 
  </motion.div>
 );
 
-export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initialTab = 'OVERVIEW', isPro, onOpenPro }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[], initialTab?: 'OVERVIEW' | 'EMOTIONS', isPro?: boolean, onOpenPro?: () => void }) => {
+export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initialTab = 'OVERVIEW', isPro, onOpenPro, defaultChartViews }: { isOpen: boolean, onClose: () => void, notes: Note[], journalEntries: JournalEntry[], initialTab?: 'OVERVIEW' | 'EMOTIONS', isPro?: boolean, onOpenPro?: () => void, defaultChartViews?: any }) => {
  const { t } = useTranslation();
- const [range, setRange] = useState<'WEEK' | 'MONTH'>('WEEK');
+ const [range, setRange] = useState<'WEEK' | 'MONTH'>(defaultChartViews?.notes === 'MONTH' ? 'MONTH' : 'WEEK');
  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'EMOTIONS'>(initialTab);
  const [currentDate, setCurrentDate] = useState(new Date());
  const [isDateModalOpen, setIsDateModalOpen] = useState(false);

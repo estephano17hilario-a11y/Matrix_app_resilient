@@ -927,7 +927,7 @@ export const StrategyTutorial: React.FC<StrategyTutorialProps> = ({ isOpen, onCl
                     </div>
                 </div>
                 
-                <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+                <AnimatePresence custom={direction} initial={false}>
                     <motion.div
                         key={currentStep}
                         custom={direction}

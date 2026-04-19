@@ -6,7 +6,7 @@ import { SmartProject } from '../../types/SmartGoal';
 import { DailyLimits } from '../../types/User';
 import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
-import { isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay } from 'date-fns';
+import { isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, addYears, subYears } from 'date-fns';
 import { startOfWeek, endOfWeek } from '../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
@@ -25,17 +25,18 @@ interface TaskListProps {
  onEditQuest?: (quest: Quest) => void;
  onAddQuest?: () => void;
  onFocusProject?: (projectId: string) => void;
+ defaultChartViews?: any;
 }
 
 // Optimization: Memoized Item Wrapper
 const MemoizedQuestItem = React.memo(QuestItem);
 
-export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, dailyLimits }) => {
+export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, dailyLimits, defaultChartViews }) => {
  const { t } = useTranslation();
 
  // Filters
  const [showFilters, setShowFilters] = useState(false);
- const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH'>('ALL');
+ const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR'>(defaultChartViews?.tasks || 'ALL');
  const [currentDate, setCurrentDate] = useState(new Date());
  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
@@ -52,11 +53,12 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
  // Optimization: Stable date references for filtering to avoid re-calculating on every render if not needed
  const dateRange = useMemo(() => {
- if (timeframe === 'ALL') return null;
- const start = startOfDay(currentDate);
- if (timeframe === 'DAY') return { start, end: start }; // Same day comparison
- if (timeframe === 'WEEK') return { start: startOfWeek(start), end: endOfWeek(start) };
- return { start: start, month: start.getMonth(), year: start.getFullYear() }; // Month check
+ if (timeframe === 'DAY') return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
+ if (timeframe === 'WEEK') return { start: startOfWeek(currentDate), end: endOfWeek(currentDate) };
+ if (timeframe === 'MONTH') return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+ if (timeframe === '3_MONTHS') return { start: startOfMonth(subMonths(currentDate, 2)), end: endOfMonth(currentDate) };
+ if (timeframe === 'YEAR') return { start: startOfYear(currentDate), end: endOfYear(currentDate) };
+ return null;
  }, [timeframe, currentDate]);
 
  const filteredQuests = useMemo(() => {
@@ -71,10 +73,8 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  
  if (timeframe === 'DAY') {
  if (!isSameDay(qDate, dateRange.start as Date)) return false;
- } else if (timeframe === 'WEEK') {
- if (!isWithinInterval(qDate, { start: (dateRange as any).start, end: (dateRange as any).end })) return false;
- } else if (timeframe === 'MONTH') {
- if (qDate.getMonth() !== (dateRange as any).month || qDate.getFullYear() !== (dateRange as any).year) return false;
+ } else if (timeframe === 'WEEK' || timeframe === 'MONTH' || timeframe === '3_MONTHS' || timeframe === 'YEAR') {
+ if (!isWithinInterval(qDate, { start: dateRange.start as Date, end: dateRange.end as Date })) return false;
  }
  }
 
@@ -123,6 +123,15 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  const monthName = format(currentDate, 'MMMM', { locale: es });
  return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${format(currentDate, 'yyyy')}`;
  }
+ if (timeframe === '3_MONTHS') {
+ const start = subMonths(currentDate, 2);
+ const startMonth = format(start, 'MMM', { locale: es });
+ const endMonth = format(currentDate, 'MMM', { locale: es });
+ return `${startMonth.toUpperCase()} - ${endMonth.toUpperCase()} ${format(currentDate, 'yyyy')}`;
+ }
+ if (timeframe === 'YEAR') {
+ return format(currentDate, 'yyyy');
+ }
  return '';
  }, [timeframe, currentDate, t]);
 
@@ -130,12 +139,16 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  if (timeframe === 'DAY') setCurrentDate(d => addDays(d, 1));
  if (timeframe === 'WEEK') setCurrentDate(d => addWeeks(d, 1));
  if (timeframe === 'MONTH') setCurrentDate(d => addMonths(d, 1));
+ if (timeframe === '3_MONTHS') setCurrentDate(d => addMonths(d, 3));
+ if (timeframe === 'YEAR') setCurrentDate(d => addYears(d, 1));
  }, [timeframe]);
 
  const handlePrev = useCallback(() => {
  if (timeframe === 'DAY') setCurrentDate(d => subDays(d, 1));
  if (timeframe === 'WEEK') setCurrentDate(d => subWeeks(d, 1));
  if (timeframe === 'MONTH') setCurrentDate(d => subMonths(d, 1));
+ if (timeframe === '3_MONTHS') setCurrentDate(d => subMonths(d, 3));
+ if (timeframe === 'YEAR') setCurrentDate(d => subYears(d, 1));
  }, [timeframe]);
 
  const handleDateSelect = useCallback((date: Date) => {
@@ -373,9 +386,10 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  </div>
 
  {/* FILTERS PANEL - Simplified Animation */}
- {showFilters && (
- <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
- <div ref={filtersRef} className="bg-black/40 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
+      {showFilters && (
+        <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* 💸 AHORRO MÁXIMO UI: Reducimos el desenfoque a backdrop-blur-sm transform-gpu backface-hidden para cuidar la GPU en móviles y evitar pantallazos negros */}
+          <div ref={filtersRef} className="bg-black/60 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
  
  {/* Reset Button */}
  <button 
@@ -397,7 +411,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="flex flex-wrap items-center gap-3">
  {/* Tabs */}
  <div className="flex p-0.5 rounded-lg bg-white/5 border border-white/10 overflow-hidden">
- {(['ALL', 'DAY', 'WEEK', 'MONTH'] as const).map((tf) => (
+ {(['ALL', 'DAY', 'WEEK', 'MONTH', '3_MONTHS', 'YEAR'] as const).map((tf) => (
  <button
  key={tf}
  onClick={() => setTimeframe(tf)}
@@ -413,7 +427,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
  />
  )}
- <span className="relative z-20">{t(`tasks.filterDateTabs.${tf}`, tf)}</span>
+ <span className="relative z-20">{t(`tasks.filterDateTabs.${tf}`, tf.replace('_', ' '))}</span>
  </button>
  ))}
  </div>

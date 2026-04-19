@@ -27,7 +27,7 @@ export const initializeUserDocument = async (user: User, additionalData: any = {
     // INTENTAR LEER SI YA EXISTE EN SUPABASE
     const { data: existingData, error: getError } = await supabase
       .from('users')
-      .select('*')
+      .select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at')
       .eq('id', user.id)
       .single();
 
@@ -124,7 +124,9 @@ export const loginWithGoogle = async (): Promise<User | null> => {
     throw error;
   }
 };
-
+//solo saber el hecho de que somo materia nos hace cuestionarnos la vida, verdad?
+//seria bonito ser mas feliz, pero igual se sonrie para ser feliz, no al revez
+//aunque cuento me gustaria que sea alrevez
 export const loginAsGuest = async (name: string): Promise<User> => {
     try {
         const { data, error } = await supabase.auth.signInAnonymously();

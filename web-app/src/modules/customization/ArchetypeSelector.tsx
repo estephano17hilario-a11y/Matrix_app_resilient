@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Cpu, Zap, Brain, Check } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { UserArchetype } from '../../types/User';
 import { doc, setDoc, db } from '../../services/firebase';
 import { cn } from '../../utils/cn';

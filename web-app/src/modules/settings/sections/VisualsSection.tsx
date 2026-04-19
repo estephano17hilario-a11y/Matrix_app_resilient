@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +21,7 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
 
 export const VisualsSection = () => {
   const { t } = useTranslation();
-  const { currentTheme, setTheme, vividMode, toggleVividMode, dashboardStyle, setDashboardStyle } = useSettings();
+  const { currentTheme, setTheme, vividMode, toggleVividMode } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
 
@@ -100,42 +100,6 @@ export const VisualsSection = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 space-y-5 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
-            style={{ 
-              background: `radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)`,
-              willChange: 'opacity'
-            }} 
-          />
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                <Layers size={18} className="text-blue-400" />
-              </div>
-              <div>
-                <div className="text-base font-bold text-white tracking-tight">{t('settings.dashboardStyle', 'Interface Style')}</div>
-                <div className="text-xs text-white/40 font-medium">{t('settings.dashboardStyleDesc', 'Select UI style')}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 p-1.5 bg-black/40 rounded-xl border border-white/[0.05] relative z-10 shadow-inner">
-            {['BORDER', 'LIQUID', 'GLASS'].map((style) => (
-              <button
-                key={style}
-                onClick={() => setDashboardStyle(style as any)}
-                className={cn(
-                  "relative py-2.5 rounded-lg text-[10px] font-bold tracking-widest transition-all",
-                  dashboardStyle === style ? "bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-blue-500/30" : "text-white/40 hover:text-white/70 hover:bg-white/[0.02]"
-                )}
-              >
-                {style === 'BORDER' ? t('settings.styleBorder', 'BORDER') : style === 'LIQUID' ? t('settings.styleLiquid', 'LIQUID') : t('settings.styleGlass', 'GLASS')}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.visualTheme', 'Themes')}</h3>
@@ -189,13 +153,15 @@ export const VisualsSection = () => {
             {filteredThemes.map((theme) => {
               const isActive = currentTheme === theme.id;
               return (
-                <motion.button
+                <motion.div
                   key={theme.id}
                   onClick={() => setTheme(theme.id)}
+                  role="button"
+                  tabIndex={0}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "relative aspect-[4/3] rounded-[16px] overflow-hidden border transition-all text-left group shadow-md",
+                    "relative aspect-[4/3] rounded-[16px] overflow-hidden border transition-all text-left group shadow-md cursor-pointer",
                     isActive ? "border-white/50 ring-2 ring-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]" : "border-white/[0.05] hover:border-white/30"
                   )}
                 >
@@ -205,7 +171,7 @@ export const VisualsSection = () => {
                   {isActive && <div className="absolute inset-0 border-[2px] border-white/20 rounded-[16px]" />}
                   
                   <div className="absolute inset-0 p-3 flex flex-col justify-end">
-                    <span className="text-xs font-bold text-white tracking-wider uppercase drop-shadow-md">
+                    <span className="text-xs font-bold text-white tracking-wider uppercase drop-shadow-md pointer-events-none">
                       {theme.name}
                     </span>
                   </div>
@@ -228,7 +194,7 @@ export const VisualsSection = () => {
                       <Check size={12} strokeWidth={4} className="text-black" />
                     </motion.div>
                   )}
-                </motion.button>
+                </motion.div>
               );
             })}
           </div>

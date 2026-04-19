@@ -26,11 +26,17 @@ export interface SettingsViewProps {
   onToggleVividMode?: (enabled: boolean) => void;
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
+  defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';
+  onUpdateDefaultHabitView?: (view: 'DEFAULT' | 'CHRONOLOGICAL') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
   onOpenDockConfig?: () => void;
   weekStartDay?: 0 | 1;
   onWeekStartDayChange?: (day: 0 | 1) => void;
+  defaultChartViews?: any;
+  onUpdateDefaultChartViews?: (views: any) => void;
+  defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
+  onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
 }
 
 export const SettingsView = (props: SettingsViewProps) => {

@@ -29,14 +29,20 @@ export const FocusStats = React.memo(({
     showArchived,
     onToggleArchived,
     isPro,
-    onOpenPro
+    onOpenPro,
+    weekStartDay = 1,
+    defaultChartViews,
+    defaultProjectView
 }: { 
     projects: Project[], 
     attributes: Attribute[],
     showArchived?: boolean,
     onToggleArchived?: () => void,
     isPro?: boolean,
-    onOpenPro?: () => void
+    onOpenPro?: () => void,
+    weekStartDay?: 0 | 1,
+    defaultChartViews?: any,
+    defaultProjectView?: 'TOTAL' | 'ATTRIBUTE' | 'PROJECT'
 }) => {
     const { t } = useTranslation();
     const { user } = useLux();
@@ -61,7 +67,7 @@ export const FocusStats = React.memo(({
         { value: 'TOTAL' as TimeRange, label: 'Total' }
     ], [t]);
     
-    const [timeRange, setTimeRange] = useState<TimeRange>('DAY');
+    const [timeRange, setTimeRange] = useState<TimeRange>(defaultChartViews?.focus || 'DAY');
     const [thirdSlot, setThirdSlot] = useState<TimeRange>('8_WEEKS');
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     
@@ -69,7 +75,7 @@ export const FocusStats = React.memo(({
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
     const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | 'RANGES' | null>(null);
     
-    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>('ATTRIBUTE');
+    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>(defaultProjectView || 'ATTRIBUTE');
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     
     // Reset date when range changes
@@ -138,7 +144,7 @@ export const FocusStats = React.memo(({
 
     const stats = useMemo(() => {
         return generateFocusData(projects, attributes, currentDate, timeRange, filterMode, groupMode);
-    }, [projects, attributes, currentDate, timeRange, filterMode, groupMode]);
+    }, [projects, attributes, currentDate, timeRange, filterMode, groupMode, weekStartDay]);
     
     const activeProject = useMemo(() => {
         if (filterMode === 'GLOBAL') return undefined;
@@ -228,7 +234,7 @@ export const FocusStats = React.memo(({
             case 'MONTH': return monthTotal;
             default: return 0;
         }
-    }, [projects, timeRange, currentDate]);
+    }, [projects, timeRange, currentDate, weekStartDay]);
 
     const showGoal = dailyGoalMinutes > 0 && !isNonWorkingDay;
 
@@ -264,7 +270,7 @@ export const FocusStats = React.memo(({
         } else {
              return 'Histórico Completo';
         }
-    }, [timeRange, currentDate]);
+    }, [timeRange, currentDate, weekStartDay]);
 
     const isCurrentRange = useMemo(() => {
         const today = new Date();
@@ -279,7 +285,7 @@ export const FocusStats = React.memo(({
         }
         if (timeRange === 'YEAR') return currentDate.getFullYear() === today.getFullYear();
         return false;
-    }, [currentDate, timeRange]);
+    }, [currentDate, timeRange, weekStartDay]);
 
     const navigateDate = (dir: -1 | 1) => {
         if (timeRange === 'DAY') setCurrentDate(d => addDays(d, dir));

@@ -109,7 +109,7 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
         };
 
         // Fetch initial data
-        supabase.from('users').select('*').eq('id', userId).single().then(({ data, error }) => {
+        supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', userId).single().then(({ data, error }) => {
             if (error) {
                 console.error("Lux Data Initial Fetch Error:", error);
                 setError(error.message);

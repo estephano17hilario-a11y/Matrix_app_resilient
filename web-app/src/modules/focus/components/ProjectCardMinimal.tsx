@@ -104,7 +104,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                 }}
                 disabled={!!isArchived}
                 className={cn(
-                    "w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner hover:scale-105 active:scale-95 transition-transform relative overflow-hidden",
+                    "w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner hover:scale-105 active:scale-95 transition-transform duration-75 relative overflow-hidden clickable",
                     isArchived && "opacity-50 cursor-not-allowed"
                 )}
                 style={{ 

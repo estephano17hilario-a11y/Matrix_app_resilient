@@ -20,10 +20,10 @@ import { BadHabitWizard } from './modules/dashboard/components/BadHabitWizard';
 import { RelapseModal } from './modules/dashboard/components/RelapseModal';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
-import { Quest, Habit, BadHabit, Project } from './types';
+import { Quest, Habit, BadHabit, Project, Attribute } from './types';
 import { PersistenceService } from './services/persistence';
 import { persistenceService } from './services/persistenceService';
-import { StrategicNode } from './types/SmartGoal';
+import { StrategicNode, SmartProject } from './types/SmartGoal';
 import { FREE_LIMITS } from './config/limits';
 
 import { ConfirmationModal } from './components/ui/ConfirmationModal';
@@ -40,8 +40,10 @@ import { cn } from './utils/cn';
 const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
 const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
 const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
+import { useAuth } from './context/AuthContext';
 import { updateDoc, doc } from './services/firebase';
 import { db } from './services/firebase';
+import { supabase } from './services/supabase';
 import toast from 'react-hot-toast';
 import { verifySubscriptionStatus } from './services/mercadoPagoService';
 
@@ -49,7 +51,7 @@ const AchievementsScreen = lazy(() => import('./modules/achievements/Achievement
 const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
 const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
 const StrategicMapView = lazy(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
-const SettingsView = lazy(() => import('./modules/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
+import { SettingsView } from './modules/dashboard/SettingsView';
 const ProUpgradeModal = lazy(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
 const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
 const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
@@ -173,6 +175,7 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectI
 };
 
 export default function Dashboard() {
+ const { updateProfileLocally } = useAuth();
  useEffect(() => {
  console.log("💎 MATRIX: Dashboard Mounted Successfully");
  }, []);
@@ -291,6 +294,7 @@ export default function Dashboard() {
  };
  }, []);
 
+ const dashboardLogic = useDashboardLogic();
  const {
  user,
  lastAchievement,
@@ -325,55 +329,66 @@ export default function Dashboard() {
  setValidationHabit,
  valTempValue,
  setValTempValue,
- handleFocusModeChange,
- addNotification,
- handleCompleteSession,
- handleAddManualSession,
- handleDeleteSession,
- completeQuest,
- handleHabitClick,
- handleToggleHabitDay,
- validateHabitProgress,
- handleQuestConfirm,
- handleDeleteQuest,
- handleDeleteHabit,
- handleHabitConfirm,
- handleHabitUpdate,
- handleProjectConfirm,
- handleDeleteProject,
- handleUpdateProject,
- handleUpdateSmartProject,
  defaultChartMode,
  setDefaultChartMode,
- updateAttributeMetadata,
- addAttribute,
- removeAttribute,
  dashboardStyle,
- updateDashboardStyle,
  avatarShape,
- updateAvatarShape,
  badHabits,
- handleBadHabitConfirm,
- handleBadHabitRelapse,
- handleDeleteBadHabit,
  vividMode,
  setVividMode,
  habitSectionControl,
- updateHabitSectionControl,
+ defaultHabitView,
  allowDockSectionSwitch,
- updateAllowDockSectionSwitch,
  dockConfig,
- updateDockConfig,
  weekStartDay,
- updateWeekStartDay,
  dailyLimits,
- handleEditSession,
- handleReorderHabits,
- handleReorderProjects,
- handleReorderBadHabits,
  showStreakCelebration,
  setShowStreakCelebration
- } = useDashboardLogic();
+ } = dashboardLogic;
+
+ // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
+ const logicRef = useRef(dashboardLogic);
+ useEffect(() => { logicRef.current = dashboardLogic; }, [dashboardLogic]);
+
+ const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit) => logicRef.current.handleHabitClick(e, habit), []);
+ const handleToggleHabitDay = useCallback((habitId: string, date: string) => logicRef.current.handleToggleHabitDay(habitId, date), []);
+ const handleDeleteHabit = useCallback((id: string) => logicRef.current.handleDeleteHabit(id), []);
+ const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>) => logicRef.current.handleHabitUpdate(id, data), []);
+ const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);
+ const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);
+ const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);
+ const handleHabitConfirm = useCallback((data: Partial<Habit>) => logicRef.current.handleHabitConfirm(data), []);
+ const handleBadHabitConfirm = useCallback((data: Partial<BadHabit>) => logicRef.current.handleBadHabitConfirm(data), []);
+ const handleDeleteBadHabit = useCallback((id: string) => logicRef.current.handleDeleteBadHabit(id), []);
+ 
+ const handleFocusModeChange = useCallback((attr: string | null) => logicRef.current.handleFocusModeChange(attr), []);
+ const addNotification = useCallback((n: any) => logicRef.current.addNotification(n), []);
+ const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => logicRef.current.handleCompleteSession(projectId, durationSeconds, type), []);
+  const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate), []);
+  const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
+  const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);
+ 
+ const completeQuest = useCallback((e: React.MouseEvent, q: Quest) => logicRef.current.completeQuest(e, q), []);
+ const handleQuestConfirm = useCallback((q: Partial<Quest>) => logicRef.current.handleQuestConfirm(q), []);
+ const handleDeleteQuest = useCallback((id: string) => logicRef.current.handleDeleteQuest(id), []);
+ 
+ const handleProjectConfirm = useCallback((p: Partial<Project>) => logicRef.current.handleProjectConfirm(p), []);
+ const handleDeleteProject = useCallback((id: string) => logicRef.current.handleDeleteProject(id), []);
+ const handleUpdateProject = useCallback((project: Project) => logicRef.current.handleUpdateProject(project), []);
+  const handleUpdateSmartProject = useCallback((project: SmartProject) => logicRef.current.handleUpdateSmartProject(project), []);
+  const handleReorderProjects = useCallback((p: Project[]) => logicRef.current.handleReorderProjects(p), []);
+  
+  const validateHabitProgress = useCallback(() => logicRef.current.validateHabitProgress(), []);
+  const updateAttributeMetadata = useCallback((id: string, updates: Partial<Attribute>) => logicRef.current.updateAttributeMetadata(id, updates), []);
+  const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);
+ const removeAttribute = useCallback((id: string) => logicRef.current.removeAttribute(id), []);
+ const updateDashboardStyle = useCallback((s: any) => logicRef.current.updateDashboardStyle(s), []);
+ const updateAvatarShape = useCallback((s: any) => logicRef.current.updateAvatarShape(s), []);
+ const updateHabitSectionControl = useCallback((c: any) => logicRef.current.updateHabitSectionControl(c), []);
+ const updateDefaultHabitView = useCallback((v: any) => logicRef.current.updateDefaultHabitView(v), []);
+ const updateAllowDockSectionSwitch = useCallback((a: any) => logicRef.current.updateAllowDockSectionSwitch(a), []);
+ const updateDockConfig = useCallback((c: any) => logicRef.current.updateDockConfig(c), []);
+ const updateWeekStartDay = useCallback((d: any) => logicRef.current.updateWeekStartDay(d), []);
 
  useEffect(() => {
  if (user?.id) {
@@ -494,7 +509,7 @@ export default function Dashboard() {
  const [noteViewMode, setNoteViewMode] = useState<'NOTES' | 'JOURNAL'>('NOTES');
  const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string, lockedSmartProjectId?: string } | null>(null);
  const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
- const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+ const [editingHabit, setEditingHabit] = useState<(Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) | null>(null);
  const [focusTargetProjectId, setFocusTargetProjectId] = useState<string | null>(null);
  const [focusOpenArchived, setFocusOpenArchived] = useState(false);
  
@@ -628,27 +643,27 @@ export default function Dashboard() {
  onConfirm: () => {},
  });
 
- const handleShowHabitActions = (habit: Habit) => {
+ const handleShowHabitActions = useCallback((habit: Habit) => {
  setHabitActionsHabit(habit);
- };
+ }, []);
 
- const handleShowBadHabitActions = (habit: BadHabit) => {
+ const handleShowBadHabitActions = useCallback((habit: BadHabit) => {
  setBadHabitActionsHabit(habit);
- };
+ }, []);
 
- const handleArchiveHabit = (habit: Habit) => {
+ const handleArchiveHabit = useCallback((habit: Habit) => {
  handleHabitUpdate(habit.id, { archived: !habit.archived });
- };
+ }, [handleHabitUpdate]);
 
- const handleArchiveBadHabit = (habit: BadHabit) => {
+ const handleArchiveBadHabit = useCallback((habit: BadHabit) => {
  if (!user?.id) return;
  const newHabits = badHabits.map(h => h.id === habit.id ? { ...h, archived: !h.archived } : h);
  PersistenceService.saveCollection(user.id, 'badHabits', newHabits);
  // Dispatch custom event to trigger logic reload
  window.dispatchEvent(new CustomEvent('reload-dashboard'));
- };
+ }, [user?.id, badHabits]);
 
- const handleDeleteHabitRequest = (habit: Habit) => {
+ const handleDeleteHabitRequest = useCallback((habit: Habit) => {
  setConfirmationModal({
  isOpen: true,
  title: t('habits.deleteTitle', '¿Eliminar Hábito?'),
@@ -657,9 +672,9 @@ export default function Dashboard() {
  variant: 'danger',
  onConfirm: () => handleDeleteHabit(habit.id),
  });
- };
+ }, [t, handleDeleteHabit]);
 
- const handleDeleteBadHabitRequest = (habit: BadHabit) => {
+ const handleDeleteBadHabitRequest = useCallback((habit: BadHabit) => {
  setConfirmationModal({
  isOpen: true,
  title: '¿Eliminar Vicio?',
@@ -668,7 +683,7 @@ export default function Dashboard() {
  variant: 'danger',
  onConfirm: () => handleDeleteBadHabit(habit.id),
  });
- };
+ }, [handleDeleteBadHabit]);
 
  const handleDeleteProjectRequest = useCallback((projectId: string) => {
  const targetProject = projects.find(p => p.id === projectId);
@@ -708,12 +723,12 @@ export default function Dashboard() {
  }
  }, [currentView, focusAutoStartProjectId]);
 
- const handleStartPomodoro = (projectId: string) => {
+ const handleStartPomodoro = useCallback((projectId: string) => {
  setFocusAutoStartProjectId(projectId);
  setIsPomodoroActive(true);
- };
+ }, []);
 
- const handleOpenSmartTaskCreator = (date: Date, smartProjectId?: string) => {
+ const handleOpenSmartTaskCreator = useCallback((date: Date, smartProjectId?: string) => {
  const targetProject = smartProjectId ? smartProjects.find(p => p.id === smartProjectId) : smartProject;
  if (!targetProject) return;
  setEditingQuest(null);
@@ -723,34 +738,63 @@ export default function Dashboard() {
  lockedSmartProjectId: targetProject.id
  });
  setActiveModal('QUEST');
- };
+ }, [smartProjects, smartProject]);
 
- const handleEditQuest = (quest: Quest) => {
+ const handleEditQuest = useCallback((quest: Quest) => {
  setSmartTaskProps(null);
  setEditingQuest(quest);
  setActiveModal('QUEST');
- };
+ }, []);
 
- const handleEditHabit = (habit: Habit) => {
+ const handleEditHabit = useCallback((habit: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) => {
  setEditingHabit(habit);
  setActiveModal('HABIT');
- };
+ }, []);
 
- const handleEditBadHabit = (habit: BadHabit) => {
+ const handleEditBadHabit = useCallback((habit: BadHabit) => {
  setEditingBadHabit(habit);
  setActiveModal('BAD_HABIT');
- };
+ }, []);
+
+ const handleAddQuest = useCallback(() => {
+ setEditingQuest(null);
+ setSmartTaskProps(null);
+ setActiveModal('QUEST');
+ }, []);
+
+ const handleAddHabit = useCallback(() => {
+ setEditingHabit(null);
+ setActiveModal('HABIT');
+ }, []);
+
+ const handleAddBadHabit = useCallback(() => {
+ setEditingBadHabit(null);
+ setActiveModal('BAD_HABIT');
+ }, []);
+
+ const handleRelapseBadHabitRequest = useCallback((habit: BadHabit) => {
+ setRelapsingHabit(habit);
+ setActiveModal('RELAPSE');
+ }, []);
+
+ const handleOpenStreakView = useCallback(() => {
+ setCurrentView('STREAK');
+ }, [setCurrentView]);
+
+ const handleOpenProModal = useCallback(() => {
+ setIsProModalOpen(true);
+ }, []);
 
  const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
- await handleProjectConfirm(data);
+ handleProjectConfirm(data);
  setModalInitialContext(null);
  }, [handleProjectConfirm]);
 
- const handleQuestModalClose = () => {
+ const handleQuestModalClose = useCallback(() => {
  setActiveModal(null);
  setEditingQuest(null);
  setSmartTaskProps(null);
- };
+ }, []);
 
  const handleQuestSave = useCallback(async (quest: Partial<Quest>) => {
  await handleQuestConfirm(quest);
@@ -758,7 +802,7 @@ export default function Dashboard() {
  setSmartTaskProps(null);
  }, [handleQuestConfirm]);
 
- const handleDeleteSmartProject = async (projectId?: string) => {
+ const handleDeleteSmartProject = useCallback(async (projectId?: string) => {
  const targetId = projectId || smartProject?.id;
  const targetProject = projectId ? smartProjects.find(p => p.id === projectId) : smartProject;
 
@@ -797,9 +841,9 @@ export default function Dashboard() {
  console.error("Failed to delete smart project:", error);
  alert(t('common.errorDeletingProject'));
  }
- };
+ }, [smartProject, smartProjects, user?.id, activeSmartProjectId, setSmartProjects, setQuests, t]);
 
- const handleDeleteSmartTaskNode = async (projectId: string, nodeId: string) => {
+ const handleDeleteSmartTaskNode = useCallback(async (projectId: string, nodeId: string) => {
  const targetProject = smartProjects.find(p => p.id === projectId);
  if (!targetProject || !user?.id) return;
 
@@ -867,9 +911,9 @@ export default function Dashboard() {
  console.error("Failed to delete smart task node:", error);
  alert(t('common.errorDeletingTask'));
  }
- };
+ }, [smartProjects, user?.id, setSmartProjects, setQuests, t, handleDeleteSmartProject]);
 
- const handleDockViewChange = (view: string) => {
+ const handleDockViewChange = useCallback((view: string) => {
  setFocusOpenArchived(false);
  if (view !== 'FOCUS') {
  setForceFocusOpen(false);
@@ -908,7 +952,7 @@ export default function Dashboard() {
  if (view === 'HABITS') setHabitViewMode('PROTOCOLS');
  if (view === 'NOTES') setNoteViewMode('NOTES');
  }
- };
+ }, [currentView, allowDockSectionSwitch, setTaskViewMode, setHabitViewMode, setNoteViewMode, setCurrentView]);
 
  // Scroll Reset on View Change
  const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1162,7 +1206,7 @@ export default function Dashboard() {
  animate={{ opacity: 1, scale: 1, y: 0 }} 
  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "backIn" } }} 
  transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
- className="relative overflow-hidden backdrop-blur-sm transform-gpu border border-yellow-500/20 bg-[#0a0a0a]/80 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+ className="relative overflow-hidden backdrop-blur-sm transform-gpu border border-yellow-500/20 bg-[#0a0a0a]/90 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
  style={{ willChange: 'transform, opacity' }}
  >
  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
@@ -1272,6 +1316,7 @@ export default function Dashboard() {
  <div className="flex flex-col gap-4 h-full min-h-0">
 
  {/* ⚡ TASK SECTION SWITCHER */}
+ {habitSectionControl === 'VISIBLE' && (
  <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
  <div className="flex p-1 bg-white/5 rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
  <button
@@ -1290,6 +1335,7 @@ export default function Dashboard() {
  </button>
  </div>
  </div>
+ )}
 
  {taskViewMode === 'LIST' ? (
  <>
@@ -1301,14 +1347,11 @@ export default function Dashboard() {
  onCompleteQuest={completeQuest} 
  onDeleteQuest={handleDeleteQuest} 
  onEditQuest={handleEditQuest}
- onAddQuest={() => {
- setEditingQuest(null);
- setSmartTaskProps(null);
- setActiveModal('QUEST');
- }}
+ onAddQuest={handleAddQuest}
  onFocusProject={handleFocusProject}
  projects={projects}
  dailyLimits={dailyLimits}
+ defaultChartViews={user?.defaultChartViews}
  />
  </>
  ) : (
@@ -1412,24 +1455,24 @@ export default function Dashboard() {
  attributes={attributes} 
  onCompleteHabit={handleHabitClick}
  onToggleHabitDay={handleToggleHabitDay as any}
- onCreateHabit={() => setActiveModal('HABIT')}
- onCreateBadHabit={() => setActiveModal('BAD_HABIT')}
+ onCreateHabit={handleAddHabit}
+ onCreateBadHabit={handleAddBadHabit}
  onDeleteHabit={handleDeleteHabit}
  onEditHabit={handleEditHabit}
  onUpdateHabit={handleHabitUpdate}
  onShowActions={handleShowHabitActions}
  onShowBadHabitActions={handleShowBadHabitActions}
- onRelapseBadHabit={(habit) => {
- setRelapsingHabit(habit);
- setActiveModal('RELAPSE');
- }}
+ onRelapseBadHabit={handleRelapseBadHabitRequest}
  currentSection={habitViewMode}
  isActive={currentView === 'HABITS'}
- onOpenStreak={() => setCurrentView('STREAK')}
+ onOpenStreak={handleOpenStreakView}
  onReorder={handleReorderHabits}
  onReorderBadHabits={handleReorderBadHabits}
  isPro={user?.plan === 'PRO'}
- onOpenPro={() => setIsProModalOpen(true)}
+ onOpenPro={handleOpenProModal}
+ defaultViewPreference={defaultHabitView}
+ weekStartDay={weekStartDay}
+ defaultChartViews={user?.defaultChartViews}
  />
  </Suspense>
  </ViewContainer>
@@ -1463,6 +1506,9 @@ export default function Dashboard() {
  onReorder={handleReorderProjects}
  isPro={user?.plan === 'PRO'}
  onOpenPro={() => setIsProModalOpen(true)}
+ weekStartDay={weekStartDay}
+ defaultChartViews={user?.defaultChartViews}
+ defaultProjectView={user?.defaultProjectView}
  />
  </Suspense>
  </ViewContainer>
@@ -1482,6 +1528,7 @@ export default function Dashboard() {
  onClose={() => setCurrentView('TASKS')}
  isActive={currentView === 'NOTES'}
  isPro={user?.plan === 'PRO'}
+ defaultChartViews={user?.defaultChartViews}
  />
  </Suspense>
  </ViewContainer>
@@ -1734,6 +1781,8 @@ export default function Dashboard() {
  onToggleVividMode={setVividMode}
  habitSectionControl={habitSectionControl}
  onUpdateHabitSectionControl={updateHabitSectionControl}
+ defaultHabitView={defaultHabitView}
+ onUpdateDefaultHabitView={updateDefaultHabitView}
  allowDockSectionSwitch={allowDockSectionSwitch}
  onUpdateAllowDockSectionSwitch={updateAllowDockSectionSwitch}
  onOpenDockConfig={() => {
@@ -1742,6 +1791,22 @@ export default function Dashboard() {
  }}
  weekStartDay={weekStartDay}
  onWeekStartDayChange={updateWeekStartDay}
+ defaultChartViews={user?.defaultChartViews}
+ onUpdateDefaultChartViews={async (views) => {
+   if (user?.id) {
+       const newPrefs = { ...(user.preferences || {}), defaultChartViews: views };
+       updateProfileLocally({ defaultChartViews: views, preferences: newPrefs });
+       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+   }
+ }}
+ defaultProjectView={user?.defaultProjectView}
+ onUpdateDefaultProjectView={async (view) => {
+   if (user?.id) {
+       const newPrefs = { ...(user.preferences || {}), defaultProjectView: view };
+       updateProfileLocally({ defaultProjectView: view, preferences: newPrefs });
+       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+   }
+ }}
  />
  </Suspense>
  )}

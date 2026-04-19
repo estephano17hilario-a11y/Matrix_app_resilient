@@ -76,7 +76,8 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
     // 2. Dimensions & Scales
     const width = 100;
     const height = 50;
-    const padding = 2;
+    const paddingX = 2; // Horizontal padding to prevent cutoff
+    const paddingY = 3; // Vertical padding to prevent cutoff at top and bottom
     
     // Max value for Y scale (Goal or Total, whichever is higher, plus some buffer)
     const maxY = Math.max(goalValue, totalValue) * 1.1 || 10;
@@ -92,13 +93,13 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
     // Now we use visualData.length
     const getX = (index: number) => {
         const count = visualData.length;
-        if (count <= 1) return index === 0 ? padding : width - padding;
-        return (index / (count - 1)) * (width - (padding * 2)) + padding;
+        if (count <= 1) return index === 0 ? paddingX : width - paddingX;
+        return (index / (count - 1)) * (width - (paddingX * 2)) + paddingX;
     };
 
     // Y Scale: height - (value / maxY * height)
     const getY = (value: number) => {
-        return height - ((value / maxY) * (height - (padding * 2))) - padding;
+        return height - ((value / maxY) * (height - (paddingY * 2))) - paddingY;
     };
 
     // 3. Generate Paths
@@ -132,12 +133,13 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
         
         const smoothCurve = getSmoothPath(progressPoints);
         // Close the area
-        // From last point -> bottom right (of the progress, not chart) -> bottom left -> first point
+        // From last point -> bottom right (at y=0 value) -> bottom left (at y=0 value) -> first point
         const lastPoint = progressPoints[progressPoints.length - 1];
         const firstPoint = progressPoints[0];
+        const y0 = getY(0);
         
-        return `${smoothCurve} L ${lastPoint[0]} ${height} L ${firstPoint[0]} ${height} Z`;
-    }, [progressPoints]);
+        return `${smoothCurve} L ${lastPoint[0]} ${y0} L ${firstPoint[0]} ${y0} Z`;
+    }, [progressPoints, maxY]);
 
     const linePath = useMemo(() => {
         return getSmoothPath(progressPoints);
@@ -192,52 +194,51 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
             >
                 <defs>
                     <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                        <stop offset="0%" stopColor={color} stopOpacity="0.4" />
                         <stop offset="100%" stopColor={color} stopOpacity="0.0" />
                     </linearGradient>
-                    <filter id="habit-goal-glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="0.4" result="coloredBlur" />
+                    <filter id="habit-goal-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="0.3" result="coloredBlur" />
                         <feMerge>
                             <feMergeNode in="coloredBlur" />
                             <feMergeNode in="SourceGraphic" />
                         </feMerge>
                     </filter>
-                    {/* Stronger Glow for Overload Effect */}
-                    <filter id="habit-goal-overload" x="-100%" y="-100%" width="300%" height="300%">
-                         <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-                         <feMerge>
-                             <feMergeNode in="coloredBlur" />
-                             <feMergeNode in="coloredBlur" />
-                             <feMergeNode in="SourceGraphic" />
-                         </feMerge>
+                    {/* Visionary Glow Effect */}
+                    <filter id="habit-goal-overload" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="0.8" result="coloredBlur" />
+                        <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
                     </filter>
                 </defs>
 
-                {/* 1. Goal Line (Grey) */}
+                {/* 1. Goal Line - Refined Style */}
                 <motion.path
                     d={goalPath}
                     fill="none"
-                    stroke="#52525b" // zinc-600
-                    strokeWidth="0.5"
-                    strokeDasharray="2 2"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="0.4"
+                    strokeDasharray="1.5 1.5"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    transition={{ duration: 1.2, ease: "easeInOut" }}
                 />
 
-                {/* Gap Line (Red) - Connects Current Progress to Expected Goal at this X */}
+                {/* Gap Line - Connects Current Progress to Expected Goal */}
                 <motion.line
                     x1={lastX}
                     y1={lastY}
                     x2={lastX}
                     y2={currentGoalY}
-                    stroke="#ef4444" // Red-500
-                    strokeWidth="0.6"
-                    strokeDasharray="1 2"
+                    stroke={isGoalMet ? "#10b981" : "#ef4444"}
+                    strokeWidth="0.5"
+                    strokeDasharray="0.8 1.5"
                     strokeLinecap="round"
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.8 }}
-                    transition={{ delay: 0.4, duration: 0.3 }}
+                    animate={{ opacity: 0.6 }}
+                    transition={{ delay: 0.6, duration: 0.5 }}
                 />
 
                 {/* 2. Area Fill (Blue) */}

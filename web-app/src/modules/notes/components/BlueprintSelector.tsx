@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Ruler, X, Trash2 } from 'lucide-react';
 import { NoteBlueprint, NoteBlock } from '../../../types';
 import { getBlueprints, deleteBlueprint } from '../../../services/blueprintService';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { defaultBlueprints } from '../../../config/defaultBlueprints';
 
 interface BlueprintSelectorProps {

@@ -38,10 +38,11 @@ export const AuditLogger = {
 
       // Guardamos en la colección raíz 'audit_logs' o dentro del usuario 'users/{uid}/audit_logs'
       // Para robustez bancaria, idealmente debería ser una colección raíz con permisos de solo escritura.
-      // Pero por simplicidad y costos, lo guardaremos en una subcolección del usuario por ahora,
-      // protegida por reglas de seguridad (create: true, update/delete: false).
+      // Pero por simplicidad y COSTOS (ahorro máximo de almacenamiento en Supabase),
+      // lo hemos desactivado. Si deseas persistencia de logs de auditoría en el futuro, 
+      // puedes habilitar la inserción en Supabase, pero consumirá almacenamiento.
       
-      await addDoc(collection(db, 'users', user.id, 'audit_logs'), logEntry);
+      // await addDoc(collection(db, 'users', user.id, 'audit_logs'), logEntry);
       
       console.log(`[AUDIT] ${action} on ${collectionName}/${documentId}`);
     } catch (error) {

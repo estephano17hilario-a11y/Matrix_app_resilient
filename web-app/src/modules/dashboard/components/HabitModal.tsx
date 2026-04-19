@@ -6,13 +6,15 @@ import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, Aler
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
+import { getWeekStartDay } from '../../../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { IconPicker } from './IconPicker';
 import { DurationPicker } from './DurationPicker';
+import { TimePicker } from '../../../components/ui/TimePicker';
 import { usePermissions } from '../../../hooks/usePermissions';
 
-export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit, onSwitchToBadHabit?: () => void }) => {
+export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }, onSwitchToBadHabit?: () => void }) => {
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
@@ -28,11 +30,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     // Block 2: Mechanics
     const [freq, setFreq] = useState('DAILY');
     const [weekDays, setWeekDays] = useState<number[]>([]);
+    const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'FLEXIBLE_COUNT'>('SPECIFIC_DATES');
+    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState<number>(1);
+    const [monthlyLastDay, setMonthlyLastDay] = useState<boolean>(false);
     const [logic, setLogic] = useState<'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN'>('BOOLEAN');
     const [target, setTarget] = useState('');
     const [unit, setUnit] = useState('');
-    const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean; color?: string; days?: number[] }[]>([]);
-    const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS'} | null>(null);
+    const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean; color?: string; days?: number[]; reminderTime?: string }[]>([]);
+    const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS' | 'TIME'} | null>(null);
     const [newSubtask, setNewSubtask] = useState('');
     const [impact, setImpact] = useState(1);
 
@@ -66,7 +71,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     useEffect(() => {
         if (isOpen) {
             setIsSubmitting(false);
-            setExpandedBlock(1);
+            
             if (initialData) {
                 setTitle(initialData.title || '');
                 setDesc(initialData.description || '');
@@ -74,6 +79,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setSmartProjectId(initialData.projectId || '');
                 setFreq(initialData.frequency || 'DAILY');
                 setWeekDays(initialData.frequencyDays || []);
+                setMonthlyType(initialData.monthlyType || 'SPECIFIC_DATES');
+                setMonthlyFlexibleCount(initialData.monthlyFlexibleCount || 1);
+                setMonthlyLastDay(initialData.monthlyLastDay || false);
                 setLogic(initialData.type || 'BOOLEAN');
                 setTarget(initialData.targetValue?.toString() || '');
                 setUnit(initialData.unit || '');
@@ -83,8 +91,22 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setCustomColor(initialData.customColor);
                 setCustomIconName(initialData.iconName || null);
                 setImpact(initialData.impact || 1);
+                
+                // Handle direct navigation requests from Dashboard (Chronological view)
+                if (initialData._initialTab === 'alarm') {
+                    setExpandedBlock(3);
+                } else if (initialData._initialTab === 'checklist') {
+                    setExpandedBlock(2);
+                    if (initialData._targetSubtaskId) {
+                        setOpenMenu({ id: initialData._targetSubtaskId, type: 'TIME' });
+                    }
+                } else {
+                    setExpandedBlock(1);
+                }
+                
                 // Try to infer impact/difficulty if not present
             } else {
+                setExpandedBlock(1);
                 // Reset
                 setTitle('');
                 setDesc('');
@@ -94,6 +116,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setEstimatedTime(0);
                 setFreq('DAILY');
                 setWeekDays([]);
+                setMonthlyType('SPECIFIC_DATES');
+                setMonthlyFlexibleCount(1);
+                setMonthlyLastDay(false);
                 setLogic('BOOLEAN');
                 setTarget('');
                 setUnit('');
@@ -116,6 +141,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const TraitIcon = selectedAttr?.icon || Star;
     const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : 'Trait';
 
+    const weekDaysRaw = t('common.weekdays.initials', { returnObjects: true }) as string[];
+    const weekStart = getWeekStartDay();
+    const weekDaysList = useMemo(() => {
+        return weekStart === 1 
+            ? [...weekDaysRaw.slice(1).map((l, i) => ({ label: l, index: i + 1 })), { label: weekDaysRaw[0], index: 0 }]
+            : weekDaysRaw.map((l, i) => ({ label: l, index: i }));
+    }, [weekDaysRaw, weekStart]);
+
     const prediction = useMemo(() => {
         // If creating a new habit, streak is 0.
         // If editing, use the current streak to show the NEXT reward.
@@ -129,15 +162,23 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
-    const isBlock2Valid = true; // Always valid with defaults
+    const isBlock2Valid = (() => {
+        if (freq === 'WEEKLY' && weekDays.length === 0) return false;
+        if (freq === 'MONTHLY') {
+            if (monthlyType === 'SPECIFIC_DATES' && weekDays.length === 0 && !monthlyLastDay) return false;
+            if (monthlyType === 'FLEXIBLE_COUNT' && (!monthlyFlexibleCount || monthlyFlexibleCount < 1)) return false;
+        }
+        if (logic === 'QUANTITY' && (!target || isNaN(parseInt(target)) || parseInt(target) <= 0)) return false;
+        if (logic === 'CHECKLIST' && subtasks.length === 0) return false;
+        return true;
+    })();
     const isBlock3Valid = estimatedTime > 0 && reminder !== '';
 
     const canSubmit = isBlock1Valid && isBlock2Valid && isBlock3Valid;
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;
-        // If trying to jump to 3, 2 must be valid (it's always valid technically)
-        if (block === 3 && (!isBlock1Valid)) return; 
+        if (block === 3 && (!isBlock1Valid || !isBlock2Valid)) return; 
         
         setExpandedBlock(block);
     };
@@ -152,7 +193,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 attribute: attrId,
                 type: logic,
                 frequency: freq,
-                frequencyDays: freq === 'WEEKLY' ? weekDays : undefined,
+                frequencyDays: (freq === 'WEEKLY' || freq === 'MONTHLY') ? weekDays : undefined,
+                monthlyType: freq === 'MONTHLY' ? monthlyType : undefined,
+                monthlyFlexibleCount: freq === 'MONTHLY' ? monthlyFlexibleCount : undefined,
+                monthlyLastDay: freq === 'MONTHLY' ? monthlyLastDay : undefined,
                 targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
                 unit: unit || undefined,
                 checklist: logic === 'CHECKLIST' ? subtasks : [],
@@ -423,7 +467,12 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             {['DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
                                                 <button 
                                                     key={f} 
-                                                    onClick={() => setFreq(f)} 
+                                                    onClick={() => {
+                                                        if (f !== freq) {
+                                                            setWeekDays([]);
+                                                        }
+                                                        setFreq(f);
+                                                    }} 
                                                     className={cn(
                                                         "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all",
                                                         freq === f ? "bg-white/10 text-white shadow-sm border border-white/10" : "text-slate-500 hover:text-white"
@@ -436,7 +485,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         
                                         {freq === 'WEEKLY' && (
                                             <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
-                                                {(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((label: string, index: number) => (
+                                                {weekDaysList.map(({ label, index }) => (
                                                     <button 
                                                         key={index} 
                                                         onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
@@ -448,6 +497,77 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         {label}
                                                     </button>
                                                 ))}
+                                            </div>
+                                        )}
+
+                                        {freq === 'MONTHLY' && (
+                                            <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in p-2 bg-black/20 rounded-xl border border-white/5">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setMonthlyType('SPECIFIC_DATES')}
+                                                        className={cn(
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            monthlyType === 'SPECIFIC_DATES' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {t('habits.specificDates', 'SPECIFIC DATES')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setMonthlyType('FLEXIBLE_COUNT')}
+                                                        className={cn(
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            monthlyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
+                                                    </button>
+                                                </div>
+
+                                                {monthlyType === 'SPECIFIC_DATES' ? (
+                                                    <div className="space-y-2">
+                                                        <div className="grid grid-cols-7 gap-1">
+                                                            {Array.from({ length: 31 }).map((_, i) => {
+                                                                const day = i + 1;
+                                                                return (
+                                                                    <button
+                                                                        key={day}
+                                                                        onClick={() => setWeekDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
+                                                                        className={cn(
+                                                                            "h-6 rounded flex items-center justify-center text-[9px] font-bold transition-all border",
+                                                                            weekDays.includes(day) ? "bg-cyan-500 text-black border-cyan-400" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                        )}
+                                                                    >
+                                                                        {day}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setMonthlyLastDay(!monthlyLastDay)}
+                                                            className={cn(
+                                                                "w-full py-1.5 rounded-lg text-[10px] font-bold transition-all border flex justify-center items-center gap-2",
+                                                                monthlyLastDay ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" : "bg-white/5 text-slate-400 border-transparent hover:bg-white/10"
+                                                            )}
+                                                        >
+                                                            <div className={cn("w-3 h-3 rounded-sm border flex items-center justify-center", monthlyLastDay ? "bg-cyan-500 border-cyan-400 text-black" : "border-slate-500")}>
+                                                                {monthlyLastDay && <CheckCircle2 size={10} />}
+                                                            </div>
+                                                            {t('habits.lastDayOfMonth', 'Last day of month')}
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
+                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerMonth', 'Times per month')}:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max="31" 
+                                                            value={monthlyFlexibleCount} 
+                                                            onChange={(e) => setMonthlyFlexibleCount(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))}
+                                                            className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -549,6 +669,13 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                     </button>
 
                                                                     <button 
+                                                                        onClick={() => setOpenMenu(prev => (prev?.id === task.id && prev?.type === 'TIME') ? null : { id: task.id, type: 'TIME' })}
+                                                                        className={cn("p-1.5 rounded hover:bg-white/10 transition-colors", task.reminderTime ? "text-orange-400" : "text-white/30 hover:text-white")}
+                                                                    >
+                                                                        <AlertCircle size={12} />
+                                                                    </button>
+
+                                                                    <button 
                                                                         onClick={() => setSubtasks(subtasks.filter(t => t.id !== task.id))}
                                                                         className="p-1.5 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"
                                                                     >
@@ -580,7 +707,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                         )}
                                                                         {openMenu.type === 'DAYS' && (
                                                                             <div className="flex justify-between p-2">
-                                                                                {(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((label: string, index: number) => {
+                                                                                {weekDaysList.map(({ label, index }) => {
                                                                                     const isSelected = task.days ? task.days.includes(index) : true;
                                                                                     return (
                                                                                         <button 
@@ -601,6 +728,23 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                                         </button>
                                                                                     );
                                                                                 })}
+                                                                            </div>
+                                                                        )}
+                                                                        {openMenu.type === 'TIME' && (
+                                                                            <div className="flex items-center justify-between p-3">
+                                                                                <span className="text-[10px] font-bold text-slate-400 uppercase">Alarma Opcional</span>
+                                                                                <div className="relative">
+                                                                                    <TimePicker 
+                                                                                        value={task.reminderTime || ''}
+                                                                                        onChange={(val) => {
+                                                                                            setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, reminderTime: val } : t));
+                                                                                            if (val && permissions.notifications !== 'granted') {
+                                                                                                requestPermissions();
+                                                                                            }
+                                                                                        }}
+                                                                                        className="text-xs font-bold text-white z-10 relative"
+                                                                                    />
+                                                                                </div>
                                                                             </div>
                                                                         )}
                                                                     </motion.div>
@@ -687,18 +831,16 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase">{t('modals.habit.alert') || "Alerta"}</span>
                                                 </div>
                                                 <div className="relative">
-                                                    <input 
-                                                        type="time" 
-                                                        value={reminder} 
-                                                        onChange={(e) => {
-                                                            setReminder(e.target.value);
-                                                            if (e.target.value && permissions.notifications !== 'granted') {
+                                                    <TimePicker 
+                                                        value={reminder}
+                                                        onChange={(val) => {
+                                                            setReminder(val);
+                                                            if (val && permissions.notifications !== 'granted') {
                                                                 requestPermissions();
                                                             }
-                                                        }} 
-                                                        className="bg-transparent text-xs font-bold text-white outline-none w-24 text-right cursor-pointer z-10 relative" 
+                                                        }}
+                                                        className="text-xs font-bold text-white z-10 relative min-w-[80px]"
                                                     />
-                                                    {!reminder && <span className="absolute right-0 top-0 text-xs font-bold text-white/20 pointer-events-none">OFF</span>}
                                                 </div>
                                             </div>
 

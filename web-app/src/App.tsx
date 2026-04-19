@@ -50,8 +50,10 @@ const AppRoutes = () => {
 
   // Determine what to show in the content layer
   const renderContent = () => {
-    // ALLOW ZOMBIE MODE: If we have a profile but no user, we still show the dashboard (Offline/Readonly)
-    const shouldShowLoading = (isLoading && !profile) || (user && (!profile || profile.isSkeleton));
+    // 🚀 FIX: Prevent "flash" of Onboarding by showing LoadingScreen if we are still checking Auth state
+    // If isLoading is true and we haven't confirmed the user yet, show loading.
+    // If user is present but profile is skeleton, show loading.
+    const shouldShowLoading = (isLoading && !user) || (isLoading && !profile) || (user && (!profile || profile.isSkeleton));
 
     if (shouldShowLoading) {
       return <LoadingScreen />;

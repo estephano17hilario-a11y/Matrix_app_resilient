@@ -10,11 +10,12 @@ interface SubtaskManagerProps {
   taskId: string;
   initialSubtasks?: Subtask[];
   onCompletionChange?: (isComplete: boolean) => void;
+  onSubtasksChange?: (subtasks: Subtask[]) => void;
 }
 
-export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [], onCompletionChange }) => {
+export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [], onCompletionChange, onSubtasksChange }) => {
   const { t } = useTranslation();
-  const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks);
+  const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks, onSubtasksChange);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const isLiteList = subtasks.length > 20;

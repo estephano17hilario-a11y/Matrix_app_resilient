@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Lock } from 'lucide-react';
 import { Habit, Project } from '../../../types';
-import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, eachHourOfInterval, isSameHour, addDays } from 'date-fns';
+import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, addDays, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { startOfWeek, endOfWeek, eachWeekOfInterval, eachDayOfInterval } from '../../../utils/dateUtils';
 import { cn } from '../../../utils/cn';
@@ -23,6 +23,7 @@ interface HabitDetailViewProps {
     onArchive?: (item: Habit | Project) => void;
     isPro?: boolean;
     onOpenPro?: () => void;
+    weekStartDay?: 0 | 1;
 }
 
 type TimeRange = 'TODAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
@@ -31,7 +32,6 @@ type TimeRange = 'TODAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 
 const formatDuration = (minutes: number) => {
     const h = Math.floor(minutes / 60);
     const m = Math.round(minutes % 60);
-    if (h === 0) return `${m}m`;
     return `${h}h ${m.toString().padStart(2, '0')}m`;
 };
 
@@ -46,15 +46,6 @@ const FormattedValue = ({ value, type, unit, isDuration, className }: { value: n
         const h = Math.floor(value / 60);
         const m = Math.round(value % 60);
         
-        if (h === 0) {
-             return (
-                <div className={cn("flex items-baseline whitespace-nowrap", className)}>
-                    <span>{m}</span>
-                    <span className="text-[0.6em] font-medium text-white/50 ml-0.5">m</span>
-                </div>
-            );
-        }
-
         return (
             <div className={cn("flex items-baseline whitespace-nowrap", className)}>
                 <span>{h}</span>
@@ -104,7 +95,7 @@ const barVariants: Variants = {
     }
 };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
     const { t } = useTranslation();
     const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
 
@@ -180,13 +171,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     // Prevent scroll when modal is open
     useEffect(() => {
         if (activeItem) {
+            const originalStyle = window.getComputedStyle(document.body).overflow;
             document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
+            document.body.style.overscrollBehavior = 'none';
+            return () => {
+                document.body.style.overflow = originalStyle;
+                document.body.style.overscrollBehavior = 'auto';
+            };
         }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
     }, [activeItem]);
 
     const isQuantity = habit?.type === 'QUANTITY';
@@ -245,18 +237,25 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             calculatedGoalValue = habit ? baseValue : (effectiveFrequency === 'WEEKLY' || effectiveFrequency === 'MONTHLY') && project ? getDynamicDailyTarget(project) : dailyGoalMinutes;
 
             if (project) {
-                // Hourly breakdown for Project
-                const hours = eachHourOfInterval({ start, end });
-                dataPoints = hours.map(hour => {
+                // 3-Hourly breakdown for Project
+                const blocks = [];
+                for (let i = 0; i < 24; i += 3) {
+                    blocks.push(addHours(start, i));
+                }
+                dataPoints = blocks.map(blockStart => {
+                    const blockEnd = addHours(blockStart, 3);
                     const value = sessionEntries.reduce((acc, s) => {
-                        return isSameHour(s.dateObj, hour) ? acc + (s.duration / 60) : acc;
+                        if (s.dateObj >= blockStart && s.dateObj < blockEnd) {
+                            return acc + (s.duration / 60);
+                        }
+                        return acc;
                     }, 0);
                     return {
-                        label: format(hour, 'HH:mm'),
-                        fullDate: format(hour, 'yyyy-MM-dd HH:mm'),
+                        label: format(blockStart, 'HH:mm'),
+                        fullDate: format(blockStart, 'yyyy-MM-dd HH:mm'),
                         value,
                         isToday: true,
-                        date: hour
+                        date: blockStart
                     };
                 });
             } else if (habit) {
@@ -555,7 +554,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             streakDays: streak
         };
 
-    }, [habit, project, timeRange, currentDate, isQuantity]);
+    }, [habit, project, timeRange, currentDate, isQuantity, weekStartDay]);
 
     const summaryRatio = goalValue > 0 ? summaryValue / goalValue : 0;
     const summaryBarValue = Math.min(Math.max(summaryRatio, 0), 1);
@@ -565,23 +564,27 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
     const StatCard = ({ label, value, onClick }: { label: React.ReactNode; value: string | number; onClick?: () => void }) => (
         <motion.div 
             variants={itemVariants}
+            whileTap={onClick ? { scale: 0.96 } : undefined}
             onClick={onClick}
             className={cn(
-                "bg-zinc-900/90 rounded-[24px] p-5 flex flex-col justify-between h-32 relative overflow-hidden group transition-colors border border-white/10 shadow-sm",
-                onClick ? "cursor-pointer hover:bg-zinc-800" : "hover:bg-zinc-800"
+                "relative group bg-[#18181b]/60 backdrop-blur-sm transform-gpu rounded-[28px] p-6 border border-white/[0.06] flex flex-col items-center justify-center gap-2 transition-all duration-500 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
+                onClick ? "cursor-pointer hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.08]" : "hover:border-white/[0.12]"
             )}
         >
-            <div className="flex justify-between items-start relative z-10">
-                <div className="flex flex-col items-center w-full gap-2">
-                    <span className="text-zinc-400 text-xs font-medium">{label}</span>
-                </div>
-            </div>
+            {/* Inner Glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             
-            <div className="flex flex-col items-center gap-1 relative z-10 mt-auto">
+            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-center relative z-10 group-hover:text-white/50 transition-colors">
+                {label}
+            </span>
+            
+            <div className="relative z-10 flex flex-col items-center group-hover:scale-110 transition-transform duration-500">
                 {isLoading ? (
-                    <div className="h-8 w-16 bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-8 w-16 bg-white/5 rounded-lg animate-pulse" />
                 ) : (
-                    <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
+                    <span className="text-2xl font-[1000] text-white tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                        {value}
+                    </span>
                 )}
             </div>
         </motion.div>
@@ -593,51 +596,73 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
         <AnimatePresence mode="wait">
             <motion.div
                 key={`detail-${activeItem.id}`}
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: "spring", damping: 30, stiffness: 250, mass: 1 }}
                 className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
             >
-                {/* Background Atmosphere - Optimized (No Blur Filter needed, use Gradients) */}
-                <div 
-                    className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
-                    style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.8) 0%, transparent 70%)' }} 
-                />
-                <div 
-                    className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"
-                    style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.8) 0%, transparent 70%)' }} 
-                />
-                <div 
-                    className="absolute top-[40%] left-[30%] w-[60%] h-[60%] rounded-full pointer-events-none opacity-10"
-                    style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.8) 0%, transparent 70%)' }} 
-                />
+                {/* Dynamic Atmosphere Background - GPU OPTIMIZED */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <motion.div 
+                        animate={{ 
+                            scale: [1, 1.1, 1],
+                            opacity: [0.15, 0.25, 0.15]
+                        }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -top-[15%] -left-[10%] w-[80%] h-[60%] rounded-full"
+                        style={{ 
+                            background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
+                            filter: 'blur(12px)', // Lightened for GPU safety
+                            willChange: 'transform, opacity'
+                        }} 
+                    />
+                    <motion.div 
+                        animate={{ 
+                            scale: [1.1, 1, 1.1],
+                            opacity: [0.1, 0.2, 0.1]
+                        }}
+                        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -bottom-[10%] -right-[10%] w-[80%] h-[60%] rounded-full"
+                        style={{ 
+                            background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
+                            filter: 'blur(12px)', // Lightened for GPU safety
+                            willChange: 'transform, opacity'
+                        }} 
+                    />
+                </div>
 
-                {/* Header */}
-                <div className="relative z-[10000] flex items-center justify-between px-6 pt-12 pb-4">
+                {/* Header - Visionary Style */}
+                <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm transform-gpu">
                     <button 
                         onClick={onClose} 
-                        className="flex items-center gap-1 text-blue-400 font-medium active:opacity-70 transition-opacity"
+                        className="group flex items-center gap-1 text-white/60 hover:text-white font-semibold active:scale-95 transition-all"
                     >
-                        <ChevronLeft size={24} />
-                        <span className="text-[17px]">{t('common.back', 'Back')}</span>
+                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                            <ChevronLeft size={20} />
+                        </div>
+                        <span className="text-[16px] tracking-tight">{t('common.back', 'Back')}</span>
                     </button>
                     
-                    <h2 className="text-[17px] font-bold text-white tracking-tight absolute left-1/2 -translate-x-1/2">
-                        {habit?.title || project?.title}
-                    </h2>
+                    <div className="absolute left-1/2 -translate-x-1/2 text-center mt-1">
+                        <h2 className="text-[17px] font-[900] text-white tracking-[-0.02em] leading-tight drop-shadow-md">
+                            {habit?.title || project?.title}
+                        </h2>
+                        <div className="flex items-center justify-center gap-1.5 opacity-60">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor, boxShadow: `0 0 8px ${themeColor}` }} />
+                            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/90">Análisis Detallado</span>
+                        </div>
+                    </div>
 
                     <div className="relative flex items-center gap-1 z-[10000]">
-
-
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsMenuOpen(!isMenuOpen);
                             }}
-                            className="text-blue-400 active:opacity-70 transition-opacity p-3 -mr-2 hover:bg-white/5 rounded-full"
+                            className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white active:scale-90 transition-all bg-white/5 rounded-full hover:bg-white/10"
                         >
-                            <MoreVertical size={24} />
+                            <MoreVertical size={22} />
                         </button>
 
                         <AnimatePresence>
@@ -692,28 +717,43 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                     </div>
                 </div>
 
-                {/* Fixed Controls */}
+                {/* Fixed Controls - VisionOS Style */}
                 <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="relative z-20"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ 
+                        opacity: 1, 
+                        y: 0,
+                        paddingBottom: isScrolled ? 4 : 16 // Reduce padding when scrolled to avoid dead space
+                    }}
+                    transition={{ delay: 0.2 }}
+                    className="relative z-50 px-6 pt-1"
                 >
-                    {/* Unified Control Deck - Optimized for Mobile Performance */}
                     <motion.div 
-                        className="flex flex-col items-center mx-auto transition-all duration-300 origin-top bg-zinc-900/95 border border-white/10 shadow-lg relative z-50"
+                        className="flex flex-col items-center mx-auto transition-all duration-500 origin-top backdrop-blur-sm transform-gpu border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50"
                         animate={{
-                            borderRadius: isScrolled ? 24 : 32,
-                            padding: isScrolled ? "12px 20px" : "12px 24px",
-                            gap: isScrolled ? 2 : 12,
-                            scale: isScrolled ? 1 : 1,
-                            y: isScrolled ? 0 : 0
+                            borderRadius: isScrolled ? 28 : 32,
+                            padding: isScrolled ? "10px 16px" : "14px 20px",
+                            gap: isScrolled ? 4 : 12
                         }}
-                        style={{ width: 'fit-content', minWidth: '340px' }}
+                        style={{ 
+                            width: 'fit-content', 
+                            minWidth: '320px', 
+                            background: `linear-gradient(180deg, rgba(20,20,22,0.7) 0%, rgba(10,10,12,0.8) 100%)`,
+                            boxShadow: `0 8px 32px ${themeColor}20, 0 0 0 1px rgba(255,255,255,0.08) inset` 
+                        }}
                     >
+                        {/* Subtle inner glow & light effect */}
+                        <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
+                            <div 
+                                className="absolute -top-[40%] -left-[20%] w-[140%] h-[100%] rounded-[100%] pointer-events-none"
+                                style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, filter: 'blur(6px)', willChange: 'opacity' }} // Lightened for GPU
+                            />
+                        </div>
+
                         {/* Row 1: Time Range Tabs */}
-                        <div className="flex items-center gap-1 relative z-10">
-                            <AnimatePresence mode="popLayout">
+                        <div className="flex items-center gap-1.5 relative z-10">
+                            <AnimatePresence>
                                 {pinnedRanges.map((range) => {
                                     const isActive = timeRange === range;
                                     const label = ALL_RANGES.find((r: { value: TimeRange, label: string }) => r.value === range)?.label || range;
@@ -725,20 +765,21 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             layoutId={`tab-${range}`}
                                             onClick={() => handleTabClick(range)}
                                             className={cn(
-                                                "px-3 py-1.5 rounded-full text-[11px] font-bold transition-all relative overflow-hidden whitespace-nowrap flex items-center gap-1",
+                                                "px-4 py-2 rounded-full text-[11px] font-black transition-all relative flex items-center gap-1.5",
                                                 isActive 
-                                                    ? "bg-white text-black shadow-lg z-10" 
-                                                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                    ? "text-black z-10" 
+                                                    : "text-white/40 hover:text-white/80 hover:bg-white/[0.03]"
                                             )}
                                         >
-                                            <span className="relative z-10">{label}</span>
-                                            {isLocked && <Lock size={10} className="relative z-10 text-yellow-400/80" />}
+                                            <span className="relative z-10 tracking-tight">{label}</span>
+                                            {isLocked && <Lock size={10} className="relative z-10 text-yellow-500/80" />}
                                             {isActive && (
                                                 <motion.div
-                                                    layoutId="activeTab"
-                                                    className="absolute inset-0 bg-white"
+                                                    layoutId="activeTabHighlight"
+                                                    className="absolute inset-0 bg-white shadow-[0_4px_12px_rgba(255,255,255,0.3)]"
+                                                    style={{ borderRadius: 999 }}
                                                     initial={false}
-                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                                 />
                                             )}
                                         </motion.button>
@@ -746,34 +787,32 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 })}
                             </AnimatePresence>
 
-                            {/* Divider */}
-                            <div className="w-[1px] h-3 bg-white/10 mx-1" />
+                            <div className="w-[1px] h-4 bg-white/[0.08] mx-1" />
 
-                            {/* Config Button (+) */}
                             <div className="relative">
                                 <button
                                     onClick={() => setIsConfigOpen(!isConfigOpen)}
                                     className={cn(
-                                        "w-7 h-7 rounded-full flex items-center justify-center transition-all",
+                                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                                         isConfigOpen 
-                                            ? "bg-white/20 text-white rotate-45" 
-                                            : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                                            ? "bg-white text-black rotate-45" 
+                                            : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10"
                                     )}
                                 >
-                                    <Plus size={14} />
+                                    <Plus size={16} strokeWidth={3} />
                                 </button>
 
-                                {/* Dropdown Menu (VisionOS Style) */}
                                 <AnimatePresence>
                                     {isConfigOpen && (
                                         <motion.div
-                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            className="absolute right-0 top-full mt-2 w-32 bg-[#18181b] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[100] p-1"
+                                            initial={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
+                                            animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+                                            exit={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
+                                            transition={{ duration: 0.15, ease: "easeOut" }}
+                                            className="absolute left-1/2 top-full mt-2 w-40 bg-[#121214]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl shadow-xl overflow-hidden z-[100] p-1"
                                         >
                                             <div className="flex flex-col gap-0.5">
-                                                {ALL_RANGES.map((option: { value: TimeRange, label: string }) => {
+                                                {ALL_RANGES.map((option) => {
                                                     const isPinned = pinnedRanges.includes(option.value);
                                                     const isSelected = timeRange === option.value;
                                                     const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(option.value);
@@ -793,9 +832,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                                 <span>{option.label}</span>
                                                                 {isLocked && <Lock size={10} className="text-yellow-400/80" />}
                                                             </div>
-                                                            {isSelected && <Check size={12} className="text-black" />}
+                                                            {isSelected && <Check size={10} className="text-black" />}
                                                             {isPinned && !isSelected && (
-                                                                <div className="w-1 h-1 rounded-full bg-zinc-600" />
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
                                                             )}
                                                         </button>
                                                     );
@@ -807,15 +846,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             </div>
                         </div>
 
-                        {/* Row 2: Date Navigation */}
+                        {/* Row 2: Date Navigation - More Visual Impact */}
                         <motion.div 
-                            className="flex items-center justify-between w-full"
+                            className="flex items-center justify-between w-full px-2 mt-[1px]"
                             animate={{
-                                gap: isScrolled ? 0 : 16,
-                                scale: isScrolled ? 1 : 1,
-                                height: 'auto',
                                 opacity: 1,
-                                marginTop: 0
+                                height: 'auto',
+                                scale: isScrolled ? 0.95 : 1
                             }}
                         >
                             <button 
@@ -829,25 +866,31 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 }}
                                 disabled={timeRange === 'TOTAL'}
                                 className={cn(
-                                    "rounded-full flex items-center justify-center transition-all active:scale-90",
-                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5",
-                                    isScrolled ? "w-8 h-8" : "w-8 h-8"
+                                    "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-75",
+                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/[0.03] text-white/30 hover:text-white hover:bg-white/10 border border-white/[0.05]"
                                 )}
                             >
-                                <ChevronLeft size={isScrolled ? 16 : 16} />
+                                <ChevronLeft size={18} strokeWidth={2.5} />
                             </button>
                             
-                            <motion.span 
+                            <motion.div 
                                 key={dateRangeLabel}
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
                                 className={cn(
-                                    "text-xs font-bold text-zinc-300 tracking-wider uppercase bg-white/5 px-4 py-1.5 rounded-full border border-white/5 shadow-sm transition-all",
-                                    isScrolled && "bg-transparent border-transparent shadow-none px-2 py-0 text-white/50 text-[11px] font-medium"
+                                    "flex flex-col items-center",
+                                    isScrolled && "scale-90"
                                 )}
                             >
-                                {dateRangeLabel}
-                            </motion.span>
+                                <span className="text-[10px] font-black text-white tracking-tight uppercase">
+                                    {dateRangeLabel}
+                                </span>
+                                {!isScrolled && (
+                                    <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.1em] mt-0.5">
+                                        Período Seleccionado
+                                    </span>
+                                )}
+                            </motion.div>
 
                             <button 
                                 onClick={() => {
@@ -860,12 +903,11 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 }}
                                 disabled={timeRange === 'TOTAL'}
                                 className={cn(
-                                    "rounded-full flex items-center justify-center transition-all active:scale-90",
-                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5",
-                                    isScrolled ? "w-8 h-8" : "w-8 h-8"
+                                    "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-75",
+                                    timeRange === 'TOTAL' ? "opacity-0 pointer-events-none" : "bg-white/[0.03] text-white/30 hover:text-white hover:bg-white/10 border border-white/[0.05]"
                                 )}
                             >
-                                <ChevronRight size={isScrolled ? 16 : 16} />
+                                <ChevronRight size={18} strokeWidth={2.5} />
                             </button>
                         </motion.div>
                     </motion.div>
@@ -888,81 +930,106 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                     >
 
 
-                        {/* 1. MAIN STATS CARD */}
+                        {/* 1. MAIN STATS CARD - Visionary Layout */}
                         <motion.div 
                             variants={itemVariants} 
-                            className="bg-zinc-900/90 rounded-[32px] p-6 border border-white/10 shadow-md mb-4 relative overflow-hidden"
+                            className="bg-[#121214]/60 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] mb-4 relative overflow-hidden group"
                         >
-                            {/* Glow Effect */}
-                            <div
-                              className="absolute top-0 right-0 w-32 h-32 rounded-full -z-10 pointer-events-none opacity-70"
-                              style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)' }}
+                            {/* Animated Inner Glow */}
+                            <motion.div
+                              animate={{ 
+                                  scale: [1, 1.2, 1],
+                                  opacity: [0.1, 0.2, 0.1]
+                              }}
+                              transition={{ duration: 8, repeat: Infinity }}
+                              className="absolute top-0 right-0 w-48 h-48 rounded-full -z-10 pointer-events-none"
+                              style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)`, filter: 'blur(10px)' }} // Lightened for GPU
                             />
                             
-                            <div className="flex flex-col gap-4">
-                                {/* Big Number */}
-                                <div className="text-center py-2">
+                            <div className="flex flex-col gap-6">
+                                {/* Big Number - Maximum Impact */}
+                                <div className="text-center py-4 relative">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4">
+                                        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">
+                                            {t('common.total', 'Total')}
+                                        </span>
+                                    </div>
                                     <motion.div 
                                         key={timeRange + summaryValue}
-                                        initial={{ scale: 0.9, opacity: 0, y: 10 }}
+                                        initial={{ scale: 0.8, opacity: 0, y: 20 }}
                                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        className="text-5xl font-bold text-white tracking-tighter drop-shadow-lg"
+                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                        className="text-7xl font-[1000] text-white tracking-[-0.06em] drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
                                     >
                                         {formatValue(summaryValue, habit?.type, unitLabel, isTimeBased)}
                                     </motion.div>
                                 </div>
-                                <div className="px-2 space-y-2">
-                                    <div className="flex items-center justify-between text-[11px]">
-                                        <span className="text-zinc-400 font-semibold uppercase tracking-wide">{t('habits.detail.ratio', 'Ratio')}</span>
-                                        <span className="text-white/80 font-medium">
-                                            {formatValue(summaryValue, habit?.type, unitLabel, isTimeBased)} / {formatValue(goalValue, habit?.type, unitLabel, isTimeBased)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-2 flex-1 rounded-full bg-white/10 overflow-hidden">
-                                            <motion.div
-                                                initial={{ scaleX: 0 }}
-                                                animate={{ scaleX: summaryBarValue }}
-                                                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                                                className="h-full rounded-full bg-cyan-400/80 origin-left"
-                                            />
+
+                                <div className="px-2 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-1">{t('habits.detail.ratio', 'Ratio')}</span>
+                                            <span className="text-sm font-bold text-white/90">
+                                                {formatValue(summaryValue, habit?.type, unitLabel, isTimeBased)} <span className="text-white/30 font-medium">/</span> {formatValue(goalValue, habit?.type, unitLabel, isTimeBased)}
+                                            </span>
                                         </div>
-                                        <span className="text-[11px] font-bold text-white">
-                                            {summaryPercentage}%
-                                        </span>
+                                        <div className="text-right">
+                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-1">Progreso</span>
+                                            <div className="text-sm font-black text-white">{summaryPercentage}%</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Advanced Progress Bar */}
+                                    <div className="relative h-3 w-full rounded-full bg-white/[0.04] overflow-hidden border border-white/[0.05]">
+                                        <motion.div
+                                            initial={{ scaleX: 0 }}
+                                            animate={{ scaleX: summaryBarValue }}
+                                            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                            className="h-full rounded-full origin-left relative"
+                                            style={{ backgroundColor: themeColor }}
+                                        >
+                                            {/* Bar Pulse Effect */}
+                                            <motion.div 
+                                                animate={{ x: ['-100%', '100%'] }}
+                                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                            />
+                                        </motion.div>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
 
                         {/* 2. GOAL SUMMARY (Line Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
-                            <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide mb-6">{t('habits.detail.goalSummary', 'GOAL SUMMARY')}</h3>
+                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-xl relative overflow-hidden group flex flex-col">
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: themeColor }} />
+                                <h3 className="text-[11px] font-[900] text-white/40 uppercase tracking-[0.2em]">{t('habits.detail.goalSummary', 'GOAL SUMMARY')}</h3>
+                            </div>
                             
-                            <div className="flex justify-between items-start mb-8">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                        <span className="text-[13px] text-zinc-400">{t('dashboard.workedThisPeriod', 'Worked on this period')}</span>
+                            <div className="grid grid-cols-2 gap-8 mb-4">
+                                <div className="relative">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
+                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">{t('dashboard.workedThisPeriod', 'Worked')}</span>
                                     </div>
-                                    <div className="text-2xl font-bold text-white tracking-tight ml-4">
+                                    <div className="text-3xl font-[1000] text-white tracking-tight">
                                         <FormattedValue value={summaryValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} />
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="flex items-center justify-end gap-2 mb-1">
-                                        <div className="w-2 h-2 rounded-full bg-zinc-600" />
-                                        <span className="text-[13px] text-zinc-400">{t('habits.detail.estimatedGoal', 'Estimated goal')}</span>
+                                <div className="text-right relative">
+                                    <div className="flex items-center justify-end gap-2 mb-2">
+                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">{t('habits.detail.estimatedGoal', 'Goal')}</span>
+                                        <div className="w-2 h-2 rounded-full bg-white/10" />
                                     </div>
-                                    <div className="text-2xl font-bold text-white tracking-tight mr-4">
+                                    <div className="text-3xl font-[1000] text-white/60 tracking-tight">
                                         <FormattedValue value={goalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-end" />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Line Chart Component */}
-                            <div className="h-48 w-full relative">
+                            <div className="h-[280px] relative mt-2 -mx-4 mb-0 w-[calc(100%+32px)] overflow-visible rounded-b-[32px] flex-grow">
                                 <HabitGoalChart 
                                     dataPoints={chartData}
                                     goalValue={goalValue}
@@ -975,83 +1042,90 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 3. WORKED HOURS (Bar Chart) */}
-                        <motion.div variants={itemVariants} className="bg-zinc-900/70 rounded-[32px] p-6 border border-white/10 shadow-md relative overflow-hidden">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-[13px] font-semibold text-zinc-400 uppercase tracking-wide">
-                                    {isTimeBased ? t('habits.detail.hoursWorked', 'HOURS WORKED') : t('habits.detail.progress', 'PROGRESS')}
-                                </h3>
-                                <button className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors">
+                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-xl relative overflow-hidden group">
+                            <div className="flex justify-between items-center mb-8">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-4 rounded-full bg-white/20" />
+                                    <h3 className="text-[11px] font-[900] text-white/40 uppercase tracking-[0.2em]">
+                                        {isTimeBased ? t('habits.detail.hoursWorked', 'HOURS WORKED') : t('habits.detail.progress', 'PROGRESS')}
+                                    </h3>
+                                </div>
+                                <button className="w-9 h-9 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-full transition-all active:scale-90">
                                     <Share2 size={16} />
                                 </button>
                             </div>
 
-                            {/* No local tabs here anymore, controlled by top tabs */}
-
-                            <div className="flex justify-between px-8 mb-8 mt-4">
+                            <div className="flex justify-around mb-10">
                                 <div className="text-center">
-                                    <div className="text-zinc-500 text-xs font-medium mb-1">{t('common.total', 'Total')}</div>
-                                    <div className="text-2xl font-bold text-white tracking-tight">
+                                    <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1.5">{t('common.total', 'Total')}</div>
+                                    <div className="text-3xl font-[1000] text-white tracking-tight">
                                         <FormattedValue value={totalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
                                 </div>
+                                <div className="w-[1px] h-10 bg-white/[0.06] self-center" />
                                 <div className="text-center">
-                                    <div className="text-zinc-500 text-xs font-medium mb-1">{t('common.average', 'Average')}</div>
-                                    <div className="text-2xl font-bold text-white tracking-tight">
+                                    <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1.5">{t('common.average', 'Average')}</div>
+                                    <div className="text-3xl font-[1000] text-white tracking-tight">
                                         <FormattedValue value={averageValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-center" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Bar Chart */}
-                            <div className="h-56 flex items-end justify-between gap-2 relative pl-2 pr-8">
+                            {/* Bar Chart - Ultra Visuals */}
+                            <div className="h-60 flex items-end justify-between gap-2.5 relative pl-2 pr-14 mt-4">
                                 {/* Y-Axis Labels (Right Side) */}
-                                <div className="absolute right-0 top-0 bottom-6 flex flex-col justify-between text-[10px] text-zinc-500 text-right w-6">
+                                <div className="absolute right-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-black text-white/30 text-right w-12">
                                     <span>{formatValue(maxChartValue, habit?.type, unitLabel, isTimeBased)}</span>
                                     <span>{formatValue(maxChartValue / 2, habit?.type, unitLabel, isTimeBased)}</span>
-                                    <span>0</span>
+                                    <span>{isTimeBased ? '0h 00m' : '0'}</span>
                                 </div>
 
-                                {/* Grid Lines */}
-                                <div className="absolute inset-0 right-8 bottom-6 flex flex-col justify-between pointer-events-none z-0">
-                                    <div className="w-full h-[1px] bg-white/5" />
-                                    <div className="w-full h-[1px] bg-white/5" />
-                                    <div className="w-full h-[1px] bg-white/5" />
+                                {/* Grid Lines - Subtle */}
+                                <div className="absolute inset-0 right-14 bottom-8 flex flex-col justify-between pointer-events-none z-0">
+                                    <div className="w-full h-[1px] bg-white/[0.03]" />
+                                    <div className="w-full h-[1px] bg-white/[0.03]" />
+                                    <div className="w-full h-[1px] bg-white/[0.03]" />
                                 </div>
 
                                 {chartData.map((data: any, i: number) => {
-                                    // Smart Label Visibility to prevent overlap
+                                    // Smart Label Visibility
                                     let showLabel = true;
-                                    if (timeRange === 'TODAY') {
-                                        showLabel = i % 4 === 0; // 00:00, 04:00, ...
-                                    } else if (timeRange === '3_MONTHS') {
-                                        showLabel = i % 2 === 0; // Every 2 weeks
-                                    } else if (timeRange === 'YEAR') {
-                                        showLabel = i % 2 === 0; // Every 2 months (Jan, Mar, May...)
-                                    } else if (timeRange === '8_WEEKS') {
-                                        showLabel = i % 2 === 0;
-                                    }
+                                    if (timeRange === 'TODAY') showLabel = true;
+                                    else if (timeRange === '3_MONTHS') showLabel = i % 2 === 0;
+                                    else if (timeRange === 'YEAR') showLabel = i % 2 === 0;
+                                    else if (timeRange === '8_WEEKS') showLabel = i % 2 === 0;
 
                                     return (
-                                        <div key={i} className="flex-1 flex flex-col items-center gap-3 z-10 h-full justify-end group cursor-pointer pb-6">
-                                            <div className="w-full max-w-[32px] h-[85%] relative flex items-end">
-                                                {data.value > 0 && (
-                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
-                                                        {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
-                                                    </div>
-                                                )}
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-4 z-10 h-full justify-end group/bar cursor-pointer pb-8">
+                                            <div className="w-full max-w-[28px] h-[85%] relative flex items-end">
+                                                {/* Tooltip on Hover */}
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-xl scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">
+                                                    {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
+                                                </div>
+                                                
                                                 <motion.div 
                                                     variants={barVariants}
                                                     style={{ 
-                                                        height: `${(data.value / maxChartValue) * 100}%`, 
+                                                        height: `${Math.max((data.value / maxChartValue) * 100, 4)}%`, 
                                                         originY: 1,
-                                                        backgroundColor: data.isToday ? themeColor : `${themeColor}99` // 60% opacity
+                                                        backgroundColor: data.isToday ? themeColor : `${themeColor}40`,
+                                                        border: data.isToday ? `1px solid ${themeColor}` : `1px solid ${themeColor}20`
                                                     }}
-                                                    className="w-full rounded-t-[4px] relative overflow-hidden"
-                                                />
+                                                    className="w-full rounded-t-xl rounded-b-md relative overflow-hidden transition-colors duration-500 group-hover/bar:bg-opacity-100"
+                                                >
+                                                    {/* Bar Inner Glow */}
+                                                    {data.isToday && (
+                                                        <motion.div 
+                                                            animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                                            transition={{ duration: 2, repeat: Infinity }}
+                                                            className="absolute inset-0 bg-white/20 blur-sm transform-gpu backface-hidden "
+                                                        />
+                                                    )}
+                                                </motion.div>
                                             </div>
                                             <span className={cn(
-                                                "absolute bottom-0 text-[10px] font-bold uppercase text-zinc-500 truncate w-full text-center transition-opacity duration-200",
-                                                showLabel ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                                "absolute bottom-0 text-[8px] font-black uppercase text-white/20 tracking-tighter truncate w-full text-center transition-all duration-300",
+                                                showLabel ? "opacity-100" : "opacity-0 group-hover/bar:opacity-100 group-hover/bar:text-white/40"
                                             )}>
                                                 {data.label}
                                             </span>

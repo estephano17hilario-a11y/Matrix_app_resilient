@@ -16,7 +16,7 @@ import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
-import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs, deleteDoc } from '@/services/firebase';
+import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs } from '@/services/firebase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
@@ -88,6 +88,9 @@ export const useDashboardLogic = () => {
                 // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
                 avatarId: authProfile.avatarId || luxUser.avatarId,
                 displayName: luxUser.displayName || authProfile.displayName,
+                // Merge preferences from authProfile first (since it updates locally), fallback to luxUser
+                defaultChartViews: authProfile.defaultChartViews || luxUser.defaultChartViews,
+                defaultProjectView: authProfile.defaultProjectView || luxUser.defaultProjectView,
                 // Prefer Lux for Game Stats (updated via Game Loop)
                 stats: luxUser.stats
             };
@@ -136,6 +139,7 @@ export const useDashboardLogic = () => {
     const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS'>('BORDER');
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>('VISIBLE');
+    const [defaultHabitView, setDefaultHabitView] = useState<'DEFAULT' | 'CHRONOLOGICAL'>('DEFAULT');
     const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(true);
     const [dockConfig, setDockConfig] = useState<DockConfig>(DEFAULT_DOCK_CONFIG);
     const [weekStartDay, setWeekStartDay] = useState<0 | 1>(() => {
@@ -187,6 +191,17 @@ export const useDashboardLogic = () => {
         }
     }, [user?.id]);
 
+    const updateDefaultHabitView = useCallback(async (view: 'DEFAULT' | 'CHRONOLOGICAL') => {
+        setDefaultHabitView(view);
+        if (user?.id) {
+            try {
+                await setDoc(doc(db, 'users', user.id), { defaultHabitView: view }, { merge: true });
+            } catch (e) {
+                console.error("Failed to save default habit view", e);
+            }
+        }
+    }, [user?.id]);
+
     const updateAllowDockSectionSwitch = useCallback(async (allow: boolean) => {
         setAllowDockSectionSwitch(allow);
         if (user?.id) {
@@ -225,14 +240,17 @@ export const useDashboardLogic = () => {
 
     // Sync Dashboard Style from User Profile
     useEffect(() => {
-        if (user?.dashboardStyle) {
-            setDashboardStyle(user.dashboardStyle);
-        }
+        // Enforce BORDER style always
+        setDashboardStyle('BORDER');
+        
         if (user?.avatarShape) {
             setAvatarShape(user.avatarShape);
         }
         if (user?.habitSectionControl) {
             setHabitSectionControl(user.habitSectionControl);
+        }
+        if (user?.defaultHabitView) {
+            setDefaultHabitView(user.defaultHabitView);
         }
         if (user?.allowDockSectionSwitch !== undefined) {
             setAllowDockSectionSwitch(user.allowDockSectionSwitch);
@@ -244,7 +262,7 @@ export const useDashboardLogic = () => {
             setWeekStartDay(user.weekStartDay);
         }
         // Sticky HUD sync removed
-    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay]);
+    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.defaultHabitView, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: calculateNextLevelXp(1), gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -722,7 +740,9 @@ export const useDashboardLogic = () => {
     const questsHydratedRef = useRef(false);
     const badHabitsHydratedRef = useRef(false);
     const smartProjectsHydratedRef = useRef(false);
-    const COLLECTION_SYNC_TTL = 5 * 60 * 1000;
+    // 💸 AHORRO MÁXIMO: Incrementamos el tiempo de caché de 5 minutos a 1 HORA (3600000 ms)
+    // El usuario siempre verá la última versión por su caché local, pero solo bajará datos de Supabase cada hora.
+    const COLLECTION_SYNC_TTL = 60 * 60 * 1000;
     const hydrateAttributes = (fetchedAttrs: Attribute[]) => {
         if (fetchedAttrs.length > 0) {
             const enriched = fetchedAttrs.map(attr => {
@@ -941,11 +961,54 @@ export const useDashboardLogic = () => {
         }
 
         if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', COLLECTION_SYNC_TTL)) {
-            persistenceService.attributes.getAll(uid).then(fetchedAttrs => {
+            persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
                 if (!fetchedAttrs) return;
-                hydrateAttributes(fetchedAttrs);
-                const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
-                PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
+                
+                // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
+                try {
+                    const snapshot = await getDocs(collection(db, 'users', uid, 'attributes'));
+                    const fbAttrs = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Attribute));
+                    
+                    // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, 
+                    // but Firebase takes precedence for XP/Level if it's higher)
+                    const mergedMap = new Map<string, Attribute>();
+                    fbAttrs.forEach((a: Attribute) => mergedMap.set(a.id, a));
+                    fetchedAttrs.forEach(a => {
+                        const existing = mergedMap.get(a.id);
+                        if (!existing) {
+                            mergedMap.set(a.id, a);
+                        } else {
+                            // Supabase has it, Firebase has it.
+                            // Keep Supabase metadata, but take the highest XP/Level
+                            const fbTotalXp = existing.xp + (existing.level * 1000);
+                            const supaTotalXp = a.xp + (a.level * 1000);
+                            
+                            if (fbTotalXp > supaTotalXp) {
+                                mergedMap.set(a.id, { ...a, xp: existing.xp, level: existing.level, maxXp: existing.maxXp });
+                            } else {
+                                mergedMap.set(a.id, a);
+                            }
+                        }
+                    });
+                    
+                    const merged = Array.from(mergedMap.values());
+                    hydrateAttributes(merged);
+                    const attrsForCache = merged.map(({ icon, ...rest }) => rest);
+                    PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
+                    
+                    // Auto-migrate to Supabase to heal the split brain permanently
+                    fbAttrs.forEach((fbAttr: Attribute) => {
+                        const supaAttr = fetchedAttrs.find(sa => sa.id === fbAttr.id);
+                        if (!supaAttr || (fbAttr.xp + (fbAttr.level * 1000)) > (supaAttr.xp + (supaAttr.level * 1000))) {
+                            persistenceService.attributes.save(uid, fbAttr).catch(console.error);
+                        }
+                    });
+                } catch (e) {
+                    console.error("Failed to fetch Firebase attributes fallback", e);
+                    hydrateAttributes(fetchedAttrs);
+                    const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
+                    PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
+                }
             });
         }
     }, [user?.id]);
@@ -1138,9 +1201,12 @@ export const useDashboardLogic = () => {
         try {
             const batch = writeBatch(db);
             
-            // 1. Delete Attribute Doc
+            // 1. Delete Attribute Doc (Firebase)
             const attrRef = doc(db, 'users', user.id, 'attributes', traitId);
             batch.delete(attrRef);
+
+            // 1.5. Delete Attribute Doc (Supabase)
+            persistenceService.attributes.delete(user.id, traitId).catch(e => console.error("Failed to delete trait from Supabase", e));
 
             // 2. Archive Stats in User Doc
             if (attrToArchive) {
@@ -1250,14 +1316,23 @@ export const useDashboardLogic = () => {
                     ? getHistoryDateKey(habit.history[habit.history.length - 1])
                     : null;
 
-                const isCompletedTodayInHistory = lastCompletion === todayStr;
+                const wasUpdatedToday = habit.lastUpdatedDate === todayStr;
 
-                if (habit.completedToday && !isCompletedTodayInHistory) {
+                // Reset partial or full progress if it was made on a previous day
+                const hasPartialProgress = habit.currentValue !== undefined && habit.currentValue > 0 || 
+                                           (habit.type === 'CHECKLIST' && habit.checklist?.some(i => i.completed));
+
+                if (!wasUpdatedToday && (habit.completedToday || hasPartialProgress)) {
                     newItem.completedToday = false;
                     
                     // Reset checklist if it exists
                     if (habit.type === 'CHECKLIST' && habit.checklist) {
                         newItem.checklist = habit.checklist.map(i => ({ ...i, completed: false }));
+                    }
+                    
+                    // Reset quantity
+                    if (habit.type === 'QUANTITY') {
+                        newItem.currentValue = 0;
                     }
                     
                     changed = true;
@@ -1291,6 +1366,9 @@ export const useDashboardLogic = () => {
                     };
                     if (newItem.checklist) {
                         updates.checklist = newItem.checklist;
+                    }
+                    if (newItem.currentValue !== undefined) {
+                        updates.currentValue = newItem.currentValue;
                     }
                     persistenceService.habits.update(user.id, habit.id, updates);
                 }
@@ -2878,7 +2956,7 @@ export const useDashboardLogic = () => {
 
         if (isReversal) {
             const originalStreak = Math.max(0, (habit.streak || 0) - 1);
-            const newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== todayHistory);
+            const newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== getHistoryDateKey(todayHistory));
             newHabit = {
                 ...habit,
                 completedToday: false,
@@ -2886,7 +2964,8 @@ export const useDashboardLogic = () => {
                 totalCompletions: Math.max(0, (habit.totalCompletions || 0) - 1),
                 history: newHistory,
                 rewardedXp: 0, // Reset to 0 instead of undefined for Firestore safety
-                rewardedGold: 0
+                rewardedGold: 0,
+                lastUpdatedDate: getHistoryDateKey(todayHistory)
             };
         } else {
             newHabit = {
@@ -2896,7 +2975,8 @@ export const useDashboardLogic = () => {
                 totalCompletions: (habit.totalCompletions || 0) + 1,
                 history: [...(habit.history || []), todayHistory],
                 rewardedXp: rewards.rewardXp,
-                rewardedGold: rewards.rewardGold
+                rewardedGold: rewards.rewardGold,
+                lastUpdatedDate: getHistoryDateKey(todayHistory)
             };
         }
 
@@ -2925,7 +3005,8 @@ export const useDashboardLogic = () => {
                         totalCompletions: newHabit.totalCompletions,
                         history: newHabit.history,
                         rewardedXp: newHabit.rewardedXp,
-                        rewardedGold: newHabit.rewardedGold
+                        rewardedGold: newHabit.rewardedGold,
+                        lastUpdatedDate: newHabit.lastUpdatedDate
                     },
                     isNewDay,
                     newLevel,
@@ -2970,10 +3051,11 @@ export const useDashboardLogic = () => {
                         currentValue: newCurrentValue,
                         history: [...(h.history || []), todayHistory],
                         rewardedXp: rewards.rewardXp,
-                        rewardedGold: rewards.rewardGold
+                        rewardedGold: rewards.rewardGold,
+                        lastUpdatedDate: getHistoryDateKey(todayHistory)
                     };
                 }
-                return { ...h, currentValue: newCurrentValue }; 
+                return { ...h, currentValue: newCurrentValue, lastUpdatedDate: getHistoryDateKey(todayHistory) }; 
             }
             return h;
         }));
@@ -3001,7 +3083,8 @@ export const useDashboardLogic = () => {
                         currentValue: newCurrentValue,
                         history: [...(validationHabit.history || []), todayHistory],
                         rewardedXp: rewards.rewardXp,
-                        rewardedGold: rewards.rewardGold
+                        rewardedGold: rewards.rewardGold,
+                        lastUpdatedDate: getHistoryDateKey(todayHistory)
                     },
                     isNewDay,
                     newLevel,
@@ -3010,7 +3093,8 @@ export const useDashboardLogic = () => {
                 );
             } else {
                 persistenceService.habits.update(user.id, validationHabit.id, { 
-                    currentValue: newCurrentValue 
+                    currentValue: newCurrentValue,
+                    lastUpdatedDate: getHistoryDateKey(todayHistory)
                 });
             }
         }
@@ -3037,8 +3121,11 @@ export const useDashboardLogic = () => {
         questsHydratedRef.current = true;
         setQuests(prev => {
             const exists = prev.find(q => q.id === quest.id);
-            if (exists) return prev.map(q => q.id === quest.id ? quest : q);
-            return [...prev, quest];
+            const newQuests = exists ? prev.map(q => q.id === quest.id ? quest : q) : [...prev, quest];
+            if (user?.id) {
+                PersistenceService.saveCollection(user.id, 'quests', newQuests);
+            }
+            return newQuests;
         });
 
         // Schedule Notification Reminder for Task with Deadline
@@ -3062,7 +3149,11 @@ export const useDashboardLogic = () => {
     const handleDeleteQuest = useCallback(async (questId: string) => {
         if (!user) return;
         questsHydratedRef.current = true;
-        setQuests(prev => prev.filter(q => q.id !== questId));
+        setQuests(prev => {
+            const newQuests = prev.filter(q => q.id !== questId);
+            PersistenceService.saveCollection(user.id, 'quests', newQuests);
+            return newQuests;
+        });
         try {
             await persistenceService.quests.delete(user.id, questId);
         } catch (error) {
@@ -3089,11 +3180,23 @@ export const useDashboardLogic = () => {
                     if (user?.id) persistenceService.habits.save(user.id, updated);
                     
                     // 🔔 NOTIFICATION SYNC (UPDATE)
+                    const days = updated.frequencyDays && updated.frequencyDays.length > 0 ? updated.frequencyDays : [0,1,2,3,4,5,6];
                     if (updated.reminderTime) {
-                        const days = updated.frequencyDays && updated.frequencyDays.length > 0 ? updated.frequencyDays : [0,1,2,3,4,5,6];
                         notificationService.scheduleHabitReminder(updated.id, updated.title, updated.reminderTime, days);
                     } else if (exists.reminderTime && !updated.reminderTime) {
                         notificationService.cancelHabitReminder(updated.id);
+                    }
+
+                    // Subtask Notifications Sync
+                    if (updated.type === 'CHECKLIST' && updated.checklist) {
+                        updated.checklist.forEach(sub => {
+                            if (sub.reminderTime) {
+                                const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
+                                notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays);
+                            } else {
+                                notificationService.cancelHabitReminder(sub.id);
+                            }
+                        });
                     }
 
                     return prev.map(h => h.id === data.id ? updated : h);
@@ -3114,9 +3217,17 @@ export const useDashboardLogic = () => {
             if (user?.id) persistenceService.habits.save(user.id, newHabit);
 
             // 🔔 NOTIFICATION SYNC (CREATE)
+            const days = newHabit.frequencyDays && newHabit.frequencyDays.length > 0 ? newHabit.frequencyDays : [0,1,2,3,4,5,6];
             if (newHabit.reminderTime) {
-                const days = newHabit.frequencyDays && newHabit.frequencyDays.length > 0 ? newHabit.frequencyDays : [0,1,2,3,4,5,6];
                 notificationService.scheduleHabitReminder(newHabit.id, newHabit.title, newHabit.reminderTime, days);
+            }
+            if (newHabit.type === 'CHECKLIST' && newHabit.checklist) {
+                newHabit.checklist.forEach(sub => {
+                    if (sub.reminderTime) {
+                        const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
+                        notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays);
+                    }
+                });
             }
 
             return [newHabit, ...prev];
@@ -3129,6 +3240,11 @@ export const useDashboardLogic = () => {
         if (!habitId) return;
         const todayHistory = toLocalISOString(new Date());
         const todayKey = getHistoryDateKey(todayHistory);
+        
+        // Track the last time progress was made to avoid wiping out same-day partial progress
+        if (data.currentValue !== undefined || data.checklist !== undefined || data.completedToday !== undefined) {
+            data.lastUpdatedDate = todayKey;
+        }
 
         // ARCHIVE LOGIC: Update Daily Limits if archiving/unarchiving a completed habit
         if (data.archived !== undefined && user?.id) {
@@ -3756,21 +3872,20 @@ export const useDashboardLogic = () => {
             ...data
         } as BadHabit;
 
-        let newBadHabits: BadHabit[];
-        const exists = badHabits.some(h => h.id === badHabit.id);
-        
-        if (exists) {
-            newBadHabits = badHabits.map(h => h.id === badHabit.id ? badHabit : h);
-        } else {
-            newBadHabits = [...badHabits, badHabit];
-        }
-
-        setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+        setBadHabits(prev => {
+            const exists = prev.some(h => h.id === badHabit.id);
+            const newBadHabits = exists 
+                ? prev.map(h => h.id === badHabit.id ? badHabit : h)
+                : [...prev, badHabit];
+            
+            // It's safe to update cache here because it's synchronous and has the latest prev
+            PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+            return newBadHabits;
+        });
 
         await persistenceService.badHabits.save(user.id, badHabit);
         setActiveModal(null);
-    }, [user?.id, addNotification, spawnParticles, badHabits]);
+    }, [user?.id, addNotification, spawnParticles]);
 
     const handleBadHabitRelapse = useCallback(async (habit: BadHabit, paymentMethod: 'GOLD' | 'HP') => {
         if (!user?.id) return;
@@ -3894,24 +4009,28 @@ export const useDashboardLogic = () => {
             };
         }
 
-        const newBadHabits = badHabits.map(h => h.id === habit.id ? updatedHabit : h);
-        setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+        setBadHabits(prev => {
+            const newBadHabits = prev.map(h => h.id === habit.id ? updatedHabit : h);
+            PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+            return newBadHabits;
+        });
 
         await persistenceService.badHabits.save(user.id, updatedHabit);
 
-    }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, badHabits]);
+    }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, player.level, attributes]);
 
     const handleDeleteBadHabit = useCallback(async (id: string) => {
         if (!user?.id) return;
         
-        const newBadHabits = badHabits.filter(h => h.id !== id);
-        setBadHabits(newBadHabits);
-        PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
-        // Also remove from Firestore
-        const habitRef = doc(db, 'users', user.id, 'badHabits', id);
-        await deleteDoc(habitRef);
-    }, [user?.id, badHabits]);
+        setBadHabits(prev => {
+            const newBadHabits = prev.filter(h => h.id !== id);
+            PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+            return newBadHabits;
+        });
+
+        // Also remove from Supabase
+        await persistenceService.badHabits.delete(user.id, id);
+    }, [user?.id]);
 
     const handleReorderHabits = useCallback(async (newOrder: Habit[]) => {
         // Optimistic update
@@ -3960,12 +4079,10 @@ export const useDashboardLogic = () => {
         if (!user?.id) return;
         
         try {
-            const batch = writeBatch(db);
-            newOrder.forEach((habit, index) => {
-                const habitRef = doc(db, 'users', user.id, 'badHabits', habit.id);
-                batch.update(habitRef, { order: index });
-            });
-            await batch.commit();
+            // Update Supabase
+            await Promise.all(newOrder.map((habit, index) => 
+                persistenceService.badHabits.update(user!.id, habit.id, { order: index })
+            ));
             
             PersistenceService.saveCollection(user.id, 'badHabits', newOrder);
         } catch (error) {
@@ -4054,6 +4171,8 @@ export const useDashboardLogic = () => {
         updateAvatarShape,
         habitSectionControl,
         updateHabitSectionControl,
+        defaultHabitView,
+        updateDefaultHabitView,
         allowDockSectionSwitch,
         updateAllowDockSectionSwitch,
         dockConfig,

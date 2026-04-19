@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, Sparkles, X, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
-import { useEconomy } from '../../../context/EconomyContext';
+import { useEconomy } from '@/context/EconomyContext';
 
 export const AdShard: React.FC = () => {
   const { grantAdReward } = useEconomy();

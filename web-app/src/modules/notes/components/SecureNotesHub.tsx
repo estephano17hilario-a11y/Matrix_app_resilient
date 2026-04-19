@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
 import { hashPin } from '../../../utils/crypto';
 import { SecurityGate } from '../../../components/ui/SecurityGate';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface SecureItem {
  id: string;

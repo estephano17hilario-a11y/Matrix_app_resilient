@@ -4,6 +4,7 @@ import { supabase, configStatus } from '../services/supabase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { PersistenceService } from '../services/persistence';
 import { User } from '@supabase/supabase-js';
+import { initRevenueCat } from '../services/revenueCatService';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -89,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     checkInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user || null;
       try {
         if (!currentUser) {
@@ -119,9 +120,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         setError(null);
         
+        // Initialize RevenueCat for native platforms
+        initRevenueCat(currentUser.id).catch(console.error);
+        
         // 1. Show cached profile immediately if available
         const cached = PersistenceService.getProfile(currentUser.id);
-        if (cached) {
+        if (cached && cached.onboarding?.completedAt) {
+             // Only use cache immediately if it indicates onboarding is completed
+             // This prevents the "flash" of onboarding if the cache is stale or incomplete
              setProfile(cached);
         } else {
             // Optimistic Skeleton while we fetch
@@ -137,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 theme: 'MATRIX',
                 createdAt: Date.now(),
                 lastLoginAt: Date.now(),
-                onboarding: { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                onboarding: { ...DEFAULT_ONBOARDING, completedAt: Date.now() }, // ASSUME COMPLETED temporarily to prevent flicker
                 isSkeleton: true
             });
         }
@@ -145,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // 2. Fetch the real document from Supabase
         const fetchProfile = async (attempts = 0) => {
             try {
-                const { data: userData, error } = await supabase.from('users').select('*').eq('id', currentUser.id).single();
+                const { data: userData, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', currentUser.id).single();
                 
                 if (userData && !error) {
                     const finalProfile: UserProfile = {
@@ -153,11 +159,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         uid: currentUser.id,
                         displayName: userData.display_name || currentUser.user_metadata?.full_name || "",
                         photoURL: userData.photo_url || currentUser.user_metadata?.avatar_url,
+                        avatarId: userData.avatar_id || null,
+                        preferences: userData.preferences || {},
+                        defaultChartViews: userData.preferences?.defaultChartViews || {},
+                        defaultProjectView: userData.preferences?.defaultProjectView || 'PROJECT',
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',
                         plan: userData.plan || 'FREE',
                         theme: userData.theme || 'MATRIX',
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
+                        lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
                         onboarding: userData.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 },
                         isSkeleton: false
                     };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar } from 'lucide-react';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -13,7 +13,15 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 export const SystemSection = () => {
   const { t, i18n } = useTranslation();
-  const { habitSectionControl, updateHabitSectionControl, defaultChartMode, setDefaultChartMode, weekStartDay, updateWeekStartDay } = useSettings();
+  const { 
+    habitSectionControl, updateHabitSectionControl, 
+    defaultHabitView, updateDefaultHabitView, 
+    defaultChartMode, setDefaultChartMode, 
+    weekStartDay, updateWeekStartDay,
+    defaultChartViews, updateDefaultChartViews,
+    defaultProjectView, updateDefaultProjectView,
+    isPro
+  } = useSettings();
 
   const [permissions, setPermissions] = useState({ notifications: false, battery: false, overlay: false });
   const [isNative, setIsNative] = useState(false);
@@ -277,6 +285,40 @@ export const SystemSection = () => {
           </div>
         </div>
 
+        {/* Default Habit View */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+              <Layers size={18} className="text-orange-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">{t('settings.defaultHabitView', 'Default Habits View')}</div>
+              <div className="text-xs text-white/40 font-medium">{t('settings.defaultHabitViewDesc', 'Default layout for Habits')}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => updateDefaultHabitView('DEFAULT')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
+                defaultHabitView === 'DEFAULT' ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+              )}
+            >
+              {t('habits.viewPriority', 'Prioridad')}
+            </button>
+            <button
+              onClick={() => updateDefaultHabitView('CHRONOLOGICAL')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
+                defaultHabitView === 'CHRONOLOGICAL' ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+              )}
+            >
+              {t('habits.viewChronological', 'Cronológico')}
+            </button>
+          </div>
+        </div>
+
         {/* Week Starts On */}
         <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
           <div className="flex items-center gap-3">
@@ -316,6 +358,115 @@ export const SystemSection = () => {
             </button>
           </div>
         </div>
+
+        {/* Default Chart Views */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
+          {/* Glassmorphism Blur Effect */}
+          <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm transform-gpu backface-hidden z-0 pointer-events-none" />
+          
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+              <LineChart size={18} className="text-purple-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">{t('settings.defaultChartViews', 'Default Chart Views')}</div>
+              <div className="text-xs text-white/40 font-medium">{t('settings.defaultChartViewsDesc', 'Default timeframes for analytics')}</div>
+            </div>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            {([
+              { key: 'tasks', label: 'Tasks', color: 'indigo' },
+              { key: 'habits', label: 'Habits', color: 'rose' },
+              { key: 'focus', label: 'Focus', color: 'amber' },
+              { key: 'projects', label: 'Projects', color: 'emerald' },
+              { key: 'notes', label: 'Notes', color: 'cyan' }
+            ] as const).map(section => {
+              const currentVal = defaultChartViews?.[section.key] || 'WEEK';
+              
+              const options = [
+                { val: 'WEEK', label: '1W' },
+                { val: 'MONTH', label: '1M' },
+                { val: '3_MONTHS', label: '3M', pro: true },
+                { val: 'YEAR', label: '1Y', pro: true },
+                { val: 'TOTAL', label: 'ALL', pro: true }
+              ] as Array<{ val: any; label: string; pro?: boolean }>;
+
+              return (
+                <div key={section.key} className="flex flex-col gap-2">
+                  <div className="text-xs font-bold text-white/60 uppercase tracking-widest">{t(`settings.chartSection.${section.key}`, section.label)}</div>
+                  <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 overflow-x-auto no-scrollbar">
+                    {options.map(opt => {
+                      const isActive = currentVal === opt.val;
+                      const isDisabled = 'pro' in opt && opt.pro && !isPro;
+                      
+                      return (
+                        <button
+                          key={opt.val}
+                          onClick={() => {
+                            if (isDisabled) return;
+                            updateDefaultChartViews({
+                              ...(defaultChartViews || {}),
+                              [section.key]: opt.val
+                            });
+                          }}
+                          className={cn(
+                            "flex-1 min-w-[48px] p-2 rounded-lg transition-all duration-150 flex flex-col items-center justify-center relative",
+                            isActive ? `bg-${section.color}-500/20 text-${section.color}-400 border border-${section.color}-500/30 shadow-[0_0_10px_rgba(255,255,255,0.05)]` : "text-white/40 hover:text-white/80 hover:bg-white/10 border border-transparent",
+                            isDisabled ? "opacity-50 cursor-not-allowed grayscale" : "active:scale-95"
+                          )}
+                        >
+                          <span className="text-[10px] font-bold z-10">{opt.label}</span>
+                          {opt.pro && !isPro && (
+                            <Lock size={8} className="absolute top-1 right-1 text-white/30" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Default Projects View */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
+          <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm transform-gpu backface-hidden z-0 pointer-events-none" />
+          
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+              <LayoutGrid size={18} className="text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">{t('settings.defaultProjectView', 'Projects Layout')}</div>
+              <div className="text-xs text-white/40 font-medium">{t('settings.defaultProjectViewDesc', 'Default division for Projects view')}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 relative z-10">
+            {[
+              { val: 'PROJECT', label: t('projects.viewByProject', 'By Project') },
+              { val: 'TRAIT', label: t('projects.viewByTrait', 'By Trait') },
+              { val: 'NONE', label: t('projects.viewNone', 'No Division') }
+            ].map(opt => {
+              const isActive = defaultProjectView === opt.val;
+              return (
+                <button
+                  key={opt.val}
+                  onClick={() => updateDefaultProjectView(opt.val as any)}
+                  className={cn(
+                    "p-3 rounded-xl transition-all duration-150 flex items-center justify-center text-xs font-bold active:scale-95",
+                    isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
     </div>
   );

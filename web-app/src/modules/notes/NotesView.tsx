@@ -18,7 +18,7 @@ import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Constants
 const MOODS = [
@@ -40,6 +40,7 @@ interface NotesViewProps {
  onClose?: () => void;
  isActive?: boolean;
  isPro?: boolean;
+ defaultChartViews?: any;
 }
 
 const getEntryTitle = (blocks: NoteBlock[]) => {
@@ -58,7 +59,7 @@ const WigglyLine = () => (
  </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
  const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
@@ -419,6 +420,19 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  });
  }, [currentMonth, monthDays, journalEntryMap, specialEvents]);
 
+ const activeSpecialEvent = useMemo(() => {
+ if (editorMode !== 'JOURNAL') return null;
+ const dateStr = toLocalISOString(draftDate);
+ return specialEvents.find(e => {
+ if (e.showInCalendar === false) return false;
+ const eDate = new Date(e.date);
+ if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
+ return eDate.getDate() === draftDate.getDate() && eDate.getMonth() === draftDate.getMonth();
+ }
+ return toLocalISOString(eDate) === dateStr;
+ });
+ }, [editorMode, draftDate, specialEvents]);
+
  return (
  <div className="h-full flex flex-col relative">
  {/* Lock Screen Overlay - Portal with Z-Index between HUD (290) and Dock (400) */}
@@ -627,7 +641,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  transition={{ type: "spring", stiffness: 300, damping: 25 }}
  className="overflow-hidden px-4 relative z-10"
  >
- <div className="bg-[#0a0a0a]/60 backdrop-blur-sm transform-gpu border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
+ <div className="bg-[#0a0a0a]/80 backdrop-blur-sm transform-gpu backface-hidden border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
  {/* Projects Filter */}
  <div className="flex flex-col gap-2">
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByProject', 'Filter by Project')}</span>
@@ -666,7 +680,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 animate-in slide-in-from-left-4 fade-in duration-500 px-4">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu ">
+ <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Section Locked</span>
@@ -716,7 +730,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-500">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu ">
+ <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
@@ -761,8 +775,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  return (
  <button 
  key={day} 
- onClick={() => !isFuture && openJournal(date)} 
- disabled={isFuture}
+ onClick={() => {
+ if (isFuture && specialEvent) {
+ setSelectedMemory(specialEvent);
+ } else {
+ openJournal(date);
+ }
+ }} 
+ disabled={isFuture && !specialEvent}
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ 
  borderColor: borderColor,
@@ -774,26 +794,15 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
  {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
  
- {/* Special Event Indicator */}
- {specialEvent && (
- <div className="absolute top-1 left-1 z-30">
- <button 
- onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
- className="w-4 h-4 flex items-center justify-center rounded-full bg-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.5)] hover:scale-125 transition-transform"
- >
- <Gift size={10} />
- </button>
- </div>
- )}
+ {/* Special Event Indicator removed */}
 
  <div className="flex-1 flex items-center justify-center z-10 w-full relative">
  {specialEvent ? (
- <button 
- onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
+ <div 
  className="text-2xl hover:scale-110 transition-transform duration-300 drop-shadow-md"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
- </button>
+ </div>
  ) : mood ? (
  // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?
  // User wants: "ambos emoji como el numero de la fecha, convivan y se puedan ver ambos"
@@ -829,9 +838,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div key={day} className="relative group">
  <button 
  onClick={() => {
- if (specialEvent) {
+ if (isFuture && specialEvent) {
  setSelectedMemory(specialEvent);
- } else if (!isFuture) {
+ } else {
  openJournal(date);
  }
  }}
@@ -842,18 +851,19 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  ${!isFuture || specialEvent ? 'hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer' : 'opacity-30 cursor-not-allowed'}
  `}
  >
- <span className={`text-xs font-mono font-bold w-6 text-right ${isToday ? 'text-white' : 'text-white/20'}`}>{day < 10 ? `0${day}` : day}</span>
- <div className="flex-1 flex flex-col relative">
- <div className="flex items-center justify-between gap-4 pb-1">
- <div className="flex items-center gap-3">
+ <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
  {specialEvent && (
  <span 
- onClick={(e) => { e.stopPropagation(); setSelectedMemory(specialEvent); }}
- className="text-lg hover:scale-110 transition-transform duration-300 drop-shadow-md cursor-pointer"
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-300 drop-shadow-md flex items-center justify-center"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </span>
  )}
+ {day < 10 ? `0${day}` : day}
+ </span>
+ <div className="flex-1 flex flex-col relative min-w-0">
+ <div className="flex items-center justify-between gap-4 pb-1">
+ <div className="flex items-center gap-3 truncate">
  {entry ? (
  <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
  ) : (
@@ -878,7 +888,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  )}
  </div>
- <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={subView === 'JOURNAL' ? 'EMOTIONS' : 'OVERVIEW'} />
+ <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={subView === 'JOURNAL' ? 'EMOTIONS' : 'OVERVIEW'} isPro={isPro} onOpenPro={onShowPro} defaultChartViews={defaultChartViews} />
  
  <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={openConfigModal} isPro={isPro} onOpenPro={onShowPro} />
  <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={openConfigModal} />
@@ -957,7 +967,23 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  ) : (
  <div className="animate-in slide-in-from-bottom-4 duration-500">
- <div className="text-center mb-8 relative z-10">
+ <div className="text-center mb-8 relative z-10 flex flex-col items-center">
+ {activeSpecialEvent && (
+ <div 
+ onClick={() => setSelectedMemory(activeSpecialEvent)}
+ className="mb-6 w-full max-w-sm rounded-[24px] bg-gradient-to-b from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.1)] relative overflow-hidden group"
+ >
+ <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+ <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner mb-2 relative z-10">
+ {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+ </div>
+ <h3 className="text-lg font-black text-white tracking-tight leading-tight relative z-10">{activeSpecialEvent.title}</h3>
+ <div className="flex items-center gap-1.5 text-pink-400 mt-1 relative z-10">
+ <Gift size={10} />
+ <span className="text-[9px] font-bold uppercase tracking-widest">{activeSpecialEvent.type}</span>
+ </div>
+ </div>
+ )}
  {/* Redesigned Header: Smaller Date, Editable Title */}
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-2">{draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
  
@@ -1081,7 +1107,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {selectedMemory && typeof document !== 'undefined' && createPortal(
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
  <div 
- className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu transition-opacity duration-300 ease-out animate-in fade-in"
+ className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-300 ease-out animate-in fade-in"
  onClick={() => setSelectedMemory(null)}
  />
  <div 

@@ -3,17 +3,22 @@ import { motion } from 'framer-motion';
 import { Skull, Archive, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSameDay, isLastDayOfMonth } from 'date-fns';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
+import * as LucideIcons from 'lucide-react';
+import { Check } from 'lucide-react';
 import { HabitItem } from './components/HabitItem';
+import { QuantityUpdateModal } from './components/QuantityUpdateModal';
 import { HabitConsistencyChart } from './components/HabitConsistencyChart';
 import { ViewMode } from './components/HabitViewHeader';
 import { DateSelectionModal } from './components/DateSelectionModal';
 import { ReorderModal } from '../../components/ui/ReorderModal';
 import { useLongPress } from '../../hooks/useLongPress';
 import { BadHabitDetailModal } from './components/BadHabitDetailModal';
+import { HabitMasteryModal } from './components/HabitMasteryModal';
+import { cn } from '../../utils/cn';
 
 interface HabitVisualViewProps {
     habits: Habit[];
@@ -24,7 +29,7 @@ interface HabitVisualViewProps {
     onCreateHabit: () => void;
     onCreateBadHabit: () => void;
     onDeleteHabit?: (habitId: string) => void;
-    onEditHabit?: (habit: Habit) => void;
+    onEditHabit?: (habit: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) => void;
     onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
     onShowActions?: (habit: Habit) => void;
@@ -36,6 +41,9 @@ interface HabitVisualViewProps {
     onReorderBadHabits?: (habits: BadHabit[]) => void;
     isPro?: boolean;
     onOpenPro?: () => void;
+    defaultViewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
+    weekStartDay?: 0 | 1;
+    defaultChartViews?: any;
 }
 
 interface BadHabitWrapperProps {
@@ -64,7 +72,9 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = ({
 
     return (
         <div 
-            className="w-full max-w-[600px] touch-manipulation cursor-pointer" 
+            role="button"
+            tabIndex={0}
+            className="w-full max-w-[600px] touch-manipulation cursor-pointer active:scale-95 transition-transform duration-75 clickable" 
             {...badHabitLongPress}
             onContextMenu={(e) => {
                 e.preventDefault();
@@ -104,7 +114,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onReorder,
     onReorderBadHabits,
     isPro,
-    onOpenPro
+    onOpenPro,
+    defaultViewPreference = 'DEFAULT',
+    weekStartDay = 1,
+    defaultChartViews
 }) => {
     const { t } = useTranslation();
     const { setVicesMode } = useTheme();
@@ -113,11 +126,27 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
     const [isBadHabitReorderModalOpen, setIsBadHabitReorderModalOpen] = useState(false);
     const [selectedDetailBadHabit, setSelectedDetailBadHabit] = useState<BadHabit | null>(null);
+    const [quantityModalHabit, setQuantityModalHabit] = useState<Habit | null>(null);
+    const [masteryHabit, setMasteryHabit] = useState<Habit | null>(null);
     
     // Header State
     const [viewMode] = useState<ViewMode>('DAY');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+    const [viewPreference, setViewPreference] = useState<'DEFAULT' | 'CHRONOLOGICAL'>(() => {
+        const saved = localStorage.getItem('habitViewPreference');
+        return (saved === 'CHRONOLOGICAL' || saved === 'DEFAULT') ? saved : (defaultViewPreference || 'DEFAULT');
+    });
+
+    useEffect(() => {
+        if (defaultViewPreference && defaultViewPreference !== viewPreference && isActive) {
+            setViewPreference(defaultViewPreference);
+        }
+    }, [defaultViewPreference]);
+
+    useEffect(() => {
+        localStorage.setItem('habitViewPreference', viewPreference);
+    }, [viewPreference]);
 
     // Split habits into active and archived
     const { activeHabits, archivedHabits } = useMemo(() => {
@@ -139,8 +168,31 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const displayedHabits = useMemo(() => {
         const list = showArchived ? archivedHabits : activeHabits;
         
-        // Sort by order first
-        const sortedList = [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
+        let sortedList = [...list];
+
+        if (viewPreference === 'CHRONOLOGICAL') {
+            const todayIndex = currentDate.getDay();
+            sortedList.sort((a, b) => {
+                const getEarliestTime = (habit: Habit) => {
+                    let earliest = habit.reminderTime || '23:59';
+                    if (habit.type === 'CHECKLIST' && habit.checklist) {
+                        habit.checklist.forEach(item => {
+                            const isSubtaskActiveToday = !item.days || item.days.length === 0 || item.days.includes(todayIndex);
+                            if (isSubtaskActiveToday && item.reminderTime && item.reminderTime < earliest) {
+                                earliest = item.reminderTime;
+                            }
+                        });
+                    }
+                    return earliest;
+                };
+                const timeA = getEarliestTime(a);
+                const timeB = getEarliestTime(b);
+                return timeA.localeCompare(timeB);
+            });
+        } else {
+            // Sort by order first
+            sortedList.sort((a, b) => (a.order || 0) - (b.order || 0));
+        }
 
         // Date Logic Override
         return sortedList.map(habit => {
@@ -153,7 +205,70 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 completedToday: isCompleted
             };
         });
-    }, [showArchived, archivedHabits, activeHabits, currentDate]);
+    }, [showArchived, archivedHabits, activeHabits, currentDate, viewPreference]);
+
+    const chronologicalItems = useMemo(() => {
+        if (viewPreference !== 'CHRONOLOGICAL') return [];
+        
+        const items: any[] = [];
+        const todayIndex = currentDate.getDay();
+
+        displayedHabits.forEach(habit => {
+            const isDue = habit.frequency === 'DAILY' || 
+                (habit.frequency === 'WEEKLY' && 
+                (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(todayIndex))) ||
+                (habit.frequency === 'MONTHLY' && (
+                    habit.monthlyType === 'FLEXIBLE_COUNT' ||
+                    ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
+                        (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||
+                        (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
+                    ))
+                ));
+
+            if (!isDue) return;
+
+            const attribute = attributeMap.get(habit.attribute);
+            const baseColor = habit.customColor || attribute?.color || '#6366f1';
+            let Icon = attribute?.icon;
+            if (habit.iconName && (LucideIcons as any)[habit.iconName]) {
+                Icon = (LucideIcons as any)[habit.iconName];
+            }
+
+            if (habit.type === 'CHECKLIST' && habit.checklist && habit.checklist.length > 0) {
+                habit.checklist.forEach(sub => {
+                    const isSubtaskActiveToday = !sub.days || sub.days.length === 0 || sub.days.includes(todayIndex);
+                    if (isSubtaskActiveToday) {
+                        items.push({
+                            id: `${habit.id}-sub-${sub.id}`,
+                            habitId: habit.id,
+                            type: 'SUBTASK',
+                            habit: habit,
+                            subtaskId: sub.id,
+                            text: sub.text,
+                            time: sub.reminderTime || habit.reminderTime || '23:59',
+                            isCompleted: sub.completed,
+                            color: sub.color || baseColor,
+                            Icon: Icon
+                        });
+                    }
+                });
+            } else {
+                items.push({
+                    id: habit.id,
+                    habitId: habit.id,
+                    type: 'HABIT',
+                    habit: habit,
+                    text: habit.title,
+                    time: habit.reminderTime || '23:59',
+                    isCompleted: habit.completedToday,
+                    color: baseColor,
+                    Icon: Icon
+                });
+            }
+        });
+
+        return items.sort((a, b) => a.time.localeCompare(b.time));
+    }, [displayedHabits, currentDate, viewPreference, attributeMap]);
 
     const reduceMotion = useMemo(() => {
         return displayedHabits.length + badHabits.length > 20;
@@ -197,7 +312,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
     // Long Press Handler
     const longPressHandlers = useLongPress(() => {
-        if (!showArchived && onReorder) {
+        if (!showArchived && onReorder && viewPreference === 'DEFAULT') {
             // Trigger vibration if available
             if (navigator.vibrate) navigator.vibrate(50);
             setIsReorderModalOpen(true);
@@ -230,14 +345,56 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     >
                             {/* Habit Consistency Chart (Moved inside to prevent layout shifts during exit animation) */}
                             {!showArchived && (
-                                <div className="w-full max-w-[440px] mb-1 pt-1">
+                                <div className="w-full max-w-[440px] pt-0">
                                     <HabitConsistencyChart 
                                         habits={habits} 
                                         onOpenStreak={onOpenStreak} 
                                         isActive={isActive} 
                                         isPro={isPro}
                                         onOpenPro={onOpenPro}
+                                        weekStartDay={weekStartDay}
+                                        initialTimeframe={defaultChartViews?.habits}
                                     />
+                                    
+                                    {/* View Switcher */}
+                                    <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-1 mt-1 -mb-1.5 mx-auto w-full max-w-[280px]">
+                                        <button
+                                            onClick={() => setViewPreference('DEFAULT')}
+                                            className={cn(
+                                                "relative flex-1 z-10 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                viewPreference === 'DEFAULT' 
+                                                    ? "text-white" 
+                                                    : "text-white/40 hover:text-white/60"
+                                            )}
+                                        >
+                                            {viewPreference === 'DEFAULT' && (
+                                                <motion.div
+                                                    layoutId="view-toggle"
+                                                    className="absolute inset-0 bg-white/[0.03] rounded-lg"
+                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                />
+                                            )}
+                                            <span className="relative z-20">{t('habits.viewPriority', 'Prioridad')}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setViewPreference('CHRONOLOGICAL')}
+                                            className={cn(
+                                                "relative flex-1 z-10 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                viewPreference === 'CHRONOLOGICAL' 
+                                                    ? "text-indigo-400" 
+                                                    : "text-white/40 hover:text-white/60"
+                                            )}
+                                        >
+                                            {viewPreference === 'CHRONOLOGICAL' && (
+                                                <motion.div
+                                                    layoutId="view-toggle"
+                                                    className="absolute inset-0 bg-indigo-500/5 rounded-lg"
+                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                />
+                                            )}
+                                            <span className="relative z-20">{t('habits.viewChronological', 'Cronológico')}</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -260,43 +417,171 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             )}
 
                             {/* LIST */}
-                            {displayedHabits.map(habit => {
-                                const isDue = habit.frequency === 'DAILY' || 
-                                              (habit.frequency === 'WEEKLY' && 
-                                               (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
-                                              (habit.frequency === 'MONTHLY' && (
-                                                   habit.monthlyType === 'FLEXIBLE_COUNT' ||
-                                                   ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
-                                                       (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||
-                                                       (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
-                                                   ))
-                                               ));
-
-                                return (
-                                    <div
-                                        key={habit.id}
-                                        {...longPressHandlers}
+                            {viewPreference === 'CHRONOLOGICAL' && !showArchived ? (
+                                chronologicalItems.map((item, idx) => (
+                                    <motion.div 
+                                        key={item.id} 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: idx * 0.05, ease: "easeOut" }}
+                                        className="w-full max-w-[600px] flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden"
+                                        style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
+                                        onClick={() => setMasteryHabit(item.habit)}
                                         onContextMenu={(e) => {
-                                            if (!showArchived && onReorder) {
-                                                e.preventDefault();
-                                                setIsReorderModalOpen(true);
+                                            e.preventDefault();
+                                            if (onEditHabit) {
+                                                const habitToEdit = {
+                                                    ...item.habit,
+                                                    _initialTab: item.type === 'SUBTASK' ? 'checklist' : 'alarm',
+                                                    _targetSubtaskId: item.type === 'SUBTASK' ? item.subtaskId : undefined
+                                                };
+                                                onEditHabit(habitToEdit);
                                             }
                                         }}
-                                        className="touch-manipulation w-full max-w-[600px]"
                                     >
-                                        <HabitItem
-                                            habit={habit}
-                                            attribute={attributeMap.get(habit.attribute)}
-                                            onComplete={onCompleteHabit}
-                                            onEdit={onEditHabit}
-                                            onUpdate={onUpdateHabit}
-                                            onShowActions={onShowActions}
-                                            reduceMotion={reduceMotion}
-                                            isDue={isDue}
+                                        {/* Color Glow */}
+                                        <div 
+                                            className={cn(
+                                                "absolute inset-0 rounded-[14px] pointer-events-none transition-opacity",
+                                                item.isCompleted ? "opacity-[0.04]" : "opacity-[0.11]"
+                                            )}
+                                            style={{ backgroundColor: item.color }}
                                         />
-                                    </div>
-                                );
-                            })}
+
+                                        <div 
+                                            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm shrink-0 border border-white/5 relative z-10"
+                                            style={{ backgroundColor: `${item.color}15` }}
+                                        >
+                                            {item.Icon && <item.Icon size={18} style={{ color: item.color, opacity: 0.85 }} strokeWidth={2} />}
+                                        </div>
+                                        
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center relative z-10">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <span className={cn(
+                                                    "text-[14px] font-semibold truncate transition-colors",
+                                                    item.isCompleted ? "text-white/30 line-through" : "text-white/70"
+                                                )}>
+                                                    {item.text}
+                                                </span>
+                                                {item.type === 'HABIT' && item.habit.type === 'QUANTITY' && (
+                                                    <span className={cn(
+                                                        "text-[11px] font-medium shrink-0",
+                                                        item.isCompleted ? "text-white/30" : "text-indigo-400/80"
+                                                    )}>
+                                                        {item.habit.currentValue || 0} / {item.habit.targetValue} {item.habit.unit || ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {item.type === 'SUBTASK' && (
+                                                <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider truncate">
+                                                    {item.habit.title}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {item.time && item.time !== '23:59' && (
+                                            <div className="flex items-center gap-1 relative z-10">
+                                                <LucideIcons.AlertCircle size={10} className={item.isCompleted ? "text-white/20" : "text-orange-400/80"} />
+                                                <span className={cn(
+                                                    "text-[10px] font-bold tracking-wider",
+                                                    item.isCompleted ? "text-white/20" : "text-orange-400/80"
+                                                )}>
+                                                    {(() => {
+                                                        const [h, m] = item.time.split(':');
+                                                        const hour = parseInt(h, 10);
+                                                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                                                        const formattedHour = hour % 12 || 12;
+                                                        return `${formattedHour}:${m} ${ampm}`;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div 
+                                            className={cn(
+                                                "w-[38px] h-[38px] rounded-full border flex items-center justify-center transition-all relative z-10 ml-2 shrink-0 cursor-pointer",
+                                                item.isCompleted 
+                                                    ? "border-transparent text-white" 
+                                                    : "bg-black/20"
+                                            )}
+                                            style={{
+                                                backgroundColor: item.isCompleted ? item.color : undefined,
+                                                borderColor: item.isCompleted ? item.color : `${item.color}78`
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (item.type === 'HABIT') {
+                                                    if (item.habit.type === 'QUANTITY' && onUpdateHabit) {
+                                                        setQuantityModalHabit(item.habit);
+                                                    } else {
+                                                        onCompleteHabit(e as any, item.habit);
+                                                    }
+                                                } else if (item.type === 'SUBTASK' && onUpdateHabit) {
+                                                    const newChecklist = item.habit.checklist.map((sub: any) => 
+                                                        sub.id === item.subtaskId ? { ...sub, completed: !sub.completed } : sub
+                                                    );
+                                                    
+                                                    const todayIndex = currentDate.getDay();
+                                                    const visibleItems = newChecklist.filter((i: any) => !i.days || i.days.length === 0 || i.days.includes(todayIndex));
+                                                    const allCompleted = visibleItems.length > 0 && visibleItems.every((i: any) => i.completed);
+                                                    
+                                                    onUpdateHabit(item.habitId, { checklist: newChecklist });
+                                                    
+                                                    const updatedHabit = { ...item.habit, checklist: newChecklist };
+                                                    if (allCompleted && !item.habit.completedToday) {
+                                                        onCompleteHabit({ stopPropagation: () => {} } as any, updatedHabit);
+                                                    } else if (!allCompleted && item.habit.completedToday) {
+                                                        onCompleteHabit({ stopPropagation: () => {} } as any, updatedHabit);
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            {item.isCompleted && <Check size={18} strokeWidth={3} />}
+                                        </div>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                displayedHabits.map(habit => {
+                                    const isDue = habit.frequency === 'DAILY' || 
+                                                (habit.frequency === 'WEEKLY' && 
+                                                (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
+                                                (habit.frequency === 'MONTHLY' && (
+                                                    habit.monthlyType === 'FLEXIBLE_COUNT' ||
+                                                    ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
+                                                        (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||
+                                                        (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
+                                                    ))
+                                                ));
+
+                                    return (
+                                        <div
+                                            key={habit.id}
+                                            {...longPressHandlers}
+                                            onContextMenu={(e) => {
+                                                if (!showArchived && onReorder && viewPreference === 'DEFAULT') {
+                                                    e.preventDefault();
+                                                    setIsReorderModalOpen(true);
+                                                }
+                                            }}
+                                            className="touch-manipulation w-full max-w-[600px]"
+                                        >
+                                            <HabitItem
+                                                habit={habit}
+                                                attribute={attributeMap.get(habit.attribute)}
+                                                onComplete={onCompleteHabit}
+                                                onClick={setMasteryHabit}
+                                                onUpdate={onUpdateHabit}
+                                                onEdit={onEditHabit}
+                                                onShowActions={onShowActions}
+                                                isDue={isDue}
+                                                reduceMotion={reduceMotion}
+                                                viewPreference={viewPreference}
+                                                weekStartDay={weekStartDay}
+                                            />
+                                        </div>
+                                    );
+                                })
+                            )}
 
                             {/* EMPTY STATE */}
                             {!showArchived && activeHabits.length === 0 && (
@@ -342,7 +627,13 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* Relapse History Chart */}
                             {!showArchived && activeBadHabits.length > 0 && (
                                 <div className="w-full max-w-[600px]">
-                                    <RelapseChart badHabits={activeBadHabits} />
+                                    <RelapseChart 
+                                        badHabits={activeBadHabits} 
+                                        isActive={isActive}
+                                        isPro={isPro}
+                                        onOpenPro={onOpenPro}
+                                        weekStartDay={weekStartDay || 1}
+                                    />
                                 </div>
                             )}
 
@@ -438,6 +729,22 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 onClose={() => setSelectedDetailBadHabit(null)}
                 habit={selectedDetailBadHabit}
                 attribute={selectedDetailBadHabit ? attributeMap.get(selectedDetailBadHabit.attribute) : undefined}
+            />
+
+            {quantityModalHabit && onUpdateHabit && (
+                <QuantityUpdateModal 
+                    habit={quantityModalHabit}
+                    isOpen={!!quantityModalHabit}
+                    onClose={() => setQuantityModalHabit(null)}
+                    onUpdate={onUpdateHabit}
+                />
+            )}
+
+            <HabitMasteryModal
+                isOpen={!!masteryHabit}
+                onClose={() => setMasteryHabit(null)}
+                habit={masteryHabit}
+                attribute={masteryHabit ? attributeMap.get(masteryHabit.attribute) : undefined}
             />
         </motion.div>
     );

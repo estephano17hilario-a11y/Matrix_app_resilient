@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { AVAILABLE_AVATARS } from '../../../config/avatars';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { doc, setDoc, db } from '../../../services/firebase';
 import { useTranslation } from 'react-i18next';
 

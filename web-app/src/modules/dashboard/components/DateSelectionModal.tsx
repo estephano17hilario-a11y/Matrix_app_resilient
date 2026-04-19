@@ -17,7 +17,7 @@ import {
     isSameYear,
     isWithinInterval
 } from 'date-fns';
-import { startOfWeek, endOfWeek } from '../../../utils/dateUtils';
+import { startOfWeek, endOfWeek, getWeekStartDay } from '../../../utils/dateUtils';
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 
@@ -150,7 +150,9 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
         const endDate = endOfWeek(monthEnd);
         const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-        const weekDays = t('common.weekdays.initials', { returnObjects: true }) as string[];
+        const weekDaysRaw = t('common.weekdays.initials', { returnObjects: true }) as string[];
+        const weekStart = getWeekStartDay();
+        const weekDays = weekStart === 1 ? [...weekDaysRaw.slice(1), weekDaysRaw[0]] : weekDaysRaw;
 
         // Calculate selected week range
         const selectedStart = startOfWeek(currentDate);
@@ -181,8 +183,8 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                 <div>
                     {/* Weekday Headers */}
                     <div className="grid grid-cols-7 mb-2">
-                        {weekDays.map(day => (
-                            <div key={day} className="text-center text-[10px] font-bold text-slate-500">
+                        {weekDays.map((day, i) => (
+                            <div key={`${day}-${i}`} className="text-center text-[10px] font-bold text-slate-500">
                                 {day}
                             </div>
                         ))}

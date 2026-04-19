@@ -42,15 +42,15 @@
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
   /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius */
   .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
     /* Removed translate3d to prevent GPU layer explosion which causes black screens */
   }
 
   /* Cap expensive filters globally to prevent GPU overload while keeping the aesthetic */
   .blur-sm, .blur-md, .blur-lg, .blur-xl, .blur-2xl, .blur-3xl, .blur-\[100px\], .blur-\[120px\], .blur-\[80px\], .blur-\[90px\], .blur-\[60px\], .blur {
-    filter: blur(4px) !important;
-    -webkit-filter: blur(4px) !important;
+    filter: blur(2px) !important;
+    -webkit-filter: blur(2px) !important;
     /* Removed translate3d/will-change to prevent layer explosion */
   }
 
@@ -258,13 +258,8 @@
 
 
 
-  .android-webview .backdrop-blur-sm,
-  .android-webview .backdrop-blur-md,
-  .android-webview .backdrop-blur-lg,
-  .android-webview .backdrop-blur-xl,
-  .android-webview .backdrop-blur-2xl,
-  .android-webview .backdrop-blur-3xl,
-  .android-webview .backdrop-blur {
+  .android-webview .backdrop-blur-sm.transform-gpu,
+  .android-webview .backdrop-blur.transform-gpu {
     backdrop-filter: blur(2px) !important;
     -webkit-backdrop-filter: blur(2px) !important;
     /* Removed translate3d and backface-visibility as they cause layer explosion on mobile */
@@ -582,6 +577,13 @@
     animation: galacticWave 4.5s linear infinite;
     display: inline-block;
   }
+}
+
+/* INSTANT TOUCH FEEDBACK - "The 0 Delay Feel" */
+button:active, [role="button"]:active, .clickable:active {
+    opacity: 0.7 !important;
+    transform: scale(0.97) !important;
+    transition: transform 0.05s ease-out, opacity 0.05s ease-out !important; /* Force instant but smooth change */
 }
 
 @layer utilities {

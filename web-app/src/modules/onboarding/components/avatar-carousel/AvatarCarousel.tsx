@@ -70,7 +70,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
 
       {/* Dynamic Cosmic Background that crossfades on avatar change */}
       <div className="absolute inset-0 -z-10 pointer-events-none bg-black overflow-hidden">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence>
           <motion.div
             key={currentAvatar.id}
             initial={{ opacity: 0 }}

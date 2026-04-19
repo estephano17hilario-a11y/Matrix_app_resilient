@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User, LogOut, Edit2, Check, X } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { getAvatarPath } from '../../../config/avatars';
 import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
 import { supabase } from '../../../services/supabase';

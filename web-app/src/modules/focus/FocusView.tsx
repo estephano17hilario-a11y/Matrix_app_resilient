@@ -20,7 +20,10 @@ export const FocusView = React.memo(({
     openArchived,
     onReorder,
     isPro,
-    onOpenPro
+    onOpenPro,
+    weekStartDay = 1,
+    defaultChartViews,
+    defaultProjectView
 }: {  
     projects: Project[], 
     attributes: Attribute[], 
@@ -41,9 +44,12 @@ export const FocusView = React.memo(({
     openArchived?: boolean,
     onExitSession?: any,
     onSelectProject?: any,
-    onReorder?: (projects: Project[]) => void,
-    isPro?: boolean,
-    onOpenPro?: () => void,
+    onReorder?: (projects: Project[]) => void;
+    isPro?: boolean;
+    onOpenPro?: () => void;
+    weekStartDay?: 0 | 1;
+    defaultChartViews?: any;
+    defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
 }) => {
     const { t } = useTranslation();
     // Navigation State
@@ -126,6 +132,7 @@ export const FocusView = React.memo(({
                     }}
                     isPro={isPro}
                     onOpenPro={onOpenPro}
+                    weekStartDay={weekStartDay}
                 />
             </AnimatePresence>
         );
@@ -142,6 +149,8 @@ export const FocusView = React.memo(({
                     onToggleArchived={() => setShowArchived(!showArchived)}
                     isPro={isPro}
                     onOpenPro={onOpenPro}
+                    defaultChartViews={defaultChartViews}
+                    defaultProjectView={defaultProjectView === 'NONE' ? 'TOTAL' : defaultProjectView as any}
                 />
             </div>
 

@@ -38,9 +38,6 @@ export const SettingsModal = () => {
         transition={{ duration: 0.2, ease: "easeOut" }}
         className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6"
         style={{ willChange: "opacity" }}
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-        onTouchStart={(e) => { e.stopPropagation(); }}
       >
       <div className="absolute inset-0 bg-black/80" onClick={(e) => {
         e.preventDefault();

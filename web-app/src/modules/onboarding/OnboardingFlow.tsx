@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Sparkles, Lock, ChevronDown } from 'lucide-react';
-import { doc, setDoc, db } from '../../services/firebase';
-import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../services/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
 import { TRAITS_LIST } from '../dashboard/constants';
 import { persistenceService } from '../../services/persistenceService';
@@ -12,7 +12,7 @@ import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 
-import { sanitizeFirestoreData } from '../../utils/firestoreUtils';
+
 
 // Modified steps: Removed 'intro' and 'language' as they are now pre-auth
 type Step = 'avatar' | 'traits' | 'saving';
@@ -173,19 +173,27 @@ export function OnboardingFlow() {
     
     try {
         // Background Save process (does not block UI)
-        const userRef = doc(db, "users", userId);
-        
-        // Wait for it to ensure no data loss on logout
-        const onboardingDataToSave = sanitizeFirestoreData({
-            avatarId: selectedAvatarId ?? profile?.avatarId,
+        const onboardingDataToSave = {
+            avatar_id: selectedAvatarId ?? profile?.avatarId,
             onboarding: updatedOnboarding,
             archetype: 'NEO',
-            updatedAt: Date.now()
-        });
+            updated_at: new Date().toISOString()
+        };
         
-        await setDoc(userRef, onboardingDataToSave, { merge: true });
+        // 🚀 FIX: Update Supabase directly instead of mocked setDoc
+        const { error: updateError } = await supabase
+            .from('users')
+            .update(onboardingDataToSave)
+            .eq('id', userId);
+
+        if (updateError) {
+            console.error("[Onboarding] Supabase update error:", updateError);
+            throw updateError;
+        }
 
         // Save Background Firebase Attributes
+        // Since persistenceService handles attributes, we leave it as is if it uses Supabase under the hood
+        // Or if it's local only. Let's make sure it doesn't crash.
         const attrPromises = attributesToSave.map(attr => 
             persistenceService.attributes.save(userId, attr)
         );
@@ -196,7 +204,7 @@ export function OnboardingFlow() {
         // Clear safety timer early since we are successfully processing
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
         
-        console.log("[Onboarding] ✅ Firebase save resolved successfully");
+        console.log("[Onboarding] ✅ Supabase save resolved successfully");
 
     } catch (e) {
         console.error("[Onboarding] Error saving data:", e);

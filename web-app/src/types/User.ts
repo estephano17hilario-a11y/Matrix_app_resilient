@@ -62,10 +62,20 @@ export interface UserProfile {
   dashboardStyle?: 'BORDER' | 'LIQUID';
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
+  defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';
   allowDockSectionSwitch?: boolean;
   dockConfig?: DockConfig;
   weekStartDay?: 0 | 1;
   
+  defaultChartViews?: {
+    tasks?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    habits?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    focus?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    projects?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    notes?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+  };
+  defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
+
   // Rate Limiting
   traitChanges?: {
     count: number;

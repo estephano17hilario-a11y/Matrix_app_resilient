@@ -26,7 +26,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
   }, [achievement, onClose]);
 
   return createPortal(
-    <AnimatePresence mode="popLayout">
+    <AnimatePresence>
       {achievement && (
         <motion.div
           layout

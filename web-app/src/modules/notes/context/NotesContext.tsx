@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Note, JournalEntry } from '../../../types';
 import { persistenceService } from '../../../services/persistenceService';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
 import { PersistenceService } from '../../../services/persistence';
 
@@ -114,21 +114,30 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!user?.id) return { isNew: false };
         const existing = notesRef.current;
         const isNew = !existing.some(n => n.id === note.id);
+        
         let nextNotes: Note[] = [];
 
         setNotes(prev => {
             const index = prev.findIndex(n => n.id === note.id);
             if (index >= 0) {
-                const newNotes = [...prev];
-                newNotes[index] = note;
-                nextNotes = newNotes;
-                return newNotes;
+                nextNotes = [...prev];
+                nextNotes[index] = note;
+            } else {
+                nextNotes = [...prev, note];
             }
-            nextNotes = [...prev, note];
             return nextNotes;
         });
-        PersistenceService.saveCollection(user.id, 'notes', nextNotes.length ? nextNotes : existing);
-        PersistenceService.saveCollectionSafe(user.id, 'notes', nextNotes.length ? nextNotes : existing);
+
+        // We can't rely on nextNotes from inside the setter immediately if it's asynchronous.
+        // Instead, we compute nextNotes independently.
+        const currentNotes = notesRef.current;
+        const index = currentNotes.findIndex(n => n.id === note.id);
+        const computedNextNotes = index >= 0 
+            ? currentNotes.map(n => n.id === note.id ? note : n) 
+            : [...currentNotes, note];
+
+        PersistenceService.saveCollection(user.id, 'notes', computedNextNotes);
+        PersistenceService.saveCollectionSafe(user.id, 'notes', computedNextNotes);
 
         if (!isNew) {
             await persistenceService.notes.update(user.id, note.id, note);
@@ -140,13 +149,12 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const deleteNote = useCallback(async (noteId: string) => {
         if (!user?.id) return;
-        let nextNotes: Note[] = [];
-        setNotes(prev => {
-            nextNotes = prev.filter(n => n.id !== noteId);
-            return nextNotes;
-        });
-        PersistenceService.saveCollection(user.id, 'notes', nextNotes);
-        PersistenceService.saveCollectionSafe(user.id, 'notes', nextNotes);
+
+        setNotes(prev => prev.filter(n => n.id !== noteId));
+
+        const computedNextNotes = notesRef.current.filter(n => n.id !== noteId);
+        PersistenceService.saveCollection(user.id, 'notes', computedNextNotes);
+        PersistenceService.saveCollectionSafe(user.id, 'notes', computedNextNotes);
 
         // Persistence
         await persistenceService.notes.delete(user.id, noteId);
@@ -156,21 +164,25 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!user?.id) return { isNew: false };
         const existing = journalRef.current;
         const isNew = !existing.some(e => e.id === entry.id);
-        let nextEntries: JournalEntry[] = [];
 
         setJournalEntries(prev => {
             const index = prev.findIndex(e => e.id === entry.id);
             if (index >= 0) {
                 const newEntries = [...prev];
                 newEntries[index] = entry;
-                nextEntries = newEntries;
                 return newEntries;
             }
-            nextEntries = [...prev, entry];
-            return nextEntries;
+            return [...prev, entry];
         });
-        PersistenceService.saveCollection(user.id, 'journal', nextEntries.length ? nextEntries : existing);
-        PersistenceService.saveCollectionSafe(user.id, 'journal', nextEntries.length ? nextEntries : existing);
+
+        const currentEntries = journalRef.current;
+        const index = currentEntries.findIndex(e => e.id === entry.id);
+        const computedNextEntries = index >= 0 
+            ? currentEntries.map(e => e.id === entry.id ? entry : e) 
+            : [...currentEntries, entry];
+
+        PersistenceService.saveCollection(user.id, 'journal', computedNextEntries);
+        PersistenceService.saveCollectionSafe(user.id, 'journal', computedNextEntries);
 
         if (!isNew) {
             await persistenceService.journal.update(user.id, entry.id, entry);

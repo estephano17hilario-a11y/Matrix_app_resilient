@@ -4,6 +4,7 @@ import { X, Calendar, Clock, Gift, Heart, Star, Type, Bell, Check, Repeat, Trash
 import { toast } from 'react-hot-toast';
 import { SpecialEvent } from './types';
 import { format, parseISO } from 'date-fns';
+import { TimePicker } from '../../../components/ui/TimePicker';
 
 interface CreateEventModalProps {
  isOpen: boolean;
@@ -178,11 +179,10 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <Clock size={12} />
  Notify At
  </label>
- <input 
- type="time" 
+ <TimePicker 
  value={time}
- onChange={(e) => setTime(e.target.value)}
- className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-white/30 transition-all text-sm font-mono appearance-none"
+ onChange={setTime}
+ className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-white/30 transition-all text-sm font-mono"
  />
  </div>
  </div>

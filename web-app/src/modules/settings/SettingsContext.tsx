@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { ThemeId } from '../../config/themes';
 import { Attribute } from '../../types';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Define the shape of the Settings Context
 interface SettingsContextType {
@@ -33,11 +33,24 @@ interface SettingsContextType {
   setDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;
   habitSectionControl: 'VISIBLE' | 'HIDDEN';
   updateHabitSectionControl: (control: 'VISIBLE' | 'HIDDEN') => void;
+  defaultHabitView: 'DEFAULT' | 'CHRONOLOGICAL';
+  updateDefaultHabitView: (view: 'DEFAULT' | 'CHRONOLOGICAL') => void;
   allowDockSectionSwitch: boolean;
   updateAllowDockSectionSwitch: (allow: boolean) => void;
   openDockConfig: () => void;
   weekStartDay: 0 | 1;
   updateWeekStartDay: (day: 0 | 1) => void;
+
+  defaultChartViews: {
+    tasks?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    habits?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    focus?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    projects?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+    notes?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
+  };
+  updateDefaultChartViews: (views: any) => void;
+  defaultProjectView: 'PROJECT' | 'TRAIT' | 'NONE';
+  updateDefaultProjectView: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
 
   // Account
   isPro: boolean;
@@ -73,11 +86,20 @@ interface SettingsProviderProps {
   onToggleVividMode?: (enabled: boolean) => void;
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;
+  defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';
+  onUpdateDefaultHabitView?: (view: 'DEFAULT' | 'CHRONOLOGICAL') => void;
   allowDockSectionSwitch?: boolean;
   onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;
   onOpenDockConfig?: () => void;
   weekStartDay?: 0 | 1;
   onWeekStartDayChange?: (day: 0 | 1) => void;
+  
+  defaultChartViews?: any;
+  onUpdateDefaultChartViews?: (views: any) => void;
+  defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
+  onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
+
+  // Account
 }
 
 export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) => {
@@ -109,11 +131,18 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     setDefaultChartMode: props.onSetDefaultChartMode,
     habitSectionControl: props.habitSectionControl || 'VISIBLE',
     updateHabitSectionControl: props.onUpdateHabitSectionControl || (() => {}),
+    defaultHabitView: props.defaultHabitView || 'DEFAULT',
+    updateDefaultHabitView: props.onUpdateDefaultHabitView || (() => {}),
     allowDockSectionSwitch: props.allowDockSectionSwitch || false,
     updateAllowDockSectionSwitch: props.onUpdateAllowDockSectionSwitch || (() => {}),
     openDockConfig: props.onOpenDockConfig || (() => {}),
     weekStartDay: props.weekStartDay ?? 1,
     updateWeekStartDay: props.onWeekStartDayChange || (() => {}),
+
+    defaultChartViews: props.defaultChartViews || {},
+    updateDefaultChartViews: props.onUpdateDefaultChartViews || (() => {}),
+    defaultProjectView: props.defaultProjectView || 'PROJECT',
+    updateDefaultProjectView: props.onUpdateDefaultProjectView || (() => {}),
 
     isPro: props.isPro || false,
     showProModal: props.onShowPro || (() => {}),

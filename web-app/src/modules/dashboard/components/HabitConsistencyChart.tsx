@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isWithinInterval } from 'date-fns';
+import { subDays, subMonths, format, isSameDay, isSameMonth, startOfMonth, endOfMonth, eachDayOfInterval, isFuture, startOfYear, addMonths, addDays, isSameWeek } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
@@ -18,9 +18,11 @@ interface HabitConsistencyChartProps {
     isActive?: boolean;
     isPro?: boolean;
     onOpenPro?: () => void;
+    weekStartDay?: 0 | 1;
+    initialTimeframe?: TimeFrame;
 }
 
-type TimeFrame = 'WEEK' | 'MONTH' | 'YEAR';
+type TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
 const getRequiredPercentForDay = (day: number) => {
     if (day <= 7) return 50;
@@ -31,7 +33,7 @@ const getRequiredPercentForDay = (day: number) => {
     return 85;
 };
 
-export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true, isPro, onOpenPro }) => {
+export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true, isPro, onOpenPro, weekStartDay = 1, initialTimeframe = 'WEEK' }) => {
     const { t, i18n } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
@@ -42,7 +44,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     const dateLocale = i18n.language === 'es' ? es : enUS;
 
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-    const [timeframe, setTimeframe] = useState<TimeFrame>('WEEK');
+    const [timeframe, setTimeframe] = useState<TimeFrame>(initialTimeframe);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
@@ -54,7 +56,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     }, [isActive]);
 
     const handleTabClick = (tf: TimeFrame) => {
-        if (!isPro && (tf === 'MONTH' || tf === 'YEAR')) {
+        if (!isPro && (tf === '3_MONTHS' || tf === 'YEAR' || tf === 'TOTAL')) {
             if (onOpenPro) onOpenPro();
             return;
         }
@@ -114,6 +116,19 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 if (h.frequency === 'WEEKLY') {
                     if (!h.frequencyDays || h.frequencyDays.length === 0) return true;
                     return h.frequencyDays.includes(dayOfWeek);
+                }
+                if (h.frequency === 'MONTHLY') {
+                    if (h.monthlyType === 'FLEXIBLE_COUNT') return true; // Flexible means it could be done any day
+                    
+                    const dateOfMonth = new Date(date).getDate();
+                    const isLastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === dateOfMonth;
+                    
+                    if (h.monthlyType === 'SPECIFIC_DATES' || !h.monthlyType) {
+                        if (h.frequencyDays && h.frequencyDays.includes(dateOfMonth)) return true;
+                        if (h.monthlyLastDay && isLastDay) return true;
+                        return false;
+                    }
+                    return true;
                 }
                 
                 return true;
@@ -379,7 +394,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 requiredToday
             }
         };
-    }, [habits, timeframe, currentDate, dateLocale]);
+    }, [habits, timeframe, currentDate, dateLocale, weekStartDay]);
 
     // Color logic for the progress bar
     const getProgressColor = (percent: number, required: number) => {
@@ -397,14 +412,12 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
     const isCurrentRange = useMemo(() => {
         const today = new Date();
         if (timeframe === 'WEEK') {
-            const start = currentDate;
-            const end = addDays(currentDate, 6);
-            return isWithinInterval(today, { start, end });
-        }
-        if (timeframe === 'MONTH') {
+            return isSameWeek(currentDate, today, { weekStartsOn: weekStartDay });
+        } else if (timeframe === 'MONTH') {
             return isSameMonth(currentDate, today);
+        } else {
+            return currentDate.getFullYear() === today.getFullYear();
         }
-        return currentDate.getFullYear() === today.getFullYear();
     }, [currentDate, timeframe]);
 
     const showTicks = timeframe === 'MONTH';
@@ -638,7 +651,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             </div>
 
             {/* --- NEW FOOTER: DAILY GOAL & PROGRESS --- */}
-            <div className="pt-2 border-t border-white/5 mt-1">
+            <div className="pt-1.5 border-t border-white/5 mt-0.5">
                 {todayStats.total > 0 ? (
                     <>
                     <div className="flex justify-between items-end mb-1">
