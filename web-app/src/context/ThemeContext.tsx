@@ -179,24 +179,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (user) {
       try {
         const prefs = { ...profile?.preferences, theme: newTheme };
+        auth?.updateProfileLocally({ preferences: prefs });
         await supabase.from('users').update({ preferences: prefs }).eq('id', user.id);
       } catch (error) {
         console.error("Failed to save theme to Lux:", error);
       }
     }
-  }, [user, profile?.preferences]);
+  }, [user, profile?.preferences, auth]);
 
   const setVividMode = useCallback(async (enabled: boolean) => {
     setVividModeState(enabled);
     if (user) {
         try {
           const prefs = { ...profile?.preferences, vividMode: enabled };
+          auth?.updateProfileLocally({ preferences: prefs });
           await supabase.from('users').update({ preferences: prefs }).eq('id', user.id);
         } catch (error) {
           console.error("Failed to save vivid mode to Lux:", error);
         }
       }
-  }, [user, profile?.preferences]);
+  }, [user, profile?.preferences, auth]);
 
   const value = useMemo(() => ({
     theme: activeTheme, // Provide the active theme (preview or real) to consumers

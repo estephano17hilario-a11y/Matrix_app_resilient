@@ -30,6 +30,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     // Block 2: Mechanics
     const [freq, setFreq] = useState('DAILY');
     const [weekDays, setWeekDays] = useState<number[]>([]);
+    const [weeklyType, setWeeklyType] = useState<'SPECIFIC_DAYS' | 'FLEXIBLE_COUNT'>('SPECIFIC_DAYS');
+    const [weeklyFlexibleCount, setWeeklyFlexibleCount] = useState<number>(1);
     const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'FLEXIBLE_COUNT'>('SPECIFIC_DATES');
     const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState<number>(1);
     const [monthlyLastDay, setMonthlyLastDay] = useState<boolean>(false);
@@ -79,6 +81,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setSmartProjectId(initialData.projectId || '');
                 setFreq(initialData.frequency || 'DAILY');
                 setWeekDays(initialData.frequencyDays || []);
+                setWeeklyType(initialData.weeklyType || 'SPECIFIC_DAYS');
+                setWeeklyFlexibleCount(initialData.weeklyFlexibleCount || 1);
                 setMonthlyType(initialData.monthlyType || 'SPECIFIC_DATES');
                 setMonthlyFlexibleCount(initialData.monthlyFlexibleCount || 1);
                 setMonthlyLastDay(initialData.monthlyLastDay || false);
@@ -116,6 +120,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setEstimatedTime(0);
                 setFreq('DAILY');
                 setWeekDays([]);
+                setWeeklyType('SPECIFIC_DAYS');
+                setWeeklyFlexibleCount(1);
                 setMonthlyType('SPECIFIC_DATES');
                 setMonthlyFlexibleCount(1);
                 setMonthlyLastDay(false);
@@ -163,7 +169,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     // Validation Logic
     const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
     const isBlock2Valid = (() => {
-        if (freq === 'WEEKLY' && weekDays.length === 0) return false;
+        if (freq === 'WEEKLY') {
+            if (weeklyType === 'SPECIFIC_DAYS' && weekDays.length === 0) return false;
+            if (weeklyType === 'FLEXIBLE_COUNT' && (!weeklyFlexibleCount || weeklyFlexibleCount < 1)) return false;
+        }
         if (freq === 'MONTHLY') {
             if (monthlyType === 'SPECIFIC_DATES' && weekDays.length === 0 && !monthlyLastDay) return false;
             if (monthlyType === 'FLEXIBLE_COUNT' && (!monthlyFlexibleCount || monthlyFlexibleCount < 1)) return false;
@@ -194,6 +203,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 type: logic,
                 frequency: freq,
                 frequencyDays: (freq === 'WEEKLY' || freq === 'MONTHLY') ? weekDays : undefined,
+                weeklyType: freq === 'WEEKLY' ? weeklyType : undefined,
+                weeklyFlexibleCount: freq === 'WEEKLY' ? weeklyFlexibleCount : undefined,
                 monthlyType: freq === 'MONTHLY' ? monthlyType : undefined,
                 monthlyFlexibleCount: freq === 'MONTHLY' ? monthlyFlexibleCount : undefined,
                 monthlyLastDay: freq === 'MONTHLY' ? monthlyLastDay : undefined,
@@ -210,11 +221,6 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 ...(initialData?.id ? { id: initialData.id } : {})
             });
             onClose();
-            
-            // Dispatch event for TourGuide
-            if (!initialData?.id) {
-                window.dispatchEvent(new CustomEvent('habit-created'));
-            }
         } catch (error) {
             console.error("Failed to save habit", error);
             setIsSubmitting(false);
@@ -223,9 +229,6 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
     const handleClose = () => {
         onClose();
-        if (!initialData?.id) {
-            window.dispatchEvent(new CustomEvent('habit-created'));
-        }
     };
 
     if (typeof document === 'undefined') return null;
@@ -274,6 +277,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         {t('habits.habit', 'Habit')}
                                     </div>
                                     <button 
+                                        data-tour="habit-modal-vice-switch"
                                         onClick={onSwitchToBadHabit}
                                         className="px-3 py-1 rounded-full text-white/40 text-[10px] font-bold hover:text-white transition-colors"
                                     >
@@ -484,19 +488,56 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
                                         
                                         {freq === 'WEEKLY' && (
-                                            <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
-                                                {weekDaysList.map(({ label, index }) => (
-                                                    <button 
-                                                        key={index} 
-                                                        onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
+                                            <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in p-2 bg-black/20 rounded-xl border border-white/5">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setWeeklyType('SPECIFIC_DAYS')}
                                                         className={cn(
-                                                            "w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold transition-all border",
-                                                            weekDays.includes(index) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            weeklyType === 'SPECIFIC_DAYS' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
                                                         )}
                                                     >
-                                                        {label}
+                                                        {t('habits.specificDays', 'SPECIFIC DAYS')}
                                                     </button>
-                                                ))}
+                                                    <button
+                                                        onClick={() => setWeeklyType('FLEXIBLE_COUNT')}
+                                                        className={cn(
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            weeklyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
+                                                    </button>
+                                                </div>
+
+                                                {weeklyType === 'SPECIFIC_DAYS' ? (
+                                                    <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
+                                                        {weekDaysList.map(({ label, index }) => (
+                                                            <button 
+                                                                key={index} 
+                                                                onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
+                                                                className={cn(
+                                                                    "w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold transition-all border",
+                                                                    weekDays.includes(index) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                )}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
+                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerWeek', 'Times per week')}:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max="7" 
+                                                            value={weeklyFlexibleCount} 
+                                                            onChange={(e) => setWeeklyFlexibleCount(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
+                                                            className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 

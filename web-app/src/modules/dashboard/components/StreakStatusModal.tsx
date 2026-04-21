@@ -251,7 +251,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                     )}
 
                                     {/* WEEKLY VIEW */}
-                                    <div className="w-full bg-white/5 rounded-2xl p-3 mb-5 border border-white/5">
+                                    <div className="w-full bg-white/10 rounded-2xl p-3 mb-5 border border-white/10">
                                         <div className="flex justify-between items-center w-full px-1">
                                             {weekData.map((day, i) => (
                                                 <div key={i} className="flex flex-col items-center gap-1.5 relative">
@@ -269,8 +269,8 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                                 <Flame size={14} className="text-white drop-shadow-md" fill="currentColor" />
                                                             </motion.div>
                                                         ) : (
-                                                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all ${day.isFuture ? 'bg-transparent border-white/5' : 'bg-black/40 border-white/10'}`}>
-                                                                {!day.isFuture && <Circle size={8} className="text-white/10" />}
+                                                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all ${day.isFuture ? 'bg-transparent border-white/5' : 'bg-white/5 border-white/10'}`}>
+                                                                {!day.isFuture && <Circle size={8} className="text-white/20" />}
                                                             </div>
                                                         )}
                                                         {day.isToday && (

@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { Purchases, LOG_LEVEL, CustomerInfo } from '@revenuecat/purchases-capacitor';
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 
 const RC_API_KEY = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw";
@@ -32,7 +32,7 @@ export const initRevenueCat = async (supabaseUserId?: string) => {
       
       // If we provided a supabaseUserId, ensure we log in with it
       if (supabaseUserId) {
-        const { customerInfo, created } = await Purchases.logIn({ appUserID: supabaseUserId });
+        const { created } = await Purchases.logIn({ appUserID: supabaseUserId });
         console.log(`RevenueCat: User ${created ? 'created' : 'logged in'} with ID: ${supabaseUserId}`);
       }
     }
@@ -48,7 +48,7 @@ export const loginRevenueCat = async (supabaseUserId: string): Promise<boolean> 
   if (!Capacitor.isNativePlatform()) return false;
   
   try {
-    const { customerInfo, created } = await Purchases.logIn({ appUserID: supabaseUserId });
+    const { created } = await Purchases.logIn({ appUserID: supabaseUserId });
     console.log(`RevenueCat: User logged in. Created new user: ${created}`);
     return true;
   } catch (error) {
@@ -64,7 +64,7 @@ export const checkProEntitlement = async (): Promise<boolean> => {
   if (!Capacitor.isNativePlatform()) return false;
   
   try {
-    const customerInfo: CustomerInfo = await Purchases.getCustomerInfo();
+    const { customerInfo } = await Purchases.getCustomerInfo();
     // Check if the specific entitlement is active
     return typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== "undefined";
   } catch (error) {
@@ -119,7 +119,7 @@ export const restorePurchases = async (): Promise<boolean> => {
   if (!Capacitor.isNativePlatform()) return false;
   
   try {
-    const customerInfo = await Purchases.restorePurchases();
+    const { customerInfo } = await Purchases.restorePurchases();
     return typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== "undefined";
   } catch (error) {
     console.error("Error restoring purchases:", error);

@@ -49,6 +49,18 @@ export interface UserProfile {
   preferences?: {
     theme?: string;
     vividMode?: boolean;
+    avatarShape?: 'CIRCLE' | 'SQUARE';
+    dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
+    habitSectionControl?: 'VISIBLE' | 'HIDDEN';
+    defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';
+    allowDockSectionSwitch?: boolean;
+    dockConfig?: DockConfig;
+    weekStartDay?: 0 | 1;
+    defaultChartMode?: 'RADAR' | 'BAR';
+    showProfile?: boolean;
+    defaultChartViews?: any;
+    defaultProjectView?: any;
+    defaultTaskFilters?: any;
   };
   dailyLimits?: DailyLimits;
   unlockedAchievements?: string[];
@@ -59,13 +71,15 @@ export interface UserProfile {
   lastLoginAt: number;
   // Configuración visual
   theme: 'ETHER' | 'MATRIX' | 'SUNSET';
-  dashboardStyle?: 'BORDER' | 'LIQUID';
+  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';
   defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';
   allowDockSectionSwitch?: boolean;
   dockConfig?: DockConfig;
   weekStartDay?: 0 | 1;
+  defaultChartMode?: 'RADAR' | 'BAR';
+  showProfile?: boolean;
   
   defaultChartViews?: {
     tasks?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
@@ -75,6 +89,13 @@ export interface UserProfile {
     notes?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
   };
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
+  defaultTaskFilters?: {
+    timeframe?: 'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS';
+    traitFilter?: string;
+    typeFilter?: 'all' | 'normal' | 'smart';
+    difficultyFilter?: 'all' | 'S' | 'A' | 'B' | 'C';
+    hideCompleted?: boolean;
+  };
 
   // Rate Limiting
   traitChanges?: {

@@ -137,6 +137,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         const saved = localStorage.getItem('habitViewPreference');
         return (saved === 'CHRONOLOGICAL' || saved === 'DEFAULT') ? saved : (defaultViewPreference || 'DEFAULT');
     });
+    const [hideCompletedChronological, setHideCompletedChronological] = useState(() => {
+        const saved = localStorage.getItem('hideCompletedChronological');
+        return saved === 'true';
+    });
 
     useEffect(() => {
         if (defaultViewPreference && defaultViewPreference !== viewPreference && isActive) {
@@ -147,6 +151,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     useEffect(() => {
         localStorage.setItem('habitViewPreference', viewPreference);
     }, [viewPreference]);
+
+    useEffect(() => {
+        localStorage.setItem('hideCompletedChronological', hideCompletedChronological.toString());
+    }, [hideCompletedChronological]);
 
     // Split habits into active and archived
     const { activeHabits, archivedHabits } = useMemo(() => {
@@ -187,7 +195,16 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 };
                 const timeA = getEarliestTime(a);
                 const timeB = getEarliestTime(b);
-                return timeA.localeCompare(timeB);
+                
+                const parseTime = (timeStr: string) => {
+                    if (!timeStr) return 24 * 60;
+                    const parts = timeStr.split(':');
+                    const hours = parseInt(parts[0], 10) || 0;
+                    const minutes = parseInt(parts[1], 10) || 0;
+                    return hours * 60 + minutes;
+                };
+
+                return parseTime(timeA) - parseTime(timeB);
             });
         } else {
             // Sort by order first
@@ -267,8 +284,21 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             }
         });
 
-        return items.sort((a, b) => a.time.localeCompare(b.time));
-    }, [displayedHabits, currentDate, viewPreference, attributeMap]);
+        let sortedItems = items.sort((a, b) => {
+            const parseTime = (timeStr: string) => {
+                if (!timeStr) return 24 * 60;
+                const parts = timeStr.split(':');
+                const hours = parseInt(parts[0], 10) || 0;
+                const minutes = parseInt(parts[1], 10) || 0;
+                return hours * 60 + minutes;
+            };
+            return parseTime(a.time) - parseTime(b.time);
+        });
+        if (hideCompletedChronological) {
+            sortedItems = sortedItems.filter(item => !item.isCompleted);
+        }
+        return sortedItems;
+    }, [displayedHabits, currentDate, viewPreference, attributeMap, hideCompletedChronological]);
 
     const reduceMotion = useMemo(() => {
         return displayedHabits.length + badHabits.length > 20;
@@ -356,44 +386,61 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         initialTimeframe={defaultChartViews?.habits}
                                     />
                                     
-                                    {/* View Switcher */}
-                                    <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-1 mt-1 -mb-1.5 mx-auto w-full max-w-[280px]">
-                                        <button
-                                            onClick={() => setViewPreference('DEFAULT')}
-                                            className={cn(
-                                                "relative flex-1 z-10 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors duration-300",
-                                                viewPreference === 'DEFAULT' 
-                                                    ? "text-white" 
-                                                    : "text-white/40 hover:text-white/60"
-                                            )}
-                                        >
-                                            {viewPreference === 'DEFAULT' && (
-                                                <motion.div
-                                                    layoutId="view-toggle"
-                                                    className="absolute inset-0 bg-white/[0.03] rounded-lg"
-                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                />
-                                            )}
-                                            <span className="relative z-20">{t('habits.viewPriority', 'Prioridad')}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setViewPreference('CHRONOLOGICAL')}
-                                            className={cn(
-                                                "relative flex-1 z-10 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors duration-300",
-                                                viewPreference === 'CHRONOLOGICAL' 
-                                                    ? "text-indigo-400" 
-                                                    : "text-white/40 hover:text-white/60"
-                                            )}
-                                        >
-                                            {viewPreference === 'CHRONOLOGICAL' && (
-                                                <motion.div
-                                                    layoutId="view-toggle"
-                                                    className="absolute inset-0 bg-indigo-500/5 rounded-lg"
-                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                />
-                                            )}
-                                            <span className="relative z-20">{t('habits.viewChronological', 'Cronológico')}</span>
-                                        </button>
+                                    {/* View Switcher and Controls */}
+                                    <div className="flex items-center justify-center gap-2 mt-1 -mb-1.5 mx-auto w-full max-w-[260px]">
+                                        <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-0.5 flex-1">
+                                            <button
+                                                onClick={() => setViewPreference('DEFAULT')}
+                                                className={cn(
+                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                    viewPreference === 'DEFAULT' 
+                                                        ? "text-white" 
+                                                        : "text-white/40 hover:text-white/60"
+                                                )}
+                                            >
+                                                {viewPreference === 'DEFAULT' && (
+                                                    <motion.div
+                                                        layoutId="view-toggle"
+                                                        className="absolute inset-0 bg-white/[0.03] rounded-[10px]"
+                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    />
+                                                )}
+                                                <span className="relative z-20">{t('habits.viewPriority', 'Prioridad')}</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setViewPreference('CHRONOLOGICAL')}
+                                                className={cn(
+                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                    viewPreference === 'CHRONOLOGICAL' 
+                                                        ? "text-indigo-400" 
+                                                        : "text-white/40 hover:text-white/60"
+                                                )}
+                                            >
+                                                {viewPreference === 'CHRONOLOGICAL' && (
+                                                    <motion.div
+                                                        layoutId="view-toggle"
+                                                        className="absolute inset-0 bg-indigo-500/5 rounded-[10px]"
+                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    />
+                                                )}
+                                                <span className="relative z-20">{t('habits.viewChronological', 'Cronológico')}</span>
+                                            </button>
+                                        </div>
+                                        
+                                        {viewPreference === 'CHRONOLOGICAL' && (
+                                            <button
+                                                onClick={() => setHideCompletedChronological(!hideCompletedChronological)}
+                                                className={cn(
+                                                    "p-2 rounded-xl border transition-colors duration-300 flex items-center justify-center shrink-0",
+                                                    hideCompletedChronological 
+                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
+                                                        : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                                )}
+                                                title={hideCompletedChronological ? t('habits.showCompleted', 'Mostrar completados') : t('habits.hideCompleted', 'Ocultar completados')}
+                                            >
+                                                {hideCompletedChronological ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -480,7 +527,21 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         </div>
 
                                         {item.time && item.time !== '23:59' && (
-                                            <div className="flex items-center gap-1 relative z-10">
+                                            <div 
+                                                className="flex items-center gap-1 relative z-10 cursor-pointer hover:bg-white/5 rounded px-3 py-4 -mx-3 -my-4 transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onEditHabit) {
+                                                        const habitToEdit = {
+                                                            ...item.habit,
+                                                            _initialTab: item.type === 'SUBTASK' ? 'checklist' : 'alarm',
+                                                            _targetSubtaskId: item.type === 'SUBTASK' ? item.subtaskId : undefined
+                                                        };
+                                                        onEditHabit(habitToEdit);
+                                                    }
+                                                }}
+                                                title="Cambiar alarma"
+                                            >
                                                 <LucideIcons.AlertCircle size={10} className={item.isCompleted ? "text-white/20" : "text-orange-400/80"} />
                                                 <span className={cn(
                                                     "text-[10px] font-bold tracking-wider",
@@ -543,9 +604,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             ) : (
                                 displayedHabits.map(habit => {
                                     const isDue = habit.frequency === 'DAILY' || 
-                                                (habit.frequency === 'WEEKLY' && 
-                                                (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
-                                                (habit.frequency === 'MONTHLY' && (
+                                                    (habit.frequency === 'WEEKLY' && 
+                                                    (habit.weeklyType === 'FLEXIBLE_COUNT' || !habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
+                                                    (habit.frequency === 'MONTHLY' && (
                                                     habit.monthlyType === 'FLEXIBLE_COUNT' ||
                                                     ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
                                                         (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||

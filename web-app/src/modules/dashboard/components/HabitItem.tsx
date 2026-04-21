@@ -46,6 +46,21 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
   const isCompletedToday = completedOverride ?? habit.completedToday;
 
   const progressText = React.useMemo(() => {
+    if (habit.frequency === 'WEEKLY' && habit.weeklyType === 'FLEXIBLE_COUNT' && habit.weeklyFlexibleCount) {
+        const now = new Date();
+        // Calculate start of week and end of week (assuming Monday as start)
+        const day = now.getDay() || 7; // Convert Sunday (0) to 7
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - day + 1);
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const completions = habit.history?.filter(d => {
+            const date = new Date(d);
+            return date >= startOfWeek && date <= now;
+        }).length || 0;
+        return `${completions}/${habit.weeklyFlexibleCount} ${t('common.thisWeek', 'This week')}`;
+    }
+
     if (habit.frequency === 'MONTHLY' && habit.monthlyType === 'FLEXIBLE_COUNT' && habit.monthlyFlexibleCount) {
         const now = new Date();
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -246,7 +261,16 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             </span>
 
             {timeDisplay && (
-                <span className="text-[11px] text-white/30 font-medium tracking-wider pl-1 border-l border-white/10 flex items-center gap-1">
+                <span 
+                    className="text-[11px] text-white/30 font-medium tracking-wider pl-1 border-l border-white/10 flex items-center gap-1 cursor-pointer hover:text-white/60 transition-colors"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onEdit) {
+                            onEdit({ ...habit, _initialTab: 'alarm' } as any);
+                        }
+                    }}
+                    title="Cambiar alarma"
+                >
                     {timeDisplay}
                 </span>
             )}
@@ -275,8 +299,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                           : "bg-black/20 border-white/20 group-hover/item:border-white/40"
                                   )}
                                   style={{
-                                      backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined,
-                                      borderColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined
+                                      backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : baseColor)) : undefined,
+                                      borderColor: item.completed ? 'transparent' : (item.color || baseColor)
                                   }}
                               >
                               {item.completed && <Check size={10} strokeWidth={3} />}
@@ -288,10 +312,19 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                               {item.text}
                           </span>
                           {item.reminderTime && (
-                              <span className={cn(
-                                  "text-[10px] font-bold tracking-wider flex items-center gap-1",
-                                  item.completed ? "text-white/20" : "text-orange-400"
-                              )}>
+                              <span 
+                                  className={cn(
+                                      "text-[10px] font-bold tracking-wider flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity",
+                                      item.completed ? "text-white/20" : "text-orange-400"
+                                  )}
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onEdit) {
+                                          onEdit({ ...habit, _initialTab: 'checklist', _targetSubtaskId: item.id } as any);
+                                      }
+                                  }}
+                                  title="Cambiar alarma"
+                              >
                                   <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
                               </span>
                           )}
@@ -368,8 +401,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                                     : "bg-white/5 border-white/20 group-hover/item:border-white/40"
                                             )}
                                             style={{
-                                                backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined,
-                                                borderColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : '#6366f1')) : undefined
+                                                backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : baseColor)) : undefined,
+                                                borderColor: item.completed ? 'transparent' : (item.color || baseColor)
                                             }}
                                         >
                                         {item.completed && <Check size={12} strokeWidth={3} />}

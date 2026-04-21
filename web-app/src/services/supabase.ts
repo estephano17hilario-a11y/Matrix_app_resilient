@@ -72,11 +72,11 @@ export type User = any;
 // Mock Firebase functions to fix build errors during migration
 export const doc: any = (...args: any[]) => ({ id: args.join('/') });
 export const collection: any = (...args: any[]) => ({ path: args.join('/') });
-export const getDocs: any = async (...args: any[]) => ({ docs: [] });
-export const setDoc: any = async (...args: any[]) => { return {}; };
+export const getDocs: any = async (..._args: any[]) => ({ docs: [] });
+export const setDoc: any = async (..._args: any[]) => { return {}; };
 export const query: any = (...args: any[]) => args;
-export const getDoc: any = async (...args: any[]) => ({ exists: () => false, data: () => ({}) });
-export const runTransaction = async (db: any, updateFunction: any) => {
+export const getDoc: any = async (..._args: any[]) => ({ exists: () => false, data: () => ({}) });
+export const runTransaction = async (_db: any, updateFunction: any) => {
     const mockTransaction = {
         get: async () => ({ exists: () => false, data: () => ({}) }),
         update: () => {},
@@ -86,30 +86,30 @@ export const runTransaction = async (db: any, updateFunction: any) => {
     return updateFunction(mockTransaction);
 };
 export const serverTimestamp: any = () => new Date().toISOString();
-export const writeBatch: any = (...args: any[]) => ({
+export const writeBatch: any = (..._args: any[]) => ({
     set: () => {},
     update: () => {},
     delete: () => {},
     commit: async () => {}
 });
 export const increment: any = (n: number) => n;
-export const addDoc: any = async (...args: any[]) => ({ id: 'mock-id' });
+export const addDoc: any = async (..._args: any[]) => ({ id: 'mock-id' });
 export const arrayUnion: any = (...args: any[]) => args;
-export const updateDoc: any = async (...args: any[]) => { return {}; };
-export const deleteDoc: any = async (...args: any[]) => { return {}; };
-export const getRedirectResult: any = async (...args: any[]) => null;
+export const updateDoc: any = async (..._args: any[]) => { return {}; };
+export const deleteDoc: any = async (..._args: any[]) => { return {}; };
+export const getRedirectResult: any = async (..._args: any[]) => null;
 
 // Additional mock Firebase auth and firestore functions to prevent build errors
-export const onAuthStateChanged: any = (auth: any, callback: any) => { callback(null); return () => {}; };
-export const signOut: any = async (...args: any[]) => { return {}; };
-export const waitForPendingWrites: any = async (...args: any[]) => { return {}; };
+export const onAuthStateChanged: any = (_auth: any, callback: any) => { callback(null); return () => {}; };
+export const signOut: any = async (..._args: any[]) => { return {}; };
+export const waitForPendingWrites: any = async (..._args: any[]) => { return {}; };
 export const GoogleAuthProvider: any = class {};
-export const signInWithPopup: any = async (...args: any[]) => { return {}; };
-export const signInWithRedirect: any = async (...args: any[]) => { return {}; };
-export const signInWithCredential: any = async (...args: any[]) => { return {}; };
-export const signInAnonymously: any = async (...args: any[]) => { return {}; };
-export const updateProfile: any = async (...args: any[]) => { return {}; };
-export const onSnapshot: any = (...args: any[]) => { return () => {}; };
+export const signInWithPopup: any = async (..._args: any[]) => { return {}; };
+export const signInWithRedirect: any = async (..._args: any[]) => { return {}; };
+export const signInWithCredential: any = async (..._args: any[]) => { return {}; };
+export const signInAnonymously: any = async (..._args: any[]) => { return {}; };
+export const updateProfile: any = async (..._args: any[]) => { return {}; };
+export const onSnapshot: any = (..._args: any[]) => { return () => {}; };
 
 // Mock Firebase types
 export type Firestore = any;

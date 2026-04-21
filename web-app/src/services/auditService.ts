@@ -1,4 +1,4 @@
-import { db, collection, addDoc, serverTimestamp, auth } from './firebase';
+import { auth } from './firebase';
 
 export interface AuditLogEntry {
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'SOFT_DELETE' | 'LOGIN' | 'LOGOUT' | 'ERROR';
@@ -20,21 +20,11 @@ export const AuditLogger = {
     action: AuditLogEntry['action'],
     collectionName: string,
     documentId: string,
-    details?: any
+    _details?: any
   ) => {
     try {
       const user = auth.currentUser;
       if (!user) return; // No podemos auditar sin usuario autenticado (por ahora)
-
-      const logEntry: AuditLogEntry = {
-        action,
-        collection: collectionName,
-        documentId,
-        userId: user.id,
-        timestamp: serverTimestamp(),
-        details: details ? JSON.stringify(details) : null,
-        deviceInfo: navigator.userAgent
-      };
 
       // Guardamos en la colección raíz 'audit_logs' o dentro del usuario 'users/{uid}/audit_logs'
       // Para robustez bancaria, idealmente debería ser una colección raíz con permisos de solo escritura.
@@ -42,6 +32,7 @@ export const AuditLogger = {
       // lo hemos desactivado. Si deseas persistencia de logs de auditoría en el futuro, 
       // puedes habilitar la inserción en Supabase, pero consumirá almacenamiento.
       
+      // const logEntry: AuditLogEntry = { ... };
       // await addDoc(collection(db, 'users', user.id, 'audit_logs'), logEntry);
       
       console.log(`[AUDIT] ${action} on ${collectionName}/${documentId}`);

@@ -26,10 +26,10 @@ const COLOR_PALETTE = {
     'Grises': ['#ffffff', '#f8fafc', '#e2e8f0', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b']
 };
 
-import { ICON_CATEGORIES } from '../constants/iconCategories';
+import { ICON_CATEGORIES, ICON_KEYWORDS_ES, ICON_KEYWORDS_EN } from '../constants/iconCategories';
 
 export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelectColor, onToggle }: IconPickerProps) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
@@ -59,8 +59,19 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
     // Filter icons based on search or category
     const filteredIcons = useMemo(() => {
         if (searchTerm) {
-            const lowerTerm = searchTerm.toLowerCase();
-            return iconList.filter(name => name.toLowerCase().includes(lowerTerm));
+            const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const lowerTerm = normalize(searchTerm);
+            
+            const currentLang = i18n.language || 'es';
+            const isEnglish = currentLang.startsWith('en');
+            const activeKeywords = isEnglish ? ICON_KEYWORDS_EN : ICON_KEYWORDS_ES;
+
+            return iconList.filter(name => {
+                if (normalize(name).includes(lowerTerm)) return true;
+                const keywords = activeKeywords[name];
+                if (keywords && keywords.some(kw => normalize(kw).includes(lowerTerm))) return true;
+                return false;
+            });
         }
         
         if (activeCategory === 'All') {
@@ -69,7 +80,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
 
         // Return curated icons for category, but ensure they exist in Lucide
         return ICON_CATEGORIES[activeCategory]?.filter(icon => iconList.includes(icon)) || [];
-    }, [iconList, searchTerm, activeCategory]);
+    }, [iconList, searchTerm, activeCategory, i18n.language]);
 
     const displayedIcons = useMemo(() => {
         return filteredIcons.slice(0, displayLimit);

@@ -68,7 +68,7 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: { icon: any, l
       <Icon size={20} style={{ color }} className="drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
     </div>
     
-    <span className="text-2xl font-black text-white tracking-tight leading-none mb-1 group-hover:scale-105 transition-transform">
+    <span className={`font-black text-white tracking-tight leading-none mb-1 group-hover:scale-105 transition-transform whitespace-nowrap ${String(value).length > 4 ? 'text-lg' : 'text-2xl'}`}>
       {value}
     </span>
     <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] text-center leading-tight">

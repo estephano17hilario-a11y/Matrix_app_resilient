@@ -157,7 +157,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.8, type: "spring", stiffness: 300, damping: 20 }}
-                            className="w-full bg-white/5 rounded-3xl p-4 border border-white/10 shadow-md"
+                            className="w-full bg-white/10 rounded-3xl p-4 border border-white/10 shadow-md"
                         >
                             <div className="flex justify-between items-center w-full px-1">
                                 {weekData.map((day, i) => (
@@ -176,7 +176,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                                                     <Flame size={18} className="text-white drop-shadow-md" fill="currentColor" />
                                                 </motion.div>
                                             ) : (
-                                                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all ${day.isFuture ? 'bg-transparent border-white/5' : 'bg-black/50 border-white/10'}`}>
+                                                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all ${day.isFuture ? 'bg-transparent border-white/5' : 'bg-white/5 border-white/10'}`}>
                                                     {!day.isFuture && <Circle size={10} className="text-white/20" />}
                                                 </div>
                                             )}

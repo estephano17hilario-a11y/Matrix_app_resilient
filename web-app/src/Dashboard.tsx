@@ -384,6 +384,7 @@ export default function Dashboard() {
   const validateHabitProgress = useCallback(() => logicRef.current.validateHabitProgress(), []);
   const updateAttributeMetadata = useCallback((id: string, updates: Partial<Attribute>) => logicRef.current.updateAttributeMetadata(id, updates), []);
   const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);
+  const addCustomAttribute = useCallback((attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => logicRef.current.addCustomAttribute(attr), []);
  const removeAttribute = useCallback((id: string) => logicRef.current.removeAttribute(id), []);
  const updateDashboardStyle = useCallback((s: any) => logicRef.current.updateDashboardStyle(s), []);
  const updateAvatarShape = useCallback((s: any) => logicRef.current.updateAvatarShape(s), []);
@@ -791,18 +792,21 @@ export default function Dashboard() {
  const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
  handleProjectConfirm(data);
  setModalInitialContext(null);
+ window.dispatchEvent(new CustomEvent('project-created'));
  }, [handleProjectConfirm]);
 
  const handleQuestModalClose = useCallback(() => {
  setActiveModal(null);
  setEditingQuest(null);
  setSmartTaskProps(null);
+ window.dispatchEvent(new CustomEvent('quest-created'));
  }, []);
 
- const handleQuestSave = useCallback(async (quest: Partial<Quest>) => {
- await handleQuestConfirm(quest);
+ const handleQuestSave = useCallback((quest: Partial<Quest>) => {
+ handleQuestConfirm(quest);
  setEditingQuest(null);
  setSmartTaskProps(null);
+ window.dispatchEvent(new CustomEvent('quest-created'));
  }, [handleQuestConfirm]);
 
  const handleDeleteSmartProject = useCallback(async (projectId?: string) => {
@@ -1682,13 +1686,13 @@ export default function Dashboard() {
  attributes={attributes} 
  smartProjects={smartProjects}
  projects={projects}
- onConfirm={handleHabitConfirm}
+ onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
  initialData={editingHabit || modalInitialContext || undefined}
  onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
  />
  <ProjectModal 
  isOpen={activeModal === 'PROJECT'} 
- onClose={() => { setActiveModal(null); setModalInitialContext(null); }} 
+ onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
  attributes={attributes} 
  smartProjects={smartProjects} 
  onConfirm={handleProjectConfirmAndReset} 
@@ -1763,8 +1767,8 @@ export default function Dashboard() {
  {/* --- SETTINGS OVERLAY --- */}
  <AnimatePresence>
  {isSettingsOpen && (
- <Suspense fallback={null}>
  <SettingsView 
+ key="settings-view"
  currentTheme={currentTheme}
  onThemeToggle={(id) => setCurrentTheme(id as any)}
  showProfile={showProfile}
@@ -1776,6 +1780,7 @@ export default function Dashboard() {
  attributes={attributes}
  onUpdateAttribute={updateAttributeMetadata}
  onAddAttribute={addAttribute}
+ onAddCustomAttribute={addCustomAttribute}
  onRemoveAttribute={removeAttribute}
  onShowPro={() => setActiveModal('PRO')}
  isPro={user?.plan === 'PRO'}
@@ -1813,8 +1818,15 @@ export default function Dashboard() {
        await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
    }
  }}
+ defaultTaskFilters={user?.defaultTaskFilters}
+ onUpdateDefaultTaskFilters={async (filters) => {
+   if (user?.id) {
+       const newPrefs = { ...(user.preferences || {}), defaultTaskFilters: filters };
+       updateProfileLocally({ defaultTaskFilters: filters, preferences: newPrefs });
+       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+   }
+ }}
  />
- </Suspense>
  )}
  </AnimatePresence>
 

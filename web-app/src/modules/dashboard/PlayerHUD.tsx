@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Hexagon, BarChart3, HelpCircle } from 'lucide-react';
+import { Hexagon, BarChart3, HelpCircle } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { LiquidProgressBar } from '@/components/ui/LiquidProgressBar';
 import { cn } from '@/utils/cn';

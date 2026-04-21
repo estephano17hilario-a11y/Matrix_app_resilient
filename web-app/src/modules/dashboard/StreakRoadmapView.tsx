@@ -170,8 +170,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
     return (
         <motion.div 
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            animate={{ opacity: 1, pointerEvents: "auto" }}
+            exit={{ opacity: 0, pointerEvents: "none" }}
             className="fixed inset-0 z-50 bg-[#020204] text-white flex flex-col h-full w-full overflow-hidden font-sans"
         >
             {/* Background Ambience (Optimized for Performance) */}

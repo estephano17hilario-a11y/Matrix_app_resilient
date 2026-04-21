@@ -93,23 +93,39 @@ export const generateFocusData = (
               }
           });
       }
-      const start = startOfWeek(minDate);
-      const end = new Date();
-      const daysDiff = differenceInDays(end, start);
       
-      if (daysDiff > 365) {
-          const months = eachMonthOfInterval({ start, end });
-          buckets = months.map(m => ({
-              start: m,
-              end: endOfMonth(m),
-              label: format(m, 'MMM yyyy', { locale: es })
+      const end = new Date();
+      const daysDiff = differenceInDays(end, minDate);
+      
+      if (daysDiff <= 30) {
+          // Si el historial es muy corto, mostrar por días (mínimo 7 días)
+          const start = new Date(minDate); start.setHours(0,0,0,0);
+          const adjustedStart = daysDiff < 7 ? new Date(end.getTime() - 6 * 86400000) : start;
+          adjustedStart.setHours(0,0,0,0);
+          
+          const days = eachDayOfInterval({ start: adjustedStart, end });
+          buckets = days.map(d => ({
+              start: d,
+              end: new Date(d.getTime() + 86400000 - 1),
+              label: format(d, 'd/M')
           }));
-      } else {
+      } else if (daysDiff <= 365) {
+          // Hasta un año, mostrar por semanas
+          const start = startOfWeek(minDate);
           const weeks = eachWeekOfInterval({ start, end });
           buckets = weeks.map(w => ({
               start: w,
               end: endOfWeek(w),
               label: format(w, 'd/M')
+          }));
+      } else {
+          // Más de un año, mostrar por meses
+          const start = startOfMonth(minDate);
+          const months = eachMonthOfInterval({ start, end });
+          buckets = months.map(m => ({
+              start: m,
+              end: endOfMonth(m),
+              label: format(m, 'MMM yyyy', { locale: es })
           }));
       }
   }

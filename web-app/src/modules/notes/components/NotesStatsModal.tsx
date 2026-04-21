@@ -62,7 +62,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay, isLocked, 
  {isLocked && <Lock size={10} className="text-yellow-400 ml-auto" />}
  </div>
  <div>
- <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
+ <div className={`font-bold text-white tracking-tight whitespace-nowrap ${String(value).length > 4 ? 'text-lg' : 'text-2xl'}`}>{value}</div>
  {subValue && <div className="text-[10px] font-medium text-white/40 mt-0.5">{subValue}</div>}
  </div>
  </div>

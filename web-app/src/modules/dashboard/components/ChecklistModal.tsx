@@ -151,53 +151,58 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                                     const itemColor = item.color || habitColor;
                                     
                                     return (
-                                        <motion.div 
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: index * 0.05, duration: 0.3 }}
-                                            key={item.id} 
-                                            className={cn(
-                                                "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 cursor-pointer border border-transparent",
-                                                item.completed 
-                                                    ? "bg-white/[0.02] border-white/[0.02]" 
-                                                    : "hover:bg-white/[0.05] hover:border-white/[0.05] active:scale-[0.98]"
-                                            )}
-                                            onClick={() => handleChecklistToggle(item.id, item.completed)}
-                                        >
-                                            <div 
+                                        <React.Fragment key={item.id}>
+                                            <motion.div 
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: index * 0.05, duration: 0.3 }}
                                                 className={cn(
-                                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500 flex-shrink-0",
+                                                    "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 cursor-pointer border border-transparent",
                                                     item.completed 
-                                                        ? "border-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
-                                                        : "border-white/10 group-hover:border-white/30"
+                                                        ? "bg-white/[0.02] border-white/[0.02]" 
+                                                        : "hover:bg-white/[0.05] hover:border-white/[0.05] active:scale-[0.98]"
                                                 )}
-                                                style={{
-                                                    backgroundColor: item.completed ? itemColor : 'transparent',
-                                                }}
+                                                onClick={() => handleChecklistToggle(item.id, item.completed)}
                                             >
-                                                <AnimatePresence>
-                                                    {item.completed && (
-                                                        <motion.div
-                                                            initial={{ scale: 0, rotate: -45 }}
-                                                            animate={{ scale: 1, rotate: 0 }}
-                                                            exit={{ scale: 0, rotate: 45 }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                                                        >
-                                                            <Check size={14} strokeWidth={4} className="text-white" />
-                                                        </motion.div>
+                                                <div 
+                                                    className={cn(
+                                                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500 flex-shrink-0",
+                                                        item.completed 
+                                                            ? "border-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+                                                            : "opacity-60 group-hover:opacity-100"
                                                     )}
-                                                </AnimatePresence>
-                                            </div>
-                                            
-                                            <span className={cn(
-                                                "text-[16px] transition-all duration-500 flex-1 leading-snug tracking-tight",
-                                                item.completed 
-                                                    ? "text-white/20 line-through decoration-white/10 italic" 
-                                                    : "text-white/90 font-bold group-hover:translate-x-1"
-                                            )}>
-                                                {item.text}
-                                            </span>
-                                        </motion.div>
+                                                    style={{
+                                                        backgroundColor: item.completed ? itemColor : 'transparent',
+                                                        borderColor: item.completed ? 'transparent' : itemColor,
+                                                    }}
+                                                >
+                                                    <AnimatePresence>
+                                                        {item.completed && (
+                                                            <motion.div
+                                                                initial={{ scale: 0, rotate: -45 }}
+                                                                animate={{ scale: 1, rotate: 0 }}
+                                                                exit={{ scale: 0, rotate: 45 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                            >
+                                                                <Check size={14} strokeWidth={4} className="text-white" />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                                
+                                                <span className={cn(
+                                                    "text-[16px] transition-all duration-500 flex-1 leading-snug tracking-tight",
+                                                    item.completed 
+                                                        ? "text-white/20 line-through decoration-white/10 italic" 
+                                                        : "text-white/90 font-bold group-hover:translate-x-1"
+                                                )}>
+                                                    {item.text}
+                                                </span>
+                                            </motion.div>
+                                            {index < visibleItems.length - 1 && (
+                                                <div className="h-[1px] w-[90%] mx-auto bg-gradient-to-r from-transparent via-white/[0.15] to-transparent" />
+                                            )}
+                                        </React.Fragment>
                                     );
                                 })}
                                 

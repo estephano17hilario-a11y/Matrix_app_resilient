@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar } from 'lucide-react';
-import { format, isToday, isTomorrow, differenceInDays, parseISO } from 'date-fns';
+import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Quest, Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { cn } from '../../../utils/cn';
+import { parseLocalDate } from '../../../utils/dateUtils';
 import { SubtaskManager } from './SubtaskManager';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 import { useTranslation } from 'react-i18next';
@@ -74,7 +75,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
 
   const getDeadlineInfo = (dateStr?: string) => {
     if (!dateStr) return null;
-    const date = parseISO(dateStr);
+    const date = parseLocalDate(dateStr);
     const today = new Date();
     
     if (isToday(date)) return { key: 'today', days: 0 };

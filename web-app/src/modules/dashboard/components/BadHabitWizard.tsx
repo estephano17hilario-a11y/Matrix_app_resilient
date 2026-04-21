@@ -177,7 +177,6 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     const handleClose = () => {
         onClose();
-        window.dispatchEvent(new CustomEvent('bad-habit-created'));
     };
 
     const handleAddListItems = () => {

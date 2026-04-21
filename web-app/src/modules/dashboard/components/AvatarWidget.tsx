@@ -144,7 +144,16 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     <>
     <div className="flex items-center gap-3 sm:gap-4 opacity-100 translate-x-0 w-full pl-1">
         {/* AVATAR - RESTORED & CENTERED */}
-        <div className="relative group active:scale-95 transition-transform shrink-0" style={{ transform: 'translateZ(0)' }}>
+        <div 
+            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer" 
+            style={{ transform: 'translateZ(0)' }}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (onShowSettingsWithTab) {
+                    onShowSettingsWithTab('account');
+                }
+            }}
+        >
             <div 
                 className={`w-14 h-14 ${shapeClass} overflow-hidden shadow-md ${isPro ? '' : 'ring-1 ring-white/10 shadow-black/50'}`}
                 style={auraStyle}

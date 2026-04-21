@@ -74,7 +74,8 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
         const handleSupabaseData = (data: any) => {
             const normalized = normalizeUserProfile({ uid: data.id, ...data, displayName: data.display_name, photoURL: data.photo_url });
             const safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
-            
+            const safeDailyLimits = data.stats?.dailyLimits || normalized?.dailyLimits || undefined;
+
             // AUDIT: Verificación estricta de Expiración de Plan Delux
             if (data.plan === 'PRO' && data.planExpiryDate) {
                 if (Date.now() > data.planExpiryDate) {
@@ -94,6 +95,7 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
                 ...data,
                 ...(normalized || {}),
                 stats: safeStats,
+                dailyLimits: safeDailyLimits,
                 displayName: data.display_name,
                 photoURL: data.photo_url,
                 uid: data.id

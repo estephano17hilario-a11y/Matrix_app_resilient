@@ -31,7 +31,7 @@ const getControlPoints = (p1: any, p2: any, p3: any, t = 0.3) => {
 
 export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [dimensions, setDimensions] = useState({  });
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useLayoutEffect(() => {
         const updateSize = () => {

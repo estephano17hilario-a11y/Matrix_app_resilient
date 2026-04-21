@@ -14,6 +14,7 @@ export interface SettingsViewProps {
   attributes?: Attribute[];
   onUpdateAttribute?: (id: string, updates: Partial<Attribute>) => void;
   onAddAttribute?: (id: string) => void;
+  onAddCustomAttribute?: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   onRemoveAttribute?: (id: string) => void;
   onClose: () => void;
   onShowPro?: () => void;
@@ -37,6 +38,8 @@ export interface SettingsViewProps {
   onUpdateDefaultChartViews?: (views: any) => void;
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
+  defaultTaskFilters?: any;
+  onUpdateDefaultTaskFilters?: (filters: any) => void;
 }
 
 export const SettingsView = (props: SettingsViewProps) => {

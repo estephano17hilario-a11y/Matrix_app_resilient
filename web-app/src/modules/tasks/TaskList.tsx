@@ -7,9 +7,10 @@ import { DailyLimits } from '../../types/User';
 import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
 import { isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, addYears, subYears } from 'date-fns';
-import { startOfWeek, endOfWeek } from '../../utils/dateUtils';
+import { startOfWeek, endOfWeek, parseLocalDate } from '../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../context/AuthContext';
 import { DateSelectionModal } from '../dashboard/components/DateSelectionModal';
 import { es } from 'date-fns/locale';
 import { TourLightbulb } from '../../components/TourLightbulb';
@@ -36,14 +37,16 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
  // Filters
  const [showFilters, setShowFilters] = useState(false);
- const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR'>(defaultChartViews?.tasks || 'ALL');
+ const { profile } = useAuth();
+ const defaultTaskFilters = profile?.defaultTaskFilters || {};
+ const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR'>(defaultTaskFilters.timeframe || defaultChartViews?.tasks || 'ALL');
  const [currentDate, setCurrentDate] = useState(new Date());
  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
- const [traitFilter, setTraitFilter] = useState<string>('all');
- const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>('all');
- const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>('all');
- const [hideCompleted, setHideCompleted] = useState<boolean>(true);
+ const [traitFilter, setTraitFilter] = useState<string>(defaultTaskFilters.traitFilter || 'all');
+ const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>(defaultTaskFilters.typeFilter || 'all');
+ const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>(defaultTaskFilters.difficultyFilter || 'all');
+ const [hideCompleted, setHideCompleted] = useState<boolean>(defaultTaskFilters.hideCompleted ?? true);
  const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(false);
 
  // Optimization: Memoize maps only when inputs change
@@ -69,7 +72,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  // Filter by Timeframe - Optimization: reduce date parsing
  if (timeframe !== 'ALL' && dateRange) {
  if (!quest.deadline) return false;
- const qDate = new Date(quest.deadline); // Native Date is faster than parseISO often
+ const qDate = parseLocalDate(quest.deadline);
  
  if (timeframe === 'DAY') {
  if (!isSameDay(qDate, dateRange.start as Date)) return false;
@@ -180,13 +183,13 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  }, [showFilters]);
 
  const resetFilters = useCallback(() => {
- setTimeframe('ALL');
+ setTimeframe(defaultTaskFilters.timeframe || 'ALL');
  setCurrentDate(new Date());
- setTraitFilter('all');
- setTypeFilter('all');
- setDifficultyFilter('all');
- setHideCompleted(true);
- }, []);
+ setTraitFilter(defaultTaskFilters.traitFilter || 'all');
+ setTypeFilter(defaultTaskFilters.typeFilter || 'all');
+ setDifficultyFilter(defaultTaskFilters.difficultyFilter || 'all');
+ setHideCompleted(defaultTaskFilters.hideCompleted ?? true);
+ }, [defaultTaskFilters]);
 
  // VIRTUALIZATION LOGIC
  const listContainerRef = useRef<HTMLDivElement>(null);

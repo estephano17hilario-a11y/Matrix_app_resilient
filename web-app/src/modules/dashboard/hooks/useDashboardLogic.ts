@@ -17,10 +17,11 @@ import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
 import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs } from '@/services/firebase';
+import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
-import { toLocalISOString, getHistoryDateKey } from '../../../utils/dateUtils';
+import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel } from '../../../utils/leveling';
 
 import { useTheme } from '@/context/ThemeContext';
@@ -29,10 +30,16 @@ import { useReward } from '@/modules/rewards/context/RewardContext';
 import { SmartProject } from '@/types/SmartGoal';
 import { DockConfig, DEFAULT_DOCK_CONFIG } from '@/components/ui/DockConfigModal';
 
+import { Target, Dumbbell, Brain, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Zap, Feather, Rocket, Heart, Leaf, Hexagon } from 'lucide-react';
+
+const ICONS_MAP: Record<string, any> = {
+  Hexagon, Target, Dumbbell, Brain, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Zap, Feather, Rocket, Star, Heart, Flame, Leaf
+};
+
 export const useDashboardLogic = () => {
     const { addReward } = useReward();
     const { user: luxUser, loading: luxLoading } = useLux();
-    const { profile: authProfile } = useAuth();
+    const { profile: authProfile, updateProfileLocally } = useAuth();
 
     const triggerReward = useCallback((
         source: string, 
@@ -89,8 +96,16 @@ export const useDashboardLogic = () => {
                 avatarId: authProfile.avatarId || luxUser.avatarId,
                 displayName: luxUser.displayName || authProfile.displayName,
                 // Merge preferences from authProfile first (since it updates locally), fallback to luxUser
+                preferences: { ...(luxUser.preferences || {}), ...(authProfile.preferences || {}) },
                 defaultChartViews: authProfile.defaultChartViews || luxUser.defaultChartViews,
                 defaultProjectView: authProfile.defaultProjectView || luxUser.defaultProjectView,
+                defaultTaskFilters: authProfile.defaultTaskFilters || luxUser.defaultTaskFilters,
+                dashboardStyle: authProfile.dashboardStyle || luxUser.dashboardStyle,
+                avatarShape: authProfile.avatarShape || luxUser.avatarShape,
+                habitSectionControl: authProfile.habitSectionControl || luxUser.habitSectionControl,
+                defaultHabitView: authProfile.defaultHabitView || luxUser.defaultHabitView,
+                allowDockSectionSwitch: authProfile.allowDockSectionSwitch || luxUser.allowDockSectionSwitch,
+                weekStartDay: authProfile.weekStartDay !== undefined ? authProfile.weekStartDay : luxUser.weekStartDay,
                 // Prefer Lux for Game Stats (updated via Game Loop)
                 stats: luxUser.stats
             };
@@ -134,17 +149,44 @@ export const useDashboardLogic = () => {
 
     const [isNoteTaking, setIsNoteTaking] = useState(false); 
     const [overrideBgColor, setOverrideBgColor] = useState<string | undefined>(undefined);
-    const [showProfile, setShowProfile] = useState(true);
-    const [defaultChartMode, setDefaultChartMode] = useState<'RADAR' | 'BAR'>('RADAR');
-    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS'>('BORDER');
-    const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>('CIRCLE');
-    const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>('VISIBLE');
-    const [defaultHabitView, setDefaultHabitView] = useState<'DEFAULT' | 'CHRONOLOGICAL'>('DEFAULT');
-    const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(true);
-    const [dockConfig, setDockConfig] = useState<DockConfig>(DEFAULT_DOCK_CONFIG);
+    const [showProfile, _setShowProfile] = useState(() => user?.preferences?.showProfile ?? user?.showProfile ?? true);
+    
+    const setShowProfile = useCallback(async (show: boolean) => {
+        _setShowProfile(show);
+        if (user?.id) {
+            try {
+                const newPrefs = { ...(user.preferences || {}), showProfile: show };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+            } catch (e) {
+                console.error("Failed to save show profile preference", e);
+            }
+        }
+    }, [user?.id, user?.preferences, updateProfileLocally]);
+    const [defaultChartMode, _setDefaultChartMode] = useState<'RADAR' | 'BAR'>(() => user?.preferences?.defaultChartMode || user?.defaultChartMode || 'RADAR');
+    
+    const setDefaultChartMode = useCallback(async (mode: 'RADAR' | 'BAR') => {
+        _setDefaultChartMode(mode);
+        if (user?.id) {
+            try {
+                const newPrefs = { ...(user.preferences || {}), defaultChartMode: mode };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+            } catch (e) {
+                console.error("Failed to save default chart mode", e);
+            }
+        }
+    }, [user?.id, user?.preferences, updateProfileLocally]);
+    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS'>(() => user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER');
+    const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>(() => user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE');
+    const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>(() => user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE');
+    const [defaultHabitView, setDefaultHabitView] = useState<'DEFAULT' | 'CHRONOLOGICAL'>(() => user?.preferences?.defaultHabitView || user?.defaultHabitView || 'DEFAULT');
+    const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState<boolean>(() => user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? true);
+    const [dockConfig, setDockConfig] = useState<DockConfig>(() => user?.preferences?.dockConfig || user?.dockConfig || DEFAULT_DOCK_CONFIG);
     const [weekStartDay, setWeekStartDay] = useState<0 | 1>(() => {
         const saved = localStorage.getItem('weekStartDay');
-        return saved ? (parseInt(saved) as 0 | 1) : 1;
+        if (saved) return parseInt(saved) as 0 | 1;
+        return user?.preferences?.weekStartDay ?? user?.weekStartDay ?? 1;
     });
     // Sticky HUD disabled by default and removed from settings
 
@@ -162,107 +204,126 @@ export const useDashboardLogic = () => {
         setDashboardStyle(style);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { dashboardStyle: style }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), dashboardStyle: style };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save dashboard style", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateAvatarShape = useCallback(async (shape: 'CIRCLE' | 'SQUARE') => {
         setAvatarShape(shape);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { avatarShape: shape }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), avatarShape: shape };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save avatar shape", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateHabitSectionControl = useCallback(async (control: 'VISIBLE' | 'HIDDEN') => {
         setHabitSectionControl(control);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { habitSectionControl: control }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), habitSectionControl: control };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save habit section control", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateDefaultHabitView = useCallback(async (view: 'DEFAULT' | 'CHRONOLOGICAL') => {
         setDefaultHabitView(view);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { defaultHabitView: view }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), defaultHabitView: view };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save default habit view", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateAllowDockSectionSwitch = useCallback(async (allow: boolean) => {
         setAllowDockSectionSwitch(allow);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { allowDockSectionSwitch: allow }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), allowDockSectionSwitch: allow };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save allow dock section switch", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateDockConfig = useCallback(async (config: DockConfig) => {
         setDockConfig(config);
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { dockConfig: config }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), dockConfig: config };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save dock config", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     const updateWeekStartDay = useCallback(async (day: 0 | 1) => {
         setWeekStartDay(day);
         localStorage.setItem('weekStartDay', day.toString());
         if (user?.id) {
             try {
-                await setDoc(doc(db, 'users', user.id), { weekStartDay: day }, { merge: true });
+                const newPrefs = { ...(user.preferences || {}), weekStartDay: day };
+                updateProfileLocally({ preferences: newPrefs });
+                await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save week start day", e);
             }
         }
-    }, [user?.id]);
+    }, [user?.id, user?.preferences, updateProfileLocally]);
 
     // Sticky HUD updater removed
 
-    // Sync Dashboard Style from User Profile
     useEffect(() => {
         // Enforce BORDER style always
         setDashboardStyle('BORDER');
         
-        if (user?.avatarShape) {
-            setAvatarShape(user.avatarShape);
+        if (user?.preferences?.avatarShape || user?.avatarShape) {
+            setAvatarShape(user.preferences?.avatarShape || user.avatarShape || 'CIRCLE');
         }
-        if (user?.habitSectionControl) {
-            setHabitSectionControl(user.habitSectionControl);
+        if (user?.preferences?.habitSectionControl || user?.habitSectionControl) {
+            setHabitSectionControl(user.preferences?.habitSectionControl || user.habitSectionControl || 'VISIBLE');
         }
-        if (user?.defaultHabitView) {
-            setDefaultHabitView(user.defaultHabitView);
+        if (user?.preferences?.defaultHabitView || user?.defaultHabitView) {
+            setDefaultHabitView(user.preferences?.defaultHabitView || user.defaultHabitView || 'DEFAULT');
         }
-        if (user?.allowDockSectionSwitch !== undefined) {
-            setAllowDockSectionSwitch(user.allowDockSectionSwitch);
+        if (user?.preferences?.allowDockSectionSwitch !== undefined || user?.allowDockSectionSwitch !== undefined) {
+            setAllowDockSectionSwitch(user.preferences?.allowDockSectionSwitch ?? user.allowDockSectionSwitch ?? false);
         }
-        if (user?.dockConfig) {
-            setDockConfig(user.dockConfig);
+        if (user?.preferences?.dockConfig || user?.dockConfig) {
+            setDockConfig(user.preferences?.dockConfig || user.dockConfig || DEFAULT_DOCK_CONFIG);
         }
-        if (user?.weekStartDay !== undefined) {
-            setWeekStartDay(user.weekStartDay);
+        if (user?.preferences?.weekStartDay !== undefined || user?.weekStartDay !== undefined) {
+            setWeekStartDay(user.preferences?.weekStartDay ?? user.weekStartDay ?? 1);
+        }
+        if (user?.preferences?.defaultChartMode || user?.defaultChartMode) {
+            _setDefaultChartMode(user.preferences?.defaultChartMode || user.defaultChartMode || 'RADAR');
+        }
+        if (user?.preferences?.showProfile !== undefined || user?.showProfile !== undefined) {
+            _setShowProfile(user.preferences?.showProfile ?? user.showProfile ?? true);
         }
         // Sticky HUD sync removed
-    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.defaultHabitView, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay]);
+    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.defaultHabitView, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay, user?.preferences, user?.defaultChartMode, user?.showProfile]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: calculateNextLevelXp(1), gold: 0 });
     const prevPlayerLevel = useRef(player.level);
@@ -518,6 +579,7 @@ export const useDashboardLogic = () => {
 
         const updatedProfile = {
             ...cached,
+            dailyLimits,
             stats: {
                 ...cached.stats,
                 xp: player.xp,
@@ -528,7 +590,37 @@ export const useDashboardLogic = () => {
         };
 
         PersistenceService.saveProfile(updatedProfile);
-    }, [player.xp, player.gold, player.level, player.nextXp, health, user?.id, user?.isSkeleton]);
+
+        // SYNC WITH SUPABASE DEBOUNCED
+        const timer = setTimeout(async () => {
+            try {
+                const { supabase } = await import('@/services/supabase');
+                
+                const statsToSave = {
+                    ...updatedProfile.stats,
+                    dailyLimits: updatedProfile.dailyLimits
+                };
+
+                const { error } = await supabase
+                    .from('users')
+                    .update({
+                        stats: statsToSave,
+                        last_login_at: new Date().toISOString()
+                    })
+                    .eq('id', user.id);
+                
+                if (error) {
+                    console.error("Supabase Sync Error (Stats & Limits):", error);
+                } else {
+                    console.log("✅ MATRIX: Stats & Limits synced to Supabase (XP:", player.xp, "Level:", player.level, ")");
+                }
+            } catch(e) {
+                console.error("Failed to sync stats to Supabase:", e);
+            }
+        }, 1500);
+
+        return () => clearTimeout(timer);
+    }, [player.xp, player.gold, player.level, player.nextXp, health, dailyLimits, user?.id, user?.isSkeleton]);
 
 
 
@@ -747,7 +839,14 @@ export const useDashboardLogic = () => {
         if (fetchedAttrs.length > 0) {
             const enriched = fetchedAttrs.map(attr => {
                 const def = TRAITS_LIST.find(t => t.id === attr.id);
-                return { ...attr, icon: def?.icon, color: def?.color || attr.color, label: def?.label || attr.label };
+                let mappedIcon = def?.icon;
+                if (!mappedIcon && attr.iconName && ICONS_MAP[attr.iconName]) {
+                    mappedIcon = ICONS_MAP[attr.iconName];
+                }
+                if (!mappedIcon) {
+                    mappedIcon = ICONS_MAP['Hexagon'];
+                }
+                return { ...attr, icon: mappedIcon, color: def?.color || attr.color, label: def?.label || attr.label };
             });
             setAttributes(enriched);
         } else {
@@ -1153,6 +1252,29 @@ export const useDashboardLogic = () => {
 
         // Save to DB
         if (!user?.id) return;
+        await persistenceService.attributes.save(user.id, newAttr);
+    };
+
+    const addCustomAttribute = async (attrData: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => {
+        if (!user?.id || user?.plan !== 'PRO') return;
+
+        const newId = 'CUSTOM_' + Date.now().toString(36);
+        const newAttr: Attribute = {
+            id: newId,
+            label: attrData.label,
+            color: attrData.color,
+            icon: attrData.icon,
+            iconName: attrData.iconName,
+            level: 1,
+            xp: 0,
+            maxXp: 100
+        };
+
+        setAttributes(prev => {
+            const next = [...prev, newAttr];
+            PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
+            return next;
+        });
         await persistenceService.attributes.save(user.id, newAttr);
     };
 
@@ -3131,7 +3253,7 @@ export const useDashboardLogic = () => {
         // Schedule Notification Reminder for Task with Deadline
         if (quest.deadline && quest.id) {
             try {
-                const deadlineDate = new Date(quest.deadline);
+                const deadlineDate = parseLocalDate(quest.deadline);
                 if (!isNaN(deadlineDate.getTime())) {
                     notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate);
                 }
@@ -4164,6 +4286,7 @@ export const useDashboardLogic = () => {
         handleToggleHabitDay,
         updateAttributeMetadata,
         addAttribute,
+        addCustomAttribute,
         removeAttribute,
         dashboardStyle,
         updateDashboardStyle,

@@ -12,11 +12,72 @@
     <meta name="theme-color" content="#020204" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Preload fonts to avoid render blocking -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+    
     <title>Lux</title>
+    <style>
+      /* Critical CSS for 0ms visual load */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #020204;
+        overflow: hidden;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+      }
+      .initial-loader {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #020204;
+        z-index: 99999;
+        transition: opacity 0.3s ease-out;
+      }
+      .initial-loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="initial-loader" id="initial-loader">
+        <div class="initial-loader-spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove loader once React mounts
+      window.addEventListener('load', function() {
+        var root = document.getElementById('root');
+        var observer = new MutationObserver(function(mutations) {
+          if (root.children.length > 1 || (root.children[0] && root.children[0].id !== 'initial-loader')) {
+            var loader = document.getElementById('initial-loader');
+            if (loader) {
+              loader.style.opacity = '0';
+              setTimeout(function() { loader.remove(); }, 300);
+            }
+            observer.disconnect();
+          }
+        });
+        observer.observe(root, { childList: true });
+      });
+    </script>
   </body>
 </html>

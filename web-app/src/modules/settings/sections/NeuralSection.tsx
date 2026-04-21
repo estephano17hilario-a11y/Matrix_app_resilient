@@ -1,36 +1,61 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hexagon, Edit3, Check, X, Trash2, Plus } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { TRAITS_LIST } from '../../dashboard/constants';
+import { IconPicker } from '../../dashboard/components/IconPicker';
+
+const COLORS = ['#3b82f6', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#64748b', '#6366f1', '#f97316', '#84cc16', '#d946ef', '#eab308'];
 
 export const NeuralSection = () => {
   const { t } = useTranslation();
-  const { attributes, updateAttribute, addAttribute, removeAttribute, isPro } = useSettings();
+  const { attributes, updateAttribute, addAttribute, addCustomAttribute, removeAttribute, isPro, showProModal } = useSettings();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{ label: string; color: string }>({ label: '', color: '' });
+  const [isCreating, setIsCreating] = useState(false);
+  const [editForm, setEditForm] = useState<{ label: string; color: string; icon?: any; iconName?: string }>({ label: '', color: COLORS[0], icon: Hexagon, iconName: 'Hexagon' });
 
   const availableTraits = TRAITS_LIST.filter(trait => !attributes.find(a => a.id === trait.id));
 
   const startEditing = (attr: any) => {
     setEditingId(attr.id);
+    setIsCreating(false);
     setEditForm({
       label: String(t(attr.label, attr.label.replace('traits.', ''))),
-      color: attr.color
+      color: attr.color,
+      icon: attr.icon || Hexagon,
+      iconName: attr.iconName || 'Hexagon'
     });
   };
 
   const saveEditing = () => {
     if (editingId) {
-      updateAttribute(editingId, editForm);
+      updateAttribute(editingId, { label: editForm.label, color: editForm.color });
       setEditingId(null);
+    } else if (isCreating) {
+      if (!isPro) {
+        showProModal();
+        return;
+      }
+      addCustomAttribute({ label: editForm.label || 'Custom', color: editForm.color, icon: editForm.icon, iconName: editForm.iconName });
+      setIsCreating(false);
     }
   };
 
   const handleAddAttribute = (id: string) => {
     addAttribute(id);
+  };
+
+  const handleCreateCustom = () => {
+    if (!isPro) {
+      showProModal();
+      return;
+    }
+    setEditingId(null);
+    setIsCreating(true);
+    setEditForm({ label: 'New Trait', color: COLORS[0], icon: Hexagon, iconName: 'Hexagon' });
   };
 
   return (
@@ -53,6 +78,61 @@ export const NeuralSection = () => {
 
         <div className="space-y-3">
           <AnimatePresence mode="sync">
+            {isCreating && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="group flex flex-col gap-4 p-4 bg-gradient-to-br from-white/[0.04] to-white/[0.01] rounded-[20px] border border-white/[0.05] relative overflow-hidden"
+              >
+                <div 
+                  className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none" 
+                  style={{ background: `radial-gradient(circle, ${editForm.color} 0%, transparent 70%)` }} 
+                />
+                
+                <div className="flex items-center gap-3 relative z-10 w-full">
+                  <div
+                    className="w-12 h-12 rounded-2xl border-2 shadow-md flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${editForm.color}20`, borderColor: `${editForm.color}50`, color: editForm.color }}
+                  >
+                    {editForm.icon && <editForm.icon size={20} />}
+                  </div>
+                  <input
+                    autoFocus
+                    value={editForm.label}
+                    onChange={e => setEditForm(prev => ({ ...prev, label: e.target.value }))}
+                    placeholder="Trait Name"
+                    className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-md w-full"
+                  />
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={saveEditing} className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors shadow-sm">
+                      <Check size={16} strokeWidth={3} />
+                    </button>
+                    <button onClick={() => setIsCreating(false)} className="p-2.5 bg-white/10 text-white/60 rounded-xl hover:bg-white/20 transition-colors shadow-sm">
+                      <X size={16} strokeWidth={3} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 relative z-10">
+                  <IconPicker 
+                    selectedIcon={editForm.iconName || 'Hexagon'} 
+                    onSelectIcon={(iconName) => {
+                      if (iconName && (LucideIcons as any)[iconName]) {
+                        setEditForm(prev => ({ ...prev, iconName, icon: (LucideIcons as any)[iconName] }));
+                      }
+                    }} 
+                    selectedColor={editForm.color} 
+                    onSelectColor={(color) => {
+                      if (color) setEditForm(prev => ({ ...prev, color }));
+                    }} 
+                  />
+                </div>
+              </motion.div>
+            )}
+
             {attributes.map((attr) => (
               <motion.div
                 key={attr.id}
@@ -72,32 +152,42 @@ export const NeuralSection = () => {
                 />
                 
                 {editingId === attr.id ? (
-                  <div className="flex-1 flex items-center gap-3 relative z-10">
-                    <div className="relative">
+                  <div className="flex-1 flex flex-col gap-4 relative z-10 w-full">
+                    <div className="flex items-center gap-3 w-full">
                       <div
-                        className="w-12 h-12 rounded-2xl border-2 border-white/20 shadow-md"
-                        style={{ backgroundColor: editForm.color }}
-                      />
+                        className="w-12 h-12 rounded-2xl border-2 shadow-md flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${editForm.color}20`, borderColor: `${editForm.color}50`, color: editForm.color }}
+                      >
+                        {attr.icon ? <attr.icon size={20} /> : <Hexagon size={20} />}
+                      </div>
                       <input
-                        type="color"
-                        value={editForm.color}
-                        onChange={e => setEditForm(prev => ({ ...prev, color: e.target.value }))}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        autoFocus
+                        value={editForm.label}
+                        onChange={e => setEditForm(prev => ({ ...prev, label: e.target.value }))}
+                        className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-md w-full"
                       />
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={saveEditing} className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors shadow-sm">
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="p-2.5 bg-white/10 text-white/60 rounded-xl hover:bg-white/20 transition-colors shadow-sm">
+                          <X size={16} strokeWidth={3} />
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      autoFocus
-                      value={editForm.label}
-                      onChange={e => setEditForm(prev => ({ ...prev, label: e.target.value }))}
-                      className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-md"
-                    />
-                    <div className="flex gap-2">
-                      <button onClick={saveEditing} className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors shadow-sm">
-                        <Check size={16} strokeWidth={3} />
-                      </button>
-                      <button onClick={() => setEditingId(null)} className="p-2.5 bg-white/10 text-white/60 rounded-xl hover:bg-white/20 transition-colors shadow-sm">
-                        <X size={16} strokeWidth={3} />
-                      </button>
+                    <div className="space-y-3 relative z-10 w-full mt-2">
+                      <IconPicker 
+                        selectedIcon={editForm.iconName || 'Hexagon'} 
+                        onSelectIcon={(iconName) => {
+                          if (iconName && (LucideIcons as any)[iconName]) {
+                            setEditForm(prev => ({ ...prev, iconName, icon: (LucideIcons as any)[iconName] }));
+                          }
+                        }} 
+                        selectedColor={editForm.color} 
+                        onSelectColor={(color) => {
+                          if (color) setEditForm(prev => ({ ...prev, color }));
+                        }} 
+                      />
                     </div>
                   </div>
                 ) : (
@@ -179,6 +269,23 @@ export const NeuralSection = () => {
           </div>
         </div>
       )}
+
+      <div className="pt-4">
+        <button
+          onClick={handleCreateCustom}
+          className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20 transition-all group"
+        >
+          <Plus size={16} className="text-cyan-400 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-bold text-cyan-400 tracking-wide uppercase">
+            {t('settings.createCustomTrait', 'Create Custom Trait')}
+          </span>
+          {!isPro && (
+            <span className="ml-2 text-[9px] font-black bg-amber-500 text-black px-1.5 py-0.5 rounded uppercase tracking-widest">
+              PRO
+            </span>
+          )}
+        </button>
+      </div>
     </div>
   );
 };

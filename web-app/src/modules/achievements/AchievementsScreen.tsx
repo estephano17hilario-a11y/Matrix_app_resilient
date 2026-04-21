@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { ACHIEVEMENTS, AchievementCategory, Achievement, TRAIT_ICONS } from '../../config/achievements';
 import { Lock, Trophy } from 'lucide-react';
-import { AuroraBackground } from '../../components/AuroraBackground';
 import { useTranslation } from 'react-i18next';
 
 // --- COMPONENTS ---
@@ -73,13 +72,11 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
  
  return (
  <motion.div
- layout
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ 
  opacity: isUnlocked ? 1 : 0.6, 
  scale: 1, 
- y: 0,
- filter: isUnlocked ? 'grayscale(0%)' : 'grayscale(100%) blur(0px)'
+ y: 0
  }}
  whileHover={{ 
  scale: 1.02, 
@@ -91,8 +88,8 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
  relative group flex flex-col p-4 sm:p-5 text-left h-full min-w-0
  rounded-[24px] border transition-all duration-500 overflow-hidden
  ${isUnlocked 
- ? 'bg-gray-900/80 backdrop-blur-sm transform-gpu border-white/10 shadow-md hover:shadow-md' 
-              : 'bg-black/60 backdrop-blur-sm transform-gpu border-white/5 opacity-70'}
+ ? 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 transform-gpu border-white/10 shadow-md hover:shadow-md grayscale-0' 
+              : 'bg-black/60 transform-gpu border-white/5 opacity-70 grayscale'}
  `}
  >
  {/* Shine Effect */}
@@ -183,10 +180,8 @@ export const AchievementsScreen: React.FC = () => {
  if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">{t('achievements.loading')}</div>;
 
  return (
- <div className="min-h-full w-full text-white px-4 sm:px-6 lg:px-10 pb-32 overflow-x-hidden relative font-sans">
+ <div className="min-h-full w-full text-white px-4 sm:px-6 lg:px-10 pb-32 overflow-x-hidden relative font-sans bg-transparent">
  
- <AuroraBackground />
-
  {/* Content Container */}
  <div className="relative z-10 w-full max-w-7xl mx-auto">
  
@@ -275,11 +270,10 @@ export const AchievementsScreen: React.FC = () => {
  </AnimatePresence>
 
  {/* Masonry Grid */}
- <motion.div 
- layout
+ <div 
  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 pb-20"
  >
- <AnimatePresence mode='popLayout'>
+ <AnimatePresence>
  {filteredAchievements.map((ach) => {
  const isUnlocked = unlockedSet.has(ach.id);
  return (
@@ -291,7 +285,7 @@ export const AchievementsScreen: React.FC = () => {
  );
  })}
  </AnimatePresence>
- </motion.div>
+ </div>
 
  {filteredAchievements.length === 0 && (
  <motion.div 

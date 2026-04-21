@@ -52,8 +52,11 @@ export const AccountSection = () => {
         await supabase.auth.updateUser({ data: { display_name: newName } });
       }
 
-      if (user?.uid) {
-        await supabase.from('users').update({ display_name: newName }).eq('id', user.uid);
+      if (user?.id) {
+        await supabase.from('users').update({ display_name: newName }).eq('id', user.id);
+        updateProfileLocally({ displayName: newName });
+      } else if (profile?.uid) {
+        await supabase.from('users').update({ display_name: newName }).eq('id', profile.uid);
         updateProfileLocally({ displayName: newName });
       }
 

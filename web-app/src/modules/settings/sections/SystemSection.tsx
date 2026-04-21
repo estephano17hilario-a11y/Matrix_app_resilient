@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid } from 'lucide-react';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -20,6 +20,8 @@ export const SystemSection = () => {
     weekStartDay, updateWeekStartDay,
     defaultChartViews, updateDefaultChartViews,
     defaultProjectView, updateDefaultProjectView,
+    defaultTaskFilters, updateDefaultTaskFilters,
+    attributes,
     isPro
   } = useSettings();
 
@@ -464,6 +466,168 @@ export const SystemSection = () => {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Default Task Filters */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-5 transition-colors relative overflow-hidden">
+          <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm transform-gpu backface-hidden z-0 pointer-events-none" />
+          
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+              <CheckCircle2 size={18} className="text-blue-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">{t('settings.defaultTaskFilters', 'Default Task Filters')}</div>
+              <div className="text-xs text-white/40 font-medium">{t('settings.defaultTaskFiltersDesc', 'Initial filter states for tasks')}</div>
+            </div>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            {/* Timeline */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                <Calendar size={10} />
+                {t('tasks.filterDate', 'Timeline')}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {['ALL', 'DAY', 'WEEK', 'MONTH', '3_MONTHS'].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), timeframe: tf })}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                      (defaultTaskFilters?.timeframe || 'ALL') === tf
+                        ? "bg-white/10 border-white/20 text-white"
+                        : "bg-transparent border-transparent text-white/40 hover:bg-white/5"
+                    )}
+                  >
+                    {t(`tasks.filterDateTabs.${tf}`, tf.replace('_', ' '))}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Trait Filter */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                <Zap size={10} />
+                {t('tasks.filterTrait', 'Attribute')}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), traitFilter: 'all' })}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                    (defaultTaskFilters?.traitFilter || 'all') === 'all'
+                      ? "bg-white/10 border-white/20 text-white"
+                      : "bg-transparent border-transparent text-white/40 hover:bg-white/5"
+                  )}
+                >
+                  {t('tasks.all', 'All')}
+                </button>
+                {attributes?.map((attr: any) => (
+                  <button
+                    key={attr.id}
+                    onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), traitFilter: attr.id })}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border",
+                      (defaultTaskFilters?.traitFilter || 'all') === attr.id
+                        ? "bg-white/10 border-white/20 text-white shadow-lg"
+                        : "bg-transparent border-transparent text-white/40 hover:bg-white/5"
+                    )}
+                    style={(defaultTaskFilters?.traitFilter || 'all') === attr.id ? { borderColor: attr.color, color: attr.color, boxShadow: `0 0 10px ${attr.color}20` } : {}}
+                  >
+                    <span 
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: attr.color }} 
+                    />
+                    {String(t(attr.label, attr.label.replace('traits.', '')))}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grid for Type, Difficulty, Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Difficulty */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                  <Swords size={10} />
+                  {t('tasks.difficulty', 'Difficulty')}
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'all', label: t('tasks.all', 'ALL') },
+                    { id: 'S', label: 'S', color: 'text-purple-400' },
+                    { id: 'A', label: 'A', color: 'text-red-400' },
+                    { id: 'B', label: 'B', color: 'text-orange-400' },
+                    { id: 'C', label: 'C', color: 'text-blue-400' },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), difficultyFilter: opt.id })}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                        (defaultTaskFilters?.difficultyFilter || 'all') === opt.id
+                          ? "bg-white/10 border-white/20 text-white"
+                          : "bg-transparent border-transparent text-white/30 hover:bg-white/5"
+                      )}
+                    >
+                      <span className={opt.color}>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Type */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                  <Brain size={10} />
+                  {t('tasks.filterType', 'Type')}
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'all', label: t('tasks.all', 'ALL') },
+                    { id: 'normal', label: t('tasks.normal', 'Normal') },
+                    { id: 'smart', label: t('tasks.smart', 'Smart') }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), typeFilter: opt.id })}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                        (defaultTaskFilters?.typeFilter || 'all') === opt.id
+                          ? "bg-white/10 border-white/20 text-white"
+                          : "bg-transparent border-transparent text-white/40 hover:bg-white/5"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                  <CheckCircle2 size={10} />
+                  {t('tasks.hideCompleted', 'Hide Completed')}
+                </label>
+                <button
+                  onClick={() => updateDefaultTaskFilters({ ...(defaultTaskFilters || {}), hideCompleted: !(defaultTaskFilters?.hideCompleted ?? true) })}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-xs font-bold transition-all w-full flex items-center justify-center gap-2",
+                    (defaultTaskFilters?.hideCompleted ?? true)
+                      ? "bg-white/10 text-white shadow-lg border border-white/20" 
+                      : "bg-transparent text-white/30 border border-white/5 hover:bg-white/5"
+                  )}
+                >
+                  <CheckCircle2 size={14} className={(defaultTaskFilters?.hideCompleted ?? true) ? "text-emerald-400" : "text-white/30"} />
+                  {t('tasks.hideCompleted', 'Hide Completed')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

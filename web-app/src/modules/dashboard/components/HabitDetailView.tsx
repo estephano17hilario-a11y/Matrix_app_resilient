@@ -582,7 +582,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 {isLoading ? (
                     <div className="h-8 w-16 bg-white/5 rounded-lg animate-pulse" />
                 ) : (
-                    <span className="text-2xl font-[1000] text-white tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                    <span className={`font-[1000] text-white tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] whitespace-nowrap ${String(value).length > 4 ? 'text-lg' : 'text-2xl'}`}>
                         {value}
                     </span>
                 )}

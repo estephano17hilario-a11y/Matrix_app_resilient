@@ -18,7 +18,8 @@ export interface Attribute {
   xp: number;
   maxXp: number;
   color: string;
-  icon?: any; // Using any for React.ElementType, optional to avoid persistence issues
+  icon?: any;
+  iconName?: string;
 }
 
 export interface Subtask {
@@ -84,6 +85,8 @@ export interface Habit {
   monthlyType?: 'SPECIFIC_DATES' | 'FLEXIBLE_COUNT';
   monthlyFlexibleCount?: number;
   monthlyLastDay?: boolean;
+  weeklyType?: 'SPECIFIC_DAYS' | 'FLEXIBLE_COUNT';
+  weeklyFlexibleCount?: number;
   order?: number;
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)

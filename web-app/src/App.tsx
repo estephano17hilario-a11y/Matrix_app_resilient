@@ -8,17 +8,15 @@ import { EconomyProvider } from '@/context/EconomyContext';
 import { NotesProvider } from '@/modules/notes/context/NotesContext';
 import { RewardProvider } from '@/modules/rewards/context/RewardContext';
 import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
-import { AuroraBackground } from '@/components/AuroraBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
-// CRITICAL MODULES
-import { AuthScreen } from '@/modules/auth/AuthScreen';
-import { OnboardingFlow } from '@/modules/onboarding/OnboardingFlow';
-
-// Lazy load Dashboard
+// 🚀 PERFORMANCE: Lazy load heavy components
+const AuroraBackground = lazy(() => import('@/components/AuroraBackground').then(m => ({ default: m.AuroraBackground })));
+const AuthScreen = lazy(() => import('@/modules/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
+const OnboardingFlow = lazy(() => import('@/modules/onboarding/OnboardingFlow').then(m => ({ default: m.OnboardingFlow })));
 const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
@@ -60,11 +58,19 @@ const AppRoutes = () => {
     }
 
     if (!canEnterLux) {
-      return <AuthScreen />;
+      return (
+        <Suspense fallback={<LoadingScreen />}>
+          <AuthScreen />
+        </Suspense>
+      );
     }
 
     if (profile && !profile.isSkeleton && !profile.onboarding?.completedAt) {
-      return <OnboardingFlow />;
+      return (
+        <Suspense fallback={<LoadingScreen />}>
+          <OnboardingFlow />
+        </Suspense>
+      );
     }
 
     return (
@@ -93,7 +99,9 @@ const AppRoutes = () => {
       />
       {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
       <div className="fixed inset-0 z-0">
-        <AuroraBackground />
+        <Suspense fallback={null}>
+          <AuroraBackground />
+        </Suspense>
       </div>
 
       {/* 2. LAYER 1: APP CONTENT */}

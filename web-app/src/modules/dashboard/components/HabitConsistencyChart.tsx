@@ -114,6 +114,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 // Frequency Check
                 if (h.frequency === 'DAILY') return true;
                 if (h.frequency === 'WEEKLY') {
+                    if (h.weeklyType === 'FLEXIBLE_COUNT') return true;
                     if (!h.frequencyDays || h.frequencyDays.length === 0) return true;
                     return h.frequencyDays.includes(dayOfWeek);
                 }
@@ -483,58 +484,62 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 </div>
 
                 {/* Row 2: Stats */}
-                <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
-                    {/* Average Percent */}
-                    <div className="flex items-baseline gap-3 shrink-0">
-                        <span className="text-4xl font-mono font-bold text-white tracking-tighter">
-                            {stats.average}%
-                        </span>
-                        <div className={cn(
-                            "flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border",
-                            trend >= 0 
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                        )}>
-                            {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                            {Math.abs(trend)}%
+                <div className="relative">
+                    <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar pr-12">
+                        {/* Average Percent */}
+                        <div className="flex items-baseline gap-3 shrink-0 ml-2">
+                            <span className="text-4xl font-mono font-bold text-white tracking-tighter">
+                                {stats.average}%
+                            </span>
+                            <div className={cn(
+                                "flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border",
+                                trend >= 0 
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                    : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            )}>
+                                {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                {Math.abs(trend)}%
+                            </div>
                         </div>
+
+                        {/* Current Streak - FLAME PATH RESTORED */}
+                        <button 
+                            data-tour="habit-streak"
+                            onClick={() => onOpenStreak?.()}
+                            className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
+                        >
+                            {/* Glow effect on hover - Optimized */}
+                            <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-500" />
+                            
+                            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
+                                {t('dashboard.streakPath')}
+                            </div>
+                            <div className="flex items-center gap-2 relative z-10">
+                                <div className="relative">
+                                    <Flame 
+                                        size={20} 
+                                        className={cn(
+                                            "transition-all duration-500 group-hover/streak:scale-110",
+                                            todayStats.percent >= todayStats.requiredToday 
+                                                ? "text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500" 
+                                                : "text-zinc-600 fill-zinc-800/50 group-hover/streak:text-orange-500/50"
+                                        )} 
+                                    />
+                                    {todayStats.percent >= todayStats.requiredToday && (
+                                        <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
+                                <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
+                                    {stats.streak} <span className="text-sm font-normal text-zinc-500">{t('dashboard.days')}</span>
+                                </span>
+                            </div>
+                        </button>
                     </div>
 
-                    {/* Current Streak - FLAME PATH RESTORED */}
-                    <button 
-                        data-tour="habit-streak"
-                        onClick={() => onOpenStreak?.()}
-                        className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
-                    >
-                        {/* Glow effect on hover - Optimized */}
-                        <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-500" />
-                        
-                        <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
-                            {t('dashboard.streakPath')}
-                        </div>
-                        <div className="flex items-center gap-2 relative z-10">
-                            <div className="relative">
-                                <Flame 
-                                    size={20} 
-                                    className={cn(
-                                        "transition-all duration-500 group-hover/streak:scale-110",
-                                        todayStats.percent >= todayStats.requiredToday 
-                                            ? "text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500" 
-                                            : "text-zinc-600 fill-zinc-800/50 group-hover/streak:text-orange-500/50"
-                                    )} 
-                                />
-                                {todayStats.percent >= todayStats.requiredToday && (
-                                    <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                            <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
-                                {stats.streak} <span className="text-sm font-normal text-zinc-500">{t('dashboard.days')}</span>
-                            </span>
-                        </div>
-                    </button>
-
-                    <TourLightbulb tourId="habits" className="shrink-0" />
-
+                    {/* Fixed position lightbulb, independent of scroll */}
+                    <div className="absolute -right-2 top-1/2 -translate-y-[40%] z-20">
+                        <TourLightbulb tourId="habits" />
+                    </div>
                 </div>
             </div>
 

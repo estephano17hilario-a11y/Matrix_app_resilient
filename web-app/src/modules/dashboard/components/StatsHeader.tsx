@@ -40,7 +40,7 @@ export const StatsHeader = React.memo(({
     <header className={`flex justify-between items-center z-[100] relative w-full gap-2 ${
         isCompact 
             ? 'mt-0 mb-0' 
-            : 'mt-4'
+            : 'mt-[14px]'
     } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
     style={{ contain: 'layout style', willChange: 'opacity, transform' }}
     >

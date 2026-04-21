@@ -26,6 +26,7 @@ interface SettingsContextType {
   attributes: Attribute[];
   updateAttribute: (id: string, updates: Partial<Attribute>) => void;
   addAttribute: (id: string) => void;
+  addCustomAttribute: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   removeAttribute: (id: string) => void;
 
   // System & Charts
@@ -52,6 +53,15 @@ interface SettingsContextType {
   defaultProjectView: 'PROJECT' | 'TRAIT' | 'NONE';
   updateDefaultProjectView: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
 
+  defaultTaskFilters?: {
+    timeframe?: 'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS';
+    traitFilter?: string;
+    typeFilter?: 'all' | 'normal' | 'smart';
+    difficultyFilter?: 'all' | 'S' | 'A' | 'B' | 'C';
+    hideCompleted?: boolean;
+  };
+  updateDefaultTaskFilters: (filters: any) => void;
+
   // Account
   isPro: boolean;
   showProModal: () => void;
@@ -75,6 +85,7 @@ interface SettingsProviderProps {
   attributes?: Attribute[];
   onUpdateAttribute?: (id: string, updates: Partial<Attribute>) => void;
   onAddAttribute?: (id: string) => void;
+  onAddCustomAttribute?: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   onRemoveAttribute?: (id: string) => void;
   onShowPro?: () => void;
   isPro?: boolean;
@@ -98,6 +109,9 @@ interface SettingsProviderProps {
   onUpdateDefaultChartViews?: (views: any) => void;
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
+
+  defaultTaskFilters?: any;
+  onUpdateDefaultTaskFilters?: (filters: any) => void;
 
   // Account
 }
@@ -125,6 +139,7 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     attributes: props.attributes || [],
     updateAttribute: props.onUpdateAttribute || (() => {}),
     addAttribute: props.onAddAttribute || (() => {}),
+    addCustomAttribute: props.onAddCustomAttribute || (() => {}),
     removeAttribute: props.onRemoveAttribute || (() => {}),
 
     defaultChartMode: props.defaultChartMode,
@@ -143,6 +158,9 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     updateDefaultChartViews: props.onUpdateDefaultChartViews || (() => {}),
     defaultProjectView: props.defaultProjectView || 'PROJECT',
     updateDefaultProjectView: props.onUpdateDefaultProjectView || (() => {}),
+
+    defaultTaskFilters: props.defaultTaskFilters || {},
+    updateDefaultTaskFilters: props.onUpdateDefaultTaskFilters || (() => {}),
 
     isPro: props.isPro || false,
     showProModal: props.onShowPro || (() => {}),
