@@ -173,7 +173,7 @@ export const TransactionService = {
         const userRef = doc(db, 'users', userId);
         
         try {
-            await runTransaction(db, async (transaction) => {
+            await runTransaction(db, async (transaction: any) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) throw new Error("User not found");
                 

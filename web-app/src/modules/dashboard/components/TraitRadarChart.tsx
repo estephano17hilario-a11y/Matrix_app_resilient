@@ -312,9 +312,8 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         className="absolute pointer-events-auto group"
                         style={{
                             left: item.iconPoint.x,
-                            top: item.iconPoint.y,
-                            width: 0, // Zero width wrapper to act as anchor
-                            height: 0,
+                            top: item.iconPoint.y, // Zero width wrapper to act as anchor
+                            
                             overflow: 'visible'
                         }}
                     >

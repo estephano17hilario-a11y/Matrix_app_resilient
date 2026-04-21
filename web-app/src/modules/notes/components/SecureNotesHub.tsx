@@ -474,7 +474,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  />
  <motion.div 
  initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
- className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+ className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-md flex flex-col max-h-[90vh]"
  >
  <div className="p-6 border-b border-white/5 flex justify-between items-center">
  <h3 className="text-xl font-bold text-white">{item ? 'Edit Item' : 'New Secure Item'}</h3>
@@ -602,7 +602,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  )}
  <button 
  onClick={handleSave}
- className="flex-1 py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+ className="flex-1 py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
  >
  Save Item
  </button>

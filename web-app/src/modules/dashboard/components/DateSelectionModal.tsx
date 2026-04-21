@@ -254,7 +254,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         transition={{ duration: 0.15, ease: "easeOut" }}
                         className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4 will-change-[opacity,transform]"
                     >
-                        <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-2xl pointer-events-auto relative overflow-hidden">
+                        <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-md pointer-events-auto relative overflow-hidden">
                             {/* Glass Effect */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 

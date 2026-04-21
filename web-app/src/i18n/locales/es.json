@@ -379,6 +379,7 @@
     "sync": "Sincronización",
     "currency": "XP",
     "empty": "No hay logros en esta categoría.",
+    "unlocked": "Logro Desbloqueado",
     "categories": {
       "all": "Todos",
       "level": "Nivel",

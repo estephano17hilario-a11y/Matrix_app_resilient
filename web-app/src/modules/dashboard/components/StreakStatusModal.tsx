@@ -138,7 +138,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                             className="w-full max-w-[340px] pointer-events-auto"
                         >
-                            <div className="relative overflow-hidden rounded-[28px] bg-[#0A0A0A]/95 border border-white/10 shadow-2xl">
+                            <div className="relative overflow-hidden rounded-[28px] bg-[#0A0A0A]/95 border border-white/10 shadow-md">
                                 
                                 {/* Background Ambient Glow - Optimized (No blur, using radial gradient) */}
                                 <div 
@@ -288,7 +288,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                             {/* Progress Bar */}
                                             <div className="w-full h-1.5 bg-white/5 rounded-full mb-5 overflow-hidden border border-white/5 relative">
                                                 <motion.div 
-                                                    initial={{ width: 0 }}
+                                                    
                                                     animate={{ width: `${progressPercent}%` }}
                                                     transition={{ duration: 1, ease: "easeOut" }}
                                                     className="h-full rounded-full relative overflow-hidden bg-white/20"

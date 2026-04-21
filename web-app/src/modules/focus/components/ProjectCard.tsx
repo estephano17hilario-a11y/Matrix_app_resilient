@@ -164,7 +164,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                             <div className="flex items-center gap-3 mt-2 w-full">
                                 <div className="h-2.5 flex-1 bg-black/60 rounded-full overflow-hidden">
                                     <motion.div 
-                                        initial={{ width: 0 }}
+                                        
                                         animate={displayPercentage >= 100 ? { 
                                             width: `${cappedProgress}%`,
                                             opacity: [1, 0.5, 1],

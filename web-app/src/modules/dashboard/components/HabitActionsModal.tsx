@@ -42,7 +42,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: "100%", opacity: 0 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="relative z-10 w-full max-w-sm bg-[#18181b] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl overflow-hidden"
+                className="relative z-10 w-full max-w-sm bg-[#18181b] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 shadow-md overflow-hidden"
             >
                 {/* Drag Handle for Mobile */}
                 <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-6 sm:hidden" />

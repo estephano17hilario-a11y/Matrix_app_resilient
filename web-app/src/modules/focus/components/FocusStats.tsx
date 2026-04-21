@@ -557,9 +557,9 @@ export const FocusStats = React.memo(({
                     <AnimatePresence>
                         {isConfigOpen && (
                             <motion.div
-                                initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-                                animate={{ height: 'auto', opacity: 1, marginBottom: 4 }}
-                                exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                                initial={{  opacity: 0, marginBottom: 0 }}
+                                animate={{  opacity: 1, marginBottom: 4 }}
+                                exit={{  opacity: 0, marginBottom: 0 }}
                                 transition={{ duration: 0.15, ease: "easeOut" }}
                                 className="overflow-hidden w-full"
                             >
@@ -656,7 +656,7 @@ export const FocusStats = React.memo(({
                     ) : showGoal && (
                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
                             <motion.div 
-                                initial={{ width: 0 }}
+                                
                                 animate={{ width: `${Math.min(100, progressPercentage)}%` }}
                                 transition={{ type: "spring", stiffness: 80, damping: 20 }}
                                 className="h-full rounded-full relative overflow-hidden"

@@ -144,7 +144,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  initial={{ scale: 0.9, opacity: 0, y: 20 }}
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.9, opacity: 0, y: 20 }}
- className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+ className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl shadow-md overflow-hidden max-h-[85vh] flex flex-col"
  >
  <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
  <div className="flex items-center gap-3">

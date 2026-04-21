@@ -188,6 +188,9 @@ export default function Dashboard() {
  const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
 
+ // LAYOUT CONSTANT FOR MAXIMAL QUALITY RESPONSIVENESS
+ const APP_MAX_WIDTH = "w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl";
+
  // Force re-render on language change
  useEffect(() => {
  const handleLanguageChanged = () => {
@@ -1258,8 +1261,8 @@ export default function Dashboard() {
  {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
  {!isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && (
  <>
- <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe">
- <div className="max-w-md mx-auto px-4 sm:px-6">
+ <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe flex justify-center">
+ <div className={`${APP_MAX_WIDTH} px-4 sm:px-6`}>
  <StatsHeader 
  level={player.level} 
  xp={player.xp} 
@@ -1293,9 +1296,11 @@ export default function Dashboard() {
 
 
  {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
- {showProfile && (currentView === 'TASKS' && taskViewMode !== 'STRATEGY') && (
+ {showProfile && currentView === 'TASKS' && (
+ <div className="w-full flex justify-center">
  <div className={cn(
- "px-4 sm:px-6 max-w-md mx-auto mt-1 mb-1",
+ "px-4 sm:px-6 mt-1 mb-1",
+ APP_MAX_WIDTH,
  "relative z-[290]"
  )}>
  <PlayerHUD 
@@ -1303,12 +1308,13 @@ export default function Dashboard() {
  defaultChartMode={defaultChartMode}
  />
  </div>
+ </div>
  )}
  </>
  )}
 
  
- <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : 'max-w-md'} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
+ <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : APP_MAX_WIDTH} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
 
  <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
  {/* ⚡ TASKS VIEW (Always loaded initially) */}
@@ -1401,7 +1407,7 @@ export default function Dashboard() {
  <ArrowUp className={`w-10 h-10 ${archetypeTheme.text} rotate-45`} />
  </div>
  <h2 className="text-3xl font-bold mb-4">{t('dashboard.noStrategy')}</h2>
- <p className="text-white/60 mb-8 max-w-md">{t('dashboard.noStrategyDesc')}</p>
+ <p className="text-white/60 mb-8 max-w-lg">{t('dashboard.noStrategyDesc')}</p>
  <button 
  onClick={() => {
  const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;

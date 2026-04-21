@@ -64,7 +64,7 @@ export const ObjectiveStep: React.FC<ObjectiveStepProps> = ({ initialValue, onNe
                 type="button"
                 disabled={!value.trim()}
                 onClick={() => onNext(value)}
-                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-xl shadow-white/10"
+                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-md shadow-white/10"
             >
                 {t('common.next')} <ChevronRight size={18} />
             </button>

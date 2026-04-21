@@ -156,7 +156,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: '100%', opacity: 0 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                className="relative w-full max-w-[380px] bg-[#0a0a0c] sm:rounded-3xl rounded-t-3xl border-t sm:border border-white/10 shadow-2xl overflow-hidden pb-8 sm:pb-0"
+                                className="relative w-full max-w-[380px] bg-[#0a0a0c] sm:rounded-3xl rounded-t-3xl border-t sm:border border-white/10 shadow-md overflow-hidden pb-8 sm:pb-0"
                             >
                                 {/* Header */}
                                 <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">

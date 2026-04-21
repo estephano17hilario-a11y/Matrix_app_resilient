@@ -82,7 +82,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
         <div className="w-full max-w-lg mb-6">
             <div className="space-y-4 mx-auto w-full">
                 {/* Tabs */}
-                <div className="flex p-1 bg-[#1a1a1a] rounded-xl border border-white/5 shadow-inner">
+                <div className="flex p-1 bg-[#1a1a1a] rounded-xl border border-white/5 shadow-md">
                      <button 
                         onClick={() => setInputType('date')}
                         className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all", inputType === 'date' ? "bg-[#2a2a2a] text-white shadow-md" : "text-white/40 hover:text-white/80")}
@@ -97,7 +97,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                      </button>
                 </div>
 
-                <div className="p-5 bg-[#0f0f0f] rounded-2xl border border-white/5 shadow-xl space-y-5 relative overflow-hidden">
+                <div className="p-5 bg-[#0f0f0f] rounded-2xl border border-white/5 shadow-md space-y-5 relative overflow-hidden">
                     {inputType === 'date' ? (
                          <div className="space-y-3">
                             <div className="space-y-1.5">
@@ -109,7 +109,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                          min={startDate}
                                          value={endDate}
                                          onChange={(e) => setEndDate(e.target.value)}
-                                         className="w-full pl-12 pr-4 py-3.5 bg-black/60 border border-white/5 rounded-xl text-white font-medium focus:outline-none focus:border-white/20 transition-colors shadow-inner"
+                                         className="w-full pl-12 pr-4 py-3.5 bg-black/60 border border-white/5 rounded-xl text-white font-medium focus:outline-none focus:border-white/20 transition-colors shadow-md"
                                          style={{ colorScheme: 'dark' }}
                                      />
                                 </div>
@@ -126,7 +126,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                     onChange={(e) => setDuration({...duration, years: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('years')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
                                 />
                              </div>
                              <div className="space-y-1.5">
@@ -139,7 +139,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                     onChange={(e) => setDuration({...duration, months: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('months')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
                                 />
                              </div>
                              <div className="space-y-1.5">
@@ -151,7 +151,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                                     onChange={(e) => setDuration({...duration, days: parseInt(e.target.value) || 0})} 
                                     onFocus={() => setActiveField('days')}
                                     onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner" 
+                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
                                 />
                              </div>
                         </div>
@@ -186,7 +186,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
                 type="button"
                 disabled={!endDate}
                 onClick={handleNext}
-                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-xl shadow-white/10"
+                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-md shadow-white/10"
             >
                 {t('smartTask.wizard.action.startJourney')} <ChevronRight size={18} />
             </button>

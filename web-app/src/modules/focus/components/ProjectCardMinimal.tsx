@@ -104,7 +104,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                 }}
                 disabled={!!isArchived}
                 className={cn(
-                    "w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner hover:scale-105 active:scale-95 transition-transform duration-75 relative overflow-hidden clickable",
+                    "w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border border-white/20 shadow-md hover:scale-105 active:scale-95 transition-transform duration-75 relative overflow-hidden clickable",
                     isArchived && "opacity-50 cursor-not-allowed"
                 )}
                 style={{ 
@@ -154,7 +154,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                     <div className="flex items-center gap-3 w-full">
                         <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
                             <motion.div 
-                                initial={{ width: 0 }}
+                                
                                 animate={{ width: `${progress}%` }}
                                 className="h-full rounded-full"
                                 style={{ 

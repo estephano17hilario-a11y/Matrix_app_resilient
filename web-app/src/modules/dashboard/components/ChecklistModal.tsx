@@ -231,7 +231,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                                 <div className="h-2 w-full bg-white/[0.04] rounded-full overflow-hidden border border-white/[0.05]">
                                     <motion.div 
                                         className="h-full rounded-full relative"
-                                        initial={{ width: 0 }}
+                                        
                                         animate={{ width: `${progressPercent}%` }}
                                         transition={{ type: "spring", stiffness: 80, damping: 15 }}
                                         style={{

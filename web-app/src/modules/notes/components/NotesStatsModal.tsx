@@ -258,7 +258,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  {isActive && (
  <motion.div 
  layoutId="activeTabBg"
- className="absolute inset-0 bg-white/10 border border-white/10 rounded-lg shadow-inner"
+ className="absolute inset-0 bg-white/10 border border-white/10 rounded-lg shadow-md"
  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
  />
  )}

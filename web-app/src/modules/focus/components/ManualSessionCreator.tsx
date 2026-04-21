@@ -121,7 +121,7 @@ export const ManualSessionCreator = ({
  <div className="relative h-[280px] w-full shrink-0 select-none overflow-hidden bg-[#0A0A0A] rounded-[32px] border border-white/5">
  
  {/* Highlight Bar (The "Selection" Row) */}
- <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-[56px] bg-[#1C1C1E] rounded-[16px] z-0 border border-white/5 shadow-inner" />
+ <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-[56px] bg-[#1C1C1E] rounded-[16px] z-0 border border-white/5 shadow-md" />
 
  {/* Gradient Masks (Fade Effect) */}
  <div className="absolute top-0 left-0 right-0 h-[100px] bg-gradient-to-b from-black via-black/80 to-transparent z-10 pointer-events-none" />
@@ -237,7 +237,7 @@ export const ManualSessionCreator = ({
  </div>
 
  {/* 4. TASK BOX */}
- <div className="w-full py-5 px-6 rounded-[28px] bg-[#1C1C1E] border border-white/5 flex flex-col items-center text-center gap-1 shrink-0 shadow-inner">
+ <div className="w-full py-5 px-6 rounded-[28px] bg-[#1C1C1E] border border-white/5 flex flex-col items-center text-center gap-1 shrink-0 shadow-md">
  <span className="text-[9px] font-black text-[#8E8E93] uppercase tracking-widest">PROYECTO SELECCIONADO</span>
  <span className="text-[16px] font-bold text-white leading-tight line-clamp-2">
  {project.title || t('focus.tapToSelectTask', 'Tap to select a task')}

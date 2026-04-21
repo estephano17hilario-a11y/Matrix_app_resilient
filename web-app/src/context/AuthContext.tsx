@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              // Only use cache immediately if it indicates onboarding is completed
              // This prevents the "flash" of onboarding if the cache is stale or incomplete
              setProfile(cached);
+             setIsLoading(false); // ⚡ MATRIX: Instant Boot when cached!
         } else {
             // Optimistic Skeleton while we fetch
             setProfile({
@@ -146,11 +147,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 onboarding: { ...DEFAULT_ONBOARDING, completedAt: Date.now() }, // ASSUME COMPLETED temporarily to prevent flicker
                 isSkeleton: true
             });
+            // Don't set isLoading(false) here if we really need to fetch to know if onboarding is done,
+            // but for offline we might need to handle it in fetchProfile.
         }
 
         // 2. Fetch the real document from Supabase
         const fetchProfile = async (attempts = 0) => {
             try {
+                // If offline, don't even try to fetch and wait for timeouts if we have cache
+                if (!navigator.onLine && cached) {
+                    console.log("📶 MATRIX: Offline detected. Using cache directly.");
+                    setProfile(cached);
+                    setIsLoading(false);
+                    return;
+                }
+
                 const { data: userData, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', currentUser.id).single();
                 
                 if (userData && !error) {
@@ -189,6 +200,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
             } catch (err: any) {
                 console.error("🔥 MATRIX: Fetch error:", err);
+                
+                // If we are offline or there is a clear network error, fallback immediately
+                const isNetworkError = err.message?.includes('fetch') || err.message?.includes('network') || !navigator.onLine;
+                if (isNetworkError && cached) {
+                    console.log("📶 MATRIX: Network error detected. Using cache directly.");
+                    setProfile(cached);
+                    setIsLoading(false);
+                    return;
+                }
+
                 if (attempts < 5) {
                     await new Promise(r => setTimeout(r, 1000));
                     return fetchProfile(attempts + 1);

@@ -920,7 +920,7 @@ export const StrategyTutorial: React.FC<StrategyTutorialProps> = ({ isOpen, onCl
                                         ? 'linear-gradient(90deg, #f59e0b, #ef4444)' 
                                         : 'linear-gradient(90deg, #22c55e, #10b981)'
                             }}
-                            initial={{ width: 0 }}
+                            
                             animate={{ width: `${progressPercent}%` }}
                             transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
                         />

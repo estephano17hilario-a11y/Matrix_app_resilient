@@ -470,7 +470,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <motion.div 
  initial={{ scale: 0.9, y: 20 }}
  animate={{ scale: 1, y: 0 }}
- className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+ className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-8 shadow-md relative overflow-hidden"
  >
  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/50 to-teal-500/50" />
  
@@ -564,7 +564,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex justify-center flex-[2]">
  {sectionControl === 'VISIBLE' && !showStats && (
  <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
- <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-inner ${
+ <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
  subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
  }`} />
  <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.notes', 'Notes')}</button>
@@ -635,9 +635,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <AnimatePresence>
  {showFilters && subView === 'NOTES' && (
  <motion.div
- initial={{ height: 0, opacity: 0, marginBottom: 0 }}
- animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
- exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+ initial={{  opacity: 0, marginBottom: 0 }}
+ animate={{  opacity: 1, marginBottom: 24 }}
+ exit={{  opacity: 0, marginBottom: 0 }}
  transition={{ type: "spring", stiffness: 300, damping: 25 }}
  className="overflow-hidden px-4 relative z-10"
  >
@@ -974,7 +974,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  className="mb-6 w-full max-w-sm rounded-[24px] bg-gradient-to-b from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.1)] relative overflow-hidden group"
  >
  <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
- <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner mb-2 relative z-10">
+ <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md mb-2 relative z-10">
  {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </div>
  <h3 className="text-lg font-black text-white tracking-tight leading-tight relative z-10">{activeSpecialEvent.title}</h3>
@@ -1116,7 +1116,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-pink-500/20 to-transparent rounded-t-[32px] pointer-events-none" />
  
  <div className="flex justify-between items-start relative z-10">
- <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-inner">
+ <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-md">
  {selectedMemory.type === 'BIRTHDAY' ? '🎂' : (selectedMemory.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </div>
  <button 

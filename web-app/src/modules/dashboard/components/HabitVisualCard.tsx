@@ -159,7 +159,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="absolute left-0 top-full mt-3 z-40 w-[320px] rounded-[20px] bg-[#0b0b10] border border-white/10 shadow-2xl p-3"
+                                className="absolute left-0 top-full mt-3 z-40 w-[320px] rounded-[20px] bg-[#0b0b10] border border-white/10 shadow-md p-3"
                             >
                                 <div className="max-h-[280px] overflow-y-auto space-y-3 pr-1">
                                     {ICON_CATEGORIES.map(category => (

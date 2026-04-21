@@ -46,7 +46,7 @@ export const NeuralSection = () => {
             <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.activeTraits', 'Active Traits')}</h3>
             <div className="h-px w-12 bg-gradient-to-r from-white/10 to-transparent" />
           </div>
-          <span className="text-[10px] font-bold tracking-widest text-white/50 bg-black/40 border border-white/5 px-2.5 py-1 rounded-full shadow-inner">
+          <span className="text-[10px] font-bold tracking-widest text-white/50 bg-black/40 border border-white/5 px-2.5 py-1 rounded-full shadow-md">
             {attributes.length} / {isPro ? '∞' : '5'}
           </span>
         </div>
@@ -75,7 +75,7 @@ export const NeuralSection = () => {
                   <div className="flex-1 flex items-center gap-3 relative z-10">
                     <div className="relative">
                       <div
-                        className="w-12 h-12 rounded-2xl border-2 border-white/20 shadow-inner"
+                        className="w-12 h-12 rounded-2xl border-2 border-white/20 shadow-md"
                         style={{ backgroundColor: editForm.color }}
                       />
                       <input
@@ -89,7 +89,7 @@ export const NeuralSection = () => {
                       autoFocus
                       value={editForm.label}
                       onChange={e => setEditForm(prev => ({ ...prev, label: e.target.value }))}
-                      className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-inner"
+                      className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-md"
                     />
                     <div className="flex gap-2">
                       <button onClick={saveEditing} className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/30 transition-colors shadow-sm">

@@ -111,7 +111,7 @@ export const AdShard: React.FC = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-4"
           >
-            <div className="relative w-full max-w-md bg-[#111] rounded-2xl border border-white/10 overflow-hidden shadow-2xl flex flex-col items-center justify-center min-h-[300px] p-6 text-center">
+            <div className="relative w-full max-w-md bg-[#111] rounded-2xl border border-white/10 overflow-hidden shadow-md flex flex-col items-center justify-center min-h-[300px] p-6 text-center">
                
                {/* Close Button - Only visible when timer is 0 */}
                {adTimer === 0 ? (

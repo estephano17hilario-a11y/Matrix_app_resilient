@@ -84,7 +84,7 @@ export const VisualsSection = () => {
             <button
               onClick={() => toggleVividMode(!vividMode)}
               className={cn(
-                "w-12 h-7 rounded-full transition-all relative shadow-inner border border-white/5",
+                "w-12 h-7 rounded-full transition-all relative shadow-md border border-white/5",
                 vividMode ? "bg-gradient-to-r from-emerald-500 to-emerald-400" : "bg-black/50"
               )}
             >
@@ -129,7 +129,7 @@ export const VisualsSection = () => {
             document.body
           )}
 
-          <div className="flex p-1 bg-black/40 rounded-xl overflow-x-auto gap-1 border border-white/[0.05] shadow-inner custom-scrollbar">
+          <div className="flex p-1 bg-black/40 rounded-xl overflow-x-auto gap-1 border border-white/[0.05] shadow-md custom-scrollbar">
             {CATEGORIES.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               const Icon = cat.icon;

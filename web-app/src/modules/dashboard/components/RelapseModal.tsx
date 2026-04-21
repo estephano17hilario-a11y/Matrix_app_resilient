@@ -60,7 +60,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.94, opacity: 0, y: 10 }}
                 transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                className="relative w-full max-w-md overflow-hidden rounded-[28px] border shadow-2xl max-h-[90vh] overflow-y-auto"
+                className="relative w-full max-w-md overflow-hidden rounded-[28px] border shadow-md max-h-[90vh] overflow-y-auto"
                 style={{
                     borderColor: isIntelligent ? 'rgba(139, 92, 246, 0.25)' : 'rgba(225, 29, 72, 0.2)',
                     background: isIntelligent

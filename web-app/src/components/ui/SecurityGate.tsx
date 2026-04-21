@@ -129,7 +129,7 @@ export const SecurityGate = memo(({
                                 x: [-8, 8, -8, 8, 0],
                                 transition: { duration: 0.2 }
                             } : {}}
-                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mb-8 transition-all duration-300 border shadow-2xl ${
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center mb-8 transition-all duration-300 border shadow-md ${
                                 success 
                                     ? 'bg-emerald-500 text-black border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.4)]' 
                                     : error

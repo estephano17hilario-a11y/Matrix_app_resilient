@@ -20,7 +20,7 @@ export const projectService = {
       const projectsRef = collection(db as Firestore, 'users', userId, 'projects');
       const snapshot = await getDocs(projectsRef);
       return snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() as object } as Project))
+        .map((doc: any) => ({ id: doc.id, ...doc.data() as object } as Project))
         .filter((p: any) => !p.deleted);
     } catch (error) {
       console.error('Error fetching projects:', error);

@@ -42,7 +42,7 @@ export const FocusAlarmOverlay: React.FC<FocusAlarmOverlayProps> = ({
                         animate={{ scale: 1, y: 0 }}
                         exit={{ scale: 0.95, y: 10 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center overflow-hidden"
+                        className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[2rem] p-8 shadow-md flex flex-col items-center text-center overflow-hidden"
                         style={{ willChange: 'transform, opacity' }}
                     >
                         {/* Shimmer Effect */}

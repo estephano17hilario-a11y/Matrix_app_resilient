@@ -243,9 +243,9 @@ export const AchievementsScreen: React.FC = () => {
  <AnimatePresence>
  {selectedCategory === 'TRAIT' && (
  <motion.div
- initial={{ opacity: 0, height: 0, y: -10 }}
- animate={{ opacity: 1, height: 'auto', y: 0 }}
- exit={{ opacity: 0, height: 0, y: -10 }}
+ initial={{ opacity: 0, y: -10 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, y: -10 }}
  className="mb-8 overflow-hidden"
  >
  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 pt-1">

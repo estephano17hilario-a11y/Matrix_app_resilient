@@ -146,7 +146,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                              <span className={`font-bold text-white/80 tracking-wide ${isHighDensity ? 'text-[11px]' : 'text-xs'}`}>{info.label}</span>
                              <div className="h-px w-6 bg-white/10" />
                         </div>
-                        <span className={`font-mono text-white/50 bg-black px-2.5 rounded-md border border-white/5 shadow-inner ${isHighDensity ? 'text-[9px] py-0.5' : 'text-[10px] py-1'}`}>
+                        <span className={`font-mono text-white/50 bg-black px-2.5 rounded-md border border-white/5 shadow-md ${isHighDensity ? 'text-[9px] py-0.5' : 'text-[10px] py-1'}`}>
                             {formatDate(info.start)} - {formatDate(info.end)} 
                             <span className="text-white/20 mx-1.5">|</span> 
                             <span className="text-white/80 font-semibold">{info.durationStr}</span>
@@ -202,7 +202,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                 type="button"
                 disabled={!multiInputs.every(v => v.trim())}
                 onPointerDown={handleSubmit}
-                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-xl shadow-white/10"
+                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-md shadow-white/10"
             >
                 {t('common.next')} <ChevronRight size={18} />
             </button>

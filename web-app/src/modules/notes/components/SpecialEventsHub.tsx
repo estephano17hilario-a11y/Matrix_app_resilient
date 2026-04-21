@@ -209,7 +209,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm backdrop-blur-sm transform-gpu"
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[32px] pointer-events-none" />
- <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-inner relative z-10">
+ <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-md relative z-10">
  <Plus size={24} className="text-white/60 group-hover:text-white" />
  </div>
  <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80 relative z-10">Add Event</span>
@@ -267,7 +267,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  />
  
  <div className="flex justify-between items-start relative z-10">
- <div className="p-3 rounded-2xl bg-white/5 border border-white/5 shadow-inner" style={{ color: EVENT_TYPES[event.type].color }}>
+ <div className="p-3 rounded-2xl bg-white/5 border border-white/5 shadow-md" style={{ color: EVENT_TYPES[event.type].color }}>
  <TypeIcon size={20} />
  </div>
  {isToday ? (

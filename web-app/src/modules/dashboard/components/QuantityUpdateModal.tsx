@@ -247,7 +247,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleDecrement}
-                                    className="w-16 h-16 rounded-[24px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-xl backdrop-blur-sm transform-gpu backface-hidden "
+                                    className="w-16 h-16 rounded-[24px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-md backdrop-blur-sm transform-gpu backface-hidden "
                                 >
                                     <Minus size={24} className="text-white/40 group-hover:text-white transition-colors" strokeWidth={3} />
                                 </motion.button>

@@ -273,7 +273,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  transition={{ delay: 0.3 + (index * 0.1) }}
  className={`p-5 md:p-6 rounded-[24px] bg-[#1a0f2e]/40 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 flex flex-row sm:flex-col items-center sm:items-start gap-4 text-left shadow-lg ${feature.shadow} `}
  >
- <div className={`w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center border border-white/20 shadow-inner`}>
+ <div className={`w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center border border-white/20 shadow-md`}>
  <Icon size={24} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
  </div>
  <div>

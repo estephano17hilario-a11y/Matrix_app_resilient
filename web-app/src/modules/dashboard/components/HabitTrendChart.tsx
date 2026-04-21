@@ -202,7 +202,7 @@ export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color =
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-xl overflow-hidden z-[100] min-w-[110px] p-1.5"
+                                className="absolute top-full left-0 mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] min-w-[110px] p-1.5"
                             >
                                 {(['WEEK', 'MONTH', '3_MONTHS', 'YEAR', 'TOTAL'] as TimeFrame[]).map((tf) => (
                                     <button

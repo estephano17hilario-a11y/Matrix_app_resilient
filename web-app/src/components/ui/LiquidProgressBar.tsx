@@ -60,7 +60,7 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
  
  {/* Container: Tube */}
  <div className={cn(
- "relative w-full bg-gray-800/60 rounded-full shadow-inner overflow-hidden",
+ "relative w-full bg-gray-800/60 rounded-full shadow-md overflow-hidden",
  heightMap[size]
  )}>
  {/* Liquid Fill */}
@@ -69,8 +69,9 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
  "h-full rounded-full bg-gradient-to-r relative",
  colorMap[color]
  )}
- initial={{ width: 0 }}
- animate={{ width: `${percentage}%` }}
+ style={{ width: "100%", transformOrigin: "left" }}
+ initial={{ scaleX: 0 }}
+ animate={{ scaleX: percentage / 100 }}
  transition={{ type: "spring", stiffness: 100, damping: 20 }}
  >
  {/* Shimmer Effect on the liquid */}

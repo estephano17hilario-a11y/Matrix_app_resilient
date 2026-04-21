@@ -345,6 +345,7 @@
     "sync": "Sync",
     "currency": "XP",
     "empty": "No achievements in this category.",
+    "unlocked": "Achievement Unlocked",
     "categories": {
       "all": "All",
       "level": "Level",

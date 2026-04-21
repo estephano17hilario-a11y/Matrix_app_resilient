@@ -153,7 +153,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                         transition={{ type: "spring", stiffness: 300, damping: 25 }}
                         className="relative z-10"
                     >
-                        <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-2xl space-y-4 mt-2">
+                        <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-md space-y-4 mt-2">
                             
                             {/* Tabs */}
                             <div className="flex p-1 bg-black/40 rounded-xl">
@@ -222,7 +222,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                                 initial={{ opacity: 0, scale: 0.95, y: 5 }}
                                                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                                                 exit={{ opacity: 0, scale: 0.95, y: 5 }}
-                                                                className="absolute top-full left-0 mt-2 w-48 bg-[#151516] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col p-1 max-h-60 overflow-y-auto"
+                                                                className="absolute top-full left-0 mt-2 w-48 bg-[#151516] border border-white/10 rounded-xl shadow-md z-50 overflow-hidden flex flex-col p-1 max-h-60 overflow-y-auto"
                                                             >
                                                                 <button
                                                                     onClick={() => {

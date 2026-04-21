@@ -257,7 +257,7 @@ export const RewardOverlay: React.FC = () => {
         <div className="relative w-full h-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
             <motion.div 
                 className={`absolute top-0 left-0 h-full ${color.replace('from-', 'bg-').replace('to-', '')} opacity-20`}
-                initial={{ width: 0 }}
+                
                 animate={{ width: "100%" }} 
             />
             <motion.div 

@@ -85,7 +85,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  animate={{ y: 0, opacity: 1 }}
  exit={{ y: "100%", opacity: 0 }}
  transition={{ type: "spring", damping: 25, stiffness: 300 }}
- className="relative w-full max-w-md bg-[#0b0b0d] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+ className="relative w-full max-w-md bg-[#0b0b0d] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-md overflow-hidden"
  >
  {/* Background Effects */}
  <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(244,63,94,0.08)_0%,_transparent_60%)] pointer-events-none" />

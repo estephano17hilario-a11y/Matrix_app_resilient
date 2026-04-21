@@ -67,7 +67,7 @@ export const ConfirmationModal = memo(({
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.9, opacity: 0, y: 10 }}
  transition={{ type: "spring", damping: 25, stiffness: 400 }}
- className="relative z-10 w-full max-w-[340px] bg-[#0c0c0e] border border-white/10 rounded-[2rem] p-8 shadow-2xl overflow-hidden"
+ className="relative z-10 w-full max-w-[340px] bg-[#0c0c0e] border border-white/10 rounded-[2rem] p-8 shadow-md overflow-hidden"
  style={{ willChange: 'transform, opacity' }}
  >
  {/* High Performance Glow - No heavy blurs */}

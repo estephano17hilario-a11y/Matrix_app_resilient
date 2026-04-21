@@ -196,7 +196,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  initial={{ scale: 0, rotate: -180, opacity: 0 }}
  animate={{ scale: 1, rotate: 0, opacity: 1 }}
  transition={{ type: 'spring', damping: 20, stiffness: 250 }}
- className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl relative z-10 border border-white/20"
+ className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md relative z-10 border border-white/20"
  style={{ backgroundColor: currentData.color, boxShadow: `0 0 40px ${currentData.color}50` }}
  >
  <Icon size={32} className="text-[#121214]" />

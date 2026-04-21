@@ -132,7 +132,7 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-xl overflow-hidden z-[100] min-w-[110px] p-1.5"
+                                className="absolute top-full left-0 mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] min-w-[110px] p-1.5"
                             >
                                 {(['MONTH', 'QUARTER', 'YEAR'] as TimeFrame[]).map((tf) => (
                                     <button
@@ -208,18 +208,17 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                         <motion.div
                                             key={index}
                                             initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
+                                            animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
                                             transition={{ delay: index * 0.01 }}
                                             className={`w-[30px] h-[30px] rounded-md transition-all duration-300 ${
-                                                isOutsidePeriod || isFuture 
+                                                isOutsidePeriod
                                                 ? 'bg-transparent'
                                                 : isCompleted 
-                                                    ? 'opacity-100 shadow-[0_0_10px_-2px_currentColor] z-10' 
+                                                    ? 'shadow-[0_0_10px_-2px_currentColor] z-10' 
                                                     : 'bg-white/5 hover:bg-white/10'
                                             }`}
                                             style={{ 
-                                                backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined,
-                                                opacity: isOutsidePeriod ? 0 : 1
+                                                backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined
                                             }}
                                             title={!isOutsidePeriod ? format(day, 'd MMM, yyyy', { locale: currentLocale }) : undefined}
                                         />
@@ -245,20 +244,19 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                             <motion.div
                                                 key={dayIndex}
                                                 initial={{ opacity: 0, scale: 0.5 }}
-                                                animate={{ opacity: 1, scale: 1 }}
+                                                animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
                                                 transition={{ delay: (colIndex * 0.015) + (dayIndex * 0.01) }}
                                                 className={`w-[12px] h-[12px] rounded-[4px] transition-all duration-300 ${
-                                                    isOutsidePeriod || isFuture 
+                                                    isOutsidePeriod
                                                     ? 'bg-transparent'
                                                     : isCompleted 
-                                                        ? 'opacity-100 shadow-[0_0_10px_-2px_currentColor] z-10' 
+                                                        ? 'shadow-[0_0_10px_-2px_currentColor] z-10' 
                                                         : isFirstOfMonth
                                                             ? 'bg-zinc-400/50 border border-zinc-300/30' // Lighter lead color
                                                             : 'bg-white/5 hover:bg-white/10'
                                                 }`}
                                                 style={{ 
-                                                    backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined,
-                                                    opacity: isOutsidePeriod ? 0 : 1
+                                                    backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined
                                                 }}
                                                 title={!isOutsidePeriod ? format(day, 'd MMM, yyyy', { locale: currentLocale }) : undefined}
                                             />

@@ -130,7 +130,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange 
  transition={{ type: "spring", stiffness: 400, damping: 25 }}
  className="flex items-baseline gap-1 absolute"
  >
- <span className="text-4xl font-black text-white tracking-tighter drop-shadow-2xl">
+ <span className="text-4xl font-black text-white tracking-tighter drop-shadow-md">
  {displayValue}
  </span>
  <span className="text-xs text-white/30 font-bold uppercase tracking-widest">

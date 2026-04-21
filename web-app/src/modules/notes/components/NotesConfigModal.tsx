@@ -148,7 +148,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.98, y: 10 }}
                         transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
-                        className="relative z-10 w-full max-w-lg bg-[#111] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] antialiased"
+                        className="relative z-10 w-full max-w-lg bg-[#111] border border-white/10 rounded-3xl overflow-hidden shadow-md flex flex-col max-h-[85vh] antialiased"
                         style={{ willChange: 'transform, opacity', backfaceVisibility: 'hidden', transform: 'translate3d(0,0,0)' }}
                     >
                         {/* Header */}
@@ -231,7 +231,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                             value={config.security.pin.length === 64 ? '•••••' : config.security.pin}
                                             onChange={(e) => handlePinChange(e.target.value)}
                                             placeholder="•••••"
-                                            className="w-full bg-[#050505] border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white shadow-inner"
+                                            className="w-full bg-[#050505] border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white shadow-md"
                                         />
                                     </div>
 
@@ -381,7 +381,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                         <div className="p-6 border-t border-white/5 bg-[#161616]">
                             <button
                                 onClick={handleSave}
-                                className="w-full py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl"
+                                className="w-full py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md"
                             >
                                 <Check size={18} />
                                 Save Configuration

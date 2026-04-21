@@ -158,7 +158,7 @@ export const NotificationSettings: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="bg-[#111] border border-white/10 p-6 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden"
+              className="bg-[#111] border border-white/10 p-6 rounded-2xl max-w-md w-full shadow-md relative overflow-hidden"
             >
                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500" />
                

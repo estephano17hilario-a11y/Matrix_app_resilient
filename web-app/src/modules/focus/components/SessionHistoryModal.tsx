@@ -146,7 +146,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
                                 <div className="flex-1 overflow-y-auto p-6 pt-0 space-y-3 custom-scrollbar">
                                     {sortedSessions.length === 0 ? (
                                         <div className="text-center py-20 flex flex-col items-center gap-6">
-                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center border border-white/5 shadow-inner rotate-3">
+                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center border border-white/5 shadow-md rotate-3">
                                                 <Calendar size={32} className="text-white/20" />
                                             </div>
                                             <div className="space-y-1">

@@ -295,9 +295,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 1 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-4 pb-4 space-y-3"
                                     >
@@ -349,9 +349,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <AnimatePresence>
                                                 {isAttrPickerOpen && (
                                                     <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: "auto", opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
+                                                        initial={{  opacity: 0 }}
+                                                        animate={{  opacity: 1 }}
+                                                        exit={{  opacity: 0 }}
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
@@ -430,9 +430,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 2 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
@@ -564,7 +564,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                             </div>
                                                             <div className="group relative">
                                                                 <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-white/50 cursor-help">?</div>
-                                                                <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-slate-300 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                                                <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-slate-300 shadow-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
                                                                     {t('dashboard.lastDayOption')}
                                                                 </div>
                                                             </div>
@@ -653,9 +653,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 3 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
@@ -690,9 +690,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <AnimatePresence>
                                                 {reminder && (
                                                     <motion.div 
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: "auto", opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
+                                                        initial={{  opacity: 0 }}
+                                                        animate={{  opacity: 1 }}
+                                                        exit={{  opacity: 0 }}
                                                         className="space-y-2 overflow-hidden"
                                                     >
                                                         {(permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
@@ -747,9 +747,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         <AnimatePresence>
                                             {isBlock3Valid && (
                                                 <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
                                                 >
                                                     <RewardPredictionPill 
                                                         prediction={prediction} 
@@ -775,7 +775,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <button 
                                                 onClick={handleConfirm} 
                                                 disabled={!title || !attrId || isSubmitting || !isBlock3Valid} 
-                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting || !isBlock3Valid) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting || !isBlock3Valid) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
                                                 style={{
                                                     background: (!title || !attrId || isSubmitting || !isBlock3Valid) 
                                                         ? undefined 

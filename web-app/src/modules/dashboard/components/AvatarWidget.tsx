@@ -146,7 +146,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         {/* AVATAR - RESTORED & CENTERED */}
         <div className="relative group active:scale-95 transition-transform shrink-0" style={{ transform: 'translateZ(0)' }}>
             <div 
-                className={`w-14 h-14 ${shapeClass} overflow-hidden shadow-2xl ${isPro ? '' : 'ring-1 ring-white/10 shadow-black/50'}`}
+                className={`w-14 h-14 ${shapeClass} overflow-hidden shadow-md ${isPro ? '' : 'ring-1 ring-white/10 shadow-black/50'}`}
                 style={auraStyle}
             >
                 <img 

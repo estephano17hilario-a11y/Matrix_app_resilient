@@ -195,7 +195,7 @@ export const QuestModal = React.memo(({
                                 {isProjectPickerOpen && (
                                     <>
                                         <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setProjectPickerOpen(false)} />
-                                        <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-2xl border border-white/10 animate-in zoom-in-95 w-[200px] max-h-[300px] overflow-y-auto">
+                                        <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-md border border-white/10 animate-in zoom-in-95 w-[200px] max-h-[300px] overflow-y-auto">
                                             <button 
                                                 onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
                                                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
@@ -296,7 +296,7 @@ export const QuestModal = React.memo(({
                                  {isAttrPickerOpen && !lockedAttributeId && (
                                      <>
                                          <div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
-                                         <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-2xl border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                         <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-md border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                              {attributes.map((attr) => {
                                                  const Icon = attr.icon;
                                                  return (
@@ -377,7 +377,7 @@ export const QuestModal = React.memo(({
                         <button 
                             onClick={handleConfirm} 
                             disabled={!title || !attrId || isSubmitting} 
-                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-xl hover:border-white/20'}`}
+                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-md hover:border-white/20'}`}
                         >
                             {isSubmitting ? (
                                 <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>

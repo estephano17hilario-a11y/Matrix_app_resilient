@@ -115,49 +115,57 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
   return (
     <GlassPanel className={cn("p-3 flex flex-col gap-2", className)}>
       {/* SYSTEM METRICS - TRAIT ANALYSIS */}
-      <div className="flex flex-col gap-2">
-         <div className="flex items-center justify-between px-1">
-             <div className="flex items-center gap-2">
-                <h3 className="text-[10px] font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
-                    <Sparkles size={12} className="text-indigo-400" /> Neural Stats
-                </h3>
+      <div className="flex flex-col relative">
+         
+         {chartMode === 'BAR' ? (
+             <div className="flex items-center justify-end px-1 mb-2">
+                {/* CHART TOGGLE */}
+                <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5">
+                    <button 
+                        onClick={() => setChartMode('RADAR')}
+                        className="p-1.5 rounded-md transition-all text-white/40 hover:text-white/60"
+                    >
+                        <Hexagon size={14} />
+                    </button>
+                    <button 
+                        onClick={() => setChartMode('BAR')}
+                        className="p-1.5 rounded-md transition-all bg-white/10 text-white shadow-sm"
+                    >
+                        <BarChart3 size={14} />
+                    </button>
+                </div>
              </div>
-            
-            {/* CHART TOGGLE */}
-            <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5">
-                <button 
-                    onClick={() => setChartMode('RADAR')}
-                    className={cn(
-                        "p-1.5 rounded-md transition-all", 
-                        chartMode === 'RADAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                    )}
-                >
-                    <Hexagon size={14} />
-                </button>
-                <button 
-                    onClick={() => setChartMode('BAR')}
-                    className={cn(
-                        "p-1.5 rounded-md transition-all", 
-                        chartMode === 'BAR' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                    )}
-                >
-                    <BarChart3 size={14} />
-                </button>
-            </div>
-         </div>
+         ) : (
+             <div className="absolute top-0 right-0 z-10">
+                <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5 backdrop-blur-md">
+                    <button 
+                        onClick={() => setChartMode('RADAR')}
+                        className="p-1.5 rounded-md transition-all bg-white/10 text-white shadow-sm"
+                    >
+                        <Hexagon size={14} />
+                    </button>
+                    <button 
+                        onClick={() => setChartMode('BAR')}
+                        className="p-1.5 rounded-md transition-all text-white/40 hover:text-white/60"
+                    >
+                        <BarChart3 size={14} />
+                    </button>
+                </div>
+             </div>
+         )}
 
          <div className={cn(
-            "mt-1 relative flex items-center justify-center transition-all duration-500",
+            "relative flex items-center justify-center transition-all duration-500",
             chartMode === 'RADAR' ? "min-h-[160px]" : "min-h-0"
          )}>
              <AnimatePresence mode="wait">
                 {chartMode === 'RADAR' ? (
                     <motion.div 
                         key="radar"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="w-full h-full flex items-center justify-center"
                     >
                         <TraitRadarChart attributes={orderedAttributes} />
@@ -165,10 +173,10 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
                 ) : (
                     <motion.div 
                         key="bar"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className={cn(
                             "w-full grid gap-x-4 gap-y-3 px-1 py-1",
                             orderedAttributes.length > 5 ? "grid-cols-2" : "grid-cols-1"

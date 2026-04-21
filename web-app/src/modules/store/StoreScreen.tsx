@@ -78,7 +78,7 @@ const ConfirmationModal = ({
                         />
 
                         <div className="relative flex flex-col items-center text-center">
-                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
+                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-md">
                                 <Icon size={40} className="text-white" strokeWidth={1.5} />
                             </div>
                             
@@ -175,7 +175,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
             onConfirm={confirmPurchase}
        />
 
-      <div className="relative z-10 max-w-lg mx-auto px-4 pt-6">
+      <div className="relative z-10 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto px-4 pt-6">
 
         {/* Header - Refined */}
         <div data-tour="store-header" className="sticky top-4 z-50 mb-6">
@@ -219,7 +219,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
         {/* Grid */}
         <motion.div 
             data-tour="store-items"
-            className="grid grid-cols-1 gap-3"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         >
             <AnimatePresence initial={false}>
                 {/* Ad Shard - Only when Power Ups or All are selected */}

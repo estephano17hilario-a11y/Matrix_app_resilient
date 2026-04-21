@@ -22,13 +22,6 @@
     overscroll-behavior-y: none;
     /* Prevent horizontal scroll */
     overflow-x: hidden;
-    
-    /* GLOBAL FLICKER FIX FOR ANDROID WEBVIEW */
-    /* Applied to root only to avoid memory explosion */
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-    perspective: 1000px;
   }
 
   /* HARDWARE ACCELERATION UTILITIES */
@@ -40,18 +33,10 @@
   }
 
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
-  /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius */
-  .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
-    backdrop-filter: blur(2px) !important;
-    -webkit-backdrop-filter: blur(2px) !important;
-    /* Removed translate3d to prevent GPU layer explosion which causes black screens */
-  }
-
-  /* Cap expensive filters globally to prevent GPU overload while keeping the aesthetic */
-  .blur-sm, .blur-md, .blur-lg, .blur-xl, .blur-2xl, .blur-3xl, .blur-\[100px\], .blur-\[120px\], .blur-\[80px\], .blur-\[90px\], .blur-\[60px\], .blur {
-    filter: blur(2px) !important;
-    -webkit-filter: blur(2px) !important;
-    /* Removed translate3d/will-change to prevent layer explosion */
+  /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius to 16px (Rule of Gold) */
+  .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl {
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
   }
 
   /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING AND FIX BLACK PARPADEO */
@@ -67,24 +52,11 @@
 
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
   @media (max-width: 768px) {
-      /* Optimize blurs on mobile - Cap max blur radius for performance */
-      .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
-        backdrop-filter: blur(2px) !important;
-        -webkit-backdrop-filter: blur(2px) !important;
+      /* Optimize blurs on mobile - Cap max blur radius to 12px for performance */
+      .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl {
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
       }
-
-      /* Reduce regular blurs significantly for mobile to prevent black screens */
-      .blur-sm, .blur-md, .blur-lg, .blur-xl, .blur-2xl, .blur-3xl, .blur-\[100px\], .blur-\[120px\], .blur-\[80px\], .blur-\[90px\], .blur-\[60px\], .blur {
-          filter: blur(2px) !important;
-          -webkit-filter: blur(2px) !important;
-          /* Removed translate3d to prevent GPU black screens on mobile */
-      }
-
-      /* Reduce particle counts or complex animations */
-      /* * {
-         animation-duration: 0s !important; 
-         transition-duration: 0s !important; 
-      } */
       
       /* Exception for critical UI feedback */
       .animate-spin, .animate-pulse, .transition-transform {

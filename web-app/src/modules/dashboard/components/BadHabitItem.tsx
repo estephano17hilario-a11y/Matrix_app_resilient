@@ -113,9 +113,9 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 </div>
                             </div>
 
-                            <div className="relative h-2 bg-black/40 rounded-full overflow-hidden border border-white/10 shadow-inner">
+                            <div className="relative h-2 bg-black/40 rounded-full overflow-hidden border border-white/10 shadow-md">
                                 <motion.div
-                                    initial={{ width: 0 }}
+                                    
                                     animate={{ width: `${progress}%` }}
                                     transition={{ type: "spring", stiffness: 200, damping: 20 }}
                                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 rounded-full shadow-[0_0_12px_rgba(217,70,239,0.6)]"

@@ -107,7 +107,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  initial={{ scale: 0.9, y: 20, opacity: 0 }}
  animate={{ scale: 1, y: 0, opacity: 1 }}
  exit={{ scale: 0.9, y: 20, opacity: 0 }}
- className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+ className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-3xl overflow-hidden shadow-md flex flex-col max-h-[90vh]"
  >
  {/* Header Image / Gradient */}
  <div className="h-32 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-blue-500/20 relative flex items-end p-6">
@@ -269,7 +269,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <button 
  onClick={handleSave}
  disabled={!isFormComplete}
- className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl
+ className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-md
  ${isFormComplete 
  ? 'bg-white text-black hover:scale-[1.02] active:scale-[0.98] shadow-white/10' 
  : 'bg-white/10 text-white/30 cursor-not-allowed border border-white/5'}

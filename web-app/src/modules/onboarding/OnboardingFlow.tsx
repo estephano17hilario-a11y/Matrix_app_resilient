@@ -281,7 +281,7 @@ export function OnboardingFlow() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-4"
                       >
-                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-xl">
+                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-md">
                             {t('onboarding.traits.title', 'Choose your Traits')}
                         </h1>
                         <p className="text-white/60 text-lg font-light tracking-wide">
@@ -292,8 +292,8 @@ export function OnboardingFlow() {
                       {selectedTraits.length < 3 && (
                          <motion.div 
                             key="traits-validation"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             className="text-sm text-red-300 mt-2 font-medium bg-red-500/15 py-2 px-4 rounded-full inline-block border border-red-500/30 bg-gradient-to-b from-white/5 to-transparent"
                          >
                            {t('common.selectAtLeast', { count: 3 }) || `Select at least 3 (Selected: ${selectedTraits.length})`}

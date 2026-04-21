@@ -671,7 +671,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                    className="absolute right-0 top-full mt-2 w-48 bg-[#09090b] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[10000]"
+                                    className="absolute right-0 top-full mt-2 w-48 bg-[#09090b] border border-white/10 rounded-xl shadow-md overflow-hidden z-[10000]"
                                 >
                                     {onEdit && (
                                         <button 
@@ -809,7 +809,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                             animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
                                             exit={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
                                             transition={{ duration: 0.15, ease: "easeOut" }}
-                                            className="absolute left-1/2 top-full mt-2 w-40 bg-[#121214]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl shadow-xl overflow-hidden z-[100] p-1"
+                                            className="absolute left-1/2 top-full mt-2 w-40 bg-[#121214]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1"
                                         >
                                             <div className="flex flex-col gap-0.5">
                                                 {ALL_RANGES.map((option) => {
@@ -851,7 +851,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             className="flex items-center justify-between w-full px-2 mt-[1px]"
                             animate={{
                                 opacity: 1,
-                                height: 'auto',
                                 scale: isScrolled ? 0.95 : 1
                             }}
                         >
@@ -1001,7 +1000,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 2. GOAL SUMMARY (Line Chart) */}
-                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-xl relative overflow-hidden group flex flex-col">
+                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group flex flex-col">
                             <div className="flex items-center gap-2 mb-6">
                                 <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: themeColor }} />
                                 <h3 className="text-[11px] font-[900] text-white/40 uppercase tracking-[0.2em]">{t('habits.detail.goalSummary', 'GOAL SUMMARY')}</h3>
@@ -1042,7 +1041,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                         </motion.div>
 
                         {/* 3. WORKED HOURS (Bar Chart) */}
-                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-xl relative overflow-hidden group">
+                        <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm transform-gpu rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group">
                             <div className="flex justify-between items-center mb-8">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1.5 h-4 rounded-full bg-white/20" />
@@ -1099,7 +1098,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                         <div key={i} className="flex-1 flex flex-col items-center gap-4 z-10 h-full justify-end group/bar cursor-pointer pb-8">
                                             <div className="w-full max-w-[28px] h-[85%] relative flex items-end">
                                                 {/* Tooltip on Hover */}
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-xl scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-md scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">
                                                     {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
                                                 </div>
                                                 

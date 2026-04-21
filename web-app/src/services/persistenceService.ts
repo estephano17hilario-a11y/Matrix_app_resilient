@@ -3,6 +3,7 @@ import { Quest, Habit, Note, JournalEntry, Attribute, Project, BadHabit } from '
 import { SmartProject } from '../types/SmartGoal';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { AuditLogger } from './auditService';
+import { OfflineSyncService } from './offlineSync';
 
 // Generic helper for subcollection CRUD using Supabase
 const createSubCollectionService = <T extends { id: string, deleted?: boolean }>(collectionName: string) => ({
@@ -59,17 +60,36 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       // by combining userId, collectionName, and the item's targetId.
       const uniqueRecordId = `${userId}_${collectionName}_${targetId}`;
 
-      const { error } = await supabase
-        .from('user_collections')
-        .upsert({
-          id: uniqueRecordId,
-          user_id: userId,
-          collection_name: collectionName,
-          data: cleanItem,
-          deleted: false
-        }, { onConflict: 'id' });
+      // OPTIMISTIC LOCAL SAVE (Important for Instant UI)
+      // The calling code often expects persistence to be fast.
+      // However, we still need to wait for Supabase or catch the error.
+      try {
+        const { error } = await supabase
+          .from('user_collections')
+          .upsert({
+            id: uniqueRecordId,
+            user_id: userId,
+            collection_name: collectionName,
+            data: cleanItem,
+            deleted: false
+          }, { onConflict: 'id' });
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (networkError: any) {
+        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        if (isNetwork) {
+          console.log(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`);
+          OfflineSyncService.addAction({
+            type: 'SAVE',
+            collectionName,
+            userId,
+            itemId: targetId,
+            data: cleanItem
+          });
+        } else {
+          throw networkError; // Re-throw actual DB errors
+        }
+      }
       
       // AUDIT LOG
       AuditLogger.log(item.id ? 'UPDATE' : 'CREATE', collectionName, targetId, { userId });
@@ -90,31 +110,47 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
 
-      // Fetch existing data first to merge
-      const { data: existingData, error: fetchError } = await supabase
-        .from('user_collections')
-        .select('data')
-        .in('id', [uniqueRecordId, itemId])
-        .eq('user_id', userId)
-        .eq('collection_name', collectionName)
-        .limit(1)
-        .single();
+      try {
+        // Fetch existing data first to merge
+        const { data: existingData, error: fetchError } = await supabase
+          .from('user_collections')
+          .select('data')
+          .in('id', [uniqueRecordId, itemId])
+          .eq('user_id', userId)
+          .eq('collection_name', collectionName)
+          .limit(1)
+          .single();
 
-      const currentData = fetchError ? {} : (existingData?.data || {});
-      const cleanData = sanitizeFirestoreData(dataToUpdate);
-      const mergedData = { ...currentData, ...cleanData, id: itemId };
+        const currentData = fetchError ? {} : (existingData?.data || {});
+        const cleanData = sanitizeFirestoreData(dataToUpdate);
+        const mergedData = { ...currentData, ...cleanData, id: itemId };
 
-      const { error } = await supabase
-        .from('user_collections')
-        .upsert({
-          id: uniqueRecordId,
-          user_id: userId,
-          collection_name: collectionName,
-          data: mergedData,
-          deleted: false
-        }, { onConflict: 'id' });
+        const { error } = await supabase
+          .from('user_collections')
+          .upsert({
+            id: uniqueRecordId,
+            user_id: userId,
+            collection_name: collectionName,
+            data: mergedData,
+            deleted: false
+          }, { onConflict: 'id' });
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (networkError: any) {
+        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        if (isNetwork) {
+          console.log(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`);
+          OfflineSyncService.addAction({
+            type: 'UPDATE',
+            collectionName,
+            userId,
+            itemId,
+            data: dataToUpdate
+          });
+        } else {
+          throw networkError;
+        }
+      }
 
       // AUDIT LOG
       AuditLogger.log('UPDATE', collectionName, itemId, { changes: Object.keys(dataToUpdate) });
@@ -131,14 +167,29 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
     try {
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
 
-      const { error } = await supabase
-        .from('user_collections')
-        .delete()
-        .in('id', [uniqueRecordId, itemId])
-        .eq('user_id', userId)
-        .eq('collection_name', collectionName);
+      try {
+        const { error } = await supabase
+          .from('user_collections')
+          .delete()
+          .in('id', [uniqueRecordId, itemId])
+          .eq('user_id', userId)
+          .eq('collection_name', collectionName);
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (networkError: any) {
+        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        if (isNetwork) {
+          console.log(`[Offline Sync] Queued DELETE for ${collectionName}/${itemId}`);
+          OfflineSyncService.addAction({
+            type: 'DELETE',
+            collectionName,
+            userId,
+            itemId
+          });
+        } else {
+          throw networkError;
+        }
+      }
 
       // AUDIT LOG
       AuditLogger.log('DELETE', collectionName, itemId, { userId });
@@ -183,8 +234,20 @@ const settingsService = {
               }, { onConflict: 'id' });
             
             if (error) throw error;
-        } catch (error: any) {
-            console.error("Error saving settings:", error?.message || error);
+        } catch (networkError: any) {
+            const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+            if (isNetwork) {
+              console.log(`[Offline Sync] Queued SETTINGS_SAVE for settings/config_${userId}`);
+              OfflineSyncService.addAction({
+                type: 'SETTINGS_SAVE',
+                collectionName: 'settings',
+                userId,
+                itemId: `config_${userId}`,
+                data: dataToSave
+              });
+            } else {
+              console.error("Error saving settings:", networkError?.message || networkError);
+            }
         }
     }
 }

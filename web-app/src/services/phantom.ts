@@ -1,5 +1,26 @@
 // Removed firebase dependency
 
+export interface User {
+    uid: string;
+    displayName: string | null;
+    email: string | null;
+    photoURL: string | null;
+    emailVerified: boolean;
+    isAnonymous: boolean;
+    metadata: any;
+    providerData: any[];
+    refreshToken: string;
+    tenantId: string | null;
+    delete: () => Promise<void>;
+    getIdToken: () => Promise<string>;
+    getIdTokenResult: () => Promise<any>;
+    reload: () => Promise<void>;
+    toJSON: () => object;
+    phoneNumber: string | null;
+    providerId: string;
+    id?: string;
+}
+
 // --- PERSISTENCE HELPERS ---
 const PHANTOM_SESSION_KEY = 'MATRIX_PHANTOM_SESSION';
 const PHANTOM_DB_KEY = 'MATRIX_PHANTOM_DB';

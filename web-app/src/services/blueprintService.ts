@@ -8,7 +8,7 @@ export const getBlueprints = async (uid: string): Promise<NoteBlueprint[]> => {
     const userBlueprintsRef = collection(db, `users/${uid}/blueprints`);
     const snapshot = await getDocs(userBlueprintsRef);
     const userBlueprints = snapshot.docs
-      .map(doc => doc.data() as NoteBlueprint)
+      .map((doc: any) => doc.data() as NoteBlueprint)
       .filter((bp: any) => !bp.deleted);
 
     return [...defaultBlueprints, ...userBlueprints];

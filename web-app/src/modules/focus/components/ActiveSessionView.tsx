@@ -315,9 +315,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                         <AnimatePresence>
                             {!permissions.notifications && (
                                 <motion.button
-                                    initial={{ opacity: 0, y: -10, height: 0 }}
-                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
                                     onClick={handleEnableNotifications}
                                     className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-colors"
                                 >
@@ -329,9 +329,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                             {/* SMART BATTERY PROMPT (Only shows if Notifs are enabled but Battery is restricted) */}
                             {permissions.notifications && !permissions.battery && (
                                 <motion.button
-                                    initial={{ opacity: 0, y: -10, height: 0 }}
-                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
                                     onClick={handleDisableBatteryOpt}
                                     className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-colors"
                                 >
@@ -343,9 +343,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                             {/* SMART OVERLAY PROMPT (Only shows if others are OK) */}
                             {permissions.notifications && permissions.battery && !permissions.overlay && (
                                 <motion.button
-                                    initial={{ opacity: 0, y: -10, height: 0 }}
-                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                    exit={{ opacity: 0, y: -10, height: 0 }}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
                                     onClick={handleEnableOverlay}
                                     className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/30 transition-colors"
                                 >
@@ -474,7 +474,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                     onChange={(e) => setEditTimeValue(e.target.value)}
                                     onBlur={handleTimeSubmit}
                                     onKeyDown={handleTimeKeyDown}
-                                    className="w-48 text-[5rem] font-mono font-bold text-white bg-transparent text-center outline-none border-b-2 border-white/20 leading-none tracking-tighter tabular-nums drop-shadow-2xl selection:bg-white/20"
+                                    className="w-48 text-[5rem] font-mono font-bold text-white bg-transparent text-center outline-none border-b-2 border-white/20 leading-none tracking-tighter tabular-nums drop-shadow-md selection:bg-white/20"
                                 />
                                 <span className="absolute -right-8 bottom-4 text-sm font-bold text-white/40 uppercase tracking-widest">MIN</span>
                             </div>
@@ -487,7 +487,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                     }
                                 }}
                                 className={cn(
-                                    "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-2xl select-none scale-y-110 transition-all",
+                                    "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all",
                                     !isActive && "cursor-pointer hover:scale-110 hover:text-indigo-200"
                                 )}
                                 style={{ textShadow: `0 0 30px ${themeColor}40` }}

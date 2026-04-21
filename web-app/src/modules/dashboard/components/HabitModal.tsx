@@ -310,9 +310,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 1 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-2"
                                     >
@@ -366,9 +366,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {isAttrPickerOpen && (
                                                     <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: "auto", opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
+                                                        initial={{  opacity: 0 }}
+                                                        animate={{  opacity: 1 }}
+                                                        exit={{  opacity: 0 }}
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
@@ -456,9 +456,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 2 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
@@ -687,9 +687,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             <AnimatePresence>
                                                                 {openMenu?.id === task.id && (
                                                                     <motion.div 
-                                                                        initial={{ height: 0, opacity: 0 }}
-                                                                        animate={{ height: "auto", opacity: 1 }}
-                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        initial={{  opacity: 0 }}
+                                                                        animate={{  opacity: 1 }}
+                                                                        exit={{  opacity: 0 }}
                                                                         className="border-t border-white/5 bg-black/20"
                                                                     >
                                                                         {openMenu.type === 'COLOR' && (
@@ -814,9 +814,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 3 && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="px-3 pb-3 space-y-3"
                                     >
@@ -848,9 +848,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {reminder && (
                                                     <motion.div 
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: "auto", opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
+                                                        initial={{  opacity: 0 }}
+                                                        animate={{  opacity: 1 }}
+                                                        exit={{  opacity: 0 }}
                                                         className="space-y-2 overflow-hidden"
                                                     >
                                                         {/* Notification Permission Gate */}
@@ -906,7 +906,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             {isProjectPickerOpen && (
                                                 <>
                                                     <div className="fixed inset-0 z-[998]" onClick={() => setProjectPickerOpen(false)} />
-                                                    <div className="absolute bottom-full left-0 mb-2 w-full bg-[#1c1c1e] rounded-xl border border-white/10 shadow-2xl z-[999] max-h-[200px] overflow-y-auto p-1 animate-in slide-in-from-bottom-2">
+                                                    <div className="absolute bottom-full left-0 mb-2 w-full bg-[#1c1c1e] rounded-xl border border-white/10 shadow-md z-[999] max-h-[200px] overflow-y-auto p-1 animate-in slide-in-from-bottom-2">
                                                         <button 
                                                             onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
                                                             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left"
@@ -945,9 +945,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <AnimatePresence>
                             {canSubmit && reminder && (
                                 <motion.div 
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
+                                    initial={{  opacity: 0 }}
+                                    animate={{  opacity: 1 }}
+                                    exit={{  opacity: 0 }}
                                     className="flex justify-center gap-2 flex-wrap"
                                 >
                                     {/* XP */}
@@ -974,7 +974,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <button 
                             disabled={!canSubmit || isSubmitting}
                             onClick={handleConfirm}
-                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-xl active:scale-95 border border-white/20 hover:shadow-2xl hover:border-white/40'}`}
+                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
                             style={{
                                 background: (!canSubmit || isSubmitting) 
                                     ? undefined 

@@ -1,0 +1,80 @@
+\components\AchievementToast.tsx: XP
+\components\ErrorBoundary.tsx: SYSTEM FAILURE, REBOOT SYSTEM
+\components\FloatingTourButton.tsx: Guía
+\components\StatsTutorialOverlay.tsx: XP
+\components\TourGuide.tsx: Haz click en el área resaltada, Pulsa el área
+\components\TourLightbulb.tsx: Tips
+\components\ui\DockConfigModal.tsx: Dock Configuration, Organize your navigation, Dock Bar, Plus Menu, Active Items (drag to reorder), (Required), Select an item below to replace, Available Items to Replace, Reset to default, Plus Menu Items (drag to reorder), Available Items, Save Configuration
+\components\ui\LoadingScreen.tsx: Lux
+\components\ui\ReorderModal.tsx: Cancel, Save Order
+\components\ui\SecurityGate.tsx: Secure, Forgot PIN?
+\components\ui\TimePicker.tsx: OFF, Doble toque para escribir, AM, PM, Save Time, Remove Alarm
+\Dashboard.tsx: LEVEL UP, Initialize Protocol
+\modules\achievements\AchievementsScreen.tsx: XP, LVL, ALL
+\modules\auth\AuthView.tsx: Lux, Continuar con Google, Neo, neo@matrix.com
+\modules\customization\ArchetypeSelector.tsx: REWRITING DNA...
+\modules\customization\AvatarSelector.tsx: UPDATING REALITY...
+\modules\customization\components\AvatarSelectorCard.tsx: No Signal
+\modules\dashboard\components\AvatarDisplay.tsx: User Avatar
+\modules\dashboard\components\AvatarWidget.tsx: Avatar
+\modules\dashboard\components\BadHabitActionsModal.tsx: Editar Vicio
+\modules\dashboard\components\BadHabitDetailModal.tsx: Racha Actual, días, Mejor Racha, Última Recaída, Fecha de Creación
+\modules\dashboard\components\BadHabitItem.tsx: AI, días
+\modules\dashboard\components\BadHabitWizard.tsx: 15m, 2h, 12h, Nivel
+\modules\dashboard\components\ChecklistModal.tsx: XP, Estatus del Protocolo
+\modules\dashboard\components\DateSelectionModal.tsx: Viaja en el tiempo
+\modules\dashboard\components\Dock.tsx: New Mission, Single Task
+\modules\dashboard\components\HabitActionsModal.tsx: Editar Hábito
+\modules\dashboard\components\HabitDetailView.tsx: Análisis Detallado, Editar, Período Seleccionado, Progreso, DELUX
+\modules\dashboard\components\HabitItem.tsx: Trait, Subtasks
+\modules\dashboard\components\HabitModal.tsx: XP
+\modules\dashboard\components\IconPicker.tsx: Limpiar
+\modules\dashboard\components\ProjectModal.tsx: HRS, MIN
+\modules\dashboard\components\QuantityUpdateModal.tsx: Objetivo
+\modules\dashboard\components\QuestModal.tsx: Mission:, Strategic, Strategy, Protocols
+\modules\dashboard\components\RelapseModal.tsx: NO DMG, HP, XP
+\modules\dashboard\components\RewardPredictionPill.tsx: XP, Gold
+\modules\dashboard\components\StreakCelebrationOverlay.tsx: DÍAS
+\modules\dashboard\components\StreakStatusModal.tsx: DÍAS
+\modules\dashboard\components\ValidationModal.tsx: Validate Progress, Current:, Target:, Update Progress
+\modules\dashboard\HabitList.tsx: XP Limit:, Carga Cognitiva Máxima (No XP)
+\modules\dashboard\HabitVisualView.tsx: Archivos (, Crear Protocolo, Ver Archivados (, Zona Despejada, No hay vicios archivados
+\modules\dashboard\PlayerHUD.tsx: Lvl, Neural Stats, No metrics available
+\modules\dashboard\StreakRoadmapView.tsx: OK, Día, NUEVO NIVEL
+\modules\focus\components\ActiveSessionView.tsx: Enable Notifications, Unrestrict Battery, Enable Live View, FOCUS, FLOW, MIN, Focus Mode Active
+\modules\focus\components\FocusAlarmOverlay.tsx: Time spent on, minutes., Claim Victory
+\modules\focus\components\FocusStats.tsx: SIN DIVIDIR, DIVIDIR POR RASGO, DIVIDIR POR PROYECTO, Descanso
+\modules\focus\components\ManualSessionCreator.tsx: DURACIÓN, INICIO, FIN, PROYECTO SELECCIONADO, Guardar Sesión
+\modules\focus\components\ProjectSimpleItem.tsx: LIVE
+\modules\focus\components\SessionHistoryModal.tsx: History, No sessions yet, Start tracking your progress, Log Past Session, Total:, min
+\modules\focus\components\SessionRewardModal.tsx: Session Complete, Focus Protocol Executed, Time, Bonus, XP GAINED, GOLD, Continue
+\modules\focus\FocusLimits.tsx: XP, TP, Gold
+\modules\focus\FocusView.tsx: Create New Project
+\modules\focus\PomodoroView.tsx: Quick Focus
+\modules\monetization\DeluxSuccessOverlay.tsx: ¡GRACIAS!, AHORA ERES, DELUX, Tu apoyo nos permite seguir creando la mejor herramienta del universo. Camina hacia el futuro, los límites han sido removidos., Iniciar Secuencia, Auditoría de Transacción: Verificada
+\modules\monetization\ProUpgradeModal.tsx: Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium., Descargar en Google Play
+\modules\notes\components\BlockEditor.tsx: Attachment
+\modules\notes\components\BlueprintSelector.tsx: Blueprints, Blueprint, Deck
+\modules\notes\components\CreateEventModal.tsx: Event Title, e.g. Mom's Birthday, Event Type, Date, Notify At, Recurrence, Will repeat:, Show in Calendar, Visible in Journaling view, Personal Note, Write a special message..., System Notification, You will receive a personalized alert on, at, Delete Event
+\modules\notes\components\DropdownThemePicker.tsx: Color Tag, Link Project, None
+\modules\notes\components\MoodSnakeChart.tsx: Add more entries to see your mood flow...
+\modules\notes\components\NotesConfigModal.tsx: Master PIN (5 Digits), If you forget your PIN, these methods will be the, only way, to recover your data. Ensure at least one is enabled., Active by default, Question (e.g. First pet's name?), Answer, Save Configuration
+\modules\notes\components\NotesStatsModal.tsx: Insights, Neural Analytics v2.0, DELUX, ACTIVITY VOLUME, Emotional Flow, Visualizing your emotional journey through time., Radiant, Good, Drained
+\modules\notes\components\SecureNotesHub.tsx: Secure Vault, Passwords & Notes, Access Vault, Set a 5-digit security code for your private vault., Search vault..., No items found, Lock Vault, Title, Username / Email, Expiry, MM/YY, CVV, Save Item
+\modules\notes\components\SpecialEventsHub.tsx: Memories, Celebrations, No Upcoming Events, Add birthdays, anniversaries, or special milestones to get personalized reminders., Add First Event, Add Event, Today!
+\modules\notes\NotesView.tsx: Security Lock, Security Challenge, Type your response..., Verify Identity, Back to PIN, Settings, All Projects, All Colors, Section Locked, Unlock, New Note, Empty..., Load More, Journal Locked, Unlock Journal, Calendar View, Notebook View, Untitled Entry, Empty page..., Enter PIN, Save as Blueprint, Date & Time, Note, Close
+\modules\notifications\NotificationSettings.tsx: Calibrating..., Enable Neural Updates?, Lux needs permission to send you critical protocol reminders,, Ignore, Connect, System Alerts, Allow Lux to contact you, Initialize, ACTIVE, Daily Protocol Sync, Sync Time, Active Days, Server-Side Synchronization ID:, Diagnostics, Test Local Alert, Verify Timing Logic
+\modules\onboarding\components\avatar-carousel\AvatarCarousel.tsx: CONFIRM IDENTITY
+\modules\onboarding\components\TraitSelector.tsx: Intelligence Profile, Your Edge, Select up to 3 dominant traits., Finalize
+\modules\onboarding\OnboardingFlow.tsx: System Error: Traits module offline., Reinitialize, Scroll, Initializing Matrix..., Synchronizing Neural Interface
+\modules\rewards\components\RewardOverlay.tsx: LEVEL UP!, XP, Level, LEVEL UP, Growth, Coins
+\modules\settings\components\AvatarCarouselQuick.tsx: UPDATING..., SELECT THIS AVATAR
+\modules\settings\sections\AccountSection.tsx: Avatar
+\modules\settings\sections\NeuralSection.tsx: LVL
+\modules\settings\sections\SystemSection.tsx: English, Español
+\modules\smart-tasks\components\StrategicMapView.tsx: DEADLINE:, Añadir
+\modules\smart-tasks\SmartTaskWizard.tsx: Close
+\modules\store\components\AdShard.tsx: Ver Transmisión, Google Ads (, +50 ORO, Espacio Publicitario, Aquí puedes integrar tu etiqueta de Google Ads (AdSense o AdMob)., Continuar
+\modules\tasks\components\QuestItem.tsx: XP, Gold, Focus Mode
+\modules\tasks\components\SubtaskManager.tsx: Tactical Steps, ADD
+\modules\tasks\TaskList.tsx: XP, TP, Coins

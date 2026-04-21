@@ -53,7 +53,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                                 style={{ backgroundColor: trait.color }}
                             />
                             
-                            <div className={cn("p-2 rounded-full bg-black/60 flex-shrink-0 shadow-inner", isSelected ? "text-white scale-110" : "text-white/50")}>
+                            <div className={cn("p-2 rounded-full bg-black/60 flex-shrink-0 shadow-md", isSelected ? "text-white scale-110" : "text-white/50")}>
                                 {Icon && React.createElement(Icon as any, { size: 24, color: isSelected ? trait.color : 'currentColor' })}
                             </div>
                             <span className={cn("text-[11px] font-semibold w-full text-center leading-tight line-clamp-2 text-wrap", isSelected ? "text-white" : "text-white/50")}>
@@ -70,7 +70,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                 type="button"
                 disabled={!selectedTraitId}
                 onClick={onNext}
-                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-xl shadow-white/10"
+                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-md shadow-white/10"
             >
                 {t('common.next')} <ChevronRight size={18} />
             </button>

@@ -499,9 +499,9 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                             <AnimatePresence>
                                 {!isCollapsed && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                        initial={{  opacity: 0 }}
+                                        animate={{  opacity: 1 }}
+                                        exit={{  opacity: 0 }}
                                         className="overflow-hidden"
                                     >
                                         {isLeafLevel ? (
@@ -603,7 +603,7 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             <div className="flex items-center gap-5 relative z-10">
                                                                 <div 
                                                                     className={cn(
-                                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-200 shadow-inner text-white",
+                                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-200 shadow-md text-white",
                                                                     )}
                                                                     style={{
                                                                         background: `linear-gradient(135deg, ${traitColor}55, ${traitColor}11)`,

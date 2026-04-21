@@ -330,7 +330,7 @@ const TourOverlay: React.FC<{
  className="pointer-events-auto w-full max-w-[320px]"
  style={getTooltipPosition(step, hole, windowSize)}
  >
- <div className="bg-[#1c1c1e]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+ <div className="bg-[#1c1c1e]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-3xl shadow-md overflow-hidden">
  <div className="p-5">
  <div className="flex items-start gap-4">
  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">

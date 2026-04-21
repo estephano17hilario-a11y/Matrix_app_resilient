@@ -128,7 +128,7 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
           <div className="flex items-center gap-3 mt-2">
             <div className="flex-1 h-3 bg-black/60 rounded-full overflow-hidden relative">
                 <motion.div 
-                    initial={{ width: 0 }}
+                    
                     animate={{ width: `${visualPercent}%` }}
                     transition={{ type: "spring", stiffness: 50, damping: 15 }}
                     className="h-full rounded-full relative"

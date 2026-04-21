@@ -224,7 +224,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96, y: 8 }}
                         transition={springConfig}
-                        className="relative w-full max-w-lg bg-[#0d0d0f] rounded-[28px] sm:rounded-[32px] shadow-2xl overflow-hidden border border-white/[0.06] max-h-[90vh] flex flex-col"
+                        className="relative w-full max-w-lg bg-[#0d0d0f] rounded-[28px] sm:rounded-[32px] shadow-md overflow-hidden border border-white/[0.06] max-h-[90vh] flex flex-col"
                     >
                         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                         <AmbientBackground isIntelligent={intelligentStreak} />
@@ -500,9 +500,9 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <AnimatePresence>
                                                     {showIntelligentInfo && (
                                                         <motion.div
-                                                            initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                                            animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                                            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                            initial={{ opacity: 0, scale: 0.95 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.95 }}
                                                             transition={{ duration: 0.3, ease: "easeInOut" }}
                                                             className="overflow-hidden"
                                                         >

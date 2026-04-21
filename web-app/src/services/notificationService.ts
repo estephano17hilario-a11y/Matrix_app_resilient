@@ -5,7 +5,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push Certificates
-const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
+// const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
 
 export interface NotificationInitResult {
  success: boolean;
