@@ -487,11 +487,15 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                     }
                                 }}
                                 className={cn(
-                                    "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all",
+                                    "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all relative",
                                     !isActive && "cursor-pointer hover:scale-110 hover:text-indigo-200"
                                 )}
-                                style={{ textShadow: `0 0 30px ${themeColor}40` }}
                             >
+                                {/* Static glow div behind text instead of expensive textShadow */}
+                                <div 
+                                    className="absolute inset-0 z-[-1] rounded-full blur-sm transform-gpu backface-hidden opacity-40 pointer-events-none"
+                                    style={{ backgroundColor: themeColor }}
+                                />
                                 {formatTime(timeLeft)}
                             </div>
                         )}
@@ -520,16 +524,23 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                     className="w-24 h-24 rounded-[3rem] flex items-center justify-center z-20 relative group overflow-hidden border border-white/10"
                     style={{ 
                         backgroundColor: isActive && !isPaused ? themeColor : 'rgba(255,255,255,0.1)',
-                        boxShadow: isActive && !isPaused 
-                            ? `0 0 40px ${themeColor}40` 
-                            : `0 0 15px rgba(255,255,255,0.05)`
+                        boxShadow: 'none'
                     }}
                 >
-                    {isActive && !isPaused ? (
-                        <Pause size={36} fill="currentColor" className="text-white drop-shadow-lg" />
-                    ) : (
-                        <Play size={36} fill="currentColor" className="ml-2 text-white drop-shadow-lg" />
+                    {/* Inner glow div to replace CSS shadow */}
+                    {isActive && !isPaused && (
+                        <div 
+                            className="absolute inset-0 z-0 opacity-50"
+                            style={{ backgroundColor: themeColor }}
+                        />
                     )}
+                    <div className="relative z-10 flex items-center justify-center">
+                        {isActive && !isPaused ? (
+                            <Pause size={36} fill="currentColor" className="text-white drop-shadow-md" />
+                        ) : (
+                            <Play size={36} fill="currentColor" className="ml-2 text-white drop-shadow-md" />
+                        )}
+                    </div>
                 </motion.button>
                 
                 <motion.button 

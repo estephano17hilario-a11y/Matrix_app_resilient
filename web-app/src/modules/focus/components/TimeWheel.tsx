@@ -72,8 +72,7 @@ const WheelItem = ({
                 scale,
                 color,
                 transformPerspective: 800,
-                transformOrigin: "center center",
-                willChange: "transform, opacity"
+                transformOrigin: "center center"
             }}
             className={cn(
                 "flex items-center justify-center w-full cursor-pointer select-none"
@@ -144,13 +143,9 @@ export const TimeWheel = ({
 
         scrollTimeout.current = setTimeout(() => {
             setIsScrolling(false);
-            if (containerRef.current) {
-                containerRef.current.scrollTo({
-                    top: clampedIndex * itemHeight,
-                    behavior: 'smooth'
-                });
-            }
-        }, 100); // Faster snap
+            // Removed manual scrollTo because CSS snap-mandatory handles it natively.
+            // Calling scrollTo here fights the browser and causes infinite loops/jitter.
+        }, 150);
     };
 
     return (

@@ -1240,7 +1240,7 @@ export default function Dashboard() {
  notificationRoot
  )}
 
- {/* SCROLLABLE CONTENT LAYER - OPTIMIZED: Added will-change and contain for high-speed scrolling */}
+ {/* SCROLLABLE CONTENT LAYER - OPTIMIZED: Removed 'size' from contain to fix disappearing graphs on scroll */}
  <div 
  ref={scrollContainerRef} 
  className={cn(
@@ -1251,7 +1251,7 @@ export default function Dashboard() {
  )}
  style={{ 
  willChange: 'scroll-position',
- contain: 'size layout style' 
+ contain: 'layout style' 
  }}
  >
  <AchievementToast 
@@ -1365,11 +1365,11 @@ export default function Dashboard() {
  />
  </>
  ) : (
- <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-32 overflow-y-auto pr-2 no-scrollbar">
+ <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-24 overflow-y-auto pr-2 no-scrollbar">
  {smartProjects.length > 0 ? (
  <>
  {smartProjects.map((project) => (
- <div key={project.id} className="rounded-3xl overflow-hidden border border-white/10 relative min-h-[500px] shrink-0 bg-gradient-to-br from-white/[0.05] via-transparent to-white/[0.02] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+ <div key={project.id} className="rounded-3xl overflow-hidden border border-white/10 relative min-h-[500px] shrink-0 bg-gradient-to-br from-white/[0.05] via-transparent to-white/[0.02] shadow-md">
  <Suspense fallback={<SuspenseFallback />}>
  <StrategicMapView 
  project={project} 
@@ -1525,12 +1525,13 @@ export default function Dashboard() {
 
  {/* NOTES */}
  {(loadedViews.has('NOTES') || currentView === 'NOTES') && (
- <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className="h-full pt-0 relative flex-1">
+ <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className="h-full pt-0 flex-1">
  <Suspense fallback={<SuspenseFallback />}>
  <NotesView 
  onInteractionStart={() => setIsNoteTaking(true)}
  onInteractionEnd={() => setIsNoteTaking(false)}
  projects={projects}
+ quests={quests}
  onShowPro={() => setActiveModal('PRO')}
  currentSubView={noteViewMode}
  sectionControl={habitSectionControl}
@@ -1546,7 +1547,7 @@ export default function Dashboard() {
 
  {/* ACHIEVEMENTS */}
  {(loadedViews.has('ACHIEVEMENTS') || currentView === 'ACHIEVEMENTS') && (
- <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} id="ACHIEVEMENTS" className="h-full pt-0 relative flex-1">
+ <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} id="ACHIEVEMENTS" className="h-full pt-0 flex-1">
  <Suspense fallback={<SuspenseFallback />}>
  <AchievementsScreen />
  </Suspense>
@@ -1682,7 +1683,12 @@ export default function Dashboard() {
  />
  <HabitModal 
  isOpen={activeModal === 'HABIT'} 
- onClose={() => { setActiveModal(null); setEditingHabit(null); setModalInitialContext(null); }} 
+ onClose={() => { 
+ setActiveModal(null); 
+ setEditingHabit(null); 
+ setModalInitialContext(null); 
+ window.dispatchEvent(new CustomEvent('habit-created'));
+ }} 
  attributes={attributes} 
  smartProjects={smartProjects}
  projects={projects}
@@ -1702,7 +1708,11 @@ export default function Dashboard() {
 
  <BadHabitWizard 
  isOpen={activeModal === 'BAD_HABIT'}
- onClose={() => { setActiveModal(null); setEditingBadHabit(null); }}
+ onClose={() => { 
+ setActiveModal(null); 
+ setEditingBadHabit(null); 
+ window.dispatchEvent(new CustomEvent('bad-habit-created'));
+ }}
  onConfirm={handleBadHabitConfirm}
  attributes={attributes}
  isFirstIdentify={badHabits.length === 0}

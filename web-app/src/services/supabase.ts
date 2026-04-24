@@ -98,6 +98,7 @@ export const arrayUnion: any = (...args: any[]) => args;
 export const updateDoc: any = async (..._args: any[]) => { return {}; };
 export const deleteDoc: any = async (..._args: any[]) => { return {}; };
 export const getRedirectResult: any = async (..._args: any[]) => null;
+export const deleteField: any = () => null;
 
 // Additional mock Firebase auth and firestore functions to prevent build errors
 export const onAuthStateChanged: any = (_auth: any, callback: any) => { callback(null); return () => {}; };

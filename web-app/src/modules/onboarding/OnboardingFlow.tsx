@@ -89,7 +89,13 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      if (selectedTraits.length < 5) {
+      if (selectedTraits.length >= 16) {
+        // Intelligent replacement: Remove the oldest unlocked trait to make room for the new one
+        const traitToRemove = selectedTraits.find(t => t !== lockedTraitId);
+        if (traitToRemove) {
+          setSelectedTraits([...selectedTraits.filter(t => t !== traitToRemove), id]);
+        }
+      } else {
         setSelectedTraits([...selectedTraits, id]);
       }
     }
@@ -301,7 +307,7 @@ export function OnboardingFlow() {
                       )}
                   </div>
 
-                  <div className="w-full max-w-5xl mx-auto px-4 pb-32">
+                  <div className="w-full max-w-5xl mx-auto px-4 pb-24">
                       {(!TRAITS_LIST || TRAITS_LIST.length === 0) ? (
                           <div className="flex flex-col items-center justify-center py-20 gap-4">
                               <p className="text-white/50">System Error: Traits module offline.</p>
@@ -318,7 +324,7 @@ export function OnboardingFlow() {
                         <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                           {TRAITS_LIST.map((trait, index) => {
                               const isSelected = selectedTraits.includes(trait.id);
-                              const isMaxReached = !isSelected && selectedTraits.length >= 5;
+                              const isMaxReached = false; // Intelligent system doesn't block, it replaces
                               const isLocked = trait.id === lockedTraitId;
                               const Icon = (trait.icon || Sparkles) as any;
                               const backgroundColor = isSelected ? `${trait.color}15` : 'rgba(255,255,255,0.03)';

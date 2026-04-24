@@ -155,7 +155,18 @@ export const AchievementsScreen: React.FC = () => {
  // Memoize filters for performance
  const { unlockedSet, completionPercentage } = useMemo(() => {
  if (!user) return { unlockedSet: new Set(), completionPercentage: 0 };
- const set = new Set(user.unlockedAchievements || []);
+ 
+ let achList = user.unlockedAchievements;
+ if (!achList || achList.length === 0) {
+    try {
+        const localAch = localStorage.getItem(`matrix_achievements_${user.id}`);
+        if (localAch) {
+            achList = JSON.parse(localAch);
+        }
+    } catch(e) {}
+ }
+ 
+ const set = new Set(achList || []);
  const pct = Math.floor((set.size / ACHIEVEMENTS.length) * 100);
  return { unlockedSet: set, completionPercentage: pct };
  }, [user]);
@@ -180,7 +191,7 @@ export const AchievementsScreen: React.FC = () => {
  if (!user) return <div className="p-10 text-white/50 text-center animate-pulse">{t('achievements.loading')}</div>;
 
  return (
- <div className="min-h-full w-full text-white px-4 sm:px-6 lg:px-10 pb-32 overflow-x-hidden relative font-sans bg-transparent">
+ <div className="min-h-full w-full text-white px-4 sm:px-6 lg:px-10 pb-24 overflow-x-hidden relative font-sans bg-transparent">
  
  {/* Content Container */}
  <div className="relative z-10 w-full max-w-7xl mx-auto">

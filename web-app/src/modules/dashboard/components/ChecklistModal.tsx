@@ -12,10 +12,9 @@ interface ChecklistModalProps {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: (habitId: string, data: Partial<Habit>) => void;
-    onComplete: (e: React.MouseEvent, h: Habit) => void;
 }
 
-export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate, onComplete }) => {
+export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate }) => {
     const { t } = useTranslation();
     
     // Lock body scroll when modal is open
@@ -56,20 +55,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
             item.id === itemId ? { ...item, completed: !currentStatus } : item
         );
         
-        // Check if ALL VISIBLE items are completed
-        const newVisibleItems = newChecklist.filter(item => !item.days || item.days.length === 0 || item.days.includes(today));
-        const allVisibleCompleted = newVisibleItems.length > 0 && newVisibleItems.every(item => item.completed);
-        
         onUpdate(habit.id, { checklist: newChecklist });
-        
-        const updatedHabit = { ...habit, checklist: newChecklist };
-
-        if (allVisibleCompleted && !habit.completedToday) {
-            onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
-        } 
-        else if (!allVisibleCompleted && habit.completedToday) {
-             onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
-        }
     };
 
     // Calculate progress percentage

@@ -59,7 +59,7 @@ export const ManualSessionCreator = ({
  className="absolute inset-0 bg-[#000000] flex flex-col z-50 font-sans"
  >
  {/* Header */}
- <div className="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 border-b border-white/5 bg-black/40 backdrop-blur-sm transform-gpu sticky top-0 z-[60]">
+ <div className="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 border-b border-white/5 bg-[#111111]/80 transform-gpu sticky top-0 z-[60]">
  <div className="flex-1" /> {/* Spacer left */}
  <div className="flex flex-col items-center">
  <h2 className="text-[17px] font-black text-white tracking-tight uppercase">
@@ -94,7 +94,7 @@ export const ManualSessionCreator = ({
  className={cn(
  "w-full rounded-[28px] py-10 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden border",
  activePicker === 'DURATION' 
- ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.1)]" 
+ ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-md" 
  : "bg-[#1C1C1E]/40 border-white/5"
  )}
  >
@@ -211,7 +211,7 @@ export const ManualSessionCreator = ({
  className={cn(
  "py-6 rounded-[28px] flex flex-col items-center justify-center gap-1 active:scale-[0.96] transition-all border",
  activePicker === 'START_TIME' 
- ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.1)]" 
+ ? "bg-[#1C1C1E] border-[#0A84FF]/30 shadow-md" 
  : "bg-[#1C1C1E]/40 border-white/5"
  )}
  >
@@ -249,7 +249,7 @@ export const ManualSessionCreator = ({
  {/* 5. SAVE BUTTON */}
  <button
  onClick={handleSave}
- className="w-full py-5 rounded-[24px] bg-[#0A84FF] text-white font-black text-[18px] uppercase tracking-widest hover:bg-[#007AFF] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(10,132,255,0.3)] shrink-0 mb-4"
+ className="w-full py-5 rounded-[24px] bg-[#0A84FF] text-white font-black text-[18px] uppercase tracking-widest hover:bg-[#007AFF] active:scale-[0.98] transition-all shadow-md shrink-0 mb-4"
  >
  Guardar Sesión
  </button>

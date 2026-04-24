@@ -1,9 +1,10 @@
 import { startOfDay, setYear, getYear, addYears, getDate, setDate, addMonths, isPast, isSameDay } from 'date-fns';
 import { SpecialEvent } from './types';
+import { parseLocalDate } from '../../../utils/dateUtils';
 
 // Helper to calculate the next occurrence of an event
 export const getNextEventDate = (event: SpecialEvent): Date => {
-    const baseDate = startOfDay(new Date(event.date));
+    const baseDate = startOfDay(parseLocalDate(event.date));
     const now = startOfDay(new Date());
 
     if (!event.recurrence || event.recurrence === 'NONE') {

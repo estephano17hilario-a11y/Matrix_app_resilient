@@ -299,8 +299,13 @@ export const FocusStats = React.memo(({
     const { chartMax, yTicks } = useMemo(() => {
         const base = Math.max(stats.max * 1.15, 60);
         const steps = [15, 30, 60, 90, 120, 180, 240, 360, 480, 720, 960];
-        const maxTicks = 6; // Increased from 5 for more granularity
-        const step = steps.find((s) => Math.ceil(base / s) <= maxTicks - 1) || steps[steps.length - 1];
+        const maxTicks = 6;
+        let step = steps.find((s) => Math.ceil(base / s) <= maxTicks - 1);
+        if (!step) {
+            // Dynamic step for very large values to prevent UI freeze and limit breaks
+            step = Math.ceil(base / (maxTicks - 1) / 60) * 60;
+            if (step === 0) step = 960;
+        }
         const maxValue = Math.ceil(base / step) * step;
         const ticks = Array.from({ length: Math.floor(maxValue / step) + 1 }, (_, i) => i * step);
         return { chartMax: maxValue, yTicks: ticks };

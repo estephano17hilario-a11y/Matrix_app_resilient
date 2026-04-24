@@ -13,7 +13,7 @@ export const calculateTaskRewards = (
   estimatedTime?: number,
   impact: number = 1,
   streak: number = 0,
-  type: 'TASK' | 'HABIT' = 'TASK'
+  type: 'TASK' | 'HABIT' | 'PROJECT' = 'TASK'
 ): RewardPrediction => {
   // Base Hourly Rates (Shared Baseline)
   const BASE_XP_PER_HOUR = 30; // Restored to original
@@ -30,12 +30,18 @@ export const calculateTaskRewards = (
   const hours = minutes / 60;
   
   // 1. Base Rewards for Duration
-  // Tasks give less time-based reward than Habits, but boosted by 20% from previous value
-  const timeModifier = type === 'HABIT' ? 0.27 : 0.18; // 0.15 * 1.2 = 0.18
+  // Habits use an increased timeModifier (0.35), Tasks restored to original (0.18)
+  const timeModifier = type === 'HABIT' ? 0.35 : 0.18; 
   
   // Use a semi-linear curve
-  // Habits decay less (0.98), Tasks decay slightly more (0.89) to keep distinction
-  const timeExponent = type === 'HABIT' ? 0.98 : 0.89;
+  // Habits decay heavily (0.55), Tasks restored to original (0.89)
+  // PER USER REQUEST: "el daimiento de proyects quiero que ahora sea de 0.92"
+  let timeExponent = 0.89; // Default for TASK
+  if (type === 'HABIT') {
+      timeExponent = 0.55;
+  } else if (type === 'PROJECT') {
+      timeExponent = 0.92;
+  }
   const timeMultiplier = Math.pow(hours, timeExponent) * timeModifier;
 
   xp = Math.round(timeMultiplier * BASE_XP_PER_HOUR);
@@ -43,17 +49,18 @@ export const calculateTaskRewards = (
   traitXp = Math.round(timeMultiplier * BASE_TP_PER_HOUR);
 
   // 2. Completion Bonus
-  // Scale bonus linearly but with a lower floor for short tasks
-  // Cap the duration factor strictly to 1.0 to prevent abuse
-  const durationFactor = Math.min(1.0, Math.max(0.1, hours)); // Reduced min from 0.2 to 0.1 to allow tiny tasks to give very little
+  // Apply the decay curve to the bonus for habits, but keep tasks linear as original
+  const maxDurationCap = type === 'HABIT' ? 3.0 : 1.0;
+  const effectiveHoursForBonus = type === 'HABIT' ? Math.pow(hours, timeExponent) : hours;
+  const durationFactor = Math.min(maxDurationCap, Math.max(0.1, effectiveHoursForBonus)); // Reduced min from 0.2 to 0.1 to allow tiny tasks to give very little
   
-  // Habits give a slightly higher base bonus, Tasks boosted 20%
-  const baseBonusValue = type === 'HABIT' ? 10 : 8.4; // 7 * 1.2 = 8.4
+  // Habits base bonus set to 11.6, Tasks restored to original (8.4)
+  const baseBonusValue = type === 'HABIT' ? 11.6 : 8.4;
   const baseBonus = baseBonusValue * durationFactor; 
   
-  // Impact Multiplier (Difficulty) - SLIGHTLY BOOSTED
+  // Impact Multiplier (Difficulty) - REDUCED
   // Tasks scale slightly less with impact than Habits, but boosted 20%
-  const impactScale = type === 'HABIT' ? 0.65 : 0.60; // 0.50 * 1.2 = 0.60
+  const impactScale = type === 'HABIT' ? 0.48 : 0.60; // Set to 0.48 for habits
   const impactMultiplier = 1 + ((impact - 1) * impactScale);
   
   // Calculate Bonus

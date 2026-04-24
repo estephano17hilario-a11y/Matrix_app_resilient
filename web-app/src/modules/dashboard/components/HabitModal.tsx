@@ -31,13 +31,18 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const [freq, setFreq] = useState('DAILY');
     const [weekDays, setWeekDays] = useState<number[]>([]);
     const [weeklyType, setWeeklyType] = useState<'SPECIFIC_DAYS' | 'FLEXIBLE_COUNT'>('SPECIFIC_DAYS');
-    const [weeklyFlexibleCount, setWeeklyFlexibleCount] = useState<number>(1);
+    const [weeklyFlexibleCount, setWeeklyFlexibleCount] = useState<number | string>(1);
     const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'FLEXIBLE_COUNT'>('SPECIFIC_DATES');
-    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState<number>(1);
+    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState<number | string>(1);
     const [monthlyLastDay, setMonthlyLastDay] = useState<boolean>(false);
     const [logic, setLogic] = useState<'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN'>('BOOLEAN');
     const [target, setTarget] = useState('');
     const [unit, setUnit] = useState('');
+    const [isDivided, setIsDivided] = useState(false);
+    const [dividedMode, setDividedMode] = useState<'INTERVAL' | 'FIXED'>('INTERVAL');
+    const [dividedTimes, setDividedTimes] = useState<{ time: string; amount: number; id: string }[]>([]);
+    const [dividedQuantity, setDividedQuantity] = useState('1');
+    const [dividedInterval, setDividedInterval] = useState('90');
     const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean; color?: string; days?: number[]; reminderTime?: string }[]>([]);
     const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS' | 'TIME'} | null>(null);
     const [newSubtask, setNewSubtask] = useState('');
@@ -89,6 +94,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setLogic(initialData.type || 'BOOLEAN');
                 setTarget(initialData.targetValue?.toString() || '');
                 setUnit(initialData.unit || '');
+                setIsDivided(initialData.isDivided || false);
+                setDividedMode(initialData.dividedMode || 'INTERVAL');
+                setDividedTimes(initialData.dividedTimes || []);
+                setDividedQuantity(initialData.dividedQuantity?.toString() || '1');
+                setDividedInterval(initialData.dividedInterval?.toString() || '90');
                 setSubtasks(initialData.checklist || []);
                 setReminder(initialData.reminderTime || '');
                 setEstimatedTime(initialData.estimatedTime || 0);
@@ -128,6 +138,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 setLogic('BOOLEAN');
                 setTarget('');
                 setUnit('');
+                setIsDivided(false);
+                setDividedMode('INTERVAL');
+                setDividedTimes([]);
+                setDividedQuantity('1');
+                setDividedInterval('90');
                 setSubtasks([]);
                 setReminder('');
                 setImpact(1);
@@ -171,14 +186,26 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
     const isBlock2Valid = (() => {
         if (freq === 'WEEKLY') {
             if (weeklyType === 'SPECIFIC_DAYS' && weekDays.length === 0) return false;
-            if (weeklyType === 'FLEXIBLE_COUNT' && (!weeklyFlexibleCount || weeklyFlexibleCount < 1)) return false;
+            if (weeklyType === 'FLEXIBLE_COUNT' && (!weeklyFlexibleCount || Number(weeklyFlexibleCount) < 1)) return false;
         }
         if (freq === 'MONTHLY') {
             if (monthlyType === 'SPECIFIC_DATES' && weekDays.length === 0 && !monthlyLastDay) return false;
-            if (monthlyType === 'FLEXIBLE_COUNT' && (!monthlyFlexibleCount || monthlyFlexibleCount < 1)) return false;
+            if (monthlyType === 'FLEXIBLE_COUNT' && (!monthlyFlexibleCount || Number(monthlyFlexibleCount) < 1)) return false;
         }
-        if (logic === 'QUANTITY' && (!target || isNaN(parseInt(target)) || parseInt(target) <= 0)) return false;
-        if (logic === 'CHECKLIST' && subtasks.length === 0) return false;
+        if (logic === 'QUANTITY') {
+            if (!target || isNaN(parseInt(target)) || parseInt(target) <= 0) return false;
+            if (isDivided) {
+                if (dividedMode === 'INTERVAL') {
+                    if (!dividedQuantity || isNaN(parseInt(dividedQuantity)) || parseInt(dividedQuantity) <= 0) return false;
+                    if (!dividedInterval || isNaN(parseInt(dividedInterval)) || parseInt(dividedInterval) <= 0) return false;
+                } else {
+                    if (dividedTimes.length === 0) return false;
+                    const totalDivided = dividedTimes.reduce((sum, t) => sum + t.amount, 0);
+                    if (totalDivided !== parseInt(target)) return false;
+                }
+            }
+        }
+        if (logic === 'CHECKLIST' && subtasks.length === 0 && !newSubtask.trim()) return false;
         return true;
     })();
     const isBlock3Valid = estimatedTime > 0 && reminder !== '';
@@ -187,6 +214,17 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;
+        
+        // Auto-add subtask if logic is checklist and there's a pending task
+        if (expandedBlock === 2 && logic === 'CHECKLIST' && newSubtask.trim()) {
+            const defaultDays = freq === 'WEEKLY' ? weekDays : freq === 'MONTHLY' ? [] : undefined;
+            setSubtasks([...subtasks, { id: Date.now().toString(), text: newSubtask.trim(), completed: false, days: defaultDays }]);
+            setNewSubtask('');
+            // Allow the state update to propagate before blocking
+            setTimeout(() => setExpandedBlock(block), 0);
+            return;
+        }
+        
         if (block === 3 && (!isBlock1Valid || !isBlock2Valid)) return; 
         
         setExpandedBlock(block);
@@ -204,12 +242,17 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 frequency: freq,
                 frequencyDays: (freq === 'WEEKLY' || freq === 'MONTHLY') ? weekDays : undefined,
                 weeklyType: freq === 'WEEKLY' ? weeklyType : undefined,
-                weeklyFlexibleCount: freq === 'WEEKLY' ? weeklyFlexibleCount : undefined,
+                weeklyFlexibleCount: freq === 'WEEKLY' ? (typeof weeklyFlexibleCount === 'number' ? weeklyFlexibleCount : parseInt(weeklyFlexibleCount) || 1) : undefined,
                 monthlyType: freq === 'MONTHLY' ? monthlyType : undefined,
-                monthlyFlexibleCount: freq === 'MONTHLY' ? monthlyFlexibleCount : undefined,
+                monthlyFlexibleCount: freq === 'MONTHLY' ? (typeof monthlyFlexibleCount === 'number' ? monthlyFlexibleCount : parseInt(monthlyFlexibleCount) || 1) : undefined,
                 monthlyLastDay: freq === 'MONTHLY' ? monthlyLastDay : undefined,
                 targetValue: logic === 'QUANTITY' ? parseInt(target) : 1,
                 unit: unit || undefined,
+                isDivided: logic === 'QUANTITY' ? isDivided : false,
+                dividedMode: logic === 'QUANTITY' && isDivided ? dividedMode : undefined,
+                dividedQuantity: logic === 'QUANTITY' && isDivided && dividedMode === 'INTERVAL' ? parseInt(dividedQuantity) : undefined,
+                dividedInterval: logic === 'QUANTITY' && isDivided && dividedMode === 'INTERVAL' ? parseInt(dividedInterval) : undefined,
+                dividedTimes: logic === 'QUANTITY' && isDivided && dividedMode === 'FIXED' ? dividedTimes : undefined,
                 checklist: logic === 'CHECKLIST' ? subtasks : [],
                 reminderTime: reminder || undefined,
                 estimatedTime,
@@ -311,14 +354,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
                             
-                            <AnimatePresence initial={false}>
+                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 1 && (
                                     <motion.div
                                         initial={{  opacity: 0 }}
                                         animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        exit={{  opacity: 0, transition: { duration: 0 } }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-3 pb-3 space-y-2"
+                                        className="px-3 pb-3 space-y-2 overflow-hidden"
                                     >
                                         {/* Title */}
                                         <div className="bg-black/20 rounded-xl p-1 border border-white/5 focus-within:border-white/20 transition-all">
@@ -457,18 +500,18 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
-                            <AnimatePresence initial={false}>
+                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 2 && (
                                     <motion.div
                                         initial={{  opacity: 0 }}
                                         animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        exit={{  opacity: 0, transition: { duration: 0 } }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-3 pb-3 space-y-3"
+                                        className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         {/* Frequency */}
                                         <div className="bg-black/20 rounded-xl p-1 flex">
-                                            {['DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
+                                            {['DAILY', 'MONTHLY'].map(f => (
                                                 <button 
                                                     key={f} 
                                                     onClick={() => {
@@ -487,59 +530,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             ))}
                                         </div>
                                         
-                                        {freq === 'WEEKLY' && (
-                                            <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in p-2 bg-black/20 rounded-xl border border-white/5">
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => setWeeklyType('SPECIFIC_DAYS')}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
-                                                            weeklyType === 'SPECIFIC_DAYS' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
-                                                        )}
-                                                    >
-                                                        {t('habits.specificDays', 'SPECIFIC DAYS')}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setWeeklyType('FLEXIBLE_COUNT')}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
-                                                            weeklyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
-                                                        )}
-                                                    >
-                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
-                                                    </button>
-                                                </div>
 
-                                                {weeklyType === 'SPECIFIC_DAYS' ? (
-                                                    <div className="flex justify-between animate-in slide-in-from-top-2 fade-in px-1">
-                                                        {weekDaysList.map(({ label, index }) => (
-                                                            <button 
-                                                                key={index} 
-                                                                onClick={() => setWeekDays(prev => prev.includes(index) ? prev.filter(d => d !== index) : [...prev, index])} 
-                                                                className={cn(
-                                                                    "w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold transition-all border",
-                                                                    weekDays.includes(index) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
-                                                                )}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
-                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerWeek', 'Times per week')}:</span>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            max="7" 
-                                                            value={weeklyFlexibleCount} 
-                                                            onChange={(e) => setWeeklyFlexibleCount(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
-                                                            className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
 
                                         {freq === 'MONTHLY' && (
                                             <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in p-2 bg-black/20 rounded-xl border border-white/5">
@@ -604,7 +595,16 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             min="1" 
                                                             max="31" 
                                                             value={monthlyFlexibleCount} 
-                                                            onChange={(e) => setMonthlyFlexibleCount(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)))}
+                                                            onChange={(e) => {
+                                                                if (e.target.value === '') {
+                                                                    setMonthlyFlexibleCount('');
+                                                                } else {
+                                                                    setMonthlyFlexibleCount(Math.max(1, Math.min(31, parseInt(e.target.value) || 1)));
+                                                                }
+                                                            }}
+                                                            onBlur={() => {
+                                                                if (monthlyFlexibleCount === '') setMonthlyFlexibleCount(1);
+                                                            }}
                                                             className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
                                                         />
                                                     </div>
@@ -634,15 +634,145 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
 
                                         {logic === 'QUANTITY' && (
-                                            <div className="flex gap-2 animate-in fade-in slide-in-from-top-2">
-                                                <div className="flex-1 bg-black/20 rounded-xl p-2 border border-white/5">
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase block mb-1 ml-1">{t('modals.habit.target')}</span>
-                                                    <input type="number" placeholder="10" value={target} onChange={e => setTarget(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
+                                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex gap-2">
+                                                    <div className="flex-1 bg-black/20 rounded-xl p-2 border border-white/5">
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase block mb-1 ml-1">{t('modals.habit.target', 'Target')}</span>
+                                                        <input type="number" placeholder="10" value={target} onChange={e => setTarget(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
+                                                    </div>
+                                                    <div className="flex-1 bg-black/20 rounded-xl p-2 border border-white/5">
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase block mb-1 ml-1">{t('modals.habit.unit', 'Unit')}</span>
+                                                        <input type="text" placeholder={t('habits.pagesPlaceholder', 'pages')} value={unit} onChange={e => setUnit(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 bg-black/20 rounded-xl p-2 border border-white/5">
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase block mb-1 ml-1">{t('modals.habit.unit')}</span>
-                                                    <input type="text" placeholder={t('habits.pagesPlaceholder', 'pages')} value={unit} onChange={e => setUnit(e.target.value)} className="w-full bg-transparent text-lg font-bold text-white outline-none px-1" />
-                                                </div>
+
+                                                <label className="flex items-center gap-2 p-2 bg-black/20 rounded-xl border border-white/5 cursor-pointer mt-1">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={isDivided}
+                                                        onChange={(e) => setIsDivided(e.target.checked)}
+                                                        className="w-4 h-4 rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
+                                                    />
+                                                    <span className="text-xs font-bold text-white/70">Dividir meta en intervalos (Recordatorios automáticos)</span>
+                                                </label>
+
+                                                {isDivided && (
+                                                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 mt-1">
+                                                        <div className="flex items-center gap-2 p-1 bg-black/20 rounded-xl border border-white/5">
+                                                            <button
+                                                                onClick={() => setDividedMode('INTERVAL')}
+                                                                className={cn("flex-1 text-xs font-bold py-1.5 rounded-lg transition-colors", dividedMode === 'INTERVAL' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70")}
+                                                            >
+                                                                Intervalos
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setDividedMode('FIXED')}
+                                                                className={cn("flex-1 text-xs font-bold py-1.5 rounded-lg transition-colors", dividedMode === 'FIXED' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70")}
+                                                            >
+                                                                Horarios Fijos
+                                                            </button>
+                                                        </div>
+
+                                                        {dividedMode === 'INTERVAL' ? (
+                                                            <>
+                                                                <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">Cantidad por vez</span>
+                                                                    <div className="flex items-center">
+                                                                        <input type="number" placeholder="1" value={dividedQuantity} onChange={e => setDividedQuantity(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white outline-none px-1" />
+                                                                        <span className="text-xs text-white/40">{unit}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-black/20 rounded-xl p-2 border border-white/5">
+                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">Frecuencia</span>
+                                                                    <div className="flex items-center">
+                                                                        <span className="text-xs text-white/40 mr-1">Cada</span>
+                                                                        <input type="number" placeholder="90" value={dividedInterval} onChange={e => setDividedInterval(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white outline-none px-1" />
+                                                                        <span className="text-xs text-white/40">min</span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="bg-black/20 rounded-xl p-3 border border-white/5 space-y-3">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Horarios Fijos ({dividedTimes.length})</span>
+                                                                    <div className="px-2 py-1 rounded bg-black/40 border border-white/10 flex items-center gap-1.5">
+                                                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Total:</span>
+                                                                        <span className={cn("text-xs font-black", dividedTimes.reduce((sum, t) => sum + t.amount, 0) > parseInt(target || '0') ? "text-red-400" : dividedTimes.reduce((sum, t) => sum + t.amount, 0) === parseInt(target || '0') ? "text-emerald-400" : "text-white")}>
+                                                                            {dividedTimes.reduce((sum, t) => sum + t.amount, 0)} <span className="text-white/30">/</span> {target || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div className="space-y-2">
+                                                                    {dividedTimes.map((item) => (
+                                                                        <div key={item.id} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl p-2 relative group">
+                                                                            <div className="flex-1 flex items-center gap-3">
+                                                                                <div className="flex-1">
+                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">Hora</span>
+                                                                                    <TimePicker 
+                                                                                        value={item.time}
+                                                                                        onChange={(val) => {
+                                                                                            const newTimes = dividedTimes.map(t => t.id === item.id ? { ...t, time: val } : t);
+                                                                                            setDividedTimes(newTimes);
+                                                                                        }}
+                                                                                        className="text-sm font-bold text-white z-10 relative bg-black/40 border border-white/10 rounded-lg w-full h-9 flex items-center justify-center"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="w-px h-8 bg-white/10" />
+                                                                                <div className="w-20">
+                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">Cant.</span>
+                                                                                    <input 
+                                                                                        type="number"
+                                                                                        value={item.amount || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const newAmount = parseInt(e.target.value) || 0;
+                                                                                            setDividedTimes(dividedTimes.map(t => t.id === item.id ? { ...t, amount: newAmount } : t));
+                                                                                        }}
+                                                                                        className="w-full bg-black/40 text-sm font-bold text-emerald-400 px-2 h-9 rounded-lg outline-none border border-white/10 text-center"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <button 
+                                                                                onClick={() => setDividedTimes(dividedTimes.filter(t => t.id !== item.id))} 
+                                                                                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                                            >
+                                                                                <Trash2 size={14} />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        const currentTotal = dividedTimes.reduce((sum, t) => sum + t.amount, 0);
+                                                                        const maxTarget = parseInt(target || '0');
+                                                                        const remaining = Math.max(0, maxTarget - currentTotal);
+                                                                        
+                                                                        if (remaining > 0) {
+                                                                            const newTimes = [...dividedTimes, { id: Date.now().toString(), time: '12:00', amount: remaining }];
+                                                                            newTimes.sort((a, b) => a.time.localeCompare(b.time));
+                                                                            setDividedTimes(newTimes);
+                                                                        }
+                                                                    }}
+                                                                    disabled={dividedTimes.reduce((sum, t) => sum + t.amount, 0) >= parseInt(target || '0')}
+                                                                    className="w-full py-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-500/20 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                                                                >
+                                                                    <Plus size={14} strokeWidth={3} />
+                                                                    Añadir Horario
+                                                                </button>
+                                                                
+                                                                <span className={cn("text-[10px] block text-center mt-2 font-medium", dividedTimes.reduce((sum, t) => sum + t.amount, 0) > parseInt(target || '0') ? "text-red-400" : "text-white/40")}>
+                                                                    {dividedTimes.reduce((sum, t) => sum + t.amount, 0) > parseInt(target || '0') 
+                                                                        ? `Límite excedido por ${dividedTimes.reduce((sum, t) => sum + t.amount, 0) - parseInt(target || '0')} ${unit}`
+                                                                        : dividedTimes.reduce((sum, t) => sum + t.amount, 0) < parseInt(target || '0') 
+                                                                            ? `Faltan asignar ${parseInt(target || '0') - dividedTimes.reduce((sum, t) => sum + t.amount, 0)} ${unit}`
+                                                                            : '✨ Objetivo completamente asignado'}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -822,7 +952,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         <div className="pt-2 flex justify-end">
                                             <button 
                                                 onClick={() => isBlock2Valid && handleBlockChange(3)}
-                                                className="px-5 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                                                disabled={!isBlock2Valid}
+                                                className="px-6 py-2 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                                             >
                                                 {t('common.next', 'Next')}
                                             </button>
@@ -852,14 +983,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
-                            <AnimatePresence initial={false}>
+                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 3 && (
                                     <motion.div
                                         initial={{  opacity: 0 }}
                                         animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        exit={{  opacity: 0, transition: { duration: 0 } }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-3 pb-3 space-y-3"
+                                        className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         {/* Estimated Time */}
                                         <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />

@@ -50,8 +50,7 @@ const AppRoutes = () => {
   const renderContent = () => {
     // 🚀 FIX: Prevent "flash" of Onboarding by showing LoadingScreen if we are still checking Auth state
     // If isLoading is true and we haven't confirmed the user yet, show loading.
-    // If user is present but profile is skeleton, show loading.
-    const shouldShowLoading = (isLoading && !user) || (isLoading && !profile) || (user && (!profile || profile.isSkeleton));
+    const shouldShowLoading = isLoading && !user && !profile;
 
     if (shouldShowLoading) {
       return <LoadingScreen />;
@@ -117,7 +116,7 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <TourProvider>
-          <MotionConfig transition={{ duration: 0, ease: 'linear' }} reducedMotion="always">
+          <MotionConfig transition={{ type: 'spring', stiffness: 300, damping: 25, mass: 0.8 }}>
             <Toaster
               position="top-center"
               toastOptions={{

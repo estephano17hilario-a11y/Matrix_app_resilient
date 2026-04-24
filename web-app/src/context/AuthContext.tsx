@@ -147,8 +147,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 onboarding: { ...DEFAULT_ONBOARDING, completedAt: Date.now() }, // ASSUME COMPLETED temporarily to prevent flicker
                 isSkeleton: true
             });
-            // Don't set isLoading(false) here if we really need to fetch to know if onboarding is done,
-            // but for offline we might need to handle it in fetchProfile.
+            // We set isLoading to false IMMEDIATELY to prevent the LoadingScreen from showing
+            // while we fetch the actual profile in the background. The skeleton is enough to render the Dashboard.
+            setIsLoading(false);
         }
 
         // 2. Fetch the real document from Supabase
@@ -174,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         preferences: userData.preferences || {},
                         defaultChartViews: userData.preferences?.defaultChartViews || {},
                         defaultProjectView: userData.preferences?.defaultProjectView || 'PROJECT',
+                        archivedTraits: userData.preferences?.archivedTraits || {},
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',
                         plan: userData.plan || 'FREE',

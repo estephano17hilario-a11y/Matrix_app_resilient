@@ -633,7 +633,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 </div>
 
                 {/* Header - Visionary Style */}
-                <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm transform-gpu">
+                <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm transform-gpu ">
                     <button 
                         onClick={onClose} 
                         className="group flex items-center gap-1 text-white/60 hover:text-white font-semibold active:scale-95 transition-all"
@@ -1071,7 +1071,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                             </div>
 
                             {/* Bar Chart - Ultra Visuals */}
-                            <div className="h-60 flex items-end justify-between gap-2.5 relative pl-2 pr-14 mt-4">
+                            <div className={`h-60 flex items-end justify-between ${chartData.length > 30 ? 'gap-0' : chartData.length > 15 ? 'gap-0.5' : 'gap-2.5'} relative pl-2 pr-14 mt-4`}>
                                 {/* Y-Axis Labels (Right Side) */}
                                 <div className="absolute right-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-black text-white/30 text-right w-12">
                                     <span>{formatValue(maxChartValue, habit?.type, unitLabel, isTimeBased)}</span>
@@ -1080,10 +1080,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                 </div>
 
                                 {/* Grid Lines - Subtle */}
-                                <div className="absolute inset-0 right-14 bottom-8 flex flex-col justify-between pointer-events-none z-0">
-                                    <div className="w-full h-[1px] bg-white/[0.03]" />
-                                    <div className="w-full h-[1px] bg-white/[0.03]" />
-                                    <div className="w-full h-[1px] bg-white/[0.03]" />
+                                <div className="absolute inset-0 right-12 bottom-8 flex flex-col justify-between pointer-events-none z-0 opacity-20">
+                                    <div className="w-full border-t border-dashed border-white/30" />
+                                    <div className="w-full border-t border-dashed border-white/30" />
+                                    <div className="w-full border-t border-dashed border-white/30" />
                                 </div>
 
                                 {chartData.map((data: any, i: number) => {
@@ -1095,7 +1095,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                     else if (timeRange === '8_WEEKS') showLabel = i % 2 === 0;
 
                                     return (
-                                        <div key={i} className="flex-1 flex flex-col items-center gap-4 z-10 h-full justify-end group/bar cursor-pointer pb-8">
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-4 z-10 h-full justify-end group/bar cursor-pointer pb-8 min-w-0">
                                             <div className="w-full max-w-[28px] h-[85%] relative flex items-end">
                                                 {/* Tooltip on Hover */}
                                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-md scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { Note, JournalEntry, NoteBlock, Project } from '../../types';
+import { Note, JournalEntry, NoteBlock, Project, Quest } from '../../types';
 import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
 import { EditorToolbar } from './components/EditorToolbar';
@@ -16,7 +16,7 @@ import { BlueprintSelector } from './components/BlueprintSelector';
 import { SaveBlueprintModal } from './components/SaveBlueprintModal';
 import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
-import { toLocalISOString, getDaysInMonth, calculateStreak } from '../../utils/dateUtils';
+import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { useAuth } from '@/context/AuthContext';
 
@@ -33,6 +33,7 @@ interface NotesViewProps {
  onInteractionStart: () => void;
  onInteractionEnd: () => void;
  projects: Project[];
+ quests?: Quest[];
  onShowPro?: () => void;
  currentSubView?: 'NOTES' | 'JOURNAL';
  sectionControl?: 'VISIBLE' | 'HIDDEN';
@@ -59,7 +60,7 @@ const WigglyLine = () => (
  </div>
 );
 
-export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
+export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, quests, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
  const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
@@ -189,6 +190,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [showEventsHub, setShowEventsHub] = useState(false);
  const [specialEvents, setSpecialEvents] = useState<any[]>([]);
  const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
+ const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
 
  // Load Special Events for Calendar Integration
  useEffect(() => {
@@ -392,19 +394,52 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  checkDate.setHours(0, 0, 0, 0);
 
  // Find Special Events for this date
- // Note: Special Events usually repeat annually, but our data structure currently stores specific dates.
- // Let's check for exact date match OR Month/Day match for birthdays/anniversaries if we decide to implement recurrence logic.
- // For now, let's match exact date as per previous implementation, BUT for birthdays/anniversaries we SHOULD match MM-DD.
  const specialEvent = specialEvents.find(e => {
- // If showInCalendar is false (and not undefined), skip
  if (e.showInCalendar === false) return false;
-
- const eDate = new Date(e.date);
+ const eDate = parseLocalDate(e.date);
  if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
  return eDate.getDate() === date.getDate() && eDate.getMonth() === date.getMonth();
  }
  return toLocalISOString(eDate) === dateStr;
  });
+
+ // Find Journaling Quests
+ const dayQuests = quests?.filter(q => {
+ if (!q.showInJournaling) return false;
+ 
+ // If it's a direct match
+ if (q.deadline === dateStr) return true;
+
+ // If it has recurrence, we should project it virtually for the calendar view
+ if (q.recurrence && q.recurrence.type !== 'NONE') {
+ // Only project if the date is after or equal to the quest's creation/start date
+ const questStartDate = q.createdAt ? new Date(q.createdAt as string | number) : new Date(q.deadline || 0);
+ questStartDate.setHours(0, 0, 0, 0);
+ if (checkDate < questStartDate) return false;
+
+ if (q.recurrence.type === 'INTERVAL' && q.recurrence.interval) {
+ const diffTime = Math.abs(checkDate.getTime() - questStartDate.getTime());
+ const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+ return diffDays % q.recurrence.interval === 0;
+ }
+ 
+ if (q.recurrence.type === 'WEEKLY' && q.recurrence.days) {
+ return q.recurrence.days.includes(checkDate.getDay());
+ }
+
+ if (q.recurrence.type === 'MONTHLY') {
+ const isSelectedDay = q.recurrence.days?.includes(checkDate.getDate());
+ const isLastDay = q.recurrence.monthlyType === 'LAST_DAY' && 
+ checkDate.getDate() === new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
+ 
+ const validMonth = !q.recurrence.months || q.recurrence.months.length === 0 || q.recurrence.months.includes(checkDate.getMonth());
+ 
+ return validMonth && (isSelectedDay || isLastDay);
+ }
+ }
+ 
+ return false;
+ }) || [];
 
  return {
  day,
@@ -412,20 +447,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  dateStr,
  entry,
  mood,
- specialEvent, // Added this
+ specialEvent,
+ dayQuests,
  isToday: dateStr === todayStr,
  isFuture: checkDate > today,
  title: entry ? getEntryTitle(entry.blocks) : ''
  };
  });
- }, [currentMonth, monthDays, journalEntryMap, specialEvents]);
+ }, [currentMonth, monthDays, journalEntryMap, specialEvents, quests]);
 
  const activeSpecialEvent = useMemo(() => {
  if (editorMode !== 'JOURNAL') return null;
  const dateStr = toLocalISOString(draftDate);
  return specialEvents.find(e => {
  if (e.showInCalendar === false) return false;
- const eDate = new Date(e.date);
+ const eDate = parseLocalDate(e.date);
  if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
  return eDate.getDate() === draftDate.getDate() && eDate.getMonth() === draftDate.getMonth();
  }
@@ -677,10 +713,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </AnimatePresence>
 
  {subView === 'NOTES' && (
- <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-32 animate-in slide-in-from-left-4 fade-in duration-500 px-4">
+ <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-24 animate-in slide-in-from-left-4 fade-in duration-500 px-4">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden">
+ <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Section Locked</span>
@@ -730,7 +766,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-500">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden">
+ <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
@@ -758,9 +794,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {journalViewMode === 'CALENDAR' ? (
  <>
  <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((d: string, i: number) => <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>)}</div>
- <div className="grid grid-cols-7 gap-3 px-4 pb-32 flex-1 content-start animate-in fade-in duration-300">
+ <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-300">
  {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
- {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent }) => {
+ {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {
  // Fix: Check if mood exists to apply color to border/bg
  // User request: Border should NOT follow mood color.
  // User request: Use the ENTRY THEME color if it exists.
@@ -776,39 +812,48 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <button 
  key={day} 
  onClick={() => {
- if (isFuture && specialEvent) {
+ if (isFuture) {
+ if (specialEvent) {
  setSelectedMemory(specialEvent);
+ } else if (dayQuests && dayQuests.length > 0) {
+ setSelectedQuest(dayQuests[0]);
+ }
  } else {
  openJournal(date);
  }
  }} 
- disabled={isFuture && !specialEvent}
+ disabled={isFuture && !specialEvent && (!dayQuests || dayQuests.length === 0)}
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ 
  borderColor: borderColor,
  backgroundColor: bgColor,
  boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
  }}
- className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform group overflow-hidden border ${!isFuture || specialEvent ? 'hover:bg-white/5 active:scale-90 cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+ className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform group overflow-hidden border ${!isFuture || specialEvent || (dayQuests && dayQuests.length > 0) ? 'hover:bg-white/5 active:scale-90 cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
  >
  {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
  {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
  
- {/* Special Event Indicator removed */}
-
- <div className="flex-1 flex items-center justify-center z-10 w-full relative">
+ <div className="flex-1 flex flex-col items-center justify-center z-10 w-full relative gap-1">
  {specialEvent ? (
  <div 
  className="text-2xl hover:scale-110 transition-transform duration-300 drop-shadow-md"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </div>
- ) : mood ? (
- // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?
- // User wants: "ambos emoji como el numero de la fecha, convivan y se puedan ver ambos"
- // Let's put emoji in center and date at bottom right, ensuring no overlap or readable overlap.
+ ) : null}
+ {(!specialEvent && dayQuests && dayQuests.length > 0) ? (
+ <div className="flex gap-1 flex-wrap justify-center">
+ {dayQuests.map((q, i) => (
+ <div key={q.id || i} className="hover:scale-110 transition-transform duration-300 drop-shadow-md" style={{ color: q.journalIconColor || '#3b82f6' }}>
+ <ListTodo size={24} />
+ </div>
+ ))}
+ </div>
+ ) : null}
+ {(!specialEvent && (!dayQuests || dayQuests.length === 0) && mood) ? (
  <span className="text-3xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">{mood.icon}</span>
- ) : isFuture ? (
+ ) : (!specialEvent && (!dayQuests || dayQuests.length === 0) && isFuture) ? (
  <Lock size={16} className="text-white/20" />
  ) : null}
  </div>
@@ -825,40 +870,51 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  </>
  ) : (
- <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-32 animate-in slide-in-from-right-8 duration-300">
+ <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-24 animate-in slide-in-from-right-8 duration-300">
  <div className="relative">
  {/* Notebook Binding Effect */}
  <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
  
  <div className="space-y-1">
- {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent }) => {
+ {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent, dayQuests }) => {
  const entryThemeId = entry?.theme || 'slate';
  const entryColor = themeColorMap.get(entryThemeId) || '#fff';
  return (
  <div key={day} className="relative group">
  <button 
  onClick={() => {
- if (isFuture && specialEvent) {
+ if (isFuture) {
+ if (specialEvent) {
  setSelectedMemory(specialEvent);
+ } else if (dayQuests && dayQuests.length > 0) {
+ setSelectedQuest(dayQuests[0]);
+ }
  } else {
  openJournal(date);
  }
  }}
- disabled={isFuture && !specialEvent}
+ disabled={isFuture && !specialEvent && (!dayQuests || dayQuests.length === 0)}
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
  className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2
- ${!isFuture || specialEvent ? 'hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer' : 'opacity-30 cursor-not-allowed'}
+ ${!isFuture || specialEvent || (dayQuests && dayQuests.length > 0) ? 'hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer' : 'opacity-30 cursor-not-allowed'}
  `}
  >
  <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
- {specialEvent && (
+ {specialEvent ? (
  <span 
  className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-300 drop-shadow-md flex items-center justify-center"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </span>
- )}
+ ) : (dayQuests && dayQuests.length > 0) ? (
+ <span 
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-300 drop-shadow-md flex items-center justify-center"
+ style={{ color: dayQuests[0].journalIconColor || '#3b82f6' }}
+ >
+ <ListTodo size={14} />
+ </span>
+ ) : null}
  {day < 10 ? `0${day}` : day}
  </span>
  <div className="flex-1 flex flex-col relative min-w-0">
@@ -1172,6 +1228,54 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>,
  document.body
  )}
+
+ {/* Quest Details Modal */}
+ {selectedQuest && typeof document !== 'undefined' && createPortal(
+ <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+ <div 
+ className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-300 ease-out animate-in fade-in"
+ onClick={() => setSelectedQuest(null)}
+ />
+ <div 
+ className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+ >
+ <div className="absolute top-0 left-0 right-0 h-32 rounded-t-[32px] pointer-events-none" style={{ background: `linear-gradient(to bottom, ${selectedQuest.journalIconColor || '#3b82f6'}33, transparent)` }} />
+ 
+ <div className="flex justify-between items-start relative z-10">
+ <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-md" style={{ color: selectedQuest.journalIconColor || '#3b82f6' }}>
+ <ListTodo size={32} />
+ </div>
+ <button 
+ onClick={() => setSelectedQuest(null)}
+ className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+ >
+ <X size={16} />
+ </button>
+ </div>
+
+ <div className="relative z-10">
+ <h2 className="text-2xl font-black text-white mb-2 leading-tight tracking-tight">{selectedQuest.title}</h2>
+ {selectedQuest.description && (
+ <p className="text-sm text-white/60 leading-relaxed font-medium mb-4 mt-2">{selectedQuest.description}</p>
+ )}
+ <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest mt-4" style={{ color: selectedQuest.journalIconColor || '#3b82f6' }}>
+ <Repeat size={14} />
+ <span>Tarea Repetida</span>
+ </div>
+ </div>
+
+ <button 
+ onClick={() => setSelectedQuest(null)}
+ className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 mt-2 relative z-10"
+ >
+ Close
+ </button>
+
+ </div>
+ </div>,
+ document.body
+ )}
+
  </div>
  );
 });

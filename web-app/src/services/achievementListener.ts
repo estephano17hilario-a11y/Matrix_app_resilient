@@ -1,4 +1,4 @@
-import { db, doc, setDoc, arrayUnion, increment } from './firebase';
+import { db, doc, setDoc, getDoc, arrayUnion, increment } from './firebase';
 import { UserData } from '../types/User';
 import { Attribute } from '../types';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
@@ -8,6 +8,32 @@ import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achiev
  * The watchful eye that rewards progress.
  */
 const sessionUnlockedAchievements = new Set<string>();
+let firestoreAchievementsPromise: Promise<void> | null = null;
+
+const loadAchievements = async (userId: string) => {
+  // 1. Fast boot from local storage
+  const localAch = localStorage.getItem(`matrix_achievements_${userId}`);
+  if (localAch) {
+      try {
+          JSON.parse(localAch).forEach((id: string) => sessionUnlockedAchievements.add(id));
+      } catch(e) {}
+  }
+
+  // 2. Sync from Firestore
+  try {
+     const userRef = doc(db, 'users', userId);
+     const userSnap = await getDoc(userRef);
+     if (userSnap.exists()) {
+         const data = userSnap.data();
+         if (data.unlockedAchievements && Array.isArray(data.unlockedAchievements)) {
+             data.unlockedAchievements.forEach((id: string) => sessionUnlockedAchievements.add(id));
+             localStorage.setItem(`matrix_achievements_${userId}`, JSON.stringify(Array.from(sessionUnlockedAchievements)));
+         }
+     }
+  } catch (e) {
+     console.warn("Error loading achievements from Firestore:", e);
+  }
+};
 
 export const checkAchievements = async (
   user: UserData,
@@ -15,6 +41,11 @@ export const checkAchievements = async (
   triggerCategory?: AchievementCategory
 ): Promise<Achievement[]> => {
   if (!user || !user.id) return [];
+
+  if (!firestoreAchievementsPromise) {
+      firestoreAchievementsPromise = loadAchievements(user.id);
+  }
+  await firestoreAchievementsPromise;
 
   // 1. Identify what we already have (DB + Session Cache)
   const unlockedIds = new Set([
@@ -64,6 +95,7 @@ export const checkAchievements = async (
       // Optimistic UI handled by the caller (React State), 
       // but we ensure the DB catches up.
       await setDoc(userRef, updates, { merge: true });
+      localStorage.setItem(`matrix_achievements_${user.id}`, JSON.stringify(Array.from(sessionUnlockedAchievements)));
       console.log('Achievements Unlocked & Saved:', newAchievements.map(a => a.title));
     } catch (error) {
       console.error('Lux Database Error (Achievements):', error);

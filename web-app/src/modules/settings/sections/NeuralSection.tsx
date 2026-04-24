@@ -3,21 +3,41 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Hexagon, Edit3, Check, X, Trash2, Plus } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useSettings } from '../SettingsContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { TRAITS_LIST } from '../../dashboard/constants';
 import { IconPicker } from '../../dashboard/components/IconPicker';
+import { supabase } from '../../../services/supabase';
 
 const COLORS = ['#3b82f6', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#64748b', '#6366f1', '#f97316', '#84cc16', '#d946ef', '#eab308'];
 
 export const NeuralSection = () => {
   const { t } = useTranslation();
+  const { profile: user, updateProfileLocally } = useAuth();
   const { attributes, updateAttribute, addAttribute, addCustomAttribute, removeAttribute, isPro, showProModal } = useSettings();
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editForm, setEditForm] = useState<{ label: string; color: string; icon?: any; iconName?: string }>({ label: '', color: COLORS[0], icon: Hexagon, iconName: 'Hexagon' });
 
-  const availableTraits = TRAITS_LIST.filter(trait => !attributes.find(a => a.id === trait.id));
+  // Merge default traits and custom archived traits
+  const allTraits = [...TRAITS_LIST];
+  if (user?.archivedTraits) {
+    Object.entries(user.archivedTraits).forEach(([id, data]) => {
+      if (!allTraits.find(t => t.id === id) && data.label) {
+        allTraits.push({
+          id,
+          label: data.label,
+          color: data.color || '#3b82f6',
+          icon: (LucideIcons as any)[data.iconName || 'Hexagon'] || Hexagon,
+          desc: ''
+        });
+      }
+    });
+  }
+
+  const availableTraits = allTraits.filter(trait => !attributes.find(a => a.id === trait.id));
 
   const startEditing = (attr: any) => {
     setEditingId(attr.id);
@@ -46,6 +66,29 @@ export const NeuralSection = () => {
 
   const handleAddAttribute = (id: string) => {
     addAttribute(id);
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!user?.id) return;
+    try {
+      const newArchived = { ...(user.archivedTraits || {}) };
+      delete newArchived[id];
+      
+      // Update Supabase
+      await supabase.from('users').update({ 
+        preferences: { 
+            ...(user.preferences || {}), 
+            archivedTraits: newArchived 
+        } 
+      }).eq('id', user.id);
+
+      // Optimistic update locally
+      updateProfileLocally({ archivedTraits: newArchived });
+
+      setDeletingId(null);
+    } catch (e) {
+      console.error("Error permanently deleting trait:", e);
+    }
   };
 
   const handleCreateCustom = () => {
@@ -245,26 +288,62 @@ export const NeuralSection = () => {
 
           <div className="bg-white/[0.03] border border-white/[0.05] rounded-[20px] p-3">
             <div className="space-y-2">
-              {availableTraits.map(trait => (
-                <button
-                  key={trait.id}
-                  onClick={() => handleAddAttribute(trait.id)}
-                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05] transition-all group text-left relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.05] text-white/30 group-hover:text-white group-hover:bg-white/[0.08] transition-colors"
-                  >
-                    <Plus size={14} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-white/60 group-hover:text-white transition-colors">
-                      {t(trait.label, trait.label.replace('traits.', ''))}
+              {availableTraits.map(trait => {
+                // Allow permanent delete for all traits (resets default traits, deletes custom ones)
+                return (
+                <div key={trait.id} className="relative group overflow-hidden rounded-xl">
+                  {deletingId === trait.id ? (
+                    <div className="flex flex-col gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
+                      <p className="text-xs text-rose-300 font-bold uppercase tracking-wider">
+                        ¿Eliminar este rasgo DEFINITIVAMENTE?
+                      </p>
+                      <p className="text-[10px] text-white/50">NO PODRÁS RECUPERARLO.</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button 
+                          onClick={() => handlePermanentDelete(trait.id)}
+                          className="flex-1 p-2 bg-rose-500 text-white text-xs font-bold rounded-lg hover:bg-rose-600 transition-colors"
+                        >
+                          Sí, eliminar
+                        </button>
+                        <button 
+                          onClick={() => setDeletingId(null)}
+                          className="flex-1 p-2 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-[10px] text-white/20 font-mono">{trait.id}</div>
-                  </div>
-                </button>
-              ))}
+                  ) : (
+                    <div className="flex items-center w-full bg-white/[0.03] hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05] transition-all">
+                      <button
+                        onClick={() => handleAddAttribute(trait.id)}
+                        className="flex-1 flex items-center gap-4 p-3 text-left relative"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.05] text-white/30 group-hover:text-white group-hover:bg-white/[0.08] transition-colors"
+                        >
+                          <Plus size={14} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-white/60 group-hover:text-white transition-colors">
+                            {t(trait.label, trait.label.replace('traits.', ''))}
+                          </div>
+                          <div className="text-[10px] text-white/20 font-mono">{trait.id}</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => setDeletingId(trait.id)}
+                        className="p-3 text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors z-10 h-full"
+                        title="Eliminar definitivamente"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )})}
             </div>
           </div>
         </div>

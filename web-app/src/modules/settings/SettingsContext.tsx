@@ -15,8 +15,8 @@ interface SettingsContextType {
   setTheme: (theme: ThemeId) => void;
   vividMode: boolean;
   toggleVividMode: (enabled: boolean) => void;
-  dashboardStyle: 'BORDER' | 'LIQUID' | 'GLASS';
-  setDashboardStyle: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;
+  dashboardStyle: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';
+  setDashboardStyle: (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => void;
   avatarShape: 'CIRCLE' | 'SQUARE';
   setAvatarShape: (shape: 'CIRCLE' | 'SQUARE') => void;
 
@@ -89,8 +89,8 @@ interface SettingsProviderProps {
   onRemoveAttribute?: (id: string) => void;
   onShowPro?: () => void;
   isPro?: boolean;
-  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
-  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;
+  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';
+  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => void;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
   vividMode?: boolean;

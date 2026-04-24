@@ -30,7 +30,9 @@ export function TraitSelector({ onNext }: TraitSelectorProps) {
     if (selected.includes(id)) {
       setSelected(selected.filter(t => t !== id));
     } else {
-      if (selected.length < 3) {
+      if (selected.length >= 16) {
+        setSelected([...selected.slice(1), id]);
+      } else {
         setSelected([...selected, id]);
       }
     }
@@ -43,7 +45,7 @@ export function TraitSelector({ onNext }: TraitSelectorProps) {
           <Sparkles className="w-3 h-3 text-cyan-400" /> Intelligence Profile
         </h2>
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Your Edge</h1>
-        <p className="text-white/60 text-lg">Select up to 3 dominant traits.</p>
+        <p className="text-white/60 text-lg">Select up to 16 dominant traits.</p>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar -mx-2 px-2 py-2 grid grid-cols-1 gap-3">

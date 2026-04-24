@@ -19,8 +19,8 @@ export interface SettingsViewProps {
   onClose: () => void;
   onShowPro?: () => void;
   isPro?: boolean;
-  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
-  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;
+  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';
+  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => void;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;
   vividMode?: boolean;

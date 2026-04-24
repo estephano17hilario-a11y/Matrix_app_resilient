@@ -22,7 +22,8 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeId?: string
+        attributeId?: string,
+        spawnedQuest?: any
     ) => {
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', userId);
@@ -60,6 +61,11 @@ export const TransactionService = {
                 rewardedXp: isCompleted ? rewardXp : 0,
                 rewardedGold: isCompleted ? rewardGold : 0
             });
+
+            if (spawnedQuest) {
+                const newQuestRef = doc(db, 'users', userId, 'quests', spawnedQuest.id);
+                batch.set(newQuestRef, spawnedQuest);
+            }
 
             if (attributeId) {
                 const attrRef = doc(db, 'users', userId, 'attributes', attributeId);

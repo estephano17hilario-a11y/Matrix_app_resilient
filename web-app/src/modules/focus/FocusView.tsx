@@ -155,7 +155,7 @@ export const FocusView = React.memo(({
             </div>
 
             {/* Project Grid */}
-            <div data-tour="project-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-20">
+            <div data-tour="project-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24">
                 {showArchived && (
                     <div className="col-span-full mb-2 bg-amber-900/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
@@ -171,39 +171,42 @@ export const FocusView = React.memo(({
                 {visibleProjects.map(project => {
                     const attribute = attributes.find(a => a.id === project.attribute);
                     return (
-                        <div 
-                            key={project.id} 
-                            className="relative z-10 touch-manipulation"
-                            {...longPressHandlers}
-                            onContextMenu={(e) => {
-                                if (!showArchived && onReorder) {
-                                    e.preventDefault();
-                                    setIsReorderModalOpen(true);
-                                }
-                            }}
-                        > 
-                            <ProjectCardMinimal 
-                                project={project} 
-                                attribute={attribute} 
-                                onClick={() => setSelectedProjectId(project.id)}
-                                onStartFocus={() => onStartFocus?.(project.id)}
-                            />
+                        <div key={project.id} className="pr-3 w-full">
+                            <div 
+                                className="relative z-10 touch-manipulation w-full"
+                                {...longPressHandlers}
+                                onContextMenu={(e) => {
+                                    if (!showArchived && onReorder) {
+                                        e.preventDefault();
+                                        setIsReorderModalOpen(true);
+                                    }
+                                }}
+                            > 
+                                <ProjectCardMinimal 
+                                    project={project} 
+                                    attribute={attribute} 
+                                    onClick={() => setSelectedProjectId(project.id)}
+                                    onStartFocus={() => onStartFocus?.(project.id)}
+                                />
+                            </div>
                         </div>
                     );
                 })}
                 
                 {/* New Project Silhouette Card */}
                 {!showArchived && (
-                    <div 
-                        onClick={() => onOpenProjectModal()}
-                        className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"
-                    >
-                        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
-                            <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                    <div className="pr-3 w-full">
+                        <div 
+                            onClick={() => onOpenProjectModal()}
+                            className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"
+                        >
+                            <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                                <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                            </div>
+                            <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
+                                Create New Project
+                            </span>
                         </div>
-                        <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
-                            Create New Project
-                        </span>
                     </div>
                 )}
             </div>

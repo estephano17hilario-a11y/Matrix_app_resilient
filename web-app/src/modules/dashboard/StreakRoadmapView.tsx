@@ -230,7 +230,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                     className="flex-1 overflow-y-auto relative scrollbar-hide"
                     style={{ perspective: '1000px' }}
                 >
-                    <div className="relative w-full flex justify-center pb-32 pt-10" style={{ minHeight: `${roadmapData.length * NODE_HEIGHT + 200}px` }}>
+                    <div className="relative w-full flex justify-center pb-24 pt-10" style={{ minHeight: `${roadmapData.length * NODE_HEIGHT + 200}px` }}>
                         {/* SVG PATH LAYER */}
                         <svg 
                             className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"

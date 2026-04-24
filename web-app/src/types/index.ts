@@ -48,6 +48,16 @@ export interface Quest {
   estimatedTime?: number; // Minutes
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
+  showInJournaling?: boolean;
+  journalIconColor?: string;
+  createdAt?: string | number;
+  recurrence?: {
+    type: 'NONE' | 'INTERVAL' | 'WEEKLY' | 'MONTHLY';
+    interval?: number; // Every X days
+    days?: number[]; // Days of the week (0-6) or Days of the month (1-31)
+    monthlyType?: 'SPECIFIC_DATES' | 'LAST_DAY';
+    months?: number[]; // Months of the year (0-11)
+  };
 }
 
 export interface Habit {
@@ -65,6 +75,12 @@ export interface Habit {
   targetValue?: number;
   currentValue?: number;
   unit?: string;
+  isDivided?: boolean;
+  dividedMode?: 'INTERVAL' | 'FIXED';
+  dividedQuantity?: number; // Amount per instance (e.g., 1 glass) for INTERVAL mode
+  dividedInterval?: number; // Interval in minutes (e.g., 90) for INTERVAL mode
+  dividedTimes?: { time: string; amount: number; id: string }[]; // Array of times and amounts for FIXED mode
+  nextInstanceTime?: string; // Time when next instance is due (for INTERVAL mode)
   checklist?: { 
     id: string; 
     text: string; 

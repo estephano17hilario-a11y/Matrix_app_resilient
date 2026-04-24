@@ -160,7 +160,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white pb-32 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-white pb-24 relative overflow-hidden">
        {/* Minimal Ambient Glow - Optimized */}
        <div 
             className="fixed top-0 left-0 right-0 h-96 opacity-10 pointer-events-none" 

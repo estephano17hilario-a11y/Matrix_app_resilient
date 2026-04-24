@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2 } from 'lucide-react';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -21,6 +21,7 @@ export const SystemSection = () => {
     defaultChartViews, updateDefaultChartViews,
     defaultProjectView, updateDefaultProjectView,
     defaultTaskFilters, updateDefaultTaskFilters,
+    dashboardStyle, setDashboardStyle,
     attributes,
     isPro
   } = useSettings();
@@ -283,6 +284,44 @@ export const SystemSection = () => {
                   habitSectionControl === 'VISIBLE' ? "bg-fuchsia-400 left-[26px]" : "bg-white/60 left-1"
                 )}
               />
+            </button>
+          </div>
+        </div>
+
+        {/* Dashboard Layout Style */}
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+              <LayoutTemplate size={18} className="text-pink-400" />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white tracking-tight">Dashboard Layout</div>
+              <div className="text-xs text-white/40 font-medium">Select dock style</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setDashboardStyle('BORDER')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
+                dashboardStyle === 'BORDER' || dashboardStyle === 'LIQUID' || dashboardStyle === 'GLASS'
+                  ? "bg-pink-500/20 text-pink-400 border border-pink-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+              )}
+            >
+              Legacy Dock
+            </button>
+            <button
+              onClick={() => setDashboardStyle('AURA')}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3 rounded-xl transition-colors duration-150 text-sm font-bold active:scale-95",
+                dashboardStyle === 'AURA'
+                  ? "bg-pink-500/20 text-pink-400 border border-pink-500/30" 
+                  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+              )}
+            >
+              Aura Dock
             </button>
           </div>
         </div>

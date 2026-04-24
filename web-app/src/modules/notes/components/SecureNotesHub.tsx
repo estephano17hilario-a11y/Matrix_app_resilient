@@ -365,7 +365,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  </div>
 
  {/* List */}
- <div className="flex-1 overflow-y-auto px-6 pb-32 space-y-3">
+ <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3">
  {filteredItems.length === 0 ? (
  <div className="flex flex-col items-center justify-center py-20 opacity-40">
  <ShieldAlert size={48} className="mb-4 text-white/20" />

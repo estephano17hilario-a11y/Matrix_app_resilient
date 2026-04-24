@@ -139,14 +139,14 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  >
  {/* Background Effects */}
  <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm transform-gpu" />
+ <div className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm transform-gpu " />
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent" />
  <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pink-500/10 blur-sm transform-gpu backface-hidden will-change-transform opacity-40" />
 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-sm transform-gpu backface-hidden will-change-transform opacity-40" />
  </div>
 
  {/* Scrollable Container for both Header and Content */}
- <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 pb-32">
+ <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 pb-24">
  {/* Fullscreen Header - Scrollable with content */}
  <div className="pt-safe-top pt-12 px-6 pb-8 border-b border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-end bg-transparent shrink-0 relative gap-6">
  <div className="pb-2 flex-1">
@@ -206,7 +206,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  {/* Add Button Card */}
  <button 
  onClick={handleOpenCreateModal}
- className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm backdrop-blur-sm transform-gpu"
+ className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm backdrop-blur-sm transform-gpu "
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[32px] pointer-events-none" />
  <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-md relative z-10">

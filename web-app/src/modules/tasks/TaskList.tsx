@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { Flame, Plus, Filter, Calendar, Zap, CheckCircle2, Circle, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, Plus, Filter, Calendar, Zap, CheckCircle2, Circle, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
@@ -369,7 +369,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  </button>
 
  <div data-tour="tasks-counter" className="bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
- <Flame size={10} className="text-orange-400 fill-orange-400" />
+ <Target size={10} className="text-orange-400" />
  <span className="text-[10px] font-black text-orange-400">
  {activeCount}
  </span>
@@ -609,7 +609,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div 
  ref={listContainerRef} 
  onScroll={handleScroll}
- className="flex flex-col pb-48 gap-3 flex-1 min-h-0"
+ className="flex flex-col pb-24 gap-3 flex-1 min-h-0"
  >
  {sortedQuests.length === 0 ? (
  <div className="py-10 text-center text-white/20 italic">
@@ -622,6 +622,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  {virtualItems.map((quest) => (
  <div
  key={quest.id}
+ className="pr-3 w-full"
  style={{
  contentVisibility: 'auto',
  containIntrinsicSize: '160px',

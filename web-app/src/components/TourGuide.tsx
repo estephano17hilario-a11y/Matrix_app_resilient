@@ -278,21 +278,22 @@ const TourOverlay: React.FC<{
  <div className="fixed inset-0 z-[9999] pointer-events-none">
  
  {/* MÁSCARA DE 4 DIVS (Bloquea clicks fuera del agujero y oscurece) */}
+ {/* FIX GPU: Removed backdrop-blur from multiple masks to prevent compositor crashes */}
  <AnimatePresence>
  {!isCenter && hole && (
  <motion.div key="hole-mask" className="absolute inset-0 pointer-events-none z-0">
  {/* Top */}
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute top-0 left-0 right-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ height: Math.max(0, hole.top) }} onClick={onEnd} />
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute top-0 left-0 right-0 bg-black/80 pointer-events-auto" style={{ height: Math.max(0, hole.top) }} onClick={onEnd} />
  {/* Bottom */}
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.min(windowSize.h, hole.bottom) }} onClick={onEnd} />
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-0 left-0 right-0 bg-black/80 pointer-events-auto" style={{ top: Math.min(windowSize.h, hole.bottom) }} onClick={onEnd} />
  {/* Left */}
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: 0, width: Math.max(0, hole.left) }} onClick={onEnd} />
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/80 pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: 0, width: Math.max(0, hole.left) }} onClick={onEnd} />
  {/* Right */}
- <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: Math.min(windowSize.w, hole.right), width: Math.max(0, windowSize.w - hole.right) }} onClick={onEnd} />
+ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bg-black/80 pointer-events-auto" style={{ top: Math.max(0, hole.top), height: Math.max(0, hole.height), left: Math.min(windowSize.w, hole.right), width: Math.max(0, windowSize.w - hole.right) }} onClick={onEnd} />
  </motion.div>
  )}
  {isCenter && (
- <motion.div key="center-mask" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm transform-gpu pointer-events-auto" onClick={onEnd} />
+ <motion.div key="center-mask" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 pointer-events-auto" onClick={onEnd} />
  )}
  </AnimatePresence>
 

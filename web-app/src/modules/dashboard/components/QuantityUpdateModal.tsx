@@ -45,7 +45,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
     const progress = Math.min(value / target, 1);
     
     // Circular Progress settings
-    const radius = 110;
+    const radius = 80;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - progress * circumference;
 
@@ -59,16 +59,45 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
         }
     }, [isComplete, controls]);
 
+    const getIncrementAmount = () => {
+        // ALWAYS RETURN 1 FOR THE MANUAL BUTTON
+        return 1;
+    };
+
+    const getDecrementAmount = () => {
+        // ALWAYS RETURN 1 FOR THE MANUAL BUTTON
+        return 1;
+    };
+
     const handleIncrement = () => {
-        const newValue = value + 1;
+        const incrementAmount = getIncrementAmount();
+        const newValue = value + incrementAmount;
         setValue(newValue);
-        onUpdate(habit.id, { currentValue: newValue });
+        
+        const updateData: Partial<Habit> = { currentValue: newValue };
+        
+        if (habit.isDivided && habit.dividedMode === 'INTERVAL' && habit.dividedInterval) {
+            const nextTime = new Date();
+            nextTime.setMinutes(nextTime.getMinutes() + habit.dividedInterval);
+            updateData.nextInstanceTime = nextTime.toISOString();
+        }
+        
+        onUpdate(habit.id, updateData);
     };
 
     const handleDecrement = () => {
-        const newValue = Math.max(0, value - 1);
+        const decrementAmount = getDecrementAmount();
+        const newValue = Math.max(0, value - decrementAmount);
         setValue(newValue);
-        onUpdate(habit.id, { currentValue: newValue });
+        
+        const updateData: Partial<Habit> = { currentValue: newValue };
+        
+        // Optionally clear nextInstanceTime if we go to 0, but probably leave it alone or clear if 0
+        if (newValue === 0 && habit.isDivided) {
+            updateData.nextInstanceTime = undefined; // Or null depending on DB. We can omit it.
+        }
+        
+        onUpdate(habit.id, updateData);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +119,45 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
 
     const colorPrimary = habit.customColor || '#3b82f6';
 
+    const renderNextInstance = () => {
+        if (!habit.isDivided || isComplete) return null;
+        
+        if (habit.dividedMode === 'FIXED' && habit.dividedTimes && habit.dividedTimes.length > 0) {
+            const times = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
+            let accumulated = 0;
+            let nextTime = null;
+            for (const t of times) {
+                accumulated += t.amount;
+                if ((value || 0) < accumulated) {
+                    nextTime = t.time;
+                    break;
+                }
+            }
+            if (nextTime) {
+                return (
+                    <div className="text-[10px] font-bold text-white/50 bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-1 mt-2">
+                        <Zap size={10} className="text-yellow-400" />
+                        <span>Próximo: {nextTime}</span>
+                    </div>
+                );
+            }
+        } else if (habit.nextInstanceTime) {
+            const nextDate = new Date(habit.nextInstanceTime);
+            const today = new Date();
+            if (nextDate.getDate() === today.getDate() && nextDate.getMonth() === today.getMonth()) {
+                const hours = nextDate.getHours().toString().padStart(2, '0');
+                const minutes = nextDate.getMinutes().toString().padStart(2, '0');
+                return (
+                    <div className="text-[10px] font-bold text-white/50 bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-1 mt-2">
+                        <Zap size={10} className="text-yellow-400" />
+                        <span>Próximo: {hours}:{minutes}</span>
+                    </div>
+                );
+            }
+        }
+        return null;
+    };
+
     return createPortal(
         <AnimatePresence>
             {isOpen && (
@@ -110,7 +178,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                         exit={{ opacity: 0, scale: 0.85, y: 40 }}
                         transition={{ type: "spring", damping: 28, stiffness: 350, mass: 0.8 }}
                         className={cn(
-                            "relative w-full max-w-[400px] rounded-[40px] p-10 overflow-hidden transition-all duration-700 backdrop-blur-sm transform-gpu backface-hidden border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
+                            "relative w-full max-w-[400px] rounded-[32px] p-6 sm:p-8 overflow-hidden transition-all duration-700 backdrop-blur-sm transform-gpu backface-hidden border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
                             "bg-[#0f0f13]/80",
                             isComplete 
                                 ? "shadow-[0_0_80px_-15px_rgba(16,185,129,0.3)]" 
@@ -133,13 +201,14 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                          />
 
                          {/* Header - Enhanced */}
-                         <div className="relative z-10 flex justify-between items-center w-full mb-10">
+                         <div className="relative z-10 flex justify-between items-center w-full mb-6">
                             <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
                                 <Target size={14} className={isComplete ? "text-emerald-400" : "text-white/40"} strokeWidth={2.5} />
                                 <span className="text-[9px] font-black text-white/50 tracking-[0.2em] uppercase">
                                     {habit.title}
                                 </span>
                             </div>
+                            {renderNextInstance()}
                             <button 
                                 onClick={onClose}
                                 className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90"
@@ -151,7 +220,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                         <div className="relative z-10 flex flex-col items-center justify-center">
                             
                             {/* Circular Visualizer - Ultra Polish */}
-                            <div className="relative w-64 h-64 flex items-center justify-center mb-10">
+                            <div className="relative w-48 h-48 flex items-center justify-center mb-6">
                                 {/* Rotating Background Ring */}
                                 <motion.div 
                                     animate={{ rotate: 360 }}
@@ -169,8 +238,8 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     </defs>
                                     {/* Background Ring */}
                                     <circle
-                                        cx="128"
-                                        cy="128"
+                                        cx="96"
+                                        cy="96"
                                         r={radius}
                                         fill="none"
                                         stroke="rgba(255,255,255,0.02)"
@@ -178,8 +247,8 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     />
                                     {/* Progress Ring - Dynamic Stroke */}
                                     <motion.circle
-                                        cx="128"
-                                        cy="128"
+                                        cx="96"
+                                        cy="96"
                                         r={radius}
                                         fill="none"
                                         stroke="url(#quantityGradient)"
@@ -210,7 +279,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                             onKeyDown={handleInputKeyDown}
                                             className={cn(
                                                 "w-40 bg-transparent text-center outline-none",
-                                                "text-8xl font-[1000] tracking-[-0.06em] leading-none tabular-nums",
+                                                "text-7xl font-[1000] tracking-[-0.06em] leading-none tabular-nums",
                                                 isComplete ? "text-emerald-400" : "text-white"
                                             )}
                                         />
@@ -223,7 +292,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                             className="flex flex-col items-center"
                                         >
                                             <span className={cn(
-                                                "text-8xl font-[1000] tracking-[-0.06em] leading-none tabular-nums cursor-pointer drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
+                                                "text-7xl font-[1000] tracking-[-0.06em] leading-none tabular-nums cursor-pointer drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
                                                 isComplete ? "text-emerald-400" : "text-white"
                                             )}>
                                                 {value}
@@ -242,14 +311,14 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                             </div>
 
                             {/* Enhanced Controls */}
-                            <div className="flex items-center gap-8 w-full justify-center px-4 mb-4">
+                            <div className="flex items-center gap-6 w-full justify-center px-4 mb-4">
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleDecrement}
-                                    className="w-16 h-16 rounded-[24px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-md backdrop-blur-sm transform-gpu backface-hidden "
+                                    className="w-10 h-10 rounded-[14px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-md backdrop-blur-sm transform-gpu backface-hidden "
                                 >
-                                    <Minus size={24} className="text-white/40 group-hover:text-white transition-colors" strokeWidth={3} />
+                                    <Minus size={18} className="text-white/40 group-hover:text-white transition-colors" strokeWidth={3} />
                                 </motion.button>
 
                                 <motion.button
@@ -257,7 +326,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleIncrement}
                                     className={cn(
-                                        "w-24 h-24 rounded-[32px] flex items-center justify-center border transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group relative overflow-hidden",
+                                        "w-14 h-14 rounded-[16px] flex items-center justify-center border transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group relative overflow-hidden",
                                         isComplete 
                                             ? "bg-emerald-500 border-emerald-400/50" 
                                             : "bg-white border-white"
@@ -273,12 +342,73 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     )}
                                     
                                     {isComplete ? (
-                                        <Check size={44} strokeWidth={4} className="text-white relative z-10 drop-shadow-lg" />
+                                        <Check size={24} strokeWidth={4} className="text-white relative z-10 drop-shadow-lg" />
                                     ) : (
-                                        <Plus size={44} strokeWidth={4} className="text-black relative z-10" />
+                                        <div className="flex items-center text-black relative z-10">
+                                            <Plus size={24} strokeWidth={4} />
+                                        </div>
                                     )}
                                 </motion.button>
                             </div>
+
+                            {/* Subtasks (Fixed Times) below controls */}
+                            {habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && (
+                                <div className="w-full max-w-[280px] space-y-2 max-h-36 overflow-y-auto no-scrollbar px-2 mb-2 border-t border-white/5 pt-3">
+                                    {[...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time)).map((item, index) => {
+                                        const times = [...habit.dividedTimes!].sort((a, b) => a.time.localeCompare(b.time));
+                                        let accumulated = 0;
+                                        for (let i = 0; i <= index; i++) {
+                                            accumulated += times[i].amount;
+                                        }
+                                        const isItemCompleted = (value || 0) >= accumulated || isComplete;
+                                        const isNextItem = !isItemCompleted && ((value || 0) >= accumulated - item.amount);
+                                        
+                                        return (
+                                            <div 
+                                                key={item.id}
+                                                className={cn(
+                                                    "flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer",
+                                                    isNextItem ? "bg-white/10 border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 hover:bg-white/10"
+                                                )}
+                                                onClick={() => {
+                                                    if (isItemCompleted) {
+                                                        const newValue = Math.max(0, accumulated - item.amount);
+                                                        setValue(newValue);
+                                                        onUpdate(habit.id, { currentValue: newValue });
+                                                    } else {
+                                                        setValue(accumulated);
+                                                        onUpdate(habit.id, { currentValue: accumulated });
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
+                                                        isItemCompleted ? "border-transparent bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]" : (isNextItem ? "border-white/40 bg-white/5" : "border-white/10 bg-black/20")
+                                                    )}>
+                                                        {isItemCompleted && <Check size={14} strokeWidth={3} />}
+                                                    </div>
+                                                    <span className={cn(
+                                                        "text-sm font-bold transition-colors flex items-center gap-2",
+                                                        isItemCompleted ? "text-white/30 line-through" : (isNextItem ? "text-white" : "text-white/70")
+                                                    )}>
+                                                        {item.time}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "text-xs font-black px-2 py-1 rounded-lg",
+                                                        isItemCompleted ? "bg-white/5 text-white/30" : "bg-emerald-400/10 text-emerald-400"
+                                                    )}>
+                                                        +{item.amount} {habit.unit}
+                                                    </span>
+                                                    {isNextItem && <Zap size={14} className="text-yellow-400 animate-pulse-slow drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                             
                             {/* Visual Feedback Message - Polish */}
                             <AnimatePresence>

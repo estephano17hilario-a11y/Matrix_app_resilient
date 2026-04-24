@@ -1,13 +1,22 @@
 export const ICON_CATEGORIES: Record<string, string[]> = {
-    'Esenciales': ['Star', 'Heart', 'Zap', 'Flame', 'Trophy', 'Target', 'Check', 'CheckCircle', 'Plus', 'X', 'Trash2', 'Edit2', 'Settings', 'Menu', 'Search', 'Filter', 'MoreHorizontal', 'AlertCircle', 'HelpCircle', 'Info', 'Hash', 'Grid', 'List', 'Maximize', 'Minimize', 'RefreshCw', 'Shield', 'ShieldCheck', 'Sparkles', 'Timer', 'ToggleLeft', 'ToggleRight'],
-    'Salud': ['Activity', 'Pulse', 'Brain', 'Smile', 'Frown', 'Dumbbell', 'Bike', 'Footprints', 'Droplets', 'Moon', 'Sun', 'Apple', 'Coffee', 'Bed', 'Pill', 'Stethoscope', 'GlassWater', 'Salad', 'Carrot', 'HeartPulse', 'Scale', 'Bone', 'Syringe', 'Thermometer', 'Trees', 'Cigarette', 'Ban', 'BicepsFlexed', 'PersonStanding', 'TimerReset'],
-    'Productividad': ['CheckSquare', 'List', 'Calendar', 'Clock', 'Award', 'Flag', 'Bookmark', 'FileText', 'Folder', 'Archive', 'Inbox', 'Mail', 'Send', 'Paperclip', 'Pin', 'Briefcase', 'Layers', 'Layout', 'Kanban', 'ListTodo', 'Network', 'PenTool', 'Table', 'ClipboardList', 'CalendarDays', 'FileSpreadsheet', 'GanttChartSquare', 'Target', 'Rocket'],
-    'Finanzas': ['DollarSign', 'CreditCard', 'Wallet', 'PiggyBank', 'Banknote', 'Coins', 'TrendingUp', 'BarChart', 'PieChart', 'ShoppingBag', 'ShoppingCart', 'Tag', 'Gift', 'Percent', 'Receipt', 'Calculator', 'BadgeDollarSign', 'Bitcoin', 'CandlestickChart', 'CircleDollarSign', 'Gem', 'HandCoins', 'Landmark', 'LineChart', 'Scale3d', 'Vault'],
-    'Tecnología': ['Smartphone', 'Laptop', 'Monitor', 'Cpu', 'Wifi', 'Battery', 'Bluetooth', 'Headphones', 'Code', 'Terminal', 'Database', 'Server', 'Cloud', 'Keyboard', 'Mouse', 'Calculator', 'HardDrive', 'MemoryStick', 'Microscope', 'Plug', 'Printer', 'QrCode', 'Radio', 'Router', 'Save', 'Scan', 'Speaker', 'Tv', 'Usb', 'Webcam'],
-    'Educación': ['Book', 'BookOpen', 'GraduationCap', 'Library', 'Pencil', 'Pen', 'Lightbulb', 'Puzzle', 'BrainCircuit', 'School', 'Microscope', 'Telescope', 'Atom', 'Backpack', 'Calculator', 'Clipboard', 'Compass', 'Languages', 'Microscope', 'Palette', 'ScrollText', 'Highlighter', 'Glasses', 'FlaskConical'],
-    'Hogar': ['Home', 'Key', 'Lock', 'Unlock', 'DoorOpen', 'Sofa', 'BedDouble', 'Bath', 'Utensils', 'Wine', 'ChefHat', 'Wrench', 'Hammer', 'Umbrella', 'Scissors', 'Armchair', 'Fan', 'Flashlight', 'Fridge', 'Lamp', 'Microwave', 'PaintRoller', 'Plant', 'ShowerHead', 'Thermometer', 'Trash', 'WashingMachine', 'Flower2'],
-    'Viajes': ['Plane', 'Car', 'Bus', 'Train', 'Ship', 'Map', 'MapPin', 'Compass', 'Globe', 'Luggage', 'Ticket', 'Camera', 'Image', 'Mountain', 'Tent', 'Anchor', 'BaggageClaim', 'Caravan', 'Hotel', 'MapPinned', 'Palmtree', 'ParkingSquare', 'PlaneTakeoff', 'PlaneLanding', 'ShipWheel', 'Signpost', 'TramFront'],
-    'Social': ['User', 'Users', 'UserPlus', 'MessageCircle', 'MessageSquare', 'Phone', 'Video', 'Mic', 'Music', 'Share2', 'ThumbsUp', 'HeartHandshake', 'PartyPopper', 'Baby', 'Bell', 'Camera', 'Cat', 'Dog', 'Gamepad2', 'Ghost', 'Gift', 'Heart', 'Mail', 'Podcast', 'Radio', 'Rss', 'Send', 'Smile', 'Speaker', 'Tv', 'Twitch', 'Twitter', 'Youtube', 'Instagram', 'Facebook', 'Linkedin', 'Github']
+    'Esenciales': ['Star', 'Heart', 'Zap', 'Flame', 'Trophy', 'Target', 'Check', 'CheckCircle', 'Plus', 'X', 'Trash2', 'Edit2', 'Settings', 'Menu', 'Search', 'Filter', 'MoreHorizontal', 'AlertCircle', 'HelpCircle', 'Info', 'Hash', 'Grid', 'List', 'Maximize', 'Minimize', 'RefreshCw', 'Shield', 'ShieldCheck', 'Sparkles', 'Timer', 'ToggleLeft', 'ToggleRight', 'Eye', 'EyeOff', 'BellRing', 'BellOff'],
+    'Salud': ['Activity', 'Pulse', 'Brain', 'Smile', 'Frown', 'Dumbbell', 'Bike', 'Footprints', 'Droplets', 'Moon', 'Sun', 'Apple', 'Coffee', 'Bed', 'Pill', 'Stethoscope', 'GlassWater', 'Salad', 'Carrot', 'HeartPulse', 'Scale', 'Bone', 'Syringe', 'Thermometer', 'Trees', 'Cigarette', 'Ban', 'BicepsFlexed', 'PersonStanding', 'TimerReset', 'Crosshair', 'Ear', 'Vegan', 'Wheat', 'Soup', 'FirstAid', 'HeartBeat'],
+    'Mente': ['Brain', 'BrainCircuit', 'Flower', 'Flower2', 'Heart', 'Moon', 'MoonStar', 'Sun', 'SunMedium', 'Cloud', 'CloudRain', 'Wind', 'Smile', 'SmilePlus', 'Frown', 'Eye', 'Lightbulb', 'Feather', 'Ear', 'Compass', 'BookOpen'],
+    'Cuerpo': ['BicepsFlexed', 'Dumbbell', 'PersonStanding', 'Activity', 'Droplets', 'Bath', 'ShowerHead', 'Scissors', 'Comb', 'Footprints', 'Shirt', 'Watch', 'GlassWater', 'Apple', 'Salad', 'Bed', 'BedSingle', 'BedDouble'],
+    'Creatividad': ['Palette', 'PenTool', 'Pencil', 'Pen', 'Brush', 'Music', 'Mic', 'Camera', 'Video', 'Film', 'Image', 'Type', 'Wand2', 'Sparkles', 'Stars', 'Book', 'Feather'],
+    'Rutina': ['Clock', 'Calendar', 'CalendarDays', 'CheckSquare', 'ListTodo', 'AlarmClock', 'Timer', 'Sunrise', 'Sunset', 'Moon', 'Coffee', 'Utensils', 'WashingMachine', 'Shirt', 'Trash', 'Broom', 'ShoppingCart'],
+    'Amor': ['Heart', 'HeartHandshake', 'Users', 'UserPlus', 'Baby', 'Home', 'Gift', 'Smile', 'MessageCircle', 'PhoneCall', 'Flower2'],
+    'Espiritualidad': ['Star', 'Stars', 'Moon', 'Sun', 'Flame', 'Feather', 'Wind', 'Cloud', 'Eye', 'Book', 'BookOpen', 'Hands', 'Heart', 'Sparkles', 'Compass', 'Infinity', 'Cross'],
+    'Productividad': ['CheckSquare', 'List', 'Calendar', 'Clock', 'Award', 'Flag', 'Bookmark', 'FileText', 'Folder', 'Archive', 'Inbox', 'Mail', 'Send', 'Paperclip', 'Pin', 'Briefcase', 'Layers', 'Layout', 'Kanban', 'ListTodo', 'Network', 'PenTool', 'Table', 'ClipboardList', 'CalendarDays', 'FileSpreadsheet', 'GanttChartSquare', 'Target', 'Rocket', 'Focus', 'Compass', 'Hourglass', 'Wand2', 'Workflow'],
+    'Finanzas': ['DollarSign', 'CreditCard', 'Wallet', 'PiggyBank', 'Banknote', 'Coins', 'TrendingUp', 'BarChart', 'PieChart', 'ShoppingBag', 'ShoppingCart', 'Tag', 'Gift', 'Percent', 'Receipt', 'Calculator', 'BadgeDollarSign', 'Bitcoin', 'CandlestickChart', 'CircleDollarSign', 'Gem', 'HandCoins', 'Landmark', 'LineChart', 'Scale3d', 'Vault', 'Briefcase', 'Building', 'TrendingDown', 'Gavel'],
+    'Tecnología': ['Smartphone', 'Laptop', 'Monitor', 'Cpu', 'Wifi', 'Battery', 'Bluetooth', 'Headphones', 'Code', 'Terminal', 'Database', 'Server', 'Cloud', 'Keyboard', 'Mouse', 'Calculator', 'HardDrive', 'MemoryStick', 'Microscope', 'Plug', 'Printer', 'QrCode', 'Radio', 'Router', 'Save', 'Scan', 'Speaker', 'Tv', 'Usb', 'Webcam', 'Gamepad', 'Bot', 'Fingerprint'],
+    'Educación': ['Book', 'BookOpen', 'GraduationCap', 'Library', 'Pencil', 'Pen', 'Lightbulb', 'Puzzle', 'BrainCircuit', 'School', 'Microscope', 'Telescope', 'Atom', 'Backpack', 'Calculator', 'Clipboard', 'Compass', 'Languages', 'Palette', 'ScrollText', 'Highlighter', 'Glasses', 'FlaskConical', 'Ruler', 'FileBadge', 'BookMarked'],
+    'Hogar': ['Home', 'Key', 'Lock', 'Unlock', 'DoorOpen', 'Sofa', 'BedDouble', 'Bath', 'Utensils', 'Wine', 'ChefHat', 'Wrench', 'Hammer', 'Umbrella', 'Scissors', 'Armchair', 'Fan', 'Flashlight', 'Fridge', 'Lamp', 'Microwave', 'PaintRoller', 'Plant', 'ShowerHead', 'Thermometer', 'Trash', 'WashingMachine', 'Flower2', 'BedSingle', 'CoffeeMaker', 'Blinds'],
+    'Comida': ['Apple', 'Banana', 'Carrot', 'Cherry', 'Citrus', 'Croissant', 'Grape', 'IceCream', 'NutOff', 'Pizza', 'Salad', 'Soup', 'Vegan', 'Wheat', 'Beer', 'Coffee', 'CupSoda', 'GlassWater', 'Martini', 'Wine', 'Beef', 'Cake', 'UtensilsCrossed', 'ChefHat'],
+    'Viajes': ['Plane', 'Car', 'Bus', 'Train', 'Ship', 'Map', 'MapPin', 'Compass', 'Globe', 'Luggage', 'Ticket', 'Camera', 'Image', 'Mountain', 'Tent', 'Anchor', 'BaggageClaim', 'Caravan', 'Hotel', 'MapPinned', 'Palmtree', 'ParkingSquare', 'PlaneTakeoff', 'PlaneLanding', 'ShipWheel', 'Signpost', 'TramFront', 'TrainFront', 'BusFront', 'CarTaxiFront'],
+    'Naturaleza': ['TreePine', 'TreeDeciduous', 'Trees', 'Leaf', 'Flower', 'Flower2', 'CloudSun', 'CloudRain', 'Snowflake', 'Wind', 'MountainSnow', 'SunMedium', 'MoonStar', 'Flame', 'Droplets', 'Bird', 'Bug', 'Cat', 'Dog', 'Fish', 'Rabbit', 'Snail', 'Turtle', 'Worm'],
+    'Deportes': ['Trophy', 'Medal', 'Target', 'Crosshair', 'BicepsFlexed', 'Dumbbell', 'Timer', 'Activity', 'Bike', 'Swords', 'Flag', 'Goal', 'PersonStanding', 'TimerReset'],
+    'Social': ['User', 'Users', 'UserPlus', 'MessageCircle', 'MessageSquare', 'Phone', 'Video', 'Mic', 'Music', 'Share2', 'ThumbsUp', 'HeartHandshake', 'PartyPopper', 'Baby', 'Bell', 'Camera', 'Cat', 'Dog', 'Gamepad2', 'Ghost', 'Gift', 'Heart', 'Mail', 'Podcast', 'Radio', 'Rss', 'Send', 'Smile', 'Speaker', 'Tv', 'Twitch', 'Twitter', 'Youtube', 'Instagram', 'Facebook', 'Linkedin', 'Github', 'ThumbsDown', 'HandMetal', 'Handshake']
 };
 
 export const ICON_KEYWORDS_ES: Record<string, string[]> = {
@@ -34,17 +43,22 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Info': ['información', 'detalle', 'datos', 'saber', 'acerca de'],
     'Sparkles': ['brillos', 'magia', 'nuevo', 'limpio', 'estrellas', 'destello'],
     'Shield': ['escudo', 'seguridad', 'protección', 'defensa', 'guardar'],
+    'Eye': ['ojo', 'ver', 'mirar', 'visión', 'mostrar', 'observar'],
+    'EyeOff': ['ocultar', 'ciego', 'invisible', 'privado', 'esconder'],
+    'BellRing': ['campana', 'sonar', 'notificación', 'alarma', 'aviso', 'despertar'],
+    'BellOff': ['silencio', 'mudo', 'sin sonido', 'no molestar', 'apagar'],
     
     // Salud
     'Activity': ['actividad', 'pulso', 'salud', 'ritmo', 'movimiento', 'ejercicio'],
     'Pulse': ['pulso', 'salud', 'corazón', 'vida', 'latido'],
     'Brain': ['cerebro', 'mente', 'pensar', 'inteligencia', 'psicología', 'mental'],
     'Smile': ['feliz', 'sonrisa', 'alegría', 'emoción', 'bienestar', 'cara'],
+    'SmilePlus': ['feliz', 'sonrisa', 'alegría', 'emoción', 'bienestar', 'cara', 'mas'],
     'Frown': ['triste', 'mal', 'emoción', 'cara', 'depresión'],
     'Dumbbell': ['pesa', 'gimnasio', 'gym', 'fuerza', 'entrenamiento', 'músculo', 'fitness', 'levantar', 'ejercicio'],
     'BicepsFlexed': ['músculo', 'brazo', 'fuerza', 'gym', 'gimnasio', 'poder', 'fuerte'],
     'Bike': ['bicicleta', 'bici', 'ciclismo', 'cardio', 'ejercicio', 'pedalear', 'transporte'],
-    'Footprints': ['pasos', 'caminar', 'huellas', 'pies', 'andar', 'paseo'],
+    'Footprints': ['pasos', 'caminar', 'huellas', 'pies', 'andar', 'paseo', 'caminata'],
     'Droplets': ['agua', 'gotas', 'hidratación', 'beber', 'líquido', 'sudor'],
     'Moon': ['luna', 'noche', 'dormir', 'sueño', 'descanso', 'oscuro'],
     'Sun': ['sol', 'día', 'mañana', 'luz', 'despertar', 'brillo'],
@@ -63,7 +77,31 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Thermometer': ['termómetro', 'temperatura', 'fiebre', 'calor', 'frío', 'enfermo'],
     'Cigarette': ['cigarro', 'fumar', 'tabaco', 'vicio', 'mal hábito'],
     'Ban': ['prohibido', 'no', 'detener', 'bloquear', 'cancelar', 'parar'],
-    'PersonStanding': ['persona', 'de pie', 'humano', 'postura', 'cuerpo'],
+    'PersonStanding': ['persona', 'de pie', 'humano', 'postura', 'cuerpo', 'estiramiento'],
+    'Crosshair': ['mira', 'apuntar', 'precisión', 'foco', 'objetivo', 'concentración'],
+    'Ear': ['oreja', 'escuchar', 'oído', 'audición', 'sonido'],
+    'Vegan': ['vegano', 'planta', 'hoja', 'saludable', 'dieta', 'naturaleza'],
+    'Wheat': ['trigo', 'cereal', 'pan', 'comida', 'gluten', 'cosecha'],
+    'Soup': ['sopa', 'comida', 'caliente', 'plato', 'almuerzo'],
+    'FirstAid': ['primeros auxilios', 'botiquín', 'cruz', 'salud', 'emergencia', 'médico'],
+    'HeartBeat': ['latido', 'corazón', 'pulso', 'vida', 'salud', 'cardio'],
+
+    // Nuevos
+    'Feather': ['pluma', 'ligero', 'escribir', 'pájaro', 'volar', 'suave'],
+    'Comb': ['peine', 'pelo', 'cabello', 'belleza', 'cuidado'],
+    'Shirt': ['camisa', 'ropa', 'vestir', 'lavar', 'moda'],
+    'Watch': ['reloj', 'pulsera', 'tiempo', 'moda', 'accesorio'],
+    'Brush': ['pincel', 'pintar', 'arte', 'creativo', 'dibujo'],
+    'Film': ['película', 'cine', 'video', 'cámara', 'grabar'],
+    'Type': ['texto', 'escribir', 'letra', 'fuente', 'tipografía'],
+    'AlarmClock': ['alarma', 'reloj', 'despertar', 'tiempo', 'mañana'],
+    'Sunrise': ['amanecer', 'mañana', 'sol', 'día', 'despertar'],
+    'Sunset': ['atardecer', 'tarde', 'sol', 'noche', 'ocaso'],
+    'Broom': ['escoba', 'barrer', 'limpiar', 'casa', 'hogar'],
+    'PhoneCall': ['llamar', 'teléfono', 'hablar', 'comunicación'],
+    'Hands': ['manos', 'ayuda', 'oración', 'paz', 'dar'],
+    'Infinity': ['infinito', 'siempre', 'eternidad', 'ciclo'],
+    'Cross': ['cruz', 'religión', 'fe', 'iglesia', 'salud'],
 
     // Productividad
     'CheckSquare': ['tarea', 'lista', 'hecho', 'completar', 'casilla', 'todo'],
@@ -87,6 +125,11 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Layout': ['diseño', 'estructura', 'cuadrícula', 'panel', 'organización'],
     'Kanban': ['kanban', 'tablero', 'columnas', 'ágil', 'tareas', 'proyecto'],
     'ListTodo': ['tareas', 'pendientes', 'hacer', 'lista', 'checklist'],
+    'Focus': ['foco', 'concentración', 'apuntar', 'centro', 'atención'],
+    'Compass': ['brújula', 'dirección', 'guía', 'orientación', 'camino', 'norte'],
+    'Hourglass': ['reloj de arena', 'tiempo', 'espera', 'cuenta regresiva', 'duración'],
+    'Wand2': ['varita', 'magia', 'automático', 'crear', 'varita mágica', 'herramienta'],
+    'Workflow': ['flujo', 'trabajo', 'proceso', 'pasos', 'diagrama', 'sistema'],
 
     // Finanzas
     'DollarSign': ['dólar', 'dinero', 'moneda', 'efectivo', 'pago', 'precio', 'costo'],
@@ -107,6 +150,9 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Calculator': ['calculadora', 'matemáticas', 'sumar', 'cuentas', 'números', 'contabilidad'],
     'Bitcoin': ['bitcoin', 'cripto', 'criptomoneda', 'dinero', 'digital', 'inversión'],
     'Vault': ['bóveda', 'caja fuerte', 'seguro', 'banco', 'guardar', 'protección'],
+    'Building': ['edificio', 'empresa', 'corporación', 'banco', 'oficina'],
+    'TrendingDown': ['tendencia', 'abajo', 'caída', 'bajar', 'pérdida', 'gráfico'],
+    'Gavel': ['martillo', 'juez', 'ley', 'justicia', 'legal', 'subasta'],
 
     // Tecnología
     'Smartphone': ['teléfono', 'móvil', 'celular', 'pantalla', 'llamar', 'app'],
@@ -124,6 +170,9 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Cloud': ['nube', 'internet', 'almacenamiento', 'online', 'clima'],
     'Keyboard': ['teclado', 'escribir', 'teclas', 'ordenador', 'pc'],
     'Mouse': ['ratón', 'mouse', 'click', 'ordenador', 'pc', 'puntero'],
+    'Gamepad': ['mando', 'juego', 'consola', 'videojuego', 'jugar', 'gamer'],
+    'Bot': ['robot', 'bot', 'IA', 'inteligencia', 'máquina', 'autómata'],
+    'Fingerprint': ['huella', 'seguridad', 'biometría', 'identidad', 'tocar'],
 
     // Educación
     'Book': ['libro', 'leer', 'estudio', 'lectura', 'aprender', 'novela'],
@@ -142,6 +191,9 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Backpack': ['mochila', 'bolsa', 'escuela', 'viaje', 'cargar', 'equipaje'],
     'Languages': ['idiomas', 'lenguas', 'hablar', 'traducción', 'palabras', 'comunicación'],
     'Palette': ['paleta', 'pintura', 'arte', 'colores', 'dibujo', 'creativo'],
+    'Ruler': ['regla', 'medir', 'matemáticas', 'geometría', 'dibujo', 'tamaño'],
+    'FileBadge': ['certificado', 'diploma', 'logro', 'archivo', 'premio', 'documento'],
+    'BookMarked': ['libro marcado', 'estudiar', 'marcador', 'leer', 'aprender'],
 
     // Hogar
     'Home': ['casa', 'hogar', 'edificio', 'residencia', 'vivienda', 'inicio'],
@@ -161,6 +213,25 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Scissors': ['tijeras', 'cortar', 'papel', 'herramienta', 'peluquería', 'manualidad'],
     'Plant': ['planta', 'hoja', 'naturaleza', 'crecer', 'verde', 'jardín', 'maceta'],
     'Trash': ['basura', 'tacho', 'eliminar', 'desecho', 'limpiar', 'papelera'],
+    'BedSingle': ['cama individual', 'dormir', 'descanso', 'sueño', 'habitación'],
+    'CoffeeMaker': ['cafetera', 'máquina', 'café', 'desayuno', 'cocina', 'bebida'],
+    'Blinds': ['persianas', 'cortinas', 'ventana', 'luz', 'sombra', 'casa'],
+
+    // Comida
+    'Banana': ['plátano', 'banana', 'fruta', 'comida', 'dieta', 'potasio'],
+    'Cherry': ['cereza', 'fruta', 'comida', 'dulce', 'rojo', 'postre'],
+    'Citrus': ['cítrico', 'limón', 'naranja', 'fruta', 'ácido', 'jugo', 'vitamina'],
+    'Croissant': ['croissant', 'pan', 'desayuno', 'comida', 'panadería', 'dulce'],
+    'Grape': ['uva', 'fruta', 'comida', 'vino', 'racimo'],
+    'IceCream': ['helado', 'postre', 'dulce', 'frío', 'verano', 'comida'],
+    'NutOff': ['nuez', 'alergia', 'frutos secos', 'comida', 'salud', 'precaución'],
+    'Pizza': ['pizza', 'comida', 'chatarra', 'italiana', 'queso', 'rebanada'],
+    'Beer': ['cerveza', 'bebida', 'alcohol', 'bar', 'fiesta', 'trago'],
+    'CupSoda': ['refresco', 'soda', 'bebida', 'vaso', 'hielo', 'pajita', 'comida'],
+    'Martini': ['martini', 'cóctel', 'bebida', 'alcohol', 'fiesta', 'bar', 'trago'],
+    'Beef': ['carne', 'bife', 'filete', 'proteína', 'comida', 'asado'],
+    'Cake': ['pastel', 'torta', 'tarta', 'cumpleaños', 'dulce', 'postre', 'celebración'],
+    'UtensilsCrossed': ['cubiertos', 'restaurante', 'comer', 'cenar', 'comida', 'cruzados'],
 
     // Viajes
     'Plane': ['avión', 'vuelo', 'viaje', 'aire', 'aeropuerto', 'volar'],
@@ -170,7 +241,6 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Ship': ['barco', 'bote', 'mar', 'agua', 'navegar', 'viaje', 'crucero'],
     'Map': ['mapa', 'dirección', 'ruta', 'camino', 'guía', 'ubicación'],
     'MapPin': ['pin', 'ubicación', 'lugar', 'marcador', 'destino', 'mapa'],
-    'Compass': ['brújula', 'dirección', 'norte', 'navegar', 'orientación', 'guía'],
     'Globe': ['globo', 'mundo', 'tierra', 'planeta', 'internacional', 'países'],
     'Luggage': ['equipaje', 'maleta', 'viaje', 'vacaciones', 'bolsa', 'cargar'],
     'Ticket': ['billete', 'boleto', 'entrada', 'cine', 'concierto', 'viaje', 'pase'],
@@ -179,6 +249,36 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Mountain': ['montaña', 'naturaleza', 'pico', 'escalar', 'paisaje', 'roca'],
     'Tent': ['tienda', 'campaña', 'camping', 'naturaleza', 'dormir', 'afuera', 'acampada'],
     'Hotel': ['hotel', 'edificio', 'hospedaje', 'dormir', 'viaje', 'vacaciones'],
+    'TrainFront': ['tren', 'metro', 'subte', 'viaje', 'transporte', 'público'],
+    'BusFront': ['bus', 'autobús', 'transporte', 'público', 'viaje', 'ruta'],
+    'CarTaxiFront': ['taxi', 'coche', 'auto', 'viaje', 'transporte', 'pasajero'],
+
+    // Naturaleza
+    'TreePine': ['pino', 'árbol', 'bosque', 'naturaleza', 'madera', 'planta'],
+    'TreeDeciduous': ['árbol', 'hojas', 'naturaleza', 'bosque', 'planta', 'verde'],
+    'Trees': ['árboles', 'bosque', 'naturaleza', 'parque', 'paisaje', 'plantas'],
+    'Leaf': ['hoja', 'naturaleza', 'planta', 'verde', 'otoño', 'ecología'],
+    'Flower': ['flor', 'naturaleza', 'planta', 'primavera', 'pétalo', 'jardín'],
+    'Flower2': ['flor', 'rosa', 'naturaleza', 'planta', 'jardín', 'decoración'],
+    'CloudSun': ['nube', 'sol', 'clima', 'tiempo', 'cielo', 'parcialmente nublado'],
+    'CloudRain': ['lluvia', 'nube', 'agua', 'clima', 'tiempo', 'tormenta'],
+    'Snowflake': ['nieve', 'copo', 'frío', 'invierno', 'hielo', 'congelar'],
+    'Wind': ['viento', 'aire', 'clima', 'brisa', 'tormenta', 'soplar'],
+    'MountainSnow': ['montaña', 'nieve', 'pico', 'escalar', 'invierno', 'naturaleza'],
+    'SunMedium': ['sol', 'calor', 'brillo', 'día', 'clima', 'luz'],
+    'MoonStar': ['luna', 'estrella', 'noche', 'cielo', 'sueño', 'espacio'],
+    'Bird': ['pájaro', 'ave', 'volar', 'animal', 'mascota', 'naturaleza'],
+    'Bug': ['bicho', 'insecto', 'error', 'animal', 'naturaleza', 'pequeño'],
+    'Fish': ['pez', 'pescado', 'agua', 'mar', 'océano', 'animal', 'nadar'],
+    'Rabbit': ['conejo', 'animal', 'mascota', 'saltar', 'rápido', 'zanahoria'],
+    'Snail': ['caracol', 'lento', 'animal', 'bicho', 'concha'],
+    'Turtle': ['tortuga', 'lento', 'animal', 'mar', 'agua', 'caparazón'],
+    'Worm': ['gusano', 'lombriz', 'tierra', 'animal', 'bicho'],
+
+    // Deportes
+    'Medal': ['medalla', 'premio', 'ganador', 'victoria', 'logro', 'competencia'],
+    'Swords': ['espadas', 'lucha', 'combate', 'juego', 'batalla', 'duelo'],
+    'Goal': ['meta', 'gol', 'fútbol', 'objetivo', 'puntuación', 'deporte'],
 
     // Social
     'User': ['usuario', 'persona', 'perfil', 'cuenta', 'avatar', 'humano'],
@@ -198,7 +298,10 @@ export const ICON_KEYWORDS_ES: Record<string, string[]> = {
     'Bell': ['campana', 'notificación', 'alerta', 'aviso', 'sonido', 'timbre'],
     'Cat': ['gato', 'mascota', 'animal', 'felino', 'michi'],
     'Dog': ['perro', 'mascota', 'animal', 'canino', 'cachorro'],
-    'Gamepad2': ['juego', 'videojuego', 'consola', 'mando', 'jugar', 'gamer']
+    'Gamepad2': ['juego', 'videojuego', 'consola', 'mando', 'jugar', 'gamer'],
+    'ThumbsDown': ['dislike', 'no me gusta', 'mal', 'desaprobar', 'pulgar', 'negativo'],
+    'HandMetal': ['mano', 'metal', 'rock', 'música', 'concierto', 'cuernos'],
+    'Handshake': ['apretón de manos', 'trato', 'acuerdo', 'negocio', 'saludo', 'paz']
 };
 
 export const ICON_KEYWORDS_EN: Record<string, string[]> = {
@@ -225,12 +328,17 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Info': ['information', 'detail', 'data', 'know', 'about'],
     'Sparkles': ['sparkles', 'magic', 'new', 'clean', 'stars', 'flash'],
     'Shield': ['shield', 'security', 'protection', 'defense', 'save'],
+    'Eye': ['eye', 'see', 'look', 'vision', 'show', 'observe'],
+    'EyeOff': ['hide', 'blind', 'invisible', 'private', 'conceal'],
+    'BellRing': ['bell', 'ring', 'notification', 'alarm', 'alert', 'wake'],
+    'BellOff': ['silent', 'mute', 'no sound', 'do not disturb', 'off'],
     
     // Health
     'Activity': ['activity', 'pulse', 'health', 'rhythm', 'movement', 'exercise'],
     'Pulse': ['pulse', 'health', 'heart', 'life', 'beat'],
     'Brain': ['brain', 'mind', 'think', 'intelligence', 'psychology', 'mental'],
     'Smile': ['happy', 'smile', 'joy', 'emotion', 'wellness', 'face'],
+    'SmilePlus': ['happy', 'smile', 'joy', 'emotion', 'wellness', 'face', 'plus'],
     'Frown': ['sad', 'bad', 'emotion', 'face', 'depression'],
     'Dumbbell': ['dumbbell', 'gym', 'strength', 'training', 'muscle', 'fitness', 'lift', 'exercise'],
     'BicepsFlexed': ['muscle', 'arm', 'strength', 'gym', 'power', 'strong'],
@@ -254,7 +362,31 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Thermometer': ['thermometer', 'temperature', 'fever', 'heat', 'cold', 'sick'],
     'Cigarette': ['cigarette', 'smoke', 'tobacco', 'vice', 'bad habit'],
     'Ban': ['banned', 'no', 'stop', 'block', 'cancel'],
-    'PersonStanding': ['person', 'standing', 'human', 'posture', 'body'],
+    'PersonStanding': ['person', 'standing', 'human', 'posture', 'body', 'stretch'],
+    'Crosshair': ['crosshair', 'aim', 'precision', 'focus', 'target', 'concentration'],
+    'Ear': ['ear', 'listen', 'hearing', 'sound'],
+    'Vegan': ['vegan', 'plant', 'leaf', 'healthy', 'diet', 'nature'],
+    'Wheat': ['wheat', 'cereal', 'bread', 'food', 'gluten', 'harvest'],
+    'Soup': ['soup', 'food', 'hot', 'dish', 'lunch'],
+    'FirstAid': ['first aid', 'kit', 'cross', 'health', 'emergency', 'medical'],
+    'HeartBeat': ['heartbeat', 'heart', 'pulse', 'life', 'health', 'cardio'],
+
+    // New
+    'Feather': ['feather', 'light', 'write', 'bird', 'fly', 'soft'],
+    'Comb': ['comb', 'hair', 'beauty', 'care'],
+    'Shirt': ['shirt', 'clothes', 'dress', 'wash', 'fashion'],
+    'Watch': ['watch', 'bracelet', 'time', 'fashion', 'accessory'],
+    'Brush': ['brush', 'paint', 'art', 'creative', 'drawing'],
+    'Film': ['film', 'movie', 'video', 'camera', 'record'],
+    'Type': ['text', 'write', 'letter', 'font', 'typography'],
+    'AlarmClock': ['alarm', 'clock', 'wake', 'time', 'morning'],
+    'Sunrise': ['sunrise', 'morning', 'sun', 'day', 'wake'],
+    'Sunset': ['sunset', 'evening', 'sun', 'night', 'dusk'],
+    'Broom': ['broom', 'sweep', 'clean', 'house', 'home'],
+    'PhoneCall': ['call', 'phone', 'talk', 'communication'],
+    'Hands': ['hands', 'help', 'pray', 'peace', 'give'],
+    'Infinity': ['infinity', 'always', 'eternity', 'cycle'],
+    'Cross': ['cross', 'religion', 'faith', 'church', 'health'],
 
     // Productivity
     'CheckSquare': ['task', 'list', 'done', 'complete', 'box', 'todo'],
@@ -278,6 +410,11 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Layout': ['layout', 'design', 'structure', 'grid', 'panel', 'organization'],
     'Kanban': ['kanban', 'board', 'columns', 'agile', 'tasks', 'project'],
     'ListTodo': ['tasks', 'pending', 'todo', 'list', 'checklist'],
+    'Focus': ['focus', 'concentration', 'aim', 'center', 'attention'],
+    'Compass': ['compass', 'direction', 'guide', 'orientation', 'path', 'north'],
+    'Hourglass': ['hourglass', 'time', 'wait', 'countdown', 'duration'],
+    'Wand2': ['wand', 'magic', 'auto', 'create', 'magic wand', 'tool'],
+    'Workflow': ['workflow', 'process', 'steps', 'diagram', 'system'],
 
     // Finance
     'DollarSign': ['dollar', 'money', 'currency', 'cash', 'payment', 'price', 'cost'],
@@ -298,6 +435,9 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Calculator': ['calculator', 'math', 'add', 'accounts', 'numbers', 'accounting'],
     'Bitcoin': ['bitcoin', 'crypto', 'cryptocurrency', 'money', 'digital', 'investment'],
     'Vault': ['vault', 'safe', 'bank', 'save', 'protection'],
+    'Building': ['building', 'company', 'corporation', 'bank', 'office'],
+    'TrendingDown': ['trend', 'down', 'fall', 'decrease', 'loss', 'chart'],
+    'Gavel': ['gavel', 'judge', 'law', 'justice', 'legal', 'auction'],
 
     // Technology
     'Smartphone': ['phone', 'mobile', 'cellphone', 'screen', 'call', 'app'],
@@ -315,6 +455,9 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Cloud': ['cloud', 'internet', 'storage', 'online', 'weather'],
     'Keyboard': ['keyboard', 'type', 'keys', 'computer', 'pc'],
     'Mouse': ['mouse', 'click', 'computer', 'pc', 'pointer'],
+    'Gamepad': ['gamepad', 'game', 'console', 'videogame', 'play', 'gamer'],
+    'Bot': ['robot', 'bot', 'AI', 'intelligence', 'machine', 'automaton'],
+    'Fingerprint': ['fingerprint', 'security', 'biometrics', 'identity', 'touch'],
 
     // Education
     'Book': ['book', 'read', 'study', 'reading', 'learn', 'novel'],
@@ -333,6 +476,9 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Backpack': ['backpack', 'bag', 'school', 'travel', 'carry', 'luggage'],
     'Languages': ['languages', 'speak', 'translation', 'words', 'communication'],
     'Palette': ['palette', 'paint', 'art', 'colors', 'drawing', 'creative'],
+    'Ruler': ['ruler', 'measure', 'math', 'geometry', 'drawing', 'size'],
+    'FileBadge': ['certificate', 'diploma', 'achievement', 'file', 'award', 'document'],
+    'BookMarked': ['bookmarked', 'study', 'bookmark', 'read', 'learn'],
 
     // Home
     'Home': ['house', 'home', 'building', 'residence', 'start'],
@@ -352,6 +498,25 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Scissors': ['scissors', 'cut', 'paper', 'tool', 'hairdresser', 'craft'],
     'Plant': ['plant', 'leaf', 'nature', 'grow', 'green', 'garden', 'pot'],
     'Trash': ['trash', 'bin', 'delete', 'waste', 'clean', 'garbage'],
+    'BedSingle': ['single bed', 'sleep', 'rest', 'dream', 'room'],
+    'CoffeeMaker': ['coffee maker', 'machine', 'coffee', 'breakfast', 'kitchen', 'drink'],
+    'Blinds': ['blinds', 'curtains', 'window', 'light', 'shade', 'house'],
+
+    // Food
+    'Banana': ['banana', 'fruit', 'food', 'diet', 'potassium'],
+    'Cherry': ['cherry', 'fruit', 'food', 'sweet', 'red', 'dessert'],
+    'Citrus': ['citrus', 'lemon', 'orange', 'fruit', 'acid', 'juice', 'vitamin'],
+    'Croissant': ['croissant', 'bread', 'breakfast', 'food', 'bakery', 'sweet'],
+    'Grape': ['grape', 'fruit', 'food', 'wine', 'bunch'],
+    'IceCream': ['ice cream', 'dessert', 'sweet', 'cold', 'summer', 'food'],
+    'NutOff': ['nut', 'allergy', 'nuts', 'food', 'health', 'caution'],
+    'Pizza': ['pizza', 'food', 'junk', 'italian', 'cheese', 'slice'],
+    'Beer': ['beer', 'drink', 'alcohol', 'bar', 'party', 'beverage'],
+    'CupSoda': ['soda', 'soft drink', 'drink', 'cup', 'ice', 'straw', 'food'],
+    'Martini': ['martini', 'cocktail', 'drink', 'alcohol', 'party', 'bar', 'beverage'],
+    'Beef': ['beef', 'meat', 'steak', 'protein', 'food', 'roast'],
+    'Cake': ['cake', 'pie', 'birthday', 'sweet', 'dessert', 'celebration'],
+    'UtensilsCrossed': ['cutlery', 'restaurant', 'eat', 'dine', 'food', 'crossed'],
 
     // Travel
     'Plane': ['airplane', 'plane', 'flight', 'travel', 'air', 'airport', 'fly'],
@@ -361,7 +526,6 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Ship': ['ship', 'boat', 'sea', 'water', 'sail', 'travel', 'cruise'],
     'Map': ['map', 'direction', 'route', 'path', 'guide', 'location'],
     'MapPin': ['pin', 'location', 'place', 'marker', 'destination', 'map'],
-    'Compass': ['compass', 'direction', 'north', 'navigate', 'orientation', 'guide'],
     'Globe': ['globe', 'world', 'earth', 'planet', 'international', 'countries'],
     'Luggage': ['luggage', 'suitcase', 'travel', 'vacation', 'bag', 'carry'],
     'Ticket': ['ticket', 'entry', 'cinema', 'concert', 'travel', 'pass'],
@@ -370,6 +534,36 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Mountain': ['mountain', 'nature', 'peak', 'climb', 'landscape', 'rock'],
     'Tent': ['tent', 'camp', 'camping', 'nature', 'sleep', 'outside'],
     'Hotel': ['hotel', 'building', 'lodging', 'sleep', 'travel', 'vacation'],
+    'TrainFront': ['train', 'metro', 'subway', 'travel', 'transport', 'public'],
+    'BusFront': ['bus', 'coach', 'transport', 'public', 'travel', 'route'],
+    'CarTaxiFront': ['taxi', 'car', 'auto', 'travel', 'transport', 'passenger'],
+
+    // Nature
+    'TreePine': ['pine', 'tree', 'forest', 'nature', 'wood', 'plant'],
+    'TreeDeciduous': ['tree', 'leaves', 'nature', 'forest', 'plant', 'green'],
+    'Trees': ['trees', 'forest', 'nature', 'park', 'landscape', 'plants'],
+    'Leaf': ['leaf', 'nature', 'plant', 'green', 'autumn', 'ecology'],
+    'Flower': ['flower', 'nature', 'plant', 'spring', 'petal', 'garden'],
+    'Flower2': ['flower', 'rose', 'nature', 'plant', 'garden', 'decoration'],
+    'CloudSun': ['cloud', 'sun', 'weather', 'time', 'sky', 'partly cloudy'],
+    'CloudRain': ['rain', 'cloud', 'water', 'weather', 'time', 'storm'],
+    'Snowflake': ['snow', 'flake', 'cold', 'winter', 'ice', 'freeze'],
+    'Wind': ['wind', 'air', 'weather', 'breeze', 'storm', 'blow'],
+    'MountainSnow': ['mountain', 'snow', 'peak', 'climb', 'winter', 'nature'],
+    'SunMedium': ['sun', 'heat', 'shine', 'day', 'weather', 'light'],
+    'MoonStar': ['moon', 'star', 'night', 'sky', 'sleep', 'space'],
+    'Bird': ['bird', 'fly', 'animal', 'pet', 'nature'],
+    'Bug': ['bug', 'insect', 'error', 'animal', 'nature', 'small'],
+    'Fish': ['fish', 'water', 'sea', 'ocean', 'animal', 'swim'],
+    'Rabbit': ['rabbit', 'bunny', 'animal', 'pet', 'jump', 'fast', 'carrot'],
+    'Snail': ['snail', 'slow', 'animal', 'bug', 'shell'],
+    'Turtle': ['turtle', 'slow', 'animal', 'sea', 'water', 'shell'],
+    'Worm': ['worm', 'earthworm', 'earth', 'animal', 'bug'],
+
+    // Sports
+    'Medal': ['medal', 'prize', 'winner', 'victory', 'achievement', 'competition'],
+    'Swords': ['swords', 'fight', 'combat', 'game', 'battle', 'duel'],
+    'Goal': ['goal', 'score', 'soccer', 'target', 'points', 'sport'],
 
     // Social
     'User': ['user', 'person', 'profile', 'account', 'avatar', 'human'],
@@ -389,5 +583,8 @@ export const ICON_KEYWORDS_EN: Record<string, string[]> = {
     'Bell': ['bell', 'notification', 'alert', 'warning', 'sound', 'ring'],
     'Cat': ['cat', 'pet', 'animal', 'feline'],
     'Dog': ['dog', 'pet', 'animal', 'canine', 'puppy'],
-    'Gamepad2': ['game', 'videogame', 'console', 'controller', 'play', 'gamer']
+    'Gamepad2': ['game', 'videogame', 'console', 'controller', 'play', 'gamer'],
+    'ThumbsDown': ['dislike', 'bad', 'disapprove', 'thumb', 'negative'],
+    'HandMetal': ['hand', 'metal', 'rock', 'music', 'concert', 'horns'],
+    'Handshake': ['handshake', 'deal', 'agreement', 'business', 'greeting', 'peace']
 };

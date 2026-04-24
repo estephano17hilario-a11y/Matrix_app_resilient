@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -44,6 +44,17 @@ export const QuestModal = React.memo(({
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(toLocalISOString(new Date()));
+    
+    // Recurrence State
+    const [recurrenceType, setRecurrenceType] = useState<'NONE' | 'INTERVAL' | 'WEEKLY' | 'MONTHLY'>('NONE');
+    const [recurrenceInterval, setRecurrenceInterval] = useState<number>(1);
+    const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+    const [recurrenceMonths, setRecurrenceMonths] = useState<number[]>([0,1,2,3,4,5,6,7,8,9,10,11]);
+    const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'LAST_DAY'>('SPECIFIC_DATES');
+    const [isRecurrencePickerOpen, setRecurrencePickerOpen] = useState(false);
+    const [showInJournaling, setShowInJournaling] = useState<boolean>(false);
+    const [journalIconColor, setJournalIconColor] = useState<string>('#3b82f6'); // default blue
+
     // Subtasks removed as per tactical steps removal request
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
@@ -62,6 +73,22 @@ export const QuestModal = React.memo(({
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || toLocalISOString(new Date()));
                 setEstimatedTime(initialValues.estimatedTime || 0);
+                setShowInJournaling(initialValues.showInJournaling || false);
+                setJournalIconColor(initialValues.journalIconColor || '#3b82f6');
+                
+                if (initialValues.recurrence) {
+                    setRecurrenceType(initialValues.recurrence.type || 'NONE');
+                    setRecurrenceInterval(initialValues.recurrence.interval || 1);
+                    setRecurrenceDays(initialValues.recurrence.days || []);
+                    setRecurrenceMonths(initialValues.recurrence.months || [0,1,2,3,4,5,6,7,8,9,10,11]);
+                    setMonthlyType(initialValues.recurrence.monthlyType || 'SPECIFIC_DATES');
+                } else {
+                    setRecurrenceType('NONE');
+                    setRecurrenceInterval(1);
+                    setRecurrenceDays([]);
+                    setRecurrenceMonths([0,1,2,3,4,5,6,7,8,9,10,11]);
+                    setMonthlyType('SPECIFIC_DATES');
+                }
             } else {
                 // Reset defaults for new quest
                 setTitle('');
@@ -71,6 +98,13 @@ export const QuestModal = React.memo(({
                 setDifficulty('C');
                 setDeadline(toLocalISOString(new Date()));
                 setEstimatedTime(0);
+                setRecurrenceType('NONE');
+                setRecurrenceInterval(1);
+                setRecurrenceDays([]);
+                setRecurrenceMonths([0,1,2,3,4,5,6,7,8,9,10,11]);
+                setMonthlyType('SPECIFIC_DATES');
+                setShowInJournaling(false);
+                setJournalIconColor('#3b82f6');
             }
 
             // Locks override initial values if present (though usually mutually exclusive)
@@ -119,7 +153,16 @@ export const QuestModal = React.memo(({
                 subtasks: [], // Empty as tactical steps are removed
                 xpReward: prediction.xp,
                 gold: prediction.coins,
-                isSmartQuest: isSmartTask || !!finalSmartProjectId
+                isSmartQuest: isSmartTask || !!finalSmartProjectId,
+                showInJournaling,
+                journalIconColor,
+                recurrence: recurrenceType !== 'NONE' ? {
+                    type: recurrenceType,
+                    interval: recurrenceInterval,
+                    days: recurrenceDays,
+                    monthlyType: monthlyType,
+                    months: recurrenceMonths
+                } : { type: 'NONE' }
             });
         } catch (error) {
             console.error("Failed to save quest", error);
@@ -153,7 +196,7 @@ export const QuestModal = React.memo(({
                         className="relative z-10 w-full max-w-[360px]"
                     >
                         <div 
-                            className="rounded-[2rem] p-4 overflow-visible relative transition-all duration-300" 
+                            className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative transition-all duration-300" 
                             style={{
                                 background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
                                 border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
@@ -162,8 +205,9 @@ export const QuestModal = React.memo(({
                                     : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
                             }}
                         >
+                            <div className="overflow-y-auto no-scrollbar p-4 space-y-4">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-4 px-1">
+                    <div className="flex justify-between items-center mb-1 px-1 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: attrId ? activeColor : '#333' }}>
                                 <Crosshair size={16} className="text-white" />
@@ -374,10 +418,193 @@ export const QuestModal = React.memo(({
                              </div>
                         </div>
 
+                        {/* Recurrence Selector */}
+                        <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3 relative">
+                            <div 
+                                onClick={() => setRecurrencePickerOpen(!isRecurrencePickerOpen)}
+                                className="flex items-center justify-between cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Repeat size={14} className={recurrenceType !== 'NONE' ? "text-cyan-400" : "text-white/30"} />
+                                    <span className={`text-[10px] font-bold uppercase ${recurrenceType !== 'NONE' ? "text-white" : "text-white/50"}`}>
+                                        {recurrenceType === 'NONE' ? t('tasks.recurrence.none', 'No Repeat') :
+                                         recurrenceType === 'INTERVAL' ? t('tasks.recurrence.interval', 'Interval') :
+                                         recurrenceType === 'WEEKLY' ? t('tasks.recurrence.weekly', 'Weekly') :
+                                         t('tasks.recurrence.monthly', 'Monthly')}
+                                    </span>
+                                </div>
+                                <ChevronDown size={14} className={`text-white/30 transition-transform ${isRecurrencePickerOpen ? 'rotate-180' : ''}`} />
+                            </div>
+
+                            {/* Dropdown for Recurrence Type */}
+                            <AnimatePresence>
+                                {isRecurrencePickerOpen && (
+                                    <motion.div 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="overflow-hidden mt-3"
+                                    >
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1">
+                                            {['NONE', 'INTERVAL', 'MONTHLY'].map(type => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => {
+                                                        setRecurrenceType(type as any);
+                                                        setRecurrenceDays([]);
+                                                        setRecurrencePickerOpen(false);
+                                                    }}
+                                                    className={`py-2 rounded-xl text-[9px] font-black tracking-wide transition-all border ${recurrenceType === type ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"}`}
+                                                >
+                                                    {t(`tasks.recurrence.${type.toLowerCase()}`, type)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Interval Configuration */}
+                            {recurrenceType === 'INTERVAL' && (
+                                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-white/70">{t('tasks.recurrence.everyDays', 'Repeat every X days')}:</span>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="365" 
+                                        value={recurrenceInterval} 
+                                        onChange={(e) => setRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                                        className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Monthly Configuration */}
+                            {recurrenceType === 'MONTHLY' && (
+                                <div className="mt-3 pt-3 border-t border-white/5 space-y-4">
+                                    {/* Months Selector */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">{t('tasks.recurrence.months', 'Meses')}</span>
+                                            <span className="text-[9px] font-bold text-white/30">{recurrenceMonths.length === 12 ? t('common.all', 'Todos') : `${recurrenceMonths.length} seleccionados`}</span>
+                                        </div>
+                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                                            {Array.from({ length: 12 }).map((_, index) => {
+                                                const monthName = new Date(2024, index, 1).toLocaleDateString(undefined, { month: 'short' });
+                                                const isSelected = recurrenceMonths.includes(index);
+                                                return (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => {
+                                                            setRecurrenceMonths(prev => {
+                                                                if (prev.includes(index)) {
+                                                                    return prev.filter(m => m !== index);
+                                                                }
+                                                                return [...prev, index];
+                                                            });
+                                                        }}
+                                                        className={`h-8 rounded-lg flex items-center justify-center text-[10px] font-bold capitalize transition-all border ${isSelected ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"}`}
+                                                    >
+                                                        {monthName.replace('.', '')}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Days Selector */}
+                                    <div className="space-y-2 pt-3 border-t border-white/5">
+                                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">{t('tasks.recurrence.days', 'Días')}</span>
+                                        <div className="grid grid-cols-7 gap-1.5 mb-2">
+                                            {Array.from({ length: 31 }).map((_, i) => {
+                                                const day = i + 1;
+                                                return (
+                                                    <button
+                                                        key={day}
+                                                        onClick={() => {
+                                                            // ELIMINADO: setMonthlyType('SPECIFIC_DATES'); para no desmarcar 'LAST_DAY'
+                                                            setRecurrenceDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+                                                        }}
+                                                        className={`h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all border ${recurrenceDays.includes(day) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"}`}
+                                                    >
+                                                        {day}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (monthlyType === 'LAST_DAY') {
+                                                    setMonthlyType('SPECIFIC_DATES');
+                                                } else {
+                                                    setMonthlyType('LAST_DAY');
+                                                    // ELIMINADO: setRecurrenceDays([]); para no desmarcar los días
+                                                }
+                                            }}
+                                            className={`w-full py-2.5 rounded-xl text-[10px] font-bold transition-all border flex justify-center items-center gap-2 ${monthlyType === 'LAST_DAY' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/5 text-slate-400 border-transparent hover:bg-white/10"}`}
+                                        >
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${monthlyType === 'LAST_DAY' ? "bg-cyan-500 border-cyan-400 text-black" : "border-slate-500"}`}>
+                                                {monthlyType === 'LAST_DAY' && <CheckCircle2 size={12} />}
+                                            </div>
+                                            {t('habits.lastDayOfMonth', 'Último día del mes')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Journaling Integration Options */}
+                            {recurrenceType !== 'NONE' && (
+                                <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                                                <Target size={14} />
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-bold text-white block">Mostrar en el Journaling</span>
+                                                <span className="text-[10px] text-white/40">Agrega esta tarea al calendario de Journal</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowInJournaling(!showInJournaling)}
+                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${showInJournaling ? 'bg-emerald-500' : 'bg-white/10'}`}
+                                        >
+                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showInJournaling ? 'translate-x-5' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {showInJournaling && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="pt-2 pb-1 space-y-2">
+                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Color del Icono</span>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#eab308'].map(color => (
+                                                            <button
+                                                                key={color}
+                                                                onClick={() => setJournalIconColor(color)}
+                                                                className={`w-6 h-6 rounded-full border-2 transition-transform ${journalIconColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent scale-100 opacity-60 hover:opacity-100'}`}
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            )}
+                        </div>
+
                         <button 
                             onClick={handleConfirm} 
                             disabled={!title || !attrId || isSubmitting} 
-                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-md hover:border-white/20'}`}
+                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shrink-0 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-md hover:border-white/20'}`}
                         >
                             {isSubmitting ? (
                                 <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
@@ -386,8 +613,9 @@ export const QuestModal = React.memo(({
                             )}
                         </button>
                     </div>
-                </div>
-            </motion.div>
+                            </div>
+                        </div>
+                    </motion.div>
             
             <DateSelectionModal 
                 isOpen={isDateModalOpen}

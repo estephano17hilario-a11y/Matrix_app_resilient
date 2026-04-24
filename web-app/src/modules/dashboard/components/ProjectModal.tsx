@@ -30,11 +30,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const [goalFreq, setGoalFreq] = useState('DAILY');
     const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
     const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'FLEXIBLE_COUNT'>('SPECIFIC_DATES');
-    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState(10);
+    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState<number | string>(10);
     const [monthlyLastDay, setMonthlyLastDay] = useState(false);
 
     // Block 3: Commitment (Session)
-    const [pomoDuration, setPomoDuration] = useState(25);
+    const [pomoDuration, setPomoDuration] = useState<number | string>(25);
     const [reminder, setReminder] = useState('');
     const [impact, setImpact] = useState(1);
     
@@ -144,7 +144,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 daily = valueInHours / daysCount;
             } else {
                 // FLEXIBLE_COUNT
-                daily = valueInHours / monthlyFlexibleCount;
+                daily = valueInHours / Number(monthlyFlexibleCount);
             }
         }
         
@@ -153,7 +153,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     }, [goalTarget, goalFreq, workingDays, goalUnit, monthlyType, monthlyFlexibleCount]);
 
     const prediction = useMemo(() => {
-        return calculateTaskRewards(calculatedDailyGoal * 60, impact, 0, 'TASK');
+        return calculateTaskRewards(calculatedDailyGoal * 60, impact, 0, 'PROJECT');
     }, [calculatedDailyGoal, impact]);
 
     const toggleDay = (dayIndex: number) => {
@@ -184,8 +184,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 uiTarget: goalTarget, // Store UI input
                 uiUnit: goalUnit, // Store UI Unit
                 monthlyType: goalFreq === 'MONTHLY' ? monthlyType : undefined,
-                monthlyFlexibleCount: goalFreq === 'MONTHLY' && monthlyType === 'FLEXIBLE_COUNT' ? monthlyFlexibleCount : undefined,
-                pomoDuration, 
+                monthlyFlexibleCount: goalFreq === 'MONTHLY' && monthlyType === 'FLEXIBLE_COUNT' ? (typeof monthlyFlexibleCount === 'number' ? monthlyFlexibleCount : parseInt(monthlyFlexibleCount) || 1) : undefined,
+                pomoDuration: typeof pomoDuration === 'number' ? pomoDuration : parseInt(pomoDuration) || 25, 
                 breakDuration: 5, 
                 reminder, 
                 impact,
@@ -216,11 +216,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         if (goalFreq === 'WEEKLY') return workingDays.length > 0;
         if (goalFreq === 'MONTHLY') {
             if (monthlyType === 'SPECIFIC_DATES') return workingDays.length > 0 || monthlyLastDay;
-            if (monthlyType === 'FLEXIBLE_COUNT') return monthlyFlexibleCount > 0;
+            if (monthlyType === 'FLEXIBLE_COUNT') return Number(monthlyFlexibleCount) > 0;
         }
         return false;
     })();
-    const isBlock3Valid = pomoDuration > 0 && reminder !== '';
+    const isBlock3Valid = typeof pomoDuration === 'number' && pomoDuration > 0 && reminder !== '';
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;
@@ -520,7 +520,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                         onClick={() => setMonthlyType('FLEXIBLE_COUNT')} 
                                                         className={cn("flex-1 py-1 text-[9px] font-bold rounded transition-all", monthlyType === 'FLEXIBLE_COUNT' ? "bg-white text-black" : "text-slate-500 hover:text-white")}
                                                     >
-                                                        Cantidad Flexible
+                                                        {t('habits.flexibleCount', 'Cantidad Flexible')}
                                                     </button>
                                                 </div>
 
@@ -573,7 +573,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 ) : (
                                                     <div className="flex items-center justify-between bg-black/20 p-2 rounded-xl border border-white/5">
                                                         <button 
-                                                            onClick={() => setMonthlyFlexibleCount(Math.max(1, monthlyFlexibleCount - 1))} 
+                                                            onClick={() => setMonthlyFlexibleCount(Math.max(1, Number(monthlyFlexibleCount) - 1))} 
                                                             className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white hover:bg-white/10"
                                                         >
                                                             <ChevronDown size={14} />
@@ -583,7 +583,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                             <span className="text-[10px] font-bold text-slate-500 block uppercase">{t('common.daysPerMonth')}</span>
                                                         </div>
                                                         <button 
-                                                            onClick={() => setMonthlyFlexibleCount(Math.min(28, monthlyFlexibleCount + 1))} 
+                                                            onClick={() => setMonthlyFlexibleCount(Math.min(28, Number(monthlyFlexibleCount) + 1))} 
                                                             className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white hover:bg-white/10"
                                                         >
                                                             <ChevronUp size={14} />
@@ -601,7 +601,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                 </div>
                                                 <div>
                                                     <div className="text-[9px] font-bold text-cyan-200 uppercase">{t('modals.project.dailyTarget')}</div>
-                                                    <div className="text-xs font-black text-white"><span className="font-mono">{calculatedDailyGoal}</span> {t('modals.project.hours')} <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span></div>
+                                                    <div className="text-xs font-black text-white">
+                                                        <span className="font-mono">
+                                                            {calculatedDailyGoal < 1 ? Math.round(calculatedDailyGoal * 60) : calculatedDailyGoal}
+                                                        </span>{' '}
+                                                        {calculatedDailyGoal < 1 ? t('modals.project.minutes', 'minutos') : t('modals.project.hours')}{' '}
+                                                        <span className="text-white/50">/ {t('modals.project.day').toLowerCase()}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -667,7 +673,15 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                     <button key={t} onClick={() => setPomoDuration(t)} className={`flex-1 py-0.5 rounded-md text-[9px] font-bold font-mono border transition-all ${pomoDuration === t ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-transparent border-white/10 text-slate-500'}`}>{t}</button>
                                                 ))}
                                             </div>
-                                            <div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 font-bold">{t('modals.project.custom')}:</span><input type="number" value={pomoDuration} onChange={(e) => setPomoDuration(parseInt(e.target.value) || 25)} className="w-10 bg-transparent border-b border-white/20 text-white font-mono text-xs text-center focus:border-white outline-none" /></div>
+                                            <div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 font-bold">{t('modals.project.custom')}:</span><input type="number" value={pomoDuration} onChange={(e) => {
+                                                if (e.target.value === '') {
+                                                    setPomoDuration('');
+                                                } else {
+                                                    setPomoDuration(parseInt(e.target.value) || 25);
+                                                }
+                                            }} onBlur={() => {
+                                                if (pomoDuration === '') setPomoDuration(25);
+                                            }} className="w-10 bg-transparent border-b border-white/20 text-white font-mono text-xs text-center focus:border-white outline-none" /></div>
                                         </div>
 
                                         {/* Reminder */}

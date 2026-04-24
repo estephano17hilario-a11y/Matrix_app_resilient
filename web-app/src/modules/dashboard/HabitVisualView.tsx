@@ -71,27 +71,29 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = ({
     }, { threshold: 600 });
 
     return (
-        <div 
-            role="button"
-            tabIndex={0}
-            className="w-full max-w-[600px] touch-manipulation cursor-pointer active:scale-95 transition-transform duration-75 clickable" 
-            {...badHabitLongPress}
-            onContextMenu={(e) => {
-                e.preventDefault();
-                if (onReorderRequest) {
-                    onReorderRequest();
-                }
-            }}
-            onClick={() => {
-                if (onOpenDetail) onOpenDetail(habit);
-            }}
-        >
-            <BadHabitItem
-                habit={habit}
-                attribute={attributeMap.get(habit.attribute)}
-                onRelapse={onRelapseBadHabit}
-                onShowActions={onShowBadHabitActions}
-            />
+        <div className="w-full max-w-[600px] pr-3">
+            <div 
+                role="button"
+                tabIndex={0}
+                className="w-full touch-manipulation cursor-pointer active:scale-95 transition-transform duration-75 clickable" 
+                {...badHabitLongPress}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (onReorderRequest) {
+                        onReorderRequest();
+                    }
+                }}
+                onClick={() => {
+                    if (onOpenDetail) onOpenDetail(habit);
+                }}
+            >
+                <BadHabitItem
+                    habit={habit}
+                    attribute={attributeMap.get(habit.attribute)}
+                    onRelapse={onRelapseBadHabit}
+                    onShowActions={onShowBadHabitActions}
+                />
+            </div>
         </div>
     );
 };
@@ -191,6 +193,36 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             }
                         });
                     }
+                    if (habit.type === 'QUANTITY' && habit.isDivided) {
+                        if (habit.dividedMode === 'FIXED' && habit.dividedTimes && habit.dividedTimes.length > 0) {
+                            const times = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
+                            
+                            // Find the first uncompleted time slot based on current value
+                            let accumulated = 0;
+                            let nextFixedTime: string | null = null;
+                            for (const t of times) {
+                                accumulated += t.amount;
+                                if ((habit.currentValue || 0) < accumulated) {
+                                    nextFixedTime = t.time;
+                                    break;
+                                }
+                            }
+                            
+                            if (nextFixedTime && nextFixedTime < earliest) {
+                                earliest = nextFixedTime;
+                            }
+                        } else if (habit.nextInstanceTime) {
+                            const nextDate = new Date(habit.nextInstanceTime);
+                            if (nextDate.getDate() === currentDate.getDate() && nextDate.getMonth() === currentDate.getMonth()) {
+                                const hours = nextDate.getHours().toString().padStart(2, '0');
+                                const minutes = nextDate.getMinutes().toString().padStart(2, '0');
+                                const formattedTime = `${hours}:${minutes}`;
+                                if (formattedTime < earliest) {
+                                    earliest = formattedTime;
+                                }
+                            }
+                        }
+                    }
                     return earliest;
                 };
                 const timeA = getEarliestTime(a);
@@ -269,14 +301,53 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                         });
                     }
                 });
+            } else if (habit.type === 'QUANTITY' && habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && habit.dividedTimes.length > 0) {
+                const times = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
+                
+                let accumulated = 0;
+                times.forEach((t, index) => {
+                    const isCompleted = (habit.currentValue || 0) >= accumulated + t.amount || habit.completedToday;
+                    items.push({
+                        id: `${habit.id}-time-${index}`,
+                        habitId: habit.id,
+                        type: 'HABIT',
+                        habit: habit,
+                        text: habit.title,
+                        subText: `${t.amount} ${habit.unit || ''}`.trim(),
+                        time: t.time,
+                        isCompleted: isCompleted,
+                        color: baseColor,
+                        Icon: Icon
+                    });
+                    accumulated += t.amount;
+                });
             } else {
+                let displayTime = habit.reminderTime || '23:59';
+                let displayText = habit.title;
+                let displaySubText = undefined;
+                
+                if (habit.type === 'QUANTITY' && habit.isDivided) {
+                    const amount = habit.dividedQuantity || 1;
+                    displaySubText = `${amount} ${habit.unit || ''}`.trim();
+                    
+                    if (habit.nextInstanceTime) {
+                        const nextDate = new Date(habit.nextInstanceTime);
+                        if (nextDate.getDate() === currentDate.getDate() && nextDate.getMonth() === currentDate.getMonth()) {
+                            const hours = nextDate.getHours().toString().padStart(2, '0');
+                            const minutes = nextDate.getMinutes().toString().padStart(2, '0');
+                            displayTime = `${hours}:${minutes}`;
+                        }
+                    }
+                }
+
                 items.push({
                     id: habit.id,
                     habitId: habit.id,
                     type: 'HABIT',
                     habit: habit,
-                    text: habit.title,
-                    time: habit.reminderTime || '23:59',
+                    text: displayText,
+                    subText: displaySubText,
+                    time: displayTime,
                     isCompleted: habit.completedToday,
                     color: baseColor,
                     Icon: Icon
@@ -354,7 +425,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             initial="hidden"
             animate="show"
             variants={container}
-            className="min-h-screen pb-32"
+            className="min-h-[calc(100vh-200px)] pb-24"
         >
             <DateSelectionModal 
                 isOpen={isDateModalOpen}
@@ -466,12 +537,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* LIST */}
                             {viewPreference === 'CHRONOLOGICAL' && !showArchived ? (
                                 chronologicalItems.map((item, idx) => (
+                                    <div key={item.id} className="w-full max-w-[600px] pr-3">
                                     <motion.div 
-                                        key={item.id} 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.3, delay: idx * 0.05, ease: "easeOut" }}
-                                        className="w-full max-w-[600px] flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden"
+                                        className="w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden"
                                         style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
                                         onClick={() => setMasteryHabit(item.habit)}
                                         onContextMenu={(e) => {
@@ -510,7 +581,15 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 )}>
                                                     {item.text}
                                                 </span>
-                                                {item.type === 'HABIT' && item.habit.type === 'QUANTITY' && (
+                                                {item.subText && (
+                                                    <span className={cn(
+                                                        "text-[10px] font-medium shrink-0",
+                                                        item.isCompleted ? "text-white/20" : "text-indigo-400/70"
+                                                    )}>
+                                                        {item.subText}
+                                                    </span>
+                                                )}
+                                                {item.type === 'HABIT' && item.habit.type === 'QUANTITY' && !item.habit.isDivided && (
                                                     <span className={cn(
                                                         "text-[11px] font-medium shrink-0",
                                                         item.isCompleted ? "text-white/30" : "text-indigo-400/80"
@@ -599,7 +678,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         >
                                             {item.isCompleted && <Check size={18} strokeWidth={3} />}
                                         </div>
-                                    </motion.div>
+                                        </motion.div>
+                                    </div>
                                 ))
                             ) : (
                                 displayedHabits.map(habit => {
@@ -617,28 +697,32 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     return (
                                         <div
                                             key={habit.id}
-                                            {...longPressHandlers}
-                                            onContextMenu={(e) => {
-                                                if (!showArchived && onReorder && viewPreference === 'DEFAULT') {
-                                                    e.preventDefault();
-                                                    setIsReorderModalOpen(true);
-                                                }
-                                            }}
-                                            className="touch-manipulation w-full max-w-[600px]"
+                                            className="w-full max-w-[600px] pr-3"
                                         >
-                                            <HabitItem
-                                                habit={habit}
-                                                attribute={attributeMap.get(habit.attribute)}
-                                                onComplete={onCompleteHabit}
-                                                onClick={setMasteryHabit}
-                                                onUpdate={onUpdateHabit}
-                                                onEdit={onEditHabit}
-                                                onShowActions={onShowActions}
-                                                isDue={isDue}
-                                                reduceMotion={reduceMotion}
-                                                viewPreference={viewPreference}
-                                                weekStartDay={weekStartDay}
-                                            />
+                                            <div
+                                                {...longPressHandlers}
+                                                onContextMenu={(e) => {
+                                                    if (!showArchived && onReorder && viewPreference === 'DEFAULT') {
+                                                        e.preventDefault();
+                                                        setIsReorderModalOpen(true);
+                                                    }
+                                                }}
+                                                className="touch-manipulation w-full"
+                                            >
+                                                <HabitItem
+                                                    habit={habit}
+                                                    attribute={attributeMap.get(habit.attribute)}
+                                                    onComplete={onCompleteHabit}
+                                                    onClick={setMasteryHabit}
+                                                    onUpdate={onUpdateHabit}
+                                                    onEdit={onEditHabit}
+                                                    onShowActions={onShowActions}
+                                                    isDue={isDue}
+                                                    reduceMotion={reduceMotion}
+                                                    viewPreference={viewPreference}
+                                                    weekStartDay={weekStartDay}
+                                                />
+                                            </div>
                                         </div>
                                     );
                                 })

@@ -105,7 +105,7 @@ const safeDate = (val: any): Date => {
     return new Date(val);
 };
 
-export const StrategicMapView: React.FC<StrategicMapViewProps> = ({ 
+export const StrategicMapView: React.FC<StrategicMapViewProps> = React.memo(({ 
     project, 
     quests = [], 
     attributes = [], 
@@ -591,11 +591,10 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
                                                             tabIndex={0}
                                                             key={child.id}
                                                             onClick={() => handleNavigate(child)}
-                                                            className="group relative flex items-center justify-between p-6 rounded-3xl transition-transform duration-200 hover:scale-[1.01] overflow-hidden cursor-pointer border"
+                                                            className="group relative flex items-center justify-between p-6 rounded-3xl transition-transform duration-200 hover:scale-[1.01] overflow-hidden cursor-pointer border shadow-md"
                                                             style={{
                                                                 background: `linear-gradient(145deg, ${traitColor}22 0%, ${traitColor}05 100%)`,
-                                                                borderColor: `${traitColor}33`,
-                                                                boxShadow: `0 8px 32px -8px rgba(0,0,0,0.3)`
+                                                                borderColor: `${traitColor}33`
                                                             }}
                                                         >
                                                             {/* Subtle Trait Glow - Removed for performance */}
@@ -698,5 +697,5 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = ({
         </div>
     </div>
     );
-};
+});
 

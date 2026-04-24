@@ -177,7 +177,7 @@ export const useDashboardLogic = () => {
             }
         }
     }, [user?.id, user?.preferences, updateProfileLocally]);
-    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS'>(() => user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER');
+    const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS' | 'AURA'>(() => user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER');
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>(() => user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>(() => user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE');
     const [defaultHabitView, setDefaultHabitView] = useState<'DEFAULT' | 'CHRONOLOGICAL'>(() => user?.preferences?.defaultHabitView || user?.defaultHabitView || 'DEFAULT');
@@ -200,18 +200,19 @@ export const useDashboardLogic = () => {
         }
     }, [overrideBgColor]);
 
-    const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID' | 'GLASS') => {
+    const updateDashboardStyle = useCallback(async (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => {
         setDashboardStyle(style);
         if (user?.id) {
             try {
-                const newPrefs = { ...(user.preferences || {}), dashboardStyle: style };
+                const currentPrefs = (user as any).preferences || {};
+                const newPrefs = { ...currentPrefs, dashboardStyle: style };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
             } catch (e) {
                 console.error("Failed to save dashboard style", e);
             }
         }
-    }, [user?.id, user?.preferences, updateProfileLocally]);
+    }, [user, updateProfileLocally]);
 
     const updateAvatarShape = useCallback(async (shape: 'CIRCLE' | 'SQUARE') => {
         setAvatarShape(shape);
@@ -295,8 +296,10 @@ export const useDashboardLogic = () => {
     // Sticky HUD updater removed
 
     useEffect(() => {
-        // Enforce BORDER style always
-        setDashboardStyle('BORDER');
+        // Remove hardcoded BORDER enforcement to allow AURA and others
+        if (user?.preferences?.dashboardStyle || user?.dashboardStyle) {
+            setDashboardStyle(user.preferences?.dashboardStyle || user.dashboardStyle || 'BORDER');
+        }
         
         if (user?.preferences?.avatarShape || user?.avatarShape) {
             setAvatarShape(user.preferences?.avatarShape || user.avatarShape || 'CIRCLE');
@@ -765,18 +768,55 @@ export const useDashboardLogic = () => {
                     });
                 }
 
-                // 4. Reset Habits
+                // 4. Reset Habits and Individual Streaks
                 let resetHabits = habits;
                 if (canProcessHabits) {
                     resetHabits = habits.map(h => {
-                        if (!h.completedToday) return h; 
-                        return { ...h, completedToday: false };
+                        let needsReset = false;
+                        let updatedHabit = { ...h };
+
+                        if (h.completedToday) {
+                            updatedHabit.completedToday = false;
+                            needsReset = true;
+                        }
+
+                        if (h.type === 'QUANTITY' && h.currentValue && h.currentValue > 0) {
+                            updatedHabit.currentValue = 0;
+                            needsReset = true;
+                        }
+
+                        if (h.type === 'CHECKLIST' && h.checklist && h.checklist.some(item => item.completed)) {
+                            updatedHabit.checklist = h.checklist.map(item => ({ ...item, completed: false }));
+                            needsReset = true;
+                        }
+
+                        // Check for broken streak (STRICT MODE)
+                        const lastCompletion = h.history && h.history.length > 0 
+                            ? getHistoryDateKey(h.history[h.history.length - 1])
+                            : null;
+                        const isStreakBroken = h.streak > 0 && (!lastCompletion || lastCompletion < yesterdayStr);
+                        if (isStreakBroken && !isFrozen) {
+                            updatedHabit.streak = 0;
+                            needsReset = true;
+                            console.log(`❌ [Streak] LOST: ${h.title}. Last: ${lastCompletion}, Yesterday: ${yesterdayStr}`);
+                        }
+
+                        return needsReset ? updatedHabit : h;
                     });
                     
-                    habits.forEach(h => {
-                        if (h.completedToday) {
+                    resetHabits.forEach(h => {
+                        // Check if the original habit differs from the updated one
+                        const original = habits.find(orig => orig.id === h.id);
+                        if (original && original !== h) {
                              const habitRef = doc(db, 'users', user.id, 'habits', h.id);
-                             batch.update(habitRef as any, { completedToday: false });
+                             
+                             const updates: any = {};
+                             if (original.completedToday !== h.completedToday) updates.completedToday = h.completedToday;
+                             if (original.currentValue !== h.currentValue) updates.currentValue = h.currentValue;
+                             if (original.checklist !== h.checklist) updates.checklist = h.checklist;
+                             if (original.streak !== h.streak) updates.streak = h.streak;
+                             
+                             batch.update(habitRef as any, updates);
                         }
                     });
                 }
@@ -806,7 +846,10 @@ export const useDashboardLogic = () => {
 
                 // OPTIMISTIC UPDATE: Update UI immediately
                 if (damage > 0) setHealth(newHealth);
-                if (canProcessHabits) setHabits(resetHabits);
+                if (canProcessHabits) {
+                    setHabits(resetHabits);
+                    PersistenceService.saveCollection(user.id, 'habits', resetHabits);
+                }
                 setDailyLimits(newLimits);
 
                 try {
@@ -1231,11 +1274,23 @@ export const useDashboardLogic = () => {
             }
         }
 
-        const def = TRAITS_LIST.find(t => t.id === traitId);
-        if (!def) return;
-
+        let def = TRAITS_LIST.find(t => t.id === traitId);
+        
         // RESTORE FROM ARCHIVE IF EXISTS
         const archived = user?.archivedTraits?.[traitId];
+
+        if (!def && archived) {
+            // It's a custom trait being restored
+            def = {
+                id: traitId,
+                label: archived.label || traitId,
+                color: archived.color || '#3b82f6',
+                icon: ICONS_MAP[archived.iconName || 'Hexagon'] || ICONS_MAP['Hexagon'],
+                desc: ''
+            };
+        }
+
+        if (!def) return;
 
         const newAttr: Attribute = {
             id: def.id,
@@ -1244,7 +1299,8 @@ export const useDashboardLogic = () => {
             xp: archived?.xp || 0,
             maxXp: archived?.maxXp || 100,
             color: def.color,
-            icon: def.icon
+            icon: def.icon,
+            iconName: archived?.iconName || def.icon?.name || 'Hexagon'
         };
 
         // Optimistic update
@@ -1333,13 +1389,41 @@ export const useDashboardLogic = () => {
             // 2. Archive Stats in User Doc
             if (attrToArchive) {
                 const userRef = doc(db, 'users', user.id);
+                const archivedData = {
+                    level: attrToArchive.level,
+                    xp: attrToArchive.xp,
+                    maxXp: attrToArchive.maxXp,
+                    label: attrToArchive.label,
+                    color: attrToArchive.color,
+                    iconName: attrToArchive.iconName
+                };
                 batch.update(userRef, {
-                    [`archivedTraits.${traitId}`]: {
-                        level: attrToArchive.level,
-                        xp: attrToArchive.xp,
-                        maxXp: attrToArchive.maxXp
-                    }
+                    [`archivedTraits.${traitId}`]: archivedData
                 });
+                
+                // Update Supabase directly since batch.update is mocked
+                const newArchivedTraits = {
+                    ...(authProfile?.archivedTraits || {}),
+                    [traitId]: archivedData
+                };
+                
+                if (user?.id) {
+                    supabase.from('users').update({ 
+                        preferences: { 
+                            ...(authProfile?.preferences || {}), 
+                            archivedTraits: newArchivedTraits 
+                        } 
+                    }).eq('id', user.id).then(({ error }) => {
+                        if (error) console.error("[TRAIT] Failed to update Supabase", error);
+                    });
+                }
+
+                // Optimistic local update
+                if (authProfile) {
+                    updateProfileLocally({
+                        archivedTraits: newArchivedTraits
+                    });
+                }
             }
 
             // 3. Update Associated Items in Firestore
@@ -2024,14 +2108,14 @@ export const useDashboardLogic = () => {
             
             // Trigger bonus only if we crossed the line just now
             if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
-                const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1);
+                const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1, 0, 'PROJECT');
                 
-                // Only give the completion bonus part, not the base time part which they already earned linearly
-                bonusXp = Math.max(0, prediction.xp - prediction.baseXp);
-                // Proportional bonus for coins and TP
-                const ratio = prediction.xp > 0 ? bonusXp / prediction.xp : 0;
-                bonusGold = Math.floor(prediction.coins * ratio);
-                bonusTP = Math.floor(prediction.traitXp * ratio);
+                // PER USER REQUEST: "se de su recompensa (la que sale al terminar de crear su proyect)"
+                // We give the FULL predicted amount as the completion bonus, 
+                // instead of subtracting the base time part.
+                bonusXp = Math.max(0, prediction.xp);
+                bonusGold = Math.max(0, prediction.coins);
+                bonusTP = Math.max(0, prediction.traitXp);
                 
                 console.log(`🎉 [DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
             }
@@ -2258,14 +2342,13 @@ export const useDashboardLogic = () => {
             const goalSeconds = targetProj.goalTarget * 60;
             
             if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
-                const prediction = calculateTaskRewards(targetProj.goalTarget, targetProj.impact || 1);
+                const prediction = calculateTaskRewards(targetProj.goalTarget, targetProj.impact || 1, 0, 'PROJECT');
                 
-                // Only give the completion bonus part, not the base time part which they already earned linearly
-                bonusXp = Math.max(0, prediction.xp - prediction.baseXp);
-                // Proportional bonus for coins and TP
-                const ratio = prediction.xp > 0 ? bonusXp / prediction.xp : 0;
-                bonusGold = Math.floor(prediction.coins * ratio);
-                bonusTP = Math.floor(prediction.traitXp * ratio);
+                // PER USER REQUEST: We give the FULL predicted amount as the completion bonus, 
+                // instead of subtracting the base time part.
+                bonusXp = Math.max(0, prediction.xp);
+                bonusGold = Math.max(0, prediction.coins);
+                bonusTP = Math.max(0, prediction.traitXp);
                 
                 console.log(`🎉 [MANUAL DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
             }
@@ -2679,7 +2762,10 @@ export const useDashboardLogic = () => {
     }, [projects, dailyLimits, user, addNotification, triggerReward]);
 
     const completeQuest = useCallback(async (e: React.MouseEvent, quest: Quest) => { 
-        e.stopPropagation();
+        if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
+        }
+
         
         // LOCKING: Prevent double-execution
         if (processingQuests.current.has(quest.id)) return;
@@ -2755,8 +2841,122 @@ export const useDashboardLogic = () => {
         }
 
         questsHydratedRef.current = true;
+        
+        // Handle Recurrence on Completion
+        let spawnedQuest: Quest | null = null;
+        if (!quest.completed && quest.recurrence && quest.recurrence.type !== 'NONE') {
+            // FIX: Overdue recurring tasks should spawn their next occurrence in the future, not in the past.
+            const baseDate = new Date(quest.deadline || new Date());
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // If the deadline is in the past, we calculate the next occurrence starting from today
+            // to prevent the user from getting stuck in an infinite loop of completing past occurrences.
+            const nextDate = baseDate < today ? new Date(today) : new Date(baseDate);
+            
+            let shouldSpawn = true;
+            
+            if (quest.recurrence.type === 'INTERVAL') {
+                nextDate.setDate(nextDate.getDate() + (quest.recurrence.interval || 1));
+            } else if (quest.recurrence.type === 'WEEKLY' && quest.recurrence.days && quest.recurrence.days.length > 0) {
+                // Find next day of week
+                const currentDay = nextDate.getDay();
+                const days = [...quest.recurrence.days].sort();
+                const nextDay = days.find(d => d > currentDay);
+                if (nextDay !== undefined) {
+                    nextDate.setDate(nextDate.getDate() + (nextDay - currentDay));
+                } else {
+                    nextDate.setDate(nextDate.getDate() + (7 - currentDay + days[0]));
+                }
+            } else if (quest.recurrence.type === 'MONTHLY') {
+                const days = [...(quest.recurrence.days || [])].sort((a, b) => a - b);
+                const hasLastDay = quest.recurrence.monthlyType === 'LAST_DAY';
+                const validMonths = quest.recurrence.months && quest.recurrence.months.length > 0 
+                    ? quest.recurrence.months 
+                    : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+                if (days.length === 0 && !hasLastDay) {
+                    shouldSpawn = false;
+                } else {
+                    let found = false;
+                    let currentSearchDate = new Date(nextDate);
+                    
+                    // First, try remaining days in the current month
+                    const currentMonth = currentSearchDate.getMonth();
+                    if (validMonths.includes(currentMonth)) {
+                        const currentDate = currentSearchDate.getDate();
+                        const lastDayOfCurrentMonth = new Date(currentSearchDate.getFullYear(), currentMonth + 1, 0).getDate();
+                        
+                        let validDaysInMonth = [...days].filter(d => d <= lastDayOfCurrentMonth);
+                        if (hasLastDay && !validDaysInMonth.includes(lastDayOfCurrentMonth)) {
+                            validDaysInMonth.push(lastDayOfCurrentMonth);
+                        }
+                        validDaysInMonth.sort((a, b) => a - b);
+                        
+                        const nextDay = validDaysInMonth.find(d => d > currentDate);
+                        if (nextDay !== undefined) {
+                            currentSearchDate.setDate(nextDay);
+                            found = true;
+                        }
+                    }
+
+                    // If not found in current month, search subsequent months
+                    if (!found) {
+                        for (let i = 1; i <= 12; i++) {
+                            // Reset to the 1st of the target month to avoid overflow bugs (e.g. Feb 31 -> March 3)
+                            currentSearchDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + i, 1);
+                            const searchMonth = currentSearchDate.getMonth();
+                            
+                            if (validMonths.includes(searchMonth)) {
+                                const lastDayOfSearchMonth = new Date(currentSearchDate.getFullYear(), searchMonth + 1, 0).getDate();
+                                let validDaysInSearchMonth = [...days].filter(d => d <= lastDayOfSearchMonth);
+                                if (hasLastDay && !validDaysInSearchMonth.includes(lastDayOfSearchMonth)) {
+                                    validDaysInSearchMonth.push(lastDayOfSearchMonth);
+                                }
+                                validDaysInSearchMonth.sort((a, b) => a - b);
+                                
+                                if (validDaysInSearchMonth.length > 0) {
+                                    currentSearchDate.setDate(validDaysInSearchMonth[0]);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (found) {
+                        nextDate.setFullYear(currentSearchDate.getFullYear());
+                        nextDate.setMonth(currentSearchDate.getMonth());
+                        nextDate.setDate(currentSearchDate.getDate());
+                    } else {
+                        shouldSpawn = false;
+                    }
+                }
+            } else {
+                shouldSpawn = false;
+            }
+
+            if (shouldSpawn) {
+                spawnedQuest = {
+                    ...quest,
+                    id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
+                    completed: false,
+                    deadline: toLocalISOString(nextDate),
+                    rewardedXp: undefined,
+                    rewardedGold: undefined,
+                    subtasks: quest.subtasks?.map(st => ({ ...st, isCompleted: false })) || []
+                };
+            }
+        }
+
         // OPTIMISTIC UI
-        setQuests(prev => prev.map(q => q.id === quest.id ? newQuest : q));
+        setQuests(prev => {
+            let nextQuests = prev.map(q => q.id === quest.id ? newQuest : q);
+            if (spawnedQuest) {
+                nextQuests = [...nextQuests, spawnedQuest];
+            }
+            return nextQuests;
+        });
 
         if (!userId) {
             if (rewardXp !== 0 || rewardGold !== 0) {
@@ -2923,7 +3123,8 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp,
-                quest.attribute
+                quest.attribute,
+                spawnedQuest
             ).catch(e => {
                 console.error("Failed to sync quest (Transaction)", e);
             });
@@ -3448,7 +3649,9 @@ export const useDashboardLogic = () => {
         
         if (h.type === 'CHECKLIST' && data.checklist) {
             const wasComplete = h.completedToday;
-            const isNowComplete = data.checklist.every(item => item.completed);
+            const currentDay = new Date().getDay();
+            const visibleItems = data.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(currentDay));
+            const isNowComplete = visibleItems.length > 0 && visibleItems.every(item => item.completed);
             
             if (isNowComplete && !wasComplete) {
                 const nextHistory = [...(h.history || []), todayHistory];
@@ -3500,12 +3703,10 @@ export const useDashboardLogic = () => {
                 rewardTraitXp = prediction.traitXp;
             }
 
-            const updatedHabit = habits.find(h => h.id === habitId);
+            const updatedHabit = next; // Use 'next' which already contains the computed streak, history, and completions
             if (updatedHabit) {
                 const finalData = { 
                     ...updatedHabit, 
-                    ...data,
-                    completedToday: isNowCompleted,
                     rewardedXp: isNowCompleted ? rewardXp : 0,
                     rewardedGold: isNowCompleted ? rewardGold : 0
                 };
@@ -3521,8 +3722,55 @@ export const useDashboardLogic = () => {
 
                 // Optimistic UI updates
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rewardGold), level: newLevel, nextXp: newNextXp }));
+                
+                // Apply Attribute Stats
+                let traitUpdate: any = undefined;
+                if (rewardTraitXp !== 0 && currentHabit.attribute) {
+                    const attrIndex = attributes.findIndex(a => a.id === currentHabit.attribute);
+                    if (attrIndex !== -1) {
+                        const attr = attributes[attrIndex];
+                        let newAttrXp = attr.xp + rewardTraitXp;
+                        let newAttrLevel = attr.level;
+                        let newAttrMaxXp = attr.maxXp;
+
+                        if (rewardTraitXp > 0) {
+                            while (newAttrXp >= newAttrMaxXp) {
+                                newAttrXp -= newAttrMaxXp;
+                                newAttrLevel += 1;
+                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            }
+                        } else {
+                            newAttrXp = Math.max(0, newAttrXp);
+                        }
+
+                        const newAttributes = [...attributes];
+                        newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                        setAttributes(newAttributes);
+                        traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+                    }
+                }
+
+                // Apply Daily Limits
+                if (isNowCompleted) {
+                    setDailyLimits(prev => ({
+                        ...(prev.date === today ? prev : { date: today, taskXp: 0, taskGold: 0, taskTraitPoints: 0, habitsCompleted: 0, focusSeconds: 0, focusXp: 0, focusGold: 0, focusTraitPoints: 0, habitXp: 0, habitGold: 0, habitTraitPoints: 0 }), 
+                        habitsCompleted: (prev.habitsCompleted || 0) + 1,
+                        habitXp: (prev.habitXp || 0) + rewardXp,
+                        habitGold: (prev.habitGold || 0) + rewardGold,
+                        habitTraitPoints: (prev.habitTraitPoints || 0) + rewardTraitXp
+                    }));
+                } else {
+                    setDailyLimits(prev => ({
+                        ...prev,
+                        habitsCompleted: Math.max(0, (prev.habitsCompleted || 0) - 1),
+                        habitXp: Math.max(0, (prev.habitXp || 0) + rewardXp), // rewardXp is negative
+                        habitGold: Math.max(0, (prev.habitGold || 0) + rewardGold),
+                        habitTraitPoints: Math.max(0, (prev.habitTraitPoints || 0) + rewardTraitXp)
+                    }));
+                }
+
                 if (rewardXp > 0 || rewardGold > 0) {
-                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 });
+                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 }, traitUpdate);
                 }
 
                 TransactionService.toggleHabitCompletion(
@@ -3547,7 +3795,7 @@ export const useDashboardLogic = () => {
                 persistenceService.habits.update(user.id, habitId, finalData as Habit).catch(console.error);
             }
         }
-    }, [user?.id, habits, dailyLimits, applyHabitRewards, triggerReward]);
+    }, [user?.id, habits, dailyLimits, applyHabitRewards, triggerReward, player.xp, player.gold, attributes]);
 
     const handleDeleteHabit = useCallback(async (habitId: string) => {
         if (!user) return;

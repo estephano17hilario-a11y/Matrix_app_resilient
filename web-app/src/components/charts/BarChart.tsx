@@ -83,7 +83,7 @@ export const BarChart = React.memo(({
              )}
 
             {showGrid && !yTicks && (
-                <div className={`absolute inset-x-0 ${paddingTop} bottom-8 flex flex-col justify-between pointer-events-none opacity-[0.05]`}>
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-5 flex flex-col justify-between pointer-events-none opacity-[0.05]`}>
                     <div className="border-t border-dashed border-white/30 w-full" />
                     <div className="border-t border-dashed border-white/30 w-full" />
                     <div className="border-t border-dashed border-white/30 w-full" />
@@ -91,11 +91,11 @@ export const BarChart = React.memo(({
              )}
 
             {showGrid && yTicks && (
-                <div className={`absolute inset-x-0 ${paddingTop} bottom-8 pointer-events-none`}>
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-5 pointer-events-none`}>
                     {yTicks.map((val) => (
                         <div
                             key={val}
-                            className="absolute left-6 right-0 border-t border-dashed border-white/20"
+                            className="absolute left-6 right-0 border-t border-dashed border-white/[0.15]"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
                             <span className="absolute -top-1.5 -left-6 w-6 text-right pr-1 text-[9px] text-slate-400 font-mono">
@@ -130,16 +130,16 @@ export const BarChart = React.memo(({
                 document.body
             )}
 
-            <div className={`absolute inset-0 flex items-end gap-1 ${yTicks ? 'pl-6' : ''}`}>
+            <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
                         onClick={(e) => handleBarClick(i, e)}
-                        className="flex-1 h-full relative group z-10 cursor-pointer"
+                        className="flex-1 h-full relative group z-10 cursor-pointer min-w-0"
                     >
                         {/* Bars Container - Fixed Centering & Height */}
-                        <div className={`absolute ${paddingTop} bottom-8 left-0 right-0 ${barSpacing} flex items-end justify-center`}>
-                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : 'gap-1.5'}`}>
+                        <div className={`absolute ${paddingTop} bottom-5 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>
+                            <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : (labels.length > 20 ? 'gap-0.5' : 'gap-1.5')}`}>
                                 {datasets.map((ds, idx) => {
                                     const val = ds.data[i];
                                     const h = Math.min(val / maxValue, 1);

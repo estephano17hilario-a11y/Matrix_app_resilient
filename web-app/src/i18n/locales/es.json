@@ -9,12 +9,12 @@
       "title": "Elige tu idioma",
       "subtitle": "Selecciona tu idioma principal",
       "en": {
-          "name": "English",
-          "region": "Estados Unidos"
+        "name": "English",
+        "region": "Estados Unidos"
       },
       "es": {
-          "name": "Español",
-          "region": "España / Latinoamérica"
+        "name": "Español",
+        "region": "España / Latinoamérica"
       }
     },
     "traits": {
@@ -80,12 +80,36 @@
       "description": "Ya conoces lo básico. Explora la app y usa el botón de ayuda en cada sección para más guías. ¡Buena suerte!"
     },
     "onboarding": {
-      "welcome": { "title": "¡Bienvenido a Lux!", "desc": "Tu sistema de gestión de vida.", "sub": "Vamos a dar un recorrido interactivo." },
-      "xp": { "title": "Barra de XP", "desc": "Completa tareas para ganar experiencia.", "sub": "Sube de nivel para desbloquear habilidades." },
-      "gold": { "title": "Tus Monedas", "desc": "Compra cosméticos y potenciadores.", "sub": "Gestiona tus hábitos de manera controlada." },
-      "streak": { "title": "Tu Racha", "desc": "Días consecutivos en acción.", "sub": "¡Si pierdes un día, vuelve a cero!" },
-      "dock": { "title": "Navegación (Dock)", "desc": "Tu centro de comando principal.", "sub": "Desde aquí accedes a toda la app." },
-      "create": { "title": "Crear Misión", "desc": "El creador de tareas se abrirá automáticamente.", "sub": "¡Prepárate!" }
+      "welcome": {
+        "title": "¡Bienvenido a Lux!",
+        "desc": "Tu sistema de gestión de vida.",
+        "sub": "Vamos a dar un recorrido interactivo."
+      },
+      "xp": {
+        "title": "Barra de XP",
+        "desc": "Completa tareas para ganar experiencia.",
+        "sub": "Sube de nivel para desbloquear habilidades."
+      },
+      "gold": {
+        "title": "Tus Monedas",
+        "desc": "Compra cosméticos y potenciadores.",
+        "sub": "Gestiona tus hábitos de manera controlada."
+      },
+      "streak": {
+        "title": "Tu Racha",
+        "desc": "Días consecutivos en acción.",
+        "sub": "¡Si pierdes un día, vuelve a cero!"
+      },
+      "dock": {
+        "title": "Navegación (Dock)",
+        "desc": "Tu centro de comando principal.",
+        "sub": "Desde aquí accedes a toda la app."
+      },
+      "create": {
+        "title": "Crear Misión",
+        "desc": "El creador de tareas se abrirá automáticamente.",
+        "sub": "¡Prepárate!"
+      }
     },
     "stats": {
       "xp": {
@@ -123,51 +147,131 @@
       "start": "Comenzar"
     },
     "tasks": {
-    "filterDate": "Línea de Tiempo",
-    "filterTrait": "Atributo",
-    "filterType": "Tipo",
-    "filterDifficulty": "Dificultad",
-    "hideCompleted": "Ocultar Completados",
-    "all": "Todos",
-    "normal": "Normal",
-    "smart": "Smart",
-    "clear": "Limpiar",
-    "filterDateTabs": {
-      "ALL": "TODOS",
-      "DAY": "DÍA",
-      "WEEK": "SEMANA",
-      "MONTH": "MES"
-    },
-    "intro": { "title": "Centro de Misiones", "desc": "Aquí gestionas tu día a día.", "sub": "Las misiones activas aparecen aquí." },
-      "counter": { "title": "Misiones Activas", "desc": "Este es tu contador actual.", "sub": "Mantén este número bajo control." },
-      "list": { "title": "Rango de Dificultad", "desc": "S, A, B, C y ÉPICA.", "sub": "Mayor dificultad = Mejores recompensas." },
-      "create": { "title": "¡Tu turno!", "desc": "Vamos a crear tu primera tarea ahora mismo.", "sub": "El creador se abrirá automáticamente." }
+      "filterDate": "Línea de Tiempo",
+      "filterTrait": "Atributo",
+      "filterType": "Tipo",
+      "filterDifficulty": "Dificultad",
+      "hideCompleted": "Ocultar Completados",
+      "all": "Todos",
+      "normal": "Normal",
+      "smart": "Smart",
+      "clear": "Limpiar",
+      "filterDateTabs": {
+        "ALL": "TODOS",
+        "DAY": "DÍA",
+        "WEEK": "SEMANA",
+        "MONTH": "MES"
+      },
+      "intro": {
+        "title": "Centro de Misiones",
+        "desc": "Aquí gestionas tu día a día.",
+        "sub": "Las misiones activas aparecen aquí."
+      },
+      "counter": {
+        "title": "Misiones Activas",
+        "desc": "Este es tu contador actual.",
+        "sub": "Mantén este número bajo control."
+      },
+      "list": {
+        "title": "Rango de Dificultad",
+        "desc": "S, A, B, C y ÉPICA.",
+        "sub": "Mayor dificultad = Mejores recompensas."
+      },
+      "create": {
+        "title": "¡Tu turno!",
+        "desc": "Vamos a crear tu primera tarea ahora mismo.",
+        "sub": "El creador se abrirá automáticamente."
+      }
     },
     "habits": {
-      "intro": { "title": "Protocolos y Vicios", "desc": "Tu sistema para construir disciplina.", "sub": "Automatiza lo bueno y destruye lo malo." },
-      "chart": { "title": "Gráfico de Consistencia", "desc": "Visualiza tu desempeño a lo largo del tiempo.", "sub": "Mantén el gráfico verde." },
-      "streak": { "title": "El Camino de la Llama", "desc": "Tu racha actual de disciplina.", "sub": "No rompas la cadena." },
-      "vices": { "title": "Zona de Vicios", "desc": "Identifica y erradicica los hábitos destructivos.", "sub": "Haz click para entrar a la zona oscura." },
-      "create": { "title": "Crea un Protocolo", "desc": "Vamos a crear tu primer hábito positivo.", "sub": "Completa el formulario y guárdalo." },
-      "createBad": { "title": "Identifica un Vicio", "desc": "Ahora, declara la guerra a un mal hábito.", "sub": "Completa el formulario y guárdalo." }
+      "intro": {
+        "title": "Protocolos y Vicios",
+        "desc": "Tu sistema para construir disciplina.",
+        "sub": "Automatiza lo bueno y destruye lo malo."
+      },
+      "chart": {
+        "title": "Gráfico de Consistencia",
+        "desc": "Visualiza tu desempeño a lo largo del tiempo.",
+        "sub": "Mantén el gráfico verde."
+      },
+      "streak": {
+        "title": "El Camino de la Llama",
+        "desc": "Tu racha actual de disciplina.",
+        "sub": "No rompas la cadena."
+      },
+      "vices": {
+        "title": "Zona de Vicios",
+        "desc": "Identifica y erradicica los hábitos destructivos.",
+        "sub": "Haz click para entrar a la zona oscura."
+      },
+      "create": {
+        "title": "Crea un Protocolo",
+        "desc": "Vamos a crear tu primer hábito positivo.",
+        "sub": "Completa el formulario y guárdalo."
+      },
+      "createBad": {
+        "title": "Identifica un Vicio",
+        "desc": "Ahora, declara la guerra a un mal hábito.",
+        "sub": "Completa el formulario y guárdalo."
+      }
     },
     "focus": {
-      "intro": { "title": "Zona de Focus", "desc": "Para trabajo profundo y proyectos.", "sub": "" },
-      "stats": { "title": "Estadísticas", "desc": "Visualiza tus horas de concentración.", "sub": "" },
-      "projects": { "title": "Tus Proyectos", "desc": "Divide grandes metas en sesiones cortas.", "sub": "" },
-      "create": { "title": "Nuevo Proyecto", "desc": "Empieza a planificar tu próxima gran meta.", "sub": "El creador se abrirá automáticamente." }
+      "intro": {
+        "title": "Zona de Focus",
+        "desc": "Para trabajo profundo y proyectos.",
+        "sub": ""
+      },
+      "stats": {
+        "title": "Estadísticas",
+        "desc": "Visualiza tus horas de concentración.",
+        "sub": ""
+      },
+      "projects": {
+        "title": "Tus Proyectos",
+        "desc": "Divide grandes metas en sesiones cortas.",
+        "sub": ""
+      },
+      "create": {
+        "title": "Nuevo Proyecto",
+        "desc": "Empieza a planificar tu próxima gran meta.",
+        "sub": "El creador se abrirá automáticamente."
+      }
     },
     "store": {
-      "intro": { "title": "Tienda de Poderes", "desc": "Gasta tus monedas aquí.", "sub": "" },
-      "items": { "title": "Artículos y Pociones", "desc": "Cada uno tiene un efecto único en tu cuenta.", "sub": "" }
+      "intro": {
+        "title": "Tienda de Poderes",
+        "desc": "Gasta tus monedas aquí.",
+        "sub": ""
+      },
+      "items": {
+        "title": "Artículos y Pociones",
+        "desc": "Cada uno tiene un efecto único en tu cuenta.",
+        "sub": ""
+      }
     },
     "nexus": {
-      "intro": { "title": "El Nexo", "desc": "Conecta proyectos, tareas y hábitos.", "sub": "" },
-      "new": { "title": "Nuevo Proyecto", "desc": "Crea un nuevo proyecto estratégico.", "sub": "" }
+      "intro": {
+        "title": "El Nexo",
+        "desc": "Conecta proyectos, tareas y hábitos.",
+        "sub": ""
+      },
+      "new": {
+        "title": "Nuevo Proyecto",
+        "desc": "Crea un nuevo proyecto estratégico.",
+        "sub": ""
+      }
     },
     "notes": {
-      "intro": { "title": "Tu Segundo Cerebro", "desc": "Captura ideas y pensamientos.", "sub": "" },
-      "fab": { "title": "Nueva Nota", "desc": "Presiona aquí para crear una nota.", "sub": "" }
+      "intro": {
+        "title": "Tu Segundo Cerebro",
+        "desc": "Captura ideas y pensamientos.",
+        "sub": ""
+      },
+      "fab": {
+        "title": "Nueva Nota",
+        "desc": "Presiona aquí para crear una nota.",
+        "sub": ""
+      }
     }
   },
   "avatars": {
@@ -278,34 +382,42 @@
       "week": "SEM",
       "month": "MES",
       "custom": "Pers.",
-    "alert": "Alerta",
-    "off": "OFF",
-    "impact": "Impacto",
-    "daysInitials": ["D", "L", "M", "M", "J", "V", "S"],
-    "traitDefault": "Rasgo",
-    "attribute": "Atributo",
-    "classic": "Clásico",
-    "intelligent": "Inteligente",
-    "recommended": "Recomendado",
-    "list": "Lista",
-    "manual": "Manual",
-    "purgeProtocol": "Protocolo de Purga",
-    "intelligentStreakSystem": "Sistema de Racha Inteligente",
-    "learnFromRelapses": "Aprende de tus recaídas, no las penaliza",
-    "visualExample": "Ejemplo Visual",
-    "intelligentStreakActivated": "Racha Inteligente Activada",
-    "streakRetrogressed": "Racha Retrocedida",
-    "previous": "Anterior",
-    "newGoal": "Nueva Meta",
-    "hpPenalty": "Penalización HP",
-    "hpPenaltyDesc": "Vida reducida como consecuencia de romper tu racha antes de completar la meta.",
-    "confirmKeepProgress": "Confirmar y Mantener Progreso",
-    "acceptPenalty": "Aceptar Penalización",
-    "reorderTitle": "Reordenar Vicios",
-    "protocolFailure": "Fallo en Protocolo",
-    "missingGold": "FALTAN",
-    "cancelFalseAlarm": "Cancelar (Falsa Alarma)"
-  },
+      "alert": "Alerta",
+      "off": "OFF",
+      "impact": "Impacto",
+      "daysInitials": [
+        "D",
+        "L",
+        "M",
+        "M",
+        "J",
+        "V",
+        "S"
+      ],
+      "traitDefault": "Rasgo",
+      "attribute": "Atributo",
+      "classic": "Clásico",
+      "intelligent": "Inteligente",
+      "recommended": "Recomendado",
+      "list": "Lista",
+      "manual": "Manual",
+      "purgeProtocol": "Protocolo de Purga",
+      "intelligentStreakSystem": "Sistema de Racha Inteligente",
+      "learnFromRelapses": "Aprende de tus recaídas, no las penaliza",
+      "visualExample": "Ejemplo Visual",
+      "intelligentStreakActivated": "Racha Inteligente Activada",
+      "streakRetrogressed": "Racha Retrocedida",
+      "previous": "Anterior",
+      "newGoal": "Nueva Meta",
+      "hpPenalty": "Penalización HP",
+      "hpPenaltyDesc": "Vida reducida como consecuencia de romper tu racha antes de completar la meta.",
+      "confirmKeepProgress": "Confirmar y Mantener Progreso",
+      "acceptPenalty": "Aceptar Penalización",
+      "reorderTitle": "Reordenar Vicios",
+      "protocolFailure": "Fallo en Protocolo",
+      "missingGold": "FALTAN",
+      "cancelFalseAlarm": "Cancelar (Falsa Alarma)"
+    },
     "quest": {
       "titleNew": "Nueva Misión",
       "titleEdit": "Editar Misión",
@@ -363,13 +475,34 @@
     "emptyCollection": "Colección Vacía",
     "emptyCategory": "No hay items en esta categoría",
     "items": {
-        "potion_hp_small": { "name": "Kit de Reparación Neural", "desc": "Restaura 10 HP al instante. Esencial para el mantenimiento del sistema." },
-        "potion_xp_restore": { "name": "Recuperación de Memoria", "desc": "Restaura XP perdida por inactividad o penalizaciones." },
-        "redemption_token": { "name": "Restauración de Racha", "desc": "Repara una racha rota. Una segunda oportunidad para la perfección." },
-        "freeze_streak": { "name": "Congelar Tiempo", "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado." },
-        "theme_neon_purple": { "name": "Protocolo Nébula", "desc": "Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk." },
-        "theme_matrix_green": { "name": "Código Fuente", "desc": "Verde Digital Clásico. El flujo de datos crudo." },
-        "theme_apple_minimal": { "name": "Cristal Cupertino", "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad." }
+      "potion_hp_small": {
+        "name": "Kit de Reparación Neural",
+        "desc": "Restaura 10 HP al instante. Esencial para el mantenimiento del sistema."
+      },
+      "potion_xp_restore": {
+        "name": "Recuperación de Memoria",
+        "desc": "Restaura XP perdida por inactividad o penalizaciones."
+      },
+      "redemption_token": {
+        "name": "Restauración de Racha",
+        "desc": "Repara una racha rota. Una segunda oportunidad para la perfección."
+      },
+      "freeze_streak": {
+        "name": "Congelar Tiempo",
+        "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado."
+      },
+      "theme_neon_purple": {
+        "name": "Protocolo Nébula",
+        "desc": "Tema UI Púrpura y Rosa Profundo. Estética Cyberpunk."
+      },
+      "theme_matrix_green": {
+        "name": "Código Fuente",
+        "desc": "Verde Digital Clásico. El flujo de datos crudo."
+      },
+      "theme_apple_minimal": {
+        "name": "Cristal Cupertino",
+        "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad."
+      }
     }
   },
   "achievements": {
@@ -402,37 +535,106 @@
       }
     },
     "level": {
-        "001": { "title": "Despertar", "desc": "Alcanza el Nivel 1." },
-        "005": { "title": "Impulso", "desc": "Alcanza el Nivel 5." },
-        "010": { "title": "Dos Dígitos", "desc": "Alcanza el Nivel 10." },
-        "020": { "title": "Experimentado", "desc": "Alcanza el Nivel 20." },
-        "030": { "title": "Veterano", "desc": "Alcanza el Nivel 30." },
-        "050": { "title": "Maestro", "desc": "Alcanza el Nivel 50." },
-        "100": { "title": "Ascendido", "desc": "Alcanza el Nivel 100." }
+      "100": {
+        "title": "Ascendido",
+        "desc": "Alcanza el Nivel 100."
+      },
+      "001": {
+        "title": "Despertar",
+        "desc": "Alcanza el Nivel 1."
+      },
+      "005": {
+        "title": "Impulso",
+        "desc": "Alcanza el Nivel 5."
+      },
+      "010": {
+        "title": "Dos Dígitos",
+        "desc": "Alcanza el Nivel 10."
+      },
+      "020": {
+        "title": "Experimentado",
+        "desc": "Alcanza el Nivel 20."
+      },
+      "030": {
+        "title": "Veterano",
+        "desc": "Alcanza el Nivel 30."
+      },
+      "050": {
+        "title": "Maestro",
+        "desc": "Alcanza el Nivel 50."
+      }
     },
     "streak": {
-        "003": { "title": "Calentando", "desc": "Mantén una racha de 3 días." },
-        "007": { "title": "Inquebrantable", "desc": "Mantén una racha de 7 días." },
-        "014": { "title": "En Llamas", "desc": "Mantén una racha de 14 días." },
-        "030": { "title": "Consistente", "desc": "Mantén una racha de 30 días." },
-        "050": { "title": "Disciplinado", "desc": "Mantén una racha de 50 días." },
-        "075": { "title": "Implacable", "desc": "Mantén una racha de 75 días." },
-        "100": { "title": "Centenario", "desc": "Mantén una racha de 100 días." },
-        "200": { "title": "Llama Eterna", "desc": "Mantén una racha de 200 días." }
+      "100": {
+        "title": "Centenario",
+        "desc": "Mantén una racha de 100 días."
+      },
+      "200": {
+        "title": "Llama Eterna",
+        "desc": "Mantén una racha de 200 días."
+      },
+      "003": {
+        "title": "Calentando",
+        "desc": "Mantén una racha de 3 días."
+      },
+      "007": {
+        "title": "Inquebrantable",
+        "desc": "Mantén una racha de 7 días."
+      },
+      "014": {
+        "title": "En Llamas",
+        "desc": "Mantén una racha de 14 días."
+      },
+      "030": {
+        "title": "Consistente",
+        "desc": "Mantén una racha de 30 días."
+      },
+      "050": {
+        "title": "Disciplinado",
+        "desc": "Mantén una racha de 50 días."
+      },
+      "075": {
+        "title": "Implacable",
+        "desc": "Mantén una racha de 75 días."
+      }
     },
     "trait": {
-        "disciplina": { "desc": "Alcanza el Nivel {{level}} en Disciplina." },
-        "fisico": { "desc": "Alcanza el Nivel {{level}} en Físico." },
-        "mental": { "desc": "Alcanza el Nivel {{level}} en Intelecto." },
-        "social": { "desc": "Alcanza el Nivel {{level}} en Carisma." },
-        "espiritu": { "desc": "Alcanza el Nivel {{level}} en Espíritu." },
-        "finanzas": { "desc": "Alcanza el Nivel {{level}} en Riqueza." },
-        "creatividad": { "desc": "Alcanza el Nivel {{level}} en Creatividad." },
-        "orden": { "desc": "Alcanza el Nivel {{level}} en Sistema." },
-        "liderazgo": { "desc": "Alcanza el Nivel {{level}} en Liderazgo." },
-        "resiliencia": { "desc": "Alcanza el Nivel {{level}} en Temple." },
-        "vitalidad": { "desc": "Alcanza el Nivel {{level}} en Energía." },
-        "estilo": { "desc": "Alcanza el Nivel {{level}} en Estética." }
+      "disciplina": {
+        "desc": "Alcanza el Nivel {{level}} en Disciplina."
+      },
+      "fisico": {
+        "desc": "Alcanza el Nivel {{level}} en Físico."
+      },
+      "mental": {
+        "desc": "Alcanza el Nivel {{level}} en Intelecto."
+      },
+      "social": {
+        "desc": "Alcanza el Nivel {{level}} en Carisma."
+      },
+      "espiritu": {
+        "desc": "Alcanza el Nivel {{level}} en Espíritu."
+      },
+      "finanzas": {
+        "desc": "Alcanza el Nivel {{level}} en Riqueza."
+      },
+      "creatividad": {
+        "desc": "Alcanza el Nivel {{level}} en Creatividad."
+      },
+      "orden": {
+        "desc": "Alcanza el Nivel {{level}} en Sistema."
+      },
+      "liderazgo": {
+        "desc": "Alcanza el Nivel {{level}} en Liderazgo."
+      },
+      "resiliencia": {
+        "desc": "Alcanza el Nivel {{level}} en Temple."
+      },
+      "vitalidad": {
+        "desc": "Alcanza el Nivel {{level}} en Energía."
+      },
+      "estilo": {
+        "desc": "Alcanza el Nivel {{level}} en Estética."
+      }
     }
   },
   "components": {
@@ -449,7 +651,18 @@
   "tasks": {
     "activeMissions": "Misiones Activas",
     "targets": "OBJETIVOS",
-    "empty": "No hay misiones activas."
+    "empty": "No hay misiones activas.",
+    "recurrence": {
+      "none": "Ninguno",
+      "interval": "Intervalo",
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "everyDays": "Repetir cada X días",
+      "INTERVAL": "INTERVALO",
+      "WEEKLY": "SEMANAL",
+      "MONTHLY": "MENSUAL",
+      "NONE": "NINGUNO"
+    }
   },
   "nexus": {
     "backToStrategy": "Volver a Estrategia",
@@ -576,14 +789,38 @@
     "sunday": "Domingo",
     "selectAtLeast": "Selecciona al menos {{count}}",
     "time": {
-        "years": "Años",
-        "months": "Meses",
-        "days": "Días"
+      "years": "Años",
+      "months": "Meses",
+      "days": "Días"
     },
     "weekdays": {
-      "initials": ["D", "L", "M", "X", "J", "V", "S"],
-      "short": ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
-      "long": ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+      "initials": [
+        "D",
+        "L",
+        "M",
+        "X",
+        "J",
+        "V",
+        "S"
+      ],
+      "short": [
+        "Dom",
+        "Lun",
+        "Mar",
+        "Mié",
+        "Jue",
+        "Vie",
+        "Sáb"
+      ],
+      "long": [
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado"
+      ]
     },
     "dailyCaps": "Topes diarios",
     "deleteHabitConfirm": "Estás a punto de eliminar \"{{title}}\". Esta acción no se puede deshacer.",
@@ -592,9 +829,9 @@
     "deleteError": "Error al eliminar el proyecto. Revisa la consola.",
     "deleteTaskError": "Error al eliminar la tarea. Revisa la consola.",
     "archivedHabits": "No hay hábitos archivados",
-    "thisMonth": "este mes",
+    "thisMonth": "Este mes",
     "inDays": "En {{days}} días",
-    "daysPerMonth": "Días al mes",
+    "daysPerMonth": "Días por Mes",
     "addNewSmartTask": "Añade nueva tarea inteligente",
     "clickToChange": "Click para cambiar",
     "customizeHabit": "Personaliza tu hábito",
@@ -609,7 +846,8 @@
     "errorDeletingTask": "Error al eliminar la tarea. Revisa la consola.",
     "noArchivedHabits": "No hay hábitos archivados",
     "tomorrow": "Mañana",
-    "overdue": "Vencido"
+    "overdue": "Vencido",
+    "thisWeek": "Esta semana"
   },
   "smartTask": {
     "tutorial": {
@@ -656,73 +894,73 @@
       }
     },
     "wizard": {
-        "title": "Inteligencia Lux",
-        "subtitle": "Protocolo Neural v2.0",
-        "objective": {
-            "title": "¿Cuál es tu <span className=\"font-bold\">Objetivo Principal</span>?",
-            "subtitle": "Define la misión central claramente.",
-            "placeholder": "ej. Lanzar Startup, Correr Maratón..."
-        },
-        "trait": {
-            "title": "¿Qué <span className=\"font-bold\">Atributo</span> gobierna esto?",
-            "subtitle": "Selecciona el dominio de influencia."
-        },
-        "deadline": {
-            "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
-            "subtitle": "Establece el marco temporal para el éxito."
-        },
-        "date": {
-            "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
-            "subtitle": "Establece el marco temporal para el éxito.",
-            "mode": {
-                "calendar": "Calendario",
-                "duration": "Duración"
-            }
-        },
-        "action": {
-            "startJourney": "Iniciar Viaje"
-        },
-        "inputType": {
-            "date": "Fecha",
-            "duration": "Duración"
-        },
-        "fractal": {
-            "title": "Motor de Descomposición Temporal",
-            "path": "Ruta:"
-        },
-        "summary": {
-            "deadline": "Fecha Objetivo",
-            "structure": "Estructura"
-        },
-        "stepDescription": {
-            "year": "Desglosa \"{{title}}\" en 2 Semestres Clave.",
-            "semester": "Desglosa \"{{title}}\" en 2 Trimestres.",
-            "generic": "Desglosa \"{{title}}\" en {{count}} pasos."
-        },
-        "stepPlaceholder": "Define {{label}} ({{dateRange}})",
-        "stepTitle": {
-            "year": "Semestres Estratégicos",
-            "semester": "Trimestres Clave",
-            "quarter": "Tácticas Mensuales",
-            "month": "Ejecución Semanal",
-            "week": "Acciones Diarias"
-        },
-        "buttons": {
-            "nextPhase": "Siguiente Fase",
-            "initializeMap": "Inicializar Mapa",
-            "review": "Revisar",
-            "back": "Atrás",
-            "yesLetsGo": "SÍ, VAMOS",
-            "goBack": "Volver Atrás"
-        },
-        "confirmation": {
-            "title": "¿Empezamos con esta planeación?",
-            "subtitle": "Revisa tu estrategia antes de inicializar."
-        },
-        "completion": {
-            "title": "INTELIGENCIA APPLE",
-            "subtitle": "Optimización Estratégica Completa"
+      "title": "Inteligencia Lux",
+      "subtitle": "Protocolo Neural v2.0",
+      "objective": {
+        "title": "¿Cuál es tu <span className=\"font-bold\">Objetivo Principal</span>?",
+        "subtitle": "Define la misión central claramente.",
+        "placeholder": "ej. Lanzar Startup, Correr Maratón..."
+      },
+      "trait": {
+        "title": "¿Qué <span className=\"font-bold\">Atributo</span> gobierna esto?",
+        "subtitle": "Selecciona el dominio de influencia."
+      },
+      "deadline": {
+        "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
+        "subtitle": "Establece el marco temporal para el éxito."
+      },
+      "date": {
+        "title": "¿Cuándo es la <span className=\"font-bold\">Fecha Límite</span>?",
+        "subtitle": "Establece el marco temporal para el éxito.",
+        "mode": {
+          "calendar": "Calendario",
+          "duration": "Duración"
         }
+      },
+      "action": {
+        "startJourney": "Iniciar Viaje"
+      },
+      "inputType": {
+        "date": "Fecha",
+        "duration": "Duración"
+      },
+      "fractal": {
+        "title": "Motor de Descomposición Temporal",
+        "path": "Ruta:"
+      },
+      "summary": {
+        "deadline": "Fecha Objetivo",
+        "structure": "Estructura"
+      },
+      "stepDescription": {
+        "year": "Desglosa \"{{title}}\" en 2 Semestres Clave.",
+        "semester": "Desglosa \"{{title}}\" en 2 Trimestres.",
+        "generic": "Desglosa \"{{title}}\" en {{count}} pasos."
+      },
+      "stepPlaceholder": "Define {{label}} ({{dateRange}})",
+      "stepTitle": {
+        "year": "Semestres Estratégicos",
+        "semester": "Trimestres Clave",
+        "quarter": "Tácticas Mensuales",
+        "month": "Ejecución Semanal",
+        "week": "Acciones Diarias"
+      },
+      "buttons": {
+        "nextPhase": "Siguiente Fase",
+        "initializeMap": "Inicializar Mapa",
+        "review": "Revisar",
+        "back": "Atrás",
+        "yesLetsGo": "SÍ, VAMOS",
+        "goBack": "Volver Atrás"
+      },
+      "confirmation": {
+        "title": "¿Empezamos con esta planeación?",
+        "subtitle": "Revisa tu estrategia antes de inicializar."
+      },
+      "completion": {
+        "title": "INTELIGENCIA APPLE",
+        "subtitle": "Optimización Estratégica Completa"
+      }
     }
   },
   "focus": {
@@ -733,30 +971,30 @@
     "newFlow": "Nuevo Flow",
     "stop": "Detener",
     "archived": {
-        "title": "Proyectos Archivados",
-        "subtitle": "Proyectos Restaurables",
-        "restore": "Restaurar",
-        "empty": "No hay proyectos archivados"
+      "title": "Proyectos Archivados",
+      "subtitle": "Proyectos Restaurables",
+      "restore": "Restaurar",
+      "empty": "No hay proyectos archivados"
     },
     "timer": {
-        "pomo": "Pomo",
-        "stopwatch": "Cronómetro",
-        "freeFlow": "Flujo Libre",
-        "focus": "Enfoque"
+      "pomo": "Pomo",
+      "stopwatch": "Cronómetro",
+      "freeFlow": "Flujo Libre",
+      "focus": "Enfoque"
     },
     "notifications": {
-        "projectArchived": "PROYECTO ARCHIVADO",
-        "projectRestored": "PROYECTO RESTAURADO",
-        "projectDeleted": "PROYECTO ELIMINADO",
-        "activeSession": "SESIÓN ACTIVA"
+      "projectArchived": "PROYECTO ARCHIVADO",
+      "projectRestored": "PROYECTO RESTAURADO",
+      "projectDeleted": "PROYECTO ELIMINADO",
+      "activeSession": "SESIÓN ACTIVA"
     },
     "tapToSelectTask": "Toca para seleccionar una tarea",
     "chooseDate": "Elegir fecha",
     "reorderProjects": "Reordenar Proyectos",
     "deleteModal": {
-        "title": "¿Eliminar Proyecto?",
-        "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"?",
-        "warning": "Las estadísticas se conservarán en la vista general, pero ya no podrás filtrar por este proyecto."
+      "title": "¿Eliminar Proyecto?",
+      "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"?",
+      "warning": "Las estadísticas se conservarán en la vista general, pero ya no podrás filtrar por este proyecto."
     }
   },
   "pro": {
@@ -922,8 +1160,8 @@
       "message": "Proyectos en stasis. Reactívalos para continuar tu progreso."
     },
     "confirmDeleteSmartPlan": "¿Estás seguro de eliminar este Plan Inteligente? Se perderá todo el progreso asociado.",
-    "lastDayOfMonth": "Último día del mes",
-    "lastDayOption": "Activa esta opción para incluir siempre el último día (28, 29, 30 o 31) sin importar el mes. Los días 29-31 manuales no cuentan en meses cortos.",
+    "lastDayOfMonth": "Último Día del Mes",
+    "lastDayOption": "Contará como completado si se realiza el último día válido del mes.",
     "defineObjective": "Definir objetivo...",
     "day": "Día",
     "thePath": "EL CAMINO",
@@ -931,10 +1169,22 @@
   },
   "loading": {
     "quotes": [
-        { "text": "La mente es su propio lugar, y en sí misma puede hacer un cielo del infierno, un infierno del cielo.", "author": "JOHN MILTON" },
-        { "text": "No vemos las cosas como son, las vemos como somos.", "author": "ANAÏS NIN" },
-        { "text": "Quien tiene un porqué para vivir puede soportar casi cualquier cómo.", "author": "FRIEDRICH NIETZSCHE" },
-        { "text": "La única manera de lidiar con un mundo libre es volverse tan absolutamente libre que tu mera existencia sea un acto de rebelión.", "author": "ALBERT CAMUS" }
+      {
+        "text": "La mente es su propio lugar, y en sí misma puede hacer un cielo del infierno, un infierno del cielo.",
+        "author": "JOHN MILTON"
+      },
+      {
+        "text": "No vemos las cosas como son, las vemos como somos.",
+        "author": "ANAÏS NIN"
+      },
+      {
+        "text": "Quien tiene un porqué para vivir puede soportar casi cualquier cómo.",
+        "author": "FRIEDRICH NIETZSCHE"
+      },
+      {
+        "text": "La única manera de lidiar con un mundo libre es volverse tan absolutamente libre que tu mera existencia sea un acto de rebelión.",
+        "author": "ALBERT CAMUS"
+      }
     ]
   },
   "traits": {
@@ -950,99 +1200,183 @@
     "RESILIENCIA": "Resiliencia",
     "VITALIDAD": "Vitalidad",
     "ESTILO": "Estilo",
-      "disciplina": { 
-          "label": "Disciplina", 
-          "desc": "Voluntad inquebrantable.",
-          "achievements": {
-              "0": "Comienzo Forjado", "1": "Dificultades Iniciales", "2": "Pacto", "3": "Cambios de Mentalidad", "4": "Indicio de Detox", "5": "Detox", "6": "Fuerza Mental", "7": "David Goggins"
-          }
-      },
-      "fisico": { 
-          "label": "Físico", 
-          "desc": "Poder y resistencia.",
-          "achievements": {
-              "0": "Despertar", "1": "Agujetas", "2": "Constancia", "3": "Atleta Amateur", "4": "Cuerpo Esculpido", "5": "Máquina", "6": "Bestia", "7": "Semidiós"
-          }
-      },
-      "mental": { 
-          "label": "Intelecto", 
-          "desc": "Agudeza y aprendizaje.",
-          "achievements": {
-              "0": "Estudiante", "1": "Curioso", "2": "Lector Voraz", "3": "Intelectual", "4": "Erudito", "5": "Sabio", "6": "Mente Maestra", "7": "Omnisciente"
-          }
-      },
-      "social": { 
-          "label": "Carisma", 
-          "desc": "Influencia y conexión.",
-          "achievements": {
-              "0": "Tímido", "1": "Saludo", "2": "Conversador", "3": "Amigo", "4": "Alma de la Fiesta", "5": "Conector", "6": "Líder de Tribu", "7": "Influencia Global"
-          }
-      },
-      "espiritu": { 
-          "label": "Espíritu", 
-          "desc": "Calma y consciencia.",
-          "achievements": {
-              "0": "Silencio", "1": "Respiración", "2": "Meditación", "3": "Mindfulness", "4": "Despertar Espiritual", "5": "Iluminación", "6": "Trascendencia", "7": "Nirvana"
-          }
-      },
-      "finanzas": { 
-          "label": "Riqueza", 
-          "desc": "Libertad de recursos.",
-          "achievements": {
-              "0": "Ahorro", "1": "Primer Ingreso", "2": "Estabilidad", "3": "Inversor", "4": "Libertad Financiera", "5": "Magnate", "6": "Imperio", "7": "Dueño del Banco"
-          }
-      },
-      "creatividad": { 
-          "label": "Creatividad", 
-          "desc": "Visión e innovación.",
-          "achievements": {
-              "0": "Doodle", "1": "Idea", "2": "Sketch", "3": "Artist", "4": "Innovator", "5": "Visionary", "6": "World Creator", "7": "Demiurge"
-          }
-      },
-      "orden": { 
-          "label": "Sistema", 
-          "desc": "Control y estructura.",
-          "achievements": {
-              "0": "Cama Hecha", "1": "Rutina", "2": "Agenda", "3": "Sistema", "4": "Eficiencia", "5": "Automatización", "6": "Reloj Suizo", "7": "Entropía Cero"
-          }
-      },
-      "liderazgo": { 
-          "label": "Liderazgo", 
-          "desc": "Guiar a otros.",
-          "achievements": {
-              "0": "Iniciativa", "1": "Voz", "2": "Guía", "3": "Capitán", "4": "Comandante", "5": "General", "6": "Rey", "7": "Emperador"
-          }
-      },
-      "resiliencia": { 
-          "label": "Temple", 
-          "desc": "Invencibilidad.",
-          "achievements": {
-              "0": "Aguante", "1": "Dureza", "2": "Escudo", "3": "Rebote", "4": "Antifrágil", "5": "Inmortal", "6": "Fénix", "7": "Indestructible"
-          }
-      },
-      "vitalidad": { 
-          "label": "Energía", 
-          "desc": "Motor de vida.",
-          "achievements": {
-              "0": "Chispa", "1": "Batería", "2": "Energía", "3": "Vigor", "4": "Alto Voltaje", "5": "Reactor", "6": "Sol", "7": "Supernova"
-          }
-      },
-      "estilo": { 
-           "label": "Estética", 
-           "desc": "Arte de vivir.",
-           "achievements": {
-               "0": "Básico", "1": "Combinado", "2": "Buen Gusto", "3": "Elegante", "4": "Trendsetter", "5": "Icono", "6": "Vanguardia", "7": "Perfección Áurea"
-           }
-       }
+    "disciplina": {
+      "label": "Disciplina",
+      "desc": "Voluntad inquebrantable.",
+      "achievements": {
+        "0": "Comienzo Forjado",
+        "1": "Dificultades Iniciales",
+        "2": "Pacto",
+        "3": "Cambios de Mentalidad",
+        "4": "Indicio de Detox",
+        "5": "Detox",
+        "6": "Fuerza Mental",
+        "7": "David Goggins"
+      }
+    },
+    "fisico": {
+      "label": "Físico",
+      "desc": "Poder y resistencia.",
+      "achievements": {
+        "0": "Despertar",
+        "1": "Agujetas",
+        "2": "Constancia",
+        "3": "Atleta Amateur",
+        "4": "Cuerpo Esculpido",
+        "5": "Máquina",
+        "6": "Bestia",
+        "7": "Semidiós"
+      }
+    },
+    "mental": {
+      "label": "Intelecto",
+      "desc": "Agudeza y aprendizaje.",
+      "achievements": {
+        "0": "Estudiante",
+        "1": "Curioso",
+        "2": "Lector Voraz",
+        "3": "Intelectual",
+        "4": "Erudito",
+        "5": "Sabio",
+        "6": "Mente Maestra",
+        "7": "Omnisciente"
+      }
+    },
+    "social": {
+      "label": "Carisma",
+      "desc": "Influencia y conexión.",
+      "achievements": {
+        "0": "Tímido",
+        "1": "Saludo",
+        "2": "Conversador",
+        "3": "Amigo",
+        "4": "Alma de la Fiesta",
+        "5": "Conector",
+        "6": "Líder de Tribu",
+        "7": "Influencia Global"
+      }
+    },
+    "espiritu": {
+      "label": "Espíritu",
+      "desc": "Calma y consciencia.",
+      "achievements": {
+        "0": "Silencio",
+        "1": "Respiración",
+        "2": "Meditación",
+        "3": "Mindfulness",
+        "4": "Despertar Espiritual",
+        "5": "Iluminación",
+        "6": "Trascendencia",
+        "7": "Nirvana"
+      }
+    },
+    "finanzas": {
+      "label": "Riqueza",
+      "desc": "Libertad de recursos.",
+      "achievements": {
+        "0": "Ahorro",
+        "1": "Primer Ingreso",
+        "2": "Estabilidad",
+        "3": "Inversor",
+        "4": "Libertad Financiera",
+        "5": "Magnate",
+        "6": "Imperio",
+        "7": "Dueño del Banco"
+      }
+    },
+    "creatividad": {
+      "label": "Creatividad",
+      "desc": "Visión e innovación.",
+      "achievements": {
+        "0": "Doodle",
+        "1": "Idea",
+        "2": "Sketch",
+        "3": "Artist",
+        "4": "Innovator",
+        "5": "Visionary",
+        "6": "World Creator",
+        "7": "Demiurge"
+      }
+    },
+    "orden": {
+      "label": "Sistema",
+      "desc": "Control y estructura.",
+      "achievements": {
+        "0": "Cama Hecha",
+        "1": "Rutina",
+        "2": "Agenda",
+        "3": "Sistema",
+        "4": "Eficiencia",
+        "5": "Automatización",
+        "6": "Reloj Suizo",
+        "7": "Entropía Cero"
+      }
+    },
+    "liderazgo": {
+      "label": "Liderazgo",
+      "desc": "Guiar a otros.",
+      "achievements": {
+        "0": "Iniciativa",
+        "1": "Voz",
+        "2": "Guía",
+        "3": "Capitán",
+        "4": "Comandante",
+        "5": "General",
+        "6": "Rey",
+        "7": "Emperador"
+      }
+    },
+    "resiliencia": {
+      "label": "Temple",
+      "desc": "Invencibilidad.",
+      "achievements": {
+        "0": "Aguante",
+        "1": "Dureza",
+        "2": "Escudo",
+        "3": "Rebote",
+        "4": "Antifrágil",
+        "5": "Inmortal",
+        "6": "Fénix",
+        "7": "Indestructible"
+      }
+    },
+    "vitalidad": {
+      "label": "Energía",
+      "desc": "Motor de vida.",
+      "achievements": {
+        "0": "Chispa",
+        "1": "Batería",
+        "2": "Energía",
+        "3": "Vigor",
+        "4": "Alto Voltaje",
+        "5": "Reactor",
+        "6": "Sol",
+        "7": "Supernova"
+      }
+    },
+    "estilo": {
+      "label": "Estética",
+      "desc": "Arte de vivir.",
+      "achievements": {
+        "0": "Básico",
+        "1": "Combinado",
+        "2": "Buen Gusto",
+        "3": "Elegante",
+        "4": "Trendsetter",
+        "5": "Icono",
+        "6": "Vanguardia",
+        "7": "Perfección Áurea"
+      }
+    }
   },
   "dock": {
-      "newMission": "Nueva Misión",
-      "singleTask": "Tarea Única",
-      "habit": "Hábito",
-      "focus": "Enfoque",
-      "strategy": "Estrategia",
-      "fame": "Fama",
-      "store": "Tienda"
+    "newMission": "Nueva Misión",
+    "singleTask": "Tarea Única",
+    "habit": "Hábito",
+    "focus": "Enfoque",
+    "strategy": "Estrategia",
+    "fame": "Fama",
+    "store": "Tienda"
   },
   "habits": {
     "objectiveMet": "Objetivo Cumplido",
@@ -1069,10 +1403,10 @@
     "deleteAction": "Eliminar Hábito",
     "deleteTitle": "¿Eliminar Hábito?",
     "identifyEnemy": "Identificar Enemigo",
-     "dailyProtocol": "Protocolo Diario",
-     "target": "Objetivo",
-     "hpRisk": "Riesgo de HP",
-     "dailyProtocols": "Protocolos Diarios",
+    "dailyProtocol": "Protocolo Diario",
+    "target": "Objetivo",
+    "hpRisk": "Riesgo de HP",
+    "dailyProtocols": "Protocolos Diarios",
     "noProject": "Sin Proyecto",
     "groupingNone": "Sin División",
     "groupingByTrait": "Por Rasgo",
@@ -1113,12 +1447,21 @@
       "all": "TODOS",
       "esenciales": "Esenciales",
       "salud": "Salud",
+      "mente": "Mente",
+      "cuerpo": "Cuerpo",
+      "creatividad": "Creatividad",
+      "rutina": "Rutina",
+      "amor": "Amor",
+      "espiritualidad": "Espiritualidad",
       "productividad": "Productividad",
       "finanzas": "Finanzas",
       "tecnología": "Tecnología",
       "educación": "Educación",
       "hogar": "Hogar",
+      "comida": "Comida",
       "viajes": "Viajes",
+      "naturaleza": "Naturaleza",
+      "deportes": "Deportes",
       "social": "Social",
       "rojos": "Rojos",
       "rosas": "Rosas",
@@ -1130,7 +1473,13 @@
       "azules": "Azules",
       "violetas": "Violetas",
       "grises": "Grises"
-    }
+    },
+    "specificDays": "Días Específicos",
+    "flexibleCount": "Cantidad Flexible",
+    "timesPerWeek": "Veces por semana",
+    "specificDates": "Fechas Específicas",
+    "lastDayOfMonth": "Último día del mes",
+    "timesPerMonth": "Veces por mes"
   },
   "badHabits": {
     "tags": {
@@ -1237,11 +1586,13 @@
     "deleteTitle": "¿Eliminar Proyecto?",
     "specificDays": "Días Específicos",
     "editProject": "Editar Proyecto",
-    "newProject": "Nuevo Proyecto"
+    "newProject": "Nuevo Proyecto",
+    "viewByProject": "Por Proyecto",
+    "viewByTrait": "Por Rasgo",
+    "viewNone": "Sin División"
   },
   "smartTasks": {
     "addAnotherTask": "Añade otra tarea",
     "createNewBlock": "Crear Nuevo Bloque"
   }
 }
-

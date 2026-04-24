@@ -71,7 +71,13 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Users Policy
 CREATE POLICY "Users can read own data" ON public.users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own data" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own data" ON public.users 
+  FOR UPDATE USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id AND 
+    plan = (SELECT plan FROM public.users WHERE id = auth.uid()) AND
+    es_pro = (SELECT es_pro FROM public.users WHERE id = auth.uid())
+  );
 CREATE POLICY "Users can insert own data" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Projects Policy
@@ -99,8 +105,8 @@ BEGIN
     new.email, 
     new.raw_user_meta_data->>'display_name',
     new.raw_user_meta_data->>'avatar_url',
-    'PRO',
-    TRUE
+    'FREE',
+    FALSE
   );
   RETURN new;
 END;

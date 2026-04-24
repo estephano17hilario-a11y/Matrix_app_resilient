@@ -104,7 +104,7 @@ export interface UserProfile {
   };
 
   // Trait History
-  archivedTraits?: Record<string, { level: number, xp: number, maxXp: number }>;
+  archivedTraits?: Record<string, { level: number, xp: number, maxXp: number, label?: string, color?: string, iconName?: string }>;
 
   // Onboarding Data
   onboarding?: {

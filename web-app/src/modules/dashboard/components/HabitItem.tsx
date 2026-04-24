@@ -97,33 +97,41 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         item.id === itemId ? { ...item, completed: !currentStatus } : item
     );
     
-    // Auto-completion logic
-    const visibleItems = newChecklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today));
-    const allCompleted = visibleItems.length > 0 && visibleItems.every(item => item.completed);
-    
     onUpdate(habit.id, { checklist: newChecklist });
-
-    // Prepare updated habit for atomic completion
-    const updatedHabit = { ...habit, checklist: newChecklist };
-
-    // If all items are completed and habit is not, complete it.
-    if (allCompleted && !isCompletedToday) {
-        onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
-    } 
-    // If habit is completed but not all items are checked, uncomplete it.
-    else if (!allCompleted && isCompletedToday) {
-         onComplete({ stopPropagation: () => {} } as React.MouseEvent, updatedHabit);
-    }
   };
 
   // Helper for time display
   const getTimeDisplay = () => {
+    if (habit.type === 'QUANTITY' && habit.isDivided) {
+        if (habit.dividedMode === 'FIXED' && habit.dividedTimes && habit.dividedTimes.length > 0) {
+            const times = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
+            let accumulated = 0;
+            let nextTime = null;
+            for (const t of times) {
+                accumulated += t.amount;
+                if ((habit.currentValue || 0) < accumulated) {
+                    nextTime = t.time;
+                    break;
+                }
+            }
+            if (nextTime && !habit.completedToday) {
+                return `Próx: ${nextTime}`;
+            }
+        } else if (habit.nextInstanceTime) {
+            const nextDate = new Date(habit.nextInstanceTime);
+            const today = new Date();
+            if (nextDate.getDate() === today.getDate() && nextDate.getMonth() === today.getMonth()) {
+                const hours = nextDate.getHours().toString().padStart(2, '0');
+                const minutes = nextDate.getMinutes().toString().padStart(2, '0');
+                return `Próx: ${hours}:${minutes}`;
+            }
+        }
+    }
     if (!habit.reminderTime) return null;
-    // Format simple time string if needed, or just return as is
     return habit.reminderTime;
   };
 
-  const timeDisplay = React.useMemo(() => getTimeDisplay(), [habit.reminderTime]);
+  const timeDisplay = React.useMemo(() => getTimeDisplay(), [habit.reminderTime, habit.nextInstanceTime, habit.isDivided, habit.type]);
 
   // Removed containIntrinsicSize to fix dynamic height issues
   const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto' };
@@ -422,6 +430,74 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                             ))}
                         </div>
                     )}
+
+                    {/* 4.5. Fixed Times (If Quantity + Divided + Fixed) */}
+                    {habit.type === 'QUANTITY' && habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && viewPreference !== 'CHRONOLOGICAL' && (
+                        <div className="pt-2 border-t border-white/5 space-y-1">
+                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Horarios Programados</span>
+                            {[...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time)).map((item, index) => {
+                                const times = [...habit.dividedTimes!].sort((a, b) => a.time.localeCompare(b.time));
+                                let accumulated = 0;
+                                for (let i = 0; i <= index; i++) {
+                                    accumulated += times[i].amount;
+                                }
+                                const isItemCompleted = (habit.currentValue || 0) >= accumulated || habit.completedToday;
+                                
+                                return (
+                                    <div 
+                                        key={item.id} 
+                                        className="flex items-center justify-between group/item p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!onUpdate) return;
+                                            
+                                            // Si está completado, al hacer click le restamos su cantidad (lo desmarcamos)
+                                            // Si no está completado, le sumamos su cantidad (lo marcamos)
+                                            // Pero para mantener consistencia, simplemente vamos al valor acumulado o al anterior.
+                                            // Es mejor simplemente: si está completado, bajamos a (accumulated - amount). 
+                                            // Si no está completado, subimos a (accumulated).
+                                            if (isItemCompleted) {
+                                                const newValue = Math.max(0, accumulated - item.amount);
+                                                onUpdate(habit.id, { currentValue: newValue });
+                                            } else {
+                                                const newValue = accumulated;
+                                                onUpdate(habit.id, { currentValue: newValue });
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className={cn(
+                                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                                    isItemCompleted 
+                                                        ? "border-transparent text-white"
+                                                        : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                                                )}
+                                                style={{
+                                                    backgroundColor: isItemCompleted ? baseColor : undefined,
+                                                    borderColor: isItemCompleted ? 'transparent' : baseColor
+                                                }}
+                                            >
+                                                {isItemCompleted && <Check size={12} strokeWidth={3} />}
+                                            </div>
+                                            <span className={cn(
+                                                "text-sm transition-colors font-medium flex items-center gap-2",
+                                                isItemCompleted ? "text-white/30 line-through" : "text-white/80"
+                                            )}>
+                                                <span>{item.time}</span>
+                                                <span className={cn(
+                                                    "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                                    isItemCompleted ? "bg-white/5 text-white/30" : "bg-emerald-400/10 text-emerald-400"
+                                                )}>
+                                                    +{item.amount} {habit.unit}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </motion.div>
           )}
@@ -479,7 +555,6 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             isOpen={isChecklistModalOpen}
             onClose={() => setIsChecklistModalOpen(false)}
             onUpdate={onUpdate}
-            onComplete={onComplete}
         />
     )}
     </>
