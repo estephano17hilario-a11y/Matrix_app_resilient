@@ -48,7 +48,7 @@ export const StatsHeader = React.memo(({
              {/* Avatar Widget - MOVED FIRST */}
             <div 
                 id="profile-avatar-target"
-                className={`transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 w-full ${shouldShowAvatar ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 h-0 overflow-hidden'}`}
+                className={`transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 w-full ${shouldShowAvatar ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 h-0 overflow-hidden'}`}
             >
                 {shouldShowAvatar && (
                   <div onClick={(e) => {
@@ -91,7 +91,7 @@ export const StatsHeader = React.memo(({
         {/* RIGHT ACTIONS */}
         <div className={`flex items-center gap-1 sm:gap-3 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Sync Indicator */}
-             <div className={`transition-all duration-500 flex items-center justify-center ${isSyncing ? 'opacity-100 w-5' : 'opacity-0 w-0 overflow-hidden'}`}>
+             <div className={`transition-all duration-200 flex items-center justify-center ${isSyncing ? 'opacity-100 w-5' : 'opacity-0 w-0 overflow-hidden'}`}>
                 <RefreshCw size={14} className="text-emerald-400 animate-spin" />
              </div>
              

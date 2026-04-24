@@ -135,7 +135,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
                             className="w-full max-w-[340px] pointer-events-auto"
                         >
                             <div className="relative overflow-hidden rounded-[28px] bg-[#0A0A0A]/95 border border-white/10 shadow-md">
@@ -174,7 +174,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                                 x: Math.cos(angle * Math.PI / 180) * dist,
                                                                 y: Math.sin(angle * Math.PI / 180) * dist,
                                                             }}
-                                                            transition={{ duration: 0.8, ease: "easeOut" }}
+                                                            transition={{ duration: 0.25, ease: "easeOut" }}
                                                             className="absolute w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]"
                                                         />
                                                     );
@@ -185,7 +185,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                             <motion.div 
                                                 initial={{ scale: 0, rotate: -20, y: 20 }}
                                                 animate={{ scale: [0, 1.3, 1], rotate: [ -20, 10, 0 ], y: 0 }}
-                                                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                                transition={{ type: "spring", stiffness: 450, damping: 15 }}
                                                 className="relative z-10 w-24 h-24 flex items-center justify-center"
                                             >
                                                 <div 
@@ -263,7 +263,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                             <motion.div
                                                                 initial={day.isToday && allCompleted ? { scale: 0, rotate: -180 } : { scale: 1 }}
                                                                 animate={day.isToday && allCompleted ? { scale: [0, 1.2, 1], rotate: 0 } : { scale: 1 }}
-                                                                transition={{ type: "spring", delay: day.isToday && allCompleted ? 0.6 : 0, duration: 0.6 }}
+                                                                transition={{ type: "spring", delay: day.isToday && allCompleted ? 0.6 : 0, duration: 0.2 }}
                                                                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.4)]"
                                                             >
                                                                 <Flame size={14} className="text-white drop-shadow-md" fill="currentColor" />
@@ -307,7 +307,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                             transition={{ delay: i * 0.1 }}
                                                             key={req.id}
                                                             onClick={() => !isDone && handleNavigate(req.view)}
-                                                            className={`group relative flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-300 overflow-hidden ${
+                                                            className={`group relative flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 overflow-hidden ${
                                                                 isDone 
                                                                     ? `bg-white/5 border-white/10 ${req.glow}` 
                                                                     : "bg-black/20 border-white/5 opacity-80 hover:opacity-100 hover:bg-white/5 cursor-pointer active:scale-95"
@@ -319,7 +319,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                             )}
 
                                                             {/* Icon Box */}
-                                                            <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center border transition-colors duration-300 ${
+                                                            <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center border transition-colors duration-200 ${
                                                                 isDone ? `${req.bg} ${req.border} ${req.color}` : "bg-white/5 border-white/5 text-white/20"
                                                             }`}>
                                                                 <req.icon size={16} strokeWidth={isDone ? 2.5 : 2} />
@@ -334,7 +334,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                                 <div className="flex items-center gap-2 mt-0.5">
                                                                     <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden max-w-[60px]">
                                                                         <div 
-                                                                            className={`h-full rounded-full transition-all duration-500 ${isDone ? "bg-white" : "bg-white/30"}`}
+                                                                            className={`h-full rounded-full transition-all duration-200 ${isDone ? "bg-white" : "bg-white/30"}`}
                                                                             style={{ width: `${Math.min(100, (req.current / req.target) * 100)}%` }}
                                                                         />
                                                                     </div>
@@ -345,7 +345,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                             </div>
 
                                                             {/* Check Status */}
-                                                            <div className={`relative z-10 transition-all duration-500 ${
+                                                            <div className={`relative z-10 transition-all duration-200 ${
                                                                 isDone ? req.color : "text-white/10"
                                                             }`}>
                                                                 {isDone ? (

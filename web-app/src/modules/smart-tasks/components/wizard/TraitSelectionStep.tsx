@@ -20,7 +20,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
         className="w-full flex flex-col items-center"
     >
         <div className="space-y-2 mb-8 flex-shrink-0 text-center">
@@ -41,7 +41,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                             type="button"
                             onClick={() => onSelect(trait.id)}
                             className={cn(
-                                "flex flex-col items-center justify-start pt-4 pb-3 px-2 gap-2 rounded-2xl transition-all duration-300 relative overflow-hidden group min-h-[100px]",
+                                "flex flex-col items-center justify-start pt-4 pb-3 px-2 gap-2 rounded-2xl transition-all duration-200 relative overflow-hidden group min-h-[100px]",
                                 isSelected ? "bg-[#1a1a1a] ring-1 ring-white/20 scale-[1.02]" : "bg-[#0f0f0f] border border-white/5 hover:bg-[#1a1a1a] opacity-90 hover:opacity-100"
                             )}
                             style={{
@@ -49,7 +49,7 @@ export const TraitSelectionStep: React.FC<TraitSelectionStepProps> = ({ traits, 
                             }}
                         >
                             <div 
-                                className={cn("absolute inset-0 opacity-0 transition-opacity duration-300", isSelected ? "opacity-10" : "group-hover:opacity-5")}
+                                className={cn("absolute inset-0 opacity-0 transition-opacity duration-200", isSelected ? "opacity-10" : "group-hover:opacity-5")}
                                 style={{ backgroundColor: trait.color }}
                             />
                             

@@ -27,7 +27,7 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
         <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onClick}
-            className="relative rounded-full overflow-hidden flex items-center justify-center border transition-colors duration-300"
+            className="relative rounded-full overflow-hidden flex items-center justify-center border transition-colors duration-200"
             style={{
                 width: size,
                 height: size,
@@ -42,7 +42,7 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
                     className="absolute inset-0 w-full h-full origin-bottom"
                     initial={{ y: "100%" }}
                     animate={{ y: `${100 - p}%` }}
-                    transition={{ type: "spring", stiffness: 60, damping: 15, mass: 1 }}
+                    transition={{ type: "spring", stiffness: 60, damping: 15, mass: 0.8 }}
                     style={{ backgroundColor: color, willChange: 'transform' }}
                 >
                     {/* Wave Animation - Optimized to Single Layer for Performance */}
@@ -74,7 +74,7 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
                     scale: isCompleted ? 1 : 0.5,
                     rotate: isCompleted ? 0 : -45
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ type: "spring", stiffness: 450, damping: 20 }}
                 className="relative z-10"
             >
                 <Check size={size * 0.5} className="text-white drop-shadow-md" strokeWidth={3} />

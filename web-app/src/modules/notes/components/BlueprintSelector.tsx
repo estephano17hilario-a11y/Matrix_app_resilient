@@ -150,7 +150,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                                 <motion.div
                                     whileHover={{ y: -5, scale: 1.02 }}
                                     onClick={handleStartCreating}
-                                    className="group relative aspect-[3/4] rounded-xl border border-white/10 border-dashed bg-white/5 hover:bg-white/10 p-4 cursor-pointer overflow-hidden transition-all duration-300 flex flex-col items-center justify-center text-center"
+                                    className="group relative aspect-[3/4] rounded-xl border border-white/10 border-dashed bg-white/5 hover:bg-white/10 p-4 cursor-pointer overflow-hidden transition-all duration-200 flex flex-col items-center justify-center text-center"
                                 >
                                     <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-indigo-500/20 transition-colors mb-4">
                                         <Plus size={24} />
@@ -164,7 +164,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                                         key={bp.id}
                                         whileHover={{ y: -5, scale: 1.02 }}
                                         onClick={() => handleSelect(bp)}
-                                        className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 cursor-pointer overflow-hidden transition-colors duration-300 hover:shadow-sm hover:border-white/20`}
+                                        className={`group relative aspect-[3/4] rounded-xl border border-white/10 bg-[#1a1a1a] p-4 cursor-pointer overflow-hidden transition-colors duration-200 hover:shadow-sm hover:border-white/20`}
                                     >
                                         {/* Hover Glow Effect using accentColor */}
                                         <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${bp.accentColor}`} />

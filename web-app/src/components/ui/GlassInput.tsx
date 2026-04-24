@@ -22,7 +22,7 @@ export const GlassInput: React.FC<GlassInputProps> = ({
       <input
         className={cn(
           // BASE: Sin bordes sólidos, fondo sutil
-          "w-full bg-white/5 rounded-xl py-3 text-white text-sm placeholder:text-white/20 transition-all duration-300",
+          "w-full bg-white/5 rounded-xl py-3 text-white text-sm placeholder:text-white/20 transition-all duration-200",
           "border border-transparent", // Explicitly transparent border to prevent layout shift if we add one later
           
           // HOVER (Desktop only)

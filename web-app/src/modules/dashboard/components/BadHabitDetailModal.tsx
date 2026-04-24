@@ -84,7 +84,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  initial={{ y: "100%", opacity: 0 }}
  animate={{ y: 0, opacity: 1 }}
  exit={{ y: "100%", opacity: 0 }}
- transition={{ type: "spring", damping: 25, stiffness: 300 }}
+ transition={{ type: "spring", damping: 25, stiffness: 450 }}
  className="relative w-full max-w-md bg-[#0b0b0d] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-md overflow-hidden"
  >
  {/* Background Effects */}

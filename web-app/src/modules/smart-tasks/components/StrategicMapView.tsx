@@ -405,13 +405,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = React.memo(({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         className="space-y-10"
                     >
                         {/* ACTIVE CONTEXT HEADER (Apple Event Style) */}
                         <div className="text-center relative">
                             <div 
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] rounded-full pointer-events-none transition-colors duration-700 opacity-50"
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] rounded-full pointer-events-none transition-colors duration-200 opacity-50"
                                 style={{ background: `radial-gradient(circle, ${traitColor} 0%, transparent 60%)` }} 
                             />
                             

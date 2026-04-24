@@ -18,18 +18,18 @@ interface BadHabitWizardProps {
 const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
 const AmbientBackground = ({ isIntelligent }: { isIntelligent?: boolean }) => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-1000">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-200">
         {!isIntelligent ? (
             <>
-                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.12)_0%,_transparent_50%)] transition-opacity duration-1000" />
-                <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.12)_0%,_transparent_50%)] transition-opacity duration-1000" />
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_0%_0%,_rgba(99,102,241,0.12)_0%,_transparent_50%)] transition-opacity duration-200" />
+                <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,_rgba(244,63,94,0.12)_0%,_transparent_50%)] transition-opacity duration-200" />
             </>
         ) : (
             <motion.div 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }}
-                transition={{ duration: 1.5 }}
+                transition={{ duration: 0.15 }}
                 className="absolute inset-0"
             >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.12)_0%,_rgba(15,23,42,0)_80%)] animate-pulse" style={{ animationDuration: '6s' }} />
@@ -45,7 +45,7 @@ const AmbientBackground = ({ isIntelligent }: { isIntelligent?: boolean }) => (
     </div>
 );
 
-const springConfig = { type: "spring" as const, stiffness: 400, damping: 30, mass: 1 };
+const springConfig = { type: "spring" as const, stiffness: 400, damping: 25, mass: 0.8 };
 const slideVariants = {
     enter: (direction: number) => ({
         x: direction > 0 ? 15 : -15,
@@ -288,7 +288,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                 <div className="h-1 bg-white/[0.04] rounded-full overflow-hidden flex">
                                     <motion.div
                                         animate={{ width: `${(step / getStepCount()) * 100}%` }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        transition={{ type: "spring", stiffness: 450, damping: 25 }}
                                         className="h-full bg-gradient-to-r from-indigo-500 to-rose-500"
                                     />
                                 </div>
@@ -502,11 +502,11 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             initial={{ opacity: 0, scale: 0.95 }}
                                                             animate={{ opacity: 1, scale: 1 }}
                                                             exit={{ opacity: 0, scale: 0.95 }}
-                                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                            transition={{ duration: 0.15, ease: "easeInOut" }}
                                                             className="overflow-hidden"
                                                         >
                                                             <div className="p-4 rounded-xl bg-gradient-to-br from-violet-900/30 to-indigo-900/30 border border-violet-500/20 mb-3 relative overflow-hidden group">
-                                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                                                                 <h4 className="text-[13px] font-bold text-violet-200 mb-2 flex items-center gap-2">
                                                                     <Sparkles size={14} className="text-violet-400 animate-pulse" />
                                                                     {t('badHabits.wizard.whatIsIntelligentStreak', '¿Qué es la Racha Inteligente?')}
@@ -530,7 +530,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setIntelligentStreak(!intelligentStreak)}
-                                                    className={`w-full p-4 rounded-2xl border transition-all duration-300 text-left ${
+                                                    className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left ${
                                                         intelligentStreak
                                                             ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'
                                                             : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
@@ -550,10 +550,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div className={`w-11 h-6 rounded-full p-0.5 transition-all duration-300 ${intelligentStreak ? 'bg-violet-500' : 'bg-white/10'}`}>
+                                                        <div className={`w-11 h-6 rounded-full p-0.5 transition-all duration-200 ${intelligentStreak ? 'bg-violet-500' : 'bg-white/10'}`}>
                                                             <motion.div
                                                                 animate={{ x: intelligentStreak ? 20 : 0 }}
-                                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
                                                                 className="w-5 h-5 rounded-full bg-white shadow-md"
                                                             />
                                                         </div>
@@ -733,8 +733,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             transition={springConfig}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
-                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
-                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-700 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
+                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
+                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
                                                     {intelligentStreak ? (
                                                         <Sparkles size={28} className="text-violet-300" />
                                                     ) : (

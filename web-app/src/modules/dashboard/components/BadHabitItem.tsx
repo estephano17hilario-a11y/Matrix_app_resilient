@@ -117,7 +117,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 <motion.div
                                     
                                     animate={{ width: `${progress}%` }}
-                                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
                                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 rounded-full shadow-[0_0_12px_rgba(217,70,239,0.6)]"
                                 />
                                 {isOpportunityDay && (
@@ -132,7 +132,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     return (
                                         <div
                                             key={target}
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                                            className={`h-1.5 rounded-full transition-all duration-200 ${
                                                 isPastTarget
                                                     ? 'w-4 bg-emerald-500/60'
                                                     : isCurrentTarget
@@ -196,7 +196,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                             }`}
                             title={isIntelligent ? "Usar día de oportunidad (no rompe racha)" : "Cortar racha (Relapso)"}
                         >
-                            <Scissors size={18} className="group-hover/cut:rotate-90 transition-transform duration-300" />
+                            <Scissors size={18} className="group-hover/cut:rotate-90 transition-transform duration-200" />
                         </button>
                     )}
                     {onShowActions && (

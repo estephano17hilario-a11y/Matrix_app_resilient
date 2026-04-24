@@ -28,7 +28,7 @@ export function SelectionButton({
       whileTap={{ scale: 0.98 }}
       onClick={handleClick}
       className={twMerge(
-        "w-full text-left p-5 rounded-3xl transition-all duration-500 border relative overflow-hidden group",
+        "w-full text-left p-5 rounded-3xl transition-all duration-200 border relative overflow-hidden group",
         selected 
           ? "bg-gradient-to-br from-white/10 to-white/5 border-white/40 shadow-[0_0_30px_rgba(255,255,255,0.15)] ai-border-glow scale-[1.02]" 
           : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:scale-[1.01]",
@@ -39,7 +39,7 @@ export function SelectionButton({
       <div className="flex items-center gap-5 relative z-10">
         {icon && (
           <div className={twMerge(
-            "p-3 rounded-2xl transition-colors duration-500",
+            "p-3 rounded-2xl transition-colors duration-200",
             selected ? "bg-white text-black shadow-lg shadow-white/20" : "bg-white/5 text-white/70 group-hover:text-white group-hover:bg-white/10"
           )}>
             {icon}
@@ -64,7 +64,7 @@ export function SelectionButton({
         
         {/* Selection Indicator - More Visible */}
         <div className={twMerge(
-          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500 shrink-0",
+          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 shrink-0",
           selected 
             ? "bg-white border-white scale-100 opacity-100 shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
             : "border-white/10 scale-90 opacity-0 group-hover:opacity-30"

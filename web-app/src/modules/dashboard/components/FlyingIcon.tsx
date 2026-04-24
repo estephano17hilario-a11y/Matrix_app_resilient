@@ -53,7 +53,7 @@ const FlyingIconComponent: React.FC<FlyingIconProps> = ({ startRect, targetId, i
         top: targetPos.y,
       }}
       transition={{ 
-        duration: 1.0, 
+        duration: 0.15, 
         ease: "easeInOut",
         delay: delay,
         times: [0, 0.2, 0.8, 1]

@@ -192,11 +192,11 @@ export const QuestModal = React.memo(({
                         initial={{ scale: 0.95, opacity: 0, y: 10 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className="relative z-10 w-full max-w-[360px]"
                     >
                         <div 
-                            className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative transition-all duration-300" 
+                            className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative transition-all duration-200" 
                             style={{
                                 background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
                                 border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
@@ -209,7 +209,7 @@ export const QuestModal = React.memo(({
                     {/* Header */}
                     <div className="flex justify-between items-center mb-1 px-1 shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: attrId ? activeColor : '#333' }}>
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-200" style={{ background: attrId ? activeColor : '#333' }}>
                                 <Crosshair size={16} className="text-white" />
                             </div>
                             <div className="flex-1">
@@ -386,14 +386,14 @@ export const QuestModal = React.memo(({
                                     <button
                                         key={diff.id}
                                         onClick={() => setDifficulty(diff.id)}
-                                        className="relative flex-1 h-8 flex items-center justify-center rounded-[1rem] transition-all duration-300 z-10"
+                                        className="relative flex-1 h-8 flex items-center justify-center rounded-[1rem] transition-all duration-200 z-10"
                                     >
                                         {isSelected && (
                                             <div
                                                 className="absolute inset-0 bg-white/10 shadow-lg rounded-[1rem] border border-white/5"
                                             />
                                         )}
-                                        <div className={`flex items-center gap-1.5 ${isSelected ? 'scale-105' : 'opacity-50 scale-95'} transition-all duration-300`}>
+                                        <div className={`flex items-center gap-1.5 ${isSelected ? 'scale-105' : 'opacity-50 scale-95'} transition-all duration-200`}>
                                             <DiffIcon size={10} className={diff.color} fill={isSelected ? "currentColor" : "none"} />
                                             <span className={`text-[9px] font-bold uppercase tracking-wide ${diff.color}`}>
                                                 {diff.label}

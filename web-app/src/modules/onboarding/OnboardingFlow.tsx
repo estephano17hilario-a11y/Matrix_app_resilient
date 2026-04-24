@@ -242,8 +242,8 @@ export function OnboardingFlow() {
                 className="absolute top-0 left-0 right-0 flex justify-center gap-2 py-10 z-[60] pointer-events-none"
               >
                   {/* Visual Steps: Avatar -> Traits */}
-                  <div className={`h-1.5 w-16 rounded-full transition-all duration-500 ${!isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
-                  <div className={`h-1.5 w-16 rounded-full transition-all duration-500 ${isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${!isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
               </motion.div>
           )}
         </AnimatePresence>
@@ -350,7 +350,7 @@ export function OnboardingFlow() {
                                         }}
                                         disabled={isMaxReached && !isSelected}
                                         className={`
-                                            relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 transition-all duration-300 group cursor-pointer
+                                            relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 transition-all duration-200 group cursor-pointer
                                             border
                                             ${isSelected 
                                                 ? 'shadow-lg border-opacity-100' 
@@ -369,7 +369,7 @@ export function OnboardingFlow() {
                                       )}
 
                                       <div 
-                                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-transform duration-300 group-hover:scale-110"
+                                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-transform duration-200 group-hover:scale-110"
                                           style={{ 
                                               backgroundColor: isSelected ? trait.color : 'rgba(255,255,255,0.05)',
                                               color: isSelected ? '#fff' : trait.color,
@@ -412,12 +412,12 @@ export function OnboardingFlow() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
-                      transition={{ type: 'spring', stiffness: 300 }}
+                      transition={{ type: 'spring', stiffness: 450 }}
                       className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center"
                     >
                       <motion.div
                         animate={{ y: [0, 6, 0], opacity: [0.8, 1, 0.8] }}
-                        transition={{ duration: 1.6, repeat: Infinity, type: 'spring', stiffness: 300 }}
+                        transition={{ duration: 0.15, repeat: Infinity, type: 'spring', stiffness: 450 }}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/10 shadow-sm"
                       >
                         <ChevronDown size={16} className="text-white/80" />
@@ -464,7 +464,7 @@ export function OnboardingFlow() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-[9999] pointer-events-none bg-gradient-to-t from-black/80 to-transparent"
             >
               <motion.button
@@ -486,7 +486,7 @@ export function OnboardingFlow() {
               >
                 {/* Glow Effect - Optimized */}
                 {selectedTraits.length >= 3 && (
-                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-1000 group-hover:translate-x-[100%]" />
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-200 group-hover:translate-x-[100%]" />
                 )}
                 
                 <span>

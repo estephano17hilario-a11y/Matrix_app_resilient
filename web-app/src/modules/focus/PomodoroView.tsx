@@ -185,7 +185,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  if (typeof document === 'undefined') return null;
 
  return createPortal(
- <div className="fixed inset-0 z-[9999] bg-[#020204] flex flex-col animate-in fade-in duration-300 overflow-hidden touch-none select-none overscroll-none" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh' }}>
+ <div className="fixed inset-0 z-[9999] bg-[#020204] flex flex-col animate-in fade-in duration-200 overflow-hidden touch-none select-none overscroll-none" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh' }}>
  {/* Background Atmosphere - High Performance, No heavy blurs to avoid flickering */}
  <div 
  className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full pointer-events-none opacity-20"

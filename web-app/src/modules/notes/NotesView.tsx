@@ -600,7 +600,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex justify-center flex-[2]">
  {sectionControl === 'VISIBLE' && !showStats && (
  <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
- <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
+ <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
  subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
  }`} />
  <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.notes', 'Notes')}</button>
@@ -658,7 +658,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
  <button 
  onClick={openConfigModal}
- className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-300 text-white/60 hover:text-white shadow-sm"
+ className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-200 text-white/60 hover:text-white shadow-sm"
  title="Settings"
  >
  <Settings size={14} />
@@ -674,7 +674,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  initial={{  opacity: 0, marginBottom: 0 }}
  animate={{  opacity: 1, marginBottom: 24 }}
  exit={{  opacity: 0, marginBottom: 0 }}
- transition={{ type: "spring", stiffness: 300, damping: 25 }}
+ transition={{ type: "spring", stiffness: 450, damping: 25 }}
  className="overflow-hidden px-4 relative z-10"
  >
  <div className="bg-[#0a0a0a]/80 backdrop-blur-sm transform-gpu backface-hidden border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
@@ -713,7 +713,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </AnimatePresence>
 
  {subView === 'NOTES' && (
- <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-24 animate-in slide-in-from-left-4 fade-in duration-500 px-4">
+ <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
  <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
@@ -735,7 +735,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {/* Notes List */}
  {noteCards.map(({ note, themeColor, project, previewText, updatedLabel }) => (
  <div key={note.id} onClick={() => openNote(note)} className="w-full min-h-[140px] max-h-[300px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40 mb-4 break-inside-avoid">
- <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-500" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
+ <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-200" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
  <div className="relative z-10 flex flex-col h-full">
  {project && <div className="inline-flex self-start items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
  <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || 'Untitled'}</h3>
@@ -763,7 +763,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  )}
  {subView === 'JOURNAL' && (
- <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-500">
+ <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-200">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
  <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
@@ -794,7 +794,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {journalViewMode === 'CALENDAR' ? (
  <>
  <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((d: string, i: number) => <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>)}</div>
- <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-300">
+ <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-200">
  {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
  {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {
  // Fix: Check if mood exists to apply color to border/bg
@@ -837,7 +837,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex-1 flex flex-col items-center justify-center z-10 w-full relative gap-1">
  {specialEvent ? (
  <div 
- className="text-2xl hover:scale-110 transition-transform duration-300 drop-shadow-md"
+ className="text-2xl hover:scale-110 transition-transform duration-200 drop-shadow-md"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </div>
@@ -845,14 +845,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {(!specialEvent && dayQuests && dayQuests.length > 0) ? (
  <div className="flex gap-1 flex-wrap justify-center">
  {dayQuests.map((q, i) => (
- <div key={q.id || i} className="hover:scale-110 transition-transform duration-300 drop-shadow-md" style={{ color: q.journalIconColor || '#3b82f6' }}>
+ <div key={q.id || i} className="hover:scale-110 transition-transform duration-200 drop-shadow-md" style={{ color: q.journalIconColor || '#3b82f6' }}>
  <ListTodo size={24} />
  </div>
  ))}
  </div>
  ) : null}
  {(!specialEvent && (!dayQuests || dayQuests.length === 0) && mood) ? (
- <span className="text-3xl group-hover:scale-110 transition-transform duration-300 drop-shadow-md">{mood.icon}</span>
+ <span className="text-3xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md">{mood.icon}</span>
  ) : (!specialEvent && (!dayQuests || dayQuests.length === 0) && isFuture) ? (
  <Lock size={16} className="text-white/20" />
  ) : null}
@@ -870,7 +870,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  </>
  ) : (
- <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-24 animate-in slide-in-from-right-8 duration-300">
+ <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-24 animate-in slide-in-from-right-8 duration-200">
  <div className="relative">
  {/* Notebook Binding Effect */}
  <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
@@ -903,13 +903,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
  {specialEvent ? (
  <span 
- className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-300 drop-shadow-md flex items-center justify-center"
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
  >
  {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
  </span>
  ) : (dayQuests && dayQuests.length > 0) ? (
  <span 
- className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-300 drop-shadow-md flex items-center justify-center"
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
  style={{ color: dayQuests[0].journalIconColor || '#3b82f6' }}
  >
  <ListTodo size={14} />
@@ -989,14 +989,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </AnimatePresence>
 
  <div 
- className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-98 translate-y-4 pointer-events-none'}`}
+ className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-98 translate-y-4 pointer-events-none'}`}
  style={{ willChange: 'transform, opacity', transform: 'translate3d(0,0,0)' }}
  >
  {editorMode !== 'NONE' && (
  <div className="w-full h-full max-w-2xl mx-auto flex flex-col p-4 sm:p-6">
- <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-md" style={{ willChange: 'transform, opacity' }}>
+ <div className="glass-editor rounded-[36px] flex-1 flex flex-col relative animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-md" style={{ willChange: 'transform, opacity' }}>
  <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
- <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-500" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
+ <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-200" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
  </div>
  
  <div className="flex justify-between items-center p-3 sm:p-6 border-b border-white/5 relative z-20 gap-2">
@@ -1014,7 +1014,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  <div className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
  {editorMode === 'NOTE' ? (
- <div className="animate-in slide-in-from-bottom-4 duration-500">
+ <div className="animate-in slide-in-from-bottom-4 duration-200">
  <div className="relative mb-6">
  {draftProjectId && (<div className="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-md bg-white/5 border border-white/5"><Briefcase size={10} className="text-slate-400"/><span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">{projects.find((p) => p.id === draftProjectId)?.title}</span></div>)}
  <input type="text" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder={t('notes.untitledPlaceholder')} className="w-full bg-transparent text-4xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight" />
@@ -1022,7 +1022,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
  </div>
  ) : (
- <div className="animate-in slide-in-from-bottom-4 duration-500">
+ <div className="animate-in slide-in-from-bottom-4 duration-200">
  <div className="text-center mb-8 relative z-10 flex flex-col items-center">
  {activeSpecialEvent && (
  <div 
@@ -1163,11 +1163,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {selectedMemory && typeof document !== 'undefined' && createPortal(
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
  <div 
- className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-300 ease-out animate-in fade-in"
+ className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
  onClick={() => setSelectedMemory(null)}
  />
  <div 
- className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+ className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
  >
  <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-pink-500/20 to-transparent rounded-t-[32px] pointer-events-none" />
  
@@ -1233,11 +1233,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {selectedQuest && typeof document !== 'undefined' && createPortal(
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
  <div 
- className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-300 ease-out animate-in fade-in"
+ className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
  onClick={() => setSelectedQuest(null)}
  />
  <div 
- className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+ className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 rounded-[32px] p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 animate-in zoom-in-95 fade-in duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
  >
  <div className="absolute top-0 left-0 right-0 h-32 rounded-t-[32px] pointer-events-none" style={{ background: `linear-gradient(to bottom, ${selectedQuest.journalIconColor || '#3b82f6'}33, transparent)` }} />
  

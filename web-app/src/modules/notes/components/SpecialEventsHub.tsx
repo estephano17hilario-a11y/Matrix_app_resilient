@@ -228,7 +228,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  onClick={() => handleEditEvent(event)}
- className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[32px] bg-[#111]/80 backdrop-blur-sm transform-gpu border border-white/5 p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-white/20"
+ className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[32px] bg-[#111]/80 backdrop-blur-sm transform-gpu border border-white/5 p-6 flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:border-white/20"
  style={{
    boxShadow: `0 8px 32px -8px ${EVENT_TYPES[event.type].color}20`,
  }}
@@ -250,19 +250,19 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  
  {/* Ambient Background Tint */}
  <div 
-   className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 pointer-events-none"
+   className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-200 pointer-events-none"
    style={{ backgroundColor: EVENT_TYPES[event.type].color }}
  />
 
  {/* Ambient light from bottom right (replaces the hard circle) */}
  <div 
-   className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-sm transform-gpu backface-hidden will-change-transform opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"
+   className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-sm transform-gpu backface-hidden will-change-transform opacity-20 group-hover:opacity-40 transition-opacity duration-200 pointer-events-none"
    style={{ backgroundColor: EVENT_TYPES[event.type].color }}
  />
  
  {/* Elegant top gradient light */}
  <div 
-   className="absolute top-0 left-0 right-0 h-1/2 opacity-10 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"
+   className="absolute top-0 left-0 right-0 h-1/2 opacity-10 group-hover:opacity-20 transition-opacity duration-200 pointer-events-none"
    style={{ background: `linear-gradient(to bottom, ${EVENT_TYPES[event.type].color}, transparent)` }}
  />
  

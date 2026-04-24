@@ -203,7 +203,7 @@ export const LineChart = React.memo(({
                                 return (
                                     <div
                                         key={idx}
-                                        className={`absolute w-2.5 h-2.5 rounded-full transition-all duration-300 pointer-events-none
+                                        className={`absolute w-2.5 h-2.5 rounded-full transition-all duration-200 pointer-events-none
                                             ${activeIndex === i ? 'scale-150 opacity-100' : 'opacity-0 group-hover:opacity-100'}
                                         `}
                                         style={{
@@ -221,7 +221,7 @@ export const LineChart = React.memo(({
                             
                             <div className="absolute bottom-[-24px] left-0 right-0 flex justify-center pointer-events-none">
                                 {(i % xTickInterval === 0) && (
-                                    <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                                    <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-200 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
                                 )}
                             </div>
                         </div>

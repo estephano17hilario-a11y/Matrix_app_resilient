@@ -83,12 +83,12 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
 
     return (
         <div
-            className="group relative rounded-[28px] border border-white/[0.05] bg-[#050505]/80 hover:bg-[#0a0a0a]/85 p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer hover:border-white/[0.1] active:scale-[0.98] transition-all duration-300 gpu-accelerated overflow-hidden"
+            className="group relative rounded-[28px] border border-white/[0.05] bg-[#050505]/80 hover:bg-[#0a0a0a]/85 p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.3),0_10px_15px_-3px_rgba(0,0,0,0.1)] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),inset_0_-1px_1px_rgba(0,0,0,0.4),0_5px_20px_rgba(0,0,0,0.4)] cursor-pointer hover:border-white/[0.1] active:scale-[0.98] transition-all duration-200 gpu-accelerated overflow-hidden"
             onClick={() => onClick?.(habit)}
         >
             {/* Radial Gradient Blur Background */}
             <div 
-                className="absolute top-0 right-0 w-48 h-48 opacity-[0.40] pointer-events-none group-hover:opacity-[0.50] transition-opacity duration-500" 
+                className="absolute top-0 right-0 w-48 h-48 opacity-[0.40] pointer-events-none group-hover:opacity-[0.50] transition-opacity duration-200" 
                 style={{ 
                     background: `radial-gradient(circle, ${accentColor} 0%, transparent 70%)`,
                     transform: 'translateZ(0)'
@@ -230,7 +230,7 @@ export const HabitVisualCard: React.FC<HabitVisualCardProps> = ({ habit, viewMod
                 </div>
                 <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
                     <div
-                        className="h-full rounded-full origin-left transition-transform duration-300 ease-out"
+                        className="h-full rounded-full origin-left transition-transform duration-200 ease-out"
                         style={{ 
                             backgroundColor: accentColor,
                             transform: `scaleX(${progress.percent / 100})`

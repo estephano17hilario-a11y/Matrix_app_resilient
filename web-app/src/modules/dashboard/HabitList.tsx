@@ -44,7 +44,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
 
         {/* DAILY PROTOCOL STATUS */}
         <GlassPanel className={`col-span-2 p-3 flex flex-row items-center justify-between bg-white/5 border-white/5 relative overflow-hidden group`}>
-           <div className={`absolute inset-0 opacity-20 transition-colors duration-500 ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+           <div className={`absolute inset-0 opacity-20 transition-colors duration-200 ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'}`} />
            
            <div className="flex flex-col relative z-10">
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{t('habits.dailyProtocol')}</span>
@@ -102,7 +102,7 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, attributes, onComp
                         </span>
                     </div>
                 )}
-                <div className={isOverLimit ? "opacity-50 grayscale transition-all duration-300 hover:opacity-80 hover:grayscale-0" : ""}>
+                <div className={isOverLimit ? "opacity-50 grayscale transition-all duration-200 hover:opacity-80 hover:grayscale-0" : ""}>
                     <HabitItem 
                         habit={habit} 
                         attribute={attributeMap.get(habit.attribute)} 

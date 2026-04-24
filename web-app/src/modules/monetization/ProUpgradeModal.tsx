@@ -136,7 +136,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- transition={{ duration: 0.3, ease: "easeInOut" }}
+ transition={{ duration: 0.15, ease: "easeInOut" }}
  className="absolute inset-0 bg-black"
  />
 
@@ -145,7 +145,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- transition={{ duration: 0.5, delay: 0.1 }}
+ transition={{ duration: 0.2, delay: 0.1 }}
  className="absolute inset-0 pointer-events-none "
  style={{
  background: 'radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15), transparent 50%), radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.1), transparent 50%)'
@@ -157,7 +157,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  initial={{ scale: 0.98, opacity: 0, y: 10 }}
  animate={{ scale: 1, opacity: 1, y: 0 }}
  exit={{ scale: 0.98, opacity: 0, y: 10 }}
- transition={{ type: "spring", damping: 30, stiffness: 400 }}
+ transition={{ type: "spring", damping: 25, stiffness: 400 }}
  className="relative w-full h-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 overflow-y-auto md:overflow-visible custom-scrollbar p-6 pt-24 md:p-12 md:pt-20 "
  >
  <button 
@@ -206,7 +206,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  onClose();
  }
  }}
- className="relative w-[90%] sm:w-[80%] md:w-auto mx-auto overflow-hidden rounded-full group shadow-[0_0_50px_rgba(168,85,247,0.6)] hover:shadow-[0_0_80px_rgba(168,85,247,0.9)] transition-shadow duration-300 border border-purple-500/50 bg-[#0a0014] "
+ className="relative w-[90%] sm:w-[80%] md:w-auto mx-auto overflow-hidden rounded-full group shadow-[0_0_50px_rgba(168,85,247,0.6)] hover:shadow-[0_0_80px_rgba(168,85,247,0.9)] transition-shadow duration-200 border border-purple-500/50 bg-[#0a0014] "
  >
  {/* Cosmos Inner Background */}
  <motion.div 
@@ -271,7 +271,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
  transition={{ delay: 0.3 + (index * 0.1) }}
- className={`p-5 md:p-6 rounded-[24px] bg-[#1a0f2e]/40 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 flex flex-row sm:flex-col items-center sm:items-start gap-4 text-left shadow-lg ${feature.shadow} `}
+ className={`p-5 md:p-6 rounded-[24px] bg-[#1a0f2e]/40 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex flex-row sm:flex-col items-center sm:items-start gap-4 text-left shadow-lg ${feature.shadow} `}
  >
  <div className={`w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center border border-white/20 shadow-md`}>
  <Icon size={24} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />

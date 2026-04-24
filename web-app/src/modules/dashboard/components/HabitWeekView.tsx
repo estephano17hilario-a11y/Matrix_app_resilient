@@ -39,7 +39,7 @@ export const HabitWeekView: React.FC<HabitWeekViewProps> = ({ history, activeCol
                         whileHover={{ scale: 1.1 }}
                         onClick={() => onToggleDay(day.dateStr)}
                         className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 relative group",
+                            "w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-200 relative group",
                             day.isCompleted
                                 ? "border-transparent shadow-lg"
                                 : "bg-white/10 border-white/10 hover:border-white/20 hover:bg-white/20",

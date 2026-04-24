@@ -98,7 +98,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  <div className="grid gap-2.5">
  <motion.div 
  whileHover={{ x: 5 }}
- className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-300 hover:bg-amber-500/10 hover:border-amber-500/20"
+ className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-200 hover:bg-amber-500/10 hover:border-amber-500/20"
  >
  <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
  <Sparkles size={18} className="text-amber-400" />
@@ -108,7 +108,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
 
  <motion.div 
  whileHover={{ x: 5 }}
- className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-300 hover:bg-amber-500/10 hover:border-amber-500/20"
+ className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 flex items-start gap-3 group transition-all duration-200 hover:bg-amber-500/10 hover:border-amber-500/20"
  >
  <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(251,191,36,0.1)] group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all">
  <Flame size={18} className="text-amber-400" />
@@ -147,7 +147,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  <p dangerouslySetInnerHTML={{ __html: t('tour.stats.tips.desc1', "En varias partes de la aplicación encontrarás un pequeño <strong>foquito</strong>. ¡No dudes en pulsarlo!") }} />
  
  <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10 mt-4 relative overflow-hidden group">
- <div className="absolute inset-0 bg-yellow-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+ <div className="absolute inset-0 bg-yellow-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
  
  {/* Interactive pulsing button preview */}
  <div className="relative">
@@ -176,18 +176,18 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
- transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+ transition={{ type: 'spring', damping: 25, stiffness: 450 }}
  className="w-full max-w-md bg-[#121214]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,1)] relative"
  >
  {/* Dynamic Gradient Background */}
  <motion.div 
- className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-500"
+ className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-200"
  style={{ background: `radial-gradient(circle at 50% 0%, ${currentData.color}, transparent 70%)` }}
  />
 
  {/* Header Pattern */}
  <div 
- className="h-28 w-full relative overflow-hidden flex items-center justify-center transition-colors duration-500"
+ className="h-28 w-full relative overflow-hidden flex items-center justify-center transition-colors duration-200"
  style={{ backgroundColor: `${currentData.color}15` }}
  >
  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_1px,transparent_1px)] bg-[length:12px_12px]" />
@@ -195,7 +195,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  key={step}
  initial={{ scale: 0, rotate: -180, opacity: 0 }}
  animate={{ scale: 1, rotate: 0, opacity: 1 }}
- transition={{ type: 'spring', damping: 20, stiffness: 250 }}
+ transition={{ type: 'spring', damping: 20, stiffness: 400 }}
  className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md relative z-10 border border-white/20"
  style={{ backgroundColor: currentData.color, boxShadow: `0 0 40px ${currentData.color}50` }}
  >
@@ -219,9 +219,9 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  initial={{ opacity: 0, x: 30 }}
  animate={{ opacity: 1, x: 0 }}
  exit={{ opacity: 0, x: -30 }}
- transition={{ duration: 0.3, ease: 'easeOut' }}
+ transition={{ duration: 0.15, ease: 'easeOut' }}
  >
- <h2 className="text-2xl font-black text-white mb-4 tracking-tight transition-colors duration-500" style={{ color: currentData.color }}>
+ <h2 className="text-2xl font-black text-white mb-4 tracking-tight transition-colors duration-200" style={{ color: currentData.color }}>
  {currentData.title}
  </h2>
  <div className="leading-relaxed">
@@ -240,7 +240,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  width: i === step ? 24 : 8,
  backgroundColor: i === step ? currentData.color : '#ffffff30'
  }}
- transition={{ duration: 0.3 }}
+ transition={{ duration: 0.15 }}
  className="h-2 rounded-full"
  />
  ))}
@@ -250,7 +250,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  onClick={nextStep}
- className="px-6 py-3 rounded-xl font-bold text-sm text-[#121214] flex items-center gap-2 shadow-lg transition-colors duration-500"
+ className="px-6 py-3 rounded-xl font-bold text-sm text-[#121214] flex items-center gap-2 shadow-lg transition-colors duration-200"
  style={{ backgroundColor: currentData.color, boxShadow: `0 4px 20px ${currentData.color}40` }}
  >
  {step < tutorialSteps.length - 1 ? t('tour.stats.next', 'Siguiente') : t('tour.stats.start', 'Comenzar')}

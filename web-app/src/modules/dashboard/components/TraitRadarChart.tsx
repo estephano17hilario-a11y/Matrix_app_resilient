@@ -250,7 +250,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ 
-                        duration: 0.8,
+                        duration: 0.25,
                         ease: "easeOut",
                         delay: 0.1
                     }}
@@ -272,8 +272,8 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
                     transition={{ 
-                        pathLength: { duration: 1.2, ease: "easeInOut", delay: 0.1 },
-                        opacity: { duration: 0.5, delay: 0.1 }
+                        pathLength: { duration: 0.15, ease: "easeInOut", delay: 0.1 },
+                        opacity: { duration: 0.2, delay: 0.1 }
                     }}
                     style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} // Fake Glow
                 />
@@ -292,7 +292,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         strokeOpacity="0.3" // Gradient glow effect via stroke
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.4, type: "spring" }}
+                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring" }}
                     />
                 ))}
 

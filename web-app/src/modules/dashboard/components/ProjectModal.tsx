@@ -248,7 +248,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                         className="relative z-10 w-full max-w-[400px]"
                     >
                 <div 
-                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
+                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-200 ease-out"
                     style={{
                         border: `1px solid ${hasColorSource ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
                         boxShadow: hasColorSource
@@ -259,7 +259,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                     {/* Header */}
                     <div className="flex justify-between items-center p-6 pb-2 shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: activeColor }}>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-200" style={{ background: activeColor }}>
                                 <SelectedIcon size={20} className="text-white" />
                             </div>
                             <div>
@@ -274,7 +274,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                         
                         {/* BLOCK 1: IDENTIDAD */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 1 
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -289,7 +289,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     </div>
                                     <span className={cn("text-sm font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>{t('habits.identity', 'IDENTITY')}</span>
                                 </div>
-                                <ChevronDown size={16} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
+                                <ChevronDown size={16} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
                             
                             <AnimatePresence initial={false}>
@@ -409,7 +409,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
 
                         {/* BLOCK 2: MECÁNICA (GOALS) */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 2
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -424,7 +424,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     </div>
                                     <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>{t('habits.mechanics', 'MECHANICS')}</span>
                                 </div>
-                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -617,7 +617,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <span className="text-[9px] font-bold text-slate-400 uppercase w-10 shrink-0">{t('modals.project.impact')}</span>
                                             <div className="flex-1 h-7 bg-black/30 rounded-full relative p-1 flex gap-1">
                                                 {[1,2,3,4].map(lvl => (
-                                                    <button key={lvl} onClick={() => setImpact(lvl)} className={`flex-1 rounded-full transition-all duration-300 ${impact >= lvl ? lvl === 1 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : lvl === 2 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : lvl === 3 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'bg-white/5'}`} />
+                                                    <button key={lvl} onClick={() => setImpact(lvl)} className={`flex-1 rounded-full transition-all duration-200 ${impact >= lvl ? lvl === 1 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : lvl === 2 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : lvl === 3 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'bg-white/5'}`} />
                                                 ))}
                                             </div>
                                         </div>
@@ -638,7 +638,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
 
                         {/* BLOCK 3: COMPROMISO (SESSION) */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 3
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -653,7 +653,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                     </div>
                                     <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>{t('habits.commitment', 'COMMITMENT')}</span>
                                 </div>
-                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -789,7 +789,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <button 
                                                 onClick={handleConfirm} 
                                                 disabled={!title || !attrId || isSubmitting || !isBlock3Valid} 
-                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!title || !attrId || isSubmitting || !isBlock3Valid) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
+                                                className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 ${(!title || !attrId || isSubmitting || !isBlock3Valid) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
                                                 style={{
                                                     background: (!title || !attrId || isSubmitting || !isBlock3Valid) 
                                                         ? undefined 

@@ -56,13 +56,13 @@ export function TraitSelector({ onNext }: TraitSelectorProps) {
               key={trait.id}
               whileTap={{ scale: 0.98 }}
               onClick={() => toggleTrait(trait.id)}
-              className={`relative group p-4 rounded-2xl text-left transition-all duration-300 border ${
+              className={`relative group p-4 rounded-2xl text-left transition-all duration-200 border ${
                 isSelected 
                   ? 'bg-white/10 border-white/40 shadow-[0_0_20px_rgba(255,255,255,0.1)]' 
                   : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
               }`}
             >
-              <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 ${isSelected ? 'opacity-20' : 'group-hover:opacity-10'} bg-gradient-to-r ${trait.color}`} />
+              <div className={`absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 ${isSelected ? 'opacity-20' : 'group-hover:opacity-10'} bg-gradient-to-r ${trait.color}`} />
               
               <div className="relative z-10 flex items-center justify-between">
                 <div>
@@ -74,7 +74,7 @@ export function TraitSelector({ onNext }: TraitSelectorProps) {
                   </p>
                 </div>
                 
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300 ${
+                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-200 ${
                   isSelected 
                     ? 'bg-white border-white text-black scale-100' 
                     : 'border-white/20 text-transparent scale-90'

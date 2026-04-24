@@ -165,7 +165,7 @@ export const BarChart = React.memo(({
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`w-full transition-all duration-500 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
+                                            className={`w-full transition-all duration-200 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
                                             style={{ 
                                                 height: `${h * 100}%`,
                                                 background: backgroundStyle,
@@ -173,7 +173,7 @@ export const BarChart = React.memo(({
                                             }}
                                         >
                                              {/* Shine Effect */}
-                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
                                                 
                                                 {/* Bottom Grounding Shadow */}
@@ -188,7 +188,7 @@ export const BarChart = React.memo(({
                         {/* Label */}
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                             {(i % xTickInterval === 0) && (
-                                <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-300 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                                <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-200 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
                             )}
                         </div>
                     </div>

@@ -346,7 +346,7 @@ export const FocusStats = React.memo(({
     };
 
     return (
-        <div data-tour="focus-header" className="relative transition-all duration-300 ease-in-out flex-shrink-0">
+        <div data-tour="focus-header" className="relative transition-all duration-200 ease-in-out flex-shrink-0">
             <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-4 flex flex-col gap-3 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
                  <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
@@ -394,7 +394,7 @@ export const FocusStats = React.memo(({
                                                     {isActive && (
                                                         <ChevronDown 
                                                             size={12} 
-                                                            className={`transition-transform duration-300 flex-shrink-0 ${isConfigOpen ? 'rotate-180' : ''}`} 
+                                                            className={`transition-transform duration-200 flex-shrink-0 ${isConfigOpen ? 'rotate-180' : ''}`} 
                                                         />
                                                     )}
                                                 </span>
@@ -425,7 +425,7 @@ export const FocusStats = React.memo(({
                                             : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
                                     )}
                                 >
-                                    <Plus size={12} className={cn("transition-transform duration-300", activeDropdown === 'RANGES' && "rotate-45")} />
+                                    <Plus size={12} className={cn("transition-transform duration-200", activeDropdown === 'RANGES' && "rotate-45")} />
                                 </button>
 
                                 <AnimatePresence>

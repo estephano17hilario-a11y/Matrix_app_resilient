@@ -90,7 +90,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
           {/* Bottom Glow Line (Animated via CSS) */}
           <div className="absolute bottom-0 left-2 right-2 h-[1px] overflow-hidden pointer-events-none">
              <div className={cn(
-                "w-full h-full transform transition-transform duration-300 ease-out origin-left",
+                "w-full h-full transform transition-transform duration-200 ease-out origin-left",
                 isFocused ? "scale-x-100" : "scale-x-0",
                 error ? "bg-red-500" : isValid && showValidation ? "bg-green-500" : "bg-indigo-500"
              )} />

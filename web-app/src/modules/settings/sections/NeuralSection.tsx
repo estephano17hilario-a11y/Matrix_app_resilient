@@ -127,7 +127,7 @@ export const NeuralSection = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="group flex flex-col gap-4 p-4 bg-gradient-to-br from-white/[0.04] to-white/[0.01] rounded-[20px] border border-white/[0.05] relative overflow-hidden"
               >
                 <div 
@@ -183,7 +183,7 @@ export const NeuralSection = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="group flex items-center justify-between p-4 bg-gradient-to-br from-white/[0.04] to-white/[0.01] rounded-[20px] border border-white/[0.05] hover:border-white/[0.1] transition-all relative overflow-hidden"
               >
                 <div 
@@ -237,7 +237,7 @@ export const NeuralSection = () => {
                   <>
                     <div className="flex items-center gap-4 relative z-10">
                       <div
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-500"
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-200"
                         style={{ backgroundColor: `${attr.color}15`, color: attr.color, borderColor: `${attr.color}30` }}
                       >
                         {attr.icon ? <attr.icon size={20} /> : <Hexagon size={20} />}

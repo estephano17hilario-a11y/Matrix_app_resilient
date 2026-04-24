@@ -147,14 +147,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
                                 onClick={() => setIsOpen(false)}
                                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu "
                             />
                             
                             <motion.div
-                                initial={{ y: '100%', opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: '100%', opacity: 0 }}
+                                initial={{ y: 40, opacity: 0, scale: 0.95 }}
+                                animate={{ y: 0, opacity: 1, scale: 1 }}
+                                exit={{ y: 40, opacity: 0, scale: 0.95 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                                 className="relative w-full max-w-[380px] bg-[#0a0a0c] sm:rounded-3xl rounded-t-3xl border-t sm:border border-white/10 shadow-md overflow-hidden pb-8 sm:pb-0"
                             >
@@ -180,15 +181,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                     >
                                         {/* HOUR BLOCK */}
                                         <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-                                            <AnimatePresence mode="wait">
+                                            <AnimatePresence mode="popLayout">
                                                 {manualEditMode === 'HOUR' ? (
                                                     <motion.input
                                                         key="input-hour"
                                                         ref={hourInputRef}
-                                                        initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                                                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                                                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
                                                         type="number"
                                                         inputMode="numeric"
                                                         value={hourStr}
@@ -203,15 +204,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                                 ) : (
                                                     <motion.button
                                                         key="btn-hour"
-                                                        initial={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                                                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                                                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
                                                         onClick={() => setActiveTab('HOUR')}
                                                         onDoubleClick={() => { setActiveTab('HOUR'); setManualEditMode('HOUR'); }}
                                                         className={cn(
-                                                            "absolute inset-0 w-full h-full rounded-3xl flex items-center justify-center text-center transition-all",
-                                                            activeTab === 'HOUR' ? "bg-white/10 text-white ring-1 ring-white/20 shadow-[0_0_30px_-10px_rgba(255,255,255,0.2)]" : "bg-white/5 text-white/50 hover:bg-white/10"
+                                                            "absolute inset-0 w-full h-full rounded-3xl flex items-center justify-center text-center transition-all duration-300",
+                                                            activeTab === 'HOUR' ? "bg-white/10 text-white ring-1 ring-white/20 shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
                                                         )}
                                                     >
                                                         {hourStr}
@@ -223,22 +224,22 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                         {/* COLON */}
                                         <motion.span 
                                             animate={{ opacity: activeTab === 'HOUR' ? 0.5 : 1, scale: manualEditMode !== 'NONE' ? 0.9 : 1 }}
-                                            className="text-white/20 pb-3 transition-colors duration-700"
+                                            className="text-white/20 pb-3 transition-colors duration-200"
                                         >
                                             :
                                         </motion.span>
 
                                         {/* MINUTE BLOCK */}
                                         <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-                                            <AnimatePresence mode="wait">
+                                            <AnimatePresence mode="popLayout">
                                                 {manualEditMode === 'MINUTE' ? (
                                                     <motion.input
                                                         key="input-minute"
                                                         ref={minuteInputRef}
-                                                        initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                                                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                                                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
                                                         type="number"
                                                         inputMode="numeric"
                                                         value={minuteStr}
@@ -253,15 +254,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                                 ) : (
                                                     <motion.button
                                                         key="btn-minute"
-                                                        initial={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                                                        animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                                                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
                                                         onClick={() => setActiveTab('MINUTE')}
                                                         onDoubleClick={() => { setActiveTab('MINUTE'); setManualEditMode('MINUTE'); }}
                                                         className={cn(
-                                                            "absolute inset-0 w-full h-full rounded-3xl flex items-center justify-center text-center transition-all",
-                                                            activeTab === 'MINUTE' ? "bg-white/10 text-white ring-1 ring-white/20 shadow-[0_0_30px_-10px_rgba(255,255,255,0.2)]" : "bg-white/5 text-white/50 hover:bg-white/10"
+                                                            "absolute inset-0 w-full h-full rounded-3xl flex items-center justify-center text-center transition-all duration-300",
+                                                            activeTab === 'MINUTE' ? "bg-white/10 text-white ring-1 ring-white/20 shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
                                                         )}
                                                     >
                                                         {minuteStr}
@@ -291,7 +292,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                         <button
                                             onClick={() => setPeriod('AM')}
                                             className={cn(
-                                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
+                                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all duration-200 active:scale-95",
                                                 period === 'AM' ? "bg-amber-500/20 text-amber-400 shadow-sm" : "text-white/30 hover:text-white/50"
                                             )}
                                         >
@@ -300,7 +301,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                         <button
                                             onClick={() => setPeriod('PM')}
                                             className={cn(
-                                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
+                                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all duration-200 active:scale-95",
                                                 period === 'PM' ? "bg-indigo-500/20 text-indigo-400 shadow-sm" : "text-white/30 hover:text-white/50"
                                             )}
                                         >
@@ -310,14 +311,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                 </div>
 
                                 {/* Selection Grid */}
-                                <div className="px-6 pb-6">
-                                    <AnimatePresence mode="wait">
+                                <div className="px-6 pb-6 relative">
+                                    <AnimatePresence mode="popLayout">
                                         {activeTab === 'HOUR' ? (
                                             <motion.div 
                                                 key="hours"
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: 20 }}
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                                                 className="grid grid-cols-4 gap-2"
                                             >
                                                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(h => (
@@ -328,8 +330,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                                             setActiveTab('MINUTE');
                                                         }}
                                                         className={cn(
-                                                            "h-12 rounded-xl text-lg font-bold transition-all",
-                                                            hour === h ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                                                            "h-12 rounded-xl text-lg font-bold transition-all duration-200",
+                                                            hour === h ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20 scale-[1.02]" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white active:scale-95"
                                                         )}
                                                     >
                                                         {h}
@@ -339,9 +341,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                         ) : (
                                             <motion.div 
                                                 key="minutes"
-                                                initial={{ opacity: 0, x: 20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -20 }}
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                                                 className="grid grid-cols-4 gap-2"
                                             >
                                                 {[0,5,10,15,20,25,30,35,40,45,50,55].map(m => (
@@ -351,8 +354,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
                                                             setMinute(m);
                                                         }}
                                                         className={cn(
-                                                            "h-12 rounded-xl text-lg font-bold transition-all",
-                                                            minute === m ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                                                            "h-12 rounded-xl text-lg font-bold transition-all duration-200",
+                                                            minute === m ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20 scale-[1.02]" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white active:scale-95"
                                                         )}
                                                     >
                                                         {m.toString().padStart(2, '0')}

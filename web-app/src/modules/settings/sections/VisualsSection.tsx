@@ -90,7 +90,7 @@ export const VisualsSection = () => {
             >
               <motion.div
                 layout
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
                 className={cn(
                   "absolute top-0.5 w-6 h-6 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.3)]",
                   vividMode ? "bg-white left-[22px]" : "bg-white/40 left-0.5"
@@ -165,7 +165,7 @@ export const VisualsSection = () => {
                     isActive ? "border-white/50 ring-2 ring-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]" : "border-white/[0.05] hover:border-white/30"
                   )}
                 >
-                  <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110" style={{ background: theme.gradient }} />
+                  <div className="absolute inset-0 transition-transform duration-200 group-hover:scale-110" style={{ background: theme.gradient }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                   
                   {isActive && <div className="absolute inset-0 border-[2px] border-white/20 rounded-[16px]" />}

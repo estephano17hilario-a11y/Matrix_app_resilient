@@ -106,7 +106,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
     <Container
       {...(isLite ? {} : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 } })}
       className={cn(
-        "relative rounded-[1.25rem] transition-all duration-300 mb-3 group overflow-hidden clickable",
+        "relative rounded-[1.25rem] transition-all duration-200 mb-3 group overflow-hidden clickable",
         expanded ? "z-10" : "hover:z-10"
       )}
       style={{ 
@@ -120,7 +120,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
     >
       {/* Dynamic Attribute Glow Gradient (Top Left) - OPTIMIZED: Using radial gradient for zero GPU blur cost */}
       <div 
-        className="absolute inset-0 opacity-10 pointer-events-none transition-opacity duration-500"
+        className="absolute inset-0 opacity-10 pointer-events-none transition-opacity duration-200"
         style={{ background: `radial-gradient(circle at 0% 0%, ${themeColor}, transparent 70%)` }}
       />
       
@@ -144,7 +144,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
             onClick={handleComplete} 
             disabled={isCompleting}
             className={cn(
-              "w-12 h-12 rounded-[1rem] flex items-center justify-center shrink-0 transition-all duration-300 relative overflow-hidden group/icon",
+              "w-12 h-12 rounded-[1rem] flex items-center justify-center shrink-0 transition-all duration-200 relative overflow-hidden group/icon",
               quest.completed ? "bg-emerald-500/20" : "bg-white/5 hover:bg-white/10"
             )}
             style={{
@@ -158,7 +158,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
              {/* Background glow for icon */}
              {!quest.completed && (
                 <div 
-                    className="absolute inset-0 opacity-0 group-hover/icon:opacity-20 transition-opacity duration-300" 
+                    className="absolute inset-0 opacity-0 group-hover/icon:opacity-20 transition-opacity duration-200" 
                     style={{ background: themeColor }}
                 />
              )}
@@ -176,7 +176,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                     <Icon 
                         size={20} 
                         style={{ color: themeColor }} 
-                        className="opacity-90 group-hover/icon:scale-110 transition-transform duration-300 drop-shadow-lg"
+                        className="opacity-90 group-hover/icon:scale-110 transition-transform duration-200 drop-shadow-lg"
                         strokeWidth={2}
                     />
                  ) : (
@@ -188,7 +188,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
           <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 mr-2">
             <div className="flex items-center gap-3">
               <h3 className={cn(
-                "text-[15px] font-semibold truncate leading-tight tracking-tight transition-all duration-300",
+                "text-[15px] font-semibold truncate leading-tight tracking-tight transition-all duration-200",
                 quest.completed ? "text-white/30 line-through" : "text-white/95 drop-shadow-md"
               )}>
                 {quest.title}
@@ -233,7 +233,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
           {/* RIGHT SIDE: Actions Only */}
           <div className="flex items-center gap-2 shrink-0">
              <div className={cn(
-                 "flex items-center gap-1 transition-all duration-300",
+                 "flex items-center gap-1 transition-all duration-200",
                  expanded ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
              )}>
                 {/* EDIT */}
@@ -260,7 +260,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
              <ChevronDown 
                 size={16} 
                 className={cn(
-                "text-white/20 transition-transform duration-300",
+                "text-white/20 transition-transform duration-200",
                 expanded ? "rotate-180 text-white/60" : ""
                 )} 
             />
@@ -275,7 +275,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                 initial={{ opacity: 0, scaleY: 0.98 }}
                 animate={{ opacity: 1, scaleY: 1 }}
                 exit={{ opacity: 0, scaleY: 0.98 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "spring", stiffness: 450, damping: 25 }}
                 style={{ transformOrigin: 'top' }}
                 onClick={(e) => e.stopPropagation()}
               >

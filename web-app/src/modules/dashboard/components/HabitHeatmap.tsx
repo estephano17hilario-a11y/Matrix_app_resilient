@@ -210,7 +210,7 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                             initial={{ opacity: 0, scale: 0.5 }}
                                             animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
                                             transition={{ delay: index * 0.01 }}
-                                            className={`w-[30px] h-[30px] rounded-md transition-all duration-300 ${
+                                            className={`w-[30px] h-[30px] rounded-md transition-all duration-200 ${
                                                 isOutsidePeriod
                                                 ? 'bg-transparent'
                                                 : isCompleted 
@@ -246,7 +246,7 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                                 initial={{ opacity: 0, scale: 0.5 }}
                                                 animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
                                                 transition={{ delay: (colIndex * 0.015) + (dayIndex * 0.01) }}
-                                                className={`w-[12px] h-[12px] rounded-[4px] transition-all duration-300 ${
+                                                className={`w-[12px] h-[12px] rounded-[4px] transition-all duration-200 ${
                                                     isOutsidePeriod
                                                     ? 'bg-transparent'
                                                     : isCompleted 

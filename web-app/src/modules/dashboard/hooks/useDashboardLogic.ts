@@ -106,6 +106,7 @@ export const useDashboardLogic = () => {
                 defaultHabitView: authProfile.defaultHabitView || luxUser.defaultHabitView,
                 allowDockSectionSwitch: authProfile.allowDockSectionSwitch || luxUser.allowDockSectionSwitch,
                 weekStartDay: authProfile.weekStartDay !== undefined ? authProfile.weekStartDay : luxUser.weekStartDay,
+                archivedTraits: authProfile.archivedTraits || (luxUser.preferences as any)?.archivedTraits || {},
                 // Prefer Lux for Game Stats (updated via Game Loop)
                 stats: luxUser.stats
             };

@@ -90,7 +90,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 className="relative z-10 w-full max-w-md bg-[#0f0f11] rounded-[2.5rem] shadow-md overflow-hidden border border-white/10 flex flex-col h-[600px] max-h-[85vh]"
                 onClick={e => e.stopPropagation()}
             >
@@ -140,7 +140,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 25 }}
                                 className="absolute inset-0 flex flex-col"
                             >
                                 <div className="flex-1 overflow-y-auto p-6 pt-0 space-y-3 custom-scrollbar">

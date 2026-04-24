@@ -49,7 +49,7 @@ export const SettingsModal = () => {
         initial={{ scale: 0.94, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
         className="relative z-10 w-full max-w-2xl h-[85vh] sm:h-[80vh] flex flex-col overflow-hidden rounded-[24px] bg-gradient-to-br from-[#121212] to-[#050505] border border-white/[0.08] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)]"
         style={{ willChange: "transform, opacity" }}
       >
@@ -97,7 +97,7 @@ export const SettingsModal = () => {
                   <motion.div
                     layoutId="settingsActiveTab"
                     className="absolute bottom-0 left-0 right-0 h-[3px] rounded-t-full bg-gradient-to-r from-white/40 via-white to-white/40 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   />
                 )}
               </button>

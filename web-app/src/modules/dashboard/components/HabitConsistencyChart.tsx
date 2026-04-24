@@ -465,7 +465,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 key={tf}
                                 onClick={() => handleTabClick(tf)}
                                 className={cn(
-                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-300 z-10 flex items-center gap-1",
+                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-200 z-10 flex items-center gap-1",
                                     timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
@@ -473,7 +473,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                     <motion.div
                                         layoutId="activeTab"
                                         className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
                                     />
                                 )}
                                 <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
@@ -509,7 +509,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
                         >
                             {/* Glow effect on hover - Optimized */}
-                            <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-500" />
+                            <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-200" />
                             
                             <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
                                 {t('dashboard.streakPath')}
@@ -519,7 +519,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                     <Flame 
                                         size={20} 
                                         className={cn(
-                                            "transition-all duration-500 group-hover/streak:scale-110",
+                                            "transition-all duration-200 group-hover/streak:scale-110",
                                             todayStats.percent >= todayStats.requiredToday 
                                                 ? "text-orange-500 fill-orange-500/20 group-hover/streak:fill-orange-500" 
                                                 : "text-zinc-600 fill-zinc-800/50 group-hover/streak:text-orange-500/50"
@@ -609,8 +609,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                                 }}
                                 transition={{ 
                                     type: "spring", 
-                                    stiffness: 300, 
-                                    damping: 30,
+                                    stiffness: 450, 
+                                    damping: 25,
                                     delay: i * 0.02 // Faster stagger
                                 }}
                                 style={{ 
@@ -631,7 +631,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         <div className="flex flex-col items-center mt-2">
                             {showTicks && (
                                 <div className={cn(
-                                    "w-[1px] mb-1 transition-all duration-300",
+                                    "w-[1px] mb-1 transition-all duration-200",
                                     data.label 
                                         ? "h-2 bg-zinc-600" 
                                         : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
@@ -642,7 +642,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             <div className="h-4 flex items-end justify-center">
                                 <span 
                                     className={cn(
-                                        "text-[9px] font-bold transition-colors duration-300",
+                                        "text-[9px] font-bold transition-colors duration-200",
                                         !data.isCurrent && "text-zinc-600 group-hover/bar:text-zinc-400"
                                     )}
                                     style={data.isCurrent ? { color: themeColor } : {}}
@@ -682,10 +682,10 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             
                         {/* Progress */}
                             <motion.div 
-                                className={cn("h-full rounded-full transition-colors duration-500 origin-left")}
+                                className={cn("h-full rounded-full transition-colors duration-200 origin-left")}
                                 initial={{ scaleX: 0 }}
                                 animate={{ scaleX: todayStats.percent / 100 }}
-                                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 20 }}
                                 style={{ width: '100%', backgroundColor: getProgressColor(todayStats.percent, todayStats.requiredToday) }}
                             />
                         </div>

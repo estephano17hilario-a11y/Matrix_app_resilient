@@ -120,7 +120,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
         className="w-full flex flex-col items-center h-full max-h-screen"
     >
         <div className="space-y-2 mb-6 flex-shrink-0 text-center relative z-20">
@@ -153,7 +153,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                         </span>
                      </div>
 
-                     <div className={`relative flex items-center bg-[#0A0A0A] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 ${isHighDensity ? 'min-h-[44px]' : 'min-h-[52px]'}`}
+                     <div className={`relative flex items-center bg-[#0A0A0A] border border-white/5 rounded-2xl overflow-hidden transition-all duration-200 ${isHighDensity ? 'min-h-[44px]' : 'min-h-[52px]'}`}
                           style={{
                               '--active-color': activeColor,
                               boxShadow: `0 4px 20px -10px rgba(0,0,0,0.5)`
@@ -172,7 +172,7 @@ export const RecursiveFillingStep: React.FC<RecursiveFillingStepProps> = ({ curr
                           }}
                      >
                         <div 
-                            className={`font-mono text-[11px] font-bold h-full flex items-center justify-center border-r border-white/5 transition-colors duration-300 ${isHighDensity ? 'px-3' : 'px-4'}`}
+                            className={`font-mono text-[11px] font-bold h-full flex items-center justify-center border-r border-white/5 transition-colors duration-200 ${isHighDensity ? 'px-3' : 'px-4'}`}
                             style={{ 
                                 color: val.trim() ? activeColor : 'rgba(255,255,255,0.3)',
                                 backgroundColor: val.trim() ? `${activeColor}10` : 'rgba(255,255,255,0.02)'

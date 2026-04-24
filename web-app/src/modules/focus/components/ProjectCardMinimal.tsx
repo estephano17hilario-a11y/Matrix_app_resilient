@@ -91,7 +91,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
             whileTap={{ scale: 0.98 }}
             whileHover={{ scale: 1.02 }}
             className={cn(
-                "p-4 py-3 md:p-5 rounded-[24px] bg-black/37 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 flex flex-row items-center gap-3 text-left cursor-pointer group",
+                "p-4 py-3 md:p-5 rounded-[24px] bg-black/37 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex flex-row items-center gap-3 text-left cursor-pointer group",
                 isArchived && "opacity-60 grayscale bg-[#050505]/37"
             )}
             style={!isArchived ? { boxShadow: `0 10px 25px -5px ${displayColor}66, 0 8px 10px -6px ${displayColor}66` } : undefined}
@@ -139,7 +139,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                             opacity: 1,
                             textShadow: '0 0 0px transparent'
                         }}
-                        transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+                        transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
                     >
                         {timeString}
                     </motion.span>

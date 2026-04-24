@@ -28,7 +28,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         "rounded-2xl",
         
         // Interactive states
-        hoverEffect && "transition-all duration-300 hover:bg-[#1a1a1a]/95 hover:border-white/20 hover:shadow-indigo-500/15",
+        hoverEffect && "transition-all duration-200 hover:bg-[#1a1a1a]/95 hover:border-white/20 hover:shadow-indigo-500/15",
         
         className
       )}

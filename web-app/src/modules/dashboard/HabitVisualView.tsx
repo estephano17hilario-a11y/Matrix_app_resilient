@@ -463,7 +463,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             <button
                                                 onClick={() => setViewPreference('DEFAULT')}
                                                 className={cn(
-                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
                                                     viewPreference === 'DEFAULT' 
                                                         ? "text-white" 
                                                         : "text-white/40 hover:text-white/60"
@@ -473,7 +473,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     <motion.div
                                                         layoutId="view-toggle"
                                                         className="absolute inset-0 bg-white/[0.03] rounded-[10px]"
-                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                                     />
                                                 )}
                                                 <span className="relative z-20">{t('habits.viewPriority', 'Prioridad')}</span>
@@ -481,7 +481,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             <button
                                                 onClick={() => setViewPreference('CHRONOLOGICAL')}
                                                 className={cn(
-                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-300",
+                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
                                                     viewPreference === 'CHRONOLOGICAL' 
                                                         ? "text-indigo-400" 
                                                         : "text-white/40 hover:text-white/60"
@@ -491,7 +491,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     <motion.div
                                                         layoutId="view-toggle"
                                                         className="absolute inset-0 bg-indigo-500/5 rounded-[10px]"
-                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                                     />
                                                 )}
                                                 <span className="relative z-20">{t('habits.viewChronological', 'Cronológico')}</span>
@@ -502,7 +502,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             <button
                                                 onClick={() => setHideCompletedChronological(!hideCompletedChronological)}
                                                 className={cn(
-                                                    "p-2 rounded-xl border transition-colors duration-300 flex items-center justify-center shrink-0",
+                                                    "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
                                                     hideCompletedChronological 
                                                         ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
                                                         : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
@@ -541,7 +541,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     <motion.div 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: idx * 0.05, ease: "easeOut" }}
+                                        transition={{ duration: 0.15, delay: idx * 0.05, ease: "easeOut" }}
                                         className="w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden"
                                         style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
                                         onClick={() => setMasteryHabit(item.habit)}
@@ -817,7 +817,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         onClick={onCreateBadHabit}
                                         className="group relative px-8 py-4 bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-2xl text-sm font-bold uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden"
                                     >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-200" />
                                         <Skull size={18} className="relative z-10" />
                                         <span className="relative z-10">{t('habits.identifyEnemy')}</span>
                                     </button>

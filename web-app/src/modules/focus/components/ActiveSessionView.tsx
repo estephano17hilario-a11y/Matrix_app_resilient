@@ -276,7 +276,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.15 }}
         >
              {/* Dynamic Background Aura - Ultra Optimized & Visual */}
             <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -388,7 +388,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                         setTotalDuration(project.pomoDuration * 60);
                                     }}
                                     className={cn(
-                                        "px-6 py-2 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-300",
+                                        "px-6 py-2 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-200",
                                         mode === 'POMO' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/70"
                                     )}
                                 >
@@ -401,7 +401,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                                         setTotalDuration(0);
                                     }}
                                     className={cn(
-                                        "px-6 py-2 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-300",
+                                        "px-6 py-2 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-200",
                                         mode === 'STOPWATCH' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/70"
                                     )}
                                 >

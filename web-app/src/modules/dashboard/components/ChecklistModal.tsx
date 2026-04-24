@@ -75,7 +75,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         onClick={onClose}
                         className="absolute inset-0 bg-[#000]/70 backdrop-blur-sm transform-gpu backface-hidden "
                         style={{ willChange: 'opacity' }}
@@ -92,7 +92,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                     >
                         {/* Dynamic Background Glow - GPU Friendly */}
                         <div 
-                            className="absolute -top-[20%] -right-[20%] w-[80%] h-[60%] opacity-20 pointer-events-none transition-all duration-1000 transform-gpu backface-hidden will-change-transform"
+                            className="absolute -top-[20%] -right-[20%] w-[80%] h-[60%] opacity-20 pointer-events-none transition-all duration-200 transform-gpu backface-hidden will-change-transform"
                             style={{ 
                                 background: `radial-gradient(circle, ${habitColor} 0%, transparent 70%)`,
                                 filter: 'blur(8px)'
@@ -141,9 +141,9 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                                             <motion.div 
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: index * 0.05, duration: 0.3 }}
+                                                transition={{ delay: index * 0.05, duration: 0.15 }}
                                                 className={cn(
-                                                    "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 cursor-pointer border border-transparent",
+                                                    "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-200 cursor-pointer border border-transparent",
                                                     item.completed 
                                                         ? "bg-white/[0.02] border-white/[0.02]" 
                                                         : "hover:bg-white/[0.05] hover:border-white/[0.05] active:scale-[0.98]"
@@ -152,7 +152,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                                             >
                                                 <div 
                                                     className={cn(
-                                                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500 flex-shrink-0",
+                                                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0",
                                                         item.completed 
                                                             ? "border-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
                                                             : "opacity-60 group-hover:opacity-100"
@@ -177,7 +177,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
                                                 </div>
                                                 
                                                 <span className={cn(
-                                                    "text-[16px] transition-all duration-500 flex-1 leading-snug tracking-tight",
+                                                    "text-[16px] transition-all duration-200 flex-1 leading-snug tracking-tight",
                                                     item.completed 
                                                         ? "text-white/20 line-through decoration-white/10 italic" 
                                                         : "text-white/90 font-bold group-hover:translate-x-1"

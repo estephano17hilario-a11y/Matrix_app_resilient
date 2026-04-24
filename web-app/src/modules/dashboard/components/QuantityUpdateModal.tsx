@@ -54,7 +54,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
         if (isComplete) {
             controls.start({
                 scale: [1, 1.05, 1],
-                transition: { duration: 0.4, ease: "easeInOut" }
+                transition: { duration: 0.2, ease: "easeInOut" }
             });
         }
     }, [isComplete, controls]);
@@ -178,7 +178,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                         exit={{ opacity: 0, scale: 0.85, y: 40 }}
                         transition={{ type: "spring", damping: 28, stiffness: 350, mass: 0.8 }}
                         className={cn(
-                            "relative w-full max-w-[400px] rounded-[32px] p-6 sm:p-8 overflow-hidden transition-all duration-700 backdrop-blur-sm transform-gpu backface-hidden border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
+                            "relative w-full max-w-[400px] rounded-[32px] p-6 sm:p-8 overflow-hidden transition-all duration-200 backdrop-blur-sm transform-gpu backface-hidden border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
                             "bg-[#0f0f13]/80",
                             isComplete 
                                 ? "shadow-[0_0_80px_-15px_rgba(16,185,129,0.3)]" 
@@ -257,7 +257,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                         strokeDasharray={circumference}
                                         initial={{ strokeDashoffset: circumference }}
                                         animate={{ strokeDashoffset }}
-                                        transition={{ duration: 1.5, type: "spring", bounce: 0.2 }}
+                                        transition={{ duration: 0.15, type: "spring", bounce: 0.2 }}
                                         style={{
                                             filter: isComplete ? 'drop-shadow(0 0 15px rgba(16,185,129,0.5))' : `drop-shadow(0 0 12px ${colorPrimary}30)`
                                         }}
@@ -326,7 +326,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
                                     whileTap={{ scale: 0.9 }}
                                     onClick={handleIncrement}
                                     className={cn(
-                                        "w-14 h-14 rounded-[16px] flex items-center justify-center border transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group relative overflow-hidden",
+                                        "w-14 h-14 rounded-[16px] flex items-center justify-center border transition-all duration-200 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group relative overflow-hidden",
                                         isComplete 
                                             ? "bg-emerald-500 border-emerald-400/50" 
                                             : "bg-white border-white"

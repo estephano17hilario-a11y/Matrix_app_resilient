@@ -198,7 +198,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         {/* Animated Background Progress for partial checklists */}
         {habit.type === 'CHECKLIST' && percentage > 0 && percentage < 100 && (
           <div 
-            className="absolute left-0 bottom-0 top-0 opacity-[0.03] transition-all duration-300 ease-out z-0"
+            className="absolute left-0 bottom-0 top-0 opacity-[0.03] transition-all duration-200 ease-out z-0"
             style={{ width: `${percentage}%`, backgroundColor: baseColor }}
           />
         )}
@@ -211,7 +211,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
         {/* Radial Gradient Blur Background */}
         <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-300" 
+            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-200" 
             style={{ 
                 background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`,
                 transform: 'translateZ(0)'
@@ -347,7 +347,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "spring", stiffness: 450, damping: 25 }}
                 className="w-full overflow-hidden" 
                 onClick={e => e.stopPropagation()}
             >

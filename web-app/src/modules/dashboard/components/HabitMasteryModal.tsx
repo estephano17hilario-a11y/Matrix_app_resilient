@@ -50,19 +50,19 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: { icon: any, l
   <motion.div 
     initial={{ opacity: 0, y: 15 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, type: 'spring', damping: 20, stiffness: 100 }}
+    transition={{ delay, type: 'spring', damping: 20, stiffness: 350 }}
     whileHover={{ y: -4, scale: 1.02 }}
     whileTap={{ scale: 0.96 }}
-    className="relative group bg-white/[0.03] backdrop-blur-sm transform-gpu border border-white/[0.08] rounded-[24px] p-4 flex flex-col items-center justify-center overflow-hidden transition-all duration-300 hover:bg-white/[0.06] hover:border-white/20"
+    className="relative group bg-white/[0.03] backdrop-blur-sm transform-gpu border border-white/[0.08] rounded-[24px] p-4 flex flex-col items-center justify-center overflow-hidden transition-all duration-200 hover:bg-white/[0.06] hover:border-white/20"
   >
     {/* Subtle Glow Background */}
     <div 
-      className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-10 group-hover:opacity-15 transition-opacity duration-500 blur-sm transform-gpu backface-hidden "
+      className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-10 group-hover:opacity-15 transition-opacity duration-200 blur-sm transform-gpu backface-hidden "
       style={{ backgroundColor: color }}
     />
     
     <div 
-      className="w-10 h-10 rounded-[14px] flex items-center justify-center mb-2 transition-all duration-300 group-hover:scale-110"
+      className="w-10 h-10 rounded-[14px] flex items-center justify-center mb-2 transition-all duration-200 group-hover:scale-110"
       style={{ backgroundColor: `${color}15` }}
     >
       <Icon size={20} style={{ color }} className="drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
@@ -134,7 +134,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/85 backdrop-blur-sm transform-gpu backface-hidden will-change-transform transition-all duration-300"
+            className="absolute inset-0 bg-black/85 backdrop-blur-sm transform-gpu backface-hidden will-change-transform transition-all duration-200"
           />
           
           <motion.div

@@ -175,9 +175,9 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
             className="fixed inset-0 z-50 bg-[#020204] text-white flex flex-col h-full w-full overflow-hidden font-sans"
         >
             {/* Background Ambience (Optimized for Performance) */}
-            <div className={cn("absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-700", isTodayCompleted ? "bg-[#040812]" : "bg-[#020204]")}>
+            <div className={cn("absolute inset-0 overflow-hidden pointer-events-none transition-colors duration-200", isTodayCompleted ? "bg-[#040812]" : "bg-[#020204]")}>
                 <div 
-                    className={cn("absolute inset-0 transition-opacity duration-700", isTodayCompleted ? "opacity-100" : "opacity-40")}
+                    className={cn("absolute inset-0 transition-opacity duration-200", isTodayCompleted ? "opacity-100" : "opacity-40")}
                     style={{
                         background: isTodayCompleted ? `
                             radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 70%),
@@ -212,8 +212,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             </div>
                         </div>
 
-                        <div className={cn("p-2.5 rounded-2xl border transition-all duration-500", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
-                            <Flame className={cn("w-6 h-6 transition-all duration-500", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
+                        <div className={cn("p-2.5 rounded-2xl border transition-all duration-200", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
+                            <Flame className={cn("w-6 h-6 transition-all duration-200", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
                         </div>
                     </div>
 
@@ -264,7 +264,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                                     strokeLinecap="round"
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
-                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    transition={{ duration: 0.25, ease: "easeOut" }}
                                 />
                             )}
 
@@ -335,7 +335,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
         visible: { 
             scale: 1, 
             opacity: 1,
-            transition: { type: 'spring', stiffness: 300, damping: 22 } 
+            transition: { type: 'spring', stiffness: 450, damping: 22 } 
         }
     };
 
@@ -349,7 +349,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     className="relative group z-20"
                 >
                     <div 
-                        className="absolute -inset-1 rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+                        className="absolute -inset-1 rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-200"
                         style={{ boxShadow: '0 0 15px rgba(249,115,22,0.25)' }}
                     />
                     <div className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 border border-orange-500/40 shadow-lg">
@@ -368,7 +368,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 className="relative group"
             >
                 <div 
-                    className="absolute -inset-1 rounded-xl opacity-30 group-hover:opacity-50 transition-opacity duration-300"
+                    className="absolute -inset-1 rounded-xl opacity-30 group-hover:opacity-50 transition-opacity duration-200"
                     style={{ boxShadow: '0 0 10px rgba(249,115,22,0.2)' }}
                 />
                 <div className="relative flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/15 to-amber-500/5 border border-orange-500/30">
@@ -389,7 +389,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 className={cn("relative group z-30", isMilestone ? "scale-110" : "")}
             >
                 <div 
-                    className="absolute -inset-1 rounded-full opacity-70 group-hover:opacity-90 transition-opacity duration-300"
+                    className="absolute -inset-1 rounded-full opacity-70 group-hover:opacity-90 transition-opacity duration-200"
                     style={{ 
                         boxShadow: isAchieved 
                             ? '0 0 25px rgba(16,185,129,0.4)' 
@@ -398,7 +398,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 />
                 
                 <div className={cn(
-                    "relative flex items-center gap-3 pl-2 pr-5 py-2.5 bg-[#0f0f0f] border rounded-[1.8rem] shadow-lg transition-colors duration-300",
+                    "relative flex items-center gap-3 pl-2 pr-5 py-2.5 bg-[#0f0f0f] border rounded-[1.8rem] shadow-lg transition-colors duration-200",
                     isAchieved ? "border-emerald-500/60" : "border-transparent"
                 )}>
                     <div className={cn(
@@ -453,7 +453,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     whileInView="visible"
                     viewport={{ once: true }}
                     variants={variants}
-                    className="relative flex items-center gap-3 p-3 bg-[#0a0805] border border-amber-500/30 rounded-2xl shadow-lg transition-transform duration-300 hover:scale-[1.02] z-20"
+                    className="relative flex items-center gap-3 p-3 bg-[#0a0805] border border-amber-500/30 rounded-2xl shadow-lg transition-transform duration-200 hover:scale-[1.02] z-20"
                 >
                     <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-[#1a1205] border border-amber-500/40 text-amber-300 font-black text-lg">
                         <span className="text-[8px] uppercase tracking-widest opacity-70 mb-[-2px]">Día</span>
@@ -484,7 +484,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={variants}
-                className="relative flex items-center gap-3 pl-2.5 pr-5 py-2 bg-[#080808] border border-white/[0.06] rounded-xl opacity-60 hover:opacity-80 transition-opacity duration-300"
+                className="relative flex items-center gap-3 pl-2.5 pr-5 py-2 bg-[#080808] border border-white/[0.06] rounded-xl opacity-60 hover:opacity-80 transition-opacity duration-200"
             >
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#111] border border-white/10 text-white/50 font-mono font-black text-xs">
                     {node.day}

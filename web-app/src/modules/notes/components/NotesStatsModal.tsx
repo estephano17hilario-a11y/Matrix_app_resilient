@@ -44,7 +44,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, delay, isLocked, 
  <motion.div 
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
- transition={{ delay, duration: 0.4 }}
+ transition={{ delay, duration: 0.2 }}
  onClick={isLocked ? onUnlock : undefined}
  className={`relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 p-4 group transition-colors ${isLocked ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-white/10'}`}
  >
@@ -253,13 +253,13 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  <button
  key={tab}
  onClick={() => setActiveTab(tab as any)}
- className={`flex-1 relative py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-300 z-10 flex items-center justify-center gap-2 ${isActive ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
+ className={`flex-1 relative py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-200 z-10 flex items-center justify-center gap-2 ${isActive ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
  >
  {isActive && (
  <motion.div 
  layoutId="activeTabBg"
  className="absolute inset-0 bg-white/10 border border-white/10 rounded-lg shadow-md"
- transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+ transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
  />
  )}
  <span className="relative z-10 flex items-center gap-2">
@@ -282,7 +282,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  initial={{ opacity: 0, x: -20 }}
  animate={{ opacity: 1, x: 0 }}
  exit={{ opacity: 0, x: 20 }}
- transition={{ duration: 0.3 }}
+ transition={{ duration: 0.15 }}
  className="space-y-6"
  >
  {/* Bento Grid Stats */}
@@ -340,7 +340,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- transition={{ duration: 0.4 }}
+ transition={{ duration: 0.2 }}
  className="w-full h-full flex flex-col"
  >
  {/* FULL SCREEN EMOTION CHART CONTAINER - NO PADDING, NO BORDERS */}

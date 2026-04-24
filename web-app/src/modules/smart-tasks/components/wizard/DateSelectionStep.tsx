@@ -69,7 +69,7 @@ export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartPro
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
         className="w-full flex flex-col items-center"
     >
         <div className="space-y-2 text-center flex-shrink-0 mb-6">

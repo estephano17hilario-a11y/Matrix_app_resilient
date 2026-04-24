@@ -223,7 +223,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     strokeDasharray="1.5 1.5"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 1.2, ease: "easeInOut" }}
+                    transition={{ duration: 0.15, ease: "easeInOut" }}
                 />
 
                 {/* Gap Line - Connects Current Progress to Expected Goal */}
@@ -238,7 +238,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     strokeLinecap="round"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.6 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
+                    transition={{ delay: 0.6, duration: 0.2 }}
                 />
 
                 {/* 2. Area Fill (Blue) */}
@@ -247,7 +247,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     fill="url(#chartGradient)"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
+                    transition={{ duration: 0.2, delay: 0.2 }}
                 />
 
                 {/* 3. Progress Line (Blue) */}
@@ -266,7 +266,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                         strokeOpacity: isGoalMet ? [1, 0.8, 1] : 1
                     }}
                     transition={{ 
-                        pathLength: { duration: 0.8, ease: "easeOut" },
+                        pathLength: { duration: 0.25, ease: "easeOut" },
                         strokeWidth: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                         strokeOpacity: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                     }}
@@ -284,7 +284,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     strokeLinecap="round"
                     initial={{ opacity: 0, scaleY: 0 }}
                     animate={{ opacity: 0.2, scaleY: 1 }}
-                    transition={{ delay: 0.5, duration: 0.3 }}
+                    transition={{ delay: 0.5, duration: 0.15 }}
                     style={{ originY: 1 }}
                 />
 
@@ -357,7 +357,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                             opacity: [0.6, 0]
                         }}
                         transition={{
-                            duration: 1.5,
+                            duration: 0.15,
                             repeat: Infinity,
                             ease: "easeOut"
                         }}

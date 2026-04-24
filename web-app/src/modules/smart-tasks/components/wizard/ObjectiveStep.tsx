@@ -18,7 +18,7 @@ export const ObjectiveStep: React.FC<ObjectiveStepProps> = ({ initialValue, onNe
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
         className="w-full flex flex-col items-center"
     >
         <div className="space-y-2 flex-shrink-0 mb-8 text-center">
@@ -35,7 +35,7 @@ export const ObjectiveStep: React.FC<ObjectiveStepProps> = ({ initialValue, onNe
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={t('smartTask.wizard.objective.placeholder')}
-                    className="relative w-full px-5 py-4 text-lg text-center text-white bg-[#0A0A0A] rounded-xl border border-white/5 focus:outline-none placeholder:text-white/20 transition-all duration-300"
+                    className="relative w-full px-5 py-4 text-lg text-center text-white bg-[#0A0A0A] rounded-xl border border-white/5 focus:outline-none placeholder:text-white/20 transition-all duration-200"
                     style={{
                         boxShadow: `0 0 20px -10px ${activeColor}40`
                     }}

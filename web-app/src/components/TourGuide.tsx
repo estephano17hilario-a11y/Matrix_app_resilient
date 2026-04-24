@@ -303,7 +303,7 @@ const TourOverlay: React.FC<{
  layout
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
- transition={{ type: "spring", stiffness: 400, damping: 30 }}
+ transition={{ type: "spring", stiffness: 400, damping: 25 }}
  className="absolute rounded-2xl pointer-events-none"
  style={{
  top: hole.top, left: hole.left, width: hole.width, height: hole.height,
@@ -329,7 +329,7 @@ const TourOverlay: React.FC<{
  initial={{ opacity: 0, y: 20, scale: 0.95 }}
  animate={{ opacity: 1, y: 0, scale: 1 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ type: "spring", stiffness: 400, damping: 30 }}
+ transition={{ type: "spring", stiffness: 400, damping: 25 }}
  className="pointer-events-auto w-full max-w-[320px]"
  style={getTooltipPosition(step, hole, windowSize)}
  >
@@ -351,7 +351,7 @@ const TourOverlay: React.FC<{
  {/* Dots */}
  <div className="flex gap-1.5">
  {Array.from({ length: totalSteps }).map((_, i) => (
- <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentStep ? 'w-5 bg-amber-400' : 'w-1.5 bg-white/15'}`} />
+ <div key={i} className={`h-1.5 rounded-full transition-all duration-200 ${i === currentStep ? 'w-5 bg-amber-400' : 'w-1.5 bg-white/15'}`} />
  ))}
  </div>
 

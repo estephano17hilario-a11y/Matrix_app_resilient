@@ -43,13 +43,13 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
     scale: {
       repeat: Infinity,
       repeatType: "reverse" as const,
-      duration: 0.6, // Fast heartbeat
+      duration: 0.2, // Fast heartbeat
       ease: "easeInOut" as const
     },
     opacity: {
       repeat: Infinity,
       repeatType: "reverse" as const,
-      duration: 0.6,
+      duration: 0.2,
       ease: "easeInOut" as const
     }
   };
@@ -118,7 +118,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
                initial={{ opacity: 0, scale: 0.8 }}
                animate={{ opacity: 1, scale: 1 }}
                exit={{ opacity: 0, scale: 0.8 }}
-               transition={{ type: "spring", stiffness: 200, damping: 20 }}
+               transition={{ type: "spring", stiffness: 400, damping: 20 }}
              >
                <img 
                  src={avatarPath} 
@@ -139,8 +139,8 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({ hp, size = 120, cl
               }}
               exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
               transition={{
-                default: { type: "spring", stiffness: 200, damping: 20 },
-                scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : { type: "spring", stiffness: 200, damping: 20 })
+                default: { type: "spring", stiffness: 400, damping: 20 },
+                scale: mode === 'DECAYED' ? heartbeatTransition.scale : (mode === 'NEUTRAL' ? breatheTransition.scale : { type: "spring", stiffness: 400, damping: 20 })
               }}
             >
               <Icon 

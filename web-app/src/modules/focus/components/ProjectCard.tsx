@@ -107,7 +107,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                 "relative group overflow-hidden rounded-[24px] p-4 cursor-pointer",
                 "bg-[#111113]/80 bg-gradient-to-br from-white/[0.04] to-transparent",
                 "border border-white/[0.08] hover:border-white/[0.15]",
-                "shadow-lg transition-all duration-300"
+                "shadow-lg transition-all duration-200"
             )}
             style={{ boxShadow: customBoxShadow }}
         >
@@ -121,7 +121,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                         className={cn(
                             "w-16 h-16 rounded-full flex items-center justify-center shrink-0",
                             "bg-rose-500 text-white shadow-[0_0_28px_-4px_rgba(244,63,94,0.75)]",
-                            "hover:bg-rose-400 hover:scale-105 transition-all duration-300",
+                            "hover:bg-rose-400 hover:scale-105 transition-all duration-200",
                             "border-2 border-white/10"
                         )}
                     >
@@ -149,7 +149,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                     opacity: 1,
                                     textShadow: '0 0 0px transparent'
                                 }}
-                                transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+                                transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
                             >
                                 {formatTime(currentMinutes)}
                             </motion.span>
@@ -178,7 +178,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                             duration: 3, repeat: Infinity, ease: "easeInOut",
                                             width: { duration: 0 } // Don't animate width on breathing
                                         } : { 
-                                            type: "spring", stiffness: 100, damping: 20 
+                                            type: "spring", stiffness: 350, damping: 20 
                                         }}
                                         className="h-full bg-rose-500 rounded-full"
                                     />
@@ -192,7 +192,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                         opacity: 0.3,
                                         textShadow: '0 0 0px transparent'
                                     }}
-                                    transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
+                                    transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
                                 >
                                     {displayPercentage}%
                                 </motion.span>

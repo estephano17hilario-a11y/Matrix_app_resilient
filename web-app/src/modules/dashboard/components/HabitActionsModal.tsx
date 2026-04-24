@@ -41,7 +41,7 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                 initial={{ y: "100%", opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                transition={{ type: "spring", damping: 25, stiffness: 450 }}
                 className="relative z-10 w-full max-w-sm bg-[#18181b] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 shadow-md overflow-hidden"
             >
                 {/* Drag Handle for Mobile */}

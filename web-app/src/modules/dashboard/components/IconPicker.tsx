@@ -161,7 +161,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        transition={{ type: "spring", stiffness: 450, damping: 25 }}
                         className="relative z-10"
                     >
                         <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-md space-y-4 mt-2">
@@ -362,13 +362,13 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
-                                            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                                            transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                                             className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none"
                                         >
                                             <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
                                             <motion.div
                                                 animate={{ y: 6 }}
-                                                transition={{ type: 'spring', stiffness: 300, damping: 20, repeat: Infinity, repeatType: 'reverse' }}
+                                                transition={{ type: 'spring', stiffness: 450, damping: 20, repeat: Infinity, repeatType: 'reverse' }}
                                                 className="relative mx-auto mb-3 w-fit rounded-full px-3 py-2 border border-white/20 bg-black/60 shadow-md flex items-center gap-2"
                                             >
                                                 <ArrowDown size={16} className="text-white/90" />

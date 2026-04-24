@@ -82,7 +82,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                     scale: 1, 
                     opacity: 1,
                     x: [-5, 5, -5, 5, 0],
-                    transition: { x: { duration: 0.4, repeat: Infinity } }
+                    transition: { x: { duration: 0.2, repeat: Infinity } }
                   } : { scale: 1, opacity: 1 }}
                   exit={{ scale: 1.5, opacity: 0 }} 
                   className="absolute flex items-center justify-center text-white/50"
@@ -121,7 +121,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                 <motion.h1
                   initial={{ opacity: 0, y: 20, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
                 >
                   ¡GRACIAS!

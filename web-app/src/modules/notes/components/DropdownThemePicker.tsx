@@ -46,7 +46,7 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  initial={{ opacity: 0, scale: 0.95, y: 10 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 10 }}
- transition={{ type: "spring", stiffness: 300, damping: 25 }}
+ transition={{ type: "spring", stiffness: 450, damping: 25 }}
  className="
  fixed inset-0 m-auto w-72 h-fit origin-center
  bg-[#111]/90 backdrop-blur-sm transform-gpu border border-white/10 shadow-md
@@ -61,7 +61,7 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  key={t.id} 
  onClick={() => { onSelect(t.id); }} 
  className={`
- w-9 h-9 rounded-full transition-all duration-300 relative flex items-center justify-center
+ w-9 h-9 rounded-full transition-all duration-200 relative flex items-center justify-center
  ${currentTheme === t.id ? 'scale-110 ring-2 ring-white/20 shadow-lg' : 'hover:scale-110 opacity-70 hover:opacity-100'}
  `} 
  style={{ backgroundColor: t.color }} 

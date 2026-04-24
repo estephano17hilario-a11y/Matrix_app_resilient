@@ -31,7 +31,7 @@ const getControlPoints = (p1: any, p2: any, p3: any, t = 0.3) => {
 
 export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [dimensions, setDimensions] = useState({  });
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useLayoutEffect(() => {
         const updateSize = () => {
@@ -176,7 +176,7 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                     <motion.path 
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{ pathLength: 1, opacity: 1 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
                         d={pathData} 
                         fill="none" 
                         stroke={`url(#${gradientId})`} 
@@ -191,7 +191,7 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                             key={`marker-${i}`}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ delay: 0.4 + i * 0.05, type: 'spring', stiffness: 260, damping: 20 }}
+                            transition={{ delay: 0.4 + i * 0.05, type: 'spring', stiffness: 400, damping: 20 }}
                         >
                             {p.hasMood && (
                                 <>

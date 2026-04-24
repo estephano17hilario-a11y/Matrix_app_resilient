@@ -294,7 +294,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         className="relative z-10 w-full max-w-[360px]"
                     >
                 <div 
-                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-500 ease-out"
+                    className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative bg-[#0a0a0a] transition-all duration-200 ease-out"
                     style={{
                         border: `1px solid ${hasColorSource ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
                         boxShadow: hasColorSource
@@ -305,7 +305,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     {/* Header */}
                     <div className="flex justify-between items-center p-5 pb-2 shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-500" style={{ background: activeColor }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-200" style={{ background: activeColor }}>
                                 <SelectedIcon size={21} className="text-white" />
                             </div>
                             <div>
@@ -336,7 +336,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         
                         {/* BLOCK 1: IDENTIDAD */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 1 
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -351,7 +351,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     </div>
                                     <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 1 ? "text-white" : "text-white/50")}>{t('habits.identity', 'IDENTITY')}</span>
                                 </div>
-                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 1 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
                             
                             <AnimatePresence initial={false} mode="sync">
@@ -482,7 +482,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
                         {/* BLOCK 2: MECÁNICA */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 2
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -497,7 +497,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     </div>
                                     <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 2 ? "text-white" : "text-white/50")}>{t('habits.mechanics', 'MECHANICS')}</span>
                                 </div>
-                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 2 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false} mode="sync">
@@ -511,7 +511,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     >
                                         {/* Frequency */}
                                         <div className="bg-black/20 rounded-xl p-1 flex">
-                                            {['DAILY', 'MONTHLY'].map(f => (
+                                            {['DAILY', 'WEEKLY', 'MONTHLY'].map(f => (
                                                 <button 
                                                     key={f} 
                                                     onClick={() => {
@@ -530,6 +530,71 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             ))}
                                         </div>
                                         
+                                        {freq === 'WEEKLY' && (
+                                            <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 fade-in p-2 bg-black/20 rounded-xl border border-white/5">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setWeeklyType('SPECIFIC_DAYS')}
+                                                        className={cn(
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            weeklyType === 'SPECIFIC_DAYS' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {t('habits.specificDays', 'SPECIFIC DAYS')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setWeeklyType('FLEXIBLE_COUNT')}
+                                                        className={cn(
+                                                            "flex-1 py-1.5 rounded-lg text-[9px] font-black tracking-wide transition-all border",
+                                                            weeklyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
+                                                        )}
+                                                    >
+                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
+                                                    </button>
+                                                </div>
+
+                                                {weeklyType === 'SPECIFIC_DAYS' ? (
+                                                    <div className="flex justify-between gap-1">
+                                                        {weekDaysList.map(({ label, index }) => {
+                                                            const isSelected = weekDays.includes(index);
+                                                            return (
+                                                                <button 
+                                                                    key={index} 
+                                                                    onClick={() => setWeekDays(prev => isSelected ? prev.filter(d => d !== index) : [...prev, index])} 
+                                                                    className={cn(
+                                                                        "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all border",
+                                                                        isSelected ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                    )}
+                                                                >
+                                                                    {label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
+                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerWeek', 'Times per week')}:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max="7" 
+                                                            value={weeklyFlexibleCount} 
+                                                            onChange={(e) => {
+                                                                if (e.target.value === '') {
+                                                                    setWeeklyFlexibleCount('');
+                                                                } else {
+                                                                    setWeeklyFlexibleCount(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)));
+                                                                }
+                                                            }}
+                                                            onBlur={() => {
+                                                                if (weeklyFlexibleCount === '') setWeeklyFlexibleCount(1);
+                                                            }}
+                                                            className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
 
                                         {freq === 'MONTHLY' && (
@@ -936,7 +1001,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         key={lvl} 
                                                         onClick={() => setImpact(lvl)} 
                                                         className={cn(
-                                                            "flex-1 rounded-full transition-all duration-300",
+                                                            "flex-1 rounded-full transition-all duration-200",
                                                             impact >= lvl 
                                                                 ? lvl === 1 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
                                                                 : lvl === 2 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
@@ -965,7 +1030,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
 
                         {/* BLOCK 3: COMPROMISO */}
                         <div className={cn(
-                            "rounded-[1.5rem] border transition-all duration-300 overflow-hidden",
+                            "rounded-[1.5rem] border transition-all duration-200 overflow-hidden",
                             expandedBlock === 3
                                 ? "bg-white/5 border-white/10" 
                                 : "bg-transparent border-white/5 hover:bg-white/[0.02]"
@@ -980,7 +1045,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                     </div>
                                     <span className={cn("text-xs font-bold tracking-wide", expandedBlock === 3 ? "text-white" : "text-white/50")}>{t('habits.commitment', 'COMMITMENT')}</span>
                                 </div>
-                                <ChevronDown size={14} className={cn("transition-transform duration-300 text-white/30", expandedBlock === 3 && "rotate-180")} />
+                                <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
                             <AnimatePresence initial={false} mode="sync">
@@ -1146,7 +1211,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <button 
                             disabled={!canSubmit || isSubmitting}
                             onClick={handleConfirm}
-                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
+                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 ${(!canSubmit || isSubmitting) ? 'bg-white/5 text-white/20' : 'text-white shadow-md active:scale-95 border border-white/20 hover:shadow-md hover:border-white/40'}`}
                             style={{
                                 background: (!canSubmit || isSubmitting) 
                                     ? undefined 

@@ -258,7 +258,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="flex flex-col gap-3 h-full w-full">
  
  {/* HEADER GROUP */}
- <div className="flex-none pt-1 pb-2 -mx-2 px-2 border-b border-white/5 transition-all duration-300">
+ <div className="flex-none pt-1 pb-2 -mx-2 px-2 border-b border-white/5 transition-all duration-200">
  {dailyLimits && (
  <div className="px-1">
  <div className="flex items-center justify-between mb-1">
@@ -272,7 +272,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  onClick={() => setIsDailyCapsOpen(prev => !prev)}
  className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
  >
- <ChevronDown size={12} className={cn("transition-transform duration-300", isDailyCapsOpen ? "rotate-180" : "rotate-0")} />
+ <ChevronDown size={12} className={cn("transition-transform duration-200", isDailyCapsOpen ? "rotate-180" : "rotate-0")} />
  </button>
  </div>
  <AnimatePresence initial={false}>
@@ -298,7 +298,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 origin-left"
  initial={{ scaleX: 0 }}
  animate={{ scaleX: maxTaskXp > 0 ? Math.min(1, safeTaskXp / maxTaskXp) : 0 }}
- transition={{ type: "spring", stiffness: 100, damping: 20 }}
+ transition={{ type: "spring", stiffness: 350, damping: 20 }}
  style={{ width: '100%' }}
  />
  </div>
@@ -316,7 +316,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  className="h-full bg-gradient-to-r from-fuchsia-400 to-violet-400 origin-left"
  initial={{ scaleX: 0 }}
  animate={{ scaleX: maxTaskTraitPoints > 0 ? Math.min(1, safeTaskTraitPoints / maxTaskTraitPoints) : 0 }}
- transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
+ transition={{ type: "spring", stiffness: 350, damping: 20, delay: 0.1 }}
  style={{ width: '100%' }}
  />
  </div>
@@ -331,7 +331,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  </div>
  <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
  <div
- className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 origin-left transition-all duration-500"
+ className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 origin-left transition-all duration-200"
  style={{ width: `${maxTaskGold > 0 ? Math.min(100, (safeTaskGold / maxTaskGold) * 100) : 0}%` }}
  />
  </div>
@@ -419,7 +419,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  key={tf}
  onClick={() => setTimeframe(tf)}
  className={cn(
- "relative px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 z-10",
+ "relative px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-200 z-10",
  timeframe === tf ? "text-white" : "text-white/40 hover:text-white/70"
  )}
  >
@@ -427,7 +427,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <motion.div
  layoutId="timeframeTab"
  className="absolute inset-0 bg-white/10 rounded-md border border-white/20"
- transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+ transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
  />
  )}
  <span className="relative z-20">{t(`tasks.filterDateTabs.${tf}`, tf.replace('_', ' '))}</span>

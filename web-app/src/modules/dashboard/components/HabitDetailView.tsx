@@ -83,7 +83,7 @@ const itemVariants: Variants = {
     visible: { 
         opacity: 1, 
         y: 0,
-        transition: { type: "spring", stiffness: 300, damping: 24 }
+        transition: { type: "spring", stiffness: 450, damping: 24 }
     }
 };
 
@@ -91,7 +91,7 @@ const barVariants: Variants = {
     hidden: { scaleY: 0 },
     visible: { 
         scaleY: 1,
-        transition: { type: "spring", stiffness: 300, damping: 30 }
+        transition: { type: "spring", stiffness: 450, damping: 25 }
     }
 };
 
@@ -567,18 +567,18 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
             whileTap={onClick ? { scale: 0.96 } : undefined}
             onClick={onClick}
             className={cn(
-                "relative group bg-[#18181b]/60 backdrop-blur-sm transform-gpu rounded-[28px] p-6 border border-white/[0.06] flex flex-col items-center justify-center gap-2 transition-all duration-500 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
+                "relative group bg-[#18181b]/60 backdrop-blur-sm transform-gpu rounded-[28px] p-6 border border-white/[0.06] flex flex-col items-center justify-center gap-2 transition-all duration-200 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
                 onClick ? "cursor-pointer hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.08]" : "hover:border-white/[0.12]"
             )}
         >
             {/* Inner Glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
             
             <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-center relative z-10 group-hover:text-white/50 transition-colors">
                 {label}
             </span>
             
-            <div className="relative z-10 flex flex-col items-center group-hover:scale-110 transition-transform duration-500">
+            <div className="relative z-10 flex flex-col items-center group-hover:scale-110 transition-transform duration-200">
                 {isLoading ? (
                     <div className="h-8 w-16 bg-white/5 rounded-lg animate-pulse" />
                 ) : (
@@ -599,7 +599,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                 initial={{ y: '100%', opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: '100%', opacity: 0 }}
-                transition={{ type: "spring", damping: 30, stiffness: 250, mass: 1 }}
+                transition={{ type: "spring", damping: 25, stiffness: 400, mass: 0.8 }}
                 className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
             >
                 {/* Dynamic Atmosphere Background - GPU OPTIMIZED */}
@@ -729,7 +729,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                     className="relative z-50 px-6 pt-1"
                 >
                     <motion.div 
-                        className="flex flex-col items-center mx-auto transition-all duration-500 origin-top backdrop-blur-sm transform-gpu border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50"
+                        className="flex flex-col items-center mx-auto transition-all duration-200 origin-top backdrop-blur-sm transform-gpu border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50"
                         animate={{
                             borderRadius: isScrolled ? 28 : 32,
                             padding: isScrolled ? "10px 16px" : "14px 20px",
@@ -779,7 +779,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                     className="absolute inset-0 bg-white shadow-[0_4px_12px_rgba(255,255,255,0.3)]"
                                                     style={{ borderRadius: 999 }}
                                                     initial={false}
-                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                                 />
                                             )}
                                         </motion.button>
@@ -983,7 +983,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                         <motion.div
                                             initial={{ scaleX: 0 }}
                                             animate={{ scaleX: summaryBarValue }}
-                                            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                                            transition={{ type: "spring", stiffness: 350, damping: 20 }}
                                             className="h-full rounded-full origin-left relative"
                                             style={{ backgroundColor: themeColor }}
                                         >
@@ -1098,7 +1098,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                         <div key={i} className="flex-1 flex flex-col items-center gap-4 z-10 h-full justify-end group/bar cursor-pointer pb-8 min-w-0">
                                             <div className="w-full max-w-[28px] h-[85%] relative flex items-end">
                                                 {/* Tooltip on Hover */}
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-50 shadow-md scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-[1000] px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-all duration-200 pointer-events-none z-50 shadow-md scale-75 group-hover/bar:scale-100 origin-bottom whitespace-nowrap">
                                                     {formatValue(data.value, habit?.type, unitLabel, isTimeBased)}
                                                 </div>
                                                 
@@ -1110,7 +1110,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                         backgroundColor: data.isToday ? themeColor : `${themeColor}40`,
                                                         border: data.isToday ? `1px solid ${themeColor}` : `1px solid ${themeColor}20`
                                                     }}
-                                                    className="w-full rounded-t-xl rounded-b-md relative overflow-hidden transition-colors duration-500 group-hover/bar:bg-opacity-100"
+                                                    className="w-full rounded-t-xl rounded-b-md relative overflow-hidden transition-colors duration-200 group-hover/bar:bg-opacity-100"
                                                 >
                                                     {/* Bar Inner Glow */}
                                                     {data.isToday && (
@@ -1123,7 +1123,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
                                                 </motion.div>
                                             </div>
                                             <span className={cn(
-                                                "absolute bottom-0 text-[8px] font-black uppercase text-white/20 tracking-tighter truncate w-full text-center transition-all duration-300",
+                                                "absolute bottom-0 text-[8px] font-black uppercase text-white/20 tracking-tighter truncate w-full text-center transition-all duration-200",
                                                 showLabel ? "opacity-100" : "opacity-0 group-hover/bar:opacity-100 group-hover/bar:text-white/40"
                                             )}>
                                                 {data.label}

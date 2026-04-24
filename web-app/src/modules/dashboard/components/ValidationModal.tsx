@@ -40,7 +40,7 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                 initial={{ opacity: 0, scale: 0.96, y: 16 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 16 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "spring", stiffness: 450, damping: 25 }}
                 className="relative z-10 w-full max-w-sm rounded-[2rem] p-6 flex flex-col items-center bg-[#141419] bg-gradient-to-b from-white/5 to-transparent border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_12px_28px_-16px_rgba(0,0,0,0.6)]"
                 style={{
                     background: habit?.attribute 
@@ -97,7 +97,7 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                             </button>
                         </div>
 
-                        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-transform duration-500 origin-left" style={{ transform: `scaleX(${Math.min(1, ((habit.currentValue || 0) / (habit.targetValue || 1)) )})` }} /></div>
+                        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-transform duration-200 origin-left" style={{ transform: `scaleX(${Math.min(1, ((habit.currentValue || 0) / (habit.targetValue || 1)) )})` }} /></div>
                     </div>
                 )}
                 {habit.type === 'CHECKLIST' && (

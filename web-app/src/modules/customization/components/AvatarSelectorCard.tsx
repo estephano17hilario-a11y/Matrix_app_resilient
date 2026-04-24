@@ -54,7 +54,7 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
  {/* 1. Static Ambient Glow (Opacity transition only) */}
  <div 
  className={cn(
- "absolute -inset-4 rounded-3xl -z-10 transition-opacity duration-300",
+ "absolute -inset-4 rounded-3xl -z-10 transition-opacity duration-200",
  isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-40"
  )}
  style={{
@@ -76,7 +76,7 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
  {/* 3. Border Ring (CSS Transition) */}
  <div
  className={cn(
- "absolute inset-0 rounded-2xl z-50 pointer-events-none transition-colors duration-300 border",
+ "absolute inset-0 rounded-2xl z-50 pointer-events-none transition-colors duration-200 border",
  isSelected ? "border-2" : "border-white/10"
  )}
  style={{ borderColor: isSelected ? themeColor : 'rgba(255,255,255,0.1)' }}
@@ -109,7 +109,7 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
  variants={{
  hover: { scale: 1.05 },
  }}
- transition={{ duration: 0.4 }}
+ transition={{ duration: 0.2 }}
  onError={() => setImgError(true)}
  />
  ) : (

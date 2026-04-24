@@ -19,7 +19,7 @@ const CategoryTab = ({
  <button
  onClick={onClick}
  className={`
- relative px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-500
+ relative px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200
  ${isActive 
  ? 'text-white shadow-[0_0_20px_rgba(255,255,255,0.2)] scale-105' 
  : 'text-white/40 hover:text-white/80 hover:bg-white/5'}
@@ -30,7 +30,7 @@ const CategoryTab = ({
  <motion.div
  layoutId="activeTab"
  className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm transform-gpu "
- transition={{ type: "spring", stiffness: 300, damping: 30 }}
+ transition={{ type: "spring", stiffness: 450, damping: 25 }}
  />
  )}
  <span className="relative z-10 flex items-center gap-2">
@@ -55,7 +55,7 @@ const TraitFilterPill = ({
  <button
  onClick={onClick}
  className={`
- flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border
+ flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border
  ${isActive 
  ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-105' 
  : 'bg-black/40 text-white/50 border-white/10 hover:border-white/30 hover:text-white'}
@@ -86,19 +86,19 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
  whileTap={{ scale: 0.98 }}
  className={`
  relative group flex flex-col p-4 sm:p-5 text-left h-full min-w-0
- rounded-[24px] border transition-all duration-500 overflow-hidden
+ rounded-[24px] border transition-all duration-200 overflow-hidden
  ${isUnlocked 
  ? 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 transform-gpu border-white/10 shadow-md hover:shadow-md grayscale-0' 
               : 'bg-black/60 transform-gpu border-white/5 opacity-70 grayscale'}
  `}
  >
  {/* Shine Effect */}
- <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+ <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
  {/* Top Section: Icon & Reward */}
  <div className="flex justify-between items-center mb-4 relative z-10">
  <div className={`
- p-3 rounded-2xl transition-all duration-500
+ p-3 rounded-2xl transition-all duration-200
  ${isUnlocked 
  ? 'bg-gradient-to-br from-white/10 to-white/5 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)]' 
  : 'bg-white/5 border border-white/5'}
@@ -258,7 +258,7 @@ export const AchievementsScreen: React.FC = () => {
  <button
  onClick={() => setSelectedTrait(null)}
  className={`
- px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border
+ px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border
  ${!selectedTrait 
  ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
  : 'bg-black/40 text-white/50 border-white/10 hover:border-white/30 hover:text-white'}

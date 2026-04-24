@@ -63,17 +63,17 @@ export const AdShard: React.FC = () => {
         whileTap={{ scale: 0.98 }}
         className={clsx(
           "relative flex flex-row items-center p-6 rounded-[32px] overflow-hidden cursor-pointer group",
-          "bg-[#1c1c1e] border border-indigo-500/20 hover:border-indigo-400/50 transition-all duration-300",
+          "bg-[#1c1c1e] border border-indigo-500/20 hover:border-indigo-400/50 transition-all duration-200",
           "shadow-lg shadow-indigo-900/10"
         )}
         onClick={handleWatchClick}
       >
         {/* Fast background hover effect (NO BLUR, NO LAG) */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
         {/* Icon Circle */}
         <div className="relative mr-5 z-10">
-          <div className="absolute inset-0 bg-indigo-500/20 rounded-full scale-110 group-hover:scale-125 transition-transform duration-300" />
+          <div className="absolute inset-0 bg-indigo-500/20 rounded-full scale-110 group-hover:scale-125 transition-transform duration-200" />
           <div className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-500/40 to-purple-500/40 border border-indigo-400/50 flex items-center justify-center text-indigo-100 group-hover:text-white transition-colors">
             {loading ? <Loader2 className="animate-spin" size={24} /> : <Play fill="currentColor" size={24} className="ml-1" />}
           </div>
@@ -90,7 +90,7 @@ export const AdShard: React.FC = () => {
           {/* Progress Bar */}
           <div className="w-full h-1.5 bg-black/40 rounded-full mt-2 overflow-hidden">
              <div 
-               className="h-full bg-indigo-500 transition-all duration-500 ease-out"
+               className="h-full bg-indigo-500 transition-all duration-200 ease-out"
                style={{ width: `${(adsWatched / 2) * 100}%` }}
              />
           </div>

@@ -36,7 +36,7 @@ export const AchievementToast: React.FC<AchievementToastProps> = ({ achievement,
           transition={{ 
             type: "spring", 
             stiffness: 400, 
-            damping: 30, 
+            damping: 25, 
             mass: 0.8
           }}
           className="w-full flex justify-center pointer-events-none p-2 will-change-transform"

@@ -91,7 +91,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
       <button
         onClick={(e) => { e.stopPropagation(); handleToggle(task.id); }}
         className={cn(
-          "relative w-5 h-5 rounded-full border transition-all duration-300 flex items-center justify-center shrink-0",
+          "relative w-5 h-5 rounded-full border transition-all duration-200 flex items-center justify-center shrink-0",
           task.isCompleted 
             ? "bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] scale-100" 
             : "border-white/30 bg-transparent hover:border-cyan-400/50 hover:bg-white/5"
@@ -110,7 +110,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
 
       <span 
         className={cn(
-          "flex-1 text-sm font-medium transition-all duration-300 select-none cursor-pointer",
+          "flex-1 text-sm font-medium transition-all duration-200 select-none cursor-pointer",
           task.isCompleted ? "text-white/30 line-through decoration-white/30" : "text-white/90"
         )}
         onClick={(e) => { e.stopPropagation(); handleToggle(task.id); }}
@@ -147,7 +147,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
                  )}
                  initial={{ scaleX: 0 }}
                  animate={{ scaleX: (progress || 0) / 100 }}
-                 transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                 transition={{ type: "spring", stiffness: 350, damping: 20 }}
                  style={{ width: '100%' }}
                />
             </div>
@@ -191,8 +191,8 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
 
       {/* INPUT TÁCTICO (Mejorado) */}
       <div className="relative group mt-1">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-        <div className="relative flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 py-2 focus-within:border-cyan-500/30 focus-within:bg-black/40 transition-all duration-300 w-full">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-200" />
+        <div className="relative flex items-center gap-2 bg-black/20 border border-white/10 rounded-xl px-3 py-2 focus-within:border-cyan-500/30 focus-within:bg-black/40 transition-all duration-200 w-full">
             <Plus size={16} className="text-white/30 group-focus-within:text-cyan-400 transition-colors shrink-0" />
             <input
             ref={inputRef}
@@ -214,7 +214,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
                 }
             }}
             className={cn(
-                "p-1.5 rounded-lg transition-all duration-300 shrink-0",
+                "p-1.5 rounded-lg transition-all duration-200 shrink-0",
                 inputValue.trim() 
                     ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30" 
                     : "bg-white/5 text-white/10 cursor-not-allowed"

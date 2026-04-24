@@ -127,7 +127,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
     >
       {/* Dynamic Background based on Trait - Simplified for performance */}
       <div 
-        className="absolute inset-0 pointer-events-none transition-colors duration-1000 ease-in-out opacity-20"
+        className="absolute inset-0 pointer-events-none transition-colors duration-200 ease-in-out opacity-20"
         style={{ 
             background: tempTraitId || projectMeta.traitId
                 ? `radial-gradient(circle at 50% 40%, ${effectiveColor}30 0%, transparent 60%)`
@@ -152,7 +152,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.02 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                     className="flex flex-col items-center justify-center text-center space-y-6 w-full"
                   >
                     {/* APPLE INTELLIGENCE HEADER - Visible only in Objective Step */}
@@ -165,9 +165,9 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                                 className="flex flex-col items-center flex-shrink-0"
                             >
                                 <div className="mb-5 flex items-center justify-center">
-                                    <div className="w-16 h-16 rounded-2xl bg-transparent border border-white/10 flex items-center justify-center shadow-sm transition-colors duration-300">
+                                    <div className="w-16 h-16 rounded-2xl bg-transparent border border-white/10 flex items-center justify-center shadow-sm transition-colors duration-200">
                                         <Sparkles 
-                                            className="w-8 h-8 transition-colors duration-300" 
+                                            className="w-8 h-8 transition-colors duration-200" 
                                             style={{ color: activeColor }}
                                         />
                                     </div>
@@ -210,7 +210,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.15 }}
                     className="w-full h-full flex flex-col items-center"
                   >
                      {/* Recursive Steps */}

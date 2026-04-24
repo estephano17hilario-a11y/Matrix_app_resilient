@@ -108,7 +108,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                                                 x: Math.cos(angle * Math.PI / 180) * dist,
                                                 y: Math.sin(angle * Math.PI / 180) * dist,
                                             }}
-                                            transition={{ duration: 1.2, ease: "easeOut" }}
+                                            transition={{ duration: 0.15, ease: "easeOut" }}
                                             className={`absolute w-3 h-3 rounded-full ${i % 2 === 0 ? 'bg-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.8)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]'}`}
                                         />
                                     );
@@ -119,7 +119,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                             <motion.div 
                                 initial={{ scale: 0, rotate: -30, y: 50 }}
                                 animate={{ scale: [0, 1.4, 1], rotate: [ -30, 15, 0 ], y: 0 }}
-                                transition={{ type: "spring", stiffness: 250, damping: 12 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 12 }}
                                 className="relative z-10 w-32 h-32 flex items-center justify-center"
                             >
                                 <div 
@@ -156,7 +156,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                         <motion.div 
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.8, type: "spring", stiffness: 300, damping: 20 }}
+                            transition={{ delay: 0.8, type: "spring", stiffness: 450, damping: 20 }}
                             className="w-full bg-white/10 rounded-3xl p-4 border border-white/10 shadow-md"
                         >
                             <div className="flex justify-between items-center w-full px-1">
@@ -170,7 +170,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                                                 <motion.div
                                                     initial={day.isToday ? { scale: 0, rotate: -180 } : { scale: 1 }}
                                                     animate={day.isToday ? { scale: [0, 1.3, 1], rotate: 0 } : { scale: 1 }}
-                                                    transition={{ type: "spring", delay: day.isToday ? 1.2 : 0, duration: 0.7 }}
+                                                    transition={{ type: "spring", delay: day.isToday ? 1.2 : 0, duration: 0.25 }}
                                                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.5)]"
                                                 >
                                                     <Flame size={18} className="text-white drop-shadow-md" fill="currentColor" />

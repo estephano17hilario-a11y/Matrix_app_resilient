@@ -72,7 +72,7 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
  style={{ width: "100%", transformOrigin: "left" }}
  initial={{ scaleX: 0 }}
  animate={{ scaleX: percentage / 100 }}
- transition={{ type: "spring", stiffness: 100, damping: 20 }}
+ transition={{ type: "spring", stiffness: 350, damping: 20 }}
  >
  {/* Shimmer Effect on the liquid */}
  <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />

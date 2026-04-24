@@ -353,7 +353,7 @@ export const AuthView = () => {
  {/* Animated Exquisite Cosmic Container Background */}
  <div 
  className={`
- absolute inset-0 rounded-2xl transition-all duration-1000 ease-out pointer-events-none
+ absolute inset-0 rounded-2xl transition-all duration-200 ease-out pointer-events-none
  ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
  (view === 'LOGIN' && isEmailValid && isPasswordValid) 
  ? 'opacity-100 scale-100' 
@@ -367,7 +367,7 @@ export const AuthView = () => {
  />
 
  <div className={`
- relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-1000 ease-out border
+ relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-200 ease-out border
  ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
  (view === 'LOGIN' && isEmailValid && isPasswordValid)
  ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm transform-gpu '
@@ -456,7 +456,7 @@ export const AuthView = () => {
  type="submit"
  disabled={isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))}
  className={`
- w-full h-14 mt-6 font-bold rounded-xl transition-all duration-500 flex items-center justify-center gap-2 relative overflow-hidden group
+ w-full h-14 mt-6 font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden group
  ${isLoading || (view === 'REGISTER_CREDENTIALS' && (!isEmailValid || !isPasswordValid || !isNameValid || !isConfirmValid))
  ? 'bg-white/5 text-white/30 cursor-not-allowed' 
  : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95 shadow-[0_0_20px_-5px_rgba(99,102,241,0.5)]'

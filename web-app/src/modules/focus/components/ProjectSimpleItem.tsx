@@ -58,7 +58,7 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
          layout
          whileTap={{ scale: 0.98 }}
          onClick={() => onClick?.(project)}
-         className="group relative bg-[#111113]/80 bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] hover:border-white/[0.15] shadow-lg rounded-[2rem] p-4 transition-all duration-300 cursor-pointer overflow-hidden"
+         className="group relative bg-[#111113]/80 bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] hover:border-white/[0.15] shadow-lg rounded-[2rem] p-4 transition-all duration-200 cursor-pointer overflow-hidden"
          style={{ boxShadow: customBoxShadow }}
        >
       <div className="relative flex items-center gap-5">
@@ -74,7 +74,7 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
             onMouseDown={(e) => e.stopPropagation()} 
             onMouseUp={(e) => e.stopPropagation()}
             className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg shrink-0 group/btn relative z-50 cursor-pointer",
+                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg shrink-0 group/btn relative z-50 cursor-pointer",
                 isActive 
                     ? "animate-pulse ring-2 ring-white/50" 
                     : "hover:scale-105 active:scale-95"
@@ -142,7 +142,7 @@ export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSessio
                 </motion.div>
             </div>
             <span className={cn(
-                "text-xs font-mono font-medium min-w-[3ch] text-right transition-all duration-300",
+                "text-xs font-mono font-medium min-w-[3ch] text-right transition-all duration-200",
                 progressPercent >= 100 ? "text-white font-black scale-110" : "text-white/40"
             )}
             style={progressPercent >= 100 ? { textShadow: `0 0 10px ${baseColor}` } : {}}

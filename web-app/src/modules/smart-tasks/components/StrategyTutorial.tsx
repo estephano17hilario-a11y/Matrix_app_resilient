@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 const springTransition: Transition = {
     type: "spring",
     stiffness: 400,
-    damping: 30,
+    damping: 25,
     mass: 0.5
 };
 

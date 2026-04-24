@@ -55,7 +55,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
 
   return (
     <div 
-      className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-all duration-700 ease-in-out ${className || ''}`}
+      className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-all duration-200 ease-in-out ${className || ''}`}
       style={{ 
           background: bgStyle || 'rgb(var(--color-bg-depth))'
       }}
@@ -208,7 +208,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
 
       {/* Vices Mode Red Overlay (Universal Tint) */}
       <div 
-        className="absolute inset-0 pointer-events-none transition-opacity duration-1000 ease-in-out"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-200 ease-in-out"
         style={{
           background: isSolid 
             ? 'rgba(153, 27, 27, 0.15)' // Flat subtle red for solid themes

@@ -129,7 +129,7 @@ export const ArchetypeSelector: React.FC<ArchetypeSelectorProps> = ({ onClose })
                <img 
                  src={arch.image} 
                  alt={arch.name} 
-                 className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-500"
+                 className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-200"
                />
                <div className={cn(
                  "absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent",
@@ -140,7 +140,7 @@ export const ArchetypeSelector: React.FC<ArchetypeSelectorProps> = ({ onClose })
             {/* Content */}
             <div className="relative z-10 p-5 w-full flex flex-col items-center text-center space-y-3">
                 <div className={cn(
-                  "p-3 rounded-full flex items-center justify-center shrink-0 mb-1 transition-colors duration-300",
+                  "p-3 rounded-full flex items-center justify-center shrink-0 mb-1 transition-colors duration-200",
                   selectedId === arch.id ? `${arch.bgColor} border border-${arch.color.replace('text-', '')}/30` : "bg-white/5 border border-white/5"
                 )}>
                   <arch.icon size={28} className={arch.color} />

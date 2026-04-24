@@ -17,7 +17,7 @@ export const LiquidButton: React.FC<LiquidButtonProps> = ({
  isLoading,
  ...props
 }) => {
- const baseStyles = "relative overflow-hidden rounded-full font-medium text-white transition-all duration-300 ring-1 ring-white/20 hover:ring-white/40";
+ const baseStyles = "relative overflow-hidden rounded-full font-medium text-white transition-all duration-200 ring-1 ring-white/20 hover:ring-white/40";
  
  const sizeStyles = {
  sm: "px-4 py-1.5 text-xs",
@@ -40,7 +40,7 @@ export const LiquidButton: React.FC<LiquidButtonProps> = ({
  >
  {/* Mesh Gradient Internal Overlay */}
  {variant === 'primary' && (
- <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-500" />
+ <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 opacity-0 hover:opacity-100 transition-opacity duration-200" />
  )}
  
  {/* Shimmer Effect */}

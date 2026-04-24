@@ -295,7 +295,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                                 key={tf}
                                 onClick={() => handleTabClick(tf)}
                                 className={cn(
-                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-300 z-10 flex items-center gap-1",
+                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-200 z-10 flex items-center gap-1",
                                     timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
@@ -303,7 +303,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                                     <motion.div
                                         layoutId="activeRelapseTab"
                                         className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
                                     />
                                 )}
                                 <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
@@ -411,8 +411,8 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                                 }}
                                 transition={{ 
                                     type: "spring", 
-                                    stiffness: 300, 
-                                    damping: 30,
+                                    stiffness: 450, 
+                                    damping: 25,
                                     delay: i * 0.02
                                 }}
                                 style={{ 
@@ -429,7 +429,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                         <div className="flex flex-col items-center mt-2">
                             {showTicks && (
                                 <div className={cn(
-                                    "w-[1px] mb-1 transition-all duration-300",
+                                    "w-[1px] mb-1 transition-all duration-200",
                                     data.label 
                                         ? "h-2 bg-zinc-600" 
                                         : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
@@ -439,7 +439,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                             <div className="h-4 flex items-end justify-center">
                                 <span 
                                     className={cn(
-                                        "text-[9px] font-bold transition-colors duration-300",
+                                        "text-[9px] font-bold transition-colors duration-200",
                                         !data.isCurrent && "text-zinc-600 group-hover/bar:text-zinc-400"
                                     )}
                                     style={data.isCurrent ? { color: themeColor } : {}}

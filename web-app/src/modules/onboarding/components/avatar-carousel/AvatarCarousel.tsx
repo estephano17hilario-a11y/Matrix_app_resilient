@@ -76,7 +76,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
             className="absolute pointer-events-none"
             style={{
               top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
@@ -131,7 +131,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
                         }}
                         transition={{
                             type: "spring",
-                            stiffness: 250,
+                            stiffness: 400,
                             damping: 25,
                             mass: 0.8
                         }}
@@ -140,7 +140,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
                         }}
                     >
                         <div 
-                            className={`w-full h-full transition-all duration-300 ${isCenter ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
+                            className={`w-full h-full transition-all duration-200 ${isCenter ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
                             onClick={() => {
                                 if (relativeIndex < 0) handlePrev();
                                 if (relativeIndex > 0) handleNext();
@@ -203,7 +203,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
             {AVAILABLE_AVATARS.map((_, idx) => (
             <div 
                 key={idx}
-                className={`h-1 rounded-full transition-all duration-300 ${
+                className={`h-1 rounded-full transition-all duration-200 ${
                 idx === currentIndex ? 'w-8 bg-white' : 'w-1 bg-white/20'
                 }`}
             />
