@@ -1,4 +1,4 @@
-import { auth } from './firebase';
+import { supabase } from './supabase';
 
 export interface AuditLogEntry {
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'SOFT_DELETE' | 'LOGIN' | 'LOGOUT' | 'ERROR';
@@ -23,17 +23,18 @@ export const AuditLogger = {
     _details?: any
   ) => {
     try {
-      const user = auth.currentUser;
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return; // No podemos auditar sin usuario autenticado (por ahora)
 
-      // Guardamos en la colección raíz 'audit_logs' o dentro del usuario 'users/{uid}/audit_logs'
+      // Guardamos en la colección raíz 'audit_logs' de Supabase
       // Para robustez bancaria, idealmente debería ser una colección raíz con permisos de solo escritura.
       // Pero por simplicidad y COSTOS (ahorro máximo de almacenamiento en Supabase),
       // lo hemos desactivado. Si deseas persistencia de logs de auditoría en el futuro, 
       // puedes habilitar la inserción en Supabase, pero consumirá almacenamiento.
       
       // const logEntry: AuditLogEntry = { ... };
-      // await addDoc(collection(db, 'users', user.id, 'audit_logs'), logEntry);
+      // await supabase.from('audit_logs').insert(logEntry);
       
       console.log(`[AUDIT] ${action} on ${collectionName}/${documentId}`);
     } catch (error) {

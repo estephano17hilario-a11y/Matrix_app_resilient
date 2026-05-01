@@ -3,11 +3,10 @@ import { App } from '@capacitor/app';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { atomicRegister, atomicLogin } from '../../services/supabaseService';
+import { atomicRegister, atomicLogin, loginWithGoogle } from '../../services/supabaseService';
 import { AuthLayout } from './components/AuthLayout';
 import { AuthInput } from './components/AuthInput';
 import { retryOperation, isNetworkAvailable } from '../../utils/networkUtils';
-import { loginWithGoogle, initializeUserDocument } from '../../services/firebaseService';
 import { PersistenceService } from '../../services/persistence';
 
 // --- TYPES & CONSTANTS ---
@@ -230,11 +229,7 @@ export const AuthView = () => {
  // 1. CREATE USER IN AUTH
  const user = await retryOperation(() => atomicRegister(email.trim(), password, name.trim(), i18n.language));
 
- // 2. ATOMIC INITIALIZATION IN FIRESTORE
- // We block here until the document is created. No more passing to AuthContext.
- await retryOperation(() => initializeUserDocument(user, { displayName: name.trim() }));
- 
- // 3. SAVE SESSION
+ // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
  
  setIsLoading(false);
@@ -265,11 +260,8 @@ export const AuthView = () => {
 
  // 1. LOGIN
  const user = await retryOperation(() => atomicLogin(email.trim(), password));
- 
- // 2. ENSURE DOCUMENT EXISTS (And update lastLoginAt)
- await retryOperation(() => initializeUserDocument(user));
 
- // 3. SAVE SESSION
+ // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
  
  setIsLoading(false);
@@ -370,7 +362,7 @@ export const AuthView = () => {
  relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-200 ease-out border
  ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
  (view === 'LOGIN' && isEmailValid && isPasswordValid)
- ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm transform-gpu '
+ ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm '
  : 'bg-[#0a0a0f] border-white/10'
  }
  `}>

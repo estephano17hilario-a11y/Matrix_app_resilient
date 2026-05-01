@@ -16,7 +16,7 @@ import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
-import { doc, setDoc, db, writeBatch, updateDoc, collection, getDocs } from '@/services/firebase';
+
 import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
@@ -733,8 +733,8 @@ export const useDashboardLogic = () => {
                 }
 
                 // 2. Prepare Batch
-                const batch = writeBatch(db);
-                const userRef = doc(db, 'users', user.id);
+                
+                
 
                 // 1.5 CHECK STREAK CONTINUITY (Global Streak)
                 const yesterday = new Date(today);
@@ -750,10 +750,7 @@ export const useDashboardLogic = () => {
                     if (lastStreakDate && lastStreakDate < yesterdayStr) {
                          console.log(`[DAILY RESET] Streak Broken. Last active: ${lastStreakDate}, Yesterday: ${yesterdayStr}`);
                          // Reset streak to 0 but save previous streak for redemption
-                         batch.update(userRef as any, { 
-                             'stats.streak': 0,
-                             'stats.previousStreak': user.stats.streak
-                         });
+                         
                     } else if (!lastStreakDate) {
                         console.log("[DAILY RESET] No lastStreakDate found. Preserving legacy streak.");
                     }
@@ -764,9 +761,7 @@ export const useDashboardLogic = () => {
                 if (damage > 0) {
                     console.log(`[DAILY RESET] Applying ${damage} damage.`);
                     newHealth = Math.max(0, health - damage);
-                    batch.update(userRef as any, { 
-                        'stats.hp': newHealth 
-                    });
+                    
                 }
 
                 // 4. Reset Habits and Individual Streaks
@@ -809,15 +804,13 @@ export const useDashboardLogic = () => {
                         // Check if the original habit differs from the updated one
                         const original = habits.find(orig => orig.id === h.id);
                         if (original && original !== h) {
-                             const habitRef = doc(db, 'users', user.id, 'habits', h.id);
-                             
                              const updates: any = {};
                              if (original.completedToday !== h.completedToday) updates.completedToday = h.completedToday;
                              if (original.currentValue !== h.currentValue) updates.currentValue = h.currentValue;
                              if (original.checklist !== h.checklist) updates.checklist = h.checklist;
                              if (original.streak !== h.streak) updates.streak = h.streak;
                              
-                             batch.update(habitRef as any, updates);
+                             persistenceService.habits.update(user.id, h.id, updates).catch(console.error);
                         }
                     });
                 }
@@ -843,7 +836,7 @@ export const useDashboardLogic = () => {
                     habitGold: 0,
                     habitTraitPoints: 0
                 };
-                batch.update(userRef as any, { dailyLimits: newLimits });
+                
 
                 // OPTIMISTIC UPDATE: Update UI immediately
                 if (damage > 0) setHealth(newHealth);
@@ -854,7 +847,7 @@ export const useDashboardLogic = () => {
                 setDailyLimits(newLimits);
 
                 try {
-                    await batch.commit();
+                    
                     console.log("[DAILY RESET] Batch committed successfully.");
                 } catch (e) {
                     console.error("[DAILY RESET] Failed (Background Sync will handle it):", e);
@@ -1109,8 +1102,7 @@ export const useDashboardLogic = () => {
                 
                 // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
                 try {
-                    const snapshot = await getDocs(collection(db, 'users', uid, 'attributes'));
-                    const fbAttrs = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Attribute));
+                    const fbAttrs = await persistenceService.attributes.getAll(uid) || [];
                     
                     // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, 
                     // but Firebase takes precedence for XP/Level if it's higher)
@@ -1143,7 +1135,7 @@ export const useDashboardLogic = () => {
                     fbAttrs.forEach((fbAttr: Attribute) => {
                         const supaAttr = fetchedAttrs.find(sa => sa.id === fbAttr.id);
                         if (!supaAttr || (fbAttr.xp + (fbAttr.level * 1000)) > (supaAttr.xp + (supaAttr.level * 1000))) {
-                            persistenceService.attributes.save(uid, fbAttr).catch(console.error);
+                            persistenceService.attributes.save(uid, fbAttr);
                         }
                     });
                 } catch (e) {
@@ -1269,9 +1261,9 @@ export const useDashboardLogic = () => {
 
             // Update Counter
             if (user?.id) {
-                setDoc(doc(db, 'users', user.id), {
+                supabase.from('users').update({
                     traitChanges: { count: newCount + 1, weekStart: newStart }
-                }, { merge: true });
+                });
             }
         }
 
@@ -1357,9 +1349,9 @@ export const useDashboardLogic = () => {
 
              // Update Counter
             if (user?.id) {
-                setDoc(doc(db, 'users', user.id), {
+                supabase.from('users').update({
                     traitChanges: { count: newCount + 1, weekStart: newStart }
-                }, { merge: true });
+                });
             }
         }
 
@@ -1378,18 +1370,18 @@ export const useDashboardLogic = () => {
         setQuests(prev => prev.map(q => q.attribute === traitId ? { ...q, attribute: '' } : q));
 
         try {
-            const batch = writeBatch(db);
+            
             
             // 1. Delete Attribute Doc (Firebase)
-            const attrRef = doc(db, 'users', user.id, 'attributes', traitId);
-            batch.delete(attrRef);
+            
+            
 
             // 1.5. Delete Attribute Doc (Supabase)
             persistenceService.attributes.delete(user.id, traitId).catch(e => console.error("Failed to delete trait from Supabase", e));
 
             // 2. Archive Stats in User Doc
             if (attrToArchive) {
-                const userRef = doc(db, 'users', user.id);
+                
                 const archivedData = {
                     level: attrToArchive.level,
                     xp: attrToArchive.xp,
@@ -1398,7 +1390,7 @@ export const useDashboardLogic = () => {
                     color: attrToArchive.color,
                     iconName: attrToArchive.iconName
                 };
-                batch.update(userRef, {
+                await supabase.from('users').update({
                     [`archivedTraits.${traitId}`]: archivedData
                 });
                 
@@ -1430,33 +1422,29 @@ export const useDashboardLogic = () => {
             // 3. Update Associated Items in Firestore
             habits.forEach(h => {
                 if (h.attribute === traitId) {
-                    const ref = doc(db, 'users', user.id, 'habits', h.id);
-                    batch.update(ref, { attribute: '' });
+                    persistenceService.habits.update(user.id, h.id, { attribute: '' }).catch(console.error);
                 }
             });
             
             badHabits.forEach(h => {
                 if (h.attribute === traitId) {
-                    const ref = doc(db, 'users', user.id, 'bad-habits', h.id);
-                    batch.update(ref, { attribute: '' });
+                    persistenceService.badHabits.update(user.id, h.id, { attribute: '' }).catch(console.error);
                 }
             });
             
             projects.forEach(p => {
                 if (p.attribute === traitId) {
-                    const ref = doc(db, 'users', user.id, 'projects', p.id);
-                    batch.update(ref, { attribute: '' });
+                    persistenceService.projects.update(user.id, p.id, { attribute: '' }).catch(console.error);
                 }
             });
             
             quests.forEach(q => {
                 if (q.attribute === traitId) {
-                    const ref = doc(db, 'users', user.id, 'quests', q.id);
-                    batch.update(ref, { attribute: '' });
+                    persistenceService.quests.update(user.id, q.id, { attribute: '' }).catch(console.error);
                 }
             });
 
-            await batch.commit();
+            
         } catch (e) {
             console.error("[TRAIT] Failed to remove/archive trait", e);
         }
@@ -1802,8 +1790,8 @@ export const useDashboardLogic = () => {
                 
                 try {
                     const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
-                    const userRef = doc(db, 'users', user.id);
-                    await updateDoc(userRef, {
+                    
+                    await supabase.from('users').update({
                         'stats.streak': newStreak,
                         'stats.lastStreakDate': today
                     });
@@ -1892,7 +1880,7 @@ export const useDashboardLogic = () => {
         });
         
         // SAVE TO FIRESTORE ATOMICALLY
-        TransactionService.updateAttributeXpAtomic(user.id, attrId, amount).catch(console.error);
+        TransactionService.updateAttributeXpAtomic(user.id, attrId, amount);
     }, [user?.id, user?.isSkeleton]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
@@ -1945,10 +1933,10 @@ export const useDashboardLogic = () => {
         setPlayer(prev => {
             const newStats = { ...prev, level: newLevel, nextXp: calculateNextXp(newLevel) };
             if (user?.id) {
-                setDoc(doc(db, 'users', user.id), {
+                supabase.from('users').update({
                     'stats.level': newLevel,
                     'stats.nextXp': newStats.nextXp
-                }, { merge: true }).catch(console.error);
+                });
             }
             return newStats;
         });
@@ -2258,7 +2246,7 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp
-            ).catch(console.error);
+            );
         } else if (finalDurationSeconds > 0) {
              console.log("ℹ️ Short session saved, no XP awarded");
              addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(finalDurationSeconds) + 's', toLevel: 'Short Session', icon: Check, color: '#10b981' });
@@ -2465,7 +2453,7 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp
-            ).catch(console.error);
+            );
         }
 
         // 7. PERSIST PROJECT
@@ -2598,7 +2586,7 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp
-            ).catch(console.error);
+            );
         }
 
         addNotification({ type: 'SYSTEM', label: 'SESSION DELETED', fromLevel: Math.floor(durationSeconds / 60) + 'm', toLevel: 'Reversed', icon: Trash2, color: '#ef4444' });
@@ -2692,7 +2680,7 @@ export const useDashboardLogic = () => {
         
         // Save Project
         if (user?.id) {
-            projectService.saveProject(user.id, updatedProject).catch(console.error);
+            projectService.saveProject(user.id, updatedProject);
         }
 
         // 6. Update User Stats, Limits and Attributes via TransactionService
@@ -2757,7 +2745,7 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp
-            ).catch(console.error);
+            );
         }
 
     }, [projects, dailyLimits, user, addNotification, triggerReward]);
@@ -3594,7 +3582,7 @@ export const useDashboardLogic = () => {
 
                 // Update Firestore
                 try {
-                    const userRef = doc(db, 'users', user.id);
+                    
                     // Optimistic update using the calculated value since we don't have increment imported in this scope (or maybe we do?)
                     // To be safe and consistent with handleDeleteHabit:
                     // We can't easily access the latest Firestore value here without a transaction/get.
@@ -3607,7 +3595,7 @@ export const useDashboardLogic = () => {
                     // We need to calculate the new value.
                     const newCount = Math.max(0, (dailyLimits.habitsCompleted || 0) + change);
                     
-                    await updateDoc(userRef, {
+                    await supabase.from('users').update({
                         'dailyLimits.habitsCompleted': newCount
                     });
                 } catch (e) {
@@ -3713,7 +3701,7 @@ export const useDashboardLogic = () => {
                 };
                 
                 // Save habit state first to be safe, though toggleHabitCompletion will update it
-                persistenceService.habits.update(user.id, habitId, finalData as Habit).catch(console.error);
+                persistenceService.habits.update(user.id, habitId, finalData as Habit);
 
                 const isNewDay = dailyLimits.date !== today;
                 let newXp = player.xp + rewardXp;
@@ -3786,14 +3774,14 @@ export const useDashboardLogic = () => {
                     newLevel,
                     newNextXp,
                     currentHabit.attribute
-                ).catch(console.error);
+                );
             }
         } else if (user?.id) {
             // Find the updated habit to persist full state (No completion change)
             const updatedHabit = habits.find(h => h.id === habitId);
             if (updatedHabit) {
                 const finalData = { ...updatedHabit, ...data };
-                persistenceService.habits.update(user.id, habitId, finalData as Habit).catch(console.error);
+                persistenceService.habits.update(user.id, habitId, finalData as Habit);
             }
         }
     }, [user?.id, habits, dailyLimits, applyHabitRewards, triggerReward, player.xp, player.gold, attributes]);
@@ -3818,14 +3806,14 @@ export const useDashboardLogic = () => {
             
             // Sync with Firestore
             try {
-                const userRef = doc(db, 'users', user.id);
+                
                 // We need to decrement habitsCompleted atomically
                 // But since we don't have 'increment' imported, we can just use the value we know locally
                 // or use updateDoc with the calculated value.
                 // Ideally use increment(-1) but let's stick to what we have imported or add it.
                 // We have 'doc', 'setDoc', 'db', 'writeBatch', 'updateDoc'.
                 // Let's assume we can just update the object.
-                await updateDoc(userRef, {
+                await supabase.from('users').update({
                     'dailyLimits.habitsCompleted': Math.max(0, (dailyLimits.habitsCompleted || 0) - 1)
                 });
             } catch (e) {
@@ -4022,13 +4010,8 @@ export const useDashboardLogic = () => {
         
         // 2. Clear Firestore
         try {
-             const projectsRef = collection(db, 'users', user.id, 'projects');
-             const snapshot = await getDocs(projectsRef);
-             const batch = writeBatch(db);
-             snapshot.docs.forEach((doc: any) => {
-                 batch.delete(doc.ref);
-             });
-             await batch.commit();
+             const projects = await persistenceService.projects.getAll(user.id) || []; for (const project of projects) { await persistenceService.projects.delete(user.id, project.id); }
+             
              console.log("✅ All projects deleted from Firestore");
              // Use a simple alert or console log if addNotification is not available in scope here, 
              // but it should be available since it is used elsewhere in this hook.
@@ -4082,7 +4065,7 @@ export const useDashboardLogic = () => {
         }
 
         if (user?.id) {
-            projectService.saveProject(user.id, updatedProject).catch(console.error);
+            projectService.saveProject(user.id, updatedProject);
         }
     }, [user?.id, saveProjectsCache]);
 
@@ -4104,8 +4087,7 @@ export const useDashboardLogic = () => {
 
         if (user?.id) {
             try {
-                const habitRef = doc(db, 'users', user.id, 'habits', habitId);
-                await setDoc(habitRef, { history: newHistory }, { merge: true });
+                const habits = await persistenceService.habits.getAll(user.id); const habit = habits?.find(h => h.id === habitId); if (habit) await persistenceService.habits.save(user.id, { ...habit, history: newHistory });
             } catch (e) {
                 console.error("Failed to toggle habit day", e);
             }
@@ -4185,7 +4167,7 @@ export const useDashboardLogic = () => {
                      });
                      
                      // Persist Trait Atomically
-                     TransactionService.updateAttributeXpAtomic(user.id, attr.id, traitXpGained).catch(console.error);
+                     TransactionService.updateAttributeXpAtomic(user.id, attr.id, traitXpGained);
 
                      traitUpdateData = { 
                          id: attr.id, 
@@ -4200,7 +4182,7 @@ export const useDashboardLogic = () => {
              }
              
              // 4. Persist Player Stats Atomically
-             TransactionService.awardExperience(user.id, xp, gold, newLevel).catch(console.error);
+             TransactionService.awardExperience(user.id, xp, gold, newLevel);
              
              // 5. Trigger Visual Reward
              triggerReward(
@@ -4296,7 +4278,7 @@ export const useDashboardLogic = () => {
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.id, 'hp', -hpPenalty, true).catch(console.error);
+                    TransactionService.updateStat(user.id, 'hp', -hpPenalty, true);
                 }
 
                 addPlayerReward({
@@ -4350,7 +4332,7 @@ export const useDashboardLogic = () => {
                             maxXp: 20 * Math.pow(newAttrLevel + 1, 2)
                         };
                     }));
-                }).catch(console.error);
+                });
 
             } else {
                 if (user?.id) {
@@ -4361,7 +4343,7 @@ export const useDashboardLogic = () => {
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true).catch(console.error);
+                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true);
                 }
 
                 addPlayerReward({
@@ -4410,12 +4392,9 @@ export const useDashboardLogic = () => {
         if (!user?.id) return;
         
         try {
-            const batch = writeBatch(db);
-            newOrder.forEach((habit, index) => {
-                const habitRef = doc(db, 'users', user.id, 'habits', habit.id);
-                batch.update(habitRef, { order: index });
-            });
-            await batch.commit();
+            await Promise.all(newOrder.map((habit, index) => 
+                persistenceService.habits.update(user!.id, habit.id, { order: index })
+            ));
             
             // Update cache
             PersistenceService.saveCollection(user.id, 'habits', newOrder);
@@ -4431,12 +4410,10 @@ export const useDashboardLogic = () => {
         if (!user?.id) return;
         
         try {
-            const batch = writeBatch(db);
-            newOrder.forEach((project, index) => {
-                const projectRef = doc(db, 'users', user.id, 'projects', project.id);
-                batch.update(projectRef, { order: index });
-            });
-            await batch.commit();
+            await Promise.all(newOrder.map((project, index) => 
+                persistenceService.projects.update(user!.id, project.id, { order: index })
+            ));
+            
              // Update cache
             PersistenceService.saveCollection(user.id, 'projects', newOrder);
         } catch (error) {

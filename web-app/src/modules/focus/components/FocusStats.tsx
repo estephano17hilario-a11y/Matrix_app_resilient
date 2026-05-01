@@ -26,6 +26,7 @@ type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'T
 export const FocusStats = React.memo(({ 
     projects, 
     attributes,
+    dailyLimits: propDailyLimits,
     showArchived,
     onToggleArchived,
     isPro,
@@ -36,6 +37,7 @@ export const FocusStats = React.memo(({
 }: { 
     projects: Project[], 
     attributes: Attribute[],
+    dailyLimits?: DailyLimits,
     showArchived?: boolean,
     onToggleArchived?: () => void,
     isPro?: boolean,
@@ -48,7 +50,7 @@ export const FocusStats = React.memo(({
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
-    const dailyLimits: DailyLimits = user?.dailyLimits ?? {
+    const dailyLimits: DailyLimits = propDailyLimits ?? user?.dailyLimits ?? {
         date: '',
         taskXp: 0,
         taskGold: 0,
@@ -356,66 +358,68 @@ export const FocusStats = React.memo(({
                     <div className="flex items-center justify-between gap-2">
                         {/* LEFT: Time Range Tabs (Reduced Size) */}
                         <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 shadow-md relative z-20 flex-shrink min-w-0">
-                            <AnimatePresence>
-                                {['DAY', 'WEEK', thirdSlot].map((range) => {
-                                    const isActive = timeRange === range;
-                                    const label = ALL_RANGES.find(r => r.value === range)?.label || range;
-                                    
-                                    return (
-                                        <motion.div 
-                                            key={range} 
-                                            layout
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            className="relative"
-                                        >
-                                            <motion.button
-                                                layoutId={`tab-${range}`}
-                                                onClick={() => {
-                                                    if (isActive) {
-                                                        setIsConfigOpen(!isConfigOpen);
-                                                    } else {
-                                                        handleTabClick(range as TimeRange);
-                                                        setIsConfigOpen(false); // Close if switching to another
-                                                    }
-                                                }}
-                                                transition={{ duration: 0.15, ease: "easeOut" }}
-                                                className={cn(
-                                                    "py-1.5 rounded-lg font-bold transition-all relative whitespace-nowrap overflow-visible",
-                                                    label.length > 5 ? "px-1.5 text-[9px]" : "px-3 text-[11px]",
-                                                    isActive 
-                                                        ? "bg-white text-black shadow-sm z-10" 
-                                                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                                                )}
+                            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                                <AnimatePresence>
+                                    {['DAY', 'WEEK', thirdSlot].map((range, index) => {
+                                        const isActive = timeRange === range;
+                                        const label = ALL_RANGES.find(r => r.value === range)?.label || range;
+                                        
+                                        return (
+                                            <motion.div 
+                                                key={`tab-slot-${index}`} 
+                                                layout
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="relative shrink-0"
                                             >
-                                                <span className="relative z-10 flex items-center gap-1 truncate max-w-[80px]">
-                                                    <span className="truncate">{label}</span>
+                                                <motion.button
+                                                    layout
+                                                    onClick={() => {
+                                                        if (isActive) {
+                                                            setIsConfigOpen(!isConfigOpen);
+                                                        } else {
+                                                            handleTabClick(range as TimeRange);
+                                                            setIsConfigOpen(false); // Close if switching to another
+                                                        }
+                                                    }}
+                                                    transition={{ duration: 0.15, ease: "easeOut" }}
+                                                    className={cn(
+                                                        "py-1.5 rounded-lg font-bold transition-all relative whitespace-nowrap overflow-visible",
+                                                        label.length > 5 ? "px-1.5 text-[9px]" : "px-3 text-[11px]",
+                                                        isActive 
+                                                            ? "bg-white text-black shadow-sm z-10" 
+                                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                                    )}
+                                                >
+                                                    <span className="relative z-10 flex items-center gap-1 truncate max-w-[80px]">
+                                                        <span className="truncate">{label}</span>
+                                                        {isActive && (
+                                                            <ChevronDown 
+                                                                size={12} 
+                                                                className={`transition-transform duration-200 flex-shrink-0 ${isConfigOpen ? 'rotate-180' : ''}`} 
+                                                            />
+                                                        )}
+                                                    </span>
                                                     {isActive && (
-                                                        <ChevronDown 
-                                                            size={12} 
-                                                            className={`transition-transform duration-200 flex-shrink-0 ${isConfigOpen ? 'rotate-180' : ''}`} 
+                                                        <motion.div
+                                                            layoutId="focusStatsActiveTab"
+                                                            className="absolute inset-0 bg-white rounded-lg"
+                                                            initial={false}
+                                                            transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
                                                         />
                                                     )}
-                                                </span>
-                                                {isActive && (
-                                                    <motion.div
-                                                        layoutId="activeTab"
-                                                        className="absolute inset-0 bg-white rounded-lg"
-                                                        initial={false}
-                                                        transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-                                                    />
-                                                )}
-                                            </motion.button>
-                                        </motion.div>
-                                    );
-                                })}
-                            </AnimatePresence>
+                                                </motion.button>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            </div>
 
-                            <div className="w-[1px] h-4 bg-white/10 mx-0.5" />
+                            <div className="w-[1px] h-4 bg-white/10 mx-0.5 shrink-0" />
 
                             {/* GLOBAL RANGE PICKER (PLUS BUTTON) - SEPARATE */}
-                            <div className="relative">
+                            <div className="relative shrink-0">
                                 <button
                                     onClick={() => setActiveDropdown(activeDropdown === 'RANGES' ? null : 'RANGES')} // Use separate state or reuse activeDropdown
                                     className={cn(

@@ -29,7 +29,7 @@ const CategoryTab = ({
  {isActive && (
  <motion.div
  layoutId="activeTab"
- className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm transform-gpu "
+ className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm "
  transition={{ type: "spring", stiffness: 450, damping: 25 }}
  />
  )}
@@ -88,8 +88,8 @@ const AchievementNode: React.FC<{ achievement: Achievement; isUnlocked: boolean 
  relative group flex flex-col p-4 sm:p-5 text-left h-full min-w-0
  rounded-[24px] border transition-all duration-200 overflow-hidden
  ${isUnlocked 
- ? 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 transform-gpu border-white/10 shadow-md hover:shadow-md grayscale-0' 
-              : 'bg-black/60 transform-gpu border-white/5 opacity-70 grayscale'}
+ ? 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 border-white/10 shadow-md hover:shadow-md grayscale-0' 
+ : 'bg-black/60 border-white/5 opacity-70 grayscale'}
  `}
  >
  {/* Shine Effect */}
@@ -158,12 +158,12 @@ export const AchievementsScreen: React.FC = () => {
  
  let achList = user.unlockedAchievements;
  if (!achList || achList.length === 0) {
-    try {
-        const localAch = localStorage.getItem(`matrix_achievements_${user.id}`);
-        if (localAch) {
-            achList = JSON.parse(localAch);
-        }
-    } catch(e) {}
+ try {
+ const localAch = localStorage.getItem(`matrix_achievements_${user.id}`);
+ if (localAch) {
+ achList = JSON.parse(localAch);
+ }
+ } catch(e) {}
  }
  
  const set = new Set(achList || []);
@@ -215,7 +215,7 @@ export const AchievementsScreen: React.FC = () => {
  <motion.div 
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
- className="flex items-center gap-4 bg-black/80 backdrop-blur-sm transform-gpu border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
+ className="flex items-center gap-4 bg-black/80 backdrop-blur-sm border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
  >
  <div className="text-right">
  <span className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('achievements.sync')}</span>

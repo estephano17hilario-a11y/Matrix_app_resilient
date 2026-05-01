@@ -72,7 +72,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
  >
  <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
- {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm transform-gpu backface-hidden `} />}
+ {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm `} />}
  <Icon size={22} className={isActive ? item.color : ''} strokeWidth={isActive ? 2.5 : 2} />
  </div>
  <span className={`text-[9px] font-bold tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
@@ -105,19 +105,19 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  };
 
  const Backdrop = () => (
- <AnimatePresence>
- {isOpen && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- transition={{ duration: 0.2 }}
- className={`fixed inset-0 z-[350] transform-gpu ${isAura ? 'bg-black/10 backdrop-blur-sm transform-gpu backface-hidden ' : 'bg-black/90 backdrop-blur-sm transform-gpu backface-hidden '}`}
- onClick={() => onToggle(false)}
- />
- )}
- </AnimatePresence>
- );
+     <AnimatePresence>
+       {isOpen && (
+         <motion.div
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           transition={{ duration: 0.2 }}
+           className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
+           onClick={() => onToggle(false)}
+         />
+       )}
+     </AnimatePresence>
+   );
  
  const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: () => void, isFullWidth?: boolean) => (
  <button 
@@ -200,7 +200,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  mass: 1
  }}
  className="pointer-events-none relative bg-[#0a0a0a]/30 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
- style={{ willChange: 'transform, height', transform: 'translateZ(0)' }}
+ style={{ willChange: 'transform, height' }}
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />
 
@@ -273,25 +273,34 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  return (
  <>
  <Backdrop />
- <div className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center" style={{ pointerEvents }}>
+ <motion.div 
+ initial={false}
+ animate={{ y: isHidden ? '200%' : '0%' }}
+ transition={{ type: "spring", stiffness: 300, damping: 30 }}
+ className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center" 
+ style={{ pointerEvents, willChange: "transform" }}
+ >
  {/* Contenedor Animado */} 
- <div className={` 
+ <motion.div 
+    layout
+    initial={false}
+    animate={{
+      height: isOpen ? dynamicHeight : 70,
+      borderRadius: isOpen ? 32 : 34
+    }}
+ transition={{ type: "spring", stiffness: 300, damping: 30 }}
+ className={` 
  pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
- transition-[height,border-radius,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] 
- backdrop-blur-sm transform-gpu backface-hidden ${isOpen 
- ? `rounded-[32px] aura-active` 
- : 'h-[70px] rounded-[34px]' 
- } 
- ${isHidden ? 'translate-y-[200%]' : 'translate-y-0'}
+ backdrop-blur-sm 
+ ${isOpen ? 'aura-active' : ''} 
  `}
- style={isOpen ? { height: `${dynamicHeight}px` } : {}}
  > 
  <div className="relative w-full h-full z-10"> 
  
  {/* ELEMENTOS INTERNOS (Aparecen al expandir) */} 
  <div className={` 
  absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2 
- transition-all duration-300 ease-out 
+ transition-all duration-300 ease-out transform-gpu
  ${isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'} 
  `}> 
  <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
@@ -320,20 +329,25 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  
  {/* BOTÓN "+" CENTRAL ANIMADO */} 
  <div className="col-span-1 flex items-center justify-center h-full -mt-1 z-30"> 
- <button 
+ <motion.button 
  data-tour="dock-main-btn"
- onClick={() => onToggle(!isOpen)} 
+ onClick={() => onToggle(!isOpen)}
+ animate={{
+ width: isOpen ? 64 : 56,
+ height: isOpen ? 48 : 56,
+ y: isOpen ? 2 : 0
+ }}
+ transition={{ type: "spring", stiffness: 300, damping: 30 }}
  className={` 
- relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] 
- flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow 
- ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
+ relative flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu
+ ${isOpen ? 'bg-white/10 !shadow-none !border-white/5' : 'active:scale-90 hover:scale-105'} 
  `} 
  > 
  {isOpen 
  ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
  : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
  } 
- </button> 
+ </motion.button> 
  </div> 
 
  <div className="col-span-2 flex items-center justify-around h-full pl-1 sm:pl-2"> 
@@ -342,8 +356,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  </div> 
 
  </div> 
- </div> 
- </div> 
+ </motion.div> 
+ </motion.div> 
  </>
  );
  }
@@ -358,7 +372,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
  const containerClass = `${baseClass} ${styleClass}`;
 
- const liquidSpring = { type: "spring", stiffness: 50, damping: 15, mass: 1 };
+ const liquidSpring = { type: "spring", stiffness: 200, damping: 25, mass: 1 };
 
  return (
  <>
@@ -368,11 +382,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={liquidSpring}
- className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center"
- style={{ willChange: "transform", pointerEvents }}
+ className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center transform-gpu"
+ style={{ pointerEvents }}
  >
  <motion.div 
- layout
  initial={false}
  animate={{ 
  height: isOpen ? dynamicHeight : 72,
@@ -382,27 +395,30 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  }}
  transition={liquidSpring}
  className={containerClass}
- style={{ overflow: 'visible' }}
+ style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
  <motion.div 
- className="absolute inset-0 rounded-[inherit] z-10"
+ className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none"
  initial={false}
  animate={{ 
- backgroundColor: isOpen ? 'rgba(0,0,0,0.3)' : 'rgba(15,15,15,0.3)',
+ backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)',
  backdropFilter: isOpen ? 'blur(16px)' : 'blur(10px)'
  }}
  transition={liquidSpring}
  >
- <div className="relative w-full h-full">
+ <div className="relative w-full h-full pointer-events-auto">
  <motion.div 
  initial={false}
  animate={{
  opacity: isOpen ? 1 : 0,
- y: isOpen ? 0 : 20,
+ y: isOpen ? 0 : 15,
  pointerEvents: isOpen ? 'auto' : 'none',
- scale: isOpen ? 1 : 0.95
+ scale: isOpen ? 1 : 0.98
  }}
- transition={{ ...liquidSpring, delay: isOpen ? 0.1 : 0 }}
+ transition={isOpen 
+ ? { ...liquidSpring, delay: 0.08 }
+ : { duration: 0.05, ease: "easeOut" }
+ }
  className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
  >
  
@@ -427,7 +443,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  onClick={() => onToggle(!isOpen)} 
  className={` 
  relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] 
- flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto
+ flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
  ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
  `} 
  > 

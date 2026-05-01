@@ -136,7 +136,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="absolute inset-0 bg-black/70 backdrop-blur-sm transform-gpu "
+ className="absolute inset-0 bg-black/70 backdrop-blur-sm "
  onClick={onClose}
  />
  

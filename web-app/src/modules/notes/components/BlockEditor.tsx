@@ -32,7 +32,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     }
 
     return (
-        <div className="flex flex-col gap-3 w-full pb-20">
+        <div className="flex flex-col gap-1 w-full pb-20">
             {blocks.map((block) => (
                 <div key={block.id} className="group relative flex items-start gap-3 editor-line">
                     {!readOnly && (

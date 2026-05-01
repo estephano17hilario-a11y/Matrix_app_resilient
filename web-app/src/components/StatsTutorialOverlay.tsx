@@ -40,7 +40,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  <div className="space-y-4 text-sm text-white/80">
  <p dangerouslySetInnerHTML={{ __html: t('tour.stats.xp.desc1', "<strong>Experience (XP)</strong> measures your overall progress. Earn XP by completing Habits, Tasks, and Focus Sessions.") }} />
  
- <div className="bg-fuchsia-500/5 p-4 rounded-2xl border border-fuchsia-500/10 backdrop-blur-sm transform-gpu ">
+ <div className="bg-fuchsia-500/5 p-4 rounded-2xl border border-fuchsia-500/10 backdrop-blur-sm ">
  <p className="font-bold text-fuchsia-300 mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] opacity-60">
  <Sparkles size={14} className="text-fuchsia-400" />
  {t('tour.stats.xp.levelsHeader', "XP per Level:")}
@@ -151,7 +151,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  
  {/* Interactive pulsing button preview */}
  <div className="relative">
- <div className="absolute inset-0 bg-yellow-400/20 blur-sm transform-gpu backface-hidden rounded-full animate-pulse" style={{ opacity: 0.8 }} />
+ <div className="absolute inset-0 bg-yellow-400/20 blur-sm rounded-full animate-pulse" style={{ opacity: 0.8 }} />
  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 border border-yellow-400/30 text-yellow-300 relative z-10 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
  <Lightbulb size={20} className="drop-shadow-lg" />
  </div>
@@ -171,13 +171,13 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  const Icon = currentData.icon;
 
  return (
- <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transform-gpu ">
+ <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm ">
  <motion.div 
  initial={{ opacity: 0, scale: 0.9, y: 20 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 20 }}
  transition={{ type: 'spring', damping: 25, stiffness: 450 }}
- className="w-full max-w-md bg-[#121214]/90 backdrop-blur-sm transform-gpu border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,1)] relative"
+ className="w-full max-w-md bg-[#121214]/90 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,1)] relative"
  >
  {/* Dynamic Gradient Background */}
  <motion.div 
@@ -206,7 +206,7 @@ export const StatsTutorialOverlay: React.FC<StatsTutorialOverlayProps> = ({ isOp
  {/* Close Button */}
  <button 
  onClick={skipTutorial}
- className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm transform-gpu border border-white/10 text-white/50 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all z-20 hover:scale-110 active:scale-95"
+ className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white/50 flex items-center justify-center hover:bg-white/10 hover:text-white transition-all z-20 hover:scale-110 active:scale-95"
  >
  <X size={16} />
  </button>

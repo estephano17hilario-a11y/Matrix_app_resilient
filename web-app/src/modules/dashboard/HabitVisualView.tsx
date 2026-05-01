@@ -71,7 +71,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = ({
     }, { threshold: 600 });
 
     return (
-        <div className="w-full max-w-[600px] pr-3">
+        <div className="w-full px-2 mx-auto">
             <div 
                 role="button"
                 tabIndex={0}
@@ -521,7 +521,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
                             {/* ARCHIVED HEADER */}
                             {showArchived && (
-                                <div className="flex items-center gap-2 mb-2 px-1 w-full max-w-[600px]">
+                                <div className="flex items-center gap-2 mb-2 px-1 w-full mx-auto">
                                     <button 
                                         onClick={() => setShowArchived(false)}
                                         className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -537,7 +537,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* LIST */}
                             {viewPreference === 'CHRONOLOGICAL' && !showArchived ? (
                                 chronologicalItems.map((item, idx) => (
-                                    <div key={item.id} className="w-full max-w-[600px] pr-3">
+                                    <div key={item.id} className="w-full px-2 mx-auto">
                                     <motion.div 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -696,9 +696,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
                                     return (
                                         <div
-                                            key={habit.id}
-                                            className="w-full max-w-[600px] pr-3"
-                                        >
+                                             key={habit.id}
+                                             className="w-full px-2 mx-auto"
+                                         >
                                             <div
                                                 {...longPressHandlers}
                                                 onContextMenu={(e) => {
@@ -771,7 +771,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
                             {/* Relapse History Chart */}
                             {!showArchived && activeBadHabits.length > 0 && (
-                                <div className="w-full max-w-[600px]">
+                                <div className="w-full px-2 mx-auto">
                                     <RelapseChart 
                                         badHabits={activeBadHabits} 
                                         isActive={isActive}

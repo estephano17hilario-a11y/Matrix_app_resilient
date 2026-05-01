@@ -200,8 +200,8 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  >
  {/* Background Ambient */}
  <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-emerald-500/5 blur-sm transform-gpu backface-hidden " />
- <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/5 blur-sm transform-gpu backface-hidden " />
+ <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-emerald-500/5 blur-sm " />
+ <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/5 blur-sm " />
  </div>
 
  {/* Header */}
@@ -405,7 +405,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
  <button 
  onClick={() => setIsUnlocked(false)}
- className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-sm transform-gpu "
+ className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-sm "
  >
  <LogOut size={12} />
  Lock Vault
@@ -470,7 +470,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm transform-gpu "
+ onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm "
  />
  <motion.div 
  initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}

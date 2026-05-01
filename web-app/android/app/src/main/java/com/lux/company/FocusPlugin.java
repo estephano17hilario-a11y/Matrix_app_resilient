@@ -37,15 +37,8 @@ public class FocusPlugin extends Plugin {
             }
         }
 
-        // 3. Check Overlay Permission (System Alert Window) - Required for "Dynamic Island" style overlays
-        boolean overlay = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            overlay = Settings.canDrawOverlays(context);
-        }
-
         ret.put("notifications", notifications);
         ret.put("battery", battery);
-        ret.put("overlay", overlay);
         
         call.resolve(ret);
     }
@@ -76,23 +69,6 @@ public class FocusPlugin extends Plugin {
             } catch (Exception fallbackErr) {
                 call.reject("Failed to request battery permission", fallbackErr);
             }
-        }
-    }
-
-    @PluginMethod
-    public void requestOverlayPermission(PluginCall call) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (!Settings.canDrawOverlays(getContext())) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:" + getContext().getPackageName()));
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getContext().startActivity(intent);
-                }
-            }
-            call.resolve();
-        } catch (Exception e) {
-            call.reject("Failed to request overlay permission", e);
         }
     }
 

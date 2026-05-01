@@ -110,7 +110,10 @@ BEGIN
   );
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Revoke execute from public to prevent unauthorized calls to security definer function
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -123,7 +126,7 @@ BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language 'plpgsql' SET search_path = public;
 
 CREATE TRIGGER update_projects_modtime
     BEFORE UPDATE ON public.projects

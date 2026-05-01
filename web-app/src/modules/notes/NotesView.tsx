@@ -457,17 +457,57 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }, [currentMonth, monthDays, journalEntryMap, specialEvents, quests]);
 
  const activeSpecialEvent = useMemo(() => {
- if (editorMode !== 'JOURNAL') return null;
- const dateStr = toLocalISOString(draftDate);
- return specialEvents.find(e => {
- if (e.showInCalendar === false) return false;
- const eDate = parseLocalDate(e.date);
- if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
- return eDate.getDate() === draftDate.getDate() && eDate.getMonth() === draftDate.getMonth();
- }
- return toLocalISOString(eDate) === dateStr;
- });
- }, [editorMode, draftDate, specialEvents]);
+    if (editorMode !== 'JOURNAL') return null;
+    const dateStr = toLocalISOString(draftDate);
+    return specialEvents.find(e => {
+      if (e.showInCalendar === false) return false;
+      const eDate = parseLocalDate(e.date);
+      if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
+        return eDate.getDate() === draftDate.getDate() && eDate.getMonth() === draftDate.getMonth();
+      }
+      return toLocalISOString(eDate) === dateStr;
+    });
+  }, [editorMode, draftDate, specialEvents]);
+
+  const activeDayQuests = useMemo(() => {
+    if (editorMode !== 'JOURNAL') return [];
+    const dateStr = toLocalISOString(draftDate);
+    const checkDate = new Date(draftDate);
+    checkDate.setHours(0, 0, 0, 0);
+
+    return quests?.filter(q => {
+      if (!q.showInJournaling) return false;
+      
+      if (q.deadline === dateStr) return true;
+
+      if (q.recurrence && q.recurrence.type !== 'NONE') {
+        const questStartDate = q.createdAt ? new Date(q.createdAt as string | number) : new Date(q.deadline || 0);
+        questStartDate.setHours(0, 0, 0, 0);
+        if (checkDate < questStartDate) return false;
+
+        if (q.recurrence.type === 'INTERVAL' && q.recurrence.interval) {
+          const diffTime = Math.abs(checkDate.getTime() - questStartDate.getTime());
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          return diffDays % q.recurrence.interval === 0;
+        }
+        
+        if (q.recurrence.type === 'WEEKLY' && q.recurrence.days) {
+          return q.recurrence.days.includes(checkDate.getDay());
+        }
+
+        if (q.recurrence.type === 'MONTHLY') {
+          const isSelectedDay = q.recurrence.days?.includes(checkDate.getDate());
+          const isLastDay = q.recurrence.monthlyType === 'LAST_DAY' && 
+            checkDate.getDate() === new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
+          
+          const validMonth = !q.recurrence.months || q.recurrence.months.length === 0 || q.recurrence.months.includes(checkDate.getMonth());
+          
+          return validMonth && (isSelectedDay || isLastDay);
+        }
+      }
+      return false;
+    }) || [];
+  }, [editorMode, draftDate, quests]);
 
  return (
  <div className="h-full flex flex-col relative">
@@ -1024,102 +1064,56 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  ) : (
  <div className="animate-in slide-in-from-bottom-4 duration-200">
  <div className="text-center mb-8 relative z-10 flex flex-col items-center">
- {activeSpecialEvent && (
- <div 
- onClick={() => setSelectedMemory(activeSpecialEvent)}
- className="mb-6 w-full max-w-sm rounded-[24px] bg-gradient-to-b from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.1)] relative overflow-hidden group"
- >
- <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
- <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md mb-2 relative z-10">
- {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
- </div>
- <h3 className="text-lg font-black text-white tracking-tight leading-tight relative z-10">{activeSpecialEvent.title}</h3>
- <div className="flex items-center gap-1.5 text-pink-400 mt-1 relative z-10">
- <Gift size={10} />
- <span className="text-[9px] font-bold uppercase tracking-widest">{activeSpecialEvent.type}</span>
- </div>
- </div>
- )}
- {/* Redesigned Header: Smaller Date, Editable Title */}
- <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-2">{draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
- 
- <input 
- type="text" 
- value={draftTitle} // Use draftTitle for Journal Title too? wait, logic uses draftTitle for NOTE only?
- // Wait, for Journal, where is the title stored?
- // Looking at handleSave: handleUpdateJournal({ id: draftId, date: ..., blocks: ..., mood: ..., theme: ..., tags: [] });
- // It seems JournalEntry type doesn't have a 'title' field explicitly in the arguments of handleUpdateJournal in the component code above?
- // Let's check types.
- // If JournalEntry doesn't have a title field, we might need to use the first block as title or add a field.
- // BUT user asked "quiero que en el medio, pueda escribir el titulo del dia de hoy, titulo que aparece en la vista de solo titulo"
- // In the current code: `title: entry ? getEntryTitle(entry.blocks) : ''` for the list view.
- // So the title is derived from the first text block.
- // However, the user wants an EXPLICIT title field in the header.
- // If I add an input here, I should probably prepend/update the first block of the content with this title OR add a title field to the journal entry.
- // Given the constraints and existing logic `getEntryTitle`, it extracts from blocks.
- // Let's try to simulate a title input that actually updates the first block if it's a header, or just adds a header block?
- // OR, simpler: just let them write in the editor.
- // BUT user explicitly asked for "en el medio, pueda escribir el titulo del dia de hoy... achiques (la fecha)".
- 
- // Let's make the Date smaller (done above).
- // Let's add an input for "Title". Since we don't have a title field in JournalEntry interface apparent here (only blocks),
- // we might need to store it in a block or just visually allow it if the data structure supports it.
- // Wait, `handleUpdateJournal` implementation is not visible but `getEntryTitle` reads from blocks.
- // So if we want a title, we should probably insert it as an H1 block at the start?
- // User says "titulo que aparece en la vista de solo titulo". `getEntryTitle` uses the first text block.
- // So, if we provide a title input, we should sync it with the first block? That might be messy if the user deletes it in the editor.
- 
- // Alternative: The user might just want a visual header area.
- // Let's look at `draftTitle` state. It IS used for NOTE mode.
- // For JOURNAL mode, `openJournal` sets `setDraftTitle`? No, it doesn't.
- // Let's update `openJournal` to set `draftTitle` from existing blocks, and `handleSave` to prepend/update it?
- // Or better: Assume `draftTitle` is just for the UI, and on save, we ensure it's the first block?
- // Let's stick to what's safest: The user wants to write a title.
- // I will add an input that binds to `draftTitle` (which I need to populate on openJournal).
- // And on save, I will NOT force it into blocks to avoid data loss/corruption of existing notes, 
- // UNLESS I modify `handleUpdateJournal` to accept a title, but I can't see that definition.
- 
- // Let's look at the "List View" (Notebook View). It uses `title`.
- // `title: entry ? getEntryTitle(entry.blocks) : ''`
- // So it IS derived from blocks.
- // If I put an input here, it's detached from blocks unless I sync them.
- 
- // RE-READING USER REQUEST: "quiero que en el medio, pueda escribir el titulo del dia de hoy... achiques (la fecha)"
- // He wants to write the title THERE, in the header.
- // So I should probably bind this input to a new state or `draftTitle`, and when saving, ensure it becomes the first block?
- // Actually, `BlockEditor` manages blocks.
- // If I add a title input, it might duplicate if I also have it in blocks.
- 
- // Strategy:
- // 1. In `openJournal`, extract title to `draftTitle`.
- // 2. In the UI, show input for `draftTitle`.
- // 3. On Save (Journal), we need to ensure this title is preserved. 
- // If `getEntryTitle` gets it from the first block, we should probably update the first block if it's text?
- // Or maybe the user just wants to see it there.
- 
- // Let's just implement the UI changes first as requested: Smaller date, Title Input.
- // I will bind the input to `draftTitle`.
- // I need to update `openJournal` to populate `draftTitle`.
- // And I need to update `handleSave` to maybe put `draftTitle` into the first block if it's empty?
- // Actually, if I just modify the UI to look like a title input but it actually edits the first block? No, that's complex.
- 
- // Let's just use `draftTitle` as a "Day Title" and saving it might require backend changes if 'title' isn't a field.
- // But `getEntryTitle` parses blocks.
- // Let's just add the visual input.
- // I will update `openJournal` to set `draftTitle` from `getEntryTitle`.
- // I will update `handleSave` for Journal to... wait, if I don't write it back to blocks, it won't be saved as the "title" for the list view.
- // So I MUST write it back to blocks.
- // I will prepend a block if it doesn't match?
- 
- // Let's keep it simple for now: Just the UI changes.
- // The user said: "quiero que en el medio, pueda escribir el titulo del dia de hoy"
- 
- onChange={(e) => setDraftTitle(e.target.value)} 
- placeholder={t('notes.journalTitlePlaceholder', 'Give today a title...')} 
- className="w-full bg-transparent text-3xl font-black text-white text-center placeholder:text-white/10 outline-none leading-tight tracking-tight mb-6 border-b border-transparent focus:border-white/10 transition-colors pb-2" 
- />
+                {/* Date header */}
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-6">
+                  {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
 
- <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                {/* Memories and Quests vertically stacked cards */}
+                {(activeSpecialEvent || activeDayQuests.length > 0) && (
+                  <div className="w-full max-w-md flex flex-col gap-3 mb-6">
+                    {activeSpecialEvent && (
+                      <div 
+                        onClick={() => setSelectedMemory(activeSpecialEvent)}
+                        className="w-full rounded-[24px] bg-gradient-to-r from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.05)] group relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10">
+                          {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+                        </div>
+                        <div className="flex-1 text-left relative z-10">
+                          <h3 className="text-lg font-black text-white tracking-tight leading-tight line-clamp-1">{activeSpecialEvent.title}</h3>
+                          <div className="flex items-center gap-1.5 text-pink-400 mt-0.5">
+                            <Gift size={10} />
+                            <span className="text-[9px] font-bold uppercase tracking-widest">{activeSpecialEvent.type}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeDayQuests.map((quest) => (
+                      <div 
+                        key={quest.id}
+                        onClick={() => setSelectedQuest(quest)}
+                        className="w-full rounded-[24px] border border-white/10 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md group relative overflow-hidden"
+                        style={{ background: `linear-gradient(to right, ${quest.journalIconColor || '#3b82f6'}15, transparent)` }}
+                      >
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `${quest.journalIconColor || '#3b82f6'}10` }} />
+                        <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10" style={{ color: quest.journalIconColor || '#3b82f6' }}>
+                          <ListTodo size={20} />
+                        </div>
+                        <div className="flex-1 text-left relative z-10 min-w-0">
+                          <h3 className="text-lg font-black text-white tracking-tight leading-tight truncate">{quest.title}</h3>
+                          <div className="flex items-center gap-1.5 mt-0.5" style={{ color: quest.journalIconColor || '#3b82f6' }}>
+                            <Repeat size={10} />
+                            <span className="text-[9px] font-bold uppercase tracking-widest">Tarea Repetida</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
  {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
  </div>
  </div>

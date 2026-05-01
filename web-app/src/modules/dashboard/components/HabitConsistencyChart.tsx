@@ -471,7 +471,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                             >
                                 {timeframe === tf && (
                                     <motion.div
-                                        layoutId="activeTab"
+                                        layoutId="consistencyChartActiveTab"
                                         className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5"
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
                                     />
@@ -485,7 +485,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
 
                 {/* Row 2: Stats */}
                 <div className="relative">
-                    <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar pr-12">
+                    <div className="flex items-center gap-4 sm:gap-6 overflow-hidden pr-12">
                         {/* Average Percent */}
                         <div className="flex items-baseline gap-3 shrink-0 ml-2">
                             <span className="text-4xl font-mono font-bold text-white tracking-tighter">
@@ -557,7 +557,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                 {chartData.map((data, i) => (
                     <div 
                         key={data.dateStr} 
-                        className="flex-1 h-full flex flex-col justify-end items-center group/bar relative z-10"
+                        className="flex-1 min-w-0 h-full flex flex-col justify-end items-center group/bar relative z-10"
                         onMouseEnter={() => setHoveredIndex(i)}
                         onMouseLeave={() => setHoveredIndex(null)}
                     >
@@ -590,7 +590,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         </AnimatePresence>
 
                         {/* The Bar */}
-                        <div className="w-full px-[2px] h-full flex items-end relative overflow-hidden">
+                        <div className="w-full px-[2px] flex-1 flex items-end relative overflow-hidden">
                              {/* Hover Highlight */}
                              <motion.div 
                                 className="absolute inset-x-0 bottom-0 bg-white/5 rounded-t-lg origin-bottom"
@@ -628,21 +628,23 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
                         </div>
 
                         {/* Label & Ticks */}
-                        <div className="flex flex-col items-center mt-2">
+                        <div className="flex flex-col items-center mt-2 h-7 shrink-0 w-full">
                             {showTicks && (
-                                <div className={cn(
-                                    "w-[1px] mb-1 transition-all duration-200",
-                                    data.label 
-                                        ? "h-2 bg-zinc-600" 
-                                        : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
-                                )} />
+                                <div className="h-2 flex items-start justify-center mb-1">
+                                    <div className={cn(
+                                        "w-[1px] transition-all duration-200",
+                                        data.label 
+                                            ? "h-2 bg-zinc-600" 
+                                            : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
+                                    )} />
+                                </div>
                             )}
                             
                             {/* Date Label */}
-                            <div className="h-4 flex items-end justify-center">
+                            <div className="h-4 flex items-end justify-center overflow-visible w-full">
                                 <span 
                                     className={cn(
-                                        "text-[9px] font-bold transition-colors duration-200",
+                                        "text-[9px] font-bold transition-colors duration-200 whitespace-nowrap",
                                         !data.isCurrent && "text-zinc-600 group-hover/bar:text-zinc-400"
                                     )}
                                     style={data.isCurrent ? { color: themeColor } : {}}

@@ -313,7 +313,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-4 sm:gap-6 overflow-hidden">
                     <div className="flex items-baseline gap-3 shrink-0">
                         <div className="flex flex-col">
                             <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">{t('badHabits.avgRelapses', 'AVG RELAPSES')}</span>
@@ -367,7 +367,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                 {chartData.map((data, i) => (
                     <div 
                         key={data.dateStr} 
-                        className="flex-1 h-full flex flex-col justify-end items-center group/bar relative z-10"
+                        className="flex-1 min-w-0 h-full flex flex-col justify-end items-center group/bar relative z-10"
                         onMouseEnter={() => setHoveredIndex(i)}
                         onMouseLeave={() => setHoveredIndex(null)}
                     >
@@ -393,7 +393,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                         </AnimatePresence>
 
                         {/* The Bar */}
-                        <div className="w-full px-[2px] h-full flex items-end relative overflow-hidden">
+                        <div className="w-full px-[2px] flex-1 flex items-end relative overflow-hidden">
                              <motion.div 
                                 className="absolute inset-x-0 bottom-0 bg-white/5 rounded-t-lg origin-bottom"
                                 style={{ height: '100%' }}
@@ -426,20 +426,22 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
                         </div>
 
                         {/* Label & Ticks */}
-                        <div className="flex flex-col items-center mt-2">
+                        <div className="flex flex-col items-center mt-2 h-7 shrink-0 w-full">
                             {showTicks && (
-                                <div className={cn(
-                                    "w-[1px] mb-1 transition-all duration-200",
-                                    data.label 
-                                        ? "h-2 bg-zinc-600" 
-                                        : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
-                                )} />
+                                <div className="h-2 flex items-start justify-center mb-1">
+                                    <div className={cn(
+                                        "w-[1px] transition-all duration-200",
+                                        data.label 
+                                            ? "h-2 bg-zinc-600" 
+                                            : "h-1 bg-zinc-800 group-hover/bar:bg-zinc-600"
+                                    )} />
+                                </div>
                             )}
                             
-                            <div className="h-4 flex items-end justify-center">
+                            <div className="h-4 flex items-end justify-center overflow-visible w-full">
                                 <span 
                                     className={cn(
-                                        "text-[9px] font-bold transition-colors duration-200",
+                                        "text-[9px] font-bold transition-colors duration-200 whitespace-nowrap",
                                         !data.isCurrent && "text-zinc-600 group-hover/bar:text-zinc-400"
                                     )}
                                     style={data.isCurrent ? { color: themeColor } : {}}

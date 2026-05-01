@@ -77,7 +77,7 @@ const MiniLiquidBar = ({  value,
                  <span className={`text-[9px] font-bold tracking-wider uppercase ${theme.iconColor} opacity-80 truncate`}>{color}</span>
                  <span className="text-[9px] font-mono text-white/50 tabular-nums shrink-0 ml-2">{safeValue}/{safeMax}</span>
             </div>
-            <div className={`h-1.5 w-full ${theme.track} rounded-full overflow-hidden relative border border-white/5`} style={{ transform: 'translateZ(0)' }}>
+            <div className={`h-1.5 w-full ${theme.track} rounded-full overflow-hidden relative border border-white/5`}>
                  <motion.div 
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: percent / 100 }}
@@ -146,7 +146,6 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         {/* AVATAR - RESTORED & CENTERED */}
         <div 
             className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer" 
-            style={{ transform: 'translateZ(0)' }}
             onClick={(e) => {
                 e.stopPropagation();
                 if (onShowSettingsWithTab) {
@@ -246,10 +245,10 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                             className="relative group shrink-0 transition-transform active:scale-95 rounded-full p-[1px] shadow-[0_0_13px_-2px_rgba(217,70,239,0.4)] hover:shadow-[0_0_20px_0px_rgba(217,70,239,0.8)]"
                         >
                             {/* Animated Cosmic Border (Faster Pulse) */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-[pulse_2.5s_ease-in-out_infinite] opacity-80 group-hover:opacity-100 transition-opacity duration-300" style={{ transform: 'translateZ(0)', willChange: 'opacity' }} />
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-[pulse_2.5s_ease-in-out_infinite] opacity-80 group-hover:opacity-100 transition-opacity duration-300" style={{ willChange: 'opacity' }} />
                             
                             {/* Inner Button */}
-                            <div className="relative bg-[#050510] px-2.5 py-[2px] rounded-full flex items-center justify-center overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+                            <div className="relative bg-[#050510] px-2.5 py-[2px] rounded-full flex items-center justify-center overflow-hidden">
                                 {/* Shimmer Effect */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
                                 

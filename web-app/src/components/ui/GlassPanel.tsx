@@ -33,7 +33,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
         className
       )}
       {...props}
-      style={{ willChange: 'transform, opacity', transform: 'translateZ(0)', ...props.style }}
+      style={{ ...props.style }}
     >
       {children}
     </motion.div>

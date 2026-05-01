@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 export const FocusView = React.memo(({ 
     projects, 
     attributes, 
+    dailyLimits,
     onOpenProjectModal,
     onDeleteProject,
     onUpdateProject,
@@ -27,6 +28,7 @@ export const FocusView = React.memo(({
 }: {  
     projects: Project[], 
     attributes: Attribute[], 
+    dailyLimits?: any,
     onOpenProjectModal: (project?: Project) => void, 
     onStartFocus?: (projectId: string) => void,
     onDetailViewChange?: (isOpen: boolean) => void,
@@ -145,6 +147,7 @@ export const FocusView = React.memo(({
                 <FocusStats 
                     projects={projects} 
                     attributes={attributes} 
+                    dailyLimits={dailyLimits}
                     showArchived={showArchived}
                     onToggleArchived={() => setShowArchived(!showArchived)}
                     isPro={isPro}

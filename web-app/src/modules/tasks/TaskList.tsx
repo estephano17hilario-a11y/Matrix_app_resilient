@@ -389,10 +389,10 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  </div>
 
  {/* FILTERS PANEL - Simplified Animation */}
-      {showFilters && (
-        <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* 💸 AHORRO MÁXIMO UI: Reducimos el desenfoque a backdrop-blur-sm transform-gpu backface-hidden para cuidar la GPU en móviles y evitar pantallazos negros */}
-          <div ref={filtersRef} className="bg-black/60 backdrop-blur-sm transform-gpu border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
+ {showFilters && (
+ <div className="overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
+ {/* 💸 AHORRO MÁXIMO UI: Reducimos el desenfoque a backdrop-blur-sm para cuidar la GPU en móviles y evitar pantallazos negros */}
+ <div ref={filtersRef} className="bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
  
  {/* Reset Button */}
  <button 

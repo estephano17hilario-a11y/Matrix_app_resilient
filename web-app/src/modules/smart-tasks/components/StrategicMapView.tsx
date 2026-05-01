@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { StrategicNode, SmartProject, TimeFrame } from '../../../types/SmartGoal';
 import { Attribute, Quest } from '../../../types'; 
 import { QuestItem } from '../../tasks/components/QuestItem';
-import { Timestamp } from '../../../services/firebase';
+import { Timestamp } from '@/services/supabase';
 import { cn } from '../../../utils/cn';
 import { formatDate, getContextDates, toLocalISOString } from '../../../utils/dateUtils';
 import { differenceInDays } from 'date-fns';

@@ -75,7 +75,7 @@ export const notificationService = {
  toast(notification.title || 'New Message', {
  icon: '📱',
  duration: 6000,
- className: '!bg-[#050505]/90 !backdrop-blur-sm transform-gpu !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
+ className: '!bg-[#050505]/90 !backdrop-blur-sm !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
  style: {
  // Overridden by className, but kept for backup
  background: '#050505',

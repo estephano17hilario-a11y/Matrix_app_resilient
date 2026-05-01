@@ -205,17 +205,14 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                     const isOutsidePeriod = day < startDate || day > endDate;
                                     
                                     return (
-                                        <motion.div
+                                        <div
                                             key={index}
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
-                                            transition={{ delay: index * 0.01 }}
                                             className={`w-[30px] h-[30px] rounded-md transition-all duration-200 ${
                                                 isOutsidePeriod
-                                                ? 'bg-transparent'
+                                                ? 'bg-transparent opacity-0'
                                                 : isCompleted 
-                                                    ? 'shadow-[0_0_10px_-2px_currentColor] z-10' 
-                                                    : 'bg-white/5 hover:bg-white/10'
+                                                    ? 'shadow-[0_0_10px_-2px_currentColor] z-10 opacity-100' 
+                                                    : isFuture ? 'bg-white/5 opacity-20' : 'bg-white/5 hover:bg-white/10 opacity-100'
                                             }`}
                                             style={{ 
                                                 backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined
@@ -241,19 +238,16 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
                                         const isOutsidePeriod = day < startDate || day > endDate;
                                         
                                         return (
-                                            <motion.div
+                                            <div
                                                 key={dayIndex}
-                                                initial={{ opacity: 0, scale: 0.5 }}
-                                                animate={{ opacity: isOutsidePeriod ? 0 : isFuture ? 0.2 : 1, scale: 1 }}
-                                                transition={{ delay: (colIndex * 0.015) + (dayIndex * 0.01) }}
                                                 className={`w-[12px] h-[12px] rounded-[4px] transition-all duration-200 ${
                                                     isOutsidePeriod
-                                                    ? 'bg-transparent'
+                                                    ? 'bg-transparent opacity-0'
                                                     : isCompleted 
-                                                        ? 'shadow-[0_0_10px_-2px_currentColor] z-10' 
+                                                        ? 'shadow-[0_0_10px_-2px_currentColor] z-10 opacity-100' 
                                                         : isFirstOfMonth
-                                                            ? 'bg-zinc-400/50 border border-zinc-300/30' // Lighter lead color
-                                                            : 'bg-white/5 hover:bg-white/10'
+                                                            ? 'bg-zinc-400/50 border border-zinc-300/30 opacity-100' // Lighter lead color
+                                                            : isFuture ? 'bg-white/5 opacity-20' : 'bg-white/5 hover:bg-white/10 opacity-100'
                                                 }`}
                                                 style={{ 
                                                     backgroundColor: (isCompleted && !isOutsidePeriod) ? color : undefined

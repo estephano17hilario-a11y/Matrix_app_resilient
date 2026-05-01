@@ -1,14 +1,21 @@
-import { db, collection, getDocs, doc, setDoc, serverTimestamp } from './firebase';
+import { supabase } from '@/services/supabase';
 import { NoteBlueprint } from '../types';
 import { defaultBlueprints } from '../config/defaultBlueprints';
 import { AuditLogger } from './auditService';
 
 export const getBlueprints = async (uid: string): Promise<NoteBlueprint[]> => {
   try {
-    const userBlueprintsRef = collection(db, `users/${uid}/blueprints`);
-    const snapshot = await getDocs(userBlueprintsRef);
-    const userBlueprints = snapshot.docs
-      .map((doc: any) => doc.data() as NoteBlueprint)
+    const { data, error } = await supabase
+        .from('user_collections')
+        .select('data')
+        .eq('user_id', uid)
+        .eq('collection_name', 'blueprints')
+        .eq('deleted', false);
+
+    if (error) throw error;
+
+    const userBlueprints = data
+      .map(row => row.data as NoteBlueprint)
       .filter((bp: any) => !bp.deleted);
 
     return [...defaultBlueprints, ...userBlueprints];
@@ -21,13 +28,24 @@ export const getBlueprints = async (uid: string): Promise<NoteBlueprint[]> => {
 
 export const saveBlueprint = async (uid: string, blueprint: NoteBlueprint): Promise<void> => {
     try {
-        const ref = doc(db, 'users', uid, 'blueprints', blueprint.id);
+        const uniqueRecordId = `${uid}_blueprints_${blueprint.id}`;
         
         // Revive logic
         const cleanBlueprint: any = { ...blueprint };
         if (cleanBlueprint.deleted) delete cleanBlueprint.deleted;
 
-        await setDoc(ref, cleanBlueprint);
+        const { error } = await supabase
+            .from('user_collections')
+            .upsert({
+                id: uniqueRecordId,
+                user_id: uid,
+                collection_name: 'blueprints',
+                data: cleanBlueprint,
+                deleted: false
+            }, { onConflict: 'id' });
+
+        if (error) throw error;
+
         AuditLogger.log('CREATE', 'blueprints', blueprint.id, { uid });
     } catch (error) {
         AuditLogger.log('ERROR', 'blueprints', blueprint.id, { error: String(error) });
@@ -37,14 +55,20 @@ export const saveBlueprint = async (uid: string, blueprint: NoteBlueprint): Prom
 
 export const deleteBlueprint = async (uid: string, blueprintId: string): Promise<void> => {
     try {
-        const ref = doc(db, 'users', uid, 'blueprints', blueprintId);
+        const uniqueRecordId = `${uid}_blueprints_${blueprintId}`;
         
         // SOFT DELETE
-        // await deleteDoc(ref);
-        await setDoc(ref, { 
-            deleted: true, 
-            deletedAt: serverTimestamp() 
-        }, { merge: true });
+        const { error } = await supabase
+            .from('user_collections')
+            .upsert({
+                id: uniqueRecordId,
+                user_id: uid,
+                collection_name: 'blueprints',
+                data: { id: blueprintId, deleted: true },
+                deleted: true
+            }, { onConflict: 'id' });
+
+        if (error) throw error;
 
         AuditLogger.log('SOFT_DELETE', 'blueprints', blueprintId, { uid });
     } catch (error) {

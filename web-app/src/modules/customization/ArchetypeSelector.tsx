@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Shield, Cpu, Zap, Brain, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UserArchetype } from '../../types/User';
-import { doc, setDoc, db } from '../../services/firebase';
+import { doc, setDoc, db } from '@/services/supabase';
 import { cn } from '../../utils/cn';
 
 interface ArchetypeOption {

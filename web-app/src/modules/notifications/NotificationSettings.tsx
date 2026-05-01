@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { notificationService } from '../../services/notificationService';
 import { TimePicker } from '../../components/ui/TimePicker';
-import { db, doc, getDoc, setDoc } from '../../services/firebase';
+import { db, doc, getDoc, setDoc } from '@/services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { GlassPanel } from '../../components/ui/GlassPanel';
 import { LiquidButton } from '../../components/ui/LiquidButton';

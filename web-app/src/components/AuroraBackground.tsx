@@ -87,7 +87,6 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
                          radial-gradient(at 0% 100%, ${secondaryGlow} 0px, transparent 70%)
                      `,
                      opacity: vividMode ? 0.8 : 0.5,
-                     transform: 'translateZ(0)',
                      willChange: 'transform'
                  }}
              />
@@ -97,14 +96,12 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
                 className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] rounded-full opacity-40"
                 style={{ 
                     background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 70%)`,
-                    transform: 'translateZ(0)',
                 }}
             />
              <div 
                 className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full opacity-30"
                 style={{ 
                     background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 70%)`,
-                    transform: 'translateZ(0)',
                 }}
             />
 
@@ -177,7 +174,6 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
             style={{ 
                 background: `radial-gradient(circle, ${primaryGlow} 0%, transparent 70%)`,
                 opacity: vividMode ? 0.75 : 0.4,
-                transform: 'translateZ(0)',
                 backfaceVisibility: 'hidden'
             }} 
           />
@@ -188,7 +184,6 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
             style={{ 
                 background: `radial-gradient(circle, ${secondaryGlow} 0%, transparent 70%)`,
                 opacity: vividMode ? 0.65 : 0.3,
-                transform: 'translateZ(0)',
                 backfaceVisibility: 'hidden'
             }}
           />
@@ -199,7 +194,6 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
             style={{ 
                 background: `radial-gradient(circle, ${accentGlow} 0%, transparent 60%)`,
                 opacity: vividMode ? 0.45 : 0.18,
-                transform: 'translateZ(0)',
                 backfaceVisibility: 'hidden'
             }}
           />
@@ -213,8 +207,7 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
           background: isSolid 
             ? 'rgba(153, 27, 27, 0.15)' // Flat subtle red for solid themes
             : 'radial-gradient(circle at 50% 50%, rgba(220, 38, 38, 0.12) 0%, rgba(153, 27, 27, 0.05) 60%, transparent 100%)',
-          opacity: vicesMode ? 1 : 0,
-          transform: 'translateZ(0)', // Hardware acceleration
+          opacity: vicesMode ? 1 : 0, // Hardware acceleration
           zIndex: 10
         }}
       />

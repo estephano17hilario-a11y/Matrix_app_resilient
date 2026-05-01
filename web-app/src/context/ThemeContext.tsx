@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { AuthContext } from '@/context/AuthContext';
-import { doc, getDoc, db } from '../services/firebase';
+import { doc, getDoc, db } from '@/services/supabase';
 import { supabase } from '../services/supabase';
 import { ThemeId, THEMES } from '../config/themes';
 import { boostColorSaturation } from '../utils/colorUtils';

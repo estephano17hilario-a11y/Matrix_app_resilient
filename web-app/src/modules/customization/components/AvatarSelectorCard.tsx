@@ -46,8 +46,7 @@ export const AvatarSelectorCard: React.FC<AvatarSelectorCardProps> = ({
  whileHover={isSelected ? undefined : "hover"}
  whileTap="tap"
  style={{
- ['--theme-color' as any]: themeColor,
- transform: 'translateZ(0)', // GPU promotion
+ ['--theme-color' as any]: themeColor, // GPU promotion
  }}
  >
  {/* === OPTIMIZED GLOW SYSTEM (GPU FRIENDLY) === */}

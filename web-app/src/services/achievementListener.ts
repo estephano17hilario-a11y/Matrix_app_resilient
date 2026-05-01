@@ -1,4 +1,4 @@
-import { db, doc, setDoc, getDoc, arrayUnion, increment } from './firebase';
+import { db, doc, setDoc, getDoc, arrayUnion, increment } from '@/services/supabase';
 import { UserData } from '../types/User';
 import { Attribute } from '../types';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';

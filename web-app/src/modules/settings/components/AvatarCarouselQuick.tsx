@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { AVAILABLE_AVATARS } from '../../../config/avatars';
 import { useAuth } from '@/context/AuthContext';
-import { doc, setDoc, db } from '../../../services/firebase';
+import { doc, setDoc, db } from '@/services/supabase';
 import { useTranslation } from 'react-i18next';
 
 interface AvatarCarouselQuickProps {

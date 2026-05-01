@@ -111,7 +111,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  <div className="flex flex-col items-center gap-2">
  {/* If initialProjectId is provided, show static badge. Else, show selector */}
  {initialProjectId ? (
- <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm transform-gpu shadow-md">
+ <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-md">
  <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeAttribute?.color || '#06b6d4', color: activeAttribute?.color || '#06b6d4' }} />
  <span className="text-xs font-bold text-white uppercase tracking-widest">
  {activeProject.title}
@@ -121,7 +121,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  <>
  <button
  onClick={() => setIsProjectSelectorOpen(!isProjectSelectorOpen)}
- className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-sm transform-gpu transition-all active:scale-95 group shadow-md"
+ className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-sm transition-all active:scale-95 group shadow-md"
  >
  <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeAttribute?.color || '#06b6d4', color: activeAttribute?.color || '#06b6d4' }} />
  <span className="text-xs font-bold text-white uppercase tracking-widest">

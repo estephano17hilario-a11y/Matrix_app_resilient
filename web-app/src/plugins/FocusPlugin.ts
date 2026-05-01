@@ -16,10 +16,8 @@ export interface FocusPlugin {
   checkPermissions(): Promise<{ 
       notifications: boolean; 
       battery: boolean; 
-      overlay: boolean; 
   }>;
   requestBatteryPermission(): Promise<void>;
-  requestOverlayPermission(): Promise<void>;
   openNotificationSettings(): Promise<void>;
 
   // Privacy

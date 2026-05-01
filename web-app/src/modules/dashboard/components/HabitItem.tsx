@@ -168,7 +168,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         tabIndex: 0,
         onClick: handleWrapperClick,
         className: cn(
-          "group relative bg-[#050505]/90 border rounded-[24px] px-5 py-4 transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
+          "group relative bg-[#050505]/90 border rounded-[24px] pl-5 pr-4 py-3 w-[102%] -translate-x-[1%] transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
           allChecklistCompleted ? "border-emerald-500/30" : "border-white/5",
           !isDue && "opacity-60 grayscale",
           isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
@@ -213,8 +213,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         <div 
             className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-200" 
             style={{ 
-                background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`,
-                transform: 'translateZ(0)'
+                background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`
             }} 
         />
 
@@ -290,7 +289,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                 }}
                 className="ml-auto p-1 text-white/30 hover:text-white/60 transition-colors"
             >
-                <ChevronDown size={14} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
+                <ChevronDown size={16} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
             </button>
           </div>
 
@@ -505,23 +504,25 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         </div>
 
         <div className="flex items-center gap-3 h-11">
-            <LiquidProgressCircle
-                percentage={percentage}
-                color={baseColor}
-                isCompleted={habit.completedToday}
-                size={38}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDue) return;
-                    if (habit.type === 'QUANTITY' && onUpdate) {
-                        setIsQuantityModalOpen(true);
-                    } else if (habit.type === 'CHECKLIST' && onUpdate) {
-                        setIsChecklistModalOpen(true);
-                    } else {
-                        onComplete(e, habit);
-                    }
-                }}
-            />
+            <div className="translate-x-[2px]">
+                <LiquidProgressCircle
+                    percentage={percentage}
+                    color={baseColor}
+                    isCompleted={habit.completedToday}
+                    size={44}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDue) return;
+                        if (habit.type === 'QUANTITY' && onUpdate) {
+                            setIsQuantityModalOpen(true);
+                        } else if (habit.type === 'CHECKLIST' && onUpdate) {
+                            setIsChecklistModalOpen(true);
+                        } else {
+                            onComplete(e, habit);
+                        }
+                    }}
+                />
+            </div>
 
             <button 
                 className="text-slate-500 hover:text-white transition-colors p-1 pointer-events-auto"

@@ -1,4 +1,4 @@
-import { db, doc, runTransaction, Transaction } from "./firebase";
+import { db, doc, runTransaction, Transaction } from '@/services/supabase';
 import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
 
 export interface InventoryItem {

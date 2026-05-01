@@ -41,8 +41,7 @@ const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView')
 const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
 const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
 import { useAuth } from './context/AuthContext';
-import { updateDoc, doc } from './services/firebase';
-import { db } from './services/firebase';
+
 import { supabase } from './services/supabase';
 import toast from 'react-hot-toast';
 import { verifySubscriptionStatus } from './services/mercadoPagoService';
@@ -238,13 +237,10 @@ export default function Dashboard() {
  now.setFullYear(now.getFullYear() + 1);
  }
 
- const userRef = doc(db, 'users', user.id);
- await updateDoc(userRef, {
+ await supabase.from('users').update({
  plan: 'PRO',
- planExpiryDate: now.getTime(),
- subscriptionType: plan,
- subscriptionId: preapprovalId // Save it for future backend webhooks/audits
- });
+ es_pro: true
+ }).eq('id', user.id);
 
  toast.success('Auditoría Completada: Autenticidad verificada.', { id: toastId });
  setShowDeluxSuccess(true);
@@ -367,9 +363,9 @@ export default function Dashboard() {
  const handleFocusModeChange = useCallback((attr: string | null) => logicRef.current.handleFocusModeChange(attr), []);
  const addNotification = useCallback((n: any) => logicRef.current.addNotification(n), []);
  const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => logicRef.current.handleCompleteSession(projectId, durationSeconds, type), []);
-  const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate), []);
-  const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
-  const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);
+ const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate), []);
+ const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
+ const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);
  
  const completeQuest = useCallback((e: React.MouseEvent, q: Quest) => logicRef.current.completeQuest(e, q), []);
  const handleQuestConfirm = useCallback((q: Partial<Quest>) => logicRef.current.handleQuestConfirm(q), []);
@@ -378,13 +374,13 @@ export default function Dashboard() {
  const handleProjectConfirm = useCallback((p: Partial<Project>) => logicRef.current.handleProjectConfirm(p), []);
  const handleDeleteProject = useCallback((id: string) => logicRef.current.handleDeleteProject(id), []);
  const handleUpdateProject = useCallback((project: Project) => logicRef.current.handleUpdateProject(project), []);
-  const handleUpdateSmartProject = useCallback((project: SmartProject) => logicRef.current.handleUpdateSmartProject(project), []);
-  const handleReorderProjects = useCallback((p: Project[]) => logicRef.current.handleReorderProjects(p), []);
-  
-  const validateHabitProgress = useCallback(() => logicRef.current.validateHabitProgress(), []);
-  const updateAttributeMetadata = useCallback((id: string, updates: Partial<Attribute>) => logicRef.current.updateAttributeMetadata(id, updates), []);
-  const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);
-  const addCustomAttribute = useCallback((attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => logicRef.current.addCustomAttribute(attr), []);
+ const handleUpdateSmartProject = useCallback((project: SmartProject) => logicRef.current.handleUpdateSmartProject(project), []);
+ const handleReorderProjects = useCallback((p: Project[]) => logicRef.current.handleReorderProjects(p), []);
+ 
+ const validateHabitProgress = useCallback(() => logicRef.current.validateHabitProgress(), []);
+ const updateAttributeMetadata = useCallback((id: string, updates: Partial<Attribute>) => logicRef.current.updateAttributeMetadata(id, updates), []);
+ const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);
+ const addCustomAttribute = useCallback((attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => logicRef.current.addCustomAttribute(attr), []);
  const removeAttribute = useCallback((id: string) => logicRef.current.removeAttribute(id), []);
  const updateDashboardStyle = useCallback((s: any) => logicRef.current.updateDashboardStyle(s), []);
  const updateAvatarShape = useCallback((s: any) => logicRef.current.updateAvatarShape(s), []);
@@ -1068,6 +1064,10 @@ export default function Dashboard() {
  }
 
  // 2. Side Panels / Dock
+ if (isNoteTaking) {
+ window.dispatchEvent(new Event('close-note-editor'));
+ return;
+ }
  if (isNotesStatsOpen) {
  setIsNotesStatsOpen(false);
  return;
@@ -1143,6 +1143,7 @@ export default function Dashboard() {
  isDockOpen, 
  isFullScreenFocus, 
  forceFocusOpen,
+ isNoteTaking,
  currentView,
  handleExitFocusSession,
  setCurrentView,
@@ -1213,7 +1214,7 @@ export default function Dashboard() {
  animate={{ opacity: 1, scale: 1, y: 0 }} 
  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "backIn" } }} 
  transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
- className="relative overflow-hidden backdrop-blur-sm transform-gpu border border-yellow-500/20 bg-[#0a0a0a]/90 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+ className="relative overflow-hidden backdrop-blur-sm border border-yellow-500/20 bg-[#0a0a0a]/90 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
  style={{ willChange: 'transform, opacity' }}
  >
  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
@@ -1318,7 +1319,7 @@ export default function Dashboard() {
  )}
 
  
- <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' ? 'max-w-none' : APP_MAX_WIDTH} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
+ <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'max-w-none' : APP_MAX_WIDTH} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
 
  <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
  {/* ⚡ TASKS VIEW (Always loaded initially) */}
@@ -1332,14 +1333,14 @@ export default function Dashboard() {
  <button
  onClick={() => setTaskViewMode('LIST')}
  className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
- style={{ transform: 'translateZ(0)' }}
+ style={{  }}
  >
  {t('dashboard.tasks', 'TASKS')}
  </button>
  <button
  onClick={() => setTaskViewMode('STRATEGY')}
  className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
- style={{ transform: 'translateZ(0)' }}
+ style={{  }}
  >
  {t('dashboard.strategy', 'STRATEGY')}
  </button>
@@ -1494,6 +1495,7 @@ export default function Dashboard() {
  <FocusView 
  projects={projects} 
  attributes={attributes} 
+ dailyLimits={dailyLimits}
  onCompleteSession={handleCompleteSession} 
  onAddManualSession={handleAddManualSession}
  onDeleteSession={handleDeleteSession}
@@ -1642,7 +1644,7 @@ export default function Dashboard() {
  
  {/* --- GLOBAL BACKDROP (OPTIMIZED) --- */}
  <AnimatePresence>
- {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit || (isDockOpen && !isSettingsOpen && !isDockConfigOpen)) && (
+ {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit) && (
  <motion.div 
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
@@ -1660,7 +1662,6 @@ export default function Dashboard() {
  e.stopPropagation();
  setActiveModal(null); 
  setValidationHabit(null); 
- setIsDockOpen(false); 
  setModalInitialContext(null); 
  }} 
  />
@@ -1814,27 +1815,27 @@ export default function Dashboard() {
  onWeekStartDayChange={updateWeekStartDay}
  defaultChartViews={user?.defaultChartViews}
  onUpdateDefaultChartViews={async (views) => {
-   if (user?.id) {
-       const newPrefs = { ...(user.preferences || {}), defaultChartViews: views };
-       updateProfileLocally({ defaultChartViews: views, preferences: newPrefs });
-       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-   }
+ if (user?.id) {
+ const newPrefs = { ...(user.preferences || {}), defaultChartViews: views };
+ updateProfileLocally({ defaultChartViews: views, preferences: newPrefs });
+ await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+ }
  }}
  defaultProjectView={user?.defaultProjectView}
  onUpdateDefaultProjectView={async (view) => {
-   if (user?.id) {
-       const newPrefs = { ...(user.preferences || {}), defaultProjectView: view };
-       updateProfileLocally({ defaultProjectView: view, preferences: newPrefs });
-       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-   }
+ if (user?.id) {
+ const newPrefs = { ...(user.preferences || {}), defaultProjectView: view };
+ updateProfileLocally({ defaultProjectView: view, preferences: newPrefs });
+ await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+ }
  }}
  defaultTaskFilters={user?.defaultTaskFilters}
  onUpdateDefaultTaskFilters={async (filters) => {
-   if (user?.id) {
-       const newPrefs = { ...(user.preferences || {}), defaultTaskFilters: filters };
-       updateProfileLocally({ defaultTaskFilters: filters, preferences: newPrefs });
-       await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-   }
+ if (user?.id) {
+ const newPrefs = { ...(user.preferences || {}), defaultTaskFilters: filters };
+ updateProfileLocally({ defaultTaskFilters: filters, preferences: newPrefs });
+ await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+ }
  }}
  />
  )}

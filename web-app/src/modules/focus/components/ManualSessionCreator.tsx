@@ -59,7 +59,7 @@ export const ManualSessionCreator = ({
  className="absolute inset-0 bg-[#000000] flex flex-col z-50 font-sans"
  >
  {/* Header */}
- <div className="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 border-b border-white/5 bg-[#111111]/80 transform-gpu sticky top-0 z-[60]">
+ <div className="pt-6 pb-4 px-6 flex items-center justify-between shrink-0 border-b border-white/5 bg-[#111111]/80 sticky top-0 z-[60]">
  <div className="flex-1" /> {/* Spacer left */}
  <div className="flex flex-col items-center">
  <h2 className="text-[17px] font-black text-white tracking-tight uppercase">

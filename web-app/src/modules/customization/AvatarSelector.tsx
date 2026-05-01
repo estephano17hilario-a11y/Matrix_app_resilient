@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_AVATARS } from '../../config/avatars';
 import { useAuth } from '@/context/AuthContext';
-import { doc, setDoc, db } from '../../services/firebase';
+import { doc, setDoc, db } from '@/services/supabase';
 import { AvatarSelectorCard } from './components/AvatarSelectorCard';
 
 interface AvatarSelectorProps {

@@ -130,8 +130,7 @@ export default function App() {
                   borderRadius: '16px',
                   fontSize: '14px',
                   fontWeight: 600,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  transform: 'translateZ(0)'
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
                 },
                 success: {
                   iconTheme: {
