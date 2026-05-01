@@ -1,4 +1,4 @@
-package com.lux.company;
+package com.luxresilient.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

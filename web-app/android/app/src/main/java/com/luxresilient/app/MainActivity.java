@@ -1,4 +1,4 @@
-package com.lux.company;
+package com.luxresilient.app;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

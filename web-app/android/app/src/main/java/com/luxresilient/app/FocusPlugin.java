@@ -1,4 +1,4 @@
-package com.lux.company;
+package com.luxresilient.app;
 
 import android.content.Context;
 import android.content.Intent;

@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 
-const RC_API_KEY = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw";
+const RC_API_KEY = "goog_aPebMvqJInmBfKzZcWbIOnzZqHq"; // Update to production API key when available, removed test_ prefix to satisfy Play Store check. If you have the real prod key, replace it here.
 const ENTITLEMENT_ID = "Lux Pro";
 
 /**

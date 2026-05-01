@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         theme: userData.theme || 'MATRIX',
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                         lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
-                        onboarding: userData.onboarding || { ...DEFAULT_ONBOARDING, completedAt: 0 },
+                        onboarding: userData.onboarding || null, // FIX: Use null if not present, don't force DEFAULT_ONBOARDING
                         isSkeleton: false
                     };
                     

@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.lux.company',
+  appId: 'com.luxresilient.app',
   appName: 'Lux',
   webDir: 'dist',
   server: {
