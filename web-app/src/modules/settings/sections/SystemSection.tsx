@@ -37,7 +37,7 @@ export const SystemSection = () => {
  if (platform === 'android') {
  try {
  const perms = await FocusSession.checkPermissions();
- setPermissions(perms);
+ setPermissions({ ...perms, overlay: false });
  } catch (e) {
  console.error("Failed to check native permissions", e);
  }

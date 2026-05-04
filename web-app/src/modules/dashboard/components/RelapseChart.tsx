@@ -19,7 +19,7 @@ interface RelapseChartProps {
 
 type TimeFrame = 'WEEK' | 'MONTH' | 'YEAR';
 
-export const RelapseChart: React.FC<RelapseChartProps> = ({ 
+export const RelapseChart: React.FC<RelapseChartProps> = React.memo(({ 
     badHabits, 
     isActive = true, 
     isPro, 
@@ -463,4 +463,4 @@ export const RelapseChart: React.FC<RelapseChartProps> = ({
             />
         </div>
     );
-};
+});

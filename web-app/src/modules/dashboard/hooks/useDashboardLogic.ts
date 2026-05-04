@@ -869,8 +869,9 @@ export const useDashboardLogic = () => {
     const questsHydratedRef = useRef(false);
     const badHabitsHydratedRef = useRef(false);
     const smartProjectsHydratedRef = useRef(false);
+    const hasSyncedCollectionsRef = useRef(false);
     // 💸 AHORRO MÁXIMO: Incrementamos el tiempo de caché de 5 minutos a 1 HORA (3600000 ms)
-    // El usuario siempre verá la última versión por su caché local, pero solo bajará datos de Supabase cada hora.
+    // PERO ignoramos este TTL durante la primera carga para asegurar sincronización entre dispositivos.
     const COLLECTION_SYNC_TTL = 60 * 60 * 1000;
     const hydrateAttributes = (fetchedAttrs: Attribute[]) => {
         if (fetchedAttrs.length > 0) {
@@ -1008,7 +1009,9 @@ export const useDashboardLogic = () => {
 
         if (!isOnline) return;
 
-        if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', COLLECTION_SYNC_TTL)) {
+        const currentTTL = hasSyncedCollectionsRef.current ? COLLECTION_SYNC_TTL : 0;
+
+        if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
             projectService.getUserProjects(uid).then(projects => {
                 if (!projects) return;
                 if (projects.length === 0 && hasCachedProjects) return;
@@ -1030,7 +1033,7 @@ export const useDashboardLogic = () => {
             });
         }
 
-        if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', COLLECTION_SYNC_TTL)) {
+        if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
             persistenceService.quests.getAll(uid).then(quests => {
                 if (!quests) return;
                 setQuests(quests);
@@ -1039,7 +1042,7 @@ export const useDashboardLogic = () => {
             });
         }
 
-        if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', COLLECTION_SYNC_TTL)) {
+        if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', currentTTL)) {
             persistenceService.habits.getAll(uid).then(h => {
                 if (!h) return;
                 
@@ -1078,7 +1081,7 @@ export const useDashboardLogic = () => {
             });
         }
 
-        if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', COLLECTION_SYNC_TTL)) {
+        if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
             persistenceService.badHabits.getAll(uid).then(items => {
                 if (!items) return;
                 setBadHabits(items);
@@ -1087,7 +1090,7 @@ export const useDashboardLogic = () => {
             });
         }
 
-        if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', COLLECTION_SYNC_TTL)) {
+        if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
             persistenceService.smartProjects.getAll(uid).then(items => {
                 if (!items) return;
                 setSmartProjects(items);
@@ -1096,7 +1099,7 @@ export const useDashboardLogic = () => {
             });
         }
 
-        if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', COLLECTION_SYNC_TTL)) {
+        if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
             persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
                 if (!fetchedAttrs) return;
                 
@@ -1146,6 +1149,8 @@ export const useDashboardLogic = () => {
                 }
             });
         }
+        
+        hasSyncedCollectionsRef.current = true;
     }, [user?.id]);
 
     useEffect(() => {
@@ -3834,79 +3839,32 @@ export const useDashboardLogic = () => {
         // 1. Generate ID (Stable)
         const nextId = projectData.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `proj-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
         
+        if (!user?.id) return;
+
         let blockedByLimit = false;
-        const resolvedProjectRef = { current: null as Project | null };
+        let resolvedProject: Project | null = null;
 
         projectsHydratedRef.current = true;
 
-        setProjects(prev => {
-            // Check if it's an update to an existing project
-            const isUpdate = prev.some(p => p.id === nextId);
+        // Construct project OUTSIDE of setProjects so we can save it to Supabase immediately!
+        const existing = projects.find(p => p.id === nextId);
+        const isUpdate = !!existing;
 
-            // LIMIT CHECK (Only for NEW projects)
-            if (user?.plan !== 'PRO' && !isUpdate) {
-                const activeCount = prev.filter(p => !p.deleted && !p.archived).length;
-                const maxProjects = FREE_LIMITS.PROJECTS || 3; 
-                if (activeCount >= maxProjects) {
-                    blockedByLimit = true;
-                    return prev;
-                }
+        if (user?.plan !== 'PRO' && !isUpdate) {
+            const activeCount = projects.filter(p => !p.deleted && !p.archived).length;
+            const maxProjects = FREE_LIMITS.PROJECTS || 3; 
+            if (activeCount >= maxProjects) {
+                blockedByLimit = true;
             }
+        }
 
-            // LIMIT CHECK FOR UNARCHIVING
-            const existing = prev.find(p => p.id === nextId);
-            if (user?.plan !== 'PRO' && isUpdate && existing?.archived && projectData.archived === false) {
-                const activeCount = prev.filter(p => !p.deleted && !p.archived).length;
-                const maxProjects = FREE_LIMITS.PROJECTS || 3; 
-                if (activeCount >= maxProjects) {
-                    blockedByLimit = true;
-                    return prev;
-                }
+        if (user?.plan !== 'PRO' && isUpdate && existing?.archived && projectData.archived === false) {
+            const activeCount = projects.filter(p => !p.deleted && !p.archived).length;
+            const maxProjects = FREE_LIMITS.PROJECTS || 3; 
+            if (activeCount >= maxProjects) {
+                blockedByLimit = true;
             }
-            
-            const baseProject: Project = {
-                id: nextId,
-                totalTime: 0,
-                sessions: [],
-                goalTarget: 0,
-                goalFrequency: 'WEEKLY',
-                pomoDuration: 25,
-                breakDuration: 5,
-                impact: 1,
-                title: 'New Project',
-                description: '',
-                attribute: 'MENTAL',
-                createdAt: Date.now()
-            };
-
-            const nextProject = existing
-                ? {
-                    ...baseProject,
-                    ...existing,
-                    ...projectData,
-                    sessions: existing.sessions || [],
-                    totalTime: existing.totalTime || 0,
-                    deleted: projectData.deleted !== undefined ? projectData.deleted : existing.deleted,
-                    archived: projectData.archived !== undefined ? projectData.archived : existing.archived
-                }
-                : {
-                    ...baseProject,
-                    ...projectData,
-                    id: nextId // Ensure ID is set
-                };
-
-            resolvedProjectRef.current = nextProject;
-
-            // Optimistic Update
-            const nextProjects = existing
-                ? prev.map(p => p.id === nextProject.id ? nextProject : p)
-                : [...prev, nextProject];
-
-            if (user?.id) {
-                saveProjectsCache(user.id, nextProjects);
-            }
-            return nextProjects;
-        });
+        }
 
         if (blockedByLimit) {
             console.warn("⚠️ Project creation blocked by plan limits");
@@ -3914,7 +3872,48 @@ export const useDashboardLogic = () => {
             return;
         }
 
-        const resolvedProject = resolvedProjectRef.current;
+        const baseProject: Project = {
+            id: nextId,
+            totalTime: 0,
+            sessions: [],
+            goalTarget: 0,
+            goalFrequency: 'WEEKLY',
+            pomoDuration: 25,
+            breakDuration: 5,
+            impact: 1,
+            title: 'New Project',
+            description: '',
+            attribute: 'MENTAL',
+            createdAt: Date.now()
+        };
+
+        resolvedProject = existing
+            ? {
+                ...baseProject,
+                ...existing,
+                ...projectData,
+                sessions: existing.sessions || [],
+                totalTime: existing.totalTime || 0,
+                deleted: projectData.deleted !== undefined ? projectData.deleted : existing.deleted,
+                archived: projectData.archived !== undefined ? projectData.archived : existing.archived
+            }
+            : {
+                ...baseProject,
+                ...projectData,
+                id: nextId
+            };
+
+        setProjects(prev => {
+            const nextProjects = existing
+                ? prev.map(p => p.id === resolvedProject!.id ? resolvedProject! : p)
+                : [...prev, resolvedProject!];
+
+            if (user?.id) {
+                saveProjectsCache(user.id, nextProjects);
+            }
+            return nextProjects;
+        });
+
         // Schedule Notification Reminder for Project
         if (resolvedProject?.reminder && resolvedProject.id) {
             const days = resolvedProject.workingDays && resolvedProject.workingDays.length > 0
@@ -3924,16 +3923,14 @@ export const useDashboardLogic = () => {
         }
 
         // Async Save (Outside State Update)
-        if (user?.id && resolvedProject) {
-            console.log("💾 [DashboardLogic] Saving Project to Firestore:", resolvedProject);
-            projectService.saveProject(user.id, resolvedProject).catch(err => {
-                console.error("Failed to save project:", err);
-                addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
-            });
-        }
+        console.log("💾 [DashboardLogic] Saving Project to Firestore:", resolvedProject);
+        projectService.saveProject(user.id, resolvedProject).catch(err => {
+            console.error("Failed to save project:", err);
+            addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
+        });
 
         setActiveModal(null);
-    }, [user, saveProjectsCache, addNotification]);
+    }, [user, projects, saveProjectsCache, addNotification]);
 
     const handleDeleteProject = useCallback(async (projectId: string) => {
         console.log("🗑️ handleDeleteProject CALLED for:", projectId);

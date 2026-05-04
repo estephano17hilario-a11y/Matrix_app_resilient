@@ -263,6 +263,8 @@ export const attributeService = createSubCollectionService<Attribute>('attribute
 export const smartProjectService = createSubCollectionService<SmartProject>('smartProjects');
 export const projectService = createSubCollectionService<Project>('projects');
 export const badHabitService = createSubCollectionService<BadHabit>('badHabits');
+export const specialEventsService = createSubCollectionService<any>('specialEvents');
+export const secureNotesService = createSubCollectionService<any>('secureNotes');
 
 export const persistenceService = {
   quests: questService,
@@ -273,5 +275,7 @@ export const persistenceService = {
   attributes: attributeService,
   smartProjects: smartProjectService,
   projects: projectService,
-  settings: settingsService
+  settings: settingsService,
+  specialEvents: specialEventsService,
+  secureNotes: secureNotesService
 };

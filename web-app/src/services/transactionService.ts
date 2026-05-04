@@ -65,10 +65,15 @@ export const TransactionService = {
             }
 
             // 3. Update User
-            await supabase.from('users').update({
+            const { error: updateError } = await supabase.from('users').update({
                 stats,
                 dailyLimits: newDailyLimits
             }).eq('id', userId);
+            
+            if (updateError) {
+                console.error("❌ SUPABASE TRANSACTION FAILED (Update User):", updateError);
+                throw updateError;
+            }
 
             // 4. Update Quest via Persistence
             const quests = await persistenceService.quests.getAll(userId);
@@ -162,10 +167,15 @@ export const TransactionService = {
             }
 
             // 3. Update User
-            await supabase.from('users').update({
+            const { error: updateError } = await supabase.from('users').update({
                 stats,
                 dailyLimits: newDailyLimits
             }).eq('id', userId);
+
+            if (updateError) {
+                console.error("❌ SUPABASE TRANSACTION FAILED (Update User):", updateError);
+                throw updateError;
+            }
 
             // 4. Update Habit
             const habits = await persistenceService.habits.getAll(userId);
@@ -218,10 +228,15 @@ export const TransactionService = {
                 stats.nextXp = calculatedLevel * 1000; // Mock or replace with actual logic
             }
 
-            await supabase.from('users').update({
+            const { error: updateError } = await supabase.from('users').update({
                 stats,
                 last_login_at: new Date().toISOString()
             }).eq('id', userId);
+
+            if (updateError) {
+                console.error("❌ SUPABASE TRANSACTION FAILED (Update User):", updateError);
+                throw updateError;
+            }
 
             console.log(`✅ SUPABASE TRANSACTION: Awarded ${xpAmount} XP, ${goldAmount} Gold`);
             return true;
@@ -255,7 +270,11 @@ export const TransactionService = {
 
             stats[stat] = newVal;
 
-            await supabase.from('users').update({ stats }).eq('id', userId);
+            const { error: updateError } = await supabase.from('users').update({ stats }).eq('id', userId);
+            if (updateError) {
+                console.error(`❌ SUPABASE TRANSACTION FAILED (updateStat ${stat}):`, updateError);
+                throw updateError;
+            }
             return true;
         } catch (e) {
             console.error(`❌ SUPABASE TRANSACTION FAILED (updateStat ${stat}):`, e);
@@ -314,10 +333,15 @@ export const TransactionService = {
                 newDailyLimits.focusTraitPoints = (newDailyLimits.focusTraitPoints || 0) + rewardTraitXp;
             }
 
-            await supabase.from('users').update({
+            const { error: updateError } = await supabase.from('users').update({
                 stats,
                 dailyLimits: newDailyLimits
             }).eq('id', userId);
+            
+            if (updateError) {
+                console.error("❌ SUPABASE TRANSACTION FAILED (logFocusSession):", updateError);
+                throw updateError;
+            }
 
             if (attrId) {
                 const attrs = await persistenceService.attributes.getAll(userId);

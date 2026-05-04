@@ -33,7 +33,7 @@ const getRequiredPercentForDay = (day: number) => {
     return 85;
 };
 
-export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ habits, onOpenStreak, isActive = true, isPro, onOpenPro, weekStartDay = 1, initialTimeframe = 'WEEK' }) => {
+export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React.memo(({ habits, onOpenStreak, isActive = true, isPro, onOpenPro, weekStartDay = 1, initialTimeframe = 'WEEK' }) => {
     const { t, i18n } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
@@ -708,4 +708,4 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({ ha
             />
         </div>
     );
-};
+});

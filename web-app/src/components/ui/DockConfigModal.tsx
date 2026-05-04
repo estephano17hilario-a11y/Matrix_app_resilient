@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, ShoppingBag, Trophy, Plus, Settings2 } from 'lucide-react';
+import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
@@ -22,7 +22,7 @@ export const DOCK_ITEMS: DockItemConfig[] = [
  { id: 'FOCUS', icon: Target, label: 'FOCUS', color: 'text-purple-400', bgColor: 'bg-purple-500/20', borderColor: 'border-purple-500/20', isSystem: true },
  { id: 'NOTES', icon: Brain, label: 'STATS', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20', isSystem: true },
  { id: 'STRATEGY', icon: Map, label: 'STRATEGY', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20', borderColor: 'border-indigo-500/20' },
- { id: 'STORE', icon: ShoppingBag, label: 'STORE', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20' },
+ { id: 'STORE', icon: PenLine, label: 'NOTA', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20' },
  { id: 'ACHIEVEMENTS', icon: Trophy, label: 'LEGACY', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/20' }
 ];
 

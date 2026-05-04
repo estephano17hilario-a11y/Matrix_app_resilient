@@ -141,7 +141,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  if (id === 'HABITS') { action = () => handleModal('HABIT'); label = 'Habit'; }
  else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = 'Focus'; }
  else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
- else if (id === 'STORE') { label = 'Store'; }
+ else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
 
  return renderExpandedMenuButton(id, label, item.icon, item.color, item.bgColor, item.borderColor, action, isFullWidth);
  };
@@ -156,7 +156,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  if (id === 'HABITS') { action = () => handleModal('HABIT'); label = t('dock.habit'); }
  else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = t('dock.focus'); }
  else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
- else if (id === 'STORE') { label = t('dock.store'); }
+ else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
 
  return (
  <button 

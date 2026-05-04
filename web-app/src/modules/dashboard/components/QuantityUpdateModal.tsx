@@ -168,7 +168,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={onClose}
- className="absolute inset-0 bg-[#050505]/85 backdrop-blur-sm "
+ className="absolute inset-0 bg-[#050505]/95 "
  />
 
  {/* Modal Container */}
@@ -178,7 +178,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  exit={{ opacity: 0, scale: 0.85, y: 40 }}
  transition={{ type: "spring", damping: 28, stiffness: 350, mass: 0.8 }}
  className={cn(
- "relative w-full max-w-[400px] rounded-[32px] p-6 sm:p-8 overflow-hidden transition-all duration-200 backdrop-blur-sm border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
+ "relative w-full max-w-[400px] rounded-[32px] p-6 sm:p-8 overflow-hidden transition-all duration-200 border border-white/[0.12] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]",
  "bg-[#0f0f13]/80",
  isComplete 
  ? "shadow-[0_0_80px_-15px_rgba(16,185,129,0.3)]" 
@@ -298,7 +298,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  {value}
  </span>
  
- <div className="flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm ">
+ <div className="flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] ">
  <span className="text-[10px] font-black text-white/20 tracking-[0.1em] uppercase">Objetivo</span>
  <span className="text-sm font-black text-white/80 tabular-nums">{target}</span>
  {habit.unit && (
@@ -316,7 +316,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.9 }}
  onClick={handleDecrement}
- className="w-10 h-10 rounded-[14px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-md backdrop-blur-sm "
+ className="w-10 h-10 rounded-[14px] bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/[0.1] transition-all flex items-center justify-center border border-white/[0.08] group shadow-md "
  >
  <Minus size={18} className="text-white/40 group-hover:text-white transition-colors" strokeWidth={3} />
  </motion.button>

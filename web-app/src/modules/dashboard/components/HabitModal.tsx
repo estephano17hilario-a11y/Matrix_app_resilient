@@ -298,8 +298,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     style={{
                         border: `1px solid ${hasColorSource ? activeColor : 'rgba(255, 255, 255, 0.1)'}`,
                         boxShadow: hasColorSource
-                            ? `0 0 0 1px ${activeColor}40, 0 0 30px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
-                            : `0 20px 50px -10px rgba(0,0,0,0.5)`
+                            ? `0 0 0 1px ${activeColor}40, 0 8px 32px -8px rgba(0,0,0,0.8)`
+                            : `0 20px 50px -10px rgba(0,0,0,0.8)`
                     }}
                 >
                     {/* Header */}

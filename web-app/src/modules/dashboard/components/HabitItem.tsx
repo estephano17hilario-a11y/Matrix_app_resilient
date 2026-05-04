@@ -205,13 +205,13 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
         {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
-            className="absolute inset-0 opacity-[0.05] group-hover:opacity-10 transition-opacity duration-200" 
+            className="absolute inset-0 opacity-[0.09] group-hover:opacity-[0.14] transition-opacity duration-200" 
             style={{ backgroundColor: baseColor }}
         />
 
         {/* Radial Gradient Blur Background */}
         <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-[0.30] pointer-events-none group-hover:opacity-[0.40] transition-opacity duration-200" 
+            className="absolute top-0 right-0 w-48 h-48 opacity-[0.50] pointer-events-none group-hover:opacity-[0.60] transition-opacity duration-200" 
             style={{ 
                 background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`
             }} 

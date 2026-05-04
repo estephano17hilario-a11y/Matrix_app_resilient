@@ -19,6 +19,7 @@ import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { useAuth } from '@/context/AuthContext';
+import { persistenceService } from '@/services/persistenceService';
 
 // Constants
 const MOODS = [
@@ -107,41 +108,69 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
  // Load Config from LocalStorage
  useEffect(() => {
+ const loadConfig = async () => {
+ let finalConfig: NotesConfig | null = null;
+ if (user?.id) {
+ try {
+ const supaSettings = await persistenceService.settings.get(user.id);
+ if (supaSettings && supaSettings.notes_config_v2) {
+ finalConfig = supaSettings.notes_config_v2;
+ }
+ } catch (e) {
+ console.error("Failed to load notes config from Supabase", e);
+ }
+ }
+
  const configKey = user?.id ? `notes_config_v2_${user.id}` : 'notes_config_v2';
+ 
+ if (!finalConfig) {
  const savedConfig = localStorage.getItem(configKey);
  if (savedConfig) {
  try {
  const parsed = JSON.parse(savedConfig);
- setConfig(parsed);
- // Check if current area is protected
- const isProtected = subView === 'NOTES' 
- ? parsed.security.protectedAreas.notes 
- : parsed.security.protectedAreas.journal;
- 
- if (isProtected) {
- setIsLocked(true);
+ finalConfig = parsed;
+ if (user?.id) {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { ...currentSettings, notes_config_v2: finalConfig });
  }
  } catch (e) {
  console.error("Failed to load notes config", e);
  }
  } else {
- // Migration from old config if exists
  const oldConfigKey = user?.id ? `notes_config_${user.id}` : 'notes_config';
  const oldConfig = localStorage.getItem(oldConfigKey);
  if (oldConfig) {
  try {
  const parsed = JSON.parse(oldConfig);
- setConfig(prev => ({
- ...prev,
+ finalConfig = {
  enabledFeatures: parsed.buttons || [],
  security: {
- ...prev.security,
- pin: parsed.password || ''
+ pin: parsed.password || '',
+ recoveryMethod: 'PASSWORD',
+ protectedAreas: { memories: false, notes: false, charts: false, journal: false }
  }
- }));
+ };
+ if (user?.id) {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { ...currentSettings, notes_config_v2: finalConfig });
+ }
  } catch(e) {}
+ }
+ }
+ }
+
+ if (finalConfig) {
+ setConfig(finalConfig);
+ const isProtected = subView === 'NOTES' 
+ ? finalConfig.security.protectedAreas.notes 
+ : finalConfig.security.protectedAreas.journal;
+ 
+ if (isProtected) {
+ setIsLocked(true);
  } else {
- // Reset config if no config is found for this user
+ setIsLocked(false);
+ }
+ } else {
  setConfig({
  enabledFeatures: [],
  security: {
@@ -152,14 +181,25 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  });
  setIsLocked(false);
  }
- }
- }, [user?.id]);
+ };
+
+ loadConfig();
+ }, [user?.id, subView]);
 
  // Save Config Helper
- const handleSaveConfig = (newConfig: NotesConfig) => {
+ const handleSaveConfig = async (newConfig: NotesConfig) => {
  setConfig(newConfig);
  const configKey = user?.id ? `notes_config_v2_${user.id}` : 'notes_config_v2';
  localStorage.setItem(configKey, JSON.stringify(newConfig));
+ 
+ if (user?.id) {
+ try {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { ...currentSettings, notes_config_v2: newConfig });
+ } catch (e) {
+ console.error("Failed to save notes config to Supabase", e);
+ }
+ }
  
  // Update lock state based on new config and current subView
  const isProtected = subView === 'NOTES' 
@@ -194,30 +234,74 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
  // Load Special Events for Calendar Integration
  useEffect(() => {
- const loadEvents = () => {
  const eventsKey = user?.id ? `special_events_${user.id}` : 'special_events';
+
+ const loadEventsFromSupabase = async () => {
+ let eventsData: any = null;
+
+ if (user?.id) {
+ try {
+ const supaSettings = await persistenceService.settings.get(user.id);
+ if (supaSettings && supaSettings.special_events) {
+ eventsData = supaSettings.special_events;
+ }
+ } catch (e) {
+ console.error("Failed to load special events from Supabase", e);
+ }
+ }
+ 
+ if (!eventsData) {
+ const saved = localStorage.getItem(eventsKey);
+ if (saved) {
+ try {
+ eventsData = JSON.parse(saved);
+ } catch (e) {
+ console.error("Failed to load special events", e);
+ }
+ }
+ }
+
+ if (eventsData) {
+ setSpecialEvents(eventsData);
+ // Also sync to localStorage for immediate next load
+ localStorage.setItem(eventsKey, JSON.stringify(eventsData));
+ } else {
+ setSpecialEvents([]);
+ }
+ };
+
+ const loadEventsLocal = () => {
  const saved = localStorage.getItem(eventsKey);
  if (saved) {
  try {
  setSpecialEvents(JSON.parse(saved));
  } catch (e) {
- console.error("Failed to load special events", e);
+ console.error("Failed to load special events from local", e);
  }
- } else {
- setSpecialEvents([]);
  }
  };
  
- loadEvents();
+ loadEventsFromSupabase();
  // Listen for storage changes to update calendar in real-time if multiple tabs or updates
- window.addEventListener('storage', loadEvents);
+ window.addEventListener('storage', loadEventsLocal);
  // Custom event for same-tab updates
- window.addEventListener('special_events_updated', loadEvents);
- 
- return () => {
- window.removeEventListener('storage', loadEvents);
- window.removeEventListener('special_events_updated', loadEvents);
- };
+ window.addEventListener('special_events_updated', loadEventsLocal);
+
+    const handleOpenNoteEditor = () => {
+      setSubView('NOTES');
+      setEditorMode('NOTE');
+    };
+    const handleCloseNoteEditor = () => setEditorMode('NONE');
+
+    window.addEventListener('open-note-editor', handleOpenNoteEditor);
+    window.addEventListener('close-note-editor', handleCloseNoteEditor);
+
+    return () => {
+      window.removeEventListener('storage', loadEventsLocal);
+      window.removeEventListener('special_events_updated', loadEventsLocal);
+      window.removeEventListener('open-note-editor', handleOpenNoteEditor);
+      window.removeEventListener('close-note-editor', handleCloseNoteEditor);
+    };
  }, [user?.id]);
  
  const openEventsHub = useCallback(() => {

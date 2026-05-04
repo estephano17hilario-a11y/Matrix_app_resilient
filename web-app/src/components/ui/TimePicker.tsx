@@ -149,7 +149,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  exit={{ opacity: 0 }}
  transition={{ duration: 0.3, ease: "easeOut" }}
  onClick={() => setIsOpen(false)}
- className="absolute inset-0 bg-black/60 backdrop-blur-sm "
+ className="absolute inset-0 bg-black/80 "
  />
  
  <motion.div

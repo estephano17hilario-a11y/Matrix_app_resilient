@@ -567,7 +567,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  whileTap={onClick ? { scale: 0.96 } : undefined}
  onClick={onClick}
  className={cn(
- "relative group bg-[#18181b]/60 backdrop-blur-sm rounded-[28px] p-6 border border-white/[0.06] flex flex-col items-center justify-center gap-2 transition-all duration-200 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
+ "relative group bg-[#18181b]/80 rounded-[28px] p-6 border border-white/[0.06] flex flex-col items-center justify-center gap-2 transition-all duration-200 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
  onClick ? "cursor-pointer hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.08]" : "hover:border-white/[0.12]"
  )}
  >
@@ -633,7 +633,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
 
  {/* Header - Visionary Style */}
- <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-sm ">
+ <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent ">
  <button 
  onClick={onClose} 
  className="group flex items-center gap-1 text-white/60 hover:text-white font-semibold active:scale-95 transition-all"
@@ -729,7 +729,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="relative z-50 px-4 sm:px-6 pt-1"
  >
  <motion.div 
- className="flex flex-col items-center mx-auto transition-all duration-200 origin-top backdrop-blur-sm border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50 w-full max-w-[360px]"
+ className="flex flex-col items-center mx-auto transition-all duration-200 origin-top border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50 w-full max-w-[360px]"
  animate={{
  borderRadius: isScrolled ? 28 : 32,
  padding: isScrolled ? "10px 12px" : "14px 16px",
@@ -807,7 +807,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
  exit={{ opacity: 0, scale: 0.98, y: 5, x: "-50%" }}
  transition={{ duration: 0.15, ease: "easeOut" }}
- className="absolute left-1/2 top-full mt-2 w-40 bg-[#121214]/90 backdrop-blur-sm border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1"
+ className="absolute left-1/2 top-full mt-2 w-40 bg-[#121214]/95 border border-white/10 rounded-xl shadow-md overflow-hidden z-[100] p-1"
  >
  <div className="flex flex-col gap-0.5">
  {ALL_RANGES.map((option) => {
@@ -930,7 +930,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  {/* 1. MAIN STATS CARD - Visionary Layout */}
  <motion.div 
  variants={itemVariants} 
- className="bg-[#121214]/60 backdrop-blur-sm rounded-[32px] p-8 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] mb-4 relative overflow-hidden group"
+ className="bg-[#121214]/80 rounded-[32px] p-8 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] mb-4 relative overflow-hidden group"
  >
  {/* Animated Inner Glow */}
  <motion.div
@@ -998,7 +998,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </motion.div>
 
  {/* 2. GOAL SUMMARY (Line Chart) */}
- <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group flex flex-col">
+ <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group flex flex-col">
  <div className="flex items-center gap-2 mb-6">
  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: themeColor }} />
  <h3 className="text-[11px] font-[900] text-white/40 uppercase tracking-[0.2em]">{t('habits.detail.goalSummary', 'GOAL SUMMARY')}</h3>
@@ -1039,7 +1039,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </motion.div>
 
  {/* 3. WORKED HOURS (Bar Chart) */}
- <motion.div variants={itemVariants} className="bg-[#121214]/40 backdrop-blur-sm rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group">
+ <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group">
  <div className="flex justify-between items-center mb-8">
  <div className="flex items-center gap-2">
  <div className="w-1.5 h-4 rounded-full bg-white/20" />

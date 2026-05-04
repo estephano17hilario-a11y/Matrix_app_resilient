@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { supabase, configStatus } from '../services/supabase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
@@ -50,19 +49,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       PersistenceService.clearSession();
       sessionStorage.setItem('MATRIX_INTENTIONAL_LOGOUT', 'true');
+      localStorage.setItem('MATRIX_INTENTIONAL_LOGOUT', 'true');
       
       setUser(null);
       setProfile(null);
       
       setTimeout(async () => {
-        await supabase.auth.signOut();
-        
         try {
-            if (Capacitor.isNativePlatform()) {
-                const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-                await GoogleAuth.signOut();
-            }
-        } catch (e) {}
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.error("Supabase signout error:", e);
+        }
       }, 0);
 
     } catch (error: any) {
@@ -94,12 +91,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user || null;
       try {
         if (!currentUser) {
-          const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
+          const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true' || localStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
           
           if (isIntentionalLogout) {
              setUser(null);
              setProfile(null);
              sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
+             localStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
+             PersistenceService.clearSession(); // Ensure session is fully cleared
           } else {
              const cached = PersistenceService.getProfile();
              if (!cached) {

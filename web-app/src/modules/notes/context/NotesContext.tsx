@@ -35,6 +35,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const notesRef = useRef<Note[]>([]);
     const journalRef = useRef<JournalEntry[]>([]);
 
+    const hasSyncedNotesRef = useRef(false);
+
     useEffect(() => {
         notesRef.current = notes;
     }, [notes]);
@@ -74,8 +76,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         let cancelled = false;
-        const shouldSyncNotes = PersistenceService.shouldSyncCollection(uid, 'notes', 60000);
-        const shouldSyncJournal = PersistenceService.shouldSyncCollection(uid, 'journal', 60000);
+        const currentNotesTTL = hasSyncedNotesRef.current ? 60000 : 0;
+        const shouldSyncNotes = PersistenceService.shouldSyncCollection(uid, 'notes', currentNotesTTL);
+        const shouldSyncJournal = PersistenceService.shouldSyncCollection(uid, 'journal', currentNotesTTL);
 
         if (!shouldSyncNotes && !shouldSyncJournal) {
             return;
@@ -99,6 +102,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 PersistenceService.saveCollectionSafe(uid, 'journal', fetchedJournal);
             }
             setIsLoading(false);
+            
+            hasSyncedNotesRef.current = true;
         }).catch(err => {
             if (cancelled) return;
             console.error("Failed to load notes data:", err);

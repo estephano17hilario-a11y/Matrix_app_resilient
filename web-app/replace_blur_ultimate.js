@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* global require, process */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

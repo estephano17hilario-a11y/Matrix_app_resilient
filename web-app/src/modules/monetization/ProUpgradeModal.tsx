@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { showPaywall } from '../../services/revenueCatService';
+import { useRevenueCat } from '../../hooks/useRevenueCat';
 
 interface ProUpgradeModalProps {
  isOpen: boolean;
@@ -80,6 +81,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  const { t } = useTranslation();
  const [mounted, setMounted] = useState(false);
  const isNative = Capacitor.isNativePlatform();
+ const { currentOffering, isPremium, purchasePackage } = useRevenueCat();
  
  const features = [
  {
@@ -124,6 +126,12 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  setMounted(true);
  }
  }, [isOpen]);
+
+ useEffect(() => {
+ if (isPremium) {
+ onClose();
+ }
+ }, [isPremium, onClose]);
 
  if (!mounted && !isOpen) return null;
 
@@ -201,9 +209,14 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  onClick={async () => {
+ if (currentOffering?.weekly) {
+ await purchasePackage(currentOffering.weekly);
+ } else {
+ console.log("No weekly package found, attempting fallback showPaywall");
  const isPro = await showPaywall();
  if (isPro) {
  onClose();
+ }
  }
  }}
  className="relative w-[90%] sm:w-[80%] md:w-auto mx-auto overflow-hidden rounded-full group shadow-[0_0_50px_rgba(168,85,247,0.6)] hover:shadow-[0_0_80px_rgba(168,85,247,0.9)] transition-shadow duration-200 border border-purple-500/50 bg-[#0a0014] "
@@ -230,10 +243,15 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  }}
  />
  
- <div className="relative z-10 px-8 md:px-16 py-3.5 flex items-center justify-center">
+ <div className="relative z-10 px-8 md:px-16 py-3.5 flex flex-col items-center justify-center">
  <span className="font-black text-lg md:text-xl uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
  {t('pro.activateDelux', "Activar Delux")}
  </span>
+ {currentOffering?.weekly && (
+ <span className="text-white/70 text-xs font-bold mt-1">
+ {currentOffering.weekly.product.priceString} / {t('pro.week', 'Semana')}
+ </span>
+ )}
  </div>
  </motion.button>
  ) : (

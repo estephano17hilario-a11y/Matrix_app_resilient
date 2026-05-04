@@ -77,7 +77,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  exit={{ opacity: 0 }}
  transition={{ duration: 0.15, ease: "easeOut" }}
  onClick={onClose}
- className="absolute inset-0 bg-[#000]/70 backdrop-blur-sm "
+ className="absolute inset-0 bg-[#000]/80 "
  style={{ willChange: 'opacity' }}
  />
 
@@ -86,7 +86,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.85, y: 40 }}
  transition={{ type: "spring", damping: 28, stiffness: 350, mass: 0.8 }}
- className="relative w-full max-w-[380px] bg-[#0c0c0e]/80 backdrop-blur-sm border border-white/[0.12] rounded-[32px] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)] z-10 flex flex-col max-h-[85vh] overflow-hidden"
+ className="relative w-full max-w-[380px] bg-[#0c0c0e]/95 border border-white/[0.12] rounded-[32px] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)] z-10 flex flex-col max-h-[85vh] overflow-hidden"
  style={{ willChange: 'transform, opacity' }}
  onClick={e => e.stopPropagation()}
  >

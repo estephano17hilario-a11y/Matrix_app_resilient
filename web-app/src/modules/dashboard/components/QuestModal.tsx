@@ -201,7 +201,7 @@ export const QuestModal = React.memo(({
                                 background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
                                 border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
                                 boxShadow: attrId 
-                                    ? `0 0 0 1px ${activeColor}40, 0 0 60px -10px ${activeColor}50, 0 0 20px ${activeColor}30, inset 0 0 20px ${activeColor}10`
+                                    ? `0 0 0 1px ${activeColor}40, 0 8px 32px -8px rgba(0,0,0,0.8)`
                                     : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
                             }}
                         >

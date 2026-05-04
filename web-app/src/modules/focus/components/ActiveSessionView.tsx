@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Layers } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';

@@ -81,7 +81,7 @@ const TraitBar = ({
  );
 };
 
-export const PlayerHUD: React.FC<PlayerHUDProps> = ({
+export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
  attributes = [],
  className,
  defaultChartMode = 'RADAR',
@@ -200,5 +200,5 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = ({
  </div>
  )}
  </GlassPanel>
- );
-};
+  );
+});

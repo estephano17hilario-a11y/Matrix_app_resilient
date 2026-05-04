@@ -174,7 +174,7 @@ export const FocusView = React.memo(({
                 {visibleProjects.map(project => {
                     const attribute = attributes.find(a => a.id === project.attribute);
                     return (
-                        <div key={project.id} className="pr-3 w-full">
+                        <div key={project.id} className="w-full">
                             <div 
                                 className="relative z-10 touch-manipulation w-full"
                                 {...longPressHandlers}
@@ -198,7 +198,7 @@ export const FocusView = React.memo(({
                 
                 {/* New Project Silhouette Card */}
                 {!showArchived && (
-                    <div className="pr-3 w-full">
+                    <div className="w-full">
                         <div 
                             onClick={() => onOpenProjectModal()}
                             className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"

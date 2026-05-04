@@ -12,6 +12,7 @@ import { getNextEventDate } from './utils';
 
 import { FREE_LIMITS } from '../../../config/limits';
 import { useAuth } from '@/context/AuthContext';
+import { persistenceService } from '@/services/persistenceService';
 
 interface SpecialEventsHubProps {
  isOpen: boolean;
@@ -38,29 +39,69 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
 
  // Load events from localStorage on mount (lazily)
  useEffect(() => {
+ const loadEvents = async () => {
+ let eventsData: any = null;
+
+ if (user?.id) {
+ try {
+ const supaSettings = await persistenceService.settings.get(user.id);
+ if (supaSettings && supaSettings.special_events) {
+ eventsData = supaSettings.special_events;
+ }
+ } catch (e) {
+ console.error("Failed to load special events from Supabase", e);
+ }
+ }
+
+ if (!eventsData) {
  const saved = localStorage.getItem(eventsKey);
  if (saved) {
  try {
  const parsed = JSON.parse(saved);
  if (Array.isArray(parsed)) {
- setEvents(parsed);
+ eventsData = parsed;
  }
  } catch (e) {
  console.error("Failed to parse events", e);
  }
  }
- // Mark as loaded so subsequent changes are saved
+ }
+
+ if (eventsData && Array.isArray(eventsData)) {
+ setEvents(eventsData);
+ }
+ 
  isLoaded.current = true;
- }, [isOpen, eventsKey]);
+ };
+
+ loadEvents();
+ }, [isOpen, eventsKey, user?.id]);
 
  // Save events whenever they change, but ONLY if we have already loaded
  useEffect(() => {
+ const saveEvents = async () => {
  if (isLoaded.current) {
  localStorage.setItem(eventsKey, JSON.stringify(events));
+ 
+ if (user?.id) {
+ try {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, {
+ ...currentSettings,
+ special_events: events
+ });
+ } catch (e) {
+ console.error("Failed to save special events to Supabase", e);
+ }
+ }
+ 
  // Dispatch event so the calendar (NotesView) reloads
  window.dispatchEvent(new Event('special_events_updated'));
  }
- }, [events, eventsKey]);
+ };
+ 
+ saveEvents();
+ }, [events, eventsKey, user?.id]);
 
  const handleOpenCreateModal = () => {
  if (!isPro && events.length >= FREE_LIMITS.NOTES) {

@@ -53,7 +53,7 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: { icon: any, l
  transition={{ delay, type: 'spring', damping: 20, stiffness: 350 }}
  whileHover={{ y: -4, scale: 1.02 }}
  whileTap={{ scale: 0.96 }}
- className="relative group bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-[24px] p-4 flex flex-col items-center justify-center overflow-hidden transition-all duration-200 hover:bg-white/[0.06] hover:border-white/20"
+ className="relative group bg-white/[0.03] border border-white/[0.08] rounded-[24px] p-4 flex flex-col items-center justify-center overflow-hidden transition-all duration-200 hover:bg-white/[0.06] hover:border-white/20"
  >
  {/* Subtle Glow Background */}
  <div 
@@ -134,7 +134,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={onClose}
- className="absolute inset-0 bg-black/85 backdrop-blur-sm will-change-transform transition-all duration-200"
+ className="absolute inset-0 bg-black/90 will-change-transform transition-all duration-200"
  />
  
  <motion.div

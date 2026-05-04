@@ -7,6 +7,7 @@ import FocusSession from '@/plugins/FocusPlugin';
 import { hashPin } from '../../../utils/crypto';
 import { SecurityGate } from '../../../components/ui/SecurityGate';
 import { useAuth } from '@/context/AuthContext';
+import { persistenceService } from '@/services/persistenceService';
 
 interface SecureItem {
  id: string;
@@ -55,52 +56,80 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
 
  // Load Data
  useEffect(() => {
- // Load data on every open to ensure we have latest state if updated elsewhere
- // But only if we haven't loaded yet or if we want to refresh.
- // For simplicity, let's just rely on initial load + local state.
- // Persistence is handled by effect below.
- 
- // HOWEVER: The user complained about data loss.
- // This usually happens if we initialize state with empty array [], 
- // and then the save effect triggers immediately and overwrites localStorage with [].
- // So we must load ONLY ONCE when the component mounts, or carefully check if it's the initial load.
- 
- const loadSavedData = () => {
+ const loadSavedData = async () => {
+ let vaultData: any = null;
+ let savedPinHash = localStorage.getItem(pinHashKey);
+
+ if (user?.id) {
+ try {
+ // Load PIN Hash and Vault Data from Supabase Settings
+ const supaSettings = await persistenceService.settings.get(user.id);
+ if (supaSettings) {
+ if (supaSettings.secure_vault_pin_hash) {
+ savedPinHash = supaSettings.secure_vault_pin_hash;
+ localStorage.setItem(pinHashKey, savedPinHash!);
+ }
+ if (supaSettings.secure_vault_data) {
+ vaultData = supaSettings.secure_vault_data;
+ }
+ }
+ } catch (e) {
+ console.error("Failed to load secure vault data from Supabase", e);
+ }
+ }
+
+ if (!vaultData) {
  const savedData = localStorage.getItem(vaultDataKey);
  if (savedData) {
  try {
  const parsed = JSON.parse(savedData);
- // Only set if we haven't already populated it, or if it's explicitly a refresh
  if (parsed && Array.isArray(parsed)) {
- setItems(parsed);
+ vaultData = parsed;
  }
  } catch (e) {
  console.error("Failed to parse secure vault data", e);
  }
+ }
+ }
+
+ if (vaultData && Array.isArray(vaultData)) {
+ setItems(vaultData);
+ }
+
+ const savedPin = localStorage.getItem(legacyPinKey);
+ 
+ if (!savedPin && !savedPinHash) {
+ setIsSetupMode(true);
  }
  };
 
  if (isOpen && items.length === 0) {
  loadSavedData();
  }
- 
- const savedPin = localStorage.getItem(legacyPinKey);
- const savedPinHash = localStorage.getItem(pinHashKey);
- 
- if (!savedPin && !savedPinHash) {
- setIsSetupMode(true);
- }
- }, [isOpen, pinHashKey, legacyPinKey, vaultDataKey]); // Reload when opened to ensure fresh data
+ }, [isOpen, pinHashKey, legacyPinKey, vaultDataKey, user?.id]);
 
  // Save Data
  useEffect(() => {
- // PREVENT DATA LOSS: Only save if we are unlocked (meaning we successfully loaded/verified)
- // OR if we have items to save.
- // If locked and items is empty, it might mean we haven't loaded yet.
+ const saveData = async () => {
  if (isUnlocked || items.length > 0) {
  localStorage.setItem(vaultDataKey, JSON.stringify(items));
+ 
+ if (user?.id) {
+ try {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { 
+ ...currentSettings, 
+ secure_vault_data: items 
+ });
+ } catch (e) {
+ console.error("Failed to save secure vault data to Supabase", e);
  }
- }, [items, isUnlocked, vaultDataKey]);
+ }
+ }
+ };
+ 
+ saveData();
+ }, [items, isUnlocked, vaultDataKey, user?.id]);
 
  const handlePinSubmit = async (inputPin: string) => {
  const savedPinHash = localStorage.getItem(pinHashKey);
@@ -111,6 +140,19 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  if (inputPin === setupPin) {
  const hashed = await hashPin(inputPin);
  localStorage.setItem(pinHashKey, hashed);
+ 
+ if (user?.id) {
+ try {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { 
+ ...currentSettings, 
+ secure_vault_pin_hash: hashed 
+ });
+ } catch (e) {
+ console.error("Failed to save PIN hash to Supabase", e);
+ }
+ }
+
  // Clear plain text legacy pin if exists
  localStorage.removeItem(legacyPinKey);
  setIsSetupMode(false);
@@ -139,6 +181,16 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  // Upgrade to hash silently
  localStorage.setItem(pinHashKey, hashedInput);
  localStorage.removeItem(legacyPinKey);
+ 
+ if (user?.id) {
+ try {
+ const currentSettings = await persistenceService.settings.get(user.id) || {};
+ await persistenceService.settings.save(user.id, { 
+ ...currentSettings, 
+ secure_vault_pin_hash: hashedInput 
+ });
+ } catch (e) {}
+ }
  }
  setIsUnlocked(true);
  setPin('');

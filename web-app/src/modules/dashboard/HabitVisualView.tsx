@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Skull, Archive, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -55,7 +55,7 @@ interface BadHabitWrapperProps {
     onReorderRequest?: () => void;
 }
 
-const BadHabitWrapper: React.FC<BadHabitWrapperProps> = ({
+const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
     habit,
     attributeMap,
     onShowBadHabitActions,
@@ -96,7 +96,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = ({
             </div>
         </div>
     );
-};
+});
 
 export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({ 
     habits, 
@@ -243,11 +243,20 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             sortedList.sort((a, b) => (a.order || 0) - (b.order || 0));
         }
 
+        const today = new Date();
+        const isCurrentDay = isSameDay(currentDate, today);
+
         // Date Logic Override
         return sortedList.map(habit => {
-            const isCompleted = isSameDay(currentDate, new Date()) 
+            const isCompleted = isCurrentDay 
                 ? habit.completedToday 
                 : habit.history?.some(d => isSameDay(new Date(d), currentDate)) ?? false;
+            
+            // OPTIMIZATION: Return the exact same object reference if the value hasn't changed.
+            // This preserves React.memo on HabitItem.
+            if (habit.completedToday === isCompleted) {
+                return habit;
+            }
             
             return {
                 ...habit,
@@ -419,6 +428,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             setIsReorderModalOpen(true);
         }
     }, { threshold: 600 });
+
+    const handleBadHabitReorderRequest = useCallback(() => {
+        if (!showArchived && onReorderBadHabits) {
+            setIsBadHabitReorderModalOpen(true);
+        }
+    }, [showArchived, onReorderBadHabits]);
 
     return (
         <motion.div 
@@ -790,11 +805,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     onShowBadHabitActions={onShowBadHabitActions}
                                     onOpenDetail={setSelectedDetailBadHabit}
                                     onRelapseBadHabit={onRelapseBadHabit}
-                                    onReorderRequest={() => {
-                                        if (!showArchived && onReorderBadHabits) {
-                                            setIsBadHabitReorderModalOpen(true);
-                                        }
-                                    }}
+                                    onReorderRequest={handleBadHabitReorderRequest}
                                 />
                             ))}
                             {!showArchived && activeBadHabits.length === 0 && (
