@@ -91,24 +91,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user || null;
       try {
         if (!currentUser) {
-          const isIntentionalLogout = sessionStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true' || localStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
-          
-          if (isIntentionalLogout) {
-             setUser(null);
-             setProfile(null);
-             sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
-             localStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
-             PersistenceService.clearSession(); // Ensure session is fully cleared
-          } else {
-             const cached = PersistenceService.getProfile();
-             if (!cached) {
-                 setUser(null);
-                 setProfile(null);
-             } else {
-                 setProfile(cached);
-                 setUser({ id: cached.uid, email: cached.email, user_metadata: { full_name: cached.displayName } } as unknown as User);
-             }
-          }
+          // If no current user, it means session is missing or expired.
+          // Supabase caches the session locally, so if it's null even when offline,
+          // the session is truly dead. We must force them to login again to prevent
+          // disjointed local data that cannot sync to the cloud.
+          setUser(null);
+          setProfile(null);
+          PersistenceService.clearSession();
+          sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
+          localStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
           
           setIsLoading(false);
           return;
