@@ -295,11 +295,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 1 && (
                                     <motion.div
-                                        initial={{  opacity: 0 }}
-                                        animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-4 pb-4 space-y-3"
+                                        className="px-4 pb-4 space-y-3 overflow-hidden"
                                     >
                                         {/* Title */}
                                         <div className="bg-black/20 rounded-xl p-1 border border-white/5 focus-within:border-white/20 transition-all">
@@ -430,11 +430,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 2 && (
                                     <motion.div
-                                        initial={{  opacity: 0 }}
-                                        animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-3 pb-3 space-y-3"
+                                        className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         <div className="flex items-center gap-2 mb-1"><Target size={14} className="text-cyan-400" /><span className="text-[9px] font-bold text-slate-400 uppercase">{t('modals.project.goalCalculation')}</span></div>
                                         
@@ -659,11 +659,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                             <AnimatePresence initial={false}>
                                 {expandedBlock === 3 && (
                                     <motion.div
-                                        initial={{  opacity: 0 }}
-                                        animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.2, ease: "easeInOut" }}
-                                        className="px-3 pb-3 space-y-3"
+                                        className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         {/* Pomodoro */}
                                         <div className="bg-black/20 rounded-xl p-2.5 border border-white/5">

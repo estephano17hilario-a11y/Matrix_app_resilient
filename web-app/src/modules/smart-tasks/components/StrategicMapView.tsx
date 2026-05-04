@@ -496,12 +496,13 @@ export const StrategicMapView: React.FC<StrategicMapViewProps> = React.memo(({
                                 </button>
                             </div>
 
-                            <AnimatePresence>
+                            <AnimatePresence initial={false}>
                                 {!isCollapsed && (
                                     <motion.div
-                                        initial={{  opacity: 0 }}
-                                        animate={{  opacity: 1 }}
-                                        exit={{  opacity: 0 }}
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         className="overflow-hidden"
                                     >
                                         {isLeafLevel ? (

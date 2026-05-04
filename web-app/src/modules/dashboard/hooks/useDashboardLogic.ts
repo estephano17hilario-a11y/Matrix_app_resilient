@@ -1011,6 +1011,27 @@ export const useDashboardLogic = () => {
 
         const currentTTL = hasSyncedCollectionsRef.current ? COLLECTION_SYNC_TTL : 0;
 
+        // Auto Backup Check
+        if (!hasSyncedCollectionsRef.current) {
+            persistenceService.settings.get(uid).then(async settings => {
+                if (settings?.autoBackupEnabled) {
+                    try {
+                        const { supabase } = await import('../../../services/supabase');
+                        const { data } = await supabase.from('user_collections').select('data').eq('id', `backup_${uid}`).single();
+                        const lastBackup = data?.data?.timestamp || 0;
+                        const DAY_MS = 24 * 60 * 60 * 1000;
+                        if (Date.now() - lastBackup > DAY_MS) {
+                            const { BackupService } = await import('../../../services/backupService');
+                            await BackupService.createCloudBackup(uid);
+                            console.log("☁️ MATRIX: Auto Cloud Backup performed.");
+                        }
+                    } catch (e) {
+                        console.error("Auto Backup failed", e);
+                    }
+                }
+            });
+        }
+
         if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
             projectService.getUserProjects(uid).then(projects => {
                 if (!projects) return;

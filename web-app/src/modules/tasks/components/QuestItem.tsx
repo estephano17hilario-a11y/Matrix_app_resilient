@@ -272,10 +272,10 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
           <AnimatePresence initial={false}>
             {expanded && (
               <motion.div
-                initial={{ opacity: 0, scaleY: 0.98 }}
-                animate={{ opacity: 1, scaleY: 1 }}
-                exit={{ opacity: 0, scaleY: 0.98 }}
-                transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                initial={{ opacity: 0, height: 0, scaleY: 0.98 }}
+                animate={{ opacity: 1, height: "auto", scaleY: 1 }}
+                exit={{ opacity: 0, height: 0, scaleY: 0.98 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
                 style={{ transformOrigin: 'top' }}
                 onClick={(e) => e.stopPropagation()}
               >

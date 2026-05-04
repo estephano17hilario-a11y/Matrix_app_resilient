@@ -343,10 +343,10 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           <AnimatePresence>
           {isExpanded && (
             <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="w-full overflow-hidden" 
                 onClick={e => e.stopPropagation()}
             >
