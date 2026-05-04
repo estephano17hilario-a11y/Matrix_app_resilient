@@ -30,7 +30,7 @@ export const useRevenueCat = () => {
       // 3. Ver si el usuario ya es premium (revisa tu entitlement 'Lux Pro' o el nombre que le pusiste) 
       const info = await Purchases.getCustomerInfo(); 
       setCustomerInfo(info.customerInfo); 
-      setIsPremium(typeof info.customerInfo.entitlements.active['Lux Pro'] !== "undefined"); 
+      setIsPremium(typeof info.customerInfo.entitlements.active['ent1b5c1fea56a'] !== "undefined"); 
 
       // 4. Traer tu Offering 'default' y el paquete 'weekly' 
       try { 
@@ -52,7 +52,7 @@ export const useRevenueCat = () => {
       const { customerInfo } = await Purchases.purchasePackage({ aPackage: rcPackage }); 
       
       // Validar de nuevo el nombre exacto de tu Entitlement aquí 
-      if (typeof customerInfo.entitlements.active['Lux Pro'] !== "undefined") { 
+      if (typeof customerInfo.entitlements.active['ent1b5c1fea56a'] !== "undefined") { 
         console.log("¡Compra exitosa en la Test Store!"); 
         setIsPremium(true); 
       } 
