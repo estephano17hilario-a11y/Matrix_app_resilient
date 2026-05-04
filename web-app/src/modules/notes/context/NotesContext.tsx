@@ -92,14 +92,24 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ]).then(([fetchedNotes, fetchedJournal]) => {
             if (cancelled) return;
             if (fetchedNotes) {
-                setNotes(fetchedNotes);
-                PersistenceService.saveCollection(uid, 'notes', fetchedNotes);
-                PersistenceService.saveCollectionSafe(uid, 'notes', fetchedNotes);
+                const cachedNotes = PersistenceService.getCollection<Note>(uid, 'notes');
+                if (fetchedNotes.length === 0 && cachedNotes && cachedNotes.length > 0) {
+                    cachedNotes.forEach(n => persistenceService.notes.save(uid, n));
+                } else {
+                    setNotes(fetchedNotes);
+                    PersistenceService.saveCollection(uid, 'notes', fetchedNotes);
+                    PersistenceService.saveCollectionSafe(uid, 'notes', fetchedNotes);
+                }
             }
             if (fetchedJournal) {
-                setJournalEntries(fetchedJournal);
-                PersistenceService.saveCollection(uid, 'journal', fetchedJournal);
-                PersistenceService.saveCollectionSafe(uid, 'journal', fetchedJournal);
+                const cachedJournal = PersistenceService.getCollection<JournalEntry>(uid, 'journal');
+                if (fetchedJournal.length === 0 && cachedJournal && cachedJournal.length > 0) {
+                    cachedJournal.forEach(j => persistenceService.journal.save(uid, j));
+                } else {
+                    setJournalEntries(fetchedJournal);
+                    PersistenceService.saveCollection(uid, 'journal', fetchedJournal);
+                    PersistenceService.saveCollectionSafe(uid, 'journal', fetchedJournal);
+                }
             }
             setIsLoading(false);
             

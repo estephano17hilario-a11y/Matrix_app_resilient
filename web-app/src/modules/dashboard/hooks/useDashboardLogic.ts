@@ -1014,7 +1014,11 @@ export const useDashboardLogic = () => {
         if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
             projectService.getUserProjects(uid).then(projects => {
                 if (!projects) return;
-                if (projects.length === 0 && hasCachedProjects) return;
+                const cached = PersistenceService.getCollection<Project>(uid, 'projects');
+                if (projects.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(p => persistenceService.projects.save(uid, p));
+                    return;
+                }
                 let merged: Project[] = [];
                 let canSave = false;
                 setProjects(prev => {
@@ -1036,6 +1040,11 @@ export const useDashboardLogic = () => {
         if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
             persistenceService.quests.getAll(uid).then(quests => {
                 if (!quests) return;
+                const cached = PersistenceService.getCollection<Quest>(uid, 'quests');
+                if (quests.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(q => persistenceService.quests.save(uid, q));
+                    return;
+                }
                 setQuests(quests);
                 PersistenceService.saveCollection(uid, 'quests', quests);
                 questsHydratedRef.current = true;
@@ -1046,6 +1055,12 @@ export const useDashboardLogic = () => {
             persistenceService.habits.getAll(uid).then(h => {
                 if (!h) return;
                 
+                const cached = PersistenceService.getCollection<Habit>(uid, 'habits');
+                if (h.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(habit => persistenceService.habits.save(uid, habit));
+                    return;
+                }
+
                 // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
                 const now = Date.now();
                 let hasFixes = false;
@@ -1084,6 +1099,11 @@ export const useDashboardLogic = () => {
         if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
             persistenceService.badHabits.getAll(uid).then(items => {
                 if (!items) return;
+                const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
+                if (items.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(bh => persistenceService.badHabits.save(uid, bh));
+                    return;
+                }
                 setBadHabits(items);
                 PersistenceService.saveCollection(uid, 'badHabits', items);
                 badHabitsHydratedRef.current = true;
@@ -1093,6 +1113,11 @@ export const useDashboardLogic = () => {
         if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
             persistenceService.smartProjects.getAll(uid).then(items => {
                 if (!items) return;
+                const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
+                if (items.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(sp => persistenceService.smartProjects.save(uid, sp));
+                    return;
+                }
                 setSmartProjects(items);
                 PersistenceService.saveCollection(uid, 'smartProjects', items);
                 smartProjectsHydratedRef.current = true;
@@ -1102,6 +1127,12 @@ export const useDashboardLogic = () => {
         if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
             persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
                 if (!fetchedAttrs) return;
+                
+                const cached = PersistenceService.getCollection<Attribute>(uid, 'attributes');
+                if (fetchedAttrs.length === 0 && cached && cached.length > 0) {
+                    cached.forEach(a => persistenceService.attributes.save(uid, a));
+                    return;
+                }
                 
                 // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
                 try {

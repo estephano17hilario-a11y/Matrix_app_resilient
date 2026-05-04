@@ -333,6 +333,33 @@ export const PersistenceService = {
   getCollection: <T>(userId: string, collectionName: string): T[] | null => {
     try {
       const key = buildCollectionKey(userId, collectionName);
+      
+      // EMERGENCY RECOVERY: If main cache is an empty array but backup is populated, restore from backup!
+      const mainStr = safeStorage.getItem(key);
+      const backupStr = safeStorage.getItem(key + '_BACKUP');
+      
+      let mainData: any[] | null = null;
+      let backupData: any[] | null = null;
+      
+      if (mainStr) {
+          try {
+              const parsed = JSON.parse(mainStr) as PersistedEnvelope<any[]>;
+              if (parsed.uid === userId && parsed.v === STORAGE_VERSION) mainData = parsed.data;
+          } catch {}
+      }
+      if (backupStr) {
+          try {
+              const parsed = JSON.parse(backupStr) as PersistedEnvelope<any[]>;
+              if (parsed.uid === userId && parsed.v === STORAGE_VERSION) backupData = parsed.data;
+          } catch {}
+      }
+      
+      if (mainData && Array.isArray(mainData) && mainData.length === 0 && backupData && Array.isArray(backupData) && backupData.length > 0) {
+          console.warn(`🚨 MATRIX EMERGENCY RECOVERY: Restoring ${collectionName} from backup because main was wiped!`);
+          safeStorage.setItem(key, backupStr!);
+          return backupData as T[];
+      }
+      
       return readWithBackup<T[]>(key, userId);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Corrupted collection cache.", e);
