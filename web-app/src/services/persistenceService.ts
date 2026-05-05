@@ -225,13 +225,25 @@ const settingsService = {
     },
     save: async (userId: string, dataToSave: any) => {
         try {
+            // Merge with existing data to prevent race conditions when multiple components save concurrently
+            const { data: currentData } = await supabase
+              .from('user_collections')
+              .select('data')
+              .eq('id', `config_${userId}`)
+              .eq('user_id', userId)
+              .eq('collection_name', 'settings')
+              .maybeSingle();
+
+            const existingData = currentData?.data || {};
+            const mergedData = { ...existingData, ...dataToSave };
+
             const { error } = await supabase
               .from('user_collections')
               .upsert({
                 id: `config_${userId}`,
                 user_id: userId,
                 collection_name: 'settings',
-                data: dataToSave,
+                data: mergedData,
                 deleted: false
               }, { onConflict: 'id' });
             

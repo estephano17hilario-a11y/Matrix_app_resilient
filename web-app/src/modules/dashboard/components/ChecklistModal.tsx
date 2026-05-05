@@ -94,8 +94,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  <div 
  className="absolute -top-[20%] -right-[20%] w-[80%] h-[60%] opacity-20 pointer-events-none transition-all duration-200 will-change-transform"
  style={{ 
- background: `radial-gradient(circle, ${habitColor} 0%, transparent 70%)`,
- filter: 'blur(8px)'
+ background: `radial-gradient(circle, ${habitColor} 0%, transparent 70%)`
  }}
  />
 
@@ -233,7 +232,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  <motion.div 
  animate={{ opacity: [0.2, 0.5, 0.2] }}
  transition={{ duration: 2, repeat: Infinity }}
- className="absolute inset-0 bg-white/30 blur-sm "
+ className="absolute inset-0 bg-white/30"
  />
  </motion.div>
  </div>

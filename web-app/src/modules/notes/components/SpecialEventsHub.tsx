@@ -141,7 +141,8 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  newEvent.id,
  `🎉 Today is special!`,
  `It's ${newEvent.title}'s ${EVENT_TYPES[newEvent.type].label}! Don't forget to celebrate.`,
- nextDate
+ nextDate,
+ EVENT_TYPES[newEvent.type].color
  );
  toast.success("Reminder updated");
  }
@@ -209,7 +210,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  {onOpenSettings && (
  <button 
  onClick={onOpenSettings}
- className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-sm shadow-sm"
+ className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 shadow-sm"
  >
  <Settings size={20} className="sm:w-6 sm:h-6" />
  </button>
@@ -247,7 +248,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  {/* Add Button Card */}
  <button 
  onClick={handleOpenCreateModal}
- className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm backdrop-blur-sm "
+ className="group relative aspect-[16/10] sm:aspect-[4/3] rounded-[32px] border border-dashed border-white/10 bg-black/60 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-4 hover:border-white/20 shadow-sm"
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[32px] pointer-events-none" />
  <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-md relative z-10">
@@ -269,7 +270,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  initial={{ opacity: 0, scale: 0.95 }}
  animate={{ opacity: 1, scale: 1 }}
  onClick={() => handleEditEvent(event)}
- className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[32px] bg-[#111]/80 backdrop-blur-sm border border-white/5 p-6 flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:border-white/20"
+ className="relative group aspect-[16/10] sm:aspect-[4/3] rounded-[32px] bg-[#111]/95 border border-white/5 p-6 flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:border-white/20"
  style={{
  boxShadow: `0 8px 32px -8px ${EVENT_TYPES[event.type].color}20`,
  }}
@@ -277,7 +278,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
  <button 
  onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
- className="p-2.5 rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm border border-white/5"
+ className="p-2.5 rounded-full bg-black/80 text-white/60 hover:text-white hover:bg-white/10 transition-colors border border-white/5"
  >
  <Edit2 size={16} />
  </button>
@@ -332,7 +333,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  )}
  </div>
  {event.notifyTime && (
- <div className="inline-flex items-center gap-1.5 text-white/30 text-[10px] font-mono mt-2.5 bg-white/5 self-start px-2 py-1 rounded-lg border border-white/5 backdrop-blur-sm ">
+ <div className="inline-flex items-center gap-1.5 text-white/30 text-[10px] font-mono mt-2.5 bg-black/60 self-start px-2 py-1 rounded-lg border border-white/5">
  <Bell size={10} />
  {event.notifyTime}
  </div>

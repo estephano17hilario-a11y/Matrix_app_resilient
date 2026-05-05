@@ -781,8 +781,33 @@ export default function Dashboard() {
  setCurrentView('STREAK');
  }, [setCurrentView]);
 
- const handleOpenProModal = useCallback(() => {
+ const handleOpenProjectModal = useCallback((project?: Project | null) => {
+ setModalInitialContext(project || null);
+ setActiveModal('PROJECT');
+ }, []);
+
+ const handleAutoStartConsumed = useCallback(() => {
+ setFocusAutoStartProjectId(null);
+ }, []);
+
+ const handleOpenPro = useCallback(() => {
  setIsProModalOpen(true);
+ }, []);
+
+ const handleInteractionStart = useCallback(() => {
+ setIsNoteTaking(true);
+ }, []);
+
+ const handleInteractionEnd = useCallback(() => {
+ setIsNoteTaking(false);
+ }, []);
+
+ const handleCloseNotes = useCallback(() => {
+ setCurrentView('TASKS');
+ }, []);
+
+ const handleExitPomodoro = useCallback(() => {
+ setIsPomodoroActive(false);
  }, []);
 
  const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
@@ -1214,7 +1239,7 @@ export default function Dashboard() {
  animate={{ opacity: 1, scale: 1, y: 0 }} 
  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: "backIn" } }} 
  transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
- className="relative overflow-hidden backdrop-blur-sm border border-yellow-500/20 bg-[#0a0a0a]/90 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
+ className="relative overflow-hidden border border-yellow-500/20 bg-[#0a0a0a]/95 px-5 py-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex items-center gap-4 min-w-[320px] pointer-events-auto group ring-1 ring-white/5"
  style={{ willChange: 'transform, opacity' }}
  >
  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/5 to-transparent opacity-100" />
@@ -1480,7 +1505,7 @@ export default function Dashboard() {
  onReorder={handleReorderHabits}
  onReorderBadHabits={handleReorderBadHabits}
  isPro={user?.plan === 'PRO'}
- onOpenPro={handleOpenProModal}
+ onOpenPro={handleOpenPro}
  defaultViewPreference={defaultHabitView}
  weekStartDay={weekStartDay}
  defaultChartViews={user?.defaultChartViews}
@@ -1500,14 +1525,11 @@ export default function Dashboard() {
  onAddManualSession={handleAddManualSession}
  onDeleteSession={handleDeleteSession}
  onDeleteProject={handleDeleteProject}
- onOpenProjectModal={(project) => {
- setModalInitialContext(project || null);
- setActiveModal('PROJECT');
- }} 
+ onOpenProjectModal={handleOpenProjectModal} 
  onUpdateProject={handleUpdateProject}
  initialProjectId={focusTargetProjectId}
  autoStartProjectId={focusAutoStartProjectId}
- onAutoStartConsumed={() => setFocusAutoStartProjectId(null)}
+ onAutoStartConsumed={handleAutoStartConsumed}
  openArchived={focusOpenArchived}
  onToggleFullScreen={setIsFullScreenFocus}
  isActive={currentView === 'FOCUS'}
@@ -1517,7 +1539,7 @@ export default function Dashboard() {
  onDetailViewChange={setIsProjectDetailOpen}
  onReorder={handleReorderProjects}
  isPro={user?.plan === 'PRO'}
- onOpenPro={() => setIsProModalOpen(true)}
+ onOpenPro={handleOpenPro}
  weekStartDay={weekStartDay}
  defaultChartViews={user?.defaultChartViews}
  defaultProjectView={user?.defaultProjectView}
@@ -1530,15 +1552,15 @@ export default function Dashboard() {
  <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className="h-full pt-0 flex-1">
  <Suspense fallback={<SuspenseFallback />}>
  <NotesView 
- onInteractionStart={() => setIsNoteTaking(true)}
- onInteractionEnd={() => setIsNoteTaking(false)}
+ onInteractionStart={handleInteractionStart}
+ onInteractionEnd={handleInteractionEnd}
  projects={projects}
  quests={quests}
- onShowPro={() => setActiveModal('PRO')}
+ onShowPro={handleOpenPro}
  currentSubView={noteViewMode}
  sectionControl={habitSectionControl}
  onStatsOpenChange={setIsNotesStatsOpen}
- onClose={() => setCurrentView('TASKS')}
+ onClose={handleCloseNotes}
  isActive={currentView === 'NOTES'}
  isPro={user?.plan === 'PRO'}
  defaultChartViews={user?.defaultChartViews}
@@ -1573,7 +1595,7 @@ export default function Dashboard() {
  availableTraits={attributes}
  activeSmartTasksCount={smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length}
  isPro={user?.plan === 'PRO'}
- onOpenPro={() => setIsProModalOpen(true)}
+ onOpenPro={handleOpenPro}
  onComplete={(project) => {
  let newQuests = convertNodeToQuests(project.rootNode, project.traitId || '', project.id);
  
@@ -1860,7 +1882,7 @@ export default function Dashboard() {
  <PomodoroView 
  projects={projects}
  attributes={attributes}
- onExit={() => setIsPomodoroActive(false)}
+ onExit={handleExitPomodoro}
  onCompleteSession={handleCompleteSession}
  onUpdateProject={handleUpdateProject}
  onDeleteSession={handleDeleteSession}

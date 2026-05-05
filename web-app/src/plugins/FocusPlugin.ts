@@ -16,8 +16,10 @@ export interface FocusPlugin {
   checkPermissions(): Promise<{ 
       notifications: boolean; 
       battery: boolean; 
+      exactAlarms?: boolean;
   }>;
   requestBatteryPermission(): Promise<void>;
+  requestExactAlarmPermission(): Promise<void>;
   openNotificationSettings(): Promise<void>;
 
   // Privacy

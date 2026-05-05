@@ -65,16 +65,21 @@ export class FocusPluginWeb extends WebPlugin implements FocusPlugin {
     }
   }
 
-  async checkPermissions(): Promise<{ notifications: boolean; battery: boolean; }> {
+  async checkPermissions(): Promise<{ notifications: boolean; battery: boolean; exactAlarms?: boolean; }> {
     console.log('FocusSession.checkPermissions');
     return { 
       notifications: Notification.permission === 'granted', 
-      battery: true
+      battery: true,
+      exactAlarms: true
     };
   }
 
   async requestBatteryPermission(): Promise<void> {
     console.log('FocusSession.requestBatteryPermission');
+  }
+
+  async requestExactAlarmPermission(): Promise<void> {
+    console.log('FocusSession.requestExactAlarmPermission');
   }
 
   async openNotificationSettings(): Promise<void> {

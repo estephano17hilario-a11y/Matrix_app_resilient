@@ -440,9 +440,10 @@ export const QuestModal = React.memo(({
                             <AnimatePresence>
                                 {isRecurrencePickerOpen && (
                                     <motion.div 
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.2 }}
                                         className="overflow-hidden mt-3"
                                     >
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1">
@@ -576,9 +577,10 @@ export const QuestModal = React.memo(({
                                     <AnimatePresence>
                                         {showInJournaling && (
                                             <motion.div
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: "auto" }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.2 }}
                                                 className="overflow-hidden"
                                             >
                                                 <div className="pt-2 pb-1 space-y-2">

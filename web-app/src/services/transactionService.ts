@@ -33,7 +33,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             const dailyLimits = userDoc.dailyLimits || {};
@@ -135,7 +139,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             const dailyLimits = userDoc.dailyLimits || {};
@@ -217,7 +225,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             stats.xp = Math.max(0, (stats.xp || 0) + xpAmount);
@@ -257,7 +269,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             const currentVal = (stats as any)[stat] || 0;
@@ -303,7 +319,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             const dailyLimits = userDoc.dailyLimits || {};
@@ -372,7 +392,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             let newDailyLimits: any = { ...(userDoc.dailyLimits || {}) };
 
@@ -431,7 +455,11 @@ export const TransactionService = {
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (userError || !userDoc) throw new Error("User not found in Supabase");
+            if (userError) throw userError;
+            if (!userDoc) {
+                console.warn(`User ${userId} not found in Supabase. Returning false.`);
+                return false;
+            }
 
             const stats = userDoc.stats || {};
             stats.level = newLevel;

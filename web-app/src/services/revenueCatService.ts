@@ -2,8 +2,9 @@ import { Capacitor } from '@capacitor/core';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 
-const RC_API_KEY = "goog_aPebMvqJInmBfKzZcWbIOnzZqHq"; // Update to production API key when available, removed test_ prefix to satisfy Play Store check. If you have the real prod key, replace it here.
-const ENTITLEMENT_ID = "ent1b5c1fea56a";
+const RC_API_KEY_ANDROID = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw"; // Update to production API key when available
+const RC_API_KEY_IOS = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw";
+const ENTITLEMENT_ID = "Lux Pro";
 
 /**
  * Initializes the RevenueCat SDK and links it to the Supabase user.
@@ -22,9 +23,10 @@ export const initRevenueCat = async (supabaseUserId?: string) => {
     
     // In a real production app, you typically have separate keys for iOS and Android.
     if (platform === 'ios' || platform === 'android') {
+      const apiKey = platform === 'ios' ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
       // Pass the appUserID during configuration if available, otherwise configure first
       await Purchases.configure({ 
-        apiKey: RC_API_KEY,
+        apiKey: apiKey,
         appUserID: supabaseUserId // This ensures RC knows exactly who this is from the start if provided
       });
       

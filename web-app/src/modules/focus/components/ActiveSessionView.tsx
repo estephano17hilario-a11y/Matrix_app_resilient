@@ -402,13 +402,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  <stop offset="0%" stopColor={themeColor} stopOpacity="1" />
  <stop offset="100%" stopColor={themeColor} stopOpacity="0.2" />
  </linearGradient>
- <filter id={`glow-${project.id}`} x="-20%" y="-20%" width="140%" height="140%">
- <feGaussianBlur stdDeviation="2" result="coloredBlur" />
- <feMerge>
- <feMergeNode in="coloredBlur" />
- <feMergeNode in="SourceGraphic" />
- </feMerge>
- </filter>
  </defs>
  
  {/* Background Track */}

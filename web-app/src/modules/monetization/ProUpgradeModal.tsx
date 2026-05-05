@@ -8,11 +8,15 @@ import {
  Activity,
  FolderGit2,
  Hexagon,
- Smartphone
+ Smartphone,
+ Crown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { showPaywall } from '../../services/revenueCatService';
 import { useRevenueCat } from '../../hooks/useRevenueCat';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../services/supabase';
+import { toast } from 'react-hot-toast';
 
 interface ProUpgradeModalProps {
  isOpen: boolean;
@@ -80,8 +84,10 @@ const CountdownBanner = () => {
 export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClose }) => {
  const { t } = useTranslation();
  const [mounted, setMounted] = useState(false);
+ const [isCelebrating, setIsCelebrating] = useState(false);
  const isNative = Capacitor.isNativePlatform();
  const { currentOffering, isPremium, purchasePackage } = useRevenueCat();
+ const { user, updateProfileLocally } = useAuth();
  
  const features = [
  {
@@ -128,10 +134,10 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  }, [isOpen]);
 
  useEffect(() => {
- if (isPremium) {
+ if (isPremium && !isCelebrating) {
  onClose();
  }
- }, [isPremium, onClose]);
+ }, [isPremium, onClose, isCelebrating]);
 
  if (!mounted && !isOpen) return null;
 
@@ -209,14 +215,37 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  onClick={async () => {
- if (currentOffering?.weekly) {
- await purchasePackage(currentOffering.weekly);
- } else {
- console.log("No weekly package found, attempting fallback showPaywall");
- const isPro = await showPaywall();
- if (isPro) {
- onClose();
- }
+ const toastId = toast.loading('Procesando compra...');
+ try {
+   let isProNow = false;
+   if (currentOffering?.weekly) {
+     isProNow = await purchasePackage(currentOffering.weekly);
+   } else {
+     console.log("No weekly package found, attempting fallback showPaywall");
+     isProNow = await showPaywall();
+   }
+
+   if (isProNow && user?.id) {
+     // Force DB update manually to ensure instant activation on client without waiting for webhook
+     await supabase.from('users').update({
+       plan: 'PRO',
+       es_pro: true
+     }).eq('id', user.id);
+     
+     updateProfileLocally({ plan: 'PRO', es_pro: true });
+     toast.dismiss(toastId);
+     setIsCelebrating(true);
+     
+     // Restart app after celebration
+     setTimeout(() => {
+       window.location.reload();
+     }, 4500);
+   } else {
+     toast.dismiss(toastId);
+   }
+ } catch (error) {
+   console.error(error);
+   toast.error('Error al procesar la compra', { id: toastId });
  }
  }}
  className="relative w-[90%] sm:w-[80%] md:w-auto mx-auto overflow-hidden rounded-full group shadow-[0_0_50px_rgba(168,85,247,0.6)] hover:shadow-[0_0_80px_rgba(168,85,247,0.9)] transition-shadow duration-200 border border-purple-500/50 bg-[#0a0014] "
@@ -320,6 +349,98 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  </motion.div>
  </div>
  )}
+
+ {/* Celebration Overlay */}
+ {isCelebrating && (
+ <motion.div
+ key="celebration-overlay"
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ exit={{ opacity: 0 }}
+ className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#050010] overflow-hidden"
+ >
+ {/* Background Particles/Rays */}
+ <motion.div 
+ className="absolute inset-0 pointer-events-none"
+ animate={{ rotate: 360 }}
+ transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+ style={{
+ background: 'conic-gradient(from 0deg at 50% 50%, rgba(168, 85, 247, 0) 0%, rgba(168, 85, 247, 0.2) 20%, rgba(168, 85, 247, 0) 40%, rgba(168, 85, 247, 0.2) 60%, rgba(168, 85, 247, 0) 80%, rgba(168, 85, 247, 0.2) 100%)'
+ }}
+ />
+ 
+ {/* Floating Particles */}
+ {Array.from({ length: 30 }).map((_, i) => (
+ <motion.div
+ key={i}
+ initial={{ 
+ opacity: 0, 
+ scale: 0,
+ x: 0,
+ y: 0
+ }}
+ animate={{ 
+ opacity: [0, 1, 0],
+ scale: [0, 1.5, 0.5],
+ x: (Math.random() - 0.5) * 500,
+ y: (Math.random() - 0.5) * 500
+ }}
+ transition={{
+ duration: 2 + Math.random() * 2,
+ ease: "easeOut",
+ repeat: Infinity
+ }}
+ className="absolute w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.8)]"
+ style={{
+ top: '50%',
+ left: '50%'
+ }}
+ />
+ ))}
+
+ <motion.div
+ initial={{ scale: 0.5, y: 50, opacity: 0 }}
+ animate={{ scale: 1, y: 0, opacity: 1 }}
+ transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.2 }}
+ className="relative z-10 flex flex-col items-center"
+ >
+ <motion.div
+ animate={{ 
+ y: [0, -10, 0],
+ scale: [1, 1.05, 1],
+ boxShadow: [
+ "0 0 40px rgba(168, 85, 247, 0.4)",
+ "0 0 80px rgba(168, 85, 247, 0.8)",
+ "0 0 40px rgba(168, 85, 247, 0.4)"
+ ]
+ }}
+ transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+ className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-8 border border-white/20"
+ >
+ <Crown size={64} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
+ </motion.div>
+
+ <motion.h1 
+ initial={{ opacity: 0, y: 20 }}
+ animate={{ opacity: 1, y: 0 }}
+ transition={{ delay: 0.5 }}
+ className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-fuchsia-300 to-pink-300 text-center drop-shadow-[0_0_20px_rgba(216,180,254,0.5)] mb-4 tracking-tight uppercase"
+ >
+ ¡AHORA ERES LUX PRO!
+ </motion.h1>
+
+ <motion.p
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ transition={{ delay: 0.8 }}
+ className="text-white/60 text-lg md:text-xl font-medium tracking-wide uppercase animate-pulse"
+ >
+ Reiniciando el sistema...
+ </motion.p>
+ </motion.div>
+ </motion.div>
+ )}
+
  </AnimatePresence>
  );
 };

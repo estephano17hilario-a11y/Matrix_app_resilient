@@ -29,7 +29,7 @@ const CategoryTab = ({
  {isActive && (
  <motion.div
  layoutId="activeTab"
- className="absolute inset-0 bg-white/10 border border-white/20 rounded-full backdrop-blur-sm "
+ className="absolute inset-0 bg-white/20 border border-white/20 rounded-full"
  transition={{ type: "spring", stiffness: 450, damping: 25 }}
  />
  )}
@@ -215,7 +215,7 @@ export const AchievementsScreen: React.FC = () => {
  <motion.div 
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}
- className="flex items-center gap-4 bg-black/80 backdrop-blur-sm border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
+ className="flex items-center gap-4 bg-black/90 border border-white/10 px-4 sm:px-6 py-4 rounded-[24px] shadow-md"
  >
  <div className="text-right">
  <span className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">{t('achievements.sync')}</span>

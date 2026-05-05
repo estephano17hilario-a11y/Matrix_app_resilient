@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import FocusSession from '../plugins/FocusPlugin';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push Certificates
 // const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
@@ -13,6 +14,16 @@ export interface NotificationInitResult {
  error?: string;
  details?: any;
 }
+
+ // Simple numeric hash function (djb2) to avoid collisions
+ const generateId = (strId: string, prefix: number) => {
+    let hash = 5381;
+    for (let i = 0; i < strId.length; i++) {
+      hash = ((hash << 5) + hash) + strId.charCodeAt(i); /* hash * 33 + c */
+    }
+    // Keep it positive and within a safe range (e.g., 0 to 999999)
+    return prefix + (Math.abs(hash) % 1000000);
+ };
 
 export const notificationService = {
  /**
@@ -75,7 +86,7 @@ export const notificationService = {
  toast(notification.title || 'New Message', {
  icon: '📱',
  duration: 6000,
- className: '!bg-[#050505]/90 !backdrop-blur-sm !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
+ className: '!bg-[#050505]/95 !border !border-white/10 !text-white !shadow-[0_0_30px_rgba(255,255,255,0.1)] !rounded-xl',
  style: {
  // Overridden by className, but kept for backup
  background: '#050505',
@@ -169,6 +180,26 @@ export const notificationService = {
  },
 
  /**
+  * Ensure EXACT ALARMS permission (Android 14+)
+  */
+ ensureExactAlarmPermission: async () => {
+    if (!Capacitor.isNativePlatform()) return true;
+    try {
+        const perms = await FocusSession.checkPermissions();
+        if (perms.exactAlarms === false) {
+            console.warn("Exact Alarms permission missing. Requesting...");
+            await FocusSession.requestExactAlarmPermission();
+            toast('Please allow "Alarms & Reminders" for precise notifications', { icon: '⏰', duration: 4000 });
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error("Failed to check exact alarm permission", e);
+        return true; // Fallback
+    }
+ },
+
+ /**
  * Schedule Local Notification (The "Excellence" Feature)
  * Uses Capacitor LocalNotifications for offline-first reliability.
  */
@@ -177,6 +208,9 @@ export const notificationService = {
  console.log("Web Schedule: Relying on Cloud Functions.");
  return;
  }
+
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
 
  try {
  // 1. Cancel existing "Lux Awaits" (IDs 100-106)
@@ -223,16 +257,18 @@ export const notificationService = {
  }
  },
 
- scheduleHabitReminder: async (habitId: string, title: string, time: string, days: number[]) => {
+ scheduleHabitReminder: async (habitId: string, title: string, time: string, days: number[], color?: string) => {
  if (!Capacitor.isNativePlatform()) {
  console.log(`Web fallback: Habit reminder for ${title} scheduled for ${time} on days ${days}`);
  return;
  }
 
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
+
  try {
- // Generate Numeric ID base from Habit ID hash (0-999999) + 2000 offset
- const hash = habitId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 2000 + (hash % 10000); 
+ // Generate Numeric ID base from Habit ID using djb2 hash
+ const baseId = generateId(habitId, 2000000); 
 
  const [h, m] = time.split(':').map(Number);
  if (isNaN(h) || isNaN(m)) return;
@@ -259,6 +295,7 @@ export const notificationService = {
  },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_matrix',
+ iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
 
@@ -272,8 +309,7 @@ export const notificationService = {
  cancelHabitReminder: async (habitId: string) => {
  if (!Capacitor.isNativePlatform()) return;
  try {
- const hash = habitId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 2000 + (hash % 10000);
+ const baseId = generateId(habitId, 2000000);
 
  const pending = await LocalNotifications.getPending();
  const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
@@ -285,15 +321,17 @@ export const notificationService = {
  }
  },
 
- scheduleProjectReminder: async (projectId: string, title: string, time: string, days: number[]) => {
+ scheduleProjectReminder: async (projectId: string, title: string, time: string, days: number[], color?: string) => {
  if (!Capacitor.isNativePlatform()) {
  console.log(`Web fallback: Project reminder for ${title} scheduled for ${time} on days ${days}`);
  return;
  }
 
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
+
  try {
- const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 5000 + (hash % 10000);
+ const baseId = generateId(projectId, 5000000);
 
  const [h, m] = time.split(':').map(Number);
  if (isNaN(h) || isNaN(m)) return;
@@ -318,6 +356,7 @@ export const notificationService = {
  },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_matrix',
+ iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
 
@@ -331,8 +370,7 @@ export const notificationService = {
  cancelProjectReminder: async (projectId: string) => {
  if (!Capacitor.isNativePlatform()) return;
  try {
- const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 5000 + (hash % 10000);
+ const baseId = generateId(projectId, 5000000);
 
  const pending = await LocalNotifications.getPending();
  const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
@@ -344,7 +382,7 @@ export const notificationService = {
  }
  },
 
- scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date) => {
+ scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date, color?: string) => {
  if (!Capacitor.isNativePlatform()) {
  const diff = dueDate.getTime() - Date.now();
  if (diff > 0 && diff < 86400000) { // Only schedule if within 24 hours for web
@@ -357,18 +395,21 @@ export const notificationService = {
  return;
  }
 
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
+
  try {
- const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 8000 + (hash % 10000);
+ const baseId = generateId(taskId, 8000000);
 
  await LocalNotifications.schedule({
  notifications: [{
  id: baseId,
  title: "Task Due",
  body: title,
- schedule: { at: dueDate },
+ schedule: { at: dueDate, allowWhileIdle: true },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_matrix',
+ iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }]
  });
@@ -381,8 +422,7 @@ export const notificationService = {
  cancelTaskReminder: async (taskId: string) => {
  if (!Capacitor.isNativePlatform()) return;
  try {
- const hash = taskId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
- const baseId = 8000 + (hash % 10000);
+ const baseId = generateId(taskId, 8000000);
  await LocalNotifications.cancel({ notifications: [{ id: baseId }] });
  } catch (e) {
  console.error("Failed to cancel task reminder", e);
@@ -421,23 +461,26 @@ export const notificationService = {
  /**
  * Schedule a one-time notification for a specific date/time
  */
- scheduleEventNotification: async (id: string, title: string, body: string, date: Date) => {
+ scheduleEventNotification: async (id: string, title: string, body: string, date: Date, color?: string) => {
  // Generate a unique numeric ID from string ID hash or similar
- const numericId = parseInt(id.replace(/\D/g, '').slice(0, 8)) || Math.floor(Math.random() * 100000);
+ const numericId = generateId(id, 9000000);
 
  if (Capacitor.isNativePlatform()) {
- await LocalNotifications.schedule({
- notifications: [{
- title,
- body,
- id: numericId,
- schedule: { at: date },
- sound: 'beep.wav',
- smallIcon: 'ic_stat_cake', // Idealmente tener un icono de pastel
- actionTypeId: '',
- extra: { type: 'EVENT', originalId: id }
- }]
- });
+  const hasExact = await notificationService.ensureExactAlarmPermission();
+  if (!hasExact) return;
+  await LocalNotifications.schedule({
+  notifications: [{
+  title,
+  body,
+  id: numericId,
+  schedule: { at: date, allowWhileIdle: true },
+  sound: 'beep.wav',
+  smallIcon: 'ic_stat_cake', // Idealmente tener un icono de pastel
+  iconColor: color || '#ec4899',
+  actionTypeId: '',
+  extra: { type: 'EVENT', originalId: id }
+  }]
+  });
  console.log(`Scheduled native notification for ${date.toISOString()}`);
  } else {
  // Web Fallback: Check if we can use Service Worker registration for later
@@ -459,7 +502,7 @@ export const notificationService = {
  },
 
  cancelEventNotification: async (id: string) => {
- const numericId = parseInt(id.replace(/\D/g, '').slice(0, 8)) || 0;
+ const numericId = generateId(id, 9000000);
  if (numericId && Capacitor.isNativePlatform()) {
  await LocalNotifications.cancel({ notifications: [{ id: numericId }] });
  }

@@ -413,9 +413,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {isAttrPickerOpen && (
                                                     <motion.div
-                                                        initial={{  opacity: 0 }}
-                                                        animate={{  opacity: 1 }}
-                                                        exit={{  opacity: 0 }}
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.2 }}
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
@@ -923,10 +924,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             <AnimatePresence>
                                                                 {openMenu?.id === task.id && (
                                                                     <motion.div 
-                                                                        initial={{  opacity: 0 }}
-                                                                        animate={{  opacity: 1 }}
-                                                                        exit={{  opacity: 0 }}
-                                                                        className="border-t border-white/5 bg-black/20"
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: "auto" }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        transition={{ duration: 0.2 }}
+                                                                        className="border-t border-white/5 bg-black/20 overflow-hidden"
                                                                     >
                                                                         {openMenu.type === 'COLOR' && (
                                                                             <div className="flex gap-1.5 p-2 overflow-x-auto no-scrollbar">
@@ -1085,9 +1087,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {reminder && (
                                                     <motion.div 
-                                                        initial={{  opacity: 0 }}
-                                                        animate={{  opacity: 1 }}
-                                                        exit={{  opacity: 0 }}
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.2 }}
                                                         className="space-y-2 overflow-hidden"
                                                     >
                                                         {/* Notification Permission Gate */}
@@ -1182,10 +1185,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <AnimatePresence>
                             {canSubmit && reminder && (
                                 <motion.div 
-                                    initial={{  opacity: 0 }}
-                                    animate={{  opacity: 1 }}
-                                    exit={{  opacity: 0 }}
-                                    className="flex justify-center gap-2 flex-wrap"
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="flex justify-center gap-2 flex-wrap overflow-hidden"
                                 >
                                     {/* XP */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">

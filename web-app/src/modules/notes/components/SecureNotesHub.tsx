@@ -522,7 +522,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
  <motion.div 
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm "
+ onClick={onClose} className="absolute inset-0 bg-black/90"
  />
  <motion.div 
  initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}

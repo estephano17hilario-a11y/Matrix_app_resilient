@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.WindowManager;
+import android.app.AlarmManager;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -37,10 +38,34 @@ public class FocusPlugin extends Plugin {
             }
         }
 
+        // 3. Check Exact Alarm Permission (Android 12+)
+        boolean exactAlarms = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null) {
+                exactAlarms = alarmManager.canScheduleExactAlarms();
+            }
+        }
+
         ret.put("notifications", notifications);
         ret.put("battery", battery);
+        ret.put("exactAlarms", exactAlarms);
         
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestExactAlarmPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+        }
+        call.resolve();
     }
 
     @PluginMethod
@@ -67,7 +92,16 @@ public class FocusPlugin extends Plugin {
                 getContext().startActivity(fallbackIntent);
                 call.resolve();
             } catch (Exception fallbackErr) {
-                call.reject("Failed to request battery permission", fallbackErr);
+                try {
+                    // Final fallback: App Details page
+                    Intent finalFallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    finalFallback.setData(Uri.parse("package:" + getContext().getPackageName()));
+                    finalFallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(finalFallback);
+                    call.resolve();
+                } catch (Exception e3) {
+                    call.reject("Failed to request battery permission", e3);
+                }
             }
         }
     }
@@ -89,7 +123,16 @@ public class FocusPlugin extends Plugin {
             getContext().startActivity(intent);
             call.resolve();
         } catch (Exception e) {
-            call.reject("Failed to open notification settings", e);
+            try {
+                // Fallback: App Details page
+                Intent finalFallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                finalFallback.setData(Uri.parse("package:" + getContext().getPackageName()));
+                finalFallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(finalFallback);
+                call.resolve();
+            } catch (Exception e2) {
+                call.reject("Failed to open notification settings", e2);
+            }
         }
     }
 

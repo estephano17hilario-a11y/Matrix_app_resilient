@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { TimePicker } from '../../../components/ui/TimePicker';
+import { ColorPicker } from './ColorPicker';
 
 export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
@@ -21,6 +22,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('');
+    const [customColor, setCustomColor] = useState<string | undefined>(undefined);
     const [smartProjectId, setSmartProjectId] = useState('');
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
 
@@ -50,6 +52,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 setTitle(initialData.title || '');
                 setDesc(initialData.description || '');
                 setAttrId(initialData.attribute || '');
+                setCustomColor(initialData.color);
                 setSmartProjectId(initialData.smartProjectId || '');
                 
                 // Frequency Restoration
@@ -91,6 +94,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 setTitle('');
                 setDesc('');
                 setAttrId('');
+                setCustomColor(undefined);
                 setSmartProjectId('');
                 setGoalTarget(1);
                 setGoalUnit('HOURS');
@@ -106,8 +110,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
     }, [isOpen, initialData]);
 
     const selectedAttr = attributes.find((a) => a.id === attrId);
-    const activeColor = selectedAttr ? selectedAttr.color : '#3b82f6';
-    const hasColorSource = !!attrId;
+    const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
+    const hasColorSource = !!attrId || !!customColor;
     const SelectedIcon = selectedAttr?.icon || Briefcase;
     const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : t('modals.project.traitDefault', 'Trait');
 
@@ -178,6 +182,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                 title, 
                 description: desc, 
                 attribute: attrId, 
+                color: customColor,
                 goalTarget: calculatedDailyGoal * 60, // Save as minutes (User inputs Hours)
                 goalFrequency: 'DAILY', // Always save as DAILY so the tracker works per day
                 uiFrequency: goalFreq, // Store UI preference
@@ -349,9 +354,10 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <AnimatePresence>
                                                 {isAttrPickerOpen && (
                                                     <motion.div
-                                                        initial={{  opacity: 0 }}
-                                                        animate={{  opacity: 1 }}
-                                                        exit={{  opacity: 0 }}
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.2 }}
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
@@ -704,9 +710,10 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             <AnimatePresence>
                                                 {reminder && (
                                                     <motion.div 
-                                                        initial={{  opacity: 0 }}
-                                                        animate={{  opacity: 1 }}
-                                                        exit={{  opacity: 0 }}
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.2 }}
                                                         className="space-y-2 overflow-hidden"
                                                     >
                                                         {(permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
@@ -761,9 +768,11 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                         <AnimatePresence>
                                             {isBlock3Valid && (
                                                 <motion.div
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: "auto" }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="overflow-hidden"
                                                 >
                                                     <RewardPredictionPill 
                                                         prediction={prediction} 

@@ -613,7 +613,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="absolute -top-[15%] -left-[10%] w-[80%] h-[60%] rounded-full"
  style={{ 
  background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
- filter: 'blur(12px)', // Lightened for GPU safety
  willChange: 'transform, opacity'
  }} 
  />
@@ -626,7 +625,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="absolute -bottom-[10%] -right-[10%] w-[80%] h-[60%] rounded-full"
  style={{ 
  background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
- filter: 'blur(12px)', // Lightened for GPU safety
  willChange: 'transform, opacity'
  }} 
  />
@@ -745,7 +743,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
  <div 
  className="absolute -top-[40%] -left-[20%] w-[140%] h-[100%] rounded-[100%] pointer-events-none"
- style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, filter: 'blur(6px)', willChange: 'opacity' }} // Lightened for GPU
+ style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, willChange: 'opacity' }} // Lightened for GPU
  />
  </div>
 
@@ -940,7 +938,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  }}
  transition={{ duration: 8, repeat: Infinity }}
  className="absolute top-0 right-0 w-48 h-48 rounded-full -z-10 pointer-events-none"
- style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)`, filter: 'blur(10px)' }} // Lightened for GPU
+ style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)` }} // Lightened for GPU
  />
  
  <div className="flex flex-col gap-6">
@@ -1115,7 +1113,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <motion.div 
  animate={{ opacity: [0.3, 0.6, 0.3] }}
  transition={{ duration: 2, repeat: Infinity }}
- className="absolute inset-0 bg-white/20 blur-sm "
+ className="absolute inset-0 bg-white/20"
  />
  )}
  </motion.div>

@@ -57,7 +57,7 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: { icon: any, l
  >
  {/* Subtle Glow Background */}
  <div 
- className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-10 group-hover:opacity-15 transition-opacity duration-200 blur-sm "
+ className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-10 group-hover:opacity-15 transition-opacity duration-200"
  style={{ backgroundColor: color }}
  />
  
@@ -154,8 +154,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
  className="absolute -top-[10%] -left-[10%] w-[120%] h-[60%] opacity-20 pointer-events-none will-change-transform"
  style={{
- background: `radial-gradient(circle at center, ${baseColor} 0%, transparent 70%)`,
- filter: 'blur(8px)'
+ background: `radial-gradient(circle at center, ${baseColor} 0%, transparent 70%)`
  }}
  />
 

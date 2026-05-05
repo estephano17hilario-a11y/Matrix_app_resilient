@@ -4,6 +4,7 @@ import { motion, AnimatePresence, type Transition } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { atomicRegister, atomicLogin, loginWithGoogle } from '../../services/supabaseService';
+import { Purchases } from '@revenuecat/purchases-capacitor';
 import { AuthLayout } from './components/AuthLayout';
 import { AuthInput } from './components/AuthInput';
 import { retryOperation, isNetworkAvailable } from '../../utils/networkUtils';
@@ -229,6 +230,12 @@ export const AuthView = () => {
  // 1. CREATE USER IN AUTH
  const user = await retryOperation(() => atomicRegister(email.trim(), password, name.trim(), i18n.language));
 
+ try {
+   await Purchases.logIn({ appUserID: user.id });
+ } catch (rcError) {
+   console.error('RevenueCat register sync error:', rcError);
+ }
+
  // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
  
@@ -261,6 +268,12 @@ export const AuthView = () => {
  // 1. LOGIN
  const user = await retryOperation(() => atomicLogin(email.trim(), password));
 
+ try {
+   await Purchases.logIn({ appUserID: user.id });
+ } catch (rcError) {
+   console.error('RevenueCat login sync error:', rcError);
+ }
+
  // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
  
@@ -292,7 +305,12 @@ export const AuthView = () => {
  // If loginWithGoogle returned null, it means it fell back to redirect method
  // The redirect result will be handled by the useEffect above
  if (user) {
- setIsLoading(false);
+   try {
+     await Purchases.logIn({ appUserID: user.id });
+   } catch (rcError) {
+     console.error('RevenueCat google login sync error:', rcError);
+   }
+   setIsLoading(false);
  // The global onAuthStateChanged in AuthContext will handle the rest
  }
  } catch (err: any) {
@@ -362,7 +380,7 @@ export const AuthView = () => {
  relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-200 ease-out border
  ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
  (view === 'LOGIN' && isEmailValid && isPasswordValid)
- ? 'bg-[#0f0c1b]/80 border-indigo-500/50 backdrop-blur-sm '
+ ? 'bg-[#0f0c1b]/80 border-indigo-500/50 bg-black/60 '
  : 'bg-[#0a0a0f] border-white/10'
  }
  `}>

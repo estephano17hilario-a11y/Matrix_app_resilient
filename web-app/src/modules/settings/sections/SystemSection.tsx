@@ -403,7 +403,7 @@ export const SystemSection = () => {
  {/* Default Chart Views */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
  {/* Glassmorphism Blur Effect */}
- <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm z-0 pointer-events-none" />
+ <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
  
  <div className="flex items-center gap-3 relative z-10">
  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
@@ -473,7 +473,7 @@ export const SystemSection = () => {
 
  {/* Default Projects View */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
- <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm z-0 pointer-events-none" />
+ <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
  
  <div className="flex items-center gap-3 relative z-10">
  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
@@ -510,7 +510,7 @@ export const SystemSection = () => {
 
  {/* Default Task Filters */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-5 transition-colors relative overflow-hidden">
- <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm z-0 pointer-events-none" />
+ <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
  
  <div className="flex items-center gap-3 relative z-10">
  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">

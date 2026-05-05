@@ -44,6 +44,7 @@ export interface UserProfile {
   photoURL: string | null;
   avatarId?: string; // ID del avatar seleccionado (interno)
   plan: UserPlan;
+  es_pro?: boolean; // Flag to easily check if user has premium plan
   archetype: UserArchetype;
   stats: UserStats;
   preferences?: {

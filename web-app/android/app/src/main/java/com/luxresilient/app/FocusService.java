@@ -71,15 +71,20 @@ public class FocusService extends Service {
             if (projectName == null) projectName = "Focus Session";
             
             projectColor = intent.getStringExtra("projectColor");
-            if (projectColor == null) projectColor = "#FFFFFF";
+            if (projectColor == null || projectColor.equals("#FFFFFF")) projectColor = "#6366f1"; // Modern indigo fallback
 
             projectIcon = intent.getStringExtra("projectIcon");
-            if (projectIcon == null) projectIcon = "";
+            if (projectIcon == null) projectIcon = "✨";
 
             startTimer(durationSec * 1000);
             
             Notification notification = buildNotification();
-            startForeground(NOTIFICATION_ID, notification);
+            if (Build.VERSION.SDK_INT >= 34) {
+                // For Android 14+ (API 34+), specialUse is required. ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE = 1073741824
+                startForeground(NOTIFICATION_ID, notification, 1073741824);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
 
         } else if (ACTION_STOP.equals(action)) {
             stopTimer();
@@ -130,7 +135,7 @@ public class FocusService extends Service {
     private void startTicker() {
         if (countDownTimer != null) countDownTimer.cancel();
 
-        // Tick every second
+        // Tick every second (just to track time, don't update UI every second)
         countDownTimer = new CountDownTimer(
                 "POMO".equals(currentMode) ? timeRemainingMs : Long.MAX_VALUE, 
                 1000
@@ -143,7 +148,7 @@ public class FocusService extends Service {
                     // Stopwatch: calculate elapsed
                     timeRemainingMs = System.currentTimeMillis() - startTimeMs;
                 }
-                updateNotification();
+                // Do NOT call updateNotification() here to avoid chronometer flicker
             }
 
             @Override
@@ -259,10 +264,7 @@ public class FocusService extends Service {
     }
 
     private Notification buildNotification() {
-        String title = projectName;
-        if (projectIcon != null && !projectIcon.isEmpty()) {
-             title = projectIcon + " " + title;
-        }
+        String title = projectIcon + " " + projectName;
         
         String text;
 
@@ -272,13 +274,13 @@ public class FocusService extends Service {
         String timeString = String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds);
 
         if ("STOPWATCH".equals(currentMode)) {
-            text = "Stopwatch: " + timeString;
+            text = "Stopwatch Active";
         } else {
-            text = "Remaining: " + timeString;
+            text = "Deep Focus Mode";
         }
 
         if (isPaused) {
-            text += " (Paused)";
+            text = "Paused - " + timeString;
         }
 
         Intent openIntent = new Intent(this, MainActivity.class);
@@ -318,11 +320,11 @@ public class FocusService extends Service {
         }
 
         // Parse Color
-        int colorInt = android.graphics.Color.WHITE;
+        int colorInt = android.graphics.Color.parseColor("#6366f1");
         try {
              colorInt = android.graphics.Color.parseColor(projectColor);
         } catch (Exception e) {
-             // Default to white
+             // Default to indigo
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -335,9 +337,22 @@ public class FocusService extends Service {
                 .setContentIntent(pendingOpenIntent)
                 .setOnlyAlertOnce(true) // Don't buzz every second
                 .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH) 
+                .setPriority(NotificationCompat.PRIORITY_MAX) 
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setShowWhen(false); // Hide timestamp
+                .setShowWhen(false); // Hide default timestamp
+
+        // Smooth Native Chronometer
+        if (!isPaused) {
+            builder.setUsesChronometer(true);
+            if ("STOPWATCH".equals(currentMode)) {
+                builder.setWhen(System.currentTimeMillis() - timeRemainingMs);
+            } else {
+                builder.setWhen(System.currentTimeMillis() + timeRemainingMs);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    builder.setChronometerCountDown(true);
+                }
+            }
+        }
 
         // Add Actions dynamically
         if (isPaused) {

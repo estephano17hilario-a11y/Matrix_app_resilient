@@ -801,7 +801,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  transition={{ type: "spring", stiffness: 450, damping: 25 }}
  className="overflow-hidden px-4 relative z-10"
  >
- <div className="bg-[#0a0a0a]/80 backdrop-blur-sm transform-gpu backface-hidden border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
+ <div className="bg-[#0a0a0a]/95 transform-gpu backface-hidden border border-white/10 rounded-2xl p-4 flex flex-col gap-4 shadow-md">
  {/* Projects Filter */}
  <div className="flex flex-col gap-2">
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByProject', 'Filter by Project')}</span>
@@ -840,7 +840,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
+ <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Section Locked</span>
@@ -890,7 +890,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-200">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
- <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-lg backdrop-blur-sm transform-gpu backface-hidden ">
+ <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
  <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
@@ -1241,7 +1241,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {selectedMemory && typeof document !== 'undefined' && createPortal(
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
  <div 
- className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
+ className="absolute inset-0 bg-black/80 transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
  onClick={() => setSelectedMemory(null)}
  />
  <div 
@@ -1311,7 +1311,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {selectedQuest && typeof document !== 'undefined' && createPortal(
  <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
  <div 
- className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
+ className="absolute inset-0 bg-black/80 transform-gpu backface-hidden transition-opacity duration-200 ease-out animate-in fade-in"
  onClick={() => setSelectedQuest(null)}
  />
  <div 

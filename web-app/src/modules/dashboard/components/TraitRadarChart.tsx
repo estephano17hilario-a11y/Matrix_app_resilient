@@ -290,9 +290,9 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         stroke={p.color}
                         strokeWidth="2"
                         strokeOpacity="0.3" // Gradient glow effect via stroke
-                        initial={{ opacity: 0, scale: 0 }}
+                        initial={{ opacity: 0, scale: 0, cx: p.valuePoint.x, cy: p.valuePoint.y }}
                         animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring" }}
+                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring", stiffness: 300 }}
                     />
                 ))}
 
@@ -308,7 +308,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         key={item.id}
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1 + (i * 0.05) }}
+                        transition={{ delay: 0.1 + (i * 0.05), type: "spring", stiffness: 300, damping: 20 }}
                         className="absolute pointer-events-auto group"
                         style={{
                             left: item.iconPoint.x,

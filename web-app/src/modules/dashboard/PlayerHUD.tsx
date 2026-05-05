@@ -137,7 +137,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
  </div>
  ) : (
  <div className="absolute top-0 right-0 z-10">
- <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5 backdrop-blur-sm ">
+ <div className="flex bg-black/60 p-0.5 rounded-lg border border-white/5">
  <button 
  onClick={() => setChartMode('RADAR')}
  className="p-1.5 rounded-md transition-all bg-white/10 text-white shadow-sm"

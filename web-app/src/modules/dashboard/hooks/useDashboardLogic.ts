@@ -3001,6 +3001,9 @@ export const useDashboardLogic = () => {
             if (spawnedQuest) {
                 nextQuests = [...nextQuests, spawnedQuest];
             }
+            if (userId) {
+                PersistenceService.saveCollection(userId, 'quests', nextQuests);
+            }
             return nextQuests;
         });
 
@@ -3350,7 +3353,11 @@ export const useDashboardLogic = () => {
         }
 
         // 4. OPTIMISTIC UI UPDATES
-        setHabits(prev => prev.map(h => h.id === habit.id ? newHabit : h));
+        setHabits(prev => {
+            const newHabits = prev.map(h => h.id === habit.id ? newHabit : h);
+            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+            return newHabits;
+        });
 
         // 5. ATOMIC PERSISTENCE
         try {
@@ -3409,25 +3416,29 @@ export const useDashboardLogic = () => {
             rewards = await applyHabitRewards(validationHabit, false, true);
         }
 
-        setHabits(prev => prev.map(h => {
-            if (h.id === validationHabit.id) {
-                if (isComplete) {
-                    return { 
-                        ...h, 
-                        completedToday: true, 
-                        streak: h.streak + 1, 
-                        totalCompletions: h.totalCompletions + 1, 
-                        currentValue: newCurrentValue,
-                        history: [...(h.history || []), todayHistory],
-                        rewardedXp: rewards.rewardXp,
-                        rewardedGold: rewards.rewardGold,
-                        lastUpdatedDate: getHistoryDateKey(todayHistory)
-                    };
+        setHabits(prev => {
+            const newHabits = prev.map(h => {
+                if (h.id === validationHabit.id) {
+                    if (isComplete) {
+                        return { 
+                            ...h, 
+                            completedToday: true, 
+                            streak: h.streak + 1, 
+                            totalCompletions: h.totalCompletions + 1, 
+                            currentValue: newCurrentValue,
+                            history: [...(h.history || []), todayHistory],
+                            rewardedXp: rewards.rewardXp,
+                            rewardedGold: rewards.rewardGold,
+                            lastUpdatedDate: getHistoryDateKey(todayHistory)
+                        };
+                    }
+                    return { ...h, currentValue: newCurrentValue, lastUpdatedDate: getHistoryDateKey(todayHistory) }; 
                 }
-                return { ...h, currentValue: newCurrentValue, lastUpdatedDate: getHistoryDateKey(todayHistory) }; 
-            }
-            return h;
-        }));
+                return h;
+            });
+            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+            return newHabits;
+        });
 
         if (user?.id) {
             if (isComplete) {
@@ -3502,7 +3513,7 @@ export const useDashboardLogic = () => {
             try {
                 const deadlineDate = parseLocalDate(quest.deadline);
                 if (!isNaN(deadlineDate.getTime())) {
-                    notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate);
+                    notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate, quest.color || undefined);
                 }
             } catch (e) {
                 console.warn("Failed to schedule task notification:", e);
@@ -3551,7 +3562,7 @@ export const useDashboardLogic = () => {
                     // 🔔 NOTIFICATION SYNC (UPDATE)
                     const days = updated.frequencyDays && updated.frequencyDays.length > 0 ? updated.frequencyDays : [0,1,2,3,4,5,6];
                     if (updated.reminderTime) {
-                        notificationService.scheduleHabitReminder(updated.id, updated.title, updated.reminderTime, days);
+                        notificationService.scheduleHabitReminder(updated.id, updated.title, updated.reminderTime, days, updated.color || undefined);
                     } else if (exists.reminderTime && !updated.reminderTime) {
                         notificationService.cancelHabitReminder(updated.id);
                     }
@@ -3561,14 +3572,16 @@ export const useDashboardLogic = () => {
                         updated.checklist.forEach(sub => {
                             if (sub.reminderTime) {
                                 const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
-                                notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays);
+                                notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays, updated.color || undefined);
                             } else {
                                 notificationService.cancelHabitReminder(sub.id);
                             }
                         });
                     }
 
-                    return prev.map(h => h.id === data.id ? updated : h);
+                    const newHabits = prev.map(h => h.id === data.id ? updated : h);
+                    if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+                    return newHabits;
                 }
             }
             
@@ -3588,18 +3601,20 @@ export const useDashboardLogic = () => {
             // 🔔 NOTIFICATION SYNC (CREATE)
             const days = newHabit.frequencyDays && newHabit.frequencyDays.length > 0 ? newHabit.frequencyDays : [0,1,2,3,4,5,6];
             if (newHabit.reminderTime) {
-                notificationService.scheduleHabitReminder(newHabit.id, newHabit.title, newHabit.reminderTime, days);
+                notificationService.scheduleHabitReminder(newHabit.id, newHabit.title, newHabit.reminderTime, days, newHabit.color || undefined);
             }
             if (newHabit.type === 'CHECKLIST' && newHabit.checklist) {
                 newHabit.checklist.forEach(sub => {
                     if (sub.reminderTime) {
                         const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
-                        notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays);
+                        notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays, newHabit.color || undefined);
                     }
                 });
             }
 
-            return [newHabit, ...prev];
+            const newHabits = [newHabit, ...prev];
+            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+            return newHabits;
         });
         
         setActiveModal(null);
@@ -3716,7 +3731,11 @@ export const useDashboardLogic = () => {
             }
         }
 
-        setHabits(prev => prev.map(item => item.id === habitId ? next : item));
+        setHabits(prev => {
+            const newHabits = prev.map(item => item.id === habitId ? next : item);
+            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+            return newHabits;
+        });
 
         // Handle Rewards and Persistence Atomically
         if (habitToReward && user?.id) {
@@ -3852,7 +3871,11 @@ export const useDashboardLogic = () => {
         const habitToDelete = habits.find(h => h.id === habitId);
         
         // Optimistic Update
-        setHabits(prev => prev.filter(h => h.id !== habitId));
+        setHabits(prev => {
+            const newHabits = prev.filter(h => h.id !== habitId);
+            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+            return newHabits;
+        });
 
         // If completed today, we must decrement the daily count!
         if (habitToDelete?.completedToday) {
@@ -3971,7 +3994,7 @@ export const useDashboardLogic = () => {
             const days = resolvedProject.workingDays && resolvedProject.workingDays.length > 0
                 ? resolvedProject.workingDays
                 : [0, 1, 2, 3, 4, 5, 6];
-            notificationService.scheduleProjectReminder(resolvedProject.id, resolvedProject.title, resolvedProject.reminder, days);
+            notificationService.scheduleProjectReminder(resolvedProject.id, resolvedProject.title, resolvedProject.reminder, days, resolvedProject.color || undefined);
         }
 
         // Async Save (Outside State Update)
@@ -4108,7 +4131,7 @@ export const useDashboardLogic = () => {
             const days = updatedProject.workingDays && updatedProject.workingDays.length > 0
                 ? updatedProject.workingDays
                 : [0, 1, 2, 3, 4, 5, 6];
-            notificationService.scheduleProjectReminder(updatedProject.id, updatedProject.title, updatedProject.reminder, days);
+            notificationService.scheduleProjectReminder(updatedProject.id, updatedProject.title, updatedProject.reminder, days, updatedProject.color || undefined);
         } else {
             notificationService.cancelProjectReminder(updatedProject.id);
         }
@@ -4363,7 +4386,9 @@ export const useDashboardLogic = () => {
                     color: '#ef4444'
                 });
 
-                TransactionService.halveStats(user.id, attributes, player.level).then(({ newLevel, newXp }) => {
+                TransactionService.halveStats(user.id, attributes, player.level).then((result) => {
+                    if (!result) return;
+                    const { newLevel, newXp } = result;
                     setPlayer(prev => ({
                         ...prev,
                         level: newLevel,
