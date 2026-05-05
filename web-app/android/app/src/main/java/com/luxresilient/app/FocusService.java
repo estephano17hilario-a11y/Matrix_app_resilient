@@ -151,7 +151,7 @@ public class FocusService extends Service {
                     // Stopwatch: calculate elapsed
                     timeRemainingMs = System.currentTimeMillis() - startTimeMs;
                 }
-                // Do NOT call updateNotification() here to avoid chronometer flicker
+                updateNotification();
             }
 
             @Override
@@ -266,19 +266,13 @@ public class FocusService extends Service {
 
     private Notification buildNotification() {
         String title = projectIcon + " " + projectName;
-        
-        String text;
 
         long seconds = timeRemainingMs / 1000;
         long minutes = seconds / 60;
         long remainingSeconds = seconds % 60;
         String timeString = String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds);
 
-        if ("STOPWATCH".equals(currentMode)) {
-            text = "Stopwatch Active";
-        } else {
-            text = "Deep Focus Mode";
-        }
+        String text = timeString;
 
         if (isPaused) {
             text = "Paused - " + timeString;
@@ -340,22 +334,9 @@ public class FocusService extends Service {
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MAX) 
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setShowWhen(true); // Show default timestamp required for chronometer
+                .setShowWhen(false); // Hide default timestamp required for chronometer
 
-        // Smooth Native Chronometer
-        if (!isPaused) {
-            builder.setUsesChronometer(true);
-            if ("STOPWATCH".equals(currentMode)) {
-                builder.setWhen(System.currentTimeMillis() - timeRemainingMs);
-            } else {
-                builder.setWhen(System.currentTimeMillis() + timeRemainingMs);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    builder.setChronometerCountDown(true);
-                }
-            }
-        } else {
-            builder.setUsesChronometer(false);
-        }
+        // We removed native chronometer because we are updating text every second natively
 
         // Add Actions dynamically
         if (isPaused) {
