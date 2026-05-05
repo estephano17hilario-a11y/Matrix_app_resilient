@@ -18,6 +18,18 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "FocusSession")
 public class FocusPlugin extends Plugin {
 
+    public static FocusPlugin instance;
+
+    @Override
+    public void load() {
+        super.load();
+        instance = this;
+    }
+
+    public void triggerEvent(String eventName) {
+        notifyListeners(eventName, new JSObject());
+    }
+
     @PluginMethod
     public void checkPermissions(PluginCall call) {
         JSObject ret = new JSObject();

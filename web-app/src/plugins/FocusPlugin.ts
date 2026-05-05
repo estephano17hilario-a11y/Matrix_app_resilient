@@ -25,6 +25,11 @@ export interface FocusPlugin {
   // Privacy
   enablePrivacy(): Promise<void>;
   disablePrivacy(): Promise<void>;
+
+  // Listeners for Native Notification Actions
+  addListener(eventName: 'onPause', listenerFunc: () => void): Promise<any>;
+  addListener(eventName: 'onResume', listenerFunc: () => void): Promise<any>;
+  addListener(eventName: 'onStop', listenerFunc: () => void): Promise<any>;
 }
 
 const FocusSession = registerPlugin<FocusPlugin>('FocusSession', {

@@ -87,13 +87,16 @@ public class FocusService extends Service {
             }
 
         } else if (ACTION_STOP.equals(action)) {
+            notifyReact("onStop");
             stopTimer();
             stopForeground(true);
             stopSelf();
         } else if (ACTION_PAUSE.equals(action)) {
+            notifyReact("onPause");
             pauseTimer();
             updateNotification();
         } else if (ACTION_RESUME.equals(action)) {
+            notifyReact("onResume");
             resumeTimer();
             updateNotification();
         }
@@ -163,28 +166,26 @@ public class FocusService extends Service {
         }.start();
     }
 
+    private void notifyReact(String eventName) {
+        if (FocusPlugin.instance != null) {
+            FocusPlugin.instance.triggerEvent(eventName);
+        }
+    }
+
     private void pauseTimer() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
-            isPaused = true;
         }
+        isPaused = true;
     }
 
     private void resumeTimer() {
         if (isPaused) {
-            if ("POMO".equals(currentMode)) {
-                // Resume countdown
-                startTicker();
-            } else {
-                // Resume stopwatch
-                // Adjust startTime to account for pause duration?
-                // For simplicity in this demo, we'll just restart ticker from current 'timeRemaining' logic?
-                // Stopwatch math is tricky with pauses. 
-                // Let's stick to simple countdown for now as requested "cuenta regresiva".
-                // If user wants stopwatch, we might need more logic.
-                // The user specifically asked for "cuenta regresiva o descendente", implying Pomo/Countdown.
-                startTicker();
+            if ("STOPWATCH".equals(currentMode)) {
+                // Adjust startTimeMs so the elapsed time is preserved
+                startTimeMs = System.currentTimeMillis() - timeRemainingMs;
             }
+            startTicker();
             isPaused = false;
         }
     }
@@ -200,7 +201,7 @@ public class FocusService extends Service {
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager == null) return;
 
-        int iconResId = android.R.drawable.ic_lock_idle_alarm;
+        int iconResId = R.drawable.ic_stat_matrix;
 
         Bitmap largeIcon = null;
         try {
@@ -309,7 +310,7 @@ public class FocusService extends Service {
         );
 
         // Use a valid system icon guaranteed to be visible
-        int iconResId = android.R.drawable.ic_lock_idle_alarm; 
+        int iconResId = R.drawable.ic_stat_matrix; 
 
         // Large Icon (App Logo)
         Bitmap largeIcon = null;
@@ -339,7 +340,7 @@ public class FocusService extends Service {
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MAX) 
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setShowWhen(false); // Hide default timestamp
+                .setShowWhen(true); // Show default timestamp required for chronometer
 
         // Smooth Native Chronometer
         if (!isPaused) {
@@ -352,22 +353,18 @@ public class FocusService extends Service {
                     builder.setChronometerCountDown(true);
                 }
             }
+        } else {
+            builder.setUsesChronometer(false);
         }
 
         // Add Actions dynamically
         if (isPaused) {
-            builder.addAction(android.R.drawable.ic_media_play, "Resume", pendingResumeIntent);
+            builder.addAction(R.drawable.ic_play, "Resume", pendingResumeIntent);
         } else {
-            builder.addAction(android.R.drawable.ic_media_pause, "Pause", pendingPauseIntent);
+            builder.addAction(R.drawable.ic_pause, "Pause", pendingPauseIntent);
         }
         
-        builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", pendingStopIntent);
-
-        // Apply MediaStyle for a beautiful player-like look
-        builder.setStyle(new MediaStyle()
-                .setShowActionsInCompactView(0, 1) // Show Play/Pause and Stop in collapsed view
-                .setCancelButtonIntent(pendingStopIntent)
-                .setShowCancelButton(true));
+        builder.addAction(R.drawable.ic_stop, "Stop", pendingStopIntent);
 
         return builder.build();
     }

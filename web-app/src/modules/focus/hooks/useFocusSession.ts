@@ -18,7 +18,7 @@ export interface FocusSessionState {
 
 const STORAGE_PREFIX = 'matrix_focus_session_';
 
-export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH') => void, projectIcon?: string) => {
+export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH') => void, projectIcon?: string, themeColor?: string) => {
     // Initialize state from props first
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
     const [timeLeft, setTimeLeft] = useState(project.pomoDuration * 60);
@@ -28,6 +28,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     
     const lastTickRef = useRef<number>(0);
     const onCompleteRef = useRef(onComplete);
+    const nativeSessionStartedRef = useRef<boolean>(false);
 
     // Update ref on prop change without triggering timer effect
     useEffect(() => {
@@ -36,6 +37,15 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
     // Key for this specific project
     const STORAGE_KEY = `${STORAGE_PREFIX}${project.id}`;
+
+    const resetSession = useCallback(() => {
+        setMode('POMO');
+        setTimeLeft(project.pomoDuration * 60);
+        setTotalDuration(project.pomoDuration * 60);
+        setIsActive(false);
+        setIsPaused(false);
+        localStorage.removeItem(STORAGE_KEY);
+    }, [project.pomoDuration, STORAGE_KEY]);
 
     // 1. Load State on Mount (or Project Change)
     useEffect(() => {
@@ -82,7 +92,33 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
     }, [project.id]);
 
-    // 2. Persist State on Critical Changes (Not every tick)
+    // 2. Listen to Native Actions (Notification buttons)
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        const pauseListener = FocusSession.addListener('onPause', () => {
+            console.log("📱 Native Action: Pause");
+            setIsPaused(true);
+        });
+
+        const resumeListener = FocusSession.addListener('onResume', () => {
+            console.log("📱 Native Action: Resume");
+            setIsPaused(false);
+        });
+
+        const stopListener = FocusSession.addListener('onStop', () => {
+            console.log("📱 Native Action: Stop");
+            resetSession();
+        });
+
+        return () => {
+            pauseListener.then(l => l.remove()).catch(console.error);
+            resumeListener.then(l => l.remove()).catch(console.error);
+            stopListener.then(l => l.remove()).catch(console.error);
+        };
+    }, [resetSession]);
+
+    // 3. Persist State on Critical Changes (Not every tick)
     useEffect(() => {
         const syncNative = async () => {
             const now = Date.now();
@@ -105,31 +141,38 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                 if (isPaused) {
                     await FocusSession.pause().catch(console.error);
                 } else {
-                    // 🛡️ AGGRESSIVE PERMISSION REQUEST
-                    if (Capacitor.isNativePlatform()) {
-                        try {
-                            const perm = await LocalNotifications.checkPermissions();
-                            if (perm.display !== 'granted') {
-                                 console.log("⚠️ Requesting Notification Permission (Local)...");
-                                 const req = await LocalNotifications.requestPermissions();
-                                 if (req.display !== 'granted') {
-                                     console.warn("🚫 Notification Permission Denied by User");
-                                 }
+                    if (nativeSessionStartedRef.current) {
+                        // Just resume the native session
+                        await FocusSession.resume().catch(console.error);
+                    } else {
+                        // 🛡️ AGGRESSIVE PERMISSION REQUEST
+                        if (Capacitor.isNativePlatform()) {
+                            try {
+                                const perm = await LocalNotifications.checkPermissions();
+                                if (perm.display !== 'granted') {
+                                     console.log("⚠️ Requesting Notification Permission (Local)...");
+                                     const req = await LocalNotifications.requestPermissions();
+                                     if (req.display !== 'granted') {
+                                         console.warn("🚫 Notification Permission Denied by User");
+                                     }
+                                }
+                            } catch (e) {
+                                console.error("Error checking permissions", e);
                             }
-                        } catch (e) {
-                            console.error("Error checking permissions", e);
                         }
-                    }
 
-                    await FocusSession.start({ 
-                        duration: timeLeft, 
-                        mode: mode,
-                        projectName: project.title,
-                        projectColor: project.color || '#FFFFFF',
-                        projectIcon: projectIcon || '⚡'
-                    }).catch(console.error);
+                        nativeSessionStartedRef.current = true;
+                        await FocusSession.start({ 
+                            duration: timeLeft, 
+                            mode: mode,
+                            projectName: project.title,
+                            projectColor: themeColor || project.color || '#FFFFFF',
+                            projectIcon: projectIcon || '⚡'
+                        }).catch(console.error);
+                    }
                 }
             } else {
+                nativeSessionStartedRef.current = false;
                 await FocusSession.stop().catch(console.error);
             }
         };
@@ -138,7 +181,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
     }, [isActive, isPaused, mode, totalDuration, project.id, projectIcon]);
 
-    // 3. Timer Logic
+    // 4. Timer Logic
     useEffect(() => {
         let intervalId: NodeJS.Timeout | null = null;
 
@@ -182,15 +225,6 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
             if (intervalId) clearInterval(intervalId);
         };
     }, [isActive, isPaused, mode, totalDuration, project.id]); // Added project.id for safety
-
-    const resetSession = useCallback(() => {
-        setMode('POMO');
-        setTimeLeft(project.pomoDuration * 60);
-        setTotalDuration(project.pomoDuration * 60);
-        setIsActive(false);
-        setIsPaused(false);
-        localStorage.removeItem(STORAGE_KEY);
-    }, [project.pomoDuration, STORAGE_KEY]);
 
     const toggleTimer = useCallback(() => {
         console.log("🔘 toggleTimer called", { currentIsActive: isActive, currentIsPaused: isPaused });

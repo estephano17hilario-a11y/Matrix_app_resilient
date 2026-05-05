@@ -155,6 +155,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  };
 
+ const themeColor = project.color || attribute?.color || '#3b82f6';
+
  const {
  mode,
  setMode,
@@ -166,7 +168,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  isPaused,
  toggleTimer,
  stopSession
- } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
+ } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute), themeColor);
 
  useEffect(() => {
  if (isEditingTime && inputRef.current) {
@@ -232,8 +234,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  }, [isActive, isPaused, mode, timeLeft, project.pomoDuration]);
 
- const themeColor = attribute?.color || '#3b82f6';
- 
  // Timer Circle Logic
  const radius = 140; 
  const circumference = 2 * Math.PI * radius;
