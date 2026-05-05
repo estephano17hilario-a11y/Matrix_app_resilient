@@ -95,10 +95,9 @@ export const OfflineSyncService = {
               .in('id', [uniqueRecordId, action.itemId])
               .eq('user_id', action.userId)
               .eq('collection_name', action.collectionName)
-              .limit(1)
-              .single();
+              .limit(1);
               
-            const currentData = existingData?.data || {};
+            const currentData = (existingData && existingData.length > 0) ? existingData[0].data || {} : {};
             mergedData = { ...currentData, ...action.data, id: action.itemId };
           }
 

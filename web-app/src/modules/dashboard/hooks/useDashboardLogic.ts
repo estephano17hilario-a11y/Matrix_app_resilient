@@ -1017,8 +1017,8 @@ export const useDashboardLogic = () => {
                 if (settings?.autoBackupEnabled) {
                     try {
                         const { supabase } = await import('../../../services/supabase');
-                        const { data } = await supabase.from('user_collections').select('data').eq('id', `backup_${uid}`).single();
-                        const lastBackup = data?.data?.timestamp || 0;
+                        const { data } = await supabase.from('user_collections').select('data').eq('id', `backup_${uid}`).limit(1);
+                        const lastBackup = data?.[0]?.data?.timestamp || 0;
                         const DAY_MS = 24 * 60 * 60 * 1000;
                         if (Date.now() - lastBackup > DAY_MS) {
                             const { BackupService } = await import('../../../services/backupService');

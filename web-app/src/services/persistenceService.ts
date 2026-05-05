@@ -118,10 +118,9 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
           .in('id', [uniqueRecordId, itemId])
           .eq('user_id', userId)
           .eq('collection_name', collectionName)
-          .limit(1)
-          .single();
+          .limit(1);
 
-        const currentData = fetchError ? {} : (existingData?.data || {});
+        const currentData = fetchError ? {} : (existingData && existingData.length > 0 ? existingData[0].data || {} : {});
         const cleanData = sanitizeFirestoreData(dataToUpdate);
         const mergedData = { ...currentData, ...cleanData, id: itemId };
 
@@ -215,10 +214,10 @@ const settingsService = {
               .eq('id', `config_${userId}`)
               .eq('user_id', userId)
               .eq('collection_name', 'settings')
-              .single();
+              .limit(1);
 
             if (error) return null;
-            return data?.data || null;
+            return data && data.length > 0 ? data[0].data : null;
         } catch (error: any) {
             console.error("Error fetching settings:", error?.message || error);
             return null;

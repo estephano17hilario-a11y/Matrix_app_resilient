@@ -48,18 +48,26 @@ export const useRevenueCat = () => {
 
   // Función para disparar el paywall 
   const purchasePackage = async (rcPackage: PurchasesPackage) => { 
+    console.log("1. INICIANDO PROCESO DE COMPRA..."); 
     try { 
-      const { customerInfo } = await Purchases.purchasePackage({ aPackage: rcPackage }); 
+      const result = await Purchases.purchasePackage({ aPackage: rcPackage }); 
+      console.log("2. RESPUESTA CRUDA DE REVENUECAT:", result); 
       
-      // Validar de nuevo el nombre exacto de tu Entitlement aquí 
+      const { customerInfo } = result; 
+  
+      console.log("3. ENTITLEMENTS ACTIVOS:", JSON.stringify(customerInfo.entitlements.active, null, 2)); 
+  
+      // Usando el ID real que confirmamos 
       if (typeof customerInfo.entitlements.active['ent1b5c1fea56a'] !== "undefined") { 
-        console.log("¡Compra exitosa en la Test Store!"); 
+        console.log("4. ¡ÉXITO! EL USUARIO YA ES LUX PRO."); 
         setIsPremium(true); 
+      } else { 
+        console.warn("4. ALERTA: La compra pasó, pero no detectó el ID 'ent1b5c1fea56a'."); 
       } 
     } catch (e: any) { 
-      if (!e.userCancelled) { 
-        console.error("Error en la compra simulada:", e); 
-      } 
+      // AHORA IMPRIMIMOS TODO, SIN IMPORTAR QUÉ SEA 
+      console.error("X. ERROR DURANTE LA COMPRA:", e); 
+      console.log("CÓDIGO DE ERROR DE REVENUECAT:", e.code); 
     } 
   }; 
 

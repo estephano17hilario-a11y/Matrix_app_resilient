@@ -31,7 +31,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats, dailyLimits')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -133,7 +133,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats, dailyLimits')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -215,7 +215,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -255,7 +255,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -301,7 +301,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats, dailyLimits')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -370,7 +370,7 @@ export const TransactionService = {
                 .from('users')
                 .select('dailyLimits')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 
@@ -429,7 +429,7 @@ export const TransactionService = {
                 .from('users')
                 .select('stats')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError || !userDoc) throw new Error("User not found in Supabase");
 

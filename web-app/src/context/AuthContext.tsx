@@ -153,7 +153,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     return;
                 }
 
-                const { data: userData, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', currentUser.id).single();
+                const { data: userDataList, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', currentUser.id).limit(1);
+        const userData = userDataList && userDataList.length > 0 ? userDataList[0] : null;
                 
                 if (userData && !error) {
                     const finalProfile: UserProfile = {

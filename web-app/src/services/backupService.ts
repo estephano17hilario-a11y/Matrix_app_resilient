@@ -35,7 +35,7 @@ export const BackupService = {
             persistenceService.smartProjects.getAll(uid),
             persistenceService.attributes.getAll(uid),
             persistenceService.settings.get(uid),
-            supabase.from('users').select('*').eq('id', uid).single()
+            supabase.from('users').select('*').eq('id', uid).maybeSingle()
         ]);
 
         return {
@@ -134,12 +134,12 @@ export const BackupService = {
               .eq('id', `backup_${uid}`)
               .eq('user_id', uid)
               .eq('collection_name', 'backups')
-              .single();
+              .limit(1);
 
             if (error) throw error;
-            if (!data || !data.data) throw new Error("No cloud backup found");
+            if (!data || data.length === 0 || !data[0].data) throw new Error("No cloud backup found");
 
-            const backupData = data.data.data as BackupData;
+            const backupData = data[0].data.data as BackupData;
             await BackupService.importData(uid, backupData);
 
         } catch (e) {

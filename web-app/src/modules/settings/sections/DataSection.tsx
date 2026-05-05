@@ -27,10 +27,10 @@ export const DataSection = () => {
                     .eq('id', `backup_${user.id}`)
                     .eq('user_id', user.id)
                     .eq('collection_name', 'backups')
-                    .single();
+                    .limit(1);
                 
-                if (!error && data?.data?.timestamp) {
-                    setLastCloudBackup(new Date(data.data.timestamp).toLocaleString());
+                if (!error && data && data.length > 0 && data[0]?.data?.timestamp) {
+                    setLastCloudBackup(new Date(data[0].data.timestamp).toLocaleString());
                 }
 
                 // Also fetch auto-backup preference
