@@ -397,6 +397,19 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                             </AnimatePresence>
                                         </div>
 
+                                        {/* Color Picker */}
+                                        <ColorPicker 
+                                            selectedColor={customColor}
+                                            onSelectColor={setCustomColor}
+                                            onToggle={(isOpen) => {
+                                                if (isOpen && scrollContainerRef.current) {
+                                                    setTimeout(() => {
+                                                        scrollContainerRef.current?.scrollBy({ top: 200, behavior: 'smooth' });
+                                                    }, 300);
+                                                }
+                                            }}
+                                        />
+
                                         {/* Smart Project Link - MOVED TO BLOCK 3 */}
 
                                         <div className="pt-2 flex justify-end">

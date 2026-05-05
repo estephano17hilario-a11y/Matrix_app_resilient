@@ -13,7 +13,7 @@ interface ProjectSimpleItemProps {
 }
 
 export const ProjectSimpleItem = React.memo(({ project, attribute, onStartSession, onClick, isActive }: ProjectSimpleItemProps) => {
-  const baseColor = attribute?.color || '#6366f1'; 
+  const baseColor = project.color || attribute?.color || '#6366f1'; 
 
   // Calculate Progress
   const goalMinutes = project.goalTarget || 60;

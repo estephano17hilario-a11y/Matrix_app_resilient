@@ -17,7 +17,7 @@ interface ProjectCardMinimalProps {
 
 export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project, attribute, onClick, onStartFocus }) => {
     const { t, i18n } = useTranslation();
-    const themeColor = attribute?.color || '#f43f5e';
+    const themeColor = project.color || attribute?.color || '#f43f5e';
 
     let goalMinutes = project.goalTarget || 0;
     let currentMinutesForProgress = Math.floor((project.totalTime || 0) / 60);

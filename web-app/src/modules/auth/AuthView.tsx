@@ -380,7 +380,7 @@ export const AuthView = () => {
  relative z-10 p-6 sm:p-8 rounded-2xl transition-all duration-200 ease-out border
  ${(view === 'REGISTER_CREDENTIALS' && isEmailValid && isPasswordValid && isNameValid && isConfirmValid) || 
  (view === 'LOGIN' && isEmailValid && isPasswordValid)
- ? 'bg-[#0f0c1b]/80 border-indigo-500/50 bg-black/60 '
+ ? 'bg-black/60 border-indigo-500/50 '
  : 'bg-[#0a0a0f] border-white/10'
  }
  `}>

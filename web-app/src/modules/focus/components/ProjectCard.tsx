@@ -69,7 +69,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
         return `${h}h ${m.toString().padStart(2, '0')}m`;
     };
 
-    const themeColor = '#f43f5e';
+    const themeColor = project.color || '#f43f5e';
     const toRgba = (hex: string, alpha: number) => {
         const normalized = hex.replace('#', '');
         if (normalized.length !== 6) return `rgba(255,255,255,${alpha})`;
@@ -120,17 +120,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                         onClick={(e) => onFocus(e, project)}
                         className={cn(
                             "w-16 h-16 rounded-full flex items-center justify-center shrink-0",
-                            "bg-rose-500 text-white shadow-[0_0_28px_-4px_rgba(244,63,94,0.75)]",
-                            "hover:bg-rose-400 hover:scale-105 transition-all duration-200",
+                            "text-white shadow-lg",
+                            "hover:scale-105 transition-all duration-200",
                             "border-2 border-white/10"
                         )}
+                        style={{
+                            backgroundColor: themeColor,
+                            boxShadow: `0 0 28px -4px ${toRgba(themeColor, 0.75)}`
+                        }}
                     >
                         <Play size={28} fill="currentColor" className="ml-1" />
                     </motion.button>
 
                     <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex justify-between items-start mb-1">
-                             <h3 className="text-base font-bold text-rose-500 tracking-tight leading-none truncate">
+                             <h3 className="text-base font-bold tracking-tight leading-none truncate" style={{ color: themeColor }}>
                                 {project.title}
                             </h3>
                              {/* Chevron absolute right */}
@@ -144,7 +148,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                 className="text-3xl font-black text-white tracking-tighter tabular-nums leading-none"
                                 animate={displayPercentage >= 100 ? { 
                                     opacity: [1, 0.5, 1],
-                                    textShadow: ['0 0 10px rgba(244,63,94,0.4)', '0 0 25px rgba(244,63,94,0.7)', '0 0 10px rgba(244,63,94,0.4)']
+                                    textShadow: [`0 0 10px ${toRgba(themeColor, 0.4)}`, `0 0 25px ${toRgba(themeColor, 0.7)}`, `0 0 10px ${toRgba(themeColor, 0.4)}`]
                                 } : { 
                                     opacity: 1,
                                     textShadow: '0 0 0px transparent'
@@ -168,11 +172,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                         animate={displayPercentage >= 100 ? { 
                                             width: `${cappedProgress}%`,
                                             opacity: [1, 0.5, 1],
-                                            boxShadow: ['0 0 5px rgba(244,63,94,0.3)', '0 0 15px rgba(244,63,94,0.6)', '0 0 5px rgba(244,63,94,0.3)']
+                                            boxShadow: [`0 0 5px ${toRgba(themeColor, 0.3)}`, `0 0 15px ${toRgba(themeColor, 0.6)}`, `0 0 5px ${toRgba(themeColor, 0.3)}`]
                                         } : { 
                                             width: `${cappedProgress}%`,
                                             opacity: 1,
-                                            boxShadow: '0 0 10px rgba(244,63,94,0.3)'
+                                            boxShadow: `0 0 10px ${toRgba(themeColor, 0.3)}`
                                         }}
                                         transition={displayPercentage >= 100 ? { 
                                             duration: 3, repeat: Infinity, ease: "easeInOut",
@@ -180,14 +184,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onFocus, onCl
                                         } : { 
                                             type: "spring", stiffness: 350, damping: 20 
                                         }}
-                                        className="h-full bg-rose-500 rounded-full"
+                                        className="h-full rounded-full"
+                                        style={{ backgroundColor: themeColor }}
                                     />
                                 </div>
                                 <motion.span 
                                     className="text-[10px] font-bold tabular-nums text-white"
                                     animate={displayPercentage >= 100 ? { 
                                         opacity: [0.95, 0.5, 0.95],
-                                        textShadow: ['0 0 5px rgba(244,63,94,0.4)', '0 0 15px rgba(244,63,94,0.8)', '0 0 5px rgba(244,63,94,0.4)']
+                                        textShadow: [`0 0 5px ${toRgba(themeColor, 0.4)}`, `0 0 15px ${toRgba(themeColor, 0.8)}`, `0 0 5px ${toRgba(themeColor, 0.4)}`]
                                     } : { 
                                         opacity: 0.3,
                                         textShadow: '0 0 0px transparent'

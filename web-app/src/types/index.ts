@@ -45,6 +45,7 @@ export interface Quest {
   isSmartQuest?: boolean;
   projectId?: string;
   smartProjectId?: string;
+  color?: string; // Optional UI color override
   estimatedTime?: number; // Minutes
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
@@ -93,6 +94,7 @@ export interface Habit {
   history?: string[]; // ISO date strings of completions
   projectId?: string;
   smartProjectId?: string;
+  color?: string; // Optional UI color override
   estimatedTime?: number; // Minutes
   impact?: number;
   customColor?: string;
