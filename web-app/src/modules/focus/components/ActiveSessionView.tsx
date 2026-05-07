@@ -237,12 +237,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  // Timer Circle Logic
  const radius = 140; 
  const circumference = 2 * Math.PI * radius;
- const progress = mode === 'POMO' ? (timeLeft / totalDuration) : 1; 
- const dashOffset = circumference * (1 - progress);
+ const progress = mode === 'POMO' ? (totalDuration > 0 ? (timeLeft / totalDuration) : 1) : 1; 
+ const dashOffset = Number.isFinite(progress) ? circumference * (1 - progress) : 0;
 
  const formatTime = (seconds: number) => {
- const m = Math.floor(seconds / 60);
- const s = seconds % 60;
+ const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+ const m = Math.floor(safeSeconds / 60);
+ const s = safeSeconds % 60;
  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
  };
 
@@ -353,8 +354,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  <div className="flex-1 flex flex-col items-center justify-center gap-10 relative z-10 w-full min-h-0">
  
  {/* Mode Toggles (Placed ABOVE timer to avoid overlap) */}
- <div className="h-10 flex items-center justify-center">
- <AnimatePresence mode='wait'>
+        <div className="h-10 flex items-center justify-center relative z-50">
+          <AnimatePresence mode='wait'>
  {!isActive && (
  <motion.div 
  initial={{ opacity: 0, y: 10 }}
@@ -467,7 +468,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  >
  {/* Static glow div behind text instead of expensive textShadow */}
  <div 
- className="absolute inset-0 z-[-1] rounded-full blur-sm opacity-40 pointer-events-none"
+ className="absolute inset-0 z-[-1] rounded-full blur-sm opacity-10 pointer-events-none"
  style={{ backgroundColor: themeColor }}
  />
  {formatTime(timeLeft)}

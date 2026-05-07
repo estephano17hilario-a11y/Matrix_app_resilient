@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'; 
 import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor'; 
 import { Capacitor } from '@capacitor/core'; 
+import { App } from '@capacitor/app';
 
 export const useRevenueCat = () => { 
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null); 
@@ -32,6 +33,29 @@ export const useRevenueCat = () => {
     }; 
 
     fetchRevenueCatData(); 
+
+    // ESTA ES LA MAGIA: Cada vez que el usuario vuelve a abrir la app 
+    const appStateListener = App.addListener('appStateChange', async ({ isActive }) => { 
+      if (isActive) { 
+        const platform = Capacitor.getPlatform(); 
+        if (platform !== 'android' && platform !== 'ios') return;
+
+        console.log("App en primer plano: Verificando suscripción silenciosamente..."); 
+        try { 
+          const info = await Purchases.getCustomerInfo(); 
+          // Si el mes ya pasó y no renovó, RevenueCat devolverá "undefined" 
+          const isStillPro = typeof info.customerInfo.entitlements.active['Lux Pro'] !== "undefined"; 
+          
+          setIsPremium(isStillPro); 
+        } catch (e) { 
+          console.error("Error verificando estado en background", e); 
+        } 
+      } 
+    }); 
+
+    return () => { 
+      appStateListener.then(listener => listener.remove()); 
+    }; 
   }, []); 
 
   // Función para disparar el paywall 

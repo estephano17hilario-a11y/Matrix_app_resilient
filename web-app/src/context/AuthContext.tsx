@@ -4,6 +4,7 @@ import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { PersistenceService } from '../services/persistence';
 import { User } from '@supabase/supabase-js';
 import { initRevenueCat } from '../services/revenueCatService';
+import { toast } from 'react-hot-toast';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -78,6 +79,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const checkInitialSession = async () => {
       try {
+        // Detect OAuth Errors from URL hash (like identity already linked)
+        const hash = window.location.hash;
+        if (hash && hash.includes('error=server_error') && hash.includes('identity+is+already+linked')) {
+           toast.error('Esta cuenta de Google ya está vinculada a otro usuario. Por favor, usa una cuenta nueva (VIRGEN).', { duration: 6000 });
+           // Clean up the hash to avoid multiple triggers
+           window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
         await supabase.auth.getSession();
       } catch (e) {
         console.error("Error verificando sesión de Supabase:", e);

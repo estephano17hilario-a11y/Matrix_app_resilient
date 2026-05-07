@@ -79,6 +79,53 @@ export const loginWithGoogle = async (): Promise<any | null> => {
 };
 
 /**
+ * Obtiene las identidades vinculadas a la cuenta del usuario actual.
+ */
+export const getLinkedIdentities = async () => {
+    try {
+        const { data, error } = await supabase.auth.getUserIdentities();
+        if (error) throw error;
+        return data.identities;
+    } catch (error) {
+        console.error("Error fetching linked identities:", error);
+        return [];
+    }
+};
+
+/**
+ * Vincula una cuenta de Google a la cuenta actual.
+ */
+export const linkGoogleAccount = async () => {
+    try {
+        const { data, error } = await supabase.auth.linkIdentity({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin,
+            }
+        });
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Error linking Google account:", error);
+        throw error;
+    }
+};
+
+/**
+ * Desvincula una cuenta de Google de la cuenta actual.
+ */
+export const unlinkGoogleAccount = async (identity: any) => {
+    try {
+        const { data, error } = await supabase.auth.unlinkIdentity(identity);
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Error unlinking Google account:", error);
+        throw error;
+    }
+};
+
+/**
  * Cierra la sesión del usuario actual.
  */
 export const logout = async (): Promise<void> => {

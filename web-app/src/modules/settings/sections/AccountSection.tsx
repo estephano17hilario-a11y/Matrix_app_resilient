@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { User, LogOut, Edit2, Check, X } from 'lucide-react';
+import { User, LogOut, Edit2, Check, X, Link2, Unlink } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '@/context/AuthContext';
 import { getAvatarPath } from '../../../config/avatars';
 import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
 import { supabase } from '../../../services/supabase';
+import { getLinkedIdentities, linkGoogleAccount, unlinkGoogleAccount } from '../../../services/supabaseService';
 import { useTranslation } from 'react-i18next';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { toast } from 'react-hot-toast';
 
 export const AccountSection = () => {
   const { t } = useTranslation();
@@ -17,12 +19,53 @@ export const AccountSection = () => {
   const [editName, setEditName] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [linkedIdentities, setLinkedIdentities] = useState<any[]>([]);
+  const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
 
   useEffect(() => {
     setAvatarError(false);
   }, [avatarPath]);
+
+  useEffect(() => {
+    const fetchIdentities = async () => {
+      try {
+        const identities = await getLinkedIdentities();
+        setLinkedIdentities(identities);
+      } catch (error) {
+        console.error('Failed to load identities', error);
+      } finally {
+        setIsLoadingIdentities(false);
+      }
+    };
+    fetchIdentities();
+  }, []);
+
+  const handleLinkGoogle = async () => {
+    try {
+      await linkGoogleAccount();
+      // El navegador redirigirá a Google y luego de vuelta a la app.
+    } catch (error: any) {
+      toast.error(error.message || 'Error al vincular cuenta de Google.');
+    }
+  };
+
+  const handleUnlinkGoogle = async (identity: any) => {
+    try {
+      setIsLoadingIdentities(true);
+      await unlinkGoogleAccount(identity);
+      const updatedIdentities = await getLinkedIdentities();
+      setLinkedIdentities(updatedIdentities);
+      toast.success('Cuenta desvinculada correctamente.');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al desvincular la cuenta.');
+    } finally {
+      setIsLoadingIdentities(false);
+    }
+  };
+
+  const googleIdentity = linkedIdentities.find(id => id.provider === 'google');
 
   const formattedName = profile?.displayName || ((user?.displayName && !user.displayName.includes('@'))
     ? user.displayName
@@ -155,6 +198,64 @@ export const AccountSection = () => {
 
         <div className="pt-2 relative z-10">
           <AvatarCarouselQuick />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-white tracking-wide">Cuentas Vinculadas</h3>
+          <div className="h-px flex-1 bg-gradient-to-r from-blue-500/20 to-transparent" />
+        </div>
+
+        <div className="bg-black/20 border border-white/5 rounded-[20px] p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.56 0 2.96.54 4.06 1.48l3.04-3.04C17.46 2.19 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-white text-sm font-semibold">Google</h4>
+                <p className="text-white/40 text-xs">
+                  {isLoadingIdentities 
+                    ? 'Cargando...' 
+                    : googleIdentity 
+                      ? googleIdentity.identity_data?.email || 'Vinculada'
+                      : 'No vinculada'}
+                </p>
+              </div>
+            </div>
+            
+            {!isLoadingIdentities && (
+              googleIdentity ? (
+                <button
+                  onClick={() => handleUnlinkGoogle(googleIdentity)}
+                  disabled={linkedIdentities.length <= 1}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  <Unlink size={14} />
+                  Desvincular
+                </button>
+              ) : (
+                <button
+                  onClick={handleLinkGoogle}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-medium transition-colors"
+                >
+                  <Link2 size={14} />
+                  Vincular
+                </button>
+              )
+            )}
+          </div>
+          {linkedIdentities.length <= 1 && googleIdentity && (
+            <p className="text-[10px] text-white/30 mt-3 pl-13">
+              Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google.
+            </p>
+          )}
         </div>
       </div>
 
