@@ -158,7 +158,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                 animate={{ width: `${progress}%` }}
                                 className="h-full rounded-full"
                                 style={{ 
-                                    background: `linear-gradient(90deg, ${themeColor}88, ${themeColor})`,
+                                    backgroundColor: themeColor,
                                     boxShadow: displayPercentage >= 100 ? `0 0 10px ${themeColor}` : 'none'
                                 }}
                             />

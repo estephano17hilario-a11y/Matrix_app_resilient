@@ -3,6 +3,7 @@ import './index.css'
 import './i18n'; // Import i18n configuration
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { PersistenceService } from './services/persistence'
 
 // 🛡️ CONSOLE SILENCER
 // We keep this lightweight to avoid specific noise, but we should not suppress critical network errors 
@@ -19,8 +20,13 @@ if (/Android/i.test(navigator.userAgent)) {
     document.documentElement.classList.add('android-webview');
 }
 
-createRoot(document.getElementById('root')!).render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>,
-)
+const initApp = async () => {
+  await PersistenceService.initialize();
+  createRoot(document.getElementById('root')!).render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>,
+  );
+};
+
+initApp();

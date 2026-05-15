@@ -118,7 +118,7 @@ export const LineChart = React.memo(({
             )}
 
             <div className={`absolute ${paddingTop} bottom-8 right-0 ${yTicks ? 'left-6' : 'left-0'}`}>
-                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <svg className="w-full h-full overflow-visible pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
                     <defs>
                         {datasets.map((ds, i) => (
                             <linearGradient key={`grad-${i}`} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -203,7 +203,7 @@ export const LineChart = React.memo(({
                                 return (
                                     <div
                                         key={idx}
-                                        className={`absolute w-2.5 h-2.5 rounded-full transition-all duration-200 pointer-events-none
+                                        className={`absolute w-2.5 h-2.5 rounded-full transition duration-200 pointer-events-none
                                             ${activeIndex === i ? 'scale-150 opacity-100' : 'opacity-0 group-hover:opacity-100'}
                                         `}
                                         style={{

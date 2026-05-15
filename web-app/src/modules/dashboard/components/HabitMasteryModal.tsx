@@ -198,7 +198,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  />
  
  {/* Background Circle */}
- <svg className="absolute inset-0 w-full h-full -rotate-90">
+ <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
  <defs>
  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
  <stop offset="0%" stopColor={baseColor} />
@@ -253,7 +253,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  <motion.div 
  animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.8, 0.4] }}
  transition={{ duration: 3, repeat: Infinity }}
- className="absolute inset-0 bg-emerald-400 blur-sm -z-10 opacity-20"
+ className="absolute inset-0 bg-[radial-gradient(circle,_rgba(52,211,153,0.2)_0%,_transparent_70%)] -z-10"
  />
  </div>
  <span className="text-xs font-black text-emerald-400 tracking-[0.2em] uppercase drop-shadow-sm">

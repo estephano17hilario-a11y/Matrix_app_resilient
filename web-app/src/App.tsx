@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { App as CapacitorApp } from '@capacitor/app';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LuxProvider } from '@/context/LuxContext';
@@ -23,6 +24,23 @@ const AppRoutes = () => {
   const { user, profile, isLoading, isInitializing } = useAuth();
   const canEnterLux = !!user || !!profile;
   useNotificationSystem(canEnterLux);
+
+  // Setup Deep Links for Supabase OAuth on Capacitor
+  useEffect(() => {
+    const setupDeepLinks = async () => {
+      try {
+        CapacitorApp.addListener('appUrlOpen', async (event) => {
+          if (event.url.includes('supabase.co') || event.url.includes('lux://')) {
+            // Supabase client handles the token exchange automatically if the URL contains access_token
+            console.log('Deep link received:', event.url);
+          }
+        });
+      } catch (e) {
+        // Not running in native Capacitor env
+      }
+    };
+    setupDeepLinks();
+  }, []);
 
   useEffect(() => {
     if (user || profile) {

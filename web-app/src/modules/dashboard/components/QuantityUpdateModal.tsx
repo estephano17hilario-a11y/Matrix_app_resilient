@@ -195,8 +195,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  transition={{ duration: 6, repeat: Infinity }}
  className="absolute -top-[20%] -left-[20%] w-[100%] h-[60%] pointer-events-none will-change-transform"
  style={{ 
- background: `radial-gradient(circle, ${isComplete ? '#10b981' : colorPrimary} 0%, transparent 70%)`,
- filter: 'blur(10px)'
+ background: `radial-gradient(circle, ${isComplete ? '#10b981' : colorPrimary} 0%, transparent 70%)`
  }} 
  />
 
@@ -229,7 +228,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  />
  
  {/* SVG Ring */}
- <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+        <svg className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none">
  <defs>
  <linearGradient id="quantityGradient" x1="0%" y1="0%" x2="100%" y2="100%">
  <stop offset="0%" stopColor={colorPrimary} />

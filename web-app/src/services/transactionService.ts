@@ -22,8 +22,9 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeId?: string,
-        spawnedQuest?: any
+        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number },
+        spawnedQuest?: any,
+        updatedQuest?: any
     ) => {
         try {
             // 1. Fetch current user
@@ -79,12 +80,13 @@ export const TransactionService = {
                 throw updateError;
             }
 
-            // 4. Update Quest via Persistence
-            const quests = await persistenceService.quests.getAll(userId);
-            const quest = quests?.find(q => q.id === questId);
-            if (quest) {
-                await persistenceService.quests.save(userId, {
-                    ...quest,
+            // 4. Save Quest — prefer full object save over partial update to avoid data loss
+            // updatedQuest comes from the React optimistic state and has the complete current data
+            if (updatedQuest) {
+                await persistenceService.quests.save(userId, updatedQuest);
+            } else {
+                // Fallback: partial update by ID (e.g. if called without the full quest object)
+                await persistenceService.quests.update(userId, questId, {
                     completed: isCompleted,
                     rewardedXp: isCompleted ? rewardXp : 0,
                     rewardedGold: isCompleted ? rewardGold : 0
@@ -97,13 +99,15 @@ export const TransactionService = {
             }
 
             // 6. Update Attribute
-            if (attributeId) {
+            if (attributeUpdates) {
                 const attrs = await persistenceService.attributes.getAll(userId);
-                const attr = attrs?.find(a => a.id === attributeId);
+                const attr = attrs?.find(a => a.id === attributeUpdates.id);
                 if (attr) {
                     await persistenceService.attributes.save(userId, {
                         ...attr,
-                        xp: (attr.xp || 0) + rewardTraitXp
+                        xp: attributeUpdates.xp,
+                        level: attributeUpdates.level,
+                        maxXp: attributeUpdates.maxXp
                     });
                 }
             }
@@ -129,7 +133,7 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeId?: string
+        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number }
     ) => {
         try {
             // 1. Fetch current user
@@ -196,13 +200,15 @@ export const TransactionService = {
             }
 
             // 5. Update Attribute
-            if (attributeId) {
+            if (attributeUpdates) {
                 const attrs = await persistenceService.attributes.getAll(userId);
-                const attr = attrs?.find(a => a.id === attributeId);
+                const attr = attrs?.find(a => a.id === attributeUpdates.id);
                 if (attr) {
                     await persistenceService.attributes.save(userId, {
                         ...attr,
-                        xp: (attr.xp || 0) + rewardTraitXp
+                        xp: attributeUpdates.xp,
+                        level: attributeUpdates.level,
+                        maxXp: attributeUpdates.maxXp
                     });
                 }
             }
@@ -307,7 +313,7 @@ export const TransactionService = {
         rewardXp: number, 
         rewardGold: number, 
         rewardTraitXp: number, 
-        attrId: string | null,
+        attributeUpdates: { id: string, xp: number, level: number, maxXp: number } | null,
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number
@@ -363,13 +369,15 @@ export const TransactionService = {
                 throw updateError;
             }
 
-            if (attrId) {
+            if (attributeUpdates) {
                 const attrs = await persistenceService.attributes.getAll(userId);
-                const attr = attrs?.find(a => a.id === attrId);
+                const attr = attrs?.find(a => a.id === attributeUpdates.id);
                 if (attr) {
                     await persistenceService.attributes.save(userId, {
                         ...attr,
-                        xp: (attr.xp || 0) + rewardTraitXp
+                        xp: attributeUpdates.xp,
+                        level: attributeUpdates.level,
+                        maxXp: attributeUpdates.maxXp
                     });
                 }
             }
@@ -424,14 +432,16 @@ export const TransactionService = {
     /**
      * Atomically awards or deducts experience from an attribute.
      */
-    updateAttributeXpAtomic: async (userId: string, attrId: string, amount: number) => {
+    updateAttributeXpAtomic: async (userId: string, attributeUpdates: { id: string, xp: number, level: number, maxXp: number }) => {
         try {
             const attrs = await persistenceService.attributes.getAll(userId);
-            const attr = attrs?.find(a => a.id === attrId);
+            const attr = attrs?.find(a => a.id === attributeUpdates.id);
             if (attr) {
                 await persistenceService.attributes.save(userId, {
                     ...attr,
-                    xp: Math.max(0, Math.floor((attr.xp || 0) + amount))
+                    xp: attributeUpdates.xp,
+                    level: attributeUpdates.level,
+                    maxXp: attributeUpdates.maxXp
                 });
             }
             return true;

@@ -35,7 +35,7 @@ export const BackupService = {
             persistenceService.smartProjects.getAll(uid),
             persistenceService.attributes.getAll(uid),
             persistenceService.settings.get(uid),
-            supabase.from('users').select('*').eq('id', uid).maybeSingle()
+            supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', uid).maybeSingle()
         ]);
 
         return {

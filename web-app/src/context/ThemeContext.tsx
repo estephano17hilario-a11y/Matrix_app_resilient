@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import { AuthContext } from '@/context/AuthContext';
 import { doc, getDoc, db } from '@/services/supabase';
 import { supabase } from '../services/supabase';
+import { safeStorage } from '../services/persistence';
 import { ThemeId, THEMES } from '../config/themes';
 import { boostColorSaturation } from '../utils/colorUtils';
 import { AVAILABLE_AVATARS } from '../config/avatars';
@@ -109,8 +110,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     try {
-      localStorage.setItem('matrix-theme', theme); // ALWAYS save original theme, not preview
-      localStorage.setItem('matrix-vivid-mode', String(vividMode));
+      safeStorage.setItem('matrix-theme', theme); // ALWAYS save original theme, not preview
+      safeStorage.setItem('matrix-vivid-mode', String(vividMode));
     } catch (e) {
       // Ignore
     }

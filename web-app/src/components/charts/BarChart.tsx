@@ -154,10 +154,8 @@ export const BarChart = React.memo(({
 
                                     // Safe Color Handling
                                     const safeColor = ds.color || '#6366f1';
+                                    const backgroundStyle = safeColor;
                                     const isHex = safeColor.startsWith('#');
-                                    const backgroundStyle = isHex 
-                                        ? `linear-gradient(180deg, ${safeColor}DD 0%, ${safeColor}80 100%)`
-                                        : safeColor;
                                     const shadowStyle = isHex
                                         ? `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 15px ${safeColor}45, 0 4px 15px ${safeColor}35`
                                         : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`;
@@ -165,10 +163,10 @@ export const BarChart = React.memo(({
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`w-full transition-all duration-200 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
+                                            className={`w-full transition duration-200 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
                                             style={{ 
                                                 height: `${h * 100}%`,
-                                                background: backgroundStyle,
+                                                backgroundColor: backgroundStyle,
                                                 boxShadow: shadowStyle
                                             }}
                                         >

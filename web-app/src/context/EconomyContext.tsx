@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { purchaseItem, addGold, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
+import { purchaseItem, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
 import { useLux } from '@/context/LuxContext';
 
 export interface EconomyContextType {
   purchase: (item: StoreItem) => Promise<boolean>;
-  watchAd: () => Promise<void>;
-  grantAdReward: () => Promise<void>;
   useItem: (itemId: string) => Promise<boolean>;
   consume: (itemId: string) => Promise<boolean>; // Alias for backward compatibility
   isTransactionPending: boolean;
@@ -99,39 +97,16 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       return result.success;
   }, [user?.id]);
 
-  const watchAd = useCallback(async () => {
-    if (!user?.id) return;
-    setIsTransactionPending(true);
-    
-    // Simulate Ad duration
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    await addGold(user.id, 50);
-    setIsTransactionPending(false);
-    
-    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
-  }, [user?.id]);
-
-  const grantAdReward = useCallback(async () => {
-    if (!user?.id) return;
-    setIsTransactionPending(true);
-    await addGold(user.id, 50);
-    setIsTransactionPending(false);
-    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
-  }, [user?.id]);
-
   const consume = useItem;
   const inventory = useMemo(() => (user?.inventory || []) as InventoryItem[], [user?.inventory]);
   const value = useMemo(() => ({ 
     purchase, 
-    watchAd, 
-    grantAdReward,
     useItem, 
     consume,
     isTransactionPending, 
     storeItems: STORE_ITEMS,
     inventory
-  }), [purchase, watchAd, grantAdReward, useItem, consume, isTransactionPending, inventory]);
+  }), [purchase, useItem, consume, isTransactionPending, inventory]);
 
   return (
     <EconomyContext.Provider value={value}>

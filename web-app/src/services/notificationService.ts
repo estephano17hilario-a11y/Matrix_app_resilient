@@ -242,7 +242,7 @@ export const notificationService = {
  allowWhileIdle: true 
  },
  channelId: 'lux_daily',
- smallIcon: 'ic_stat_matrix', // Need to add this resource later
+ smallIcon: 'ic_stat_lux', // The Lux Logo
  actionTypeId: 'OPEN_APP'
  };
  });
@@ -294,7 +294,7 @@ export const notificationService = {
  allowWhileIdle: true
  },
  channelId: 'lux_daily',
- smallIcon: 'ic_stat_matrix',
+ smallIcon: 'ic_stat_lux',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
@@ -355,7 +355,7 @@ export const notificationService = {
  allowWhileIdle: true
  },
  channelId: 'lux_daily',
- smallIcon: 'ic_stat_matrix',
+ smallIcon: 'ic_stat_lux',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
@@ -408,7 +408,7 @@ export const notificationService = {
  body: title,
  schedule: { at: dueDate, allowWhileIdle: true },
  channelId: 'lux_daily',
- smallIcon: 'ic_stat_matrix',
+ smallIcon: 'ic_stat_lux',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }]
@@ -441,6 +441,8 @@ export const notificationService = {
  id: 999,
  schedule: { at: new Date(Date.now() + 1000 * 5) }, // 5 sec delay
  sound: 'beep.wav',
+ smallIcon: 'ic_stat_lux',
+ iconColor: '#a855f7',
  attachments: [],
  actionTypeId: '',
  extra: null
@@ -475,7 +477,7 @@ export const notificationService = {
   id: numericId,
   schedule: { at: date, allowWhileIdle: true },
   sound: 'beep.wav',
-  smallIcon: 'ic_stat_cake', // Idealmente tener un icono de pastel
+  smallIcon: 'ic_stat_lux',
   iconColor: color || '#ec4899',
   actionTypeId: '',
   extra: { type: 'EVENT', originalId: id }

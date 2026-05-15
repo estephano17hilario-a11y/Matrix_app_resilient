@@ -343,6 +343,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           <AnimatePresence>
           {isExpanded && (
             <motion.div 
+                key="expanded-content"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}

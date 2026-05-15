@@ -181,10 +181,10 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  >
  {/* Background Effects */}
  <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm " />
+ <div className="absolute inset-0 bg-[#050505]/90" />
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent" />
- <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-pink-500/10 blur-sm will-change-transform opacity-40" />
-<div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-sm will-change-transform opacity-40" />
+ <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,_rgba(236,72,153,0.1)_0%,_transparent_70%)] will-change-transform opacity-40" />
+                            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,_rgba(168,85,247,0.1)_0%,_transparent_70%)] will-change-transform opacity-40" />
  </div>
 
  {/* Scrollable Container for both Header and Content */}
@@ -217,7 +217,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  )}
  <button 
  onClick={onClose}
- className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 backdrop-blur-sm shadow-sm"
+ className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors border border-white/5 shadow-sm"
  >
  <X size={20} className="sm:w-6 sm:h-6" />
  </button>
@@ -229,7 +229,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  {events.length === 0 ? (
  <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-60">
  <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5 animate-pulse relative shadow-[0_0_40px_rgba(236,72,153,0.1)]">
- <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-500/20 to-transparent blur-sm will-change-transform opacity-50" />
+ <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,_rgba(236,72,153,0.2)_0%,_transparent_70%)] will-change-transform opacity-50" />
  <Calendar size={64} className="text-white/20 relative z-10" />
  </div>
  <div>
@@ -284,7 +284,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  </button>
  <button 
  onClick={(e) => { e.stopPropagation(); handleDeleteEvent(event.id); }}
- className="p-2.5 rounded-full bg-black/50 text-red-400 hover:bg-red-500/20 transition-colors backdrop-blur-sm border border-white/5"
+ className="p-2.5 rounded-full bg-black/80 text-red-400 hover:bg-red-500/20 transition-colors border border-white/5"
  >
  <Trash2 size={16} />
  </button>
@@ -298,7 +298,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
 
  {/* Ambient light from bottom right (replaces the hard circle) */}
  <div 
- className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-sm will-change-transform opacity-20 group-hover:opacity-40 transition-opacity duration-200 pointer-events-none"
+ className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[radial-gradient(circle,_var(--tw-gradient-stops))] will-change-transform opacity-20 group-hover:opacity-40 transition-opacity duration-200 pointer-events-none"
  style={{ backgroundColor: EVENT_TYPES[event.type].color }}
  />
  

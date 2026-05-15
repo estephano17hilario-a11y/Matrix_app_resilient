@@ -78,7 +78,7 @@ export const LiquidProgressBar: React.FC<LiquidProgressBarProps> = ({
  <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
  
  {/* The "Head" Glow */}
- <div className="absolute right-0 top-0 h-full w-3 bg-gradient-to-l from-white/40 to-transparent blur-sm rounded-r-full" />
+ <div className="absolute right-0 top-0 h-full w-3 bg-[linear-gradient(to_left,_rgba(255,255,255,0.4),_transparent)] rounded-r-full" />
  </motion.div>
  </div>
  </div>

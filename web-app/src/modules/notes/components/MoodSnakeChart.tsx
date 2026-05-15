@@ -149,7 +149,7 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                 <svg 
                     width={WIDTH}
                     height={CHART_HEIGHT}
-                    className="overflow-visible"
+                    className="overflow-visible pointer-events-none"
                 >
                     <defs>
                         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">

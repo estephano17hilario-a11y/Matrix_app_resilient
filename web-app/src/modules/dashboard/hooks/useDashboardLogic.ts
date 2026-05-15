@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
+import { Trophy } from 'lucide-react';
 import { checkAchievements } from '@/services/achievementListener';
 import { Achievement } from '@/config/achievements';
 import { Flame, Star, Skull, Trash2, AlertTriangle, Check, Infinity as InfinityIcon, Sparkles } from 'lucide-react';
@@ -16,6 +17,7 @@ import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
+import { BackupService } from '@/services/backupService';
 
 import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
@@ -159,7 +161,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), showProfile: show };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save show profile preference", e);
             }
         }
@@ -173,7 +175,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), defaultChartMode: mode };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save default chart mode", e);
             }
         }
@@ -209,7 +211,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...currentPrefs, dashboardStyle: style };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save dashboard style", e);
             }
         }
@@ -222,7 +224,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), avatarShape: shape };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save avatar shape", e);
             }
         }
@@ -235,7 +237,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), habitSectionControl: control };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save habit section control", e);
             }
         }
@@ -248,7 +250,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), defaultHabitView: view };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save default habit view", e);
             }
         }
@@ -261,7 +263,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), allowDockSectionSwitch: allow };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save allow dock section switch", e);
             }
         }
@@ -274,7 +276,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), dockConfig: config };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save dock config", e);
             }
         }
@@ -288,7 +290,7 @@ export const useDashboardLogic = () => {
                 const newPrefs = { ...(user.preferences || {}), weekStartDay: day };
                 updateProfileLocally({ preferences: newPrefs });
                 await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to save week start day", e);
             }
         }
@@ -849,7 +851,7 @@ export const useDashboardLogic = () => {
                 try {
                     
                     console.log("[DAILY RESET] Batch committed successfully.");
-                } catch (e) {
+                } catch (e: any) {
                     console.error("[DAILY RESET] Failed (Background Sync will handle it):", e);
                 }
             }
@@ -914,12 +916,30 @@ export const useDashboardLogic = () => {
                     
                     const newAchievements = await checkAchievements(hybridUser, attributes);
                     if (newAchievements.length > 0) {
-                        // Queue achievements if multiple were unlocked
-                        newAchievements.forEach((ach, index) => {
+                        // Si hay muchos logros de golpe, probablemente sea una sincronización 
+                        // de cuenta antigua en un nuevo dispositivo. Los guardamos pero no spameamos.
+                        if (newAchievements.length > 3) {
+                            console.log("⚡ MATRIX: Catch-up de logros detectado. Silenciando notificaciones.");
+                            // Podríamos mostrar un solo toast consolidado
                             setTimeout(() => {
-                                setLastAchievement(ach);
-                            }, index * 4500); // 4s toast + 0.5s gap
-                        });
+                                setLastAchievement({
+                                    id: 'catchup_sync',
+                                     title: 'Sincronización de Logros',
+                                     description: `Se han restaurado ${newAchievements.length} logros de tu perfil.`,
+                                     icon: Trophy,
+                                     xpReward: 0,
+                                     category: 'SYSTEM' as any,
+                                     condition: () => true
+                                });
+                            }, 1000);
+                        } else {
+                            // Queue achievements normally
+                            newAchievements.forEach((ach, index) => {
+                                setTimeout(() => {
+                                    setLastAchievement(ach);
+                                }, index * 4500); // 4s toast + 0.5s gap
+                            });
+                        }
                     }
                 } finally {
                     processingAchievements.current = false;
@@ -1009,200 +1029,201 @@ export const useDashboardLogic = () => {
 
         if (!isOnline) return;
 
-        const currentTTL = hasSyncedCollectionsRef.current ? COLLECTION_SYNC_TTL : 0;
+        const hasSynced = hasSyncedCollectionsRef.current;
+        const currentTTL = hasSynced ? COLLECTION_SYNC_TTL : 0;
 
-        // Auto Backup Check
-        if (!hasSyncedCollectionsRef.current) {
-            persistenceService.settings.get(uid).then(async settings => {
-                if (settings?.autoBackupEnabled) {
-                    try {
-                        const { supabase } = await import('../../../services/supabase');
-                        const { data } = await supabase.from('user_collections').select('data').eq('id', `backup_${uid}`).limit(1);
-                        const lastBackup = data?.[0]?.data?.timestamp || 0;
-                        const DAY_MS = 24 * 60 * 60 * 1000;
-                        if (Date.now() - lastBackup > DAY_MS) {
-                            const { BackupService } = await import('../../../services/backupService');
-                            await BackupService.createCloudBackup(uid);
-                            console.log("☁️ MATRIX: Auto Cloud Backup performed.");
-                        }
-                    } catch (e) {
-                        console.error("Auto Backup failed", e);
-                    }
-                }
-            });
-        }
-
-        if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
-            projectService.getUserProjects(uid).then(projects => {
-                if (!projects) return;
-                const cached = PersistenceService.getCollection<Project>(uid, 'projects');
-                if (projects.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(p => persistenceService.projects.save(uid, p));
-                    return;
-                }
-                let merged: Project[] = [];
-                let canSave = false;
-                setProjects(prev => {
-                    merged = mergeProjects(prev, projects);
-                    if (merged.length < prev.length) {
-                        canSave = false;
-                        return prev;
-                    }
-                    canSave = true;
-                    return merged;
-                });
-                if (canSave) {
-                    saveProjectsCache(uid, merged);
-                }
-                projectsHydratedRef.current = true;
-            });
-        }
-
-        if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
-            persistenceService.quests.getAll(uid).then(quests => {
-                if (!quests) return;
-                const cached = PersistenceService.getCollection<Quest>(uid, 'quests');
-                if (quests.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(q => persistenceService.quests.save(uid, q));
-                    return;
-                }
-                setQuests(quests);
-                PersistenceService.saveCollection(uid, 'quests', quests);
-                questsHydratedRef.current = true;
-            });
-        }
-
-        if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', currentTTL)) {
-            persistenceService.habits.getAll(uid).then(h => {
-                if (!h) return;
-                
-                const cached = PersistenceService.getCollection<Habit>(uid, 'habits');
-                if (h.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(habit => persistenceService.habits.save(uid, habit));
-                    return;
-                }
-
-                // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
-                const now = Date.now();
-                let hasFixes = false;
-                const sanitizedHabits = h.map(habit => {
-                    if (!habit.createdAt) {
-                        hasFixes = true;
-                        // Infer creation date:
-                        // 1. First history entry (if exists)
-                        // 2. NOW (if no history) -> This fixes the "New Habit breaks Yesterday Stats" bug
-                        let inferredTime = now;
-                        if (habit.history && habit.history.length > 0) {
-                             const dates = habit.history.map(d => new Date(d).getTime());
-                             const minDate = Math.min(...dates);
-                             if (!isNaN(minDate)) inferredTime = minDate;
-                        }
-                        
-                        // Update in Firestore immediately to persist the fix
-                        persistenceService.habits.update(uid, habit.id, { createdAt: inferredTime });
-                        
-                        return { ...habit, createdAt: inferredTime };
-                    }
-                    return habit;
-                });
-
-                if (hasFixes) {
-                    // Force a cache refresh if we fixed anything
-                    PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
-                }
-
-                setHabits(sanitizedHabits);
-                setAreHabitsLoaded(true);
-                PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
-            });
-        }
-
-        if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
-            persistenceService.badHabits.getAll(uid).then(items => {
-                if (!items) return;
-                const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
-                if (items.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(bh => persistenceService.badHabits.save(uid, bh));
-                    return;
-                }
-                setBadHabits(items);
-                PersistenceService.saveCollection(uid, 'badHabits', items);
-                badHabitsHydratedRef.current = true;
-            });
-        }
-
-        if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
-            persistenceService.smartProjects.getAll(uid).then(items => {
-                if (!items) return;
-                const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
-                if (items.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(sp => persistenceService.smartProjects.save(uid, sp));
-                    return;
-                }
-                setSmartProjects(items);
-                PersistenceService.saveCollection(uid, 'smartProjects', items);
-                smartProjectsHydratedRef.current = true;
-            });
-        }
-
-        if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
-            persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
-                if (!fetchedAttrs) return;
-                
-                const cached = PersistenceService.getCollection<Attribute>(uid, 'attributes');
-                if (fetchedAttrs.length === 0 && cached && cached.length > 0) {
-                    cached.forEach(a => persistenceService.attributes.save(uid, a));
-                    return;
-                }
-                
-                // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
-                try {
-                    const fbAttrs = await persistenceService.attributes.getAll(uid) || [];
-                    
-                    // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, 
-                    // but Firebase takes precedence for XP/Level if it's higher)
-                    const mergedMap = new Map<string, Attribute>();
-                    fbAttrs.forEach((a: Attribute) => mergedMap.set(a.id, a));
-                    fetchedAttrs.forEach(a => {
-                        const existing = mergedMap.get(a.id);
-                        if (!existing) {
-                            mergedMap.set(a.id, a);
-                        } else {
-                            // Supabase has it, Firebase has it.
-                            // Keep Supabase metadata, but take the highest XP/Level
-                            const fbTotalXp = existing.xp + (existing.level * 1000);
-                            const supaTotalXp = a.xp + (a.level * 1000);
-                            
-                            if (fbTotalXp > supaTotalXp) {
-                                mergedMap.set(a.id, { ...a, xp: existing.xp, level: existing.level, maxXp: existing.maxXp });
-                            } else {
-                                mergedMap.set(a.id, a);
+        // 🚀 PERFORMANCE: Delay the initial sync on cold boot to let the UI breathe
+        const performSync = () => {
+            // Auto Backup Check
+            if (!hasSynced) {
+                persistenceService.settings.get(uid).then(async settings => {
+                    if (settings?.autoBackupEnabled) {
+                        try {
+                            const { supabase } = await import('../../../services/supabase');
+                            const { data } = await supabase.from('user_collections').select('data').eq('id', `backup_${uid}`).limit(1);
+                            const lastBackup = data?.[0]?.data?.timestamp || 0;
+                            const DAY_MS = 24 * 60 * 60 * 1000;
+                            if (Date.now() - lastBackup > DAY_MS) {
+                                await BackupService.createCloudBackup(uid);
+                                console.log("☁️ MATRIX: Auto Cloud Backup performed.");
                             }
+                        } catch (e: any) {
+                            console.error("Auto Backup failed", e);
                         }
-                    });
-                    
-                    const merged = Array.from(mergedMap.values());
-                    hydrateAttributes(merged);
-                    const attrsForCache = merged.map(({ icon, ...rest }) => rest);
-                    PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
-                    
-                    // Auto-migrate to Supabase to heal the split brain permanently
-                    fbAttrs.forEach((fbAttr: Attribute) => {
-                        const supaAttr = fetchedAttrs.find(sa => sa.id === fbAttr.id);
-                        if (!supaAttr || (fbAttr.xp + (fbAttr.level * 1000)) > (supaAttr.xp + (supaAttr.level * 1000))) {
-                            persistenceService.attributes.save(uid, fbAttr);
+                    }
+                });
+            }
+
+            if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
+                projectService.getUserProjects(uid).then(projects => {
+                    if (!projects) return;
+                    if (projects.length === 0 && cached && cached.length > 0) {
+                        // Trust Supabase: if it's empty, user has no projects.
+                        // setProjects([]); // This will happen via the next lines anyway
+                    }
+                    let merged: Project[] = [];
+                    let canSave = false;
+                    setProjects(prev => {
+                        merged = mergeProjects(prev, projects);
+                        if (merged.length < prev.length) {
+                            canSave = false;
+                            return prev;
                         }
+                        canSave = true;
+                        return merged;
                     });
-                } catch (e) {
-                    console.error("Failed to fetch Firebase attributes fallback", e);
-                    hydrateAttributes(fetchedAttrs);
-                    const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
-                    PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
-                }
-            });
+                    if (canSave) {
+                        saveProjectsCache(uid, merged);
+                    }
+                    projectsHydratedRef.current = true;
+                });
+            }
+
+            if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
+                persistenceService.quests.getAll(uid).then(quests => {
+                    if (!quests) return;
+                    // Supabase is the source of truth. If it returns an empty array,
+                    // the user has no quests (respect deletions). Do NOT re-upload from cache.
+                    setQuests(quests);
+                    PersistenceService.saveCollection(uid, 'quests', quests);
+                    questsHydratedRef.current = true;
+                });
+            }
+
+            if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', currentTTL)) {
+                persistenceService.habits.getAll(uid).then(h => {
+                    if (!h) return;
+                    
+                    if (h.length === 0 && cached && cached.length > 0) {
+                        // Trust Supabase: if it's empty, user has no habits.
+                    }
+
+                    // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
+                    const now = Date.now();
+                    let hasFixes = false;
+                    const sanitizedHabits = h.map(habit => {
+                        if (!habit.createdAt) {
+                            hasFixes = true;
+                            // Infer creation date:
+                            // 1. First history entry (if exists)
+                            // 2. NOW (if no history) -> This fixes the "New Habit breaks Yesterday Stats" bug
+                            let inferredTime = now;
+                            if (habit.history && habit.history.length > 0) {
+                                 const dates = habit.history.map(d => new Date(d).getTime());
+                                 const minDate = Math.min(...dates);
+                                 if (!isNaN(minDate)) inferredTime = minDate;
+                            }
+                            
+                            // Update in Firestore immediately to persist the fix
+                            persistenceService.habits.update(uid, habit.id, { createdAt: inferredTime });
+                            
+                            return { ...habit, createdAt: inferredTime };
+                        }
+                        return habit;
+                    });
+
+                    if (hasFixes) {
+                        // Force a cache refresh if we fixed anything
+                        PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
+                    }
+
+                    setHabits(sanitizedHabits);
+                    setAreHabitsLoaded(true);
+                    PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
+                });
+            }
+
+            if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
+                persistenceService.badHabits.getAll(uid).then(items => {
+                    if (!items) return;
+                    const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
+                    if (items.length === 0 && cached && cached.length > 0) {
+                         // Trust Supabase
+                    }
+                    setBadHabits(items);
+                    PersistenceService.saveCollection(uid, 'badHabits', items);
+                    badHabitsHydratedRef.current = true;
+                });
+            }
+
+            if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
+                persistenceService.smartProjects.getAll(uid).then(items => {
+                    if (!items) return;
+                    const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
+                    if (items.length === 0 && cached && cached.length > 0) {
+                        // Trust Supabase
+                    }
+                    setSmartProjects(items);
+                    PersistenceService.saveCollection(uid, 'smartProjects', items);
+                    smartProjectsHydratedRef.current = true;
+                });
+            }
+
+            if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
+                persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
+                    if (!fetchedAttrs) return;
+                    
+                    const cached = PersistenceService.getCollection<Attribute>(uid, 'attributes');
+                    if (fetchedAttrs.length === 0 && cached && cached.length > 0) {
+                        // Trust Supabase
+                    }
+                    
+                    // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
+                    try {
+                        const fbAttrs = await persistenceService.attributes.getAll(uid) || [];
+                        
+                        // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, 
+                        // but Firebase takes precedence for XP/Level if it's higher)
+                        const mergedMap = new Map<string, Attribute>();
+                        fbAttrs.forEach((a: Attribute) => mergedMap.set(a.id, a));
+                        fetchedAttrs.forEach(a => {
+                            const existing = mergedMap.get(a.id);
+                            if (!existing) {
+                                mergedMap.set(a.id, a);
+                            } else {
+                                // Supabase has it, Firebase has it.
+                                // Keep Supabase metadata, but take the highest XP/Level
+                                const fbTotalXp = existing.xp + (existing.level * 1000);
+                                const supaTotalXp = a.xp + (a.level * 1000);
+                                
+                                if (fbTotalXp > supaTotalXp) {
+                                    mergedMap.set(a.id, { ...a, xp: existing.xp, level: existing.level, maxXp: existing.maxXp });
+                                } else {
+                                    mergedMap.set(a.id, a);
+                                }
+                            }
+                        });
+                        
+                        const merged = Array.from(mergedMap.values());
+                        hydrateAttributes(merged);
+                        const attrsForCache = merged.map(({ icon, ...rest }) => rest);
+                        PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
+                        
+                        // Auto-migrate to Supabase to heal the split brain permanently
+                        fbAttrs.forEach((fbAttr: Attribute) => {
+                            const supaAttr = fetchedAttrs.find(sa => sa.id === fbAttr.id);
+                            if (!supaAttr || (fbAttr.xp + (fbAttr.level * 1000)) > (supaAttr.xp + (supaAttr.level * 1000))) {
+                                persistenceService.attributes.save(uid, fbAttr);
+                            }
+                        });
+                    } catch (e: any) {
+                        console.error("Failed to fetch Firebase attributes fallback", e);
+                        hydrateAttributes(fetchedAttrs);
+                        const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
+                        PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
+                    }
+                });
+            }
+            
+            hasSyncedCollectionsRef.current = true;
+        };
+
+        if (hasSynced) {
+            performSync();
+        } else {
+            // First load: delay network sync by 2.5s so the UI can finish mounting and animating
+            setTimeout(performSync, 2500);
         }
-        
-        hasSyncedCollectionsRef.current = true;
     }, [user?.id]);
 
     useEffect(() => {
@@ -1502,7 +1523,7 @@ export const useDashboardLogic = () => {
             });
 
             
-        } catch (e) {
+        } catch (e: any) {
             console.error("[TRAIT] Failed to remove/archive trait", e);
         }
     };
@@ -1861,7 +1882,7 @@ export const useDashboardLogic = () => {
                         icon: Flame, 
                         color: '#f97316' // Orange-500
                     });
-                } catch (e) {
+                } catch (e: any) {
                     console.error("Failed to activate streak:", e);
                 } finally {
                     isActivatingStreak.current = false;
@@ -1906,6 +1927,8 @@ export const useDashboardLogic = () => {
     const updateAttributeXp = useCallback((attrId: string, amount: number) => {
         if (!user?.id || user.isSkeleton) return;
         
+        let updatedAttrData: any = null;
+
         // Optimistic update for quick UI feedback
         setAttributes(prev => {
             const attrIndex = prev.findIndex(a => a.id === attrId);
@@ -1931,13 +1954,17 @@ export const useDashboardLogic = () => {
                 if (newLevel === 1 && newXp < 0) newXp = 0;
             }
             
+            updatedAttrData = { id: attr.id, xp: newXp, level: newLevel, maxXp: newMaxXp };
+
             const next = [...prev];
             next[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
             return next;
         });
         
         // SAVE TO FIRESTORE ATOMICALLY
-        TransactionService.updateAttributeXpAtomic(user.id, attrId, amount);
+        if (updatedAttrData) {
+            TransactionService.updateAttributeXpAtomic(user.id, updatedAttrData);
+        }
     }, [user?.id, user?.isSkeleton]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
@@ -2118,6 +2145,8 @@ export const useDashboardLogic = () => {
         // Minimum Reward for any valid session > 0.1 min (6 seconds)
         if (finalRewardableMinutes >= 0.1) {
             if (finalXp < 1) finalXp = 1;
+            // The issue is gold and TP might not be given for short sessions if hourly rates are low.
+            // Ensure minimums if duration is at least 1 minute or manually set.
             if (finalGold < 1) finalGold = 1;
             if (finalTP < 1) finalTP = 1;
         }
@@ -2263,7 +2292,10 @@ export const useDashboardLogic = () => {
             }
             setDailyLimits(newLimits);
 
-            let traitUpdate = undefined;
+            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
+            setPlayer(newPlayerStats);
+
+            let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
             if (attrId) {
                 const attrIndex = attributes.findIndex(a => a.id === attrId);
                 if (attrIndex !== -1) {
@@ -2282,15 +2314,16 @@ export const useDashboardLogic = () => {
                     setAttributes(prev => prev.map(a => 
                         a.id === attrId ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
                     ));
-                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel };
+                    const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
+                    triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
                 }
             }
 
-            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
-            setPlayer(newPlayerStats);
-
-            if (totalXp > 0 || totalGold > 0) {
-                triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, traitUpdate);
+            if (!attrId || attributes.findIndex(a => a.id === attrId) === -1) {
+                if (totalXp > 0 || totalGold > 0 || totalTP > 0) {
+                    triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, undefined);
+                }
             }
 
             TransactionService.logFocusSession(
@@ -2299,7 +2332,7 @@ export const useDashboardLogic = () => {
                 totalXp, 
                 totalGold, 
                 totalTP, 
-                attrId,
+                traitUpdate || null,
                 isNewDay,
                 newLevel,
                 newNextXp
@@ -2352,13 +2385,8 @@ export const useDashboardLogic = () => {
         let goldReward = (rewardableMinutes * hourlyGold) / 60;
         let tpReward = (rewardableMinutes * hourlyTP) / 60;
 
-        // Apply Project Impact Multiplier
-        const multiplier = 1; // targetProj.impact || 1;
-        xpReward *= multiplier;
-        goldReward *= multiplier;
-        tpReward *= multiplier;
-
-        // Rounding
+        // PER USER REQUEST: Strictly 20/25/17. No impact multipliers. No completion bonuses.
+        
         let finalXp = Math.round(xpReward);
         let finalGold = Math.round(goldReward);
         let finalTP = Math.round(tpReward);
@@ -2368,41 +2396,16 @@ export const useDashboardLogic = () => {
         finalGold = Math.max(0, finalGold);
         finalTP = Math.max(0, finalTP);
 
-        // --- DAILY GOAL COMPLETION BONUS ---
-        let bonusXp = 0;
-        let bonusGold = 0;
-        let bonusTP = 0;
-
-        if (targetProj && targetProj.goalTarget > 0) {
-            const sessionDateObj = new Date(sessionDate || new Date().toISOString());
-            const targetDateStr = sessionDateObj.toDateString();
-            
-            const sessionsOnDate = (targetProj.sessions || []).filter(s => {
-                 const d = new Date(s.date);
-                 return d.toDateString() === targetDateStr;
-            });
-            
-            const previousDurationSeconds = sessionsOnDate.reduce((acc, s) => acc + (s.duration || 0), 0);
-            const newDurationSeconds = previousDurationSeconds + durationSeconds;
-            
-            const goalSeconds = targetProj.goalTarget * 60;
-            
-            if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
-                const prediction = calculateTaskRewards(targetProj.goalTarget, targetProj.impact || 1, 0, 'PROJECT');
-                
-                // PER USER REQUEST: We give the FULL predicted amount as the completion bonus, 
-                // instead of subtracting the base time part.
-                bonusXp = Math.max(0, prediction.xp);
-                bonusGold = Math.max(0, prediction.coins);
-                bonusTP = Math.max(0, prediction.traitXp);
-                
-                console.log(`🎉 [MANUAL DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
-            }
+        // Minimum Reward for any valid manual session >= 1 min
+        if (rewardableMinutes >= 1) {
+            if (finalXp < 1) finalXp = 1;
+            if (finalGold < 1) finalGold = 1;
+            if (finalTP < 1) finalTP = 1;
         }
 
-        const totalXp = finalXp + bonusXp;
-        const totalGold = finalGold + bonusGold;
-        const totalTP = finalTP + bonusTP;
+        const totalXp = finalXp;
+        const totalGold = finalGold;
+        const totalTP = finalTP;
 
         const rawMinutes = safeMinutes;
         const rawXp = Math.round((rawMinutes * hourlyXp) / 60);
@@ -2468,7 +2471,10 @@ export const useDashboardLogic = () => {
             }
             setDailyLimits(newLimits);
 
-            let traitUpdate = undefined;
+            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
+            setPlayer(newPlayerStats);
+
+            let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
             if (targetProj.attribute) {
                 const attrIndex = attributes.findIndex(a => a.id === targetProj.attribute);
                 if (attrIndex !== -1) {
@@ -2487,17 +2493,20 @@ export const useDashboardLogic = () => {
                     setAttributes(prev => prev.map(a => 
                         a.id === targetProj.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
                     ));
-                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel };
+                    const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
+                    triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
                 }
             }
 
-            const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
-            setPlayer(newPlayerStats);
-
-            if (totalXp > 0 || totalGold > 0) {
-                triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, traitUpdate);
-            } else if (durationSeconds > 0) {
-                 addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: 'No XP', icon: Check, color: '#10b981' });
+            if (!targetProj.attribute || attributes.findIndex(a => a.id === targetProj.attribute) === -1) {
+                if (totalXp > 0 || totalGold > 0 || totalTP > 0) {
+                    triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, undefined);
+                } else if (durationSeconds > 0) {
+                     addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: 'No XP', icon: Check, color: '#10b981' });
+                }
+            } else if (totalXp === 0 && totalGold === 0 && totalTP === 0 && durationSeconds > 0) {
+                addNotification({ type: 'SYSTEM', label: 'SESSION SAVED', fromLevel: Math.floor(durationSeconds/60) + 'm', toLevel: 'No XP', icon: Check, color: '#10b981' });
             }
 
             TransactionService.logFocusSession(
@@ -2506,7 +2515,7 @@ export const useDashboardLogic = () => {
                 totalXp,
                 totalGold,
                 totalTP,
-                targetProj.attribute || null,
+                traitUpdate || null,
                 isNewDay,
                 newLevel,
                 newNextXp
@@ -2547,14 +2556,13 @@ export const useDashboardLogic = () => {
              const hourlyGold = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.COINS;
              const hourlyTP = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.TP;
 
-             let calcXp = Math.round((rewardableMinutes * hourlyXp) / 60);
-             let calcGold = Math.round((rewardableMinutes * hourlyGold) / 60);
-             let calcTP = Math.round((rewardableMinutes * hourlyTP) / 60);
+             let calcXp = (rewardableMinutes * hourlyXp) / 60;
+             let calcGold = (rewardableMinutes * hourlyGold) / 60;
+             let calcTP = (rewardableMinutes * hourlyTP) / 60;
              
-             const multiplier = project.impact || 1;
-             calcXp = Math.floor(calcXp * multiplier);
-             calcGold = Math.floor(calcGold * multiplier);
-            calcTP = Math.floor(calcTP * multiplier);
+             calcXp = Math.round(calcXp);
+             calcGold = Math.round(calcGold);
+             calcTP = Math.round(calcTP);
              
              // Min 1 if duration > 1m (Consistent with Creation)
             if (rewardableMinutes >= 1) {
@@ -2620,14 +2628,26 @@ export const useDashboardLogic = () => {
             }
             setDailyLimits(newLimits);
 
+            let traitUpdate = undefined;
             if (project.attribute) {
                 const attrIndex = attributes.findIndex(a => a.id === project.attribute);
                 if (attrIndex !== -1) {
                     const attr = attributes[attrIndex];
-                    let newAttrXp = Math.max(0, attr.xp + rTP);
+                    let newAttrXp = attr.xp + rTP;
+                    let newAttrLevel = attr.level;
+                    let newAttrMaxXp = attr.maxXp;
+
+                    while (newAttrXp < 0 && newAttrLevel > 1) {
+                        newAttrLevel -= 1;
+                        newAttrMaxXp = Math.floor(newAttrMaxXp / 1.2); 
+                        newAttrXp += newAttrMaxXp;
+                    }
+                    if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
+
                     setAttributes(prev => prev.map(a => 
-                        a.id === project.attribute ? { ...a, xp: newAttrXp } : a
+                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
                     ));
+                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                 }
             }
 
@@ -2639,7 +2659,7 @@ export const useDashboardLogic = () => {
                 rXp, 
                 rGold, 
                 rTP, 
-                project.attribute || null,
+                traitUpdate || null,
                 isNewDay,
                 newLevel,
                 newNextXp
@@ -2688,21 +2708,22 @@ export const useDashboardLogic = () => {
         const rewardableMinutes = newDurationSeconds / 60;
         
         // Calculate Raw New Rewards
-        let rawXp = Math.round((rewardableMinutes * hourlyXp) / 60);
-        let rawGold = Math.round((rewardableMinutes * hourlyGold) / 60);
-        let rawTP = Math.round((rewardableMinutes * hourlyTP) / 60);
+        let rawXp = (rewardableMinutes * hourlyXp) / 60;
+        let rawGold = (rewardableMinutes * hourlyGold) / 60;
+        let rawTP = (rewardableMinutes * hourlyTP) / 60;
+
+        let finalXp = Math.round(rawXp);
+        let finalGold = Math.round(rawGold);
+        let finalTP = Math.round(rawTP);
 
         // Min 1 if duration > 1m
         if (rewardableMinutes >= 1) {
-            rawXp = Math.max(1, rawXp);
-            rawGold = Math.max(1, rawGold);
-            rawTP = Math.max(1, rawTP);
+            finalXp = Math.max(1, finalXp);
+            finalGold = Math.max(1, finalGold);
+            finalTP = Math.max(1, finalTP);
         }
 
         // Time is capped, so rewards are implicitly capped by time.
-        let finalXp = rawXp;
-        let finalGold = rawGold;
-        let finalTP = rawTP;
 
         // 4. Calculate Deltas
         const oldXp = session.xpEarned || 0;
@@ -2769,26 +2790,47 @@ export const useDashboardLogic = () => {
             }
             setDailyLimits(newLimits);
 
+            let traitUpdate = undefined;
             if (project.attribute) {
                 const attrIndex = attributes.findIndex(a => a.id === project.attribute);
                 if (attrIndex !== -1) {
                     const attr = attributes[attrIndex];
-                    let newAttrXp = Math.max(0, attr.xp + tpDiff);
+                    let newAttrXp = attr.xp + tpDiff;
+                    let newAttrLevel = attr.level;
+                    let newAttrMaxXp = attr.maxXp;
+
+                    if (tpDiff > 0) {
+                        while (newAttrXp >= newAttrMaxXp) {
+                            newAttrXp -= newAttrMaxXp;
+                            newAttrLevel += 1;
+                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                        }
+                    } else {
+                        while (newAttrXp < 0 && newAttrLevel > 1) {
+                            newAttrLevel -= 1;
+                            newAttrMaxXp = Math.floor(newAttrMaxXp / 1.2); 
+                            newAttrXp += newAttrMaxXp;
+                        }
+                        if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
+                    }
+
                     setAttributes(prev => prev.map(a => 
-                        a.id === project.attribute ? { ...a, xp: newAttrXp } : a
+                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
                     ));
+                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                 }
             }
 
             setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + goldDiff), level: newLevel, nextXp: newNextXp }));
 
-            if (xpDiff !== 0 || goldDiff !== 0) {
+            if (xpDiff !== 0 || goldDiff !== 0 || tpDiff !== 0) {
                  triggerReward(
                     'Session Adjusted', 
                     xpDiff, 
                     goldDiff, 
                     { xp: newXp, level: newLevel, gold: Math.max(0, player.gold + goldDiff) }, 
-                    { level: player.level }
+                    { level: player.level },
+                    traitUpdate ? { ...traitUpdate, name: attributes.find(a => a.id === project.attribute)?.label || '', oldLevel: attributes.find(a => a.id === project.attribute)?.level || 1, gained: tpDiff } : undefined
                  );
             }
 
@@ -2798,7 +2840,7 @@ export const useDashboardLogic = () => {
                 xpDiff,
                 goldDiff,
                 tpDiff,
-                project.attribute || null,
+                traitUpdate || null,
                 isNewDay,
                 newLevel,
                 newNextXp
@@ -3172,13 +3214,14 @@ export const useDashboardLogic = () => {
                 isNewDay,
                 newLevel,
                 newNextXp,
-                quest.attribute,
-                spawnedQuest
+                traitUpdate,
+                spawnedQuest,
+                newQuest  // Pass full quest object to avoid partial-update data loss
             ).catch(e => {
                 console.error("Failed to sync quest (Transaction)", e);
             });
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to process quest", e);
         }
 
@@ -3368,6 +3411,26 @@ export const useDashboardLogic = () => {
                 const newLevel = calculateLevelFromXp(newXp);
                 const newNextXp = calculateNextLevelXp(newLevel);
 
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                if (habit.attribute) {
+                    const attrIndex = attributes.findIndex(a => a.id === habit.attribute);
+                    if (attrIndex !== -1) {
+                        const attr = attributes[attrIndex];
+                        let newAttrXp = attr.xp + rewards.rewardTraitXp;
+                        let newAttrLevel = attr.level;
+                        let newAttrMaxXp = attr.maxXp;
+    
+                        if (rewards.rewardTraitXp > 0) {
+                            while (newAttrXp >= newAttrMaxXp) {
+                                newAttrXp -= newAttrMaxXp;
+                                newAttrLevel += 1;
+                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            }
+                        }
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                    }
+                }
+
                 await TransactionService.toggleHabitCompletion(
                     user.id,
                     habit.id,
@@ -3387,10 +3450,10 @@ export const useDashboardLogic = () => {
                     isNewDay,
                     newLevel,
                     newNextXp,
-                    habit.attribute
+                    traitUpdate
                 );
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("❌ HABIT ATOMIC SYNC FAILED:", err);
         }
     }, [user, habits, applyHabitRewards, spawnParticles, dailyLimits.date, player.xp]);
@@ -3448,6 +3511,26 @@ export const useDashboardLogic = () => {
                 const newLevel = calculateLevelFromXp(newXp);
                 const newNextXp = calculateNextLevelXp(newLevel);
 
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                if (validationHabit.attribute) {
+                    const attrIndex = attributes.findIndex(a => a.id === validationHabit.attribute);
+                    if (attrIndex !== -1) {
+                        const attr = attributes[attrIndex];
+                        let newAttrXp = attr.xp + rewards.rewardTraitXp;
+                        let newAttrLevel = attr.level;
+                        let newAttrMaxXp = attr.maxXp;
+    
+                        if (rewards.rewardTraitXp > 0) {
+                            while (newAttrXp >= newAttrMaxXp) {
+                                newAttrXp -= newAttrMaxXp;
+                                newAttrLevel += 1;
+                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            }
+                        }
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                    }
+                }
+
                 // Use Atomic Transaction for consistency
                 TransactionService.toggleHabitCompletion(
                     user.id,
@@ -3469,7 +3552,7 @@ export const useDashboardLogic = () => {
                     isNewDay,
                     newLevel,
                     newNextXp,
-                    validationHabit.attribute
+                    traitUpdate
                 );
             } else {
                 persistenceService.habits.update(user.id, validationHabit.id, { 
@@ -3515,7 +3598,7 @@ export const useDashboardLogic = () => {
                 if (!isNaN(deadlineDate.getTime())) {
                     notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate, quest.color || undefined);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.warn("Failed to schedule task notification:", e);
             }
         }
@@ -3670,7 +3753,7 @@ export const useDashboardLogic = () => {
                     await supabase.from('users').update({
                         'dailyLimits.habitsCompleted': newCount
                     });
-                } catch (e) {
+                } catch (e: any) {
                     console.error("Failed to update daily limits on archive", e);
                 }
             }
@@ -3788,8 +3871,8 @@ export const useDashboardLogic = () => {
                 // Optimistic UI updates
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rewardGold), level: newLevel, nextXp: newNextXp }));
                 
-                // Apply Attribute Stats
-                let traitUpdate: any = undefined;
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                let rewardTraitUpdate: any = undefined;
                 if (rewardTraitXp !== 0 && currentHabit.attribute) {
                     const attrIndex = attributes.findIndex(a => a.id === currentHabit.attribute);
                     if (attrIndex !== -1) {
@@ -3811,7 +3894,8 @@ export const useDashboardLogic = () => {
                         const newAttributes = [...attributes];
                         newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                         setAttributes(newAttributes);
-                        traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                        rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
                     }
                 }
 
@@ -3835,7 +3919,7 @@ export const useDashboardLogic = () => {
                 }
 
                 if (rewardXp > 0 || rewardGold > 0) {
-                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 }, traitUpdate);
+                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 }, rewardTraitUpdate);
                 }
 
                 TransactionService.toggleHabitCompletion(
@@ -3849,7 +3933,7 @@ export const useDashboardLogic = () => {
                     isNewDay,
                     newLevel,
                     newNextXp,
-                    currentHabit.attribute
+                    traitUpdate
                 );
             }
         } else if (user?.id) {
@@ -3896,7 +3980,7 @@ export const useDashboardLogic = () => {
                 await supabase.from('users').update({
                     'dailyLimits.habitsCompleted': Math.max(0, (dailyLimits.habitsCompleted || 0) - 1)
                 });
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to update daily limits after habit deletion", e);
             }
         }
@@ -4160,7 +4244,7 @@ export const useDashboardLogic = () => {
         if (user?.id) {
             try {
                 const habits = await persistenceService.habits.getAll(user.id); const habit = habits?.find(h => h.id === habitId); if (habit) await persistenceService.habits.save(user.id, { ...habit, history: newHistory });
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to toggle habit day", e);
             }
         }
@@ -4239,7 +4323,7 @@ export const useDashboardLogic = () => {
                      });
                      
                      // Persist Trait Atomically
-                     TransactionService.updateAttributeXpAtomic(user.id, attr.id, traitXpGained);
+                     TransactionService.updateAttributeXpAtomic(user.id, { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp });
 
                      traitUpdateData = { 
                          id: attr.id, 
@@ -4386,7 +4470,7 @@ export const useDashboardLogic = () => {
                     color: '#ef4444'
                 });
 
-                TransactionService.halveStats(user.id, attributes, player.level).then((result) => {
+                TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
                     if (!result) return;
                     const { newLevel, newXp } = result;
                     setPlayer(prev => ({

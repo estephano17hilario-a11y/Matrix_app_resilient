@@ -166,7 +166,7 @@ export const RewardOverlay: React.FC = () => {
 
   const advanceFromXp = () => {
     // If negative XP, we might still want to show gold change if any
-    if (currentReward.traitId) {
+    if (currentReward.traitId && currentReward.traitXpGained !== 0) {
         setStep('TRAIT');
     } else if (currentReward.goldGained !== 0) { // Changed > 0 to !== 0 to handle gold loss
         setStep('GOLD');
@@ -176,10 +176,10 @@ export const RewardOverlay: React.FC = () => {
   };
 
   const advanceFromTrait = () => {
-    if (currentReward.goldGained !== 0) { // Changed > 0 to !== 0
-        setStep('GOLD');
+    if (currentReward.goldGained !== 0) {
+      setStep('GOLD');
     } else {
-        finish();
+      finish();
     }
   };
 

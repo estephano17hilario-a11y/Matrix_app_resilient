@@ -222,20 +222,6 @@ const StoreContent = ({ }: StoreScreenProps) => {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         >
             <AnimatePresence initial={false}>
-                {/* Ad Shard - Only when Power Ups or All are selected */}
-                {/* 
-                // POR EL MOMENTO EL BOTON DE VER TRANSMISION EN LA ZONA DE TIENDA NO SE VEA
-                (activeFilter === 'all' || activeFilter === 'power_up') && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <AdShard />
-                    </motion.div>
-                )*/}
-
                 {activeFilter !== 'inventory' ? (
                     filteredItems.map((item) => (
                         <div id={`store-item-${item.id}`} key={item.id}>

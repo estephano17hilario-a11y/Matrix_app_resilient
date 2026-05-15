@@ -16,6 +16,14 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: false // <--- CRÍTICO: Desactivado para no romper Supabase (interceptaba fetch global). Usa CapacitorHttp manualmente en tus APIs si necesitas bypass de CORS.
     },
+    LocalNotifications: {
+      smallIcon: "ic_stat_lux",
+      iconColor: "#a855f7",
+      sound: "lux_sound.wav"
+    },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
+    },
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false,

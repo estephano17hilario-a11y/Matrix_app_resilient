@@ -21,6 +21,8 @@ export const AccountSection = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [linkedIdentities, setLinkedIdentities] = useState<any[]>([]);
   const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const [targetGoogleEmail, setTargetGoogleEmail] = useState('');
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
 
@@ -43,18 +45,34 @@ export const AccountSection = () => {
   }, []);
 
   const handleLinkGoogle = async () => {
+    if (!targetGoogleEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetGoogleEmail)) {
+      toast.error('Por favor ingresa un correo de Google válido.');
+      return;
+    }
     try {
-      await linkGoogleAccount();
+      await linkGoogleAccount(targetGoogleEmail);
       // El navegador redirigirá a Google y luego de vuelta a la app.
-    } catch (error: any) {
-      toast.error(error.message || 'Error al vincular cuenta de Google.');
+    } catch (err) {
+      if (err instanceof Error && err.message === 'IDENTITY_NOT_VIRGIN') {
+        toast.error(
+          "Esta cuenta de Google ya está registrada o vinculada a otro correo. Inicie sesión directamente o utilice otra cuenta para evitar pérdida de persistencia de datos.", 
+          { duration: 8000, style: { maxWidth: '400px' } }
+        );
+      } else if (err instanceof Error) {
+        toast.error(err.message || 'Error al vincular cuenta de Google.');
+      } else {
+        toast.error('Error al vincular cuenta de Google.');
+      }
+    } finally {
+      setIsLinkingGoogle(false);
+      setTargetGoogleEmail('');
     }
   };
 
-  const handleUnlinkGoogle = async (identity: any) => {
+  const handleUnlinkGoogle = async () => {
     try {
       setIsLoadingIdentities(true);
-      await unlinkGoogleAccount(identity);
+      await unlinkGoogleAccount();
       const updatedIdentities = await getLinkedIdentities();
       setLinkedIdentities(updatedIdentities);
       toast.success('Cuenta desvinculada correctamente.');
@@ -233,16 +251,39 @@ export const AccountSection = () => {
             {!isLoadingIdentities && (
               googleIdentity ? (
                 <button
-                  onClick={() => handleUnlinkGoogle(googleIdentity)}
+                  onClick={() => handleUnlinkGoogle()}
                   disabled={linkedIdentities.length <= 1}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50"
                 >
                   <Unlink size={14} />
                   Desvincular
                 </button>
+              ) : isLinkingGoogle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    placeholder="Correo de Google..."
+                    value={targetGoogleEmail}
+                    onChange={(e) => setTargetGoogleEmail(e.target.value)}
+                    className="bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-white text-xs outline-none focus:border-blue-500 w-36"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleLinkGoogle}
+                    className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={() => setIsLinkingGoogle(false)}
+                    className="p-1.5 rounded-md bg-white/10 text-white/60 hover:bg-white/20"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               ) : (
                 <button
-                  onClick={handleLinkGoogle}
+                  onClick={() => setIsLinkingGoogle(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-medium transition-colors"
                 >
                   <Link2 size={14} />

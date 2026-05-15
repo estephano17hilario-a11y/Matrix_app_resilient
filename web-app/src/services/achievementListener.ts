@@ -1,4 +1,4 @@
-import { db, doc, setDoc, getDoc, arrayUnion, increment } from '@/services/supabase';
+import { supabase } from '@/services/supabase';
 import { UserData } from '../types/User';
 import { Attribute } from '../types';
 import { ACHIEVEMENTS, Achievement, AchievementCategory } from '../config/achievements';
@@ -19,19 +19,23 @@ const loadAchievements = async (userId: string) => {
       } catch(e) {}
   }
 
-  // 2. Sync from Firestore
+  // 2. Sync from Supabase (using preferences JSONB column to store unlockedAchievements)
   try {
-     const userRef = doc(db, 'users', userId);
-     const userSnap = await getDoc(userRef);
-     if (userSnap.exists()) {
-         const data = userSnap.data();
-         if (data.unlockedAchievements && Array.isArray(data.unlockedAchievements)) {
-             data.unlockedAchievements.forEach((id: string) => sessionUnlockedAchievements.add(id));
+     const { data, error } = await supabase
+       .from('users')
+       .select('preferences')
+       .eq('id', userId)
+       .maybeSingle();
+
+     if (data && !error && data.preferences?.unlockedAchievements) {
+         const unlocked = data.preferences.unlockedAchievements;
+         if (Array.isArray(unlocked)) {
+             unlocked.forEach((id: string) => sessionUnlockedAchievements.add(id));
              localStorage.setItem(`matrix_achievements_${userId}`, JSON.stringify(Array.from(sessionUnlockedAchievements)));
          }
      }
   } catch (e) {
-     console.warn("Error loading achievements from Firestore:", e);
+     console.warn("Error loading achievements from Supabase:", e);
   }
 };
 
@@ -73,30 +77,48 @@ export const checkAchievements = async (
     }
   }
 
-  // 4. Update "The Source" (Firestore)
+  // 4. Update "The Source" (Supabase)
   if (newAchievements.length > 0) {
-    const userRef = doc(db, 'users', user.id);
-    
-    // Construct the atomic update
-    const updates: any = {
-      unlockedAchievements: arrayUnion(...newAchievements.map(a => a.id))
-    };
-
     // Calculate total XP reward
     const totalXpReward = newAchievements.reduce((sum, a) => sum + a.xpReward, 0);
-    
-    if (totalXpReward > 0) {
-      updates['stats.xp'] = increment(totalXpReward);
-      // Note: Level calculation should ideally happen in a Cloud Function trigger 
-      // or we duplicate logic here. For now, we just award XP.
-    }
 
     try {
-      // Optimistic UI handled by the caller (React State), 
-      // but we ensure the DB catches up.
-      await setDoc(userRef, updates, { merge: true });
-      localStorage.setItem(`matrix_achievements_${user.id}`, JSON.stringify(Array.from(sessionUnlockedAchievements)));
-      console.log('Achievements Unlocked & Saved:', newAchievements.map(a => a.title));
+      // First fetch current preferences and stats
+      const { data: currentUserData, error: fetchError } = await supabase
+        .from('users')
+        .select('preferences, stats')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!fetchError && currentUserData) {
+        const currentPrefs = currentUserData.preferences || {};
+        const currentStats = currentUserData.stats || { xp: 0, level: 1 };
+        
+        const existingUnlocked = currentPrefs.unlockedAchievements || [];
+        const newUnlockedList = Array.from(new Set([...existingUnlocked, ...newAchievements.map(a => a.id)]));
+        
+        const updatedPrefs = {
+          ...currentPrefs,
+          unlockedAchievements: newUnlockedList
+        };
+
+        const updatedStats = {
+          ...currentStats,
+          xp: currentStats.xp + totalXpReward
+        };
+
+        const updatePayload: any = {
+          preferences: updatedPrefs
+        };
+
+        if (totalXpReward > 0) {
+          updatePayload.stats = updatedStats;
+        }
+
+        await supabase.from('users').update(updatePayload).eq('id', user.id);
+        localStorage.setItem(`matrix_achievements_${user.id}`, JSON.stringify(Array.from(sessionUnlockedAchievements)));
+        console.log('Achievements Unlocked & Saved:', newAchievements.map(a => a.title));
+      }
     } catch (error) {
       console.error('Lux Database Error (Achievements):', error);
       // We don't throw here because we want the user to see the celebration 

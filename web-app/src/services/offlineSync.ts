@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { Preferences } from '@capacitor/preferences';
 
 export interface OfflineAction {
   id: string; // Unique ID for the action
@@ -13,25 +14,35 @@ export interface OfflineAction {
 const OFFLINE_QUEUE_KEY = 'MATRIX_OFFLINE_SYNC_QUEUE';
 
 export const OfflineSyncService = {
-  getQueue: (): OfflineAction[] => {
+  getQueue: async (): Promise<OfflineAction[]> => {
     try {
-      const q = localStorage.getItem(OFFLINE_QUEUE_KEY);
-      return q ? JSON.parse(q) : [];
+      const { value } = await Preferences.get({ key: OFFLINE_QUEUE_KEY });
+      if (!value) {
+        // Fallback to localStorage just in case
+        const q = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        if (q) {
+            await Preferences.set({ key: OFFLINE_QUEUE_KEY, value: q });
+            localStorage.removeItem(OFFLINE_QUEUE_KEY);
+            return JSON.parse(q);
+        }
+        return [];
+      }
+      return JSON.parse(value);
     } catch {
       return [];
     }
   },
 
-  saveQueue: (queue: OfflineAction[]) => {
+  saveQueue: async (queue: OfflineAction[]) => {
     try {
-      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+      await Preferences.set({ key: OFFLINE_QUEUE_KEY, value: JSON.stringify(queue) });
     } catch (e) {
       console.error("Failed to save offline queue", e);
     }
   },
 
-  addAction: (action: Omit<OfflineAction, 'id' | 'timestamp'>) => {
-    const queue = OfflineSyncService.getQueue();
+  addAction: async (action: Omit<OfflineAction, 'id' | 'timestamp'>) => {
+    const queue = await OfflineSyncService.getQueue();
     
     // Simplistic deduplication for UPDATE and SAVE on same item
     const existingIdx = queue.findIndex(a => a.itemId === action.itemId && a.collectionName === action.collectionName);
@@ -63,19 +74,19 @@ export const OfflineSyncService = {
       queue.push(newAction);
     }
 
-    OfflineSyncService.saveQueue(queue);
+    await OfflineSyncService.saveQueue(queue);
     console.log(`[Offline Sync] Action ${action.type} queued for ${action.collectionName}/${action.itemId}`);
   },
 
-  removeAction: (id: string) => {
-    const queue = OfflineSyncService.getQueue();
-    OfflineSyncService.saveQueue(queue.filter(a => a.id !== id));
+  removeAction: async (id: string) => {
+    const queue = await OfflineSyncService.getQueue();
+    await OfflineSyncService.saveQueue(queue.filter(a => a.id !== id));
   },
 
   processQueue: async () => {
     if (!navigator.onLine) return;
     
-    const queue = OfflineSyncService.getQueue();
+    const queue = await OfflineSyncService.getQueue();
     if (queue.length === 0) return;
 
     console.log(`[Offline Sync] Processing ${queue.length} pending actions...`);
@@ -136,7 +147,7 @@ export const OfflineSyncService = {
         }
 
         // Success! Remove from queue
-        OfflineSyncService.removeAction(action.id);
+        await OfflineSyncService.removeAction(action.id);
         console.log(`[Offline Sync] Processed ${action.type} for ${action.collectionName}/${action.itemId}`);
       } catch (e) {
         console.error(`[Offline Sync] Failed to process action ${action.id}`, e);

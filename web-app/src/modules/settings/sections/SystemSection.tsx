@@ -4,7 +4,7 @@ import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, 
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
-import FocusSession from '../../../plugins/FocusPlugin';
+import FocusSession from '@/plugins/FocusPlugin';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import toast from 'react-hot-toast';
@@ -487,21 +487,27 @@ export const SystemSection = () => {
 
  <div className="grid grid-cols-3 gap-2 relative z-10">
  {[
- { val: 'PROJECT', label: t('projects.viewByProject', 'By Project') },
+ { val: 'PROJECT', label: t('projects.viewByProject', 'By Project'), pro: true },
  { val: 'TRAIT', label: t('projects.viewByTrait', 'By Trait') },
  { val: 'NONE', label: t('projects.viewNone', 'No Division') }
  ].map(opt => {
  const isActive = defaultProjectView === opt.val;
+ const isDisabled = opt.pro && !isPro;
  return (
  <button
  key={opt.val}
- onClick={() => updateDefaultProjectView(opt.val as any)}
+ onClick={() => {
+     if (isDisabled) return;
+     updateDefaultProjectView(opt.val as any);
+ }}
  className={cn(
- "p-3 rounded-xl transition-all duration-150 flex items-center justify-center text-xs font-bold active:scale-95",
- isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+ "p-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 text-xs font-bold relative",
+ isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10",
+ isDisabled ? "opacity-50 cursor-not-allowed grayscale" : "active:scale-95"
  )}
  >
  {opt.label}
+ {opt.pro && !isPro && <Lock size={10} className="text-white/30" />}
  </button>
  );
  })}

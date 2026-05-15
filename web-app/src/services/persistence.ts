@@ -1,4 +1,5 @@
 import { UserData, UserProfile } from '../types/User';
+import { Preferences } from '@capacitor/preferences';
 
 const KEYS = {
   PROFILE: 'MATRIX_CACHED_PROFILE',
@@ -54,7 +55,7 @@ const buildCollectionKey = (uid: string, collectionName: string) => `${KEYS.COLL
 const buildCollectionSafeKey = (uid: string, collectionName: string) => `${buildCollectionKey(uid, collectionName)}_SAFE`;
 
 // --- SAFE STORAGE ACCESS ---
-const safeStorage = {
+export const safeStorage = {
   getItem: (key: string): string | null => {
     try {
       if (typeof localStorage === 'undefined') return null;
@@ -67,6 +68,8 @@ const safeStorage = {
     try {
       if (typeof localStorage === 'undefined') return false;
       localStorage.setItem(key, value);
+      // Sync to Capacitor async
+      Preferences.set({ key, value }).catch(e => console.warn('Capacitor Prefs set error', e));
       return true;
     } catch (e: any) {
       // Handle Quota Exceeded
@@ -75,10 +78,14 @@ const safeStorage = {
         try {
           // Emergency cleanup: Remove backups
           Object.keys(localStorage).forEach(k => {
-            if (k.endsWith('_BACKUP')) localStorage.removeItem(k);
+            if (k.endsWith('_BACKUP')) {
+              localStorage.removeItem(k);
+              Preferences.remove({ key: k }).catch(() => {});
+            }
           });
           // Retry once
           localStorage.setItem(key, value);
+          Preferences.set({ key, value }).catch(() => {});
           return true;
         } catch {
           console.error("💾 MATRIX MEMORY: Critical storage failure.");
@@ -92,6 +99,7 @@ const safeStorage = {
     try {
       if (typeof localStorage === 'undefined') return;
       localStorage.removeItem(key);
+      Preferences.remove({ key }).catch(() => {});
     } catch { /* ignore */ }
   },
   length: () => {
@@ -214,6 +222,24 @@ const persistWithBackup = <T>(key: string, uid: string, data: T) => {
 };
 
 export const PersistenceService = {
+  initialize: async () => {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const { keys } = await Preferences.keys();
+      for (const key of keys) {
+        if (!localStorage.getItem(key)) {
+          const { value } = await Preferences.get({ key });
+          if (value !== null) {
+            localStorage.setItem(key, value);
+          }
+        }
+      }
+      console.log("💾 MATRIX MEMORY: Restored data from Capacitor Preferences to localStorage.");
+    } catch (e) {
+      console.error("💾 MATRIX MEMORY: Failed to initialize from Capacitor.", e);
+    }
+  },
+
   // --- PROFILE (Auth + Stats) ---
   saveProfile: (profile: UserProfile | UserData) => {
     try {

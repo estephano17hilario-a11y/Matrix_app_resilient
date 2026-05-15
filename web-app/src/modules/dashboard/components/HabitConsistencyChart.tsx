@@ -400,13 +400,13 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
     // Color logic for the progress bar
     const getProgressColor = (percent: number, required: number) => {
         if (percent >= required) return '#10b981'; // Emerald-500 for success
-        if (percent >= required * 0.6) return `${themeColor}CC`; // 80% opacity
-        return '#f43f5e';
+        if (percent > 0) return '#3b82f6'; // Blue for in-progress
+        return '#f43f5e'; // Rose for 0
     };
 
     const getProgressColorStyle = (percent: number, required: number) => {
         if (percent >= required) return { color: '#10b981' };
-        if (percent >= required * 0.6) return { color: `${themeColor}CC` };
+        if (percent > 0) return { color: '#3b82f6' };
         return { color: '#fb7185' }; // rose-400
     };
 
@@ -615,7 +615,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                                 }}
                                 style={{ 
                                     height: '100%',
-                                    backgroundColor: data.percent >= 80 ? '#10b981' : `${themeColor}CC`,
+                                    backgroundColor: data.percent >= 80 ? '#10b981' : (data.percent > 0 ? '#3b82f6' : `${themeColor}CC`),
                                     boxShadow: data.isCurrent && data.total > 0 ? `0 0 10px ${themeColor}20` : 'none', // Reduced shadow
                                     borderTop: data.isCurrent && data.total > 0 ? '1px solid rgba(255,255,255,0.4)' : 'none',
                                     willChange: 'transform'

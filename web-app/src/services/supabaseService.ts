@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { PersistenceService } from './persistence';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * Registra un nuevo usuario con Email y Contraseña.
@@ -62,10 +63,15 @@ export const atomicLogin = async (email: string, password: string): Promise<any>
  */
 export const loginWithGoogle = async (): Promise<any | null> => {
     try {
+        const isMobile = Capacitor.isNativePlatform();
+        const redirectTo = isMobile 
+            ? 'lux://login-callback' 
+            : window.location.origin;
+
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin,
+                redirectTo,
             }
         });
 
@@ -93,14 +99,36 @@ export const getLinkedIdentities = async () => {
 };
 
 /**
- * Vincula una cuenta de Google a la cuenta actual.
+ * Vincula una cuenta de Google a la cuenta actual, con Pre-flight check estricto.
  */
-export const linkGoogleAccount = async () => {
+export const linkGoogleAccount = async (targetEmail: string) => {
     try {
+        // 1. Pre-flight Check: ¿Es una identidad virgen?
+        const { data: isVirgin, error: rpcError } = await supabase.rpc('check_virgin_identity', {
+            email_to_check: targetEmail.toLowerCase(),
+        });
+
+        if (rpcError) throw new Error('Error al validar la identidad en el servidor.');
+        
+        if (!isVirgin) {
+            throw new Error('IDENTITY_NOT_VIRGIN');
+        }
+
+        const isMobile = Capacitor.isNativePlatform();
+        const redirectTo = isMobile 
+            ? 'lux://login-callback' 
+            : `${window.location.origin}/settings?linked=true`;
+
+        // 2. Ejecutar Link Identity forzando el correo (login_hint) y pidiendo tokens offline
         const { data, error } = await supabase.auth.linkIdentity({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin,
+                queryParams: {
+                    access_type: 'offline', // Crucial para obtener el provider_refresh_token
+                    prompt: 'consent',      // Obliga a Google a devolver un refresh token nuevo
+                    login_hint: targetEmail // Fuerza a Google a usar este correo exacto
+                },
+                redirectTo,
             }
         });
         if (error) throw error;
@@ -112,13 +140,28 @@ export const linkGoogleAccount = async () => {
 };
 
 /**
- * Desvincula una cuenta de Google de la cuenta actual.
+ * Desvincula una cuenta de Google de la cuenta actual y elimina tokens almacenados.
  */
-export const unlinkGoogleAccount = async (identity: any) => {
+export const unlinkGoogleAccount = async () => {
     try {
-        const { data, error } = await supabase.auth.unlinkIdentity(identity);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No hay sesión activa');
+
+        // Encontrar la identidad de Google
+        const googleIdentity = user.identities?.find(id => id.provider === 'google');
+        if (!googleIdentity) throw new Error('No hay cuenta de Google vinculada.');
+
+        const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
         if (error) throw error;
-        return data;
+
+        // Limpiar tokens de la base de datos pública
+        await supabase.from('user_integrations').update({
+            google_access_token: null,
+            google_refresh_token: null,
+            updated_at: new Date().toISOString()
+        }).eq('user_id', user.id);
+
+        return true;
     } catch (error) {
         console.error("Error unlinking Google account:", error);
         throw error;

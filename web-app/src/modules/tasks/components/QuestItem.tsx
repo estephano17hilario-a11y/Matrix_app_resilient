@@ -272,6 +272,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
           <AnimatePresence initial={false}>
             {expanded && (
               <motion.div
+                key="expanded-content"
                 initial={{ opacity: 0, height: 0, scaleY: 0.98 }}
                 animate={{ opacity: 1, height: "auto", scaleY: 1 }}
                 exit={{ opacity: 0, height: 0, scaleY: 0.98 }}

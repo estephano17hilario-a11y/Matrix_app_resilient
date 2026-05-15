@@ -171,30 +171,4 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
     }
 };
 
-/**
- * Adds gold to the user's account (e.g. from watching ads).
- */
-export const addGold = async (userId: string, amount: number) => {
-  const userRef = doc(db, "users", userId);
 
-  try {
-    await runTransaction(db, async (transaction: Transaction) => {
-        const userDoc = await transaction.get(userRef as any);
-        if (!userDoc.exists()) {
-             throw new Error("User does not exist!");
-        }
-        
-        const userData = userDoc.data() as any;
-        const currentGold = userData.stats?.gold || 0;
-        
-        transaction.update(userRef as any, {
-            "stats.gold": currentGold + amount
-        });
-    });
-    
-    return { success: true };
-  } catch (error) {
-      console.error("Error adding gold:", error);
-      return { success: false, error };
-  }
-};

@@ -190,15 +190,17 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
             <svg 
                 viewBox={`0 0 ${width} ${height}`} 
                 preserveAspectRatio="none" 
-                className="w-full h-full overflow-visible"
+                className="w-full h-full overflow-visible pointer-events-none"
             >
                 <defs>
                     <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity="0.4" />
-                        <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+                        <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.1" />
                     </linearGradient>
+                    
+                    {/* Soft Glow Effect */}
                     <filter id="habit-goal-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="0.3" result="coloredBlur" />
+                        <feGaussianBlur stdDeviation="0.1" result="coloredBlur" />
                         <feMerge>
                             <feMergeNode in="coloredBlur" />
                             <feMergeNode in="SourceGraphic" />
@@ -206,7 +208,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                     </filter>
                     {/* Visionary Glow Effect */}
                     <filter id="habit-goal-overload" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="0.8" result="coloredBlur" />
+                        <feGaussianBlur stdDeviation="0.2" result="coloredBlur" />
                         <feMerge>
                             <feMergeNode in="coloredBlur" />
                             <feMergeNode in="SourceGraphic" />
@@ -332,14 +334,14 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                         width: isGoalMet ? '100%' : '8px', // Smaller core
                         height: isGoalMet ? '100%' : '8px',
                     }}
-                    animate={{
-                        scale: isGoalMet ? [1, 1.1, 1] : 1,
-                    }}
-                    transition={{
+                    animate={isGoalMet ? {
+                        scale: [1, 1.1, 1],
+                    } : { scale: 1 }}
+                    transition={isGoalMet ? {
                         duration: 2,
                         repeat: Infinity,
                         ease: "easeInOut"
-                    }}
+                    } : { duration: 0 }}
                 />
 
                 {/* Overload Ripple Effect */}
@@ -357,7 +359,7 @@ export const HabitGoalChart: React.FC<HabitGoalChartProps> = ({
                             opacity: [0.6, 0]
                         }}
                         transition={{
-                            duration: 0.15,
+                            duration: 1.5,
                             repeat: Infinity,
                             ease: "easeOut"
                         }}

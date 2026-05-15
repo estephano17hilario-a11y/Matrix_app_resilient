@@ -395,17 +395,24 @@ export default function Dashboard() {
  const tutorialKey = `matrix_stats_tutorial_seen_${user.id}`;
  const hasSeen = localStorage.getItem(tutorialKey);
  const storedLang = localStorage.getItem('i18nextLng') || i18n.language || navigator.language || 'en';
- if (!hasSeen) {
+ 
+ // Si el usuario ya tiene XP o ha completado el onboarding en otro dispositivo, 
+ // no le mostramos el tutorial de nuevo.
+ const hasExperience = (user.stats?.xp || 0) > 0 || (user.stats?.level || 1) > 1;
+ const hasCompletedOnboarding = user.onboarding?.completedAt && user.onboarding.completedAt > 0;
+ 
+ if (!hasSeen && !hasExperience && !hasCompletedOnboarding) {
  if (storedLang.startsWith('es')) {
  i18n.changeLanguage('es');
  } else {
  i18n.changeLanguage('en');
  }
  setShowStatsTutorial(true);
+ }
+ // Siempre marcamos como visto en localStorage para evitar chequeos futuros
  localStorage.setItem(tutorialKey, 'true');
  }
- }
- }, [user?.id]);
+ }, [user?.id, user?.stats?.xp, user?.stats?.level, user?.onboarding?.completedAt, i18n]);
 
  const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
@@ -1664,31 +1671,7 @@ export default function Dashboard() {
  onSave={updateDockConfig}
  />
  
- {/* --- GLOBAL BACKDROP (OPTIMIZED) --- */}
- <AnimatePresence>
- {((activeModal && activeModal !== 'BAD_HABIT') || validationHabit) && (
- <motion.div 
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- transition={{ duration: 0.15 }}
- className="fixed inset-0 z-[350] bg-black/60 gpu-accelerated"
- onPointerDown={(e) => { 
- // NO PROPAGATION IF SETTINGS ARE OPEN
- if (isSettingsOpen || isDockConfigOpen) {
- e.preventDefault();
- e.stopPropagation();
- return;
- }
- e.preventDefault();
- e.stopPropagation();
- setActiveModal(null); 
- setValidationHabit(null); 
- setModalInitialContext(null); 
- }} 
- />
- )}
- </AnimatePresence>
+ {/* --- GLOBAL BACKDROP (REMOVED: Each modal has its own backdrop) --- */}
 
  {/* MODALS */}
  <QuestModal 

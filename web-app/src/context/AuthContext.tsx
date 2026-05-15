@@ -24,13 +24,14 @@ interface AuthContextType {
   updateProfileLocally: (updates: Partial<UserProfile>) => void;
 }
 
+// Authentication context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(() => PersistenceService.getProfile());
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(() => !PersistenceService.getProfile());
   const [error, setError] = useState<string | null>(null);
 
   const updateProfileLocally = useCallback((updates: Partial<UserProfile>) => {
@@ -96,9 +97,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     checkInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user || null;
       try {
+        // FASE 2: Captura de Tokens de Google para Backups (SSOT)
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.provider_token) {
+          const { provider_token, provider_refresh_token, user } = session;
+          
+          if (provider_refresh_token) {
+            await supabase.from('user_integrations').upsert({
+              user_id: user.id,
+              google_access_token: provider_token,
+              google_refresh_token: provider_refresh_token,
+              updated_at: new Date().toISOString()
+            });
+            console.log("🔐 MATRIX: Google Tokens persistidos en SSOT.");
+          }
+        }
+
         if (!currentUser) {
           // If no current user, it means session is missing or expired.
           // Supabase caches the session locally, so if it's null even when offline,
@@ -183,7 +199,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                         lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
                         onboarding: userData.onboarding || null, // FIX: Use null if not present, don't force DEFAULT_ONBOARDING
-                        isSkeleton: false
+                        isSkeleton: false,
+                        unlockedAchievements: userData.preferences?.unlockedAchievements || []
                     };
                     
                     console.log("✅ MATRIX: Profile loaded from Supabase.");

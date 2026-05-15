@@ -60,6 +60,25 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       // by combining userId, collectionName, and the item's targetId.
       const uniqueRecordId = `${userId}_${collectionName}_${targetId}`;
 
+      // Clean up any legacy rows to prevent duplicates from reappearing if this one is deleted
+      try {
+          const { data: existingRecords } = await supabase
+            .from('user_collections')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('collection_name', collectionName)
+            .contains('data', { id: targetId });
+            
+          if (existingRecords && existingRecords.length > 0) {
+              const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
+              if (legacyIds.length > 0) {
+                  await supabase.from('user_collections').delete().in('id', legacyIds);
+              }
+          }
+      } catch(e) {
+          console.warn('Failed to clean up legacy rows during save', e);
+      }
+
       // OPTIMISTIC LOCAL SAVE (Important for Instant UI)
       // The calling code often expects persistence to be fast.
       // However, we still need to wait for Supabase or catch the error.
@@ -79,7 +98,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
         if (isNetwork) {
           console.log(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`);
-          OfflineSyncService.addAction({
+          await OfflineSyncService.addAction({
             type: 'SAVE',
             collectionName,
             userId,
@@ -111,16 +130,32 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
 
       try {
-        // Fetch existing data first to merge
-        const { data: existingData, error: fetchError } = await supabase
+        // Fetch existing data first to merge. Support legacy rows by searching inside JSONB.
+        const { data: existingRecords, error: fetchError } = await supabase
           .from('user_collections')
-          .select('data')
-          .in('id', [uniqueRecordId, itemId])
+          .select('id, data')
           .eq('user_id', userId)
           .eq('collection_name', collectionName)
-          .limit(1);
+          .contains('data', { id: itemId });
 
-        const currentData = fetchError ? {} : (existingData && existingData.length > 0 ? existingData[0].data || {} : {});
+        // Prefer the new format if multiple exist, otherwise take the first
+        let currentData = {};
+         
+         if (!fetchError && existingRecords && existingRecords.length > 0) {
+            const preferred = existingRecords.find(r => r.id === uniqueRecordId) || existingRecords[0];
+            currentData = preferred.data || {};
+            // We'll update the existing row if it's not the uniqueRecordId to avoid duplicates
+            // Actually, best is to upsert uniqueRecordId and delete legacy ones, OR just update the legacy one
+            // Let's just update the uniqueRecordId and if there were legacy ones, delete them.
+            if (preferred.id !== uniqueRecordId) {
+                // Delete legacy records
+                const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
+                if (legacyIds.length > 0) {
+                    await supabase.from('user_collections').delete().in('id', legacyIds);
+                }
+            }
+        }
+
         const cleanData = sanitizeFirestoreData(dataToUpdate);
         const mergedData = { ...currentData, ...cleanData, id: itemId };
 
@@ -139,7 +174,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
         if (isNetwork) {
           console.log(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`);
-          OfflineSyncService.addAction({
+          await OfflineSyncService.addAction({
             type: 'UPDATE',
             collectionName,
             userId,
@@ -167,22 +202,43 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
 
       try {
-        const { error } = await supabase
+        // First, let's find if there's any existing record with this itemId in its data
+        // This is crucial for legacy records from Firebase that don't use the uniqueRecordId format
+        const { data: existingRecords, error: fetchError } = await supabase
           .from('user_collections')
-          .upsert({
-            id: uniqueRecordId,
-            user_id: userId,
-            collection_name: collectionName,
-            data: { id: itemId, deleted: true },
-            deleted: true
-          }, { onConflict: 'id' });
+          .select('id')
+          .eq('user_id', userId)
+          .eq('collection_name', collectionName)
+          .contains('data', { id: itemId });
 
-        if (error) throw error;
+        if (!fetchError && existingRecords && existingRecords.length > 0) {
+            // Delete all matching records (legacy or current)
+            const idsToDelete = existingRecords.map(r => r.id);
+            const { error: deleteError } = await supabase
+                .from('user_collections')
+                .update({ deleted: true, data: { id: itemId, deleted: true } })
+                .in('id', idsToDelete);
+                
+            if (deleteError) throw deleteError;
+        } else {
+            // Fallback to upserting the uniqueRecordId
+            const { error } = await supabase
+              .from('user_collections')
+              .upsert({
+                id: uniqueRecordId,
+                user_id: userId,
+                collection_name: collectionName,
+                data: { id: itemId, deleted: true },
+                deleted: true
+              }, { onConflict: 'id' });
+    
+            if (error) throw error;
+        }
       } catch (networkError: any) {
         const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
         if (isNetwork) {
           console.log(`[Offline Sync] Queued DELETE for ${collectionName}/${itemId}`);
-          OfflineSyncService.addAction({
+          await OfflineSyncService.addAction({
             type: 'DELETE',
             collectionName,
             userId,
@@ -252,7 +308,7 @@ const settingsService = {
             const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
             if (isNetwork) {
               console.log(`[Offline Sync] Queued SETTINGS_SAVE for settings/config_${userId}`);
-              OfflineSyncService.addAction({
+              await OfflineSyncService.addAction({
                 type: 'SETTINGS_SAVE',
                 collectionName: 'settings',
                 userId,

@@ -274,7 +274,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         displayedHabits.forEach(habit => {
             const isDue = habit.frequency === 'DAILY' || 
                 (habit.frequency === 'WEEKLY' && 
-                (!habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(todayIndex))) ||
+                (habit.weeklyType === 'FLEXIBLE_COUNT' || !habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(todayIndex))) ||
                 (habit.frequency === 'MONTHLY' && (
                     habit.monthlyType === 'FLEXIBLE_COUNT' ||
                     ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (

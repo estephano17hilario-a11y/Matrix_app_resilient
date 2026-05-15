@@ -368,6 +368,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <input 
                                                 type="text" 
                                                 value={title} 
+                                                maxLength={15}
                                                 onChange={(e) => setTitle(e.target.value)} 
                                                 placeholder={t('habits.protocolNamePlaceholder', 'Protocol Name...')}
                                                 className="w-full h-9 bg-transparent px-3 text-xs font-bold text-white placeholder:text-white/20 outline-none" 

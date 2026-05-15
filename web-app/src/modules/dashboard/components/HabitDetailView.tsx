@@ -97,7 +97,7 @@ const barVariants: Variants = {
 
 export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
  const { t } = useTranslation();
- const themeColor = useMemo(() => habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);
+ const themeColor = useMemo(() => habit?.customColor || project?.color || attributeColor || '#0ea5e9', [habit?.customColor, project?.color, attributeColor]);
 
  const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
  const [pinnedRanges, setPinnedRanges] = useState<TimeRange[]>(['TODAY', 'WEEK', 'MONTH']);
@@ -1103,17 +1103,17 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  style={{ 
  height: `${Math.max((data.value / maxChartValue) * 100, 4)}%`, 
  originY: 1,
- backgroundColor: data.isToday ? themeColor : `${themeColor}40`,
- border: data.isToday ? `1px solid ${themeColor}` : `1px solid ${themeColor}20`
+ backgroundColor: data.isToday ? themeColor : themeColor,
+ border: data.isToday ? `1px solid ${themeColor}` : `1px solid ${themeColor}`
  }}
- className="w-full rounded-t-xl rounded-b-md relative overflow-hidden transition-colors duration-200 group-hover/bar:bg-opacity-100"
+ className="w-full rounded-t-xl rounded-b-md relative overflow-hidden transition-colors duration-200 group-hover/bar:brightness-110"
  >
  {/* Bar Inner Glow */}
  {data.isToday && (
  <motion.div 
  animate={{ opacity: [0.3, 0.6, 0.3] }}
  transition={{ duration: 2, repeat: Infinity }}
- className="absolute inset-0 bg-white/20"
+ className="absolute inset-0 bg-white/20 pointer-events-none"
  />
  )}
  </motion.div>

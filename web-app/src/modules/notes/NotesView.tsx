@@ -290,8 +290,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const handleOpenNoteEditor = () => {
       setSubView('NOTES');
       setEditorMode('NOTE');
+      setDraftId(Date.now().toString());
+      setDraftTitle('');
+      setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]);
+      setDraftTheme('slate');
+      setDraftProjectId(undefined);
+      onInteractionStart();
     };
-    const handleCloseNoteEditor = () => setEditorMode('NONE');
+    const handleCloseNoteEditor = () => {
+      setEditorMode('NONE');
+      setDraftId(null);
+      setShowEventsHub(false);
+      setShowSecureHub(false);
+      onInteractionEnd();
+      window.dispatchEvent(new CustomEvent('note-closed'));
+    };
 
     window.addEventListener('open-note-editor', handleOpenNoteEditor);
     window.addEventListener('close-note-editor', handleCloseNoteEditor);
@@ -302,7 +315,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       window.removeEventListener('open-note-editor', handleOpenNoteEditor);
       window.removeEventListener('close-note-editor', handleCloseNoteEditor);
     };
- }, [user?.id]);
+  }, [user?.id, onInteractionEnd]);
  
  const openEventsHub = useCallback(() => {
  if (config.security.protectedAreas.memories) {

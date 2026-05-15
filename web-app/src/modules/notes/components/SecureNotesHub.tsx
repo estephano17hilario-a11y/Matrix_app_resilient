@@ -46,11 +46,11 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  // Privacy Shield (Screenshot Prevention)
  useEffect(() => {
  if (isOpen) {
- FocusSession.enablePrivacy().catch(err => console.error("Privacy Enable Failed", err));
+ FocusSession.enablePrivacy().catch((err: any) => console.error("Privacy Enable Failed", err));
  }
  
  return () => {
- FocusSession.disablePrivacy().catch(err => console.error("Privacy Disable Failed", err));
+ FocusSession.disablePrivacy().catch((err: any) => console.error("Privacy Disable Failed", err));
  };
  }, [isOpen]);
 
@@ -252,8 +252,8 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  >
  {/* Background Ambient */}
  <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-emerald-500/5 blur-sm " />
- <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/5 blur-sm " />
+ <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-[radial-gradient(circle,_rgba(16,185,129,0.05)_0%,_transparent_70%)]" />
+                        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,_rgba(59,130,246,0.05)_0%,_transparent_70%)]" />
  </div>
 
  {/* Header */}
@@ -457,7 +457,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
  <button 
  onClick={() => setIsUnlocked(false)}
- className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-sm "
+ className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5"
  >
  <LogOut size={12} />
  Lock Vault

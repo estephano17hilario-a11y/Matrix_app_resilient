@@ -77,7 +77,7 @@ export const FocusStats = React.memo(({
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
     const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | 'RANGES' | null>(null);
     
-    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>(defaultProjectView || 'ATTRIBUTE');
+    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'ATTRIBUTE'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     
     // Reset date when range changes
@@ -132,7 +132,7 @@ export const FocusStats = React.memo(({
         const activeProj = projectById.get(filterMode);
         if (activeProj) {
             const attr = attributeById.get(activeProj.attribute);
-            return attr ? attr.color : '#6366f1';
+            return activeProj.color || (attr ? attr.color : '#6366f1');
         }
         return '#6366f1'; 
     }, [filterMode, attributeById, projectById, avatarColor]);
@@ -542,6 +542,7 @@ export const FocusStats = React.memo(({
                                         <button 
                                             onClick={() => { 
                                                 if (!isPro) {
+                                                    setActiveDropdown(null);
                                                     onOpenPro?.();
                                                     return;
                                                 }

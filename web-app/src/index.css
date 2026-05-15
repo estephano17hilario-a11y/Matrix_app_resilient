@@ -78,10 +78,8 @@
     }
 
     /* PREVENT BLACK SCREEN / GPU CRASH ON MOBILE */
-    /* Force hardware acceleration on body to prevent painting issues */
     body {
-        transform: translateZ(0);
-        backface-visibility: hidden;
+        /* Removed transform: translateZ(0) because it breaks position: fixed for modals */
         /* Disable potentially heavy blend modes on body if any */
         mix-blend-mode: normal !important;
     }

@@ -197,7 +197,7 @@ export const generateFocusData = (
               const proj = projects.find(p => p.id === id);
               if (proj) {
                   const attr = attributes.find(a => a.id === proj.attribute);
-                  color = attr ? attr.color : '#6366f1'; 
+                  color = proj.color || (attr ? attr.color : '#6366f1'); 
                   label = proj.title;
               }
           }

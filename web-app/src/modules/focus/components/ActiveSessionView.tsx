@@ -3,7 +3,6 @@ import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Batter
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
-import FocusSession from '../../../plugins/FocusPlugin'; // Direct Plugin Access
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
@@ -61,10 +60,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  // Check Advanced Permissions on Mount
  const checkAllPermissions = useCallback(async () => {
  try {
- // Use our new native method
- const perms = await FocusSession.checkPermissions();
- console.log("🛡️ Focus Permissions Check:", perms);
- setPermissions(perms);
+ if (Capacitor.isNativePlatform()) {
+     const perm = await LocalNotifications.checkPermissions();
+     setPermissions({
+         notifications: perm.display === 'granted',
+         battery: true // Assuming true for now since we removed custom plugin
+     });
+ }
  } catch (e) {
  console.warn("Failed to check advanced permissions", e);
  }
@@ -84,21 +86,18 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  try {
  if (Capacitor.isNativePlatform()) {
  const perm = await LocalNotifications.requestPermissions();
- if (perm.display !== 'granted') {
- await FocusSession.openNotificationSettings();
- } else {
+ if (perm.display === 'granted') {
  checkAllPermissions(); // Refresh UI
  }
- } else {
- await FocusSession.openNotificationSettings();
  }
  } catch (e) {
- await FocusSession.openNotificationSettings();
+ console.error("Failed to request notifications permission", e);
  }
  };
 
  const handleDisableBatteryOpt = async () => {
- await FocusSession.requestBatteryPermission();
+ // Feature not available without custom plugin, could link to settings or remove
+ console.log("Battery optimization request requires native plugin");
  };
 
  const handleExitAttempt = () => {
@@ -168,7 +167,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  isPaused,
  toggleTimer,
  stopSession
- } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute), themeColor);
+ } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
  useEffect(() => {
  if (isEditingTime && inputRef.current) {
@@ -358,13 +357,17 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
           <AnimatePresence mode='wait'>
  {!isActive && (
  <motion.div 
+ key="mode-toggles"
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, y: -10 }}
- className="flex bg-black/50 border border-white/10 rounded-full p-1 shadow-md"
+ className="flex bg-black/50 border border-white/10 rounded-full p-1 shadow-md pointer-events-auto"
  >
  <button 
- onClick={() => {
+ type="button"
+ onClick={(e) => {
+ e.preventDefault();
+ e.stopPropagation();
  setMode('POMO');
  setTimeLeft(project.pomoDuration * 60);
  setTotalDuration(project.pomoDuration * 60);
@@ -377,7 +380,10 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  FOCUS
  </button>
  <button 
- onClick={() => {
+ type="button"
+ onClick={(e) => {
+ e.preventDefault();
+ e.stopPropagation();
  setMode('STOPWATCH');
  setTimeLeft(0);
  setTotalDuration(0);
@@ -395,9 +401,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  </div>
 
  {/* Timer Ring */}
- <div className="relative w-[320px] h-[320px] flex items-center justify-center shrink-0">
- {/* SVG Ring Container */}
- <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible" viewBox="0 0 320 320">
+ <div className="relative w-[320px] h-[320px] flex items-center justify-center shrink-0 pointer-events-none">
+ {/* SVG Ring - Using pointer-events-none to prevent blocking */}
+              <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible pointer-events-none" viewBox="0 0 320 320">
  <defs>
  <linearGradient id={`gradient-${project.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
  <stop offset="0%" stopColor={themeColor} stopOpacity="1" />
@@ -439,7 +445,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  </svg>
 
  {/* Time Display */}
- <div className="relative z-10 flex flex-col items-center">
+ <div className="relative z-10 flex flex-col items-center pointer-events-auto">
  {isEditingTime ? (
  <div className="flex items-center justify-center relative">
  <input
@@ -466,11 +472,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  !isActive && "cursor-pointer hover:scale-110 hover:text-indigo-200"
  )}
  >
- {/* Static glow div behind text instead of expensive textShadow */}
- <div 
- className="absolute inset-0 z-[-1] rounded-full blur-sm opacity-10 pointer-events-none"
- style={{ backgroundColor: themeColor }}
- />
  {formatTime(timeLeft)}
  </div>
  )}
