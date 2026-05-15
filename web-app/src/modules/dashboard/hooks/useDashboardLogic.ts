@@ -1057,9 +1057,10 @@ export const useDashboardLogic = () => {
             if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
                 projectService.getUserProjects(uid).then(projects => {
                     if (!projects) return;
+                    const cached = PersistenceService.getCollection<Project>(uid, 'projects');
                     if (projects.length === 0 && cached && cached.length > 0) {
-                        // Trust Supabase: if it's empty, user has no projects.
-                        // setProjects([]); // This will happen via the next lines anyway
+                        cached.forEach(p => persistenceService.projects.save(uid, p));
+                        return;
                     }
                     let merged: Project[] = [];
                     let canSave = false;
@@ -1094,8 +1095,10 @@ export const useDashboardLogic = () => {
                 persistenceService.habits.getAll(uid).then(h => {
                     if (!h) return;
                     
+                    const cached = PersistenceService.getCollection<Habit>(uid, 'habits');
                     if (h.length === 0 && cached && cached.length > 0) {
-                        // Trust Supabase: if it's empty, user has no habits.
+                        cached.forEach(habit => persistenceService.habits.save(uid, habit));
+                        return;
                     }
 
                     // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
@@ -1138,7 +1141,8 @@ export const useDashboardLogic = () => {
                     if (!items) return;
                     const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
                     if (items.length === 0 && cached && cached.length > 0) {
-                         // Trust Supabase
+                        cached.forEach(bh => persistenceService.badHabits.save(uid, bh));
+                        return;
                     }
                     setBadHabits(items);
                     PersistenceService.saveCollection(uid, 'badHabits', items);
@@ -1151,7 +1155,8 @@ export const useDashboardLogic = () => {
                     if (!items) return;
                     const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
                     if (items.length === 0 && cached && cached.length > 0) {
-                        // Trust Supabase
+                        cached.forEach(sp => persistenceService.smartProjects.save(uid, sp));
+                        return;
                     }
                     setSmartProjects(items);
                     PersistenceService.saveCollection(uid, 'smartProjects', items);
@@ -1165,7 +1170,8 @@ export const useDashboardLogic = () => {
                     
                     const cached = PersistenceService.getCollection<Attribute>(uid, 'attributes');
                     if (fetchedAttrs.length === 0 && cached && cached.length > 0) {
-                        // Trust Supabase
+                        cached.forEach(a => persistenceService.attributes.save(uid, a));
+                        return;
                     }
                     
                     // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
@@ -3215,8 +3221,7 @@ export const useDashboardLogic = () => {
                 newLevel,
                 newNextXp,
                 traitUpdate,
-                spawnedQuest,
-                newQuest  // Pass full quest object to avoid partial-update data loss
+                spawnedQuest
             ).catch(e => {
                 console.error("Failed to sync quest (Transaction)", e);
             });

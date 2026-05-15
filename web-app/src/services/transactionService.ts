@@ -23,8 +23,7 @@ export const TransactionService = {
         newLevel: number,
         newNextXp: number,
         attributeUpdates?: { id: string, xp: number, level: number, maxXp: number },
-        spawnedQuest?: any,
-        updatedQuest?: any
+        spawnedQuest?: any
     ) => {
         try {
             // 1. Fetch current user
@@ -80,18 +79,13 @@ export const TransactionService = {
                 throw updateError;
             }
 
-            // 4. Save Quest — prefer full object save over partial update to avoid data loss
-            // updatedQuest comes from the React optimistic state and has the complete current data
-            if (updatedQuest) {
-                await persistenceService.quests.save(userId, updatedQuest);
-            } else {
-                // Fallback: partial update by ID (e.g. if called without the full quest object)
-                await persistenceService.quests.update(userId, questId, {
-                    completed: isCompleted,
-                    rewardedXp: isCompleted ? rewardXp : 0,
-                    rewardedGold: isCompleted ? rewardGold : 0
-                });
-            }
+            // 4. Update Quest via direct update (avoids race condition from getAll)
+            // Using update() which does a direct UPSERT by ID without needing to fetch first
+            await persistenceService.quests.update(userId, questId, {
+                completed: isCompleted,
+                rewardedXp: isCompleted ? rewardXp : 0,
+                rewardedGold: isCompleted ? rewardGold : 0
+            });
 
             // 5. Spawn Quest if any
             if (spawnedQuest) {
