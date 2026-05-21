@@ -2,6 +2,22 @@ import { supabase } from './supabase';
 import { UserStats } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
 import { persistenceService } from './persistenceService';
+import { TRAITS_LIST } from '../modules/dashboard/constants';
+
+const TRAIT_ICON_NAMES: Record<string, string> = {
+    DISCIPLINA: 'Target',
+    FISICO: 'Dumbbell',
+    MENTAL: 'Brain',
+    SOCIAL: 'Users',
+    ESPIRITU: 'Ghost',
+    FINANZAS: 'Wallet',
+    CREATIVIDAD: 'Palette',
+    ORDEN: 'Anchor',
+    LIDERAZGO: 'Crown',
+    RESILIENCIA: 'Shield',
+    VITALIDAD: 'Zap',
+    ESTILO: 'Feather'
+};
 
 /**
  * 🛡️ SUPABASE TRANSACTION SERVICE
@@ -29,7 +45,7 @@ export const TransactionService = {
             // 1. Fetch current user
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
-                .select('stats, dailyLimits')
+                .select('stats')
                 .eq('id', userId)
                 .maybeSingle();
 
@@ -40,7 +56,7 @@ export const TransactionService = {
             }
 
             const stats = userDoc.stats || {};
-            const dailyLimits = userDoc.dailyLimits || {};
+            const dailyLimits = stats.dailyLimits || {};
 
             // 2. Prepare user updates
             stats.xp = Math.max(0, (stats.xp || 0) + rewardXp);
@@ -68,10 +84,11 @@ export const TransactionService = {
                 newDailyLimits.tasksCompleted = (newDailyLimits.tasksCompleted || 0) + (isCompleted ? 1 : -1);
             }
 
+            stats.dailyLimits = newDailyLimits;
+
             // 3. Update User
             const { error: updateError } = await supabase.from('users').update({
-                stats,
-                dailyLimits: newDailyLimits
+                stats
             }).eq('id', userId);
             
             if (updateError) {
@@ -103,6 +120,17 @@ export const TransactionService = {
                         level: attributeUpdates.level,
                         maxXp: attributeUpdates.maxXp
                     });
+                } else {
+                    const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
+                    await persistenceService.attributes.save(userId, {
+                        id: attributeUpdates.id,
+                        label: traitDef ? traitDef.label : `traits.${attributeUpdates.id}`,
+                        level: attributeUpdates.level,
+                        xp: attributeUpdates.xp,
+                        maxXp: attributeUpdates.maxXp,
+                        color: traitDef ? traitDef.color : '#3b82f6',
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
+                    });
                 }
             }
 
@@ -128,12 +156,12 @@ export const TransactionService = {
         newLevel: number,
         newNextXp: number,
         attributeUpdates?: { id: string, xp: number, level: number, maxXp: number }
-    ) => {
+     ) => {
         try {
             // 1. Fetch current user
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
-                .select('stats, dailyLimits')
+                .select('stats')
                 .eq('id', userId)
                 .maybeSingle();
 
@@ -144,7 +172,7 @@ export const TransactionService = {
             }
 
             const stats = userDoc.stats || {};
-            const dailyLimits = userDoc.dailyLimits || {};
+            const dailyLimits = stats.dailyLimits || {};
 
             // 2. Prepare user updates
             stats.xp = Math.max(0, (stats.xp || 0) + rewardXp);
@@ -172,10 +200,11 @@ export const TransactionService = {
                 newDailyLimits.habitTraitPoints = (newDailyLimits.habitTraitPoints || 0) + rewardTraitXp;
             }
 
+            stats.dailyLimits = newDailyLimits;
+
             // 3. Update User
             const { error: updateError } = await supabase.from('users').update({
-                stats,
-                dailyLimits: newDailyLimits
+                stats
             }).eq('id', userId);
 
             if (updateError) {
@@ -203,6 +232,17 @@ export const TransactionService = {
                         xp: attributeUpdates.xp,
                         level: attributeUpdates.level,
                         maxXp: attributeUpdates.maxXp
+                    });
+                } else {
+                    const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
+                    await persistenceService.attributes.save(userId, {
+                        id: attributeUpdates.id,
+                        label: traitDef ? traitDef.label : `traits.${attributeUpdates.id}`,
+                        level: attributeUpdates.level,
+                        xp: attributeUpdates.xp,
+                        maxXp: attributeUpdates.maxXp,
+                        color: traitDef ? traitDef.color : '#3b82f6',
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
                     });
                 }
             }
@@ -315,7 +355,7 @@ export const TransactionService = {
         try {
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
-                .select('stats, dailyLimits')
+                .select('stats')
                 .eq('id', userId)
                 .maybeSingle();
 
@@ -326,7 +366,7 @@ export const TransactionService = {
             }
 
             const stats = userDoc.stats || {};
-            const dailyLimits = userDoc.dailyLimits || {};
+            const dailyLimits = stats.dailyLimits || {};
 
             stats.xp = Math.max(0, (stats.xp || 0) + rewardXp);
             stats.gold = Math.max(0, (stats.gold || 0) + rewardGold);
@@ -353,9 +393,10 @@ export const TransactionService = {
                 newDailyLimits.focusTraitPoints = (newDailyLimits.focusTraitPoints || 0) + rewardTraitXp;
             }
 
+            stats.dailyLimits = newDailyLimits;
+
             const { error: updateError } = await supabase.from('users').update({
-                stats,
-                dailyLimits: newDailyLimits
+                stats
             }).eq('id', userId);
             
             if (updateError) {
@@ -372,6 +413,17 @@ export const TransactionService = {
                         xp: attributeUpdates.xp,
                         level: attributeUpdates.level,
                         maxXp: attributeUpdates.maxXp
+                    });
+                } else {
+                    const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
+                    await persistenceService.attributes.save(userId, {
+                        id: attributeUpdates.id,
+                        label: traitDef ? traitDef.label : `traits.${attributeUpdates.id}`,
+                        level: attributeUpdates.level,
+                        xp: attributeUpdates.xp,
+                        maxXp: attributeUpdates.maxXp,
+                        color: traitDef ? traitDef.color : '#3b82f6',
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
                     });
                 }
             }
@@ -390,7 +442,7 @@ export const TransactionService = {
         try {
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
-                .select('dailyLimits')
+                .select('stats')
                 .eq('id', userId)
                 .maybeSingle();
 
@@ -400,7 +452,10 @@ export const TransactionService = {
                 return false;
             }
 
-            let newDailyLimits: any = { ...(userDoc.dailyLimits || {}) };
+            const stats = userDoc.stats || {};
+            const dailyLimits = stats.dailyLimits || {};
+
+            let newDailyLimits: any = { ...dailyLimits };
 
             if (isNewDay) {
                 newDailyLimits = { 
@@ -415,7 +470,9 @@ export const TransactionService = {
                 newDailyLimits.notesCompleted = (newDailyLimits.notesCompleted || 0) + (isDeleted ? -1 : 1);
             }
 
-            await supabase.from('users').update({ dailyLimits: newDailyLimits }).eq('id', userId);
+            stats.dailyLimits = newDailyLimits;
+
+            await supabase.from('users').update({ stats }).eq('id', userId);
             return true;
         } catch (e) {
             console.error("❌ SUPABASE TRANSACTION FAILED (Note Completion):", e);
@@ -436,6 +493,17 @@ export const TransactionService = {
                     xp: attributeUpdates.xp,
                     level: attributeUpdates.level,
                     maxXp: attributeUpdates.maxXp
+                });
+            } else {
+                const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
+                await persistenceService.attributes.save(userId, {
+                    id: attributeUpdates.id,
+                    label: traitDef ? traitDef.label : `traits.${attributeUpdates.id}`,
+                    level: attributeUpdates.level,
+                    xp: attributeUpdates.xp,
+                    maxXp: attributeUpdates.maxXp,
+                    color: traitDef ? traitDef.color : '#3b82f6',
+                    iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
                 });
             }
             return true;

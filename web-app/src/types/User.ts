@@ -62,6 +62,10 @@ export interface UserProfile {
     defaultChartViews?: any;
     defaultProjectView?: any;
     defaultTaskFilters?: any;
+    traitChanges?: {
+      count: number;
+      weekStart: number;
+    };
   };
   dailyLimits?: DailyLimits;
   unlockedAchievements?: string[];

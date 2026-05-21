@@ -332,6 +332,8 @@ export const useDashboardLogic = () => {
     }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.defaultHabitView, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay, user?.preferences, user?.defaultChartMode, user?.showProfile]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: calculateNextLevelXp(1), gold: 0 });
+    const playerRef = useRef(player);
+    playerRef.current = player;
     const prevPlayerLevel = useRef(player.level);
     const [health, setHealth] = useState(() => {
         // 🛡️ MEMORY CORE: Boot HP directly from Persistence
@@ -863,6 +865,8 @@ export const useDashboardLogic = () => {
     }, [user?.id, areHabitsLoaded, isDailyCheckDone, dailyLimits.date]);
 
     const [attributes, setAttributes] = useState<Attribute[]>([]);
+    const attributesRef = useRef(attributes);
+    attributesRef.current = attributes;
     const prevAttributes = useRef(attributes);
     const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);
     const projectsHydratedRef = useRef(false);
@@ -1327,7 +1331,7 @@ export const useDashboardLogic = () => {
         if (user?.plan !== 'PRO') {
             const now = Date.now();
             const oneWeek = 7 * 24 * 60 * 60 * 1000;
-            const changes = user?.traitChanges || { count: 0, weekStart: now };
+            const changes = user?.preferences?.traitChanges || user?.traitChanges || { count: 0, weekStart: now };
             
             // Reset if week passed (logic handling)
             let newCount = changes.count;
@@ -1345,9 +1349,17 @@ export const useDashboardLogic = () => {
 
             // Update Counter
             if (user?.id) {
-                supabase.from('users').update({
+                const newPrefs = {
+                    ...(user.preferences || {}),
                     traitChanges: { count: newCount + 1, weekStart: newStart }
-                });
+                };
+                updateProfileLocally({ preferences: newPrefs });
+                supabase.from('users')
+                    .update({ preferences: newPrefs })
+                    .eq('id', user.id)
+                    .then(({ error }) => {
+                        if (error) console.error("Error updating trait changes in preferences:", error);
+                    });
             }
         }
 
@@ -1416,7 +1428,7 @@ export const useDashboardLogic = () => {
         if (user?.plan !== 'PRO') {
             const now = Date.now();
             const oneWeek = 7 * 24 * 60 * 60 * 1000;
-            const changes = user?.traitChanges || { count: 0, weekStart: now };
+            const changes = user?.preferences?.traitChanges || user?.traitChanges || { count: 0, weekStart: now };
             
             let newCount = changes.count;
             let newStart = changes.weekStart;
@@ -1433,9 +1445,17 @@ export const useDashboardLogic = () => {
 
              // Update Counter
             if (user?.id) {
-                supabase.from('users').update({
+                const newPrefs = {
+                    ...(user.preferences || {}),
                     traitChanges: { count: newCount + 1, weekStart: newStart }
-                });
+                };
+                updateProfileLocally({ preferences: newPrefs });
+                supabase.from('users')
+                    .update({ preferences: newPrefs })
+                    .eq('id', user.id)
+                    .then(({ error }) => {
+                        if (error) console.error("Error updating trait changes in preferences:", error);
+                    });
             }
         }
 
@@ -1474,9 +1494,6 @@ export const useDashboardLogic = () => {
                     color: attrToArchive.color,
                     iconName: attrToArchive.iconName
                 };
-                await supabase.from('users').update({
-                    [`archivedTraits.${traitId}`]: archivedData
-                });
                 
                 // Update Supabase directly since batch.update is mocked
                 const newArchivedTraits = {
@@ -1875,10 +1892,18 @@ export const useDashboardLogic = () => {
                 try {
                     const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
                     
-                    await supabase.from('users').update({
-                        'stats.streak': newStreak,
-                        'stats.lastStreakDate': today
-                    });
+                    const { data: userData, error: fetchErr } = await supabase.from('users').select('stats').eq('id', user.id).single();
+                    if (fetchErr) throw fetchErr;
+                    const currentStats = userData?.stats || {};
+                    const updatedStats = {
+                        ...currentStats,
+                        streak: newStreak,
+                        lastStreakDate: today
+                    };
+                    const { error: updateErr } = await supabase.from('users')
+                        .update({ stats: updatedStats })
+                        .eq('id', user.id);
+                    if (updateErr) throw updateErr;
                     
                     setShowStreakCelebration(true); // DISPARAR OVERLAY AQUI
 
@@ -1933,44 +1958,43 @@ export const useDashboardLogic = () => {
     const updateAttributeXp = useCallback((attrId: string, amount: number) => {
         if (!user?.id || user.isSkeleton) return;
         
-        let updatedAttrData: any = null;
-
-        // Optimistic update for quick UI feedback
-        setAttributes(prev => {
-            const attrIndex = prev.findIndex(a => a.id === attrId);
-            if (attrIndex === -1) return prev;
-            
-            const attr = prev[attrIndex];
-            let newXp = attr.xp + Math.floor(amount);
-            let newLevel = attr.level;
-            let newMaxXp = attr.maxXp;
-
-            if (amount > 0) {
-                while (newXp >= newMaxXp) {
-                    newXp -= newMaxXp;
-                    newLevel += 1;
-                    newMaxXp = Math.floor(newMaxXp * 1.2);
-                }
-            } else {
-                while (newXp < 0 && newLevel > 1) {
-                    newLevel -= 1;
-                    newMaxXp = Math.floor(newMaxXp / 1.2); 
-                    newXp += newMaxXp;
-                }
-                if (newLevel === 1 && newXp < 0) newXp = 0;
-            }
-            
-            updatedAttrData = { id: attr.id, xp: newXp, level: newLevel, maxXp: newMaxXp };
-
-            const next = [...prev];
-            next[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
-            return next;
-        });
+        const currentAttrs = attributesRef.current;
+        const attrIndex = currentAttrs.findIndex(a => a.id === attrId);
+        if (attrIndex === -1) return;
         
-        // SAVE TO FIRESTORE ATOMICALLY
-        if (updatedAttrData) {
-            TransactionService.updateAttributeXpAtomic(user.id, updatedAttrData);
+        const attr = currentAttrs[attrIndex];
+        let newXp = attr.xp + Math.floor(amount);
+        let newLevel = attr.level;
+        let newMaxXp = attr.maxXp;
+
+        if (amount > 0) {
+            while (newXp >= newMaxXp) {
+                newXp -= newMaxXp;
+                newLevel += 1;
+                newMaxXp = Math.floor(newMaxXp * 1.2);
+            }
+        } else {
+            while (newXp < 0 && newLevel > 1) {
+                newLevel -= 1;
+                newMaxXp = Math.floor(newMaxXp / 1.2); 
+                newXp += newMaxXp;
+            }
+            if (newLevel === 1 && newXp < 0) newXp = 0;
         }
+        
+        const updatedAttrData = { id: attr.id, xp: newXp, level: newLevel, maxXp: newMaxXp };
+
+        // 1. Synchronously update the ref so any immediate subsequent calls see the new values
+        const nextAttrs = [...currentAttrs];
+        nextAttrs[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
+        attributesRef.current = nextAttrs;
+
+        // 2. Set the state for UI update
+        setAttributes(nextAttrs);
+        
+        // 3. Save to database atomically
+        TransactionService.updateAttributeXpAtomic(user.id, updatedAttrData)
+            .catch(err => console.error("Error updating attribute XP in DB:", err));
     }, [user?.id, user?.isSkeleton]);
 
     const updateAttributeMetadata = useCallback((attrId: string, updates: Partial<Attribute>) => {
@@ -2020,16 +2044,26 @@ export const useDashboardLogic = () => {
     }, []);
 
     const updatePlayerLevel = useCallback(async (newLevel: number) => {
-        setPlayer(prev => {
-            const newStats = { ...prev, level: newLevel, nextXp: calculateNextXp(newLevel) };
-            if (user?.id) {
-                supabase.from('users').update({
-                    'stats.level': newLevel,
-                    'stats.nextXp': newStats.nextXp
-                });
+        const nextXp = calculateNextXp(newLevel);
+        setPlayer(prev => ({ ...prev, level: newLevel, nextXp }));
+        if (user?.id) {
+            try {
+                const { data, error } = await supabase.from('users').select('stats').eq('id', user.id).single();
+                if (error) throw error;
+                const currentStats = data?.stats || {};
+                const updatedStats = {
+                    ...currentStats,
+                    level: newLevel,
+                    nextXp: nextXp
+                };
+                const { error: updateErr } = await supabase.from('users')
+                    .update({ stats: updatedStats })
+                    .eq('id', user.id);
+                if (updateErr) throw updateErr;
+            } catch (err) {
+                console.error("Error updating player level in Supabase:", err);
             }
-            return newStats;
-        });
+        }
     }, [user?.id, calculateNextXp]);
 
     const updateAttributeLevel = useCallback(async (attrId: string, newLevel: number) => {
@@ -2613,7 +2647,8 @@ export const useDashboardLogic = () => {
             const rTP = -(tpToRevert || 0);
             const rSec = -durationSeconds;
 
-            let newXp = player.xp + rXp;
+            const currentPlayer = playerRef.current;
+            let newXp = currentPlayer.xp + rXp;
             if (newXp < 0) newXp = 0;
             const newLevel = calculateLevelFromXp(newXp);
             const newNextXp = calculateNextLevelXp(newLevel);
@@ -2636,9 +2671,10 @@ export const useDashboardLogic = () => {
 
             let traitUpdate = undefined;
             if (project.attribute) {
-                const attrIndex = attributes.findIndex(a => a.id === project.attribute);
+                const currentAttrs = attributesRef.current;
+                const attrIndex = currentAttrs.findIndex(a => a.id === project.attribute);
                 if (attrIndex !== -1) {
-                    const attr = attributes[attrIndex];
+                    const attr = currentAttrs[attrIndex];
                     let newAttrXp = attr.xp + rTP;
                     let newAttrLevel = attr.level;
                     let newAttrMaxXp = attr.maxXp;
@@ -2650,14 +2686,18 @@ export const useDashboardLogic = () => {
                     }
                     if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
 
-                    setAttributes(prev => prev.map(a => 
+                    const newAttributes = currentAttrs.map(a => 
                         a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
-                    ));
+                    );
+                    attributesRef.current = newAttributes;
+                    setAttributes(newAttributes);
                     traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                 }
             }
 
-            setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rGold), level: newLevel, nextXp: newNextXp }));
+            const nextPlayer = { ...currentPlayer, xp: newXp, gold: Math.max(0, currentPlayer.gold + rGold), level: newLevel, nextXp: newNextXp };
+            playerRef.current = nextPlayer;
+            setPlayer(nextPlayer);
 
             TransactionService.logFocusSession(
                 user.id, 
@@ -2768,11 +2808,13 @@ export const useDashboardLogic = () => {
         }
 
         // 6. Update User Stats, Limits and Attributes via TransactionService
+        // 6. Update User Stats, Limits and Attributes via TransactionService
         if (user?.id) {
             const today = toLocalISOString(new Date());
             const isNewDay = dailyLimits.date !== today;
+            const currentPlayer = playerRef.current;
 
-            let newXp = player.xp + xpDiff;
+            let newXp = currentPlayer.xp + xpDiff;
             if (newXp < 0) newXp = 0;
             const newLevel = calculateLevelFromXp(newXp);
             const newNextXp = calculateNextLevelXp(newLevel);
@@ -2797,10 +2839,11 @@ export const useDashboardLogic = () => {
             setDailyLimits(newLimits);
 
             let traitUpdate = undefined;
+            const currentAttrs = attributesRef.current;
             if (project.attribute) {
-                const attrIndex = attributes.findIndex(a => a.id === project.attribute);
+                const attrIndex = currentAttrs.findIndex(a => a.id === project.attribute);
                 if (attrIndex !== -1) {
-                    const attr = attributes[attrIndex];
+                    const attr = currentAttrs[attrIndex];
                     let newAttrXp = attr.xp + tpDiff;
                     let newAttrLevel = attr.level;
                     let newAttrMaxXp = attr.maxXp;
@@ -2820,23 +2863,28 @@ export const useDashboardLogic = () => {
                         if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
                     }
 
-                    setAttributes(prev => prev.map(a => 
+                    const newAttributes = currentAttrs.map(a => 
                         a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
-                    ));
+                    );
+                    attributesRef.current = newAttributes;
+                    setAttributes(newAttributes);
                     traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                 }
             }
 
-            setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + goldDiff), level: newLevel, nextXp: newNextXp }));
+            const nextPlayer = { ...currentPlayer, xp: newXp, gold: Math.max(0, currentPlayer.gold + goldDiff), level: newLevel, nextXp: newNextXp };
+            playerRef.current = nextPlayer;
+            setPlayer(nextPlayer);
 
             if (xpDiff !== 0 || goldDiff !== 0 || tpDiff !== 0) {
+                 const attr = currentAttrs.find(a => a.id === project.attribute);
                  triggerReward(
                     'Session Adjusted', 
                     xpDiff, 
                     goldDiff, 
-                    { xp: newXp, level: newLevel, gold: Math.max(0, player.gold + goldDiff) }, 
-                    { level: player.level },
-                    traitUpdate ? { ...traitUpdate, name: attributes.find(a => a.id === project.attribute)?.label || '', oldLevel: attributes.find(a => a.id === project.attribute)?.level || 1, gained: tpDiff } : undefined
+                    { xp: newXp, level: newLevel, gold: Math.max(0, currentPlayer.gold + goldDiff) }, 
+                    { level: currentPlayer.level },
+                    traitUpdate ? { ...traitUpdate, name: attr?.label || '', oldLevel: attr?.level || 1, gained: tpDiff } : undefined
                  );
             }
 
@@ -3278,21 +3326,26 @@ export const useDashboardLogic = () => {
         }
 
         // Apply Player Stats
-        let newXp = player.xp + rewardXp;
-        let newGold = player.gold + rewardGold;
+        const currentPlayer = playerRef.current;
+        let newXp = currentPlayer.xp + rewardXp;
+        let newGold = currentPlayer.gold + rewardGold;
         if (newXp < 0) newXp = 0;
         newGold = Math.max(0, newGold);
         
         const newLevel = calculateLevelFromXp(newXp);
         const newNextXp = calculateNextLevelXp(newLevel);
-        setPlayer(prev => ({ ...prev, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp }));
+        
+        const nextPlayer = { ...currentPlayer, xp: newXp, gold: newGold, level: newLevel, nextXp: newNextXp };
+        playerRef.current = nextPlayer;
+        setPlayer(nextPlayer);
 
         // Apply Attribute Stats
         let traitUpdate: any = undefined;
         if (rewardTraitXp !== 0 && habit.attribute) {
-            const attrIndex = attributes.findIndex(a => a.id === habit.attribute);
+            const currentAttrs = attributesRef.current;
+            const attrIndex = currentAttrs.findIndex(a => a.id === habit.attribute);
             if (attrIndex !== -1) {
-                const attr = attributes[attrIndex];
+                const attr = currentAttrs[attrIndex];
                 let newAttrXp = attr.xp + rewardTraitXp;
                 let newAttrLevel = attr.level;
                 let newAttrMaxXp = attr.maxXp;
@@ -3307,8 +3360,9 @@ export const useDashboardLogic = () => {
                     newAttrXp = Math.max(0, newAttrXp);
                 }
 
-                const newAttributes = [...attributes];
+                const newAttributes = [...currentAttrs];
                 newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                attributesRef.current = newAttributes;
                 setAttributes(newAttributes);
                 traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
             }
@@ -3327,7 +3381,7 @@ export const useDashboardLogic = () => {
             
             // Trigger UI Feedback
             if (rewardXp > 0 || rewardGold > 0) {
-                triggerReward(`Habit: ${habit.title}`, rewardXp, rewardGold, { xp: newXp, gold: newGold, level: newLevel }, { level: player.level }, traitUpdate);
+                triggerReward(`Habit: ${habit.title}`, rewardXp, rewardGold, { xp: newXp, gold: newGold, level: newLevel }, { level: currentPlayer.level }, traitUpdate);
             }
         } else {
             const newLimits = { 
@@ -3341,7 +3395,7 @@ export const useDashboardLogic = () => {
         }
 
         return { rewardXp, rewardGold, rewardTraitXp, traitUpdate };
-    }, [player, attributes, dailyLimits, user, addNotification, calculateLevelFromXp, calculateNextLevelXp, triggerReward]);
+    }, [dailyLimits, user, addNotification, calculateLevelFromXp, calculateNextLevelXp, triggerReward]);
 
     const handleHabitClick = useCallback(async (e: React.MouseEvent, habit: Habit) => {
         e.stopPropagation();
@@ -3411,16 +3465,18 @@ export const useDashboardLogic = () => {
         try {
             if (user?.id) {
                 const isNewDay = dailyLimits.date !== todayHistory;
-                let newXp = player.xp + rewards.rewardXp;
+                const currentPlayer = playerRef.current;
+                let newXp = currentPlayer.xp + rewards.rewardXp;
                 if (newXp < 0) newXp = 0;
                 const newLevel = calculateLevelFromXp(newXp);
                 const newNextXp = calculateNextLevelXp(newLevel);
 
                 let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
                 if (habit.attribute) {
-                    const attrIndex = attributes.findIndex(a => a.id === habit.attribute);
+                    const currentAttrs = attributesRef.current;
+                    const attrIndex = currentAttrs.findIndex(a => a.id === habit.attribute);
                     if (attrIndex !== -1) {
-                        const attr = attributes[attrIndex];
+                        const attr = currentAttrs[attrIndex];
                         let newAttrXp = attr.xp + rewards.rewardTraitXp;
                         let newAttrLevel = attr.level;
                         let newAttrMaxXp = attr.maxXp;
@@ -3461,7 +3517,7 @@ export const useDashboardLogic = () => {
         } catch (err: any) {
             console.error("❌ HABIT ATOMIC SYNC FAILED:", err);
         }
-    }, [user, habits, applyHabitRewards, spawnParticles, dailyLimits.date, player.xp]);
+    }, [user, habits, applyHabitRewards, spawnParticles, dailyLimits.date]);
 
     const validateHabitProgress = async () => {
         if (!validationHabit) return;
@@ -3742,22 +3798,21 @@ export const useDashboardLogic = () => {
 
                 // Update Firestore
                 try {
-                    
-                    // Optimistic update using the calculated value since we don't have increment imported in this scope (or maybe we do?)
-                    // To be safe and consistent with handleDeleteHabit:
-                    // We can't easily access the latest Firestore value here without a transaction/get.
-                    // But we can use the local calculated value if we trust it, or use increment if available.
-                    // Let's use the local value derived from prev state in setter, but here we need the value.
-                    // Actually, we can just assume the local state is reasonably up to date for this user action.
-                    
-                    // We'll use updateDoc. Note: dailyLimits is a nested object.
-                    // If we use dot notation 'dailyLimits.habitsCompleted', it works.
-                    // We need to calculate the new value.
-                    const newCount = Math.max(0, (dailyLimits.habitsCompleted || 0) + change);
-                    
-                    await supabase.from('users').update({
-                        'dailyLimits.habitsCompleted': newCount
-                    });
+                    const { data: userData, error: fetchErr } = await supabase.from('users').select('stats').eq('id', user.id).single();
+                    if (fetchErr) throw fetchErr;
+                    const currentStats = userData?.stats || {};
+                    const dailyLim = currentStats.dailyLimits || {};
+                    const updatedStats = {
+                        ...currentStats,
+                        dailyLimits: {
+                            ...dailyLim,
+                            habitsCompleted: Math.max(0, (dailyLim.habitsCompleted || 0) + change)
+                        }
+                    };
+                    const { error: updateErr } = await supabase.from('users')
+                        .update({ stats: updatedStats })
+                        .eq('id', user.id);
+                    if (updateErr) throw updateErr;
                 } catch (e: any) {
                     console.error("Failed to update daily limits on archive", e);
                 }
@@ -3975,16 +4030,21 @@ export const useDashboardLogic = () => {
             
             // Sync with Firestore
             try {
-                
-                // We need to decrement habitsCompleted atomically
-                // But since we don't have 'increment' imported, we can just use the value we know locally
-                // or use updateDoc with the calculated value.
-                // Ideally use increment(-1) but let's stick to what we have imported or add it.
-                // We have 'doc', 'setDoc', 'db', 'writeBatch', 'updateDoc'.
-                // Let's assume we can just update the object.
-                await supabase.from('users').update({
-                    'dailyLimits.habitsCompleted': Math.max(0, (dailyLimits.habitsCompleted || 0) - 1)
-                });
+                const { data, error } = await supabase.from('users').select('stats').eq('id', user.id).single();
+                if (error) throw error;
+                const currentStats = data?.stats || {};
+                const dailyLim = currentStats.dailyLimits || {};
+                const updatedStats = {
+                    ...currentStats,
+                    dailyLimits: {
+                        ...dailyLim,
+                        habitsCompleted: Math.max(0, (dailyLim.habitsCompleted || 0) - 1)
+                    }
+                };
+                const { error: updateErr } = await supabase.from('users')
+                    .update({ stats: updatedStats })
+                    .eq('id', user.id);
+                if (updateErr) throw updateErr;
             } catch (e: any) {
                 console.error("Failed to update daily limits after habit deletion", e);
             }
