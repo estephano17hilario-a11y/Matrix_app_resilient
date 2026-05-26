@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine } from 'lucide-react';
+import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
-export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS';
+export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED';
 
 export interface DockItemConfig {
  id: DockItemId;
@@ -23,7 +23,8 @@ export const DOCK_ITEMS: DockItemConfig[] = [
  { id: 'NOTES', icon: Brain, label: 'STATS', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20', isSystem: true },
  { id: 'STRATEGY', icon: Map, label: 'STRATEGY', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20', borderColor: 'border-indigo-500/20' },
  { id: 'STORE', icon: PenLine, label: 'NOTA', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20' },
- { id: 'ACHIEVEMENTS', icon: Trophy, label: 'LEGACY', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/20' }
+ { id: 'ACHIEVEMENTS', icon: Trophy, label: 'LEGACY', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/20' },
+ { id: 'FEED', icon: Activity, label: 'FEED', color: 'text-teal-400', bgColor: 'bg-teal-500/20', borderColor: 'border-teal-500/20' }
 ];
 
 export interface DockConfig {
@@ -35,7 +36,7 @@ export interface DockConfig {
 export const DEFAULT_DOCK_CONFIG: DockConfig = {
  enabledItems: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
  order: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
- expandedItems: ['HABITS', 'FOCUS', 'STRATEGY', 'ACHIEVEMENTS', 'STORE'],
+ expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED'],
 };
 
 interface DockConfigModalProps {

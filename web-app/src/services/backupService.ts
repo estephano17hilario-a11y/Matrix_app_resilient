@@ -17,6 +17,7 @@ export interface BackupData {
         smartProjects: any[];
         attributes: any[];
         settings: any | null;
+        dailyFeed?: any[];
     };
 }
 
@@ -24,7 +25,7 @@ export const BackupService = {
     exportData: async (uid: string): Promise<BackupData> => {
         // Fetch fresh data from Supabase
         const [
-            projects, quests, habits, badHabits, notes, journal, smartProjects, attributes, settings, profileRes
+            projects, quests, habits, badHabits, notes, journal, smartProjects, attributes, settings, dailyFeed, profileRes
         ] = await Promise.all([
             persistenceService.projects.getAll(uid),
             persistenceService.quests.getAll(uid),
@@ -35,6 +36,7 @@ export const BackupService = {
             persistenceService.smartProjects.getAll(uid),
             persistenceService.attributes.getAll(uid),
             persistenceService.settings.get(uid),
+            persistenceService.dailyFeed.getAll(uid),
             supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', uid).maybeSingle()
         ]);
 
@@ -51,7 +53,8 @@ export const BackupService = {
                 journal: journal || [],
                 smartProjects: smartProjects || [],
                 attributes: attributes || [],
-                settings: settings || null
+                settings: settings || null,
+                dailyFeed: dailyFeed || []
             }
         };
     },
@@ -75,6 +78,7 @@ export const BackupService = {
             if (collections.smartProjects) collections.smartProjects.forEach(item => restoreTasks.push(persistenceService.smartProjects.save(uid, item)));
             if (collections.attributes) collections.attributes.forEach(item => restoreTasks.push(persistenceService.attributes.save(uid, item)));
             if (collections.settings) restoreTasks.push(persistenceService.settings.save(uid, collections.settings));
+            if (collections.dailyFeed) collections.dailyFeed.forEach(item => restoreTasks.push(persistenceService.dailyFeed.save(uid, item)));
 
             // Wait for all saves
             await Promise.all(restoreTasks);
@@ -88,6 +92,7 @@ export const BackupService = {
             if (collections.journal) MemCacheService.saveCollection(uid, 'journal', collections.journal);
             if (collections.smartProjects) MemCacheService.saveCollection(uid, 'smartProjects', collections.smartProjects);
             if (collections.attributes) MemCacheService.saveCollection(uid, 'attributes', collections.attributes);
+            if (collections.dailyFeed) MemCacheService.saveCollection(uid, 'dailyFeed', collections.dailyFeed);
 
             if (data.profile) {
                 const { id, created_at, ...updateData } = data.profile as any;

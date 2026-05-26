@@ -41,14 +41,25 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const effectiveConfig = dockConfig || {
  enabledItems: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'] as DockItemId[],
  order: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'] as DockItemId[],
- expandedItems: ['HABITS', 'FOCUS', 'STRATEGY', 'ACHIEVEMENTS', 'STORE'] as DockItemId[],
+ expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED'] as DockItemId[],
  };
 
  const activeOrder = effectiveConfig.order.slice(0, 4);
  const leftItems = activeOrder.slice(0, 2);
  const rightItems = activeOrder.slice(2, 4);
 
- const expandedItems = effectiveConfig.expandedItems || ['HABITS', 'FOCUS', 'STRATEGY', 'ACHIEVEMENTS', 'STORE'];
+ const rawExpandedItems = effectiveConfig.expandedItems || ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED'];
+ 
+ // Dynamically swap FEED and STORE if FEED is placed before STORE
+ const mappedItems = rawExpandedItems.map(id => id === 'STRATEGY' ? 'FEED' : id);
+ const feedIdx = mappedItems.indexOf('FEED');
+ const storeIdx = mappedItems.indexOf('STORE');
+ if (feedIdx !== -1 && storeIdx !== -1 && feedIdx < storeIdx) {
+    mappedItems[feedIdx] = 'STORE';
+    mappedItems[storeIdx] = 'FEED';
+ }
+
+ const expandedItems = Array.from(new Set(mappedItems)) as DockItemId[];
  // Reducir la altura base (espacio extra) para eliminar el sobrante
  const dynamicHeight = 175 + Math.ceil(expandedItems.length / 2) * 88;
 
@@ -142,6 +153,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = 'Focus'; }
  else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
+ else if (id === 'FEED') { label = 'Feed'; }
 
  return renderExpandedMenuButton(id, label, item.icon, item.color, item.bgColor, item.borderColor, action, isFullWidth);
  };
@@ -157,6 +169,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = t('dock.focus'); }
  else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
+ else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
 
  return (
  <button 

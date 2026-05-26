@@ -54,6 +54,7 @@ import { SettingsView } from './modules/dashboard/SettingsView';
 const ProUpgradeModal = lazy(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
 const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
 const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
+const ImprovementFeedView = lazy(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
 import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
 
 const SuspenseFallback = () => (
@@ -263,7 +264,8 @@ export default function Dashboard() {
  import('./modules/notes/NotesView'),
  import('./modules/achievements/AchievementsScreen'),
  import('./modules/store/StoreScreen'),
- import('./modules/smart-tasks/components/StrategicMapView')
+ import('./modules/smart-tasks/components/StrategicMapView'),
+ import('./modules/feed/ImprovementFeedView')
  ]);
  } catch (e) {
  console.warn("Prefetch failed", e);
@@ -1590,6 +1592,24 @@ export default function Dashboard() {
  <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0">
  <Suspense fallback={<SuspenseFallback />}>
  <StoreScreen onNavigate={(view) => setCurrentView(view)} />
+ </Suspense>
+ </ViewContainer>
+ )}
+
+ {/* FEED DE MEJORA */}
+ {(loadedViews.has('FEED') || currentView === 'FEED') && (
+ <ViewContainer isActive={currentView === 'FEED'} id="FEED" className="h-full pt-0 flex-1">
+ <Suspense fallback={<SuspenseFallback />}>
+ <ImprovementFeedView
+ userId={user?.id}
+ user={user}
+ quests={quests}
+ habits={habits}
+ projects={projects}
+ dailyLimits={dailyLimits}
+ player={player}
+ streak={displayStreak}
+ />
  </Suspense>
  </ViewContainer>
  )}

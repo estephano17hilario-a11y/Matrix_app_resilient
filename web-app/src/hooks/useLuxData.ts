@@ -4,6 +4,7 @@ import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
 import { PersistenceService } from '../services/persistence';
 import { normalizeUserProfile } from '../utils/firestoreUtils';
+import { OfflineSyncService } from '../services/offlineSync';
 
 export { type UserData, type UserStats };
 
@@ -73,8 +74,20 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
     try {
         const handleSupabaseData = (data: any) => {
             const normalized = normalizeUserProfile({ uid: data.id, ...data, displayName: data.display_name, photoURL: data.photo_url });
-            const safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
-            const safeDailyLimits = data.stats?.dailyLimits || normalized?.dailyLimits || undefined;
+            let safeStats = { ...DEFAULT_USER_STATS, ...(normalized?.stats || data.stats || {}) };
+            let safeDailyLimits = data.stats?.dailyLimits || normalized?.dailyLimits || undefined;
+
+            // Merge pending local stats to prevent overwrite
+            if (userId && OfflineSyncService.hasPendingStatsSync(userId)) {
+                const pendingStats = OfflineSyncService.getPendingStats(userId);
+                if (pendingStats) {
+                    console.log("🛡️ LUX SYNC GUARD: Merging pending offline stats to prevent overwrite:", pendingStats);
+                    safeStats = { ...safeStats, ...pendingStats };
+                    if (pendingStats.dailyLimits) {
+                        safeDailyLimits = pendingStats.dailyLimits;
+                    }
+                }
+            }
 
             // AUDIT: Verificación estricta de Expiración de Plan Delux
             if (data.plan === 'PRO' && data.planExpiryDate) {

@@ -5,6 +5,7 @@ import { PersistenceService } from '../services/persistence';
 import { User } from '@supabase/supabase-js';
 import { initRevenueCat } from '../services/revenueCatService';
 import { toast } from 'react-hot-toast';
+import { OfflineSyncService } from '../services/offlineSync';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -204,6 +205,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     };
                     
                     console.log("✅ MATRIX: Profile loaded from Supabase.");
+
+                    let finalProfileStats = finalProfile.stats;
+                    // Merge pending local stats if they exist
+                    if (currentUser.id && OfflineSyncService.hasPendingStatsSync(currentUser.id)) {
+                        const pending = OfflineSyncService.getPendingStats(currentUser.id);
+                        if (pending) {
+                            console.log("🛡️ MATRIX AUTH SYNC GUARD: Merging pending offline stats:", pending);
+                            finalProfileStats = { ...finalProfile.stats, ...pending };
+                            if (pending.dailyLimits) {
+                                finalProfile.dailyLimits = pending.dailyLimits;
+                            }
+                        }
+                    }
+                    finalProfile.stats = finalProfileStats;
+
                     setProfile(finalProfile);
                     PersistenceService.saveProfile(finalProfile);
                     setIsLoading(false);

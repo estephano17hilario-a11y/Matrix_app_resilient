@@ -18,6 +18,7 @@ import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
 import { BackupService } from '@/services/backupService';
+import { OfflineSyncService } from '@/services/offlineSync';
 
 import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
@@ -25,6 +26,7 @@ import { calculateTaskRewards } from '@/utils/rewardCalculator';
 import { notificationService } from '@/services/notificationService';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel } from '../../../utils/leveling';
+import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useReward } from '@/modules/rewards/context/RewardContext';
@@ -340,16 +342,19 @@ export const useDashboardLogic = () => {
         const cached = PersistenceService.getProfile();
         return cached?.stats?.hp ?? 100;
     });
-    const [dailyLimits, setDailyLimits] = useState<DailyLimits>({
-        date: toLocalISOString(new Date()),
-        taskXp: 0,
-        taskGold: 0,
-        taskTraitPoints: 0,
-        habitsCompleted: 0,
-        focusSeconds: 0,
-        totalXp: 0,
-        totalGold: 0,
-        totalTraitPoints: 0
+    const [dailyLimits, setDailyLimits] = useState<DailyLimits>(() => {
+        const cached = PersistenceService.getProfile();
+        return cached?.dailyLimits || {
+            date: toLocalISOString(new Date()),
+            taskXp: 0,
+            taskGold: 0,
+            taskTraitPoints: 0,
+            habitsCompleted: 0,
+            focusSeconds: 0,
+            totalXp: 0,
+            totalGold: 0,
+            totalTraitPoints: 0
+        };
     });
     
     // Data States
@@ -464,7 +469,11 @@ export const useDashboardLogic = () => {
                 serverStats.gold !== currentLast.gold ||
                 serverStats.hp !== currentLast.hp;
 
-            if (hasServerChanged) {
+            // 🛡️ SYNC GUARD: If we have pending offline stats synchronization, 
+            // DO NOT let the server stats overwrite our local stats!
+            const hasPending = user?.id ? OfflineSyncService.hasPendingStatsSync(user.id) : false;
+
+            if (hasServerChanged && !hasPending) {
                 // Server has updated. We should trust it, UNLESS we have very recent local changes?
                 // Actually, if Server updates, it usually means a write confirmed.
                 // If we have pending local changes, they might be overwritten.
@@ -617,13 +626,31 @@ export const useDashboardLogic = () => {
                     })
                     .eq('id', user.id);
                 
-                if (error) {
-                    console.error("Supabase Sync Error (Stats & Limits):", error);
-                } else {
-                    console.log("✅ MATRIX: Stats & Limits synced to Supabase (XP:", player.xp, "Level:", player.level, ")");
+                if (error) throw error;
+                
+                console.log("✅ MATRIX: Stats & Limits synced to Supabase (XP:", player.xp, "Level:", player.level, ")");
+                // Clear any pending STATS_SYNC since it succeeded
+                if (user?.id) {
+                    OfflineSyncService.removePendingStatsSync(user.id);
                 }
-            } catch(e) {
+            } catch(e: any) {
                 console.error("Failed to sync stats to Supabase:", e);
+                // Queue for offline sync if it's a network error or offline
+                const isNetwork = !navigator.onLine || e.message?.includes('fetch') || e.message?.includes('network');
+                if (isNetwork && user?.id) {
+                    OfflineSyncService.addAction({
+                        type: 'STATS_SYNC',
+                        collectionName: 'users',
+                        userId: user.id,
+                        itemId: 'stats',
+                        data: {
+                            stats: {
+                                ...updatedProfile.stats,
+                                dailyLimits: updatedProfile.dailyLimits
+                            }
+                        }
+                    });
+                }
             }
         }, 1500);
 
@@ -848,6 +875,72 @@ export const useDashboardLogic = () => {
                     setHabits(resetHabits);
                     PersistenceService.saveCollection(user.id, 'habits', resetHabits);
                 }
+
+                // 📊 FEED DE MEJORA: Save yesterday's feed entry before resetting dailyLimits
+                try {
+                    const { persistenceService: ps } = await import('@/services/persistenceService');
+                    
+                    // Compute sub-habits from yesterday's state (before reset)
+                    let subHabitsCompleted = 0;
+                    let subHabitsTotal = 0;
+                    habits.forEach(h => {
+                        if (h.archived) return;
+                        if (h.type === 'CHECKLIST' && h.checklist) {
+                            subHabitsTotal += h.checklist.length;
+                            subHabitsCompleted += h.checklist.filter(item => item.completed).length;
+                        }
+                    });
+
+                    // Compute top projects from sessions
+                    const topProjects: { name: string; minutes: number; color?: string }[] = [];
+                    const projectMap = new Map<string, { name: string; minutes: number; color?: string }>();
+                    projects.forEach(p => {
+                        if (p.sessions) {
+                            const daySessions = p.sessions.filter(s => s.date && s.date.startsWith(lastDate));
+                            if (daySessions.length > 0) {
+                                const mins = Math.round(daySessions.reduce((a, s) => a + (s.duration || 0), 0) / 60);
+                                if (mins > 0) projectMap.set(p.id, { name: p.title, minutes: mins, color: p.color });
+                            }
+                        }
+                    });
+                    topProjects.push(...Array.from(projectMap.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 5));
+
+                    const yesterdayDate = new Date(lastDate + 'T12:00:00');
+                    const yesterdayScore = calculateLiveProductivityScore(quests, habits, projects, dailyLimits, yesterdayDate);
+
+                    const feedEntry = {
+                        id: `feed_${lastDate}`,
+                        date: lastDate,
+                        tasksCompleted: Number(dailyLimits.tasksCompleted || 0),
+                        tasksTotal: quests.filter(q => !q.completed).length + Number(dailyLimits.tasksCompleted || 0),
+                        focusMinutes: Math.round(Number(dailyLimits.focusSeconds || 0) / 60),
+                        focusSessions: topProjects.length,
+                        habitsCompleted: Number(dailyLimits.habitsCompleted || 0),
+                        habitsTotal: habits.filter(h => isHabitActive(h, yesterdayDate)).length,
+                        subHabitsCompleted,
+                        subHabitsTotal,
+                        xpEarned: Number(dailyLimits.totalXp || 0) || (Number(dailyLimits.taskXp || 0) + Number(dailyLimits.focusXp || 0) + Number(dailyLimits.habitXp || 0)),
+                        goldEarned: Number(dailyLimits.totalGold || 0) || (Number(dailyLimits.taskGold || 0) + Number(dailyLimits.focusGold || 0) + Number(dailyLimits.habitGold || 0)),
+                        tpEarned: Number(dailyLimits.totalTraitPoints || 0) || (Number(dailyLimits.taskTraitPoints || 0) + Number(dailyLimits.focusTraitPoints || 0) + Number(dailyLimits.habitTraitPoints || 0)),
+                        streak: user.stats?.streak || 0,
+                        topProjects,
+                        completedTaskTitles: quests.filter(q => q.completed && q.completedAt && q.completedAt.startsWith(lastDate)).map(q => q.title).slice(0, 5),
+                        completedHabitTitles: habits.filter(h => !h.archived && h.completedToday).map(h => h.title).slice(0, 5),
+                        createdAt: Date.now(),
+                        score: yesterdayScore
+                    };
+
+                    // Update local cache optimistically
+                    const currentFeed = PersistenceService.getCollection<any>(user.id, 'dailyFeed') || [];
+                    const updatedFeed = [feedEntry, ...currentFeed.filter((e: any) => e.date !== lastDate)].sort((a, b) => b.date.localeCompare(a.date));
+                    PersistenceService.saveCollection(user.id, 'dailyFeed', updatedFeed);
+
+                    await ps.dailyFeed.save(user.id, feedEntry);
+                    console.log(`[DAILY FEED] ✅ Saved feed entry for ${lastDate} and updated local cache`);
+                } catch (feedError) {
+                    console.warn('[DAILY FEED] Failed to save feed entry (non-critical):', feedError);
+                }
+
                 setDailyLimits(newLimits);
 
                 try {
@@ -1061,15 +1154,16 @@ export const useDashboardLogic = () => {
             if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
                 projectService.getUserProjects(uid).then(projects => {
                     if (!projects) return;
+                    const resolvedProjects = OfflineSyncService.applyPendingActionsToCollection(uid, 'projects', projects);
                     const cached = PersistenceService.getCollection<Project>(uid, 'projects');
-                    if (projects.length === 0 && cached && cached.length > 0) {
+                    if (resolvedProjects.length === 0 && cached && cached.length > 0) {
                         cached.forEach(p => persistenceService.projects.save(uid, p));
                         return;
                     }
                     let merged: Project[] = [];
                     let canSave = false;
                     setProjects(prev => {
-                        merged = mergeProjects(prev, projects);
+                        merged = mergeProjects(prev, resolvedProjects);
                         if (merged.length < prev.length) {
                             canSave = false;
                             return prev;
@@ -1087,10 +1181,11 @@ export const useDashboardLogic = () => {
             if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
                 persistenceService.quests.getAll(uid).then(quests => {
                     if (!quests) return;
+                    const resolvedQuests = OfflineSyncService.applyPendingActionsToCollection(uid, 'quests', quests);
                     // Supabase is the source of truth. If it returns an empty array,
                     // the user has no quests (respect deletions). Do NOT re-upload from cache.
-                    setQuests(quests);
-                    PersistenceService.saveCollection(uid, 'quests', quests);
+                    setQuests(resolvedQuests);
+                    PersistenceService.saveCollection(uid, 'quests', resolvedQuests);
                     questsHydratedRef.current = true;
                 });
             }
@@ -1099,8 +1194,9 @@ export const useDashboardLogic = () => {
                 persistenceService.habits.getAll(uid).then(h => {
                     if (!h) return;
                     
+                    const resolvedHabits = OfflineSyncService.applyPendingActionsToCollection(uid, 'habits', h);
                     const cached = PersistenceService.getCollection<Habit>(uid, 'habits');
-                    if (h.length === 0 && cached && cached.length > 0) {
+                    if (resolvedHabits.length === 0 && cached && cached.length > 0) {
                         cached.forEach(habit => persistenceService.habits.save(uid, habit));
                         return;
                     }
@@ -1108,7 +1204,7 @@ export const useDashboardLogic = () => {
                     // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
                     const now = Date.now();
                     let hasFixes = false;
-                    const sanitizedHabits = h.map(habit => {
+                    const sanitizedHabits = resolvedHabits.map(habit => {
                         if (!habit.createdAt) {
                             hasFixes = true;
                             // Infer creation date:
@@ -1143,13 +1239,14 @@ export const useDashboardLogic = () => {
             if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
                 persistenceService.badHabits.getAll(uid).then(items => {
                     if (!items) return;
+                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'badHabits', items);
                     const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
-                    if (items.length === 0 && cached && cached.length > 0) {
+                    if (resolvedItems.length === 0 && cached && cached.length > 0) {
                         cached.forEach(bh => persistenceService.badHabits.save(uid, bh));
                         return;
                     }
-                    setBadHabits(items);
-                    PersistenceService.saveCollection(uid, 'badHabits', items);
+                    setBadHabits(resolvedItems);
+                    PersistenceService.saveCollection(uid, 'badHabits', resolvedItems);
                     badHabitsHydratedRef.current = true;
                 });
             }
@@ -1157,13 +1254,14 @@ export const useDashboardLogic = () => {
             if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
                 persistenceService.smartProjects.getAll(uid).then(items => {
                     if (!items) return;
+                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'smartProjects', items);
                     const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
-                    if (items.length === 0 && cached && cached.length > 0) {
+                    if (resolvedItems.length === 0 && cached && cached.length > 0) {
                         cached.forEach(sp => persistenceService.smartProjects.save(uid, sp));
                         return;
                     }
-                    setSmartProjects(items);
-                    PersistenceService.saveCollection(uid, 'smartProjects', items);
+                    setSmartProjects(resolvedItems);
+                    PersistenceService.saveCollection(uid, 'smartProjects', resolvedItems);
                     smartProjectsHydratedRef.current = true;
                 });
             }
@@ -1892,18 +1990,14 @@ export const useDashboardLogic = () => {
                 try {
                     const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
                     
-                    const { data: userData, error: fetchErr } = await supabase.from('users').select('stats').eq('id', user.id).single();
-                    if (fetchErr) throw fetchErr;
-                    const currentStats = userData?.stats || {};
-                    const updatedStats = {
-                        ...currentStats,
-                        streak: newStreak,
-                        lastStreakDate: today
-                    };
-                    const { error: updateErr } = await supabase.from('users')
-                        .update({ stats: updatedStats })
-                        .eq('id', user.id);
-                    if (updateErr) throw updateErr;
+                    // Update locally immediately!
+                    updateProfileLocally({
+                        stats: {
+                            ...(user.stats || {}),
+                            streak: newStreak,
+                            lastStreakDate: today
+                        }
+                    });
                     
                     setShowStreakCelebration(true); // DISPARAR OVERLAY AQUI
 
