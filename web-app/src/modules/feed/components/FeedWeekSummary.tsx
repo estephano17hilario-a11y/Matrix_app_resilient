@@ -28,6 +28,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
     const avgHabits = current.reduce((a, e) => a + e.habitsCompleted, 0) / Math.max(current.length, 1);
     const totalXp = current.reduce((a, e) => a + e.xpEarned, 0);
     const totalGold = current.reduce((a, e) => a + e.goldEarned, 0);
+    const totalTp = current.reduce((a, e) => a + (e.tpEarned || 0), 0);
 
     // Totals
     const totalTasks = current.reduce((a, e) => a + e.tasksCompleted, 0);
@@ -45,6 +46,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
       avgHabits: Math.round(avgHabits * 10) / 10,
       totalXp,
       totalGold,
+      totalTp,
       totalTasks,
       totalFocus,
       totalHabits,
@@ -133,17 +135,20 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
               borderColor: `${scoreColor}30`
             }}
           >
-            <motion.span 
-              className="text-4xl font-black text-white leading-none tracking-tight tabular-nums"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: delay + 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {stats.totalWeeklyScore}
-            </motion.span>
-            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mt-2 border-t border-white/[0.08] pt-1.5 w-14 text-center">
-              / 700
-            </span>
+            <div className="flex flex-col items-center justify-center pt-0.5">
+              <motion.span 
+                className="text-4xl font-black text-white tracking-tight tabular-nums"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: delay + 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {stats.totalWeeklyScore}
+              </motion.span>
+              <div className="w-12 h-px bg-white/[0.08] my-1.5" />
+              <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+                / 700
+              </span>
+            </div>
           </div>
 
           {/* 2x2 grid of metrics on the right */}
@@ -245,6 +250,12 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
             <span className="text-xs">🪙</span>
             <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Oro ganado:</span>
             <span className="text-xs font-black text-amber-400 tabular-nums">+{stats.totalGold.toLocaleString()}</span>
+          </div>
+          <div className="w-px h-3.5 bg-white/[0.06]" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">⭐</span>
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">TP ganado:</span>
+            <span className="text-xs font-black text-purple-400 tabular-nums">+{stats.totalTp.toLocaleString()}</span>
           </div>
         </motion.div>
       </div>
