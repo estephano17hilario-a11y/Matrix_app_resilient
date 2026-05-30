@@ -19,7 +19,13 @@ export function isHabitActive(habit: Habit, date: Date): boolean {
   
   if (habit.frequency === 'WEEKLY') {
     if (habit.weeklyType === 'FLEXIBLE_COUNT') {
-      return true;
+      const dateStr = toLocalISOString(date);
+      const isToday = toLocalISOString(new Date()) === dateStr;
+      if (isToday) {
+        return !!habit.completedToday;
+      }
+      const history = habit.history || [];
+      return history.some(d => d.startsWith(dateStr));
     }
     if (!habit.frequencyDays || habit.frequencyDays.length === 0) {
       return true;
@@ -29,7 +35,13 @@ export function isHabitActive(habit: Habit, date: Date): boolean {
   
   if (habit.frequency === 'MONTHLY') {
     if (habit.monthlyType === 'FLEXIBLE_COUNT') {
-      return true;
+      const dateStr = toLocalISOString(date);
+      const isToday = toLocalISOString(new Date()) === dateStr;
+      if (isToday) {
+        return !!habit.completedToday;
+      }
+      const history = habit.history || [];
+      return history.some(d => d.startsWith(dateStr));
     }
     const selectedDays = habit.frequencyDays || [];
     if (selectedDays.includes(dayOfMonth)) {
@@ -211,7 +223,14 @@ export function getDetailedScoreBreakdown(
         const share = pTarget / focusTargetMinutes;
         let actualMin = 0;
         if (p.sessions) {
-          const sessionsOnDay = p.sessions.filter(s => s.date && typeof s.date === 'string' && s.date.startsWith(dayStr));
+          const sessionsOnDay = p.sessions.filter(s => {
+            if (!s.date) return false;
+            try {
+              return toLocalISOString(new Date(s.date)) === dayStr;
+            } catch (e) {
+              return false;
+            }
+          });
           actualMin = Math.round(sessionsOnDay.reduce((acc, s) => acc + (s.duration || 0), 0) / 60);
         }
         const comp = Math.min(actualMin / pTarget, 1.0);
@@ -256,25 +275,55 @@ export function calculateLiveProductivityScore(
   const safeProjects = projects || [];
   const safeLimits = dailyLimits || {};
 
-  const tasksCompleted = Number(safeLimits.tasksCompleted || 0);
+  const today = toLocalISOString(date);
+  const todayCompletedQuests = safeQuests.filter(q => {
+    if (!q.completed || !q.completedAt) return false;
+    try {
+      return toLocalISOString(new Date(q.completedAt)) === today;
+    } catch (e) {
+      return false;
+    }
+  });
+  const tasksCompleted = todayCompletedQuests.length;
   const activeUncompletedQuests = safeQuests.filter(q => !q.completed);
   const tasksTotal = activeUncompletedQuests.length + tasksCompleted;
-  const focusMinutes = Math.round(Number(safeLimits.focusSeconds || 0) / 60);
-  const habitsCompleted = Number(safeLimits.habitsCompleted || 0);
+
+  let focusSecondsFromSessions = 0;
+  safeProjects.forEach(p => {
+    if (p.sessions) {
+      const todaySessions = p.sessions.filter(s => {
+        if (!s.date) return false;
+        try {
+          return toLocalISOString(new Date(s.date)) === today;
+        } catch (e) {
+          return false;
+        }
+      });
+      focusSecondsFromSessions += todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    }
+  });
+  const focusMinutes = Math.round(Math.max(Number(safeLimits.focusSeconds || 0), focusSecondsFromSessions) / 60);
+
+  const habitsCompleted = safeHabits.filter(h => !h.archived && h.completedToday).length;
   const habitsTotal = safeHabits.filter(h => !h.archived).length;
 
   let subHabitsCompleted = 0;
   let subHabitsTotal = 0;
+  const dayOfWeek = date.getDay();
   safeHabits.forEach(h => {
     if (h.archived) return;
     if (h.type === 'CHECKLIST' && h.checklist) {
-      subHabitsTotal += h.checklist.length;
-      subHabitsCompleted += h.checklist.filter(item => item.completed).length;
+      const isActive = isHabitActive(h, date);
+      if (isActive) {
+        const activeChecklist = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek));
+        subHabitsTotal += activeChecklist.length;
+        subHabitsCompleted += activeChecklist.filter(item => item.completed).length;
+      }
     }
   });
 
   const breakdown = getDetailedScoreBreakdown({
-    date: toLocalISOString(date),
+    date: today,
     tasksCompleted,
     tasksTotal,
     focusMinutes,

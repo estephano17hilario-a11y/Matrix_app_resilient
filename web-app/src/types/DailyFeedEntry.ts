@@ -17,6 +17,7 @@ export interface DailyFeedEntry {
   completedTaskTitles: string[]; // Names of completed tasks (max 5)
   completedHabitTitles: string[];
   mood?: string;                 // Optional mood from journal
+  title?: string;                // Custom title for the day
   createdAt: number;
   score?: number;                // Productivity score (0-100)
 }

@@ -254,16 +254,21 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  return Math.max(0, timeLeft);
  }, [timeLeft, totalDuration]);
 
- const handleStop = () => {
- if (mode === 'STOPWATCH' && timeLeft > 0) {
- handleSessionEnd(getElapsedSeconds('STOPWATCH'), 'STOPWATCH', true);
- }
- if (mode === 'POMO') {
- handleSessionEnd(getElapsedSeconds('POMO'), 'POMO', true);
- }
- stopSession();
- // onExit(); // Removed to keep the user in the Focus Session view
- };
+  const handleStop = () => {
+    if (!isActive) {
+      stopSession();
+      return;
+    }
+
+    const currentMode = mode;
+    const elapsed = getElapsedSeconds(currentMode);
+
+    if (elapsed >= 5) {
+      handleSessionEnd(elapsed, currentMode, true);
+    }
+    
+    stopSession();
+  };
 
  return (
  <motion.div

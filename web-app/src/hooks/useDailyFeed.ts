@@ -5,7 +5,7 @@ import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { Quest, Habit, Project } from '../types';
 import { DailyLimits } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
-import { calculateLiveProductivityScore } from '../utils/productivityScore';
+import { calculateLiveProductivityScore, isHabitActive } from '../utils/productivityScore';
 
 interface UseDailyFeedProps {
   userId?: string;
@@ -73,29 +73,35 @@ export const useDailyFeed = ({
     // Tasks
     const todayCompletedTasks = safeQuests.filter(q => {
       if (!q.completed || !q.completedAt) return false;
-      const dateStr = typeof q.completedAt === 'number' 
-        ? toLocalISOString(new Date(q.completedAt)) 
-        : String(q.completedAt);
-      return dateStr.startsWith(today);
+      try {
+        return toLocalISOString(new Date(q.completedAt)) === today;
+      } catch (e) {
+        return false;
+      }
     });
-    const tasksCompleted = Number(safeLimits.tasksCompleted || 0);
+    const tasksCompleted = todayCompletedTasks.length;
     const tasksTotal = safeQuests.filter(q => !q.completed).length + tasksCompleted;
 
-    // Focus
-    const focusSeconds = Number(safeLimits.focusSeconds || 0);
-    const focusMinutes = Math.round(focusSeconds / 60);
-    
     // Count sessions from projects for today
     let focusSessions = 0;
+    let focusSecondsFromSessions = 0;
     let topProjects: { name: string; minutes: number; color?: string }[] = [];
     
     const projectTimeMap = new Map<string, { name: string; minutes: number; color?: string }>();
     safeProjects.forEach(p => {
       if (p.sessions) {
-        const todaySessions = p.sessions.filter(s => s.date && typeof s.date === 'string' && s.date.startsWith(today));
+        const todaySessions = p.sessions.filter(s => {
+          if (!s.date) return false;
+          try {
+            return toLocalISOString(new Date(s.date)) === today;
+          } catch (e) {
+            return false;
+          }
+        });
         if (todaySessions.length > 0) {
           focusSessions += todaySessions.length;
           const totalMin = Math.round(todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 60);
+          focusSecondsFromSessions += todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
           if (totalMin > 0) {
             projectTimeMap.set(p.id, { 
               name: p.title, 
@@ -110,18 +116,27 @@ export const useDailyFeed = ({
       .sort((a, b) => b.minutes - a.minutes)
       .slice(0, 5);
 
+    // Focus Minutes (derived from actual sessions, fallback to limits)
+    const focusMinutes = Math.round(Math.max(Number(safeLimits.focusSeconds || 0), focusSecondsFromSessions) / 60);
+
     // Habits
-    const habitsCompleted = Number(safeLimits.habitsCompleted || 0);
+    const todayCompletedHabits = safeHabits.filter(h => !h.archived && h.completedToday);
+    const habitsCompleted = todayCompletedHabits.length;
     const habitsTotal = safeHabits.filter(h => !h.archived).length;
     
-    // Sub-habits (checklist items)
+    // Sub-habits (checklist items) active today
     let subHabitsCompleted = 0;
     let subHabitsTotal = 0;
+    const dayOfWeek = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
     safeHabits.forEach(h => {
       if (h.archived) return;
       if (h.type === 'CHECKLIST' && h.checklist) {
-        subHabitsTotal += h.checklist.length;
-        subHabitsCompleted += h.checklist.filter(item => item.completed).length;
+        const isActive = isHabitActive(h, new Date());
+        if (isActive) {
+          const activeChecklist = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek));
+          subHabitsTotal += activeChecklist.length;
+          subHabitsCompleted += activeChecklist.filter(item => item.completed).length;
+        }
       }
     });
 

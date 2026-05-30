@@ -19,8 +19,35 @@ interface DockProps {
  pointerEvents?: 'none' | 'auto';
 }
 
-export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen, onToggle, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode, dockConfig, pointerEvents = 'auto' }: DockProps) => {
+export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen: propIsOpen, onToggle: propOnToggle, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode, dockConfig, pointerEvents = 'auto' }: DockProps) => {
  const { t } = useTranslation();
+
+ const [localIsOpen, setLocalIsOpen] = React.useState(false);
+ const isOpen = localIsOpen;
+
+ const onToggle = React.useCallback((open: boolean) => {
+   setLocalIsOpen(open);
+   if (propOnToggle) {
+     requestAnimationFrame(() => {
+       propOnToggle(open);
+     });
+   }
+ }, [propOnToggle]);
+
+ React.useEffect(() => {
+   if (propIsOpen !== undefined) {
+     setLocalIsOpen(propIsOpen);
+   }
+ }, [propIsOpen]);
+
+ React.useEffect(() => {
+   if (isHidden) {
+     setLocalIsOpen(false);
+     if (propOnToggle) {
+       propOnToggle(false);
+     }
+   }
+ }, [isHidden, propOnToggle]);
 
  const handleView = (v: string) => { onChangeView(v); onToggle(false); };
  
@@ -302,6 +329,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       borderRadius: isOpen ? 32 : 34
     }}
  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+ style={{ willChange: 'transform, height' }}
  className={` 
  pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
  backdrop-blur-sm 

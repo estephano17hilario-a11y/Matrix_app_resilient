@@ -118,6 +118,10 @@ export const OfflineSyncService = {
     }
 
     console.log(`[Offline Sync] Action ${action.type} queued for ${action.collectionName}/${action.itemId}`);
+    
+    if (navigator.onLine) {
+      OfflineSyncService.processQueue();
+    }
   },
 
   removeAction: async (id: string) => {
@@ -262,6 +266,6 @@ if (typeof window !== 'undefined') {
     OfflineSyncService.processQueue();
   });
   
-  // Also try to process queue on startup
-  setTimeout(() => OfflineSyncService.processQueue(), 5000);
+  // Also try to process queue on startup (faster 1s delay)
+  setTimeout(() => OfflineSyncService.processQueue(), 1000);
 }

@@ -6,6 +6,7 @@ import { FeedDayCard } from './components/FeedDayCard';
 import { FeedWeekSummary } from './components/FeedWeekSummary';
 import { FeedWeekCard, WeeklyFeedEntry } from './components/FeedWeekCard';
 import { FeedScoreBreakdownChart } from './components/FeedScoreBreakdownChart';
+import { FeedCalendarModal } from './components/FeedCalendarModal';
 import { Quest, Habit, Project } from '../../types';
 import { DailyLimits } from '../../types/User';
 import { toLocalISOString, startOfWeek as utilsStartOfWeek, endOfWeek as utilsEndOfWeek, parseLocalDate } from '../../utils/dateUtils';
@@ -26,13 +27,29 @@ interface ImprovementFeedViewProps {
 export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
   userId, user, quests, habits, projects, dailyLimits, player, streak
 }) => {
-  const { feedEntries, todayEntry, isLoading } = useDailyFeed({
+  const { feedEntries, todayEntry, isLoading, saveFeedEntry } = useDailyFeed({
     userId, quests, habits, projects, dailyLimits, player, streak
   });
 
   const [feedViewMode, setFeedViewMode] = useState<'daily' | 'weekly'>('daily');
   const [showFormulaModal, setShowFormulaModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const handleSelectDate = (dateStr: string) => {
+    if (feedViewMode !== 'daily') setFeedViewMode('daily');
+    
+    setTimeout(() => {
+      const element = document.getElementById(`feed-card-${dateStr}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('ring-2', 'ring-indigo-500', 'rounded-2xl', 'transition-all', 'duration-500');
+        setTimeout(() => {
+          element.classList.remove('ring-2', 'ring-indigo-500', 'rounded-2xl');
+        }, 2000);
+      }
+    }, 150);
+  };
 
   const handlePrevWeek = () => {
     setSelectedDate(prev => {
@@ -375,7 +392,13 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">
-                Feed {feedViewMode === 'daily' ? 'DIARIO' : 'SEMANAL'}
+                {feedViewMode === 'daily' ? (
+                  <>
+                    <span className="text-white/60">Feed</span> DIARIO
+                  </>
+                ) : (
+                  'Feed SEMANAL'
+                )}
               </h1>
             </div>
           </div>
@@ -528,7 +551,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <Clock size={12} className="text-indigo-400 shrink-0" />
                       <span className="text-xs text-white/50 font-medium">Focus</span>
                       <span className="text-xs font-black text-white ml-auto tabular-nums">
-                        {todayEntry.focusMinutes < 60 ? `${todayEntry.focusMinutes}m` : `${Math.floor(todayEntry.focusMinutes/60)}h`}
+                        {todayEntry.focusMinutes < 60 
+                          ? `${todayEntry.focusMinutes}m` 
+                          : `${Math.floor(todayEntry.focusMinutes / 60)}h ${todayEntry.focusMinutes % 60}m`}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -690,14 +715,26 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             {/* TIMELINE HEADER */}
             {/* ═══════════════════════════════════════ */}
             <motion.div 
-              className="flex items-center gap-2 mb-4"
+              className="flex items-center justify-between gap-2 mb-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}
             >
-              <Calendar size={14} className="text-white/30" />
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">Historial Diario</span>
-              <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+              <div className="flex items-center gap-2 flex-grow">
+                <Calendar size={14} className="text-white/30" />
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">Historial Diario</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+              </div>
+              
+              <motion.button
+                onClick={() => setIsCalendarOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[10px] font-black text-white/50 hover:text-white hover:bg-white/[0.08] hover:border-indigo-500/30 transition-all duration-300 backdrop-blur-sm shadow-md"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Calendar size={12} className="text-indigo-400" />
+                <span>Buscar Fecha</span>
+              </motion.button>
             </motion.div>
 
 
@@ -730,13 +767,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 ))
               ) : historicalEntries.length > 0 ? (
                 historicalEntries.map((entry, i) => (
-                  <FeedDayCard 
-                    key={entry.id} 
-                    entry={entry} 
-                    prevEntry={feedEntries[i + 2]} // i+2 because index i starts at historicalEntries[0], which corresponds to feedEntries[1]
-                    index={i + 1} 
-                    user={user}
-                  />
+                  <div key={entry.id} id={`feed-card-${entry.date}`}>
+                    <FeedDayCard 
+                      entry={entry} 
+                      prevEntry={feedEntries[i + 2]} // i+2 because index i starts at historicalEntries[0], which corresponds to feedEntries[1]
+                      index={i + 1} 
+                      user={user}
+                      onSaveEntry={saveFeedEntry}
+                    />
+                  </div>
                 ))
               ) : (
                 <motion.div
@@ -1061,6 +1100,13 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <FeedCalendarModal
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        feedEntries={feedEntries}
+        onSelectDate={handleSelectDate}
+      />
     </div>
   );
 };

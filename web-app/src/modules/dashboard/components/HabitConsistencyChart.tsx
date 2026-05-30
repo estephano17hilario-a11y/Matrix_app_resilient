@@ -114,12 +114,24 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 // Frequency Check
                 if (h.frequency === 'DAILY') return true;
                 if (h.frequency === 'WEEKLY') {
-                    if (h.weeklyType === 'FLEXIBLE_COUNT') return true;
+                    if (h.weeklyType === 'FLEXIBLE_COUNT') {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+                        if (isToday) return !!h.completedToday;
+                        const history = h.history || [];
+                        return history.some(d => d.startsWith(dateStr));
+                    }
                     if (!h.frequencyDays || h.frequencyDays.length === 0) return true;
                     return h.frequencyDays.includes(dayOfWeek);
                 }
                 if (h.frequency === 'MONTHLY') {
-                    if (h.monthlyType === 'FLEXIBLE_COUNT') return true; // Flexible means it could be done any day
+                    if (h.monthlyType === 'FLEXIBLE_COUNT') {
+                        const dateStr = format(date, 'yyyy-MM-dd');
+                        const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+                        if (isToday) return !!h.completedToday;
+                        const history = h.history || [];
+                        return history.some(d => d.startsWith(dateStr));
+                    }
                     
                     const dateOfMonth = new Date(date).getDate();
                     const isLastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === dateOfMonth;

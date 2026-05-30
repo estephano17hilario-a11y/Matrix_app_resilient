@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
 import { ArrowUp, AlertTriangle, Plus } from 'lucide-react';
@@ -10,6 +10,7 @@ import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { TaskList } from './modules/tasks/TaskList';
 import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
+import { calculateLiveProductivityScore } from './utils/productivityScore';
 import { Dock } from './modules/dashboard/components/Dock';
 import { DockConfigModal } from './components/ui/DockConfigModal';
 import { QuestModal } from './modules/dashboard/components/QuestModal';
@@ -346,6 +347,10 @@ export default function Dashboard() {
  showStreakCelebration,
  setShowStreakCelebration
  } = dashboardLogic;
+
+  const liveScore = useMemo(() => {
+    return calculateLiveProductivityScore(quests, habits, projects, dailyLimits);
+  }, [quests, habits, projects, dailyLimits]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);
@@ -1000,7 +1005,7 @@ export default function Dashboard() {
  }, [currentView, taskViewMode]);
 
  // Calculate if all daily requirements are met (Streak Logic)
- const isStreakActiveToday = (() => {
+ const isStreakActiveToday = useMemo(() => {
  // ROBUSTNESS UPDATE: Visual state must reflect REALITY, not just DB state.
  // Even if DB says "today is done", if the user unchecked a habit, 
  // the UI must show it as pending.
@@ -1018,14 +1023,14 @@ export default function Dashboard() {
  habitsCompleted >= 1 &&
  focusSeconds >= 3600
  );
- })();
+ }, [dailyLimits]);
 
  const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false); // State to track detail view
 
  const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
 
  // Visual Streak Calculation (Strict Mode)
- const displayStreak = (() => {
+ const displayStreak = useMemo(() => {
  const dbStreak = user?.stats?.streak || 0;
  const lastStreakDate = user?.stats?.lastStreakDate;
  const todayStr = toLocalISOString(new Date());
@@ -1046,7 +1051,7 @@ export default function Dashboard() {
  }
  return dbStreak;
  }
- })();
+ }, [user?.stats?.streak, user?.stats?.lastStreakDate, isStreakActiveToday]);
 
  // --- HARDWARE BACK BUTTON HANDLER ---
  useEffect(() => {
@@ -1327,6 +1332,7 @@ export default function Dashboard() {
  avatarShape={avatarShape}
  isHabitsCompleted={isStreakActiveToday}
  dailyLimits={dailyLimits}
+ productivityScore={liveScore}
  onNavigate={handleDockViewChange}
  />
  </div>

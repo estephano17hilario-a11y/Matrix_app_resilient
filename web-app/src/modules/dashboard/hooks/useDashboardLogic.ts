@@ -613,15 +613,30 @@ export const useDashboardLogic = () => {
             try {
                 const { supabase } = await import('@/services/supabase');
                 
-                const statsToSave = {
-                    ...updatedProfile.stats,
-                    dailyLimits: updatedProfile.dailyLimits
+                // Fetch current user stats to merge and prevent overwrite race conditions
+                const { data: userDoc } = await supabase
+                    .from('users')
+                    .select('stats')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                const dbStats = userDoc?.stats || {};
+                const mergedStats = {
+                    ...dbStats,
+                    xp: Math.max(dbStats.xp || 0, player.xp),
+                    gold: Math.max(dbStats.gold || 0, player.gold),
+                    level: Math.max(dbStats.level || 0, player.level),
+                    hp: health,
+                    dailyLimits: {
+                        ...(dbStats.dailyLimits || {}),
+                        ...dailyLimits
+                    }
                 };
 
                 const { error } = await supabase
                     .from('users')
                     .update({
-                        stats: statsToSave,
+                        stats: mergedStats,
                         last_login_at: new Date().toISOString()
                     })
                     .eq('id', user.id);
@@ -721,6 +736,7 @@ export const useDashboardLogic = () => {
                 if (canProcessHabits) {
                     const yesterdayEndOfDay = new Date(lastDate);
                     yesterdayEndOfDay.setHours(23, 59, 59, 999);
+                    const lastDateObj = new Date(lastDate + 'T12:00:00');
                     
                     relevantHabits = habits.filter(h => {
                         let createdAt = h.createdAt ? new Date(h.createdAt) : null;
@@ -736,7 +752,10 @@ export const useDashboardLogic = () => {
                             }
                         }
                         
-                        return createdAt <= yesterdayEndOfDay;
+                        const isCreatedBefore = createdAt <= yesterdayEndOfDay;
+                        if (!isCreatedBefore) return false;
+                        
+                        return isHabitActive(h, lastDateObj);
                     });
                 }
 
@@ -879,6 +898,8 @@ export const useDashboardLogic = () => {
                 // 📊 FEED DE MEJORA: Save yesterday's feed entry before resetting dailyLimits
                 try {
                     const { persistenceService: ps } = await import('@/services/persistenceService');
+                    const yesterdayDate = new Date(lastDate + 'T12:00:00');
+                    const yesterdayDayOfWeek = yesterdayDate.getDay();
                     
                     // Compute sub-habits from yesterday's state (before reset)
                     let subHabitsCompleted = 0;
@@ -886,36 +907,71 @@ export const useDashboardLogic = () => {
                     habits.forEach(h => {
                         if (h.archived) return;
                         if (h.type === 'CHECKLIST' && h.checklist) {
-                            subHabitsTotal += h.checklist.length;
-                            subHabitsCompleted += h.checklist.filter(item => item.completed).length;
+                            const isActive = isHabitActive(h, yesterdayDate);
+                            if (isActive) {
+                                const activeChecklist = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(yesterdayDayOfWeek));
+                                subHabitsTotal += activeChecklist.length;
+                                subHabitsCompleted += activeChecklist.filter(item => item.completed).length;
+                            }
                         }
                     });
 
-                    // Compute top projects from sessions
+                    // Compute top projects and focus seconds from sessions on lastDate
+                    let focusSecondsOnDay = 0;
                     const topProjects: { name: string; minutes: number; color?: string }[] = [];
                     const projectMap = new Map<string, { name: string; minutes: number; color?: string }>();
                     projects.forEach(p => {
                         if (p.sessions) {
-                            const daySessions = p.sessions.filter(s => s.date && s.date.startsWith(lastDate));
+                            const daySessions = p.sessions.filter(s => {
+                                if (!s.date) return false;
+                                try {
+                                    return toLocalISOString(new Date(s.date)) === lastDate;
+                                } catch (e) {
+                                    return false;
+                                }
+                            });
                             if (daySessions.length > 0) {
                                 const mins = Math.round(daySessions.reduce((a, s) => a + (s.duration || 0), 0) / 60);
+                                focusSecondsOnDay += daySessions.reduce((a, s) => a + (s.duration || 0), 0);
                                 if (mins > 0) projectMap.set(p.id, { name: p.title, minutes: mins, color: p.color });
                             }
                         }
                     });
                     topProjects.push(...Array.from(projectMap.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 5));
 
-                    const yesterdayDate = new Date(lastDate + 'T12:00:00');
+                    // Tasks Completed on lastDate
+                    const tasksCompletedOnDay = quests.filter(q => {
+                        if (!q.completed || !q.completedAt) return false;
+                        try {
+                            return toLocalISOString(new Date(q.completedAt)) === lastDate;
+                        } catch (e) {
+                            return false;
+                        }
+                    }).length;
+
+                    // Habits Completed on lastDate
+                    const habitsCompletedOnDay = habits.filter(h => {
+                        if (h.archived) return false;
+                        const history = h.history || [];
+                        return history.some(d => {
+                            try {
+                                return toLocalISOString(new Date(d)) === lastDate || d.startsWith(lastDate);
+                            } catch (e) {
+                                return d.startsWith(lastDate);
+                            }
+                        });
+                    }).length;
+
                     const yesterdayScore = calculateLiveProductivityScore(quests, habits, projects, dailyLimits, yesterdayDate);
 
                     const feedEntry = {
                         id: `feed_${lastDate}`,
                         date: lastDate,
-                        tasksCompleted: Number(dailyLimits.tasksCompleted || 0),
-                        tasksTotal: quests.filter(q => !q.completed).length + Number(dailyLimits.tasksCompleted || 0),
-                        focusMinutes: Math.round(Number(dailyLimits.focusSeconds || 0) / 60),
+                        tasksCompleted: tasksCompletedOnDay,
+                        tasksTotal: quests.filter(q => !q.completed).length + tasksCompletedOnDay,
+                        focusMinutes: Math.round(Math.max(Number(dailyLimits.focusSeconds || 0), focusSecondsOnDay) / 60),
                         focusSessions: topProjects.length,
-                        habitsCompleted: Number(dailyLimits.habitsCompleted || 0),
+                        habitsCompleted: habitsCompletedOnDay,
                         habitsTotal: habits.filter(h => isHabitActive(h, yesterdayDate)).length,
                         subHabitsCompleted,
                         subHabitsTotal,
@@ -924,8 +980,18 @@ export const useDashboardLogic = () => {
                         tpEarned: Number(dailyLimits.totalTraitPoints || 0) || (Number(dailyLimits.taskTraitPoints || 0) + Number(dailyLimits.focusTraitPoints || 0) + Number(dailyLimits.habitTraitPoints || 0)),
                         streak: user.stats?.streak || 0,
                         topProjects,
-                        completedTaskTitles: quests.filter(q => q.completed && q.completedAt && q.completedAt.startsWith(lastDate)).map(q => q.title).slice(0, 5),
-                        completedHabitTitles: habits.filter(h => !h.archived && h.completedToday).map(h => h.title).slice(0, 5),
+                        completedTaskTitles: quests.filter(q => {
+                            if (!q.completed || !q.completedAt) return false;
+                            try {
+                                return toLocalISOString(new Date(q.completedAt)) === lastDate;
+                            } catch (e) {
+                                return false;
+                            }
+                        }).map(q => q.title).slice(0, 5),
+                        completedHabitTitles: habits.filter(h => {
+                            if (h.archived || !h.completedToday) return false;
+                            return true;
+                        }).map(h => h.title).slice(0, 5),
                         createdAt: Date.now(),
                         score: yesterdayScore
                     };
@@ -1131,6 +1197,9 @@ export const useDashboardLogic = () => {
 
         // 🚀 PERFORMANCE: Delay the initial sync on cold boot to let the UI breathe
         const performSync = () => {
+            // Process any pending offline actions before fetching to ensure updates are pushed
+            OfflineSyncService.processQueue();
+
             // Auto Backup Check
             if (!hasSynced) {
                 persistenceService.settings.get(uid).then(async settings => {
@@ -1690,6 +1759,14 @@ export const useDashboardLogic = () => {
         const checkDailyReset = async () => {
             const today = new Date();
             const todayStr = toLocalISOString(today);
+
+            // 🛡️ RACE CONDITION PREVENTION: If global daily reset is pending (date is old),
+            // do not reset individual habits yet. Let processDailyReset handle it first.
+            if (dailyLimits.date && dailyLimits.date !== todayStr) {
+                console.log("[Daily Reset] Delaying individual habit reset until global reset completes");
+                return;
+            }
+
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = toLocalISOString(yesterday);
@@ -2199,8 +2276,12 @@ export const useDashboardLogic = () => {
         
         const safeDurationSeconds = Number.isFinite(durationSeconds) ? Math.max(0, Math.floor(durationSeconds)) : 0;
         if (safeDurationSeconds < 5) return;
+
+        // 4-Hour Rewards Safety Cap (14,400 seconds) to prevent run-away background times / corruptions from ballooning rewards
+        const MAX_SESSION_SECONDS = 4 * 60 * 60;
+        const cappedSessionSeconds = Math.min(safeDurationSeconds, MAX_SESSION_SECONDS);
         
-        const rewardableMinutes = safeDurationSeconds / 60;
+        const rewardableMinutes = cappedSessionSeconds / 60;
         
         // 1. Calculate RAW Rewards (Uncapped)
         let xpReward = (rewardableMinutes * hourlyXp) / 60;
@@ -2252,11 +2333,11 @@ export const useDashboardLogic = () => {
         const remainingSeconds = Math.max(0, maxDailySeconds - effectiveDailySeconds);
         
         // Cap the DURATION strictly
-        let finalDurationSeconds = Math.min(safeDurationSeconds, remainingSeconds);
+        let finalDurationSeconds = Math.min(cappedSessionSeconds, remainingSeconds);
         finalDurationSeconds = Math.max(0, finalDurationSeconds);
 
         // Notify if capped
-        if (finalDurationSeconds < safeDurationSeconds && remainingSeconds === 0) {
+        if (finalDurationSeconds < cappedSessionSeconds && remainingSeconds === 0) {
              addNotification({ type: 'SYSTEM', label: 'DAILY LIMIT', fromLevel: '24h Max', toLevel: 'Reached', icon: InfinityIcon, color: '#ef4444' });
         }
 
@@ -4014,7 +4095,7 @@ export const useDashboardLogic = () => {
                 };
                 
                 // Save habit state first to be safe, though toggleHabitCompletion will update it
-                persistenceService.habits.update(user.id, habitId, finalData as Habit);
+                persistenceService.habits.save(user.id, finalData as Habit);
 
                 const isNewDay = dailyLimits.date !== today;
                 let newXp = player.xp + rewardXp;
@@ -4073,7 +4154,7 @@ export const useDashboardLogic = () => {
                 }
 
                 if (rewardXp > 0 || rewardGold > 0) {
-                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: user.stats?.level || 1 }, rewardTraitUpdate);
+                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: player.level }, rewardTraitUpdate);
                 }
 
                 TransactionService.toggleHabitCompletion(
@@ -4091,12 +4172,8 @@ export const useDashboardLogic = () => {
                 );
             }
         } else if (user?.id) {
-            // Find the updated habit to persist full state (No completion change)
-            const updatedHabit = habits.find(h => h.id === habitId);
-            if (updatedHabit) {
-                const finalData = { ...updatedHabit, ...data };
-                persistenceService.habits.update(user.id, habitId, finalData as Habit);
-            }
+            // Save partial or checklist progress immediately to prevent data loss on page reload
+            persistenceService.habits.save(user.id, next);
         }
     }, [user?.id, habits, dailyLimits, applyHabitRewards, triggerReward, player.xp, player.gold, attributes]);
 

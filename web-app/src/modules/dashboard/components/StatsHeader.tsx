@@ -26,12 +26,13 @@ interface StatsHeaderProps {
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   dailyLimits?: any;
+  productivityScore?: number;
   onNavigate?: (view: string) => void;
 }
 
 export const StatsHeader = React.memo(({ 
   level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold, isHabitsCompleted, isHidden, showProfile, 
-  isSyncing, onShowStore, onShowPro, onShowSettings, onShowSettingsWithTab, displayName, email, isPro, avatarId, avatarShape, dailyLimits, onNavigate 
+  isSyncing, onShowStore, onShowPro, onShowSettings, onShowSettingsWithTab, displayName, email, isPro, avatarId, avatarShape, dailyLimits, productivityScore, onNavigate 
 }: StatsHeaderProps) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile;
@@ -40,7 +41,7 @@ export const StatsHeader = React.memo(({
     <header className={`flex justify-between items-center z-[100] relative w-full gap-2 ${
         isCompact 
             ? 'mt-0 mb-0' 
-            : 'mt-[14px]'
+            : 'mt-1 sm:mt-1.5'
     } ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
     style={{ contain: 'layout style', willChange: 'opacity, transform' }}
     >
@@ -71,6 +72,7 @@ export const StatsHeader = React.memo(({
                       avatarShape={avatarShape}
                       isHabitsCompleted={isHabitsCompleted}
                       dailyLimits={dailyLimits}
+                      productivityScore={productivityScore}
                       onShowPro={onShowPro}
                       onShowSettingsWithTab={onShowSettingsWithTab}
                       onNavigate={(view) => {

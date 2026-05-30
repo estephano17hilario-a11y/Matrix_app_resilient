@@ -24,6 +24,7 @@ interface AvatarWidgetProps {
   avatarId?: string;
   avatarShape?: 'CIRCLE' | 'SQUARE';
   isHabitsCompleted?: boolean;
+  productivityScore?: number;
   onNavigate?: (view: string) => void;
   onShowPro?: () => void;
   onShowSettingsWithTab?: (tab: string) => void;
@@ -91,7 +92,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, onNavigate, onShowPro, onShowSettingsWithTab }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, productivityScore = 0, onNavigate, onShowPro, onShowSettingsWithTab }: AvatarWidgetProps) => {
     const { i18n } = useTranslation();
     const isSpanish = i18n.language?.startsWith('es');
     const deluxeText = isSpanish ? 'SÉ DELUX' : 'GO DELUX';
@@ -140,6 +141,8 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         return 'Neo';
     }, [displayName, email]);
 
+    const scoreVal = typeof productivityScore === 'number' ? productivityScore : 0;
+
     return (
     <>
     <div className="flex items-center gap-3 sm:gap-4 opacity-100 translate-x-0 w-full pl-1">
@@ -153,6 +156,14 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 }
             }}
         >
+            {/* Productivity Score Badge */}
+            <div 
+                className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#020204]/90 border border-blue-500/30 backdrop-blur-md px-1.5 py-[1px] rounded-md text-[8.5px] font-black font-mono text-blue-400 select-none whitespace-nowrap z-20 tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.5),0_0_8px_rgba(59,130,246,0.2)] animate-pulse"
+                title={`Daily Score: ${scoreVal.toFixed(1)}%`}
+            >
+                {scoreVal.toFixed(1)}%
+            </div>
+
             <div 
                 className={`w-14 h-14 ${shapeClass} overflow-hidden shadow-md ${isPro ? '' : 'ring-1 ring-white/10 shadow-black/50'}`}
                 style={auraStyle}
@@ -176,11 +187,11 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             <div 
                 className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center z-10 shadow-lg group-hover:scale-110 ${
                     isPro 
-                        ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 border border-white/40 shadow-[0_0_15px_rgba(168,85,247,0.8)]' 
+                        ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 border border-white/40 shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
                         : 'bg-[#050510] border border-white/20'
                 }`}
             >
-                 <span className="text-[10px] font-bold text-white font-mono drop-shadow-md">{level}</span>
+                 <span className="text-[12px] font-black text-white font-mono leading-none drop-shadow-md">{level}</span>
             </div>
         </div>
 

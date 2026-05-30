@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, Timer, ArrowUpRight, ArrowDownRight, Star } from 'lucide-react';
+import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, Timer, ArrowUpRight, ArrowDownRight, Star, Edit2 } from 'lucide-react';
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
 import { calculateFallbackProductivityScore } from '../../../utils/productivityScore';
 
@@ -10,6 +10,7 @@ interface FeedDayCardProps {
   index: number;
   isToday?: boolean;
   user?: any;
+  onSaveEntry?: (entry: DailyFeedEntry) => Promise<void>;
 }
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -31,10 +32,17 @@ const formatFocusTime = (minutes: number) => {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 };
 
-export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, index, isToday = false, user }) => {
+export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, index, isToday = false, user, onSaveEntry }) => {
   const { dayName, day, month } = formatDate(entry.date);
   const delay = Math.min(index * 0.06, 0.5); // Cap delay for performance
   
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedTitle, setEditedTitle] = React.useState(entry.title || '');
+
+  React.useEffect(() => {
+    setEditedTitle(entry.title || '');
+  }, [entry.title]);
+
   const hasActivity = entry.tasksCompleted > 0 || entry.habitsCompleted > 0 || entry.focusMinutes > 0;
   const displayName = user?.displayName || 'Tú';
 
@@ -42,6 +50,27 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
   const score = React.useMemo(() => {
     return calculateFallbackProductivityScore(entry);
   }, [entry]);
+
+  const defaultTitle = React.useMemo(() => {
+    return score >= 75 ? '🔥 Superación Absoluta' : score >= 50 ? '⚡ Día de Progreso Activo' : '🌱 Pequeños Pasos Diarios';
+  }, [score]);
+
+  const handleSaveTitle = async () => {
+    setIsEditing(false);
+    const trimmed = editedTitle.trim();
+    if (trimmed === (entry.title || '')) return;
+    
+    if (onSaveEntry) {
+      try {
+        await onSaveEntry({
+          ...entry,
+          title: trimmed || undefined
+        });
+      } catch (e) {
+        console.error('Failed to save custom title', e);
+      }
+    }
+  };
 
   const cardStyle = React.useMemo(() => {
     if (isToday) {
@@ -144,28 +173,28 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
           />
         )}
 
-        <div className="relative p-5">
+        <div className="relative p-3.5 sm:p-4">
           {/* Header: Strava-style User + Date + Score */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.05]">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-white/[0.05]">
+            <div className="flex items-center gap-2.5">
               {/* User Avatar Initials */}
               {user?.photoURL ? (
                 <img 
                   src={user.photoURL} 
                   alt={displayName} 
-                  className="w-10 h-10 rounded-full border border-white/10 shadow-sm shrink-0 object-cover" 
+                  className="w-8 h-8 rounded-full border border-white/10 shadow-sm shrink-0 object-cover" 
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xs border border-white/10 shadow-sm shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xs border border-white/10 shadow-sm shrink-0">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
               )}
               
               <div>
-                <h3 className="text-sm font-black text-white leading-tight">
+                <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
                   {displayName}
                 </h3>
-                <span className="text-[10px] text-white/35 font-semibold">
+                <span className="text-[9px] text-white/35 font-semibold">
                   {isToday ? 'Hoy' : `${dayName} ${day} de ${month}`}
                 </span>
               </div>
@@ -196,11 +225,35 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
 
           {/* Activity Description */}
           {hasActivity && (
-            <div className="mb-4">
-              <h4 className="text-base font-black text-white tracking-tight">
-                {score >= 75 ? '🔥 Superación Absoluta' : score >= 50 ? '⚡ Día de Progreso Activo' : '🌱 Pequeños Pasos Diarios'}
-              </h4>
-              <div className="flex items-center gap-2.5 mt-1.5">
+            <div className="mb-2.5">
+              {isEditing ? (
+                <div className="flex items-center gap-2 w-full mt-1">
+                  <input
+                    type="text"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onBlur={handleSaveTitle}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTitle();
+                      if (e.key === 'Escape') {
+                        setEditedTitle(entry.title || '');
+                        setIsEditing(false);
+                      }
+                    }}
+                    autoFocus
+                    className="bg-white/5 border border-indigo-500/50 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full font-bold"
+                    placeholder={defaultTitle}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group/title mt-1 cursor-pointer" onClick={() => setIsEditing(true)}>
+                  <h4 className="text-sm font-black text-white tracking-tight hover:text-indigo-300 transition-colors">
+                    {entry.title || defaultTitle}
+                  </h4>
+                  <Edit2 size={10} className="text-white/20 group-hover/title:text-indigo-400 opacity-0 group-hover/title:opacity-100 transition-all shrink-0" />
+                </div>
+              )}
+              <div className="flex items-center gap-2 mt-1">
                 {entry.xpEarned > 0 && (
                   <motion.div 
                     className="flex items-center gap-0.5"
@@ -208,8 +261,8 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: delay + 0.2 }}
                   >
-                    <Zap size={11} className="text-yellow-400" />
-                    <span className="text-[10px] font-bold text-yellow-400/80 tabular-nums">{entry.xpEarned} XP</span>
+                    <Zap size={10} className="text-yellow-400" />
+                    <span className="text-[9px] font-bold text-yellow-400/80 tabular-nums">{entry.xpEarned} XP</span>
                   </motion.div>
                 )}
                 {entry.goldEarned > 0 && (
@@ -219,8 +272,8 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: delay + 0.25 }}
                   >
-                    <Coins size={11} className="text-amber-400" />
-                    <span className="text-[10px] font-bold text-amber-400/80 tabular-nums">{entry.goldEarned}</span>
+                    <Coins size={10} className="text-amber-400" />
+                    <span className="text-[9px] font-bold text-amber-400/80 tabular-nums">{entry.goldEarned}</span>
                   </motion.div>
                 )}
                 {entry.tpEarned > 0 && (
@@ -230,8 +283,8 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: delay + 0.3 }}
                   >
-                    <Star size={11} className="text-purple-400" />
-                    <span className="text-[10px] font-bold text-purple-400/80 tabular-nums">{entry.tpEarned} TP</span>
+                    <Star size={10} className="text-purple-400" />
+                    <span className="text-[9px] font-bold text-purple-400/80 tabular-nums">{entry.tpEarned} TP</span>
                   </motion.div>
                 )}
               </div>
@@ -240,166 +293,105 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
 
           {/* Grid Metrics - Premium depth effect */}
           {hasActivity ? (
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-2.5">
               {/* Focus */}
               <motion.div 
-                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-2.5 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.15, duration: 0.4 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <Clock size={12} className="text-indigo-400" /> Focus
+                <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
+                    <Clock size={10} className="text-indigo-400" /> Focus
                   </span>
                   {renderDelta(entry.focusMinutes, prevEntry?.focusMinutes, true)}
                 </div>
-                <span className="text-base font-black text-white mt-1 tabular-nums">
+                <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
                   {formatFocusTime(entry.focusMinutes)}
                 </span>
               </motion.div>
 
               {/* Tasks */}
               <motion.div 
-                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-2.5 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.2, duration: 0.4 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 size={12} className="text-orange-400" /> Tareas
+                <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
+                    <CheckCircle2 size={10} className="text-orange-400" /> Tareas
                   </span>
                   {renderDelta(entry.tasksCompleted, prevEntry?.tasksCompleted)}
                 </div>
-                <span className="text-base font-black text-white mt-1 tabular-nums">
-                  {entry.tasksCompleted} <span className="text-[10px] text-white/30 font-medium">hechas</span>
+                <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
+                  {entry.tasksCompleted} <span className="text-[8px] text-white/30 font-medium">hechas</span>
                 </span>
               </motion.div>
 
               {/* Habits */}
               <motion.div 
-                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-2.5 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.25, duration: 0.4 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <Flame size={12} className="text-emerald-400" /> Hábitos
+                <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
+                    <Flame size={10} className="text-emerald-400" /> Hábitos
                   </span>
                   {renderDelta(entry.habitsCompleted, prevEntry?.habitsCompleted)}
                 </div>
-                <span className="text-base font-black text-white mt-1 tabular-nums">
-                  {entry.habitsCompleted} <span className="text-[10px] text-white/30 font-medium">completados</span>
+                <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
+                  {entry.habitsCompleted} <span className="text-[8px] text-white/30 font-medium">completados</span>
                 </span>
               </motion.div>
 
               {/* Sub-habits */}
               <motion.div 
-                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
+                className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-2.5 flex flex-col justify-between hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-200"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.3, duration: 0.4 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <ListChecks size={12} className="text-cyan-400" /> Sub-hab
+                <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
+                    <ListChecks size={10} className="text-cyan-400" /> Sub-hab
                   </span>
                   {renderDelta(entry.subHabitsCompleted, prevEntry?.subHabitsCompleted)}
                 </div>
-                <span className="text-base font-black text-white mt-1 tabular-nums">
-                  {entry.subHabitsCompleted} <span className="text-[10px] text-white/30 font-medium">hechos</span>
+                <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
+                  {entry.subHabitsCompleted} <span className="text-[8px] text-white/30 font-medium">hechos</span>
                 </span>
               </motion.div>
             </div>
           ) : (
-            <div className="text-center py-6 bg-white/[0.01] border border-white/[0.03] rounded-xl text-white/20 text-xs font-semibold">
+            <div className="text-center py-4 bg-white/[0.01] border border-white/[0.03] rounded-xl text-white/20 text-xs font-semibold">
               Sin actividad registrada
             </div>
-          )}
-
-          {/* Focus time details by project */}
-          {entry.focusMinutes > 0 && entry.topProjects.length > 0 && (
-            <motion.div
-              className="mb-4 bg-indigo-500/[0.03] border border-indigo-500/[0.06] rounded-xl p-3"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: delay + 0.35, duration: 0.4 }}
-            >
-              <div className="text-[8px] font-black text-indigo-300/60 uppercase tracking-[0.12em] mb-2 flex items-center gap-1.5">
-                <Timer size={10} className="text-indigo-400" /> Distribución de Concentración
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {entry.topProjects.map((project, i) => (
-                  <motion.div
-                    key={i}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-colors duration-200"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: delay + 0.35 + i * 0.05, duration: 0.3 }}
-                  >
-                    <div 
-                      className="w-1.5 h-1.5 rounded-full shrink-0" 
-                      style={{ backgroundColor: project.color || '#6366f1' }}
-                    />
-                    <span className="text-[9px] font-bold text-white/50 truncate max-w-[90px]">
-                      {project.name}
-                    </span>
-                    <span className="text-[9px] font-black text-white/30 ml-1 tabular-nums">
-                      {formatFocusTime(project.minutes)}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
           )}
 
           {/* Detailed achievements list */}
           {entry.completedTaskTitles.length > 0 && (
             <motion.div
-              className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5"
+              className="mt-2 pt-2 border-t border-white/[0.04] space-y-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: delay + 0.4 }}
+              transition={{ delay: delay + 0.35 }}
             >
               <div className="text-[8px] font-black text-white/25 uppercase tracking-[0.12em] mb-1">Misiones Completadas</div>
               <div className="space-y-1">
                 {entry.completedTaskTitles.map((title, i) => (
                   <motion.div 
                     key={i} 
-                    className="flex items-center gap-2 text-xs text-white/70 bg-white/[0.01] border border-white/[0.03] px-3 py-2 rounded-xl hover:bg-white/[0.03] transition-colors duration-200"
+                    className="flex items-center gap-1.5 text-[11px] text-white/70 bg-white/[0.01] border border-white/[0.03] px-2 py-1 rounded-lg hover:bg-white/[0.03] transition-colors duration-200"
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: delay + 0.4 + i * 0.04 }}
+                    transition={{ delay: delay + 0.35 + i * 0.04 }}
                   >
-                    <CheckCircle2 size={12} className="text-orange-400 shrink-0" />
-                    <span className="font-semibold text-white/70 truncate">{title}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {entry.completedHabitTitles.length > 0 && (
-            <motion.div
-              className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: delay + 0.45 }}
-            >
-              <div className="text-[8px] font-black text-white/25 uppercase tracking-[0.12em] mb-1">Protocolos Ejecutados</div>
-              <div className="space-y-1">
-                {entry.completedHabitTitles.map((title, i) => (
-                  <motion.div 
-                    key={i} 
-                    className="flex items-center gap-2 text-xs text-white/70 bg-white/[0.01] border border-white/[0.03] px-3 py-2 rounded-xl hover:bg-white/[0.03] transition-colors duration-200"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: delay + 0.45 + i * 0.04 }}
-                  >
-                    <Flame size={12} className="text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-white/70 truncate">{title}</span>
+                    <CheckCircle2 size={10} className="text-orange-400 shrink-0" />
+                    <span className="font-semibold text-white/75 truncate">{title}</span>
                   </motion.div>
                 ))}
               </div>
