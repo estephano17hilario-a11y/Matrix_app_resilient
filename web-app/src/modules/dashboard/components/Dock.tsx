@@ -221,7 +221,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  data-tour="dock"
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
- transition={{ type: "spring", stiffness: 80, damping: 20, mass: 1 }}
+ transition={{ type: "spring", stiffness: 300, damping: 28 }}
  className="fixed bottom-10 left-0 right-0 z-[400] flex justify-center pointer-events-none"
  style={{ willChange: "transform", pointerEvents }}
  >
@@ -235,9 +235,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  }}
  transition={{ 
  type: "spring", 
- stiffness: 80, 
- damping: 20,
- mass: 1
+ stiffness: 300, 
+ damping: 28
  }}
  className="pointer-events-none relative bg-[#0a0a0a]/30 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
  style={{ willChange: 'transform, height' }}
@@ -288,7 +287,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  rotate: isOpen ? 45 : 0,
  scale: isOpen ? 1 : 1
  }}
- transition={{ type: "spring", stiffness: 80, damping: 20, mass: 1 }}
+ transition={{ type: "spring", stiffness: 300, damping: 28 }}
  className={`
  w-12 h-12 rounded-full flex items-center justify-center ${isOpen
  ? 'bg-zinc-800/80 border border-white/10 text-white hover:bg-zinc-700'
@@ -413,7 +412,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
  const containerClass = `${baseClass} ${styleClass}`;
 
- const liquidSpring = { type: "spring", stiffness: 200, damping: 25, mass: 1 };
+ const liquidSpring = { type: "spring" as const, stiffness: 300, damping: 30 };
 
  return (
  <>
@@ -438,14 +437,9 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  className={containerClass}
  style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
- <motion.div 
- className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none"
- initial={false}
- animate={{ 
- backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)',
- backdropFilter: isOpen ? 'blur(16px)' : 'blur(10px)'
- }}
- transition={liquidSpring}
+ <div 
+ className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-md"
+ style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)' }}
  >
  <div className="relative w-full h-full pointer-events-auto">
  <motion.div 
@@ -500,7 +494,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  </div>
  </div>
  </div>
- </motion.div>
+ </div>
  </motion.div>
  </motion.div>
  </>

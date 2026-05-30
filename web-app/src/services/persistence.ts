@@ -225,16 +225,35 @@ export const PersistenceService = {
   initialize: async () => {
     try {
       if (typeof localStorage === 'undefined') return;
-      const { keys } = await Preferences.keys();
-      for (const key of keys) {
-        if (!localStorage.getItem(key)) {
-          const { value } = await Preferences.get({ key });
-          if (value !== null) {
-            localStorage.setItem(key, value);
+      // ⚡ PERFORMANCE: Batch-restore from Capacitor with tight timeout
+      // Don't block app mount waiting for Capacitor storage
+      const restorePromise = (async () => {
+        try {
+          const { keys } = await Preferences.keys();
+          const missing = keys.filter(key => !localStorage.getItem(key));
+          if (missing.length === 0) return;
+          // Parallel fetch of all missing keys
+          const results = await Promise.all(
+            missing.map(async key => {
+              const { value } = await Preferences.get({ key });
+              return { key, value };
+            })
+          );
+          for (const { key, value } of results) {
+            if (value !== null) {
+              try { localStorage.setItem(key, value); } catch { /* quota */ }
+            }
           }
+          console.log(`💾 MATRIX MEMORY: Restored ${results.length} keys from Capacitor.`);
+        } catch (e) {
+          console.warn("💾 MATRIX MEMORY: Capacitor restore failed (non-blocking).", e);
         }
-      }
-      console.log("💾 MATRIX MEMORY: Restored data from Capacitor Preferences to localStorage.");
+      })();
+      // Race: Either finish restore or timeout after 200ms — app mounts regardless
+      await Promise.race([
+        restorePromise,
+        new Promise(resolve => setTimeout(resolve, 200))
+      ]);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Failed to initialize from Capacitor.", e);
     }

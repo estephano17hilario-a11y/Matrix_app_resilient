@@ -27,6 +27,7 @@ import { notificationService } from '@/services/notificationService';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
+import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useReward } from '@/modules/rewards/context/RewardContext';
@@ -3135,6 +3136,7 @@ export const useDashboardLogic = () => {
             const originY = rect ? rect.top : window.innerHeight / 2;
             spawnParticles(originX, originY, attr?.color || '#fff', AttrIcon, 'icon', 'profile-avatar-target');
             if(navigator.vibrate) navigator.vibrate(10); 
+            playQuestCompleteSound();
             
             // Calc Rewards without Limits to ensure exact rewards are given
             
@@ -3588,6 +3590,7 @@ export const useDashboardLogic = () => {
         if (!habit.completedToday && (habit.type === 'SIMPLE' || habit.type === 'BOOLEAN')) {
              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
              spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#fff', Flame, 'fire');
+             playHabitCompleteSound();
         }
 
         // 2. CALCULATE NEW STATE
@@ -4047,6 +4050,13 @@ export const useDashboardLogic = () => {
                 habitToReward = next;
                 isReversal = true;
             }
+        }
+
+        // Play sounds based on progress type
+        if (habitToReward && !isReversal) {
+            playHabitCompleteSound();
+        } else if (!habitToReward && (data.checklist || data.currentValue !== undefined)) {
+            playLightSound();
         }
 
         setHabits(prev => {

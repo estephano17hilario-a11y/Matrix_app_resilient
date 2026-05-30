@@ -158,7 +158,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         >
             {/* Productivity Score Badge */}
             <div 
-                className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#020204]/90 border border-blue-500/30 backdrop-blur-md px-1.5 py-[1px] rounded-md text-[8.5px] font-black font-mono text-blue-400 select-none whitespace-nowrap z-20 tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.5),0_0_8px_rgba(59,130,246,0.2)] animate-pulse"
+                className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0a0a1a]/95 border border-cyan-500/25 px-2 py-[2px] rounded-md text-[9px] font-black font-mono text-cyan-400 select-none whitespace-nowrap z-20 tracking-wide shadow-[0_2px_12px_rgba(0,0,0,0.6),0_0_6px_rgba(34,211,238,0.15)]"
                 title={`Daily Score: ${scoreVal.toFixed(1)}%`}
             >
                 {scoreVal.toFixed(1)}%

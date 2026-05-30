@@ -676,18 +676,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                         sub.id === item.subtaskId ? { ...sub, completed: !sub.completed } : sub
                                                     );
                                                     
-                                                    const todayIndex = currentDate.getDay();
-                                                    const visibleItems = newChecklist.filter((i: any) => !i.days || i.days.length === 0 || i.days.includes(todayIndex));
-                                                    const allCompleted = visibleItems.length > 0 && visibleItems.every((i: any) => i.completed);
-                                                    
                                                     onUpdateHabit(item.habitId, { checklist: newChecklist });
-                                                    
-                                                    const updatedHabit = { ...item.habit, checklist: newChecklist };
-                                                    if (allCompleted && !item.habit.completedToday) {
-                                                        onCompleteHabit({ stopPropagation: () => {} } as any, updatedHabit);
-                                                    } else if (!allCompleted && item.habit.completedToday) {
-                                                        onCompleteHabit({ stopPropagation: () => {} } as any, updatedHabit);
-                                                    }
                                                 }
                                             }}
                                         >

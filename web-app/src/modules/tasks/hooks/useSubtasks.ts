@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Subtask } from '../../../types';
 import { useLux } from '@/context/LuxContext';
 import { persistenceService } from '../../../services/persistenceService';
+import { playLightSound } from '../../../utils/soundEffects';
 
 export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onSubtasksChange?: (subtasks: Subtask[]) => void) => {
   const { user } = useLux();
@@ -84,9 +85,18 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
 
   const toggleSubtask = useCallback((subtaskId: string) => {
     setSubtasks(prev => {
-      const updated = prev.map(t => 
-        t.id === subtaskId ? { ...t, isCompleted: !t.isCompleted } : t
-      );
+      let playedSound = false;
+      const updated = prev.map(t => {
+        if (t.id === subtaskId) {
+          const nextVal = !t.isCompleted;
+          if (nextVal) playedSound = true;
+          return { ...t, isCompleted: nextVal };
+        }
+        return t;
+      });
+      if (playedSound) {
+        playLightSound();
+      }
       if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
       return updated;
