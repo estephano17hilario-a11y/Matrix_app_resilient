@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, Timer, ArrowUpRight, ArrowDownRight, Star, Edit2 } from 'lucide-react';
+import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, ArrowUpRight, ArrowDownRight, Star, Edit2 } from 'lucide-react';
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
 import { calculateFallbackProductivityScore } from '../../../utils/productivityScore';
 

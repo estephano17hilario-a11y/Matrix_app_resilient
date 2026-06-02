@@ -72,6 +72,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
   const coins = quest.gold || 0;
   const isSmart = quest.isSmartQuest;
   const themeColor = attribute?.color || '#ffffff';
+  const subTrait = attribute?.subTraits?.find(st => st.id === quest.subAttribute);
 
   const getDeadlineInfo = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -208,7 +209,10 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                         style={{ borderColor: `${themeColor}20` }}
                     >
                         <span className="text-[9px] font-bold uppercase tracking-wider opacity-90" style={{ color: themeColor }}>
-                            {smartProject ? smartProject.mainGoal : t(attribute?.label || '', (attribute?.label || '').replace('traits.', ''))}
+                            {smartProject 
+                                ? smartProject.mainGoal 
+                                : `${t(attribute?.label || '', (attribute?.label || '').replace('traits.', ''))}${subTrait ? ` › ${subTrait.name}` : ''}`
+                            }
                         </span>
                     </div>
                 )}

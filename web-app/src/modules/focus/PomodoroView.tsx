@@ -9,10 +9,10 @@ interface PomodoroViewProps {
  projects: Project[];
  attributes: Attribute[];
  onExit: () => void;
- onCompleteSession: (projectId: string | null, duration: number, type: 'POMO' | 'STOPWATCH') => void;
+ onCompleteSession: (projectId: string | null, duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
  onUpdateProject: (p: Project) => void;
  onDeleteSession?: (projectId: string, sessionId: string) => void;
- onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => void;
+ onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void;
  onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void;
  initialProjectId?: string | null;
 }
@@ -100,9 +100,9 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
 
  const activeAttribute = attributes.find(a => a.id === activeProject.attribute);
 
- const handleSessionComplete = (duration: number, type: 'POMO' | 'STOPWATCH') => {
+ const handleSessionComplete = (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => {
  const targetId = selectedProject ? selectedProject.id : null;
- onCompleteSession(targetId, duration, type);
+ onCompleteSession(targetId, duration, type, subTraitId);
  };
 
  // Custom Header Logic (LOCKED to Initial Project if provided)

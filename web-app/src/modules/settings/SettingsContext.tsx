@@ -28,6 +28,9 @@ interface SettingsContextType {
   addAttribute: (id: string) => void;
   addCustomAttribute: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   removeAttribute: (id: string) => void;
+  addSubTrait: (parentAttrId: string, name: string, iconName: string) => Promise<void>;
+  updateSubTrait: (parentAttrId: string, subTraitId: string, updates: any) => Promise<void>;
+  deleteSubTrait: (parentAttrId: string, subTraitId: string) => Promise<void>;
 
   // System & Charts
   defaultChartMode: 'RADAR' | 'BAR';
@@ -87,6 +90,9 @@ interface SettingsProviderProps {
   onAddAttribute?: (id: string) => void;
   onAddCustomAttribute?: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   onRemoveAttribute?: (id: string) => void;
+  onAddSubTrait?: (parentAttrId: string, name: string, iconName: string) => Promise<void> | void;
+  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise<void> | void;
+  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise<void> | void;
   onShowPro?: () => void;
   isPro?: boolean;
   dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';
@@ -141,6 +147,30 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     addAttribute: props.onAddAttribute || (() => {}),
     addCustomAttribute: props.onAddCustomAttribute || (() => {}),
     removeAttribute: props.onRemoveAttribute || (() => {}),
+    addSubTrait: async (parentAttrId: string, name: string, iconName: string) => {
+      console.log("SettingsContext: addSubTrait callback called with:", { parentAttrId, name, iconName, hasPropCallback: !!props.onAddSubTrait });
+      if (props.onAddSubTrait) {
+        await props.onAddSubTrait(parentAttrId, name, iconName);
+      } else {
+        console.error("SettingsContext: props.onAddSubTrait is UNDEFINED!");
+      }
+    },
+    updateSubTrait: async (parentAttrId: string, subTraitId: string, updates: any) => {
+      console.log("SettingsContext: updateSubTrait callback called with:", { parentAttrId, subTraitId, updates, hasPropCallback: !!props.onUpdateSubTrait });
+      if (props.onUpdateSubTrait) {
+        await props.onUpdateSubTrait(parentAttrId, subTraitId, updates);
+      } else {
+        console.error("SettingsContext: props.onUpdateSubTrait is UNDEFINED!");
+      }
+    },
+    deleteSubTrait: async (parentAttrId: string, subTraitId: string) => {
+      console.log("SettingsContext: deleteSubTrait callback called with:", { parentAttrId, subTraitId, hasPropCallback: !!props.onDeleteSubTrait });
+      if (props.onDeleteSubTrait) {
+        await props.onDeleteSubTrait(parentAttrId, subTraitId);
+      } else {
+        console.error("SettingsContext: props.onDeleteSubTrait is UNDEFINED!");
+      }
+    },
 
     defaultChartMode: props.defaultChartMode,
     setDefaultChartMode: props.onSetDefaultChartMode,

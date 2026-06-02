@@ -32,6 +32,9 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
   
   const today = new Date().getDay();
+  const subTrait = React.useMemo(() => {
+    return attribute?.subTraits?.find(st => st.id === habit.subAttribute);
+  }, [attribute?.subTraits, habit.subAttribute]);
 
   const CustomIcon = React.useMemo(() => {
     if (!habit.iconName) return null;
@@ -365,10 +368,14 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                          {/* Trait */}
                          <div className="bg-white/5 rounded-lg p-2 flex items-center gap-2">
                              {attribute?.icon && <attribute.icon size={14} style={{ color: attribute.color }} />}
-                             <div className="flex flex-col">
-                                 <span className="text-[9px] text-white/40 uppercase tracking-wider">Trait</span>
-                                 <span className="text-[11px] text-white font-medium">{attribute ? t(attribute.label, attribute.label.replace('traits.', '')) : 'Neutral'}</span>
-                             </div>
+                              <div className="flex flex-col">
+                                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Trait</span>
+                                  <span className="text-[11px] text-white font-medium">
+                                      {attribute 
+                                          ? `${t(attribute.label, attribute.label.replace('traits.', ''))}${subTrait ? ` › ${subTrait.name}` : ''}` 
+                                          : 'Neutral'}
+                                  </span>
+                              </div>
                          </div>
                          
                          {/* Rewards */}

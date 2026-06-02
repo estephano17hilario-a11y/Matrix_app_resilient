@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info } from 'lucide-react';
+import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info, ChevronDown, Hexagon } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -75,6 +76,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
 
     const [title, setTitle] = useState(initialData?.title || '');
     const [attribute, setAttribute] = useState(initialData?.attribute || '');
+    const [subAttribute, setSubAttribute] = useState(initialData?.subAttribute || '');
+    const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);
     const [reason, setReason] = useState(initialData?.reason || '');
     const [impactLevel, setImpactLevel] = useState(() => {
         if (initialData?.negativeImpact) {
@@ -101,6 +104,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [intelligentStreak, setIntelligentStreak] = useState(initialData?.intelligentStreak || false);
     const [showIntelligentInfo, setShowIntelligentInfo] = useState(false);
 
+    const selectedAttr = React.useMemo(() => attributes.find(a => a.id === attribute), [attributes, attribute]);
+
     const getMinutesFromIndex = (index: number) => {
         if (index <= 7) return (index + 1) * 15;
         return 120 + ((index - 7) * 60);
@@ -114,6 +119,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 setStep(1);
                 setTitle('');
                 setAttribute('');
+                setSubAttribute('');
                 setReason('');
                 setImpactLevel(3);
                 setTimeIndex(4);
@@ -131,6 +137,30 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         ]);
         setListDraft('');
     }, [isOpen, isFirstIdentify]);
+
+    // Sync initial data when modal opens
+    useEffect(() => {
+        if (isOpen && initialData) {
+            setTitle(initialData.title || '');
+            setAttribute(initialData.attribute || '');
+            setSubAttribute(initialData.subAttribute || '');
+            setReason(initialData.reason || '');
+            setIntelligentStreak(initialData.intelligentStreak || false);
+            if (initialData.negativeImpact) {
+                const match = initialData.negativeImpact.match(/\d+/);
+                if (match) setImpactLevel(parseInt(match[0], 10));
+            }
+            if (initialData.timeConsumed) {
+                const timeMap: Record<number, number> = { 15: 0, 30: 1, 60: 2, 120: 3, 180: 4, 240: 5 };
+                setTimeIndex(timeMap[initialData.timeConsumed] ?? 4);
+            }
+        }
+    }, [isOpen, initialData]);
+
+    // Clear subAttribute when selected attribute changes
+    useEffect(() => {
+        setSubAttribute('');
+    }, [attribute]);
 
     const handleNext = () => {
         if (step < (intelligentStreak ? 4 : 3)) {
@@ -157,6 +187,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             ...(initialData || {}),
             title,
             attribute,
+            subAttribute: subAttribute || undefined,
             reason,
             negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
@@ -424,6 +455,64 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     ))}
                                                 </div>
                                             </div>
+
+                                            {/* Sub-Trait Picker */}
+                                            {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
+                                                <div className="space-y-1.5 animate-in slide-in-from-top-1 fade-in">
+                                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block px-1">
+                                                        Sub-Rasgo (Opcional)
+                                                    </span>
+                                                    <div className="relative">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSubAttrPickerOpen(!isSubAttrPickerOpen)}
+                                                            className="w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between px-4 text-xs font-medium text-white transition-colors hover:bg-white/[0.06]"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                {subAttribute ? (
+                                                                    <span className="text-white font-bold">
+                                                                        {selectedAttr.subTraits.find(st => st.id === subAttribute)?.name || subAttribute}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-white/30">Vincular a un sub-rasgo (Opcional)</span>
+                                                                )}
+                                                            </div>
+                                                            <ChevronDown size={14} className="text-white/30" />
+                                                        </button>
+                                                        
+                                                        {isSubAttrPickerOpen && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setSubAttrPickerOpen(false)} />
+                                                                <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-[#141416] rounded-xl flex flex-col gap-1 z-[999] shadow-md border border-white/10 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => { setSubAttribute(''); setSubAttrPickerOpen(false); }}
+                                                                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
+                                                                    >
+                                                                        Ninguno
+                                                                    </button>
+                                                                    {selectedAttr.subTraits.map(st => (
+                                                                        <button
+                                                                            key={st.id}
+                                                                            type="button"
+                                                                            onClick={() => { setSubAttribute(st.id); setSubAttrPickerOpen(false); }}
+                                                                            className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors text-left"
+                                                                        >
+                                                                            <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-slate-400">
+                                                                                {st.iconName && (LucideIcons as any)[st.iconName] ? React.createElement((LucideIcons as any)[st.iconName], { size: 12 }) : <Hexagon size={12} />}
+                                                                            </div>
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-xs font-bold text-white">{st.name}</span>
+                                                                                <span className="text-[9px] font-bold text-slate-500">Lvl {st.level}</span>
+                                                                            </div>
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </motion.div>
                                     )}
 

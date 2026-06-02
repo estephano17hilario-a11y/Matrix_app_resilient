@@ -78,7 +78,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
         const activeHabits = habits.filter(h => !h.archived);
         const today = new Date();
         const viewDate = currentDate;
-        const todayStr = format(today, 'yyyy-MM-dd');
+        // ✅ Always use local timezone for 'today' string to match history entries
+        const todayStr = toLocalISOString(today);
 
         // Helper to get active habits count for a specific date
         const getDailyTotal = (date: Date) => {
@@ -203,7 +204,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
             const start = startOfWeek(viewDate);
             data = Array.from({ length: 7 }, (_, i) => {
                 const date = addDays(start, i);
-                const dateStr = format(date, 'yyyy-MM-dd');
+                // ✅ Use toLocalISOString to match the timezone used when storing history
+                const dateStr = toLocalISOString(date);
                 const count = getCompletionCount(dateStr);
                 const dailyTotal = getDailyTotal(date);
                 const existed = anyHabitExisted(date);
@@ -245,7 +247,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
             const days = eachDayOfInterval({ start, end });
             
             data = days.map((date) => {
-                const dateStr = format(date, 'yyyy-MM-dd');
+                // ✅ Use toLocalISOString to match the timezone used when storing history
+                const dateStr = toLocalISOString(date);
                 const count = getCompletionCount(dateStr);
                 const dailyTotal = getDailyTotal(date);
                 const existed = anyHabitExisted(date);
@@ -333,7 +336,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
         let currentStreak = 0;
         for (let i = 365; i >= 1; i -= 1) {
             const d = subDays(today, i);
-            const dateStr = format(d, 'yyyy-MM-dd');
+            // ✅ Use toLocalISOString to match history entries stored in local timezone
+            const dateStr = toLocalISOString(d);
             const dailyTotal = getDailyTotal(d);
             
             if (dailyTotal > 0) {
@@ -346,18 +350,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 } else {
                     currentStreak = 0;
                 }
-            } else {
-                // If habit existed but not due (Rest Day): SKIP (Maintain streak)
-                // If no habit existed (Before account creation): Reset?
-                // Actually, if we are iterating Past -> Present (which this loop does), 
-                // we should only start counting when habits exist.
-                // But currentStreak resets to 0 on failure. 
-                // So if we are in "Before Creation" era, dailyTotal=0.
-                // If we SKIP, currentStreak remains 0. Correct.
-                // If we encounter a failure, currentStreak becomes 0. Correct.
-                // If we encounter a success, currentStreak increments. Correct.
-                // If we encounter a Rest Day (dailyTotal=0), currentStreak remains X. Correct.
             }
+            // If dailyTotal=0 (no habits due / rest day): skip without breaking streak
         }
 
         const requiredToday = getRequiredPercentForDay(currentStreak + 1);

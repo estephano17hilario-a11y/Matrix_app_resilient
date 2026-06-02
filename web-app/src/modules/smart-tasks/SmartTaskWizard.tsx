@@ -8,6 +8,7 @@ import { TRAITS_LIST } from '../dashboard/constants';
 import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { ObjectiveStep } from './components/wizard/ObjectiveStep';
+import { calculateAttributeMaxXp } from '../../utils/leveling';
 import { TraitSelectionStep } from './components/wizard/TraitSelectionStep';
 import { DateSelectionStep } from './components/wizard/DateSelectionStep';
 import { RecursiveFillingStep } from './components/wizard/RecursiveFillingStep';
@@ -34,7 +35,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   const { t } = useTranslation();
   const traits = availableTraits && availableTraits.length > 0
     ? availableTraits
-    : TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: 100 }));
+    : TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: calculateAttributeMaxXp(1) }));
   
   // Check Limit
   const isLimitReached = !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_STRATEGIES;

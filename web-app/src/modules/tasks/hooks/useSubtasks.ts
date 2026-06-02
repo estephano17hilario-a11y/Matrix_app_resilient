@@ -79,9 +79,12 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
       const updated = [...prev, newSubtask];
       if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
+      window.dispatchEvent(new CustomEvent('matrix-quest-updated', {
+        detail: { questId: taskId, subtasks: updated }
+      }));
       return updated;
     });
-  }, [saveToFirestore, onSubtasksChange]);
+  }, [saveToFirestore, onSubtasksChange, taskId]);
 
   const toggleSubtask = useCallback((subtaskId: string) => {
     setSubtasks(prev => {
@@ -99,24 +102,33 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
       }
       if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
+      window.dispatchEvent(new CustomEvent('matrix-quest-updated', {
+        detail: { questId: taskId, subtasks: updated }
+      }));
       return updated;
     });
-  }, [saveToFirestore, onSubtasksChange]);
+  }, [saveToFirestore, onSubtasksChange, taskId]);
 
   const deleteSubtask = useCallback((subtaskId: string) => {
     setSubtasks(prev => {
       const updated = prev.filter(t => t.id !== subtaskId);
       if (onSubtasksChange) onSubtasksChange(updated);
       saveToFirestore(updated);
+      window.dispatchEvent(new CustomEvent('matrix-quest-updated', {
+        detail: { questId: taskId, subtasks: updated }
+      }));
       return updated;
     });
-  }, [saveToFirestore, onSubtasksChange]);
+  }, [saveToFirestore, onSubtasksChange, taskId]);
 
   const reorderSubtasks = useCallback((newOrder: Subtask[]) => {
     setSubtasks(newOrder);
     if (onSubtasksChange) onSubtasksChange(newOrder);
     saveToFirestore(newOrder);
-  }, [saveToFirestore, onSubtasksChange]);
+    window.dispatchEvent(new CustomEvent('matrix-quest-updated', {
+      detail: { questId: taskId, subtasks: newOrder }
+    }));
+  }, [saveToFirestore, onSubtasksChange, taskId]);
 
   return {
     subtasks,

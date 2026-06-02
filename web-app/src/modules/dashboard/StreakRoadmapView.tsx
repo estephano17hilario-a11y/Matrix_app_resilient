@@ -7,7 +7,7 @@ import {
     Trophy,
     Circle
 } from 'lucide-react';
-import { isSameDay, addDays } from 'date-fns';
+import { addDays } from 'date-fns';
 import { Habit } from '../../types';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -63,33 +63,102 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
         
         // 1. Calculate Today's Progress
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
+
+        // Helper to normalize a history date string to YYYY-MM-DD (local timezone)
+        const normalizeDate = (d: string): string => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+            const parsed = new Date(d);
+            if (!isNaN(parsed.getTime())) {
+                const off = parsed.getTimezoneOffset();
+                const local = new Date(parsed.getTime() - off * 60000);
+                return local.toISOString().split('T')[0];
+            }
+            return d.split('T')[0];
+        };
+
+        // Local ISO string for a date
+        const toLocalStr = (date: Date): string => {
+            const off = date.getTimezoneOffset();
+            const local = new Date(date.getTime() - off * 60000);
+            return local.toISOString().split('T')[0];
+        };
+
+        // Build a map of completions per date
+        const completionByDate = new Map<string, number>();
+        activeHabits.forEach(h => {
+            h.history?.forEach(hDate => {
+                const normalized = normalizeDate(hDate);
+                completionByDate.set(normalized, (completionByDate.get(normalized) || 0) + 1);
+            });
+        });
+
+        // Get habits due on a specific day (simplified: DAILY + WEEKLY on that day)
+        const getDailyTotal = (date: Date): number => {
+            const dayOfWeek = date.getDay();
+            return activeHabits.filter(h => {
+                if (h.archived) return false;
+                if (h.frequency === 'DAILY') return true;
+                if (h.frequency === 'WEEKLY') {
+                    if (!h.frequencyDays?.length) return true;
+                    return h.frequencyDays.includes(dayOfWeek);
+                }
+                return false;
+            }).length;
+        };
+
+        // 2. Calculate the real current streak (backwards from yesterday, then check today)
+        let realStreak = 0;
+        const todayDateCopy = new Date(today);
         
+        // Check up to 365 days back
+        for (let i = 365; i >= 1; i--) {
+            const d = new Date(todayDateCopy);
+            d.setDate(d.getDate() - i);
+            const dateStr = toLocalStr(d);
+            const dailyTotal = getDailyTotal(d);
+            
+            if (dailyTotal > 0) {
+                const count = completionByDate.get(dateStr) || 0;
+                const percent = Math.round((count / dailyTotal) * 100);
+                if (percent >= 50) {
+                    realStreak++;
+                } else {
+                    realStreak = 0;
+                }
+            }
+            // If dailyTotal=0 (rest day), skip without breaking streak
+        }
+
+        // Check today
+        const todayStr = toLocalStr(new Date());
+        const todayDailyTotal = getDailyTotal(today);
         let completedTodayCount = 0;
-        let totalDueToday = 0;
+        let totalDueToday = todayDailyTotal;
 
         activeHabits.forEach(h => {
-            // Simplified due check for demo purposes
-            // In a real app, use complex frequency logic
             const isDue = h.frequency === 'DAILY' || (h.frequency === 'WEEKLY' && (!h.frequencyDays?.length || h.frequencyDays.includes(today.getDay())));
-            
             if (isDue) {
-                totalDueToday++;
-                // Check if completed today
-                const isCompleted = h.completedToday || (h.history && h.history.some(d => isSameDay(new Date(d), today)));
+                const isCompleted = h.completedToday || (h.history && h.history.some(d => normalizeDate(d) === todayStr));
                 if (isCompleted) completedTodayCount++;
             }
         });
 
         const progressPercent = totalDueToday > 0 ? Math.round((completedTodayCount / totalDueToday) * 100) : 0;
         const todayProgress = progressPercent;
-        const streak = 1;
+
+        // Include today in streak if done
+        if (todayDailyTotal > 0 && progressPercent >= 50) {
+            realStreak++;
+        }
+
+        const streak = Math.max(1, realStreak); // Minimum 1 so the user always sees Day 1
         const completedDays = streak > 0 ? streak - 1 : 0;
 
         // 3. Generate Roadmap Nodes
         const nodes = Array.from({ length: TOTAL_DAYS }, (_, i) => {
             const dayNum = i + 1;
-            const date = addDays(today, i);
+            const date = addDays(today, i - (streak - 1)); // Offset so Day `streak` = today
             const isTodayNode = dayNum === streak;
             const isPast = dayNum < streak;
             const isCompleted = isPast;
@@ -99,12 +168,13 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
             if (isTodayNode) status = 'current';
             
             let label = `DÍA ${dayNum}`;
-            if (isTodayNode) label = "HOY";
-            else if (dayNum === streak + 1) label = "MAÑANA";
-            else if (dayNum === streak + 2) label = "EN 2 DÍAS";
-            else if (dayNum === streak + 3) label = "EN 3 DÍAS";
-            else if (dayNum === streak + 4) label = "EN 4 DÍAS";
-            else label = `EN ${dayNum - streak} DÍAS`;
+            if (isTodayNode) label = 'HOY';
+            else if (dayNum === streak + 1) label = 'MAÑANA';
+            else if (dayNum === streak + 2) label = 'EN 2 DÍAS';
+            else if (dayNum === streak + 3) label = 'EN 3 DÍAS';
+            else if (dayNum === streak + 4) label = 'EN 4 DÍAS';
+            else if (dayNum > streak) label = `EN ${dayNum - streak} DÍAS`;
+            else label = `DÍA ${dayNum}`;
 
             return {
                 day: dayNum,

@@ -3,6 +3,7 @@ import { UserStats } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
 import { persistenceService } from './persistenceService';
 import { TRAITS_LIST } from '../modules/dashboard/constants';
+import { calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../utils/leveling';
 
 const TRAIT_ICON_NAMES: Record<string, string> = {
     DISCIPLINA: 'Target',
@@ -38,7 +39,7 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number },
+        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] },
         spawnedQuest?: any
     ) => {
         try {
@@ -118,7 +119,8 @@ export const TransactionService = {
                         ...attr,
                         xp: attributeUpdates.xp,
                         level: attributeUpdates.level,
-                        maxXp: attributeUpdates.maxXp
+                        maxXp: attributeUpdates.maxXp,
+                        subTraits: attributeUpdates.subTraits || attr.subTraits
                     });
                 } else {
                     const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
@@ -129,7 +131,8 @@ export const TransactionService = {
                         xp: attributeUpdates.xp,
                         maxXp: attributeUpdates.maxXp,
                         color: traitDef ? traitDef.color : '#3b82f6',
-                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon',
+                        subTraits: attributeUpdates.subTraits || []
                     });
                 }
             }
@@ -155,7 +158,7 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number }
+        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] }
      ) => {
         try {
             // 1. Fetch current user
@@ -231,7 +234,8 @@ export const TransactionService = {
                         ...attr,
                         xp: attributeUpdates.xp,
                         level: attributeUpdates.level,
-                        maxXp: attributeUpdates.maxXp
+                        maxXp: attributeUpdates.maxXp,
+                        subTraits: attributeUpdates.subTraits || attr.subTraits
                     });
                 } else {
                     const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
@@ -242,7 +246,8 @@ export const TransactionService = {
                         xp: attributeUpdates.xp,
                         maxXp: attributeUpdates.maxXp,
                         color: traitDef ? traitDef.color : '#3b82f6',
-                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon',
+                        subTraits: attributeUpdates.subTraits || []
                     });
                 }
             }
@@ -347,7 +352,7 @@ export const TransactionService = {
         rewardXp: number, 
         rewardGold: number, 
         rewardTraitXp: number, 
-        attributeUpdates: { id: string, xp: number, level: number, maxXp: number } | null,
+        attributeUpdates: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | null,
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number
@@ -412,7 +417,8 @@ export const TransactionService = {
                         ...attr,
                         xp: attributeUpdates.xp,
                         level: attributeUpdates.level,
-                        maxXp: attributeUpdates.maxXp
+                        maxXp: attributeUpdates.maxXp,
+                        subTraits: attributeUpdates.subTraits || attr.subTraits
                     });
                 } else {
                     const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
@@ -423,7 +429,8 @@ export const TransactionService = {
                         xp: attributeUpdates.xp,
                         maxXp: attributeUpdates.maxXp,
                         color: traitDef ? traitDef.color : '#3b82f6',
-                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
+                        iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon',
+                        subTraits: attributeUpdates.subTraits || []
                     });
                 }
             }
@@ -483,7 +490,7 @@ export const TransactionService = {
     /**
      * Atomically awards or deducts experience from an attribute.
      */
-    updateAttributeXpAtomic: async (userId: string, attributeUpdates: { id: string, xp: number, level: number, maxXp: number }) => {
+    updateAttributeXpAtomic: async (userId: string, attributeUpdates: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[], history?: any[] }) => {
         try {
             const attrs = await persistenceService.attributes.getAll(userId);
             const attr = attrs?.find(a => a.id === attributeUpdates.id);
@@ -492,7 +499,9 @@ export const TransactionService = {
                     ...attr,
                     xp: attributeUpdates.xp,
                     level: attributeUpdates.level,
-                    maxXp: attributeUpdates.maxXp
+                    maxXp: attributeUpdates.maxXp,
+                    subTraits: attributeUpdates.subTraits || attr.subTraits,
+                    history: attributeUpdates.history || attr.history
                 });
             } else {
                 const traitDef = TRAITS_LIST.find(t => t.id === attributeUpdates.id);
@@ -503,7 +512,9 @@ export const TransactionService = {
                     xp: attributeUpdates.xp,
                     maxXp: attributeUpdates.maxXp,
                     color: traitDef ? traitDef.color : '#3b82f6',
-                    iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon'
+                    iconName: traitDef ? (TRAIT_ICON_NAMES[traitDef.id] || 'Hexagon') : 'Hexagon',
+                    subTraits: attributeUpdates.subTraits || [],
+                    history: attributeUpdates.history || []
                 });
             }
             return true;
@@ -513,9 +524,6 @@ export const TransactionService = {
         }
     },
 
-    /**
-     * Atomically halves user level and all attributes when HP reaches 0
-     */
     halveStats: async (userId: string, currentAttributes: any[], currentLevel: number) => {
         try {
             const newLevel = Math.max(1, Math.floor(currentLevel / 2));
@@ -545,13 +553,25 @@ export const TransactionService = {
             for (const attr of currentAttributes) {
                 const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
                 const newAttrXp = newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0;
-                const newMaxXp = 20 * Math.pow(newAttrLevel + 1, 2);
+                const newMaxXp = calculateAttributeMaxXp(newAttrLevel);
+                
+                const updatedSubTraits = attr.subTraits?.map((st: any) => {
+                    const halvedLevel = Math.max(1, Math.floor(st.level / 2));
+                    const halvedMaxXp = calculateSubTraitMaxXp(halvedLevel);
+                    return {
+                        ...st,
+                        level: halvedLevel,
+                        xp: Math.max(0, Math.floor(st.xp / 2)),
+                        maxXp: halvedMaxXp
+                    };
+                });
                 
                 await persistenceService.attributes.save(userId, {
                     ...attr,
                     level: newAttrLevel,
                     xp: newAttrXp,
-                    maxXp: newMaxXp
+                    maxXp: newMaxXp,
+                    subTraits: updatedSubTraits
                 });
             }
 

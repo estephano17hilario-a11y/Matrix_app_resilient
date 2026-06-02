@@ -11,6 +11,7 @@ import { PersistenceService } from '../../services/persistence';
 import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
+import { calculateAttributeMaxXp } from '../../utils/leveling';
 
 
 
@@ -20,12 +21,12 @@ type Step = 'avatar' | 'traits' | 'saving';
 export function OnboardingFlow() {
   const { user, profile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
-  const lockedTraitId = 'DISCIPLINA';
+  const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
   
   // Initialize step directly to 'avatar'
   const [step, setStep] = useState<Step>('avatar');
   
-  const [selectedTraits, setSelectedTraits] = useState<string[]>([lockedTraitId]);
+  const [selectedTraits, setSelectedTraits] = useState<string[]>(lockedTraitIds);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
   const traitsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -85,13 +86,13 @@ export function OnboardingFlow() {
 
   const toggleTrait = (id: string) => {
     console.log('[Onboarding] Toggling trait:', id);
-    if (id === lockedTraitId) return;
+    if (lockedTraitIds.includes(id)) return;
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
       if (selectedTraits.length >= 16) {
         // Intelligent replacement: Remove the oldest unlocked trait to make room for the new one
-        const traitToRemove = selectedTraits.find(t => t !== lockedTraitId);
+        const traitToRemove = selectedTraits.find(t => !lockedTraitIds.includes(t));
         if (traitToRemove) {
           setSelectedTraits([...selectedTraits.filter(t => t !== traitToRemove), id]);
         }
@@ -153,7 +154,7 @@ export function OnboardingFlow() {
             label: trait.label,
             level: 1,
             xp: 0,
-            maxXp: 100,
+            maxXp: calculateAttributeMaxXp(1),
             color: trait.color
         });
         return acc;
@@ -325,7 +326,7 @@ export function OnboardingFlow() {
                           {TRAITS_LIST.map((trait, index) => {
                               const isSelected = selectedTraits.includes(trait.id);
                               const isMaxReached = false; // Intelligent system doesn't block, it replaces
-                              const isLocked = trait.id === lockedTraitId;
+                              const isLocked = lockedTraitIds.includes(trait.id);
                               const Icon = (trait.icon || Sparkles) as any;
                               const backgroundColor = isSelected ? `${trait.color}15` : 'rgba(255,255,255,0.03)';
                               

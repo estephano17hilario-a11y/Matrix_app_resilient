@@ -613,11 +613,22 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     </span>
                                                 )}
                                             </div>
-                                            {item.type === 'SUBTASK' && (
+                                            {item.type === 'SUBTASK' ? (
                                                 <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider truncate">
                                                     {item.habit.title}
                                                 </span>
-                                            )}
+                                            ) : (() => {
+                                                const attribute = attributeMap.get(item.habit.attribute);
+                                                const subTrait = attribute?.subTraits?.find(st => st.id === item.habit.subAttribute);
+                                                if (attribute && subTrait) {
+                                                    return (
+                                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider truncate mt-0.5">
+                                                            {attribute.label.replace('traits.', '')} › {subTrait.name}
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
 
                                         {item.time && item.time !== '23:59' && (

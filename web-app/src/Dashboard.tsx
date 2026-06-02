@@ -1,12 +1,23 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
-import { ArrowUp, AlertTriangle, Plus } from 'lucide-react';
+import { ArrowUp, AlertTriangle, Plus, TrendingUp, X, Target, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { toLocalISOString, startOfWeek, endOfWeek } from './utils/dateUtils';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
+import { TRAITS_LIST } from './modules/dashboard/constants';
+import { calculateSubTraitMaxXp } from './utils/leveling';
+import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+
+const ResponsiveContainerAny = ResponsiveContainer as any;
+const AreaChartAny = AreaChart as any;
+const AreaAny = Area as any;
+const CartesianGridAny = CartesianGrid as any;
+const XAxisAny = XAxis as any;
+const YAxisAny = YAxis as any;
+const TooltipAny = Tooltip as any;
 import { TaskList } from './modules/tasks/TaskList';
 import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
@@ -188,6 +199,9 @@ export default function Dashboard() {
  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
  const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
+ const [isProgressOpen, setIsProgressOpen] = useState(false);
+ const [selectedProgressTrait, setSelectedProgressTrait] = useState<'DISCIPLINA' | 'RESILIENCIA'>('DISCIPLINA');
+ const [progressTimeRange, setProgressTimeRange] = useState<'7' | '30' | '90'>('30');
 
  // LAYOUT CONSTANT FOR MAXIMAL QUALITY RESPONSIVENESS
  const APP_MAX_WIDTH = "w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl";
@@ -315,6 +329,7 @@ export default function Dashboard() {
  showProfile,
  setShowProfile,
  player,
+ dailyLimits,
  health,
  attributes,
  quests,
@@ -343,7 +358,6 @@ export default function Dashboard() {
  allowDockSectionSwitch,
  dockConfig,
  weekStartDay,
- dailyLimits,
  showStreakCelebration,
  setShowStreakCelebration
  } = dashboardLogic;
@@ -369,8 +383,8 @@ export default function Dashboard() {
  
  const handleFocusModeChange = useCallback((attr: string | null) => logicRef.current.handleFocusModeChange(attr), []);
  const addNotification = useCallback((n: any) => logicRef.current.addNotification(n), []);
- const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => logicRef.current.handleCompleteSession(projectId, durationSeconds, type), []);
- const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate), []);
+ const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string) => logicRef.current.handleCompleteSession(projectId, durationSeconds, type, subTraitId), []);
+ const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string, subTraitId?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate, subTraitId), []);
  const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
  const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);
  
@@ -389,6 +403,30 @@ export default function Dashboard() {
  const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);
  const addCustomAttribute = useCallback((attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => logicRef.current.addCustomAttribute(attr), []);
  const removeAttribute = useCallback((id: string) => logicRef.current.removeAttribute(id), []);
+ const addSubTrait = useCallback((parentAttrId: string, name: string, iconName: string) => {
+    console.log("Dashboard: addSubTrait called with:", { parentAttrId, name, iconName });
+    if (logicRef.current && logicRef.current.addSubTrait) {
+      return logicRef.current.addSubTrait(parentAttrId, name, iconName);
+    } else {
+      console.error("Dashboard: logicRef.current.addSubTrait is UNDEFINED!", logicRef.current);
+    }
+  }, []);
+  const updateSubTrait = useCallback((parentAttrId: string, subTraitId: string, updates: any) => {
+    console.log("Dashboard: updateSubTrait called with:", { parentAttrId, subTraitId, updates });
+    if (logicRef.current && logicRef.current.updateSubTrait) {
+      return logicRef.current.updateSubTrait(parentAttrId, subTraitId, updates);
+    } else {
+      console.error("Dashboard: logicRef.current.updateSubTrait is UNDEFINED!", logicRef.current);
+    }
+  }, []);
+  const deleteSubTrait = useCallback((parentAttrId: string, subTraitId: string) => {
+    console.log("Dashboard: deleteSubTrait called with:", { parentAttrId, subTraitId });
+    if (logicRef.current && logicRef.current.deleteSubTrait) {
+      return logicRef.current.deleteSubTrait(parentAttrId, subTraitId);
+    } else {
+      console.error("Dashboard: logicRef.current.deleteSubTrait is UNDEFINED!", logicRef.current);
+    }
+  }, []);
  const updateDashboardStyle = useCallback((s: any) => logicRef.current.updateDashboardStyle(s), []);
  const updateAvatarShape = useCallback((s: any) => logicRef.current.updateAvatarShape(s), []);
  const updateHabitSectionControl = useCallback((c: any) => logicRef.current.updateHabitSectionControl(c), []);
@@ -1057,6 +1095,10 @@ export default function Dashboard() {
  useEffect(() => {
  const handleBackButton = async () => {
  // 1. Modals & Overlays (Highest Priority)
+ if (isProgressOpen) {
+ setIsProgressOpen(false);
+ return;
+ }
  if (activeModal) {
  setActiveModal(null);
  return;
@@ -1167,6 +1209,7 @@ export default function Dashboard() {
  listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
  };
  }, [
+ isProgressOpen,
  activeModal, 
  validationHabit, 
  relapsingHabit, 
@@ -1207,6 +1250,7 @@ export default function Dashboard() {
  <GlobalStyles />
  
  <Suspense fallback={null}>
+ {(isProModalOpen || activeModal === 'PRO') && (
  <ProUpgradeModal 
  isOpen={isProModalOpen || activeModal === 'PRO'}
  onClose={() => {
@@ -1214,20 +1258,25 @@ export default function Dashboard() {
  if (activeModal === 'PRO') setActiveModal(null);
  }}
  />
+ )}
  </Suspense>
 
  {/* Global Streak Celebration Overlay */}
+ {showStreakCelebration && (
  <StreakCelebrationOverlay 
  isOpen={showStreakCelebration}
  onClose={() => setShowStreakCelebration(false)}
  streak={displayStreak}
  lastStreakDate={user?.stats?.lastStreakDate}
  />
+ )}
 
+ {showDeluxSuccess && (
  <DeluxSuccessOverlay 
  isOpen={showDeluxSuccess}
  onClose={() => setShowDeluxSuccess(false)}
  />
+ )}
 
  <StatsTutorialOverlay 
  isOpen={showStatsTutorial}
@@ -1285,7 +1334,7 @@ export default function Dashboard() {
  ref={scrollContainerRef} 
  className={cn(
  "absolute inset-0 z-10 w-full h-full overflow-x-hidden scroll-smooth",
- (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen) 
+ (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen || isProgressOpen) 
  ? "overflow-y-hidden" 
  : "overflow-y-auto"
  )}
@@ -1303,7 +1352,7 @@ export default function Dashboard() {
  <ParticleLayer particles={particles} />
 
  {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
- {!isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && (
+ {!isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && !isProgressOpen && (
  <>
  <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe flex justify-center">
  <div className={`${APP_MAX_WIDTH} px-4 sm:px-6`}>
@@ -1351,6 +1400,10 @@ export default function Dashboard() {
  <PlayerHUD 
  attributes={attributes}
  defaultChartMode={defaultChartMode}
+ onAddSubTrait={addSubTrait}
+ onUpdateSubTrait={updateSubTrait}
+ onDeleteSubTrait={deleteSubTrait}
+ onOpenProgress={() => setIsProgressOpen(true)}
  />
  </div>
  </div>
@@ -1679,7 +1732,7 @@ export default function Dashboard() {
  onOpenModal={handleOpenModal} 
  isOpen={isDockOpen} 
  onToggle={setIsDockOpen} 
- isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK'}
+ isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK' || isProgressOpen}
  pointerEvents={isSettingsOpen || isDockConfigOpen ? 'none' : 'auto'}
  dashboardStyle={dashboardStyle}
  taskViewMode={taskViewMode}
@@ -1690,121 +1743,313 @@ export default function Dashboard() {
  document.body
  )}
  
- <DockConfigModal
- isOpen={isDockConfigOpen}
- onClose={() => setIsDockConfigOpen(false)}
- config={dockConfig}
- onSave={updateDockConfig}
- />
- 
- {/* --- GLOBAL BACKDROP (REMOVED: Each modal has its own backdrop) --- */}
+ <AnimatePresence>
+    {isDockConfigOpen && (
+      <DockConfigModal
+        isOpen={true}
+        onClose={() => setIsDockConfigOpen(false)}
+        config={dockConfig}
+        onSave={updateDockConfig}
+      />
+    )}
+  </AnimatePresence>
+  
+  {/* --- GLOBAL BACKDROP (REMOVED: Each modal has its own backdrop) --- */}
 
- {/* MODALS */}
- <QuestModal 
- isOpen={activeModal === 'QUEST'} 
- onClose={handleQuestModalClose} 
- attributes={attributes} 
- projects={projects} 
- smartProjects={smartProjects}
- onConfirm={handleQuestSave}
- lockedAttributeId={smartTaskProps?.lockedAttributeId}
- lockedDate={smartTaskProps?.lockedDate}
- lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
- isSmartTask={!!smartTaskProps}
- initialValues={editingQuest || undefined}
- />
- <HabitModal 
- isOpen={activeModal === 'HABIT'} 
- onClose={() => { 
- setActiveModal(null); 
- setEditingHabit(null); 
- setModalInitialContext(null); 
- window.dispatchEvent(new CustomEvent('habit-created'));
- }} 
- attributes={attributes} 
- smartProjects={smartProjects}
- projects={projects}
- onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
- initialData={editingHabit || modalInitialContext || undefined}
- onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
- />
- <ProjectModal 
- isOpen={activeModal === 'PROJECT'} 
- onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
- attributes={attributes} 
- smartProjects={smartProjects} 
- onConfirm={handleProjectConfirmAndReset} 
- onDelete={handleDeleteProjectRequest}
- initialData={modalInitialContext || undefined}
- />
+  {/* MODALS */}
+  <AnimatePresence>
+    {activeModal === 'QUEST' && (
+      <QuestModal 
+        isOpen={true} 
+        onClose={handleQuestModalClose} 
+        attributes={attributes} 
+        projects={projects} 
+        smartProjects={smartProjects}
+        onConfirm={handleQuestSave}
+        lockedAttributeId={smartTaskProps?.lockedAttributeId}
+        lockedDate={smartTaskProps?.lockedDate}
+        lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
+        isSmartTask={!!smartTaskProps}
+        initialValues={editingQuest || undefined}
+      />
+    )}
+  </AnimatePresence>
 
- <BadHabitWizard 
- isOpen={activeModal === 'BAD_HABIT'}
- onClose={() => { 
- setActiveModal(null); 
- setEditingBadHabit(null); 
- window.dispatchEvent(new CustomEvent('bad-habit-created'));
- }}
- onConfirm={handleBadHabitConfirm}
- attributes={attributes}
- isFirstIdentify={badHabits.length === 0}
- onSwitchToHabit={() => setActiveModal('HABIT')}
- initialData={editingBadHabit || undefined}
- />
+  <AnimatePresence>
+    {activeModal === 'HABIT' && (
+      <HabitModal 
+        isOpen={true} 
+        onClose={() => { 
+          setActiveModal(null); 
+          setEditingHabit(null); 
+          setModalInitialContext(null); 
+          window.dispatchEvent(new CustomEvent('habit-created'));
+        }} 
+        attributes={attributes} 
+        smartProjects={smartProjects}
+        projects={projects}
+        onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
+        initialData={editingHabit || modalInitialContext || undefined}
+        onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
+      />
+    )}
+  </AnimatePresence>
 
- {activeModal === 'RELAPSE' && relapsingHabit && (
- <RelapseModal 
- isOpen={true}
- onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
- habit={relapsingHabit}
- onConfirm={(method) => {
- handleBadHabitRelapse(relapsingHabit, method);
- setActiveModal(null);
- setRelapsingHabit(null);
- }}
- userGold={player.gold}
- />
- )}
- 
- {/* Validation Modal */}
- <ValidationModal 
- habit={validationHabit} 
- onClose={() => setValidationHabit(null)} 
- attributes={attributes} 
- valTempValue={valTempValue} 
- setValTempValue={setValTempValue} 
- setValidationHabit={setValidationHabit} 
- onValidate={validateHabitProgress} 
- />
+  <AnimatePresence>
+    {activeModal === 'PROJECT' && (
+      <ProjectModal 
+        isOpen={true} 
+        onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
+        attributes={attributes} 
+        smartProjects={smartProjects} 
+        onConfirm={handleProjectConfirmAndReset} 
+        onDelete={handleDeleteProjectRequest}
+        initialData={modalInitialContext || undefined}
+      />
+    )}
+  </AnimatePresence>
 
- {/* --- HABIT ACTIONS & CONFIRMATION --- */}
- <HabitActionsModal 
- habit={habitActionsHabit}
- onClose={() => setHabitActionsHabit(null)}
- onEdit={(h) => handleEditHabit(h)}
- onArchive={handleArchiveHabit}
- onDelete={handleDeleteHabitRequest}
- />
+  <AnimatePresence>
+    {activeModal === 'BAD_HABIT' && (
+      <BadHabitWizard 
+        isOpen={true}
+        onClose={() => { 
+          setActiveModal(null); 
+          setEditingBadHabit(null); 
+          window.dispatchEvent(new CustomEvent('bad-habit-created'));
+        }}
+        onConfirm={handleBadHabitConfirm}
+        attributes={attributes}
+        isFirstIdentify={badHabits.length === 0}
+        onSwitchToHabit={() => setActiveModal('HABIT')}
+        initialData={editingBadHabit || undefined}
+      />
+    )}
+  </AnimatePresence>
 
- <BadHabitActionsModal 
- habit={badHabitActionsHabit}
- onClose={() => setBadHabitActionsHabit(null)}
- onEdit={(h) => handleEditBadHabit(h)}
- onArchive={handleArchiveBadHabit}
- onDelete={handleDeleteBadHabitRequest}
- />
+  <AnimatePresence>
+    {activeModal === 'RELAPSE' && relapsingHabit && (
+      <RelapseModal 
+        isOpen={true}
+        onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
+        habit={relapsingHabit}
+        onConfirm={(method) => {
+          handleBadHabitRelapse(relapsingHabit, method);
+          setActiveModal(null);
+          setRelapsingHabit(null);
+        }}
+        userGold={player.gold}
+      />
+    )}
+  </AnimatePresence>
+  
+  {/* Validation Modal */}
+  <AnimatePresence>
+    {validationHabit && (
+      <ValidationModal 
+        habit={validationHabit} 
+        onClose={() => setValidationHabit(null)} 
+        attributes={attributes} 
+        valTempValue={valTempValue} 
+        setValTempValue={setValTempValue} 
+        setValidationHabit={setValidationHabit} 
+        onValidate={validateHabitProgress} 
+      />
+    )}
+  </AnimatePresence>
 
- <ConfirmationModal
- isOpen={confirmationModal.isOpen}
- onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
- onConfirm={confirmationModal.onConfirm}
- title={confirmationModal.title}
- message={confirmationModal.message}
- confirmText={confirmationModal.confirmText}
- variant={confirmationModal.variant}
- />
+  {/* --- HABIT ACTIONS & CONFIRMATION --- */}
+  <AnimatePresence>
+    {habitActionsHabit && (
+      <HabitActionsModal 
+        habit={habitActionsHabit}
+        onClose={() => setHabitActionsHabit(null)}
+        onEdit={(h) => handleEditHabit(h)}
+        onArchive={handleArchiveHabit}
+        onDelete={handleDeleteHabitRequest}
+      />
+    )}
+  </AnimatePresence>
+
+  <AnimatePresence>
+    {badHabitActionsHabit && (
+      <BadHabitActionsModal 
+        habit={badHabitActionsHabit}
+        onClose={() => setBadHabitActionsHabit(null)}
+        onEdit={(h) => handleEditBadHabit(h)}
+        onArchive={handleArchiveBadHabit}
+        onDelete={handleDeleteBadHabitRequest}
+      />
+    )}
+  </AnimatePresence>
+
+  <AnimatePresence>
+    {confirmationModal.isOpen && (
+      <ConfirmationModal
+        isOpen={true}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+        variant={confirmationModal.variant}
+      />
+    )}
+  </AnimatePresence>
 
  </main>
+
+  {/* ======================================================= */}
+  {/* FULLSCREEN PROGRESS MODAL - "VER PROGRESO" */}
+  {/* ======================================================= */}
+  <AnimatePresence>
+    {isProgressOpen && (() => {
+      const disciplineTrait = attributes.find(a => a.id === 'DISCIPLINA');
+      const resilienceTrait = attributes.find(a => a.id === 'RESILIENCIA');
+      const activeTrait = selectedProgressTrait === 'DISCIPLINA' ? disciplineTrait : resilienceTrait;
+      const traitColor = selectedProgressTrait === 'DISCIPLINA' ? '#3b82f6' : '#f97316';
+
+      const days = parseInt(progressTimeRange);
+      const today = new Date();
+      const historyEntries = activeTrait?.history || [];
+      const chartData = Array.from({ length: days }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (days - 1 - i));
+        const dateStr = d.toISOString().split('T')[0];
+        const entry = historyEntries.find((e: any) => e.date === dateStr);
+        return {
+          date: d.toLocaleDateString('es', { month: 'short', day: 'numeric' }),
+          xp: entry?.xp ?? (historyEntries.length > 0 ? historyEntries[historyEntries.length - 1]?.xp ?? 0 : 0),
+          level: entry?.level ?? (activeTrait?.level ?? 1)
+        };
+      });
+
+      return (
+        <motion.div
+          key="progress-modal"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 30 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          className="fixed inset-0 z-[500] flex flex-col bg-[#08080c] overflow-hidden"
+        >
+          {/* Ambient glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-20" style={{ background: `radial-gradient(circle, ${traitColor}50 0%, transparent 70%)` }} />
+          </div>
+
+          {/* Header */}
+          <div className="relative z-10 pt-12 pb-4 px-6 flex items-center justify-between shrink-0">
+            <div>
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Progreso</p>
+              <h1 className="text-2xl font-black text-white tracking-tight">Rasgos Transversales</h1>
+            </div>
+            <button
+              onClick={() => setIsProgressOpen(false)}
+              className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Trait Selector */}
+          <div className="relative z-10 px-6 mb-4 shrink-0">
+            <div className="flex gap-2">
+              {(['DISCIPLINA', 'RESILIENCIA'] as const).map(tid => {
+                const isActive = selectedProgressTrait === tid;
+                const color = tid === 'DISCIPLINA' ? '#3b82f6' : '#f97316';
+                const emoji = tid === 'DISCIPLINA' ? '🎯' : '🛡️';
+                return (
+                  <button
+                    key={tid}
+                    onClick={() => setSelectedProgressTrait(tid)}
+                    className="flex-1 py-3 rounded-2xl border transition-all font-bold text-sm flex items-center justify-center gap-2"
+                    style={isActive ? { backgroundColor: `${color}20`, borderColor: `${color}50`, color } : { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+                  >
+                    <span>{emoji}</span>
+                    <span>{tid}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Trait Stats */}
+          <div className="relative z-10 px-6 mb-4 shrink-0">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border" style={{ backgroundColor: `${traitColor}15`, borderColor: `${traitColor}30` }}>
+                {selectedProgressTrait === 'DISCIPLINA' ? '🎯' : '🛡️'}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-black uppercase tracking-widest" style={{ color: traitColor }}>Nivel {activeTrait?.level ?? 1}</span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${activeTrait && activeTrait.maxXp > 0 ? Math.min(100, (activeTrait.xp / activeTrait.maxXp) * 100) : 0}%`, backgroundColor: traitColor }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] text-white/30 font-mono">{activeTrait?.xp ?? 0} XP</span>
+                  <span className="text-[10px] text-white/20 font-mono">{activeTrait?.maxXp ?? 100} XP</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Range Selector */}
+          <div className="relative z-10 px-6 mb-4 shrink-0">
+            <div className="flex gap-2">
+              {(['7', '30', '90'] as const).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setProgressTimeRange(r)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${progressTimeRange === r ? 'bg-white/10 text-white border-white/20' : 'bg-white/[0.02] text-white/30 border-white/5'}`}
+                >
+                  {r === '7' ? '7 días' : r === '30' ? '30 días' : '90 días'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="relative z-10 px-2 flex-1 min-h-0">
+            <ResponsiveContainerAny width="100%" height="100%">
+              <AreaChartAny data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                <defs>
+                  <linearGradient id="progressGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={traitColor} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={traitColor} stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGridAny strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxisAny dataKey="date" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)', fontWeight: 700 }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
+                <YAxisAny tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)', fontWeight: 700 }} tickLine={false} axisLine={false} width={36} tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : `${v}`} />
+                <TooltipAny
+                  contentStyle={{ background: '#1a1a2e', border: `1px solid ${traitColor}30`, borderRadius: 12, padding: '8px 12px' }}
+                  labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}
+                  itemStyle={{ color: traitColor, fontWeight: 700, fontSize: 12 }}
+                  formatter={(value: number) => [`${value} XP`, 'Experiencia']}
+                />
+                <AreaAny type="monotone" dataKey="xp" stroke={traitColor} strokeWidth={2.5} fill="url(#progressGrad)" dot={false} activeDot={{ r: 4, fill: traitColor, strokeWidth: 0 }} />
+              </AreaChartAny>
+            </ResponsiveContainerAny>
+          </div>
+
+          {/* Close button at bottom */}
+          <div className="relative z-10 px-6 pb-12 pt-4 shrink-0">
+            <button
+              onClick={() => setIsProgressOpen(false)}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-sm transition-all"
+            >
+              Cerrar
+            </button>
+          </div>
+        </motion.div>
+      );
+    })()}
+  </AnimatePresence>
 
  {/* --- SETTINGS OVERLAY --- */}
  <AnimatePresence>
@@ -1824,6 +2069,9 @@ export default function Dashboard() {
  onAddAttribute={addAttribute}
  onAddCustomAttribute={addCustomAttribute}
  onRemoveAttribute={removeAttribute}
+ onAddSubTrait={addSubTrait}
+ onUpdateSubTrait={updateSubTrait}
+ onDeleteSubTrait={deleteSubTrait}
  onShowPro={() => setActiveModal('PRO')}
  isPro={user?.plan === 'PRO'}
  dashboardStyle={dashboardStyle}

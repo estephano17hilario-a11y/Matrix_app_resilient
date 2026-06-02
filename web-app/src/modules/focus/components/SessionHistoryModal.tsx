@@ -4,17 +4,18 @@ import React, { useState, useMemo } from 'react';
 import { X, Target, Plus, Calendar, Clock, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { Project } from '../../../types';
+import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { ManualSessionCreator } from './ManualSessionCreator';
 
-export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpdateProject, onDeleteSession, onAddSession, onEditSession, isActive, onShowWarning }: { 
+export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attribute, onUpdateProject, onDeleteSession, onAddSession, onEditSession, isActive, onShowWarning }: { 
     isOpen: boolean, 
     onClose: () => void, 
     project: Project, 
+    attribute?: Attribute,
     onUpdateProject: (p: Project) => void,
     onDeleteSession?: (projectId: string, sessionId: string) => void,
-    onAddSession?: (durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => void,
+    onAddSession?: (durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void,
     onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void,
     isActive?: boolean,
     onShowWarning?: () => void
@@ -33,27 +34,21 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
     
     if (!isOpen) return null;
 
-    const handleSaveSession = (durationMinutes: number, date: Date) => {
+    const handleSaveSession = (durationMinutes: number, date: Date, subTraitId?: string) => {
         if (mode === 'ADD') {
             if (onAddSession) {
-                // Generate a session ID if one is not provided by the parent
-                // Ideally onAddSession would return the new session, but here we just trigger the callback
-                // Since onAddSession signature is (duration, type, sessionId, date), we can pass a new ID here if needed
                 const newSessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
-                // Pass date as ISO string
-                onAddSession(durationMinutes, 'POMO', newSessionId, date.toISOString());
+                onAddSession(durationMinutes, 'POMO', newSessionId, date.toISOString(), subTraitId);
             }
         } else if (mode === 'EDIT' && selectedSessionId) {
             if (onEditSession) {
                 onEditSession(project.id, selectedSessionId, durationMinutes, date.toISOString());
             } else {
-                // Fallback: update local project if no handler provided (though onEditSession should be provided)
                 const newSessions = (project.sessions || []).map(s => s.id === selectedSessionId ? { 
                     ...s, 
                     duration: Math.round(durationMinutes * 60),
                     date: date.toISOString()
                 } : s);
-                
                 const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
                 onUpdateProject({ ...project, sessions: newSessions, totalTime: newTotal });
             }
@@ -68,7 +63,6 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
             if (onDeleteSession) {
                 onDeleteSession(project.id, sessionId);
             }
-            // Also update local state if needed, but usually parent handles it via onUpdateProject
             if (mode === 'EDIT') {
                 setMode('LIST');
                 setSelectedSessionId(null);
@@ -129,6 +123,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, onUpd
                                 initialDuration={mode === 'EDIT' && selectedSession ? Math.floor(selectedSession.duration / 60) : 60}
                                 initialDate={mode === 'EDIT' && selectedSession ? new Date(selectedSession.date) : new Date()}
                                 project={project}
+                                attribute={attribute}
                                 onSave={handleSaveSession}
                                 onCancel={() => { setMode('LIST'); setSelectedSessionId(null); }}
                                 onDelete={mode === 'EDIT' && selectedSessionId ? () => handleDelete(selectedSessionId) : undefined}

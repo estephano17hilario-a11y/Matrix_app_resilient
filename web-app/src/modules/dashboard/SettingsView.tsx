@@ -16,6 +16,9 @@ export interface SettingsViewProps {
   onAddAttribute?: (id: string) => void;
   onAddCustomAttribute?: (attr: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => void;
   onRemoveAttribute?: (id: string) => void;
+  onAddSubTrait?: (parentAttrId: string, name: string, iconName: string) => Promise<void> | void;
+  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise<void> | void;
+  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise<void> | void;
   onClose: () => void;
   onShowPro?: () => void;
   isPro?: boolean;

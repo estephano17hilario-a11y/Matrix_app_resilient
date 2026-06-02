@@ -8,18 +8,148 @@ import { useTranslation } from 'react-i18next';
 import { TRAITS_LIST } from '../../dashboard/constants';
 import { IconPicker } from '../../dashboard/components/IconPicker';
 import { supabase } from '../../../services/supabase';
+import { calculateSubTraitMaxXp } from '../../../utils/leveling';
 
 const COLORS = ['#3b82f6', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#64748b', '#6366f1', '#f97316', '#84cc16', '#d946ef', '#eab308'];
+
+const SUBTRAIT_PRESETS: Record<string, { name: string; iconName: string }[]> = {
+  FISICO: [
+    { name: 'Cardio', iconName: 'Heart' },
+    { name: 'Fuerza', iconName: 'Dumbbell' },
+    { name: 'Flexibilidad', iconName: 'Wind' },
+    { name: 'Resistencia', iconName: 'Zap' },
+  ],
+  MENTAL: [
+    { name: 'Estudio', iconName: 'BookOpen' },
+    { name: 'Programación', iconName: 'Code' },
+    { name: 'Lectura', iconName: 'Book' },
+    { name: 'Idiomas', iconName: 'Languages' },
+  ],
+  CREATIVIDAD: [
+    { name: 'Dibujo', iconName: 'Palette' },
+    { name: 'Música', iconName: 'Music' },
+    { name: 'Fotografía', iconName: 'Camera' },
+    { name: 'Edición', iconName: 'Video' },
+  ],
+  SOCIAL: [
+    { name: 'Oratoria', iconName: 'Mic' },
+    { name: 'Empatía', iconName: 'HeartHandshake' },
+    { name: 'Idiomas', iconName: 'Languages' },
+    { name: 'Carisma', iconName: 'Sparkles' },
+  ],
+  ESPIRITU: [
+    { name: 'Meditación', iconName: 'Smile' },
+    { name: 'Yoga', iconName: 'Flower2' },
+    { name: 'Mindfulness', iconName: 'Compass' },
+    { name: 'Estoicismo', iconName: 'Shield' },
+  ],
+  FINANZAS: [
+    { name: 'Ahorro', iconName: 'PiggyBank' },
+    { name: 'Inversión', iconName: 'TrendingUp' },
+    { name: 'Presupuesto', iconName: 'Coins' },
+    { name: 'Negocios', iconName: 'Briefcase' },
+  ],
+  ORDEN: [
+    { name: 'Limpieza', iconName: 'Trash2' },
+    { name: 'Organización', iconName: 'Grid' },
+    { name: 'Rutinas', iconName: 'Calendar' },
+    { name: 'Minimalismo', iconName: 'Minimize2' },
+  ],
+  VITALIDAD: [
+    { name: 'Nutrición', iconName: 'Apple' },
+    { name: 'Sueño', iconName: 'Moon' },
+    { name: 'Hidratación', iconName: 'Droplet' },
+    { name: 'Descanso', iconName: 'Sun' },
+  ],
+  LIDERAZGO: [
+    { name: 'Oratoria', iconName: 'Mic' },
+    { name: 'Gestión', iconName: 'FolderKanban' },
+    { name: 'Negociación', iconName: 'Briefcase' },
+    { name: 'Delegación', iconName: 'Share2' },
+  ],
+  RESILIENCIA: [
+    { name: 'Estoicismo', iconName: 'ShieldAlert' },
+    { name: 'Paciencia', iconName: 'Hourglass' },
+    { name: 'Adaptabilidad', iconName: 'RefreshCw' },
+  ],
+  ESTILO: [
+    { name: 'Moda', iconName: 'Shirt' },
+    { name: 'Higiene', iconName: 'Sparkles' },
+    { name: 'Postura', iconName: 'Accessibility' },
+  ],
+  DISCIPLINA: [
+    { name: 'Foco', iconName: 'Target' },
+    { name: 'Puntualidad', iconName: 'Clock' },
+    { name: 'Consistencia', iconName: 'Flame' },
+  ],
+};
 
 export const NeuralSection = () => {
   const { t } = useTranslation();
   const { profile: user, updateProfileLocally } = useAuth();
-  const { attributes, updateAttribute, addAttribute, addCustomAttribute, removeAttribute, isPro, showProModal } = useSettings();
+  const { 
+    attributes, 
+    updateAttribute, 
+    addAttribute, 
+    addCustomAttribute, 
+    removeAttribute, 
+    isPro, 
+    showProModal,
+    addSubTrait,
+    updateSubTrait,
+    deleteSubTrait 
+  } = useSettings();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editForm, setEditForm] = useState<{ label: string; color: string; icon?: any; iconName?: string }>({ label: '', color: COLORS[0], icon: Hexagon, iconName: 'Hexagon' });
+
+  const [isAddingSub, setIsAddingSub] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubIcon, setNewSubIcon] = useState('Hexagon');
+  const [showIconGrid, setShowIconGrid] = useState(false);
+
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editSubName, setEditSubName] = useState('');
+  const [editSubIcon, setEditSubIcon] = useState('Hexagon');
+  const [showEditIconGrid, setShowEditIconGrid] = useState(false);
+
+  const handleAddSubTraitSubmit = async (e: React.FormEvent | React.MouseEvent | React.KeyboardEvent, parentAttrId: string) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log("handleAddSubTraitSubmit called:", { parentAttrId, newSubName: newSubName.trim(), hasAddSubTrait: !!addSubTrait });
+    if (!newSubName.trim() || !addSubTrait) {
+      console.warn("Skipping addSubTrait call: empty name or addSubTrait is missing.");
+      return;
+    }
+    try {
+      await addSubTrait(parentAttrId, newSubName.trim(), newSubIcon);
+      setNewSubName('');
+      setNewSubIcon('Hexagon');
+      setIsAddingSub(false);
+      setShowIconGrid(false);
+    } catch (err) {
+      console.error("Error inside handleAddSubTraitSubmit:", err);
+    }
+  };
+
+  const handleEditSubTraitSubmit = async (e: React.FormEvent | React.MouseEvent | React.KeyboardEvent, parentAttrId: string, subId: string) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!editSubName.trim() || !updateSubTrait) return;
+    try {
+      await updateSubTrait(parentAttrId, subId, { name: editSubName.trim(), iconName: editSubIcon });
+      setEditingSubId(null);
+      setShowEditIconGrid(false);
+    } catch (err) {
+      console.error("Error inside handleEditSubTraitSubmit:", err);
+    }
+  };
 
   // Merge default traits and custom archived traits
   const allTraits = [...TRAITS_LIST];
@@ -42,6 +172,10 @@ export const NeuralSection = () => {
   const startEditing = (attr: any) => {
     setEditingId(attr.id);
     setIsCreating(false);
+    setIsAddingSub(false);
+    setEditingSubId(null);
+    setNewSubName('');
+    setNewSubIcon('Hexagon');
     setEditForm({
       label: String(t(attr.label, attr.label.replace('traits.', ''))),
       color: attr.color,
@@ -54,6 +188,8 @@ export const NeuralSection = () => {
     if (editingId) {
       updateAttribute(editingId, { label: editForm.label, color: editForm.color });
       setEditingId(null);
+      setIsAddingSub(false);
+      setEditingSubId(null);
     } else if (isCreating) {
       if (!isPro) {
         showProModal();
@@ -232,6 +368,318 @@ export const NeuralSection = () => {
                         }} 
                       />
                     </div>
+
+                    {/* Sub-traits Section */}
+                    <div className="border-t border-white/5 pt-4 mt-4 space-y-4 relative z-10 w-full">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">Sub-Rasgos</span>
+                          {attr.subTraits && attr.subTraits.length > 0 && (
+                            <span className="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full font-bold">
+                              {attr.subTraits.length}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {!isAddingSub && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingSub(true);
+                              setNewSubName('');
+                              setNewSubIcon('Hexagon');
+                            }}
+                            className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/25 rounded-lg text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all shadow-sm"
+                          >
+                            <Plus size={10} />
+                            Añadir Sub-Rasgo
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Adding Sub-trait Form */}
+                      {isAddingSub && (
+                        <div className="bg-black/40 rounded-xl p-3 border border-white/10 space-y-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newSubName}
+                              onChange={(e) => setNewSubName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddSubTraitSubmit(e, attr.id);
+                                }
+                              }}
+                              maxLength={15}
+                              placeholder="Nombre (ej. Cardio)..."
+                              className="flex-1 h-8 bg-black/60 border border-white/10 rounded-lg px-3 text-xs font-bold text-white placeholder:text-white/20 outline-none focus:border-cyan-500/50"
+                              autoFocus
+                            />
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                type="button"
+                                disabled={!newSubName.trim()}
+                                onClick={(e) => handleAddSubTraitSubmit(e, attr.id)}
+                                className="w-8 h-8 bg-emerald-500/20 text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
+                                title="Crear sub-rasgo (Enter)"
+                              >
+                                <Check size={14} strokeWidth={3} className="pointer-events-none" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setIsAddingSub(false);
+                                  setNewSubName('');
+                                  setNewSubIcon('Hexagon');
+                                  setShowIconGrid(false);
+                                }}
+                                className="w-8 h-8 bg-white/5 text-white/50 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                              >
+                                <X size={14} strokeWidth={3} className="pointer-events-none" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Suggestions/Presets (Instant 1-Click Add) */}
+                          {SUBTRAIT_PRESETS[attr.id] && SUBTRAIT_PRESETS[attr.id].length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block">Sugerencias (Añadir al instante):</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {SUBTRAIT_PRESETS[attr.id].map(p => (
+                                  <button
+                                    key={p.name}
+                                    type="button"
+                                    onClick={async (e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      try {
+                                        if (addSubTrait) {
+                                          await addSubTrait(attr.id, p.name, p.iconName);
+                                        }
+                                        setIsAddingSub(false);
+                                        setShowIconGrid(false);
+                                      } catch (err) {
+                                        console.error("Error adding preset sub-trait:", err);
+                                      }
+                                    }}
+                                    className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/70 text-[10px] font-semibold border border-white/[0.03] transition-colors"
+                                  >
+                                    {p.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Optional Icon Picker */}
+                          <div className="space-y-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setShowIconGrid(!showIconGrid);
+                              }}
+                              className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
+                            >
+                              <span>Icono: {newSubIcon}</span>
+                              <span className="text-[8px] text-white/35">(hacer clic para cambiar)</span>
+                            </button>
+                            
+                            {showIconGrid && (
+                              <div className="grid grid-cols-6 gap-1 p-1 bg-black/35 rounded-lg border border-white/5 animate-fadeIn">
+                                {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => {
+                                  const IconComp = (LucideIcons as any)[icon] || Hexagon;
+                                  return (
+                                    <button
+                                      key={icon}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setNewSubIcon(icon);
+                                        setShowIconGrid(false);
+                                      }}
+                                      className={`h-7 rounded-md flex items-center justify-center transition-all border ${
+                                        newSubIcon === icon 
+                                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" 
+                                          : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
+                                      }`}
+                                    >
+                                      <IconComp size={14} />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-traits list */}
+                      {attr.subTraits && attr.subTraits.length > 0 ? (
+                        <div className="space-y-2">
+                          {attr.subTraits.map((st: any) => {
+                            const isEditingSub = editingSubId === st.id;
+                            const stMaxXp = st.maxXp || calculateSubTraitMaxXp(st.level);
+                            const stXp = Math.round(st.xp);
+                            const percent = Math.min(100, Math.max(0, (stXp / stMaxXp) * 100));
+                            
+                            if (isEditingSub) {
+                              return (
+                                <div key={st.id} className="bg-black/30 rounded-xl p-3 border border-white/5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={editSubName}
+                                      onChange={(e) => setEditSubName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleEditSubTraitSubmit(e, attr.id, st.id);
+                                        }
+                                      }}
+                                      maxLength={15}
+                                      placeholder="Nombre..."
+                                      className="flex-1 h-8 bg-black/60 border border-white/10 rounded-lg px-3 text-xs font-bold text-white outline-none focus:border-cyan-500/50"
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleEditSubTraitSubmit(e, attr.id, st.id)}
+                                        className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
+                                      >
+                                        <Check size={14} strokeWidth={3} className="pointer-events-none" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setEditingSubId(null);
+                                          setShowEditIconGrid(false);
+                                        }}
+                                        className="w-8 h-8 bg-white/5 text-white/50 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                                      >
+                                        <X size={14} strokeWidth={3} className="pointer-events-none" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Optional Edit Icon Picker */}
+                                  <div className="space-y-2">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowEditIconGrid(!showEditIconGrid);
+                                      }}
+                                      className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
+                                    >
+                                      <span>Icono: {editSubIcon}</span>
+                                      <span className="text-[8px] text-white/35">(hacer clic para cambiar)</span>
+                                    </button>
+                                    
+                                    {showEditIconGrid && (
+                                      <div className="grid grid-cols-6 gap-1 p-1 bg-black/35 rounded-lg border border-white/5 animate-fadeIn">
+                                        {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => {
+                                          const IconComp = (LucideIcons as any)[icon] || Hexagon;
+                                          return (
+                                            <button
+                                              key={icon}
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setEditSubIcon(icon);
+                                                setShowEditIconGrid(false);
+                                              }}
+                                              className={`h-7 rounded-md flex items-center justify-center transition-all border ${
+                                                editSubIcon === icon 
+                                                  ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" 
+                                                  : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
+                                              }`}
+                                            >
+                                              <IconComp size={14} />
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            const SubIcon = (LucideIcons as any)[st.iconName || 'Hexagon'] || Hexagon;
+
+                            return (
+                              <div key={st.id} className="group flex flex-col gap-1.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-colors relative">
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-white/70">
+                                      <SubIcon size={12} />
+                                    </div>
+                                    <span className="font-bold text-white/80">{st.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono text-[9px] text-white/35">{stXp}/{stMaxXp} XP</span>
+                                    <span className="font-mono text-[10px] font-bold text-cyan-400/90 bg-cyan-400/5 px-2 py-0.5 rounded border border-cyan-400/10">Lvl {st.level}</span>
+                                    
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity ml-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          setEditingSubId(st.id);
+                                          setEditSubName(st.name);
+                                          setEditSubIcon(st.iconName || 'Hexagon');
+                                          setShowEditIconGrid(false);
+                                        }}
+                                        className="w-6 h-6 rounded hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                                        title="Editar"
+                                      >
+                                        <LucideIcons.Edit2 size={11} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          if (deleteSubTrait && confirm(`¿Estás seguro de eliminar el sub-rasgo "${st.name}"?`)) {
+                                            deleteSubTrait(attr.id, st.id);
+                                          }
+                                        }}
+                                        className="w-6 h-6 rounded hover:bg-rose-500/10 flex items-center justify-center text-white/40 hover:text-rose-400 transition-colors"
+                                        title="Eliminar"
+                                      >
+                                        <LucideIcons.Trash2 size={11} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-0.5">
+                                  <div 
+                                    className="h-full bg-cyan-500/60 rounded-full transition-all duration-300"
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-white/20 text-center py-3 italic bg-black/10 rounded-xl border border-dashed border-white/5">
+                          Sin sub-rasgos. Crea uno para especializarte.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -258,7 +706,7 @@ export const NeuralSection = () => {
                         <Edit3 size={16} />
                       </button>
 
-                      {attr.id === 'DISCIPLINA' || attributes.length <= 3 ? (
+                      {attr.id === 'DISCIPLINA' || attr.id === 'RESILIENCIA' || attributes.length <= 3 ? (
                         <div className="p-2 text-white/10 cursor-not-allowed">
                           <Trash2 size={16} />
                         </div>

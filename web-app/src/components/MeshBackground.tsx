@@ -72,7 +72,11 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       return { ...orb, rStr: `${r}, ${g}, ${b}` };
     });
 
+    let isPaused = false;
+
     const render = () => {
+      if (isPaused) return;
+
       time += 0.8;
       const w = width;
       const h = height;
@@ -110,10 +114,29 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        if (isPaused) {
+          isPaused = false;
+          render();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      render();
+    } else {
+      isPaused = true;
+    }
 
     return () => {
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
   }, [theme, isCosmicTheme]);

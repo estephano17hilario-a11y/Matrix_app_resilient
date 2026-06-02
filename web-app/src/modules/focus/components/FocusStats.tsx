@@ -707,11 +707,6 @@ export const FocusStats = React.memo(({
                 />
             </div>
             
-            {/* LIMITS - OUTSIDE CHART - BELOW */}
-            <div className="mt-2 px-2">
-                    <FocusLimits dailyLimits={dailyLimits} />
-            </div>
-
             <DateSelectionModal 
                 isOpen={isDateModalOpen}
                 onClose={() => setIsDateModalOpen(false)}

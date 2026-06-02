@@ -22,3 +22,11 @@ export const calculateLevelProgress = (xp: number, level: number): number => {
     const progress = (xp - currentLevelXp) / (nextLevelXp - currentLevelXp);
     return Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
 };
+
+export const calculateAttributeMaxXp = (level: number): number => {
+    return 20 * Math.pow(level + 1, 2);
+};
+
+export const calculateSubTraitMaxXp = (level: number): number => {
+    return 10 * Math.pow(level + 1, 2);
+};

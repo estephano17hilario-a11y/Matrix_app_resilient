@@ -67,6 +67,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  if (!isOpen || !habit || !stats) return null;
 
  const color = attribute?.color || '#f43f5e';
+ const subTrait = attribute?.subTraits?.find(st => st.id === habit.subAttribute);
 
  return createPortal(
  <AnimatePresence>
@@ -101,7 +102,10 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  </div>
  <div>
  <h2 className="text-xl font-bold text-white tracking-tight">{habit.title}</h2>
- <p className="text-sm" style={{ color }}>{attribute?.label?.replace('traits.', '') || 'General'}</p>
+ <p className="text-sm capitalize font-bold" style={{ color }}>
+  {attribute?.label?.replace('traits.', '') || 'General'}
+  {subTrait && ` › ${subTrait.name}`}
+ </p>
  </div>
  </div>
  <button

@@ -11,6 +11,21 @@ export interface ThemeConfig {
   gradient?: string;
 }
 
+export interface SubTrait {
+  id: string;
+  name: string;
+  level: number;
+  xp: number;
+  maxXp: number;
+  iconName?: string;
+}
+
+export interface AttributeHistoryEntry {
+  date: string; // YYYY-MM-DD
+  xp: number;
+  level: number;
+}
+
 export interface Attribute {
   id: string;
   label: string;
@@ -20,6 +35,8 @@ export interface Attribute {
   color: string;
   icon?: any;
   iconName?: string;
+  subTraits?: SubTrait[];
+  history?: AttributeHistoryEntry[];
 }
 
 export interface Subtask {
@@ -37,12 +54,14 @@ export interface Quest {
   xpReward: number;
   gold: number;
   attribute: string;
+  subAttribute?: string; // Selected Sub-Trait ID
   completed: boolean;
   completedAt?: string;
   deadline?: string;
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
+  rescheduledFromOverdue?: boolean;
   projectId?: string;
   smartProjectId?: string;
   color?: string; // Optional UI color override
@@ -68,6 +87,7 @@ export interface Habit {
   streak: number;
   completedToday: boolean;
   attribute: string;
+  subAttribute?: string; // Selected Sub-Trait ID
   totalCompletions: number;
   frequency: string;
   frequencyDays?: number[]; // 0=Sun, 1=Mon, etc.
@@ -115,6 +135,7 @@ export interface BadHabit {
   id: string;
   title: string;
   attribute: string; // The affected trait
+  subAttribute?: string; // Selected Sub-Trait ID
   reason: string;
   negativeImpact: string;
   timeConsumed: number; // in minutes
@@ -172,6 +193,7 @@ export interface Session {
   xpEarned?: number;
   goldEarned?: number;
   traitPointsEarned?: number;
+  subTraitId?: string;
 }
 
 export interface NoteBlock {

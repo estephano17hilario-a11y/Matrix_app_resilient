@@ -23,6 +23,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     const isIntelligent = habit.intelligentStreak;
     const currentTarget = habit.currentTarget || 3;
     const reachedDays = habit.reachedDays || 0;
+    const subTrait = attribute?.subTraits?.find(st => st.id === habit.subAttribute);
 
     const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
@@ -158,6 +159,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
                             >
                                 {attribute?.label?.replace('traits.', '').toUpperCase() || 'HABIT'}
+                                {subTrait && ` › ${subTrait.name.toUpperCase()}`}
                             </div>
                             <div
                                 style={{

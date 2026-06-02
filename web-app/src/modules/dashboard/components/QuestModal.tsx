@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2, Hexagon } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -41,6 +42,8 @@ export const QuestModal = React.memo(({
     const [title, setTitle] = useState(''); // Main Goal
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('');
+    const [subAttrId, setSubAttrId] = useState('');
+    const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(toLocalISOString(new Date()));
@@ -61,6 +64,31 @@ export const QuestModal = React.memo(({
     const [estimatedTime, setEstimatedTime] = useState(0);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
+    // Clear subAttrId when attrId changes
+    React.useEffect(() => {
+        setSubAttrId('');
+    }, [attrId]);
+
+    // Smart Auto-linking by Keywords in title
+    React.useEffect(() => {
+        if (!title || initialValues?.attribute || lockedAttributeId) return;
+        
+        for (const attr of attributes) {
+            if (attr.subTraits) {
+                for (const sub of attr.subTraits) {
+                    const subWords = sub.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+                    const matched = subWords.some(word => title.toLowerCase().includes(word)) || title.toLowerCase().includes(sub.name.toLowerCase());
+                    if (matched) {
+                        setAttrId(attr.id);
+                        // Using setTimeout to let setAttrId resolve and clear subAttrId first
+                        setTimeout(() => setSubAttrId(sub.id), 0);
+                        return;
+                    }
+                }
+            }
+        }
+    }, [title, attributes, lockedAttributeId, initialValues]);
+
     // Effect to apply locked props or initial values
     React.useEffect(() => {
         if (isOpen) {
@@ -69,6 +97,7 @@ export const QuestModal = React.memo(({
                 setTitle(initialValues.title || '');
                 setDesc(initialValues.description || '');
                 setAttrId(initialValues.attribute || '');
+                setSubAttrId(initialValues.subAttribute || '');
                 setProjectId(initialValues.projectId || initialValues.smartProjectId || '');
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || toLocalISOString(new Date()));
@@ -94,6 +123,7 @@ export const QuestModal = React.memo(({
                 setTitle('');
                 setDesc('');
                 setAttrId('');
+                setSubAttrId('');
                 setProjectId('');
                 setDifficulty('C');
                 setDeadline(toLocalISOString(new Date()));
@@ -145,6 +175,7 @@ export const QuestModal = React.memo(({
                 title, 
                 description: desc, 
                 attribute: attrId, 
+                subAttribute: subAttrId || undefined,
                 projectId: finalProjectId,
                 smartProjectId: finalSmartProjectId,
                 difficulty, 
@@ -355,6 +386,65 @@ export const QuestModal = React.memo(({
                                  )}
                              </div>
                         </div>
+
+                        {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
+                            <div className="space-y-1 animate-in slide-in-from-top-1 fade-in">
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-wider block px-1">
+                                    Sub-Rasgo
+                                </span>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSubAttrPickerOpen(!isSubAttrPickerOpen)}
+                                        className="w-full h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between px-4 text-xs font-bold text-white transition-colors hover:bg-white/10"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {subAttrId ? (
+                                                <>
+                                                    <span className="text-slate-300">
+                                                        {selectedAttr.subTraits.find(st => st.id === subAttrId)?.name || subAttrId}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-white/20">Seleccionar Sub-Rasgo (Opcional)</span>
+                                            )}
+                                        </div>
+                                        <ChevronDown size={14} className="text-white/30" />
+                                    </button>
+                                    
+                                    {isSubAttrPickerOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setSubAttrPickerOpen(false)} />
+                                            <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-md border border-white/10 max-h-[160px] overflow-y-auto">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setSubAttrId(''); setSubAttrPickerOpen(false); }}
+                                                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
+                                                >
+                                                    Ninguno
+                                                </button>
+                                                {selectedAttr.subTraits.map(st => (
+                                                    <button
+                                                        key={st.id}
+                                                        type="button"
+                                                        onClick={() => { setSubAttrId(st.id); setSubAttrPickerOpen(false); }}
+                                                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
+                                                    >
+                                                        <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-slate-400">
+                                                            {st.iconName && (LucideIcons as any)[st.iconName] ? React.createElement((LucideIcons as any)[st.iconName], { size: 12 }) : <Hexagon size={12} />}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-white">{st.name}</span>
+                                                            <span className="text-[9px] font-bold text-slate-500">Lvl {st.level}</span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Description */}
                         <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3">

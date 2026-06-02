@@ -25,7 +25,7 @@ import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
-import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel } from '../../../utils/leveling';
+import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
 
@@ -112,8 +112,13 @@ export const useDashboardLogic = () => {
                 allowDockSectionSwitch: authProfile.allowDockSectionSwitch || luxUser.allowDockSectionSwitch,
                 weekStartDay: authProfile.weekStartDay !== undefined ? authProfile.weekStartDay : luxUser.weekStartDay,
                 archivedTraits: authProfile.archivedTraits || (luxUser.preferences as any)?.archivedTraits || {},
-                // Prefer Lux for Game Stats (updated via Game Loop)
-                stats: luxUser.stats
+                // Prefer Lux for Game Stats (updated via Game Loop), merging streak fields from local cache/profile
+                stats: {
+                    ...luxUser.stats,
+                    streak: authProfile.stats?.streak !== undefined ? authProfile.stats.streak : (luxUser.stats?.streak || 0),
+                    lastStreakDate: authProfile.stats?.lastStreakDate !== undefined ? authProfile.stats.lastStreakDate : luxUser.stats?.lastStreakDate,
+                    streakFrozenUntil: authProfile.stats?.streakFrozenUntil !== undefined ? authProfile.stats.streakFrozenUntil : luxUser.stats?.streakFrozenUntil
+                }
             };
         }
         return luxUser;
@@ -359,6 +364,8 @@ export const useDashboardLogic = () => {
     });
     
     // Data States
+    const [syncTrigger, setSyncTrigger] = useState(0);
+    const lastSyncTrigger = useRef(0);
     const [quests, setQuests] = useState<Quest[]>([]);
     const [habits, setHabits] = useState<Habit[]>([]);
     const [badHabits, setBadHabits] = useState<BadHabit[]>([]);
@@ -628,6 +635,9 @@ export const useDashboardLogic = () => {
                     gold: Math.max(dbStats.gold || 0, player.gold),
                     level: Math.max(dbStats.level || 0, player.level),
                     hp: health,
+                    streak: updatedProfile.stats?.streak ?? dbStats.streak ?? 0,
+                    lastStreakDate: updatedProfile.stats?.lastStreakDate ?? dbStats.lastStreakDate,
+                    streakFrozenUntil: updatedProfile.stats?.streakFrozenUntil ?? dbStats.streakFrozenUntil,
                     dailyLimits: {
                         ...(dbStats.dailyLimits || {}),
                         ...dailyLimits
@@ -671,7 +681,7 @@ export const useDashboardLogic = () => {
         }, 1500);
 
         return () => clearTimeout(timer);
-    }, [player.xp, player.gold, player.level, player.nextXp, health, dailyLimits, user?.id, user?.isSkeleton]);
+    }, [player.xp, player.gold, player.level, player.nextXp, health, dailyLimits, user?.id, user?.isSkeleton, user?.stats?.streak, user?.stats?.lastStreakDate]);
 
 
 
@@ -760,28 +770,8 @@ export const useDashboardLogic = () => {
                     });
                 }
 
-                const totalHabits = canProcessHabits ? relevantHabits.length : 0;
-                let damage = 0;
-                
-                if (totalHabits > 0) {
-                     const target = Math.ceil(totalHabits * 0.75);
-                     // Check completion from history for YESTERDAY, not completedToday (which might be reset or for today)
-                     // Actually, 'completedToday' is the state BEFORE reset, so it refers to "the day that just ended" (lastDate)
-                     // So we can use h.completedToday if lastDate was indeed yesterday relative to now.
-                     // But to be safe, let's check history for lastDate
-                     
-                     const completed = relevantHabits.filter(h => {
-                         // Check if completed on lastDate
-                         const history = h.history || [];
-                         return history.some(d => d.startsWith(lastDate));
-                     }).length;
-                     
-                     if (completed < target) {
-                         // Formula: (Target - Completed) * 3
-                         const deficit = target - completed;
-                         damage = deficit * 3;
-                     }
-                }
+                const _totalHabits = canProcessHabits ? relevantHabits.length : 0;
+                let damage = 0; // Health penalty for incomplete habits is disabled per user request
 
                 // 2. Prepare Batch
                 
@@ -798,12 +788,32 @@ export const useDashboardLogic = () => {
                 
                 // If last streak date is older than yesterday (and not frozen), reset streak.
                 if (user.stats?.streak && user.stats.streak > 0 && !isFrozen) {
-                    if (lastStreakDate && lastStreakDate < yesterdayStr) {
+                    if (!lastStreakDate || lastStreakDate < yesterdayStr) {
                          console.log(`[DAILY RESET] Streak Broken. Last active: ${lastStreakDate}, Yesterday: ${yesterdayStr}`);
                          // Reset streak to 0 but save previous streak for redemption
-                         
-                    } else if (!lastStreakDate) {
-                        console.log("[DAILY RESET] No lastStreakDate found. Preserving legacy streak.");
+                         updateProfileLocally({
+                             stats: {
+                                 ...(user.stats || {}),
+                                 streak: 0
+                             }
+                         });
+                    }
+                }
+
+                // 2.2 Calculate daily streak health penalty: 2 HP for each day not active
+                if (!isFrozen) {
+                    const missedDaysCount = Math.max(1, Math.round((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000));
+                    for (let i = 0; i < missedDaysCount; i++) {
+                        const checkDateObj = new Date(lastDate + 'T12:00:00');
+                        checkDateObj.setDate(checkDateObj.getDate() + i);
+                        const checkDateStr = toLocalISOString(checkDateObj);
+                        
+                        if (lastStreakDate !== checkDateStr) {
+                            damage += 2;
+                        }
+                    }
+                    if (damage > 0) {
+                        console.log(`[DAILY RESET] Streak not active. Deducting ${damage} HP.`);
                     }
                 }
 
@@ -864,6 +874,39 @@ export const useDashboardLogic = () => {
                              persistenceService.habits.update(user.id, h.id, updates).catch(console.error);
                         }
                     });
+
+                    // 4.5 Apply TP penalties for incomplete habits on active days
+                    const getHabitDeficitPenalty = (level: number): number => {
+                        if (level >= 1 && level <= 10) return 20;
+                        if (level > 10 && level <= 20) return 30;
+                        if (level > 20 && level <= 40) return 40;
+                        if (level > 40 && level <= 60) return 60;
+                        if (level > 60 && level <= 80) return 80;
+                        return 100;
+                    };
+
+                    const missedDaysCount = Math.max(1, Math.round((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000));
+                    for (let i = 0; i < missedDaysCount; i++) {
+                        const checkDateObj = new Date(lastDate + 'T12:00:00');
+                        checkDateObj.setDate(checkDateObj.getDate() + i);
+                        const checkDateStr = toLocalISOString(checkDateObj);
+                        
+                        habits.forEach(h => {
+                            if (h.archived) return;
+                            const isActive = isHabitActive(h, checkDateObj);
+                            if (isActive) {
+                                const isCompleted = (i === missedDaysCount - 1) ? h.completedToday : false;
+                                if (!isCompleted) {
+                                    const attr = attributes.find(a => a.id === h.attribute);
+                                    const lvl = attr ? attr.level : 1;
+                                    const penalty = getHabitDeficitPenalty(lvl);
+                                    
+                                    console.log(`[DAILY RESET] Day ${checkDateStr}: Habit "${h.title}" not completed. Deducting ${penalty} TP from ${h.attribute}.`);
+                                    updateAttributeXp(h.attribute, -penalty, h.subAttribute);
+                                }
+                            }
+                        });
+                    }
                 }
 
                 // 5. Update Daily Limits Date
@@ -1011,8 +1054,19 @@ export const useDashboardLogic = () => {
                 setDailyLimits(newLimits);
 
                 try {
-                    
-                    console.log("[DAILY RESET] Batch committed successfully.");
+                    // SAVE STATS AND LIMITS TO SUPABASE
+                    const { data: dbUser } = await supabase.from('users').select('stats').eq('id', user.id).single();
+                    if (dbUser) {
+                        const isBroken = dbUser.stats?.streak > 0 && !isFrozen && (!lastStreakDate || lastStreakDate < yesterdayStr);
+                        const updatedStats = {
+                            ...(dbUser.stats || {}),
+                            streak: isBroken ? 0 : (dbUser.stats?.streak || 0),
+                            dailyLimits: newLimits
+                        };
+                        
+                        await supabase.from('users').update({ stats: updatedStats }).eq('id', user.id);
+                        console.log("[DAILY RESET] Batch committed successfully. Stats and Limits saved.");
+                    }
                 } catch (e: any) {
                     console.error("[DAILY RESET] Failed (Background Sync will handle it):", e);
                 }
@@ -1040,8 +1094,37 @@ export const useDashboardLogic = () => {
     // PERO ignoramos este TTL durante la primera carga para asegurar sincronización entre dispositivos.
     const COLLECTION_SYNC_TTL = 60 * 60 * 1000;
     const hydrateAttributes = (fetchedAttrs: Attribute[]) => {
-        if (fetchedAttrs.length > 0) {
-            const enriched = fetchedAttrs.map(attr => {
+        let mergedAttrs = [...fetchedAttrs];
+        const missingTraitIds = ['DISCIPLINA', 'RESILIENCIA'].filter(
+            id => !mergedAttrs.some(a => a.id === id)
+        );
+        
+        const currentUserId = user?.id || authProfile?.uid || authProfile?.id;
+        
+        if (missingTraitIds.length > 0 && currentUserId) {
+            console.log("🩹 Auto-healing missing transversal traits in hydrateAttributes:", missingTraitIds);
+            missingTraitIds.forEach(id => {
+                const def = TRAITS_LIST.find(t => t.id === id);
+                if (def) {
+                    const archived = (user || authProfile)?.archivedTraits?.[id];
+                    const newAttr: Attribute = {
+                        id: def.id,
+                        label: def.label,
+                        level: archived?.level || 1,
+                        xp: archived?.xp || 0,
+                        maxXp: archived?.maxXp || calculateAttributeMaxXp(archived?.level || 1),
+                        color: def.color,
+                        icon: def.icon,
+                        iconName: archived?.iconName || (def.icon as any)?.name || 'Hexagon'
+                    };
+                    mergedAttrs.push(newAttr);
+                    persistenceService.attributes.save(currentUserId, newAttr).catch(console.error);
+                }
+            });
+        }
+
+        if (mergedAttrs.length > 0) {
+            const enriched = mergedAttrs.map(attr => {
                 const def = TRAITS_LIST.find(t => t.id === attr.id);
                 let mappedIcon = def?.icon;
                 if (!mappedIcon && attr.iconName && ICONS_MAP[attr.iconName]) {
@@ -1058,6 +1141,55 @@ export const useDashboardLogic = () => {
         }
         setAreAttributesLoaded(true);
     };
+
+    // Auto-heal transversal traits for logged-in users at any time
+    useEffect(() => {
+        if (!areAttributesLoaded || !user?.id || user.isSkeleton) return;
+        
+        const missingTraitIds = ['DISCIPLINA', 'RESILIENCIA'].filter(
+            id => !attributes.some(a => a.id === id)
+        );
+        
+        if (missingTraitIds.length > 0) {
+            console.log("🩹 Auto-healing missing transversal traits (useEffect):", missingTraitIds);
+            
+            const newAttributes = [...attributes];
+            let hasAdded = false;
+            
+            missingTraitIds.forEach(id => {
+                const def = TRAITS_LIST.find(t => t.id === id);
+                if (def) {
+                    const archived = user.archivedTraits?.[id];
+                    const newAttr: Attribute = {
+                        id: def.id,
+                        label: def.label,
+                        level: archived?.level || 1,
+                        xp: archived?.xp || 0,
+                        maxXp: archived?.maxXp || calculateAttributeMaxXp(archived?.level || 1),
+                        color: def.color,
+                        icon: def.icon || ICONS_MAP['Hexagon'],
+                        iconName: archived?.iconName || (def.icon as any)?.name || 'Hexagon'
+                    };
+                    
+                    let mappedIcon = def.icon;
+                    if (!mappedIcon && newAttr.iconName && ICONS_MAP[newAttr.iconName]) {
+                        mappedIcon = ICONS_MAP[newAttr.iconName];
+                    }
+                    newAttr.icon = mappedIcon || ICONS_MAP['Hexagon'];
+                    
+                    newAttributes.push(newAttr);
+                    hasAdded = true;
+                    persistenceService.attributes.save(user.id, newAttr).catch(console.error);
+                }
+            });
+            
+            if (hasAdded) {
+                setAttributes(newAttributes);
+                const attrsForCache = newAttributes.map(({ icon, ...rest }) => rest);
+                PersistenceService.saveCollection(user.id, 'attributes', attrsForCache);
+            }
+        }
+    }, [areAttributesLoaded, attributes, user?.id, user?.isSkeleton]);
 
     // --- ACHIEVEMENT LISTENER ---
     const processingAchievements = useRef(false);
@@ -1194,7 +1326,9 @@ export const useDashboardLogic = () => {
         if (!isOnline) return;
 
         const hasSynced = hasSyncedCollectionsRef.current;
-        const currentTTL = hasSynced ? COLLECTION_SYNC_TTL : 0;
+        const bypassTTL = syncTrigger > 0 && syncTrigger !== lastSyncTrigger.current;
+        lastSyncTrigger.current = syncTrigger;
+        const currentTTL = (hasSynced && !bypassTTL) ? COLLECTION_SYNC_TTL : 0;
 
         // 🚀 PERFORMANCE: Delay the initial sync on cold boot to let the UI breathe
         const performSync = () => {
@@ -1402,7 +1536,7 @@ export const useDashboardLogic = () => {
             // First load: delay network sync by 2.5s so the UI can finish mounting and animating
             setTimeout(performSync, 2500);
         }
-    }, [user?.id]);
+    }, [user?.id, syncTrigger]);
 
     useEffect(() => {
         if (!user?.id || !areHabitsLoaded) return;
@@ -1414,6 +1548,29 @@ export const useDashboardLogic = () => {
         if (!questsHydratedRef.current) return;
         PersistenceService.saveCollection(user.id, 'quests', quests);
     }, [quests, user?.id]);
+
+    useEffect(() => {
+        const handleQuestUpdated = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (!detail || !detail.questId) return;
+            const { questId, subtasks } = detail;
+            setQuests(prev => {
+                const index = prev.findIndex(q => q.id === questId);
+                if (index === -1) return prev;
+                const next = [...prev];
+                next[index] = { ...next[index], subtasks };
+                if (user?.id) {
+                    PersistenceService.saveCollection(user.id, 'quests', next);
+                }
+                return next;
+            });
+        };
+
+        window.addEventListener('matrix-quest-updated', handleQuestUpdated);
+        return () => window.removeEventListener('matrix-quest-updated', handleQuestUpdated);
+    }, [user?.id]);
+
+
 
     useEffect(() => {
         if (!user?.id) return;
@@ -1554,7 +1711,7 @@ export const useDashboardLogic = () => {
             label: def.label,
             level: archived?.level || 1,
             xp: archived?.xp || 0,
-            maxXp: archived?.maxXp || 100,
+            maxXp: archived?.maxXp || calculateAttributeMaxXp(archived?.level || 1),
             color: def.color,
             icon: def.icon,
             iconName: archived?.iconName || def.icon?.name || 'Hexagon'
@@ -1580,7 +1737,7 @@ export const useDashboardLogic = () => {
             iconName: attrData.iconName,
             level: 1,
             xp: 0,
-            maxXp: 100
+            maxXp: calculateAttributeMaxXp(1)
         };
 
         setAttributes(prev => {
@@ -1733,8 +1890,9 @@ export const useDashboardLogic = () => {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                console.log("👁️ APP VISIBLE: Triggering Daily Check");
+                console.log("👁️ APP VISIBLE: Triggering Daily Check & Sync");
                 setDailyResetTrigger(prev => prev + 1);
+                setSyncTrigger(prev => prev + 1);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1864,62 +2022,109 @@ export const useDashboardLogic = () => {
             let disciplineRewards: { habitId: string; habitTitle: string; traitId: string; bonusTp: number }[] = [];
 
             const updatedBadHabits = badHabits.map(habit => {
-                if (!habit.intelligentStreak) return habit;
-
                 const newItem = { ...habit };
 
-                // FIX: Skip if already checked today (prevents +1 day on every app restart)
+                // 1. Skip if already checked today (prevents +1 day on every app restart)
                 if (habit.lastCheckedDate === todayStr) {
                     return newItem;
                 }
 
-                const lastRelapse = habit.history && habit.history.length > 0
-                    ? getHistoryDateKey(habit.history[habit.history.length - 1])
-                    : null;
-
-                const isRelapsedToday = lastRelapse === todayStr;
-                const currentTarget = habit.currentTarget || 1;
-                const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
-
-                if (isRelapsedToday) {
+                // 2. If lastCheckedDate is not set, initialize to today Str (newly created habit tracking starts today)
+                if (!habit.lastCheckedDate) {
                     newItem.lastCheckedDate = todayStr;
                     hasChanges = true;
                     return newItem;
                 }
 
-                if (habit.reachedDays === currentTarget) {
-                    if (!habit.relapsedToday) {
-                        const bonusTp = currentTarget * 3;
+                if (!habit.intelligentStreak) {
+                    // Logic for normal bad habit streaks
+                    const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                    const todayDate = parseLocalDate(todayStr);
+                    const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays > 0) {
+                        const increment = diffDays;
+                        newItem.streak = (habit.streak || 0) + increment;
+
+                        // RESILIENCIA Trigger: restart normal bad habit streak after a relapse
+                        if (newItem.streak === 1 && habit.streak === 0 && habit.history && habit.history.length > 0) {
+                            const resReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                            updateAttributeXp('RESILIENCIA', resReward);
+                            disciplineRewards.push({
+                                habitId: habit.id,
+                                habitTitle: habit.title,
+                                traitId: 'RESILIENCIA',
+                                bonusTp: resReward
+                            });
+                        }
+
+                        newItem.relapsedToday = false;
+                        newItem.lastCheckedDate = todayStr;
+                        hasChanges = true;
+                    }
+                    return newItem;
+                }
+
+                // Logic for intelligent bad habit streaks (Simulated day-by-day progression)
+                const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                const todayDate = parseLocalDate(todayStr);
+                const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays > 0) {
+                    let currentDays = habit.reachedDays || 0;
+                    let currentTgt = habit.currentTarget || 1;
+                    let tgtIdx = STREAK_TARGETS.indexOf(currentTgt);
+
+                    const cleanDaysCount = diffDays;
+                    let didRestartStreak = habit.reachedDays === 0 && cleanDaysCount > 0 && habit.history && habit.history.length > 0;
+
+                    for (let day = 0; day < cleanDaysCount; day++) {
+                        currentDays++;
+                        if (currentDays === currentTgt) {
+                            // Milestone reached!
+                            const bonusTp = currentTgt * 3;
+                            disciplineRewards.push({
+                                habitId: habit.id,
+                                habitTitle: habit.title,
+                                traitId: habit.attribute,
+                                bonusTp
+                            });
+
+                            if (tgtIdx < STREAK_TARGETS.length - 1) {
+                                tgtIdx++;
+                                currentTgt = STREAK_TARGETS[tgtIdx];
+                                currentDays = 0;
+                            }
+                        } else if (currentDays > currentTgt) {
+                            if (tgtIdx < STREAK_TARGETS.length - 1) {
+                                tgtIdx++;
+                                currentTgt = STREAK_TARGETS[tgtIdx];
+                                currentDays = 0;
+                            }
+                        }
+                    }
+
+                    newItem.reachedDays = currentDays;
+                    newItem.currentTarget = currentTgt;
+
+                    // RESILIENCIA Trigger: restart intelligent bad habit streak after a relapse
+                    if (didRestartStreak && newItem.reachedDays > 0) {
+                        const resReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                        updateAttributeXp('RESILIENCIA', resReward);
                         disciplineRewards.push({
                             habitId: habit.id,
                             habitTitle: habit.title,
-                            traitId: habit.attribute,
-                            bonusTp
+                            traitId: 'RESILIENCIA',
+                            bonusTp: resReward
                         });
                     }
 
-                    if (targetIndex < STREAK_TARGETS.length - 1) {
-                        const nextTarget = STREAK_TARGETS[Math.min(targetIndex + 1, STREAK_TARGETS.length - 1)];
-                        newItem.currentTarget = nextTarget;
-                        newItem.reachedDays = 0;
-                        newItem.relapsedToday = false;
-                    } else {
-                        newItem.reachedDays = (habit.reachedDays || 0) + 1;
-                        newItem.relapsedToday = false;
-                    }
-                } else {
-                    newItem.reachedDays = (habit.reachedDays || 0) + 1;
                     newItem.relapsedToday = false;
-
-                    if (newItem.reachedDays >= currentTarget && targetIndex < STREAK_TARGETS.length - 1) {
-                        const nextTarget = STREAK_TARGETS[Math.min(targetIndex + 1, STREAK_TARGETS.length - 1)];
-                        newItem.currentTarget = nextTarget;
-                        newItem.reachedDays = 0;
-                    }
+                    newItem.lastCheckedDate = todayStr;
+                    hasChanges = true;
                 }
-
-                newItem.lastCheckedDate = todayStr;
-                hasChanges = true;
                 return newItem;
             });
 
@@ -1932,6 +2137,12 @@ export const useDashboardLogic = () => {
                         await persistenceService.badHabits.update(user.id, habit.id, {
                             reachedDays: habit.reachedDays,
                             currentTarget: habit.currentTarget,
+                            relapsedToday: habit.relapsedToday,
+                            lastCheckedDate: habit.lastCheckedDate
+                        });
+                    } else {
+                        await persistenceService.badHabits.update(user.id, habit.id, {
+                            streak: habit.streak,
                             relapsedToday: habit.relapsedToday,
                             lastCheckedDate: habit.lastCheckedDate
                         });
@@ -2076,6 +2287,24 @@ export const useDashboardLogic = () => {
                             lastStreakDate: today
                         }
                     });
+
+                    // DISCIPLINA Trigger: Award Discipline XP based on streak length
+                    const disciplineReward = Math.round(20 + (newStreak - 1) * 3.33333);
+                    updateAttributeXp('DISCIPLINA', disciplineReward);
+
+                    // RESILIENCIA Trigger: restart daily streak after breaking it
+                    if (currentStreak === 0 && (user.stats as any)?.previousStreak && (user.stats as any).previousStreak > 0) {
+                        const resilienceReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                        updateAttributeXp('RESILIENCIA', resilienceReward);
+                        setTimeout(() => {
+                            addNotification({
+                                type: 'GLOBAL',
+                                label: `RESILIENCIA (RECUPERACIÓN): +${resilienceReward} TP`,
+                                icon: Shield,
+                                color: '#f97316'
+                            });
+                        }, 1000);
+                    }
                     
                     setShowStreakCelebration(true); // DISPARAR OVERLAY AQUI
 
@@ -2127,7 +2356,7 @@ export const useDashboardLogic = () => {
     const addPlayerXp = useCallback((amount: number) => addPlayerReward({ xp: amount, gold: 0 }), [addPlayerReward]);
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
 
-    const updateAttributeXp = useCallback((attrId: string, amount: number) => {
+    const updateAttributeXp = useCallback((attrId: string, amount: number, subAttrId?: string) => {
         if (!user?.id || user.isSkeleton) return;
         
         const currentAttrs = attributesRef.current;
@@ -2143,22 +2372,66 @@ export const useDashboardLogic = () => {
             while (newXp >= newMaxXp) {
                 newXp -= newMaxXp;
                 newLevel += 1;
-                newMaxXp = Math.floor(newMaxXp * 1.2);
+                newMaxXp = calculateAttributeMaxXp(newLevel);
             }
         } else {
             while (newXp < 0 && newLevel > 1) {
                 newLevel -= 1;
-                newMaxXp = Math.floor(newMaxXp / 1.2); 
+                newMaxXp = calculateAttributeMaxXp(newLevel); 
                 newXp += newMaxXp;
             }
             if (newLevel === 1 && newXp < 0) newXp = 0;
         }
         
-        const updatedAttrData = { id: attr.id, xp: newXp, level: newLevel, maxXp: newMaxXp };
+        let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+        if (subAttrId && updatedSubTraits.length > 0) {
+            const subIndex = updatedSubTraits.findIndex(st => st.id === subAttrId);
+            if (subIndex !== -1) {
+                const sub = updatedSubTraits[subIndex];
+                let newSubXp = sub.xp + Math.floor(amount);
+                let newSubLevel = sub.level;
+                let newSubMaxXp = sub.maxXp;
+
+                if (amount > 0) {
+                    while (newSubXp >= newSubMaxXp) {
+                        newSubXp -= newSubMaxXp;
+                        newSubLevel += 1;
+                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                    }
+                } else {
+                    while (newSubXp < 0 && newSubLevel > 1) {
+                        newSubLevel -= 1;
+                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                        newSubXp += newSubMaxXp;
+                    }
+                    if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                }
+                updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
+            }
+        }
+        
+        const todayStr = toLocalISOString(new Date());
+        const updatedHistory = attr.history ? [...attr.history] : [];
+        const lastEntryIdx = updatedHistory.findIndex(h => h.date === todayStr);
+        if (lastEntryIdx !== -1) {
+            updatedHistory[lastEntryIdx] = { date: todayStr, xp: newXp, level: newLevel };
+        } else {
+            updatedHistory.push({ date: todayStr, xp: newXp, level: newLevel });
+            if (updatedHistory.length > 90) updatedHistory.shift();
+        }
+
+        const updatedAttrData = { 
+            id: attr.id, 
+            xp: newXp, 
+            level: newLevel, 
+            maxXp: newMaxXp,
+            history: updatedHistory,
+            ...(subAttrId ? { subTraits: updatedSubTraits } : {})
+        };
 
         // 1. Synchronously update the ref so any immediate subsequent calls see the new values
         const nextAttrs = [...currentAttrs];
-        nextAttrs[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp };
+        nextAttrs[attrIndex] = { ...attr, xp: newXp, level: newLevel, maxXp: newMaxXp, subTraits: updatedSubTraits, history: updatedHistory };
         attributesRef.current = nextAttrs;
 
         // 2. Set the state for UI update
@@ -2242,7 +2515,7 @@ export const useDashboardLogic = () => {
         setAttributes(prev => {
             const newAttributes = prev.map(attr => {
                 if (attr.id === attrId) {
-                    const updatedAttr = { ...attr, level: newLevel, maxXp: Math.floor(100 * Math.pow(1.2, newLevel - 1)) };
+                    const updatedAttr = { ...attr, level: newLevel, maxXp: calculateAttributeMaxXp(newLevel) };
                     if (user?.id) {
                         persistenceService.attributes.save(user.id, updatedAttr);
                     }
@@ -2254,7 +2527,81 @@ export const useDashboardLogic = () => {
         });
     }, [user?.id]);
 
-    const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO') => {
+    const addSubTrait = useCallback(async (parentAttrId: string, name: string, iconName: string) => {
+        console.log("useDashboardLogic: addSubTrait called with:", { parentAttrId, name, iconName, userId: user?.id });
+        if (!user?.id) {
+            console.warn("useDashboardLogic: No user.id found, skipping addSubTrait");
+            return;
+        }
+        setAttributes(prev => {
+            console.log("useDashboardLogic: setAttributes updating, current list length:", prev.length);
+            const next = prev.map(attr => {
+                if (attr.id === parentAttrId) {
+                    const subTraits = attr.subTraits ? [...attr.subTraits] : [];
+                    const newSub = {
+                        id: 'SUB_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                        name,
+                        level: 1,
+                        xp: 0,
+                        maxXp: calculateSubTraitMaxXp(1), // Starting level 1 max xp
+                        iconName: iconName || 'Hexagon'
+                    };
+                    const updatedAttr = {
+                        ...attr,
+                        subTraits: [...subTraits, newSub]
+                    };
+                    console.log("useDashboardLogic: Saving updated attribute to Local DB & Supabase:", updatedAttr);
+                    persistenceService.attributes.save(user.id, updatedAttr);
+                    return updatedAttr;
+                }
+                return attr;
+            });
+            console.log("useDashboardLogic: Saving updated attributes list to user preferences");
+            PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
+            return next;
+        });
+    }, [user?.id]);
+
+    const updateSubTrait = useCallback(async (parentAttrId: string, subTraitId: string, updates: any) => {
+        if (!user?.id) return;
+        setAttributes(prev => {
+            const next = prev.map(attr => {
+                if (attr.id === parentAttrId) {
+                    const subTraits = attr.subTraits ? attr.subTraits.map(st => {
+                        if (st.id === subTraitId) {
+                            return { ...st, ...updates };
+                        }
+                        return st;
+                    }) : [];
+                    const updatedAttr = { ...attr, subTraits };
+                    persistenceService.attributes.save(user.id, updatedAttr);
+                    return updatedAttr;
+                }
+                return attr;
+            });
+            PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
+            return next;
+        });
+    }, [user?.id]);
+
+    const deleteSubTrait = useCallback(async (parentAttrId: string, subTraitId: string) => {
+        if (!user?.id) return;
+        setAttributes(prev => {
+            const next = prev.map(attr => {
+                if (attr.id === parentAttrId) {
+                    const subTraits = attr.subTraits ? attr.subTraits.filter(st => st.id !== subTraitId) : [];
+                    const updatedAttr = { ...attr, subTraits };
+                    persistenceService.attributes.save(user.id, updatedAttr);
+                    return updatedAttr;
+                }
+                return attr;
+            });
+            PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
+            return next;
+        });
+    }, [user?.id]);
+
+    const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string) => {
         console.log("🏁 [SESSION COMPLETE] Triggered", { projectId, durationSeconds, type });
 
         // LIMIT CHECK
@@ -2426,7 +2773,8 @@ export const useDashboardLogic = () => {
             date: new Date().toISOString(),
             xpEarned: totalXp,
             goldEarned: totalGold,
-            traitPointsEarned: totalTP
+            traitPointsEarned: totalTP,
+            subTraitId: subTraitId
         };
         
         // Log for debugging
@@ -2524,13 +2872,37 @@ export const useDashboardLogic = () => {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
-                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                         }
                     }
+                    let newSubTraits = attr.subTraits;
+                    if (subTraitId && attr.subTraits) {
+                        newSubTraits = attr.subTraits.map(st => {
+                            if (st.id !== subTraitId) return st;
+                            let newStXp = st.xp + totalTP;
+                            let newStLevel = st.level;
+                            let newStMaxXp = st.maxXp;
+                            if (totalTP > 0) {
+                                while (newStXp >= newStMaxXp) {
+                                    newStXp -= newStMaxXp;
+                                    newStLevel += 1;
+                                    newStMaxXp = Math.round(newStMaxXp * 1.3);
+                                }
+                            }
+                            return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
+                        });
+                    }
+
                     setAttributes(prev => prev.map(a => 
-                        a.id === attrId ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                        a.id === attrId ? {
+                            ...a,
+                            xp: newAttrXp,
+                            level: newAttrLevel,
+                            maxXp: newAttrMaxXp,
+                            subTraits: newSubTraits
+                        } : a
                     ));
-                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, subTraits: newSubTraits };
                     const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
                     triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
                 }
@@ -2559,7 +2931,7 @@ export const useDashboardLogic = () => {
         }
     }, [projects, attributes, updateAttributeXp, addNotification, spawnParticles, addPlayerReward, user, dailyLimits, saveProjectsCache, player, triggerReward]);
 
-    const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string) => {
+    const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string, subTraitId?: string) => {
         // 1. Validation & Safety Checks
         const safeMinutes = Number.isFinite(durationMinutes) ? Math.max(0, durationMinutes) : 0;
         if (!projectId || safeMinutes <= 0) return;
@@ -2703,13 +3075,37 @@ export const useDashboardLogic = () => {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
-                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                         }
                     }
+                    let newSubTraits = attr.subTraits;
+                    if (subTraitId && attr.subTraits) {
+                        newSubTraits = attr.subTraits.map(st => {
+                            if (st.id !== subTraitId) return st;
+                            let newStXp = st.xp + totalTP;
+                            let newStLevel = st.level;
+                            let newStMaxXp = st.maxXp;
+                            if (totalTP > 0) {
+                                while (newStXp >= newStMaxXp) {
+                                    newStXp -= newStMaxXp;
+                                    newStLevel += 1;
+                                    newStMaxXp = Math.round(newStMaxXp * 1.3);
+                                }
+                            }
+                            return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
+                        });
+                    }
+
                     setAttributes(prev => prev.map(a => 
-                        a.id === targetProj.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                        a.id === targetProj.attribute ? {
+                            ...a,
+                            xp: newAttrXp,
+                            level: newAttrLevel,
+                            maxXp: newAttrMaxXp,
+                            subTraits: newSubTraits
+                        } : a
                     ));
-                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, subTraits: newSubTraits };
                     const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
                     triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
                 }
@@ -2857,17 +3253,34 @@ export const useDashboardLogic = () => {
 
                     while (newAttrXp < 0 && newAttrLevel > 1) {
                         newAttrLevel -= 1;
-                        newAttrMaxXp = Math.floor(newAttrMaxXp / 1.2); 
+                        newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel); 
                         newAttrXp += newAttrMaxXp;
                     }
                     if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
 
+                    let newSubTraits = attr.subTraits;
+                    if (session.subTraitId && attr.subTraits) {
+                        newSubTraits = attr.subTraits.map(st => {
+                            if (st.id !== session.subTraitId) return st;
+                            let newStXp = st.xp + rTP;
+                            let newStLevel = st.level;
+                            let newStMaxXp = st.maxXp;
+                            while (newStXp < 0 && newStLevel > 1) {
+                                newStLevel -= 1;
+                                newStMaxXp = calculateSubTraitMaxXp(newStLevel);
+                                newStXp += newStMaxXp;
+                            }
+                            if (newStLevel === 1 && newStXp < 0) newStXp = 0;
+                            return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
+                        });
+                    }
+
                     const newAttributes = currentAttrs.map(a => 
-                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: newSubTraits } : a
                     );
                     attributesRef.current = newAttributes;
                     setAttributes(newAttributes);
-                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: newSubTraits };
                 }
             }
 
@@ -3028,23 +3441,49 @@ export const useDashboardLogic = () => {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
-                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                         }
                     } else {
                         while (newAttrXp < 0 && newAttrLevel > 1) {
                             newAttrLevel -= 1;
-                            newAttrMaxXp = Math.floor(newAttrMaxXp / 1.2); 
+                            newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel); 
                             newAttrXp += newAttrMaxXp;
                         }
                         if (newAttrLevel === 1 && newAttrXp < 0) newAttrXp = 0;
                     }
 
+                    let newSubTraits = attr.subTraits;
+                    if (session.subTraitId && attr.subTraits) {
+                        newSubTraits = attr.subTraits.map(st => {
+                            if (st.id !== session.subTraitId) return st;
+                            let newStXp = st.xp + tpDiff;
+                            let newStLevel = st.level;
+                            let newStMaxXp = st.maxXp;
+                            
+                            if (tpDiff > 0) {
+                                while (newStXp >= newStMaxXp) {
+                                    newStXp -= newStMaxXp;
+                                    newStLevel += 1;
+                                    newStMaxXp = Math.round(newStMaxXp * 1.3);
+                                }
+                            } else {
+                                while (newStXp < 0 && newStLevel > 1) {
+                                    newStLevel -= 1;
+                                    newStMaxXp = calculateSubTraitMaxXp(newStLevel);
+                                    newStXp += newStMaxXp;
+                                }
+                                if (newStLevel === 1 && newStXp < 0) newStXp = 0;
+                            }
+                            return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
+                        });
+                    }
+
                     const newAttributes = currentAttrs.map(a => 
-                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp } : a
+                        a.id === project.attribute ? { ...a, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: newSubTraits } : a
                     );
                     attributesRef.current = newAttributes;
                     setAttributes(newAttributes);
-                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                    traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: newSubTraits };
                 }
             }
 
@@ -3151,11 +3590,25 @@ export const useDashboardLogic = () => {
             
             console.log(`[QUEST] Awarding EXACT: XP=${rewardXp}, Gold=${rewardGold}`);
 
+            if (quest.rescheduledFromOverdue) {
+                const resilienceReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                updateAttributeXp('RESILIENCIA', resilienceReward);
+                setTimeout(() => {
+                    addNotification({
+                        type: 'GLOBAL',
+                        label: `RESILIENCIA (TAREA RECUPERADA): +${resilienceReward} TP`,
+                        icon: Shield,
+                        color: '#f97316'
+                    });
+                }, 1200);
+            }
+
             newQuest = { 
                 ...quest, 
                 completed: true,
                 rewardedXp: rewardXp,
-                rewardedGold: rewardGold
+                rewardedGold: rewardGold,
+                rescheduledFromOverdue: false // Clear the flag
             };
         }
 
@@ -3308,7 +3761,7 @@ export const useDashboardLogic = () => {
                         while (newAttrXp >= newAttrMaxXp) {
                             newAttrXp -= newAttrMaxXp;
                             newAttrLevel += 1;
-                            newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                            newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                         }
                     } else {
                         newAttrXp = Math.max(0, newAttrXp);
@@ -3385,11 +3838,51 @@ export const useDashboardLogic = () => {
                         newAttrXp = Math.max(0, newAttrXp);
                     }
                     
+                    let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                    if (quest.subAttribute && updatedSubTraits.length > 0) {
+                        const subIndex = updatedSubTraits.findIndex(st => st.id === quest.subAttribute);
+                        if (subIndex !== -1) {
+                            const sub = updatedSubTraits[subIndex];
+                            let newSubXp = sub.xp + rewardTraitXp;
+                            let newSubLevel = sub.level;
+                            let newSubMaxXp = sub.maxXp;
+
+                            if (rewardTraitXp > 0) {
+                                while (newSubXp >= newSubMaxXp) {
+                                    newSubXp -= newSubMaxXp;
+                                    newSubLevel += 1;
+                                    newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                    
+                                    if (newSubLevel % 5 === 0) {
+                                        setTimeout(() => {
+                                            addNotification({
+                                                type: 'ACHIEVEMENT',
+                                                label: `Rango: ${sub.name.toUpperCase()} LVL ${newSubLevel}`,
+                                                fromLevel: `${sub.name}`,
+                                                toLevel: `Título Especial Desbloqueado`,
+                                                icon: Trophy,
+                                                color: attr.color
+                                            });
+                                        }, 1500);
+                                    }
+                                }
+                            } else {
+                                while (newSubXp < 0 && newSubLevel > 1) {
+                                    newSubLevel -= 1;
+                                    newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                    newSubXp += newSubMaxXp;
+                                }
+                                if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                            }
+                            updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
+                        }
+                    }
+                    
                     const newAttributes = [...attributes];
-                    newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                    newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                     setAttributes(newAttributes);
                     
-                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, subTraits: updatedSubTraits };
                  }
             }
 
@@ -3496,6 +3989,20 @@ export const useDashboardLogic = () => {
             rewardXp = prediction.xp;
             rewardGold = prediction.coins;
             rewardTraitXp = prediction.traitXp;
+
+            // RESILIENCIA Trigger: restart normal habit streak after a relapse/break
+            if (habit.streak === 0 && habit.totalCompletions > 0) {
+                const resilienceReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                updateAttributeXp('RESILIENCIA', resilienceReward);
+                setTimeout(() => {
+                    addNotification({
+                        type: 'GLOBAL',
+                        label: `RESILIENCIA (RUTINA COMPLEMENTADA): +${resilienceReward} TP`,
+                        icon: Shield,
+                        color: '#f97316'
+                    });
+                }, 1000);
+            }
         }
 
         if (rewardXp === 0 && rewardGold === 0 && rewardTraitXp === 0) {
@@ -3531,7 +4038,7 @@ export const useDashboardLogic = () => {
                     while (newAttrXp >= newAttrMaxXp) {
                         newAttrXp -= newAttrMaxXp;
                         newAttrLevel += 1;
-                        newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                        newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                     }
                 } else {
                     newAttrXp = Math.max(0, newAttrXp);
@@ -3607,6 +4114,8 @@ export const useDashboardLogic = () => {
         let newHabit = { ...habit };
 
         if (isReversal) {
+            // When un-completing: restore streak to what it was before this completion.
+            // The correct previous streak is: current_streak - 1 (but never below 0)
             const originalStreak = Math.max(0, (habit.streak || 0) - 1);
             const newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== getHistoryDateKey(todayHistory));
             newHabit = {
@@ -3620,10 +4129,31 @@ export const useDashboardLogic = () => {
                 lastUpdatedDate: getHistoryDateKey(todayHistory)
             };
         } else {
+            // 🔑 STREAK FIX: Only increment streak if the last completion was yesterday (consecutive)
+            // If there's a gap (last completion was 2+ days ago), reset streak to 1
+            const sortedHistory = [...(habit.history || [])].sort();
+            const lastHistoryEntry = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1] : null;
+            const lastHistoryDate = lastHistoryEntry ? getHistoryDateKey(lastHistoryEntry) : null;
+
+            // Calculate yesterday in local timezone
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterdayStr = toLocalISOString(yesterdayDate);
+            const todayStr = toLocalISOString(new Date());
+
+            // Streak continues if the last completion was yesterday OR today already (safety)
+            const isConsecutive = lastHistoryDate === yesterdayStr || lastHistoryDate === todayStr;
+            // If no previous history at all, this is the first completion → streak = 1
+            const newStreak = lastHistoryDate === null
+                ? 1
+                : isConsecutive
+                    ? (habit.streak || 0) + 1
+                    : 1; // Gap detected → restart streak
+
             newHabit = {
                 ...habit,
                 completedToday: true,
-                streak: (habit.streak || 0) + 1,
+                streak: newStreak,
                 totalCompletions: (habit.totalCompletions || 0) + 1,
                 history: [...(habit.history || []), todayHistory],
                 rewardedXp: rewards.rewardXp,
@@ -3649,7 +4179,7 @@ export const useDashboardLogic = () => {
                 const newLevel = calculateLevelFromXp(newXp);
                 const newNextXp = calculateNextLevelXp(newLevel);
 
-                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | undefined = undefined;
                 if (habit.attribute) {
                     const currentAttrs = attributesRef.current;
                     const attrIndex = currentAttrs.findIndex(a => a.id === habit.attribute);
@@ -3663,10 +4193,57 @@ export const useDashboardLogic = () => {
                             while (newAttrXp >= newAttrMaxXp) {
                                 newAttrXp -= newAttrMaxXp;
                                 newAttrLevel += 1;
-                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                                newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
+                            }
+                        } else {
+                            newAttrXp = Math.max(0, newAttrXp);
+                        }
+                        
+                        let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                        if (habit.subAttribute && updatedSubTraits.length > 0) {
+                            const subIndex = updatedSubTraits.findIndex(st => st.id === habit.subAttribute);
+                            if (subIndex !== -1) {
+                                const sub = updatedSubTraits[subIndex];
+                                let newSubXp = sub.xp + rewards.rewardTraitXp;
+                                let newSubLevel = sub.level;
+                                let newSubMaxXp = sub.maxXp;
+
+                                if (rewards.rewardTraitXp > 0) {
+                                    while (newSubXp >= newSubMaxXp) {
+                                        newSubXp -= newSubMaxXp;
+                                        newSubLevel += 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                        
+                                        if (newSubLevel % 5 === 0) {
+                                            setTimeout(() => {
+                                                addNotification({
+                                                    type: 'ACHIEVEMENT',
+                                                    label: `Rango: ${sub.name.toUpperCase()} LVL ${newSubLevel}`,
+                                                    fromLevel: `${sub.name}`,
+                                                    toLevel: `Título Especial Desbloqueado`,
+                                                    icon: Trophy,
+                                                    color: attr.color
+                                                });
+                                            }, 1500);
+                                        }
+                                    }
+                                } else {
+                                    while (newSubXp < 0 && newSubLevel > 1) {
+                                        newSubLevel -= 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                        newSubXp += newSubMaxXp;
+                                    }
+                                    if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                                }
+                                updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
                             }
                         }
-                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+
+                        const newAttributes = [...currentAttrs];
+                        newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
+                        setAttributes(newAttributes);
+
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                     }
                 }
 
@@ -3750,11 +4327,12 @@ export const useDashboardLogic = () => {
                 const newLevel = calculateLevelFromXp(newXp);
                 const newNextXp = calculateNextLevelXp(newLevel);
 
-                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | undefined = undefined;
                 if (validationHabit.attribute) {
-                    const attrIndex = attributes.findIndex(a => a.id === validationHabit.attribute);
+                    const currentAttrs = attributesRef.current;
+                    const attrIndex = currentAttrs.findIndex(a => a.id === validationHabit.attribute);
                     if (attrIndex !== -1) {
-                        const attr = attributes[attrIndex];
+                        const attr = currentAttrs[attrIndex];
                         let newAttrXp = attr.xp + rewards.rewardTraitXp;
                         let newAttrLevel = attr.level;
                         let newAttrMaxXp = attr.maxXp;
@@ -3763,10 +4341,57 @@ export const useDashboardLogic = () => {
                             while (newAttrXp >= newAttrMaxXp) {
                                 newAttrXp -= newAttrMaxXp;
                                 newAttrLevel += 1;
-                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                                newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
+                            }
+                        } else {
+                            newAttrXp = Math.max(0, newAttrXp);
+                        }
+                        
+                        let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                        if (validationHabit.subAttribute && updatedSubTraits.length > 0) {
+                            const subIndex = updatedSubTraits.findIndex(st => st.id === validationHabit.subAttribute);
+                            if (subIndex !== -1) {
+                                const sub = updatedSubTraits[subIndex];
+                                let newSubXp = sub.xp + rewards.rewardTraitXp;
+                                let newSubLevel = sub.level;
+                                let newSubMaxXp = sub.maxXp;
+
+                                if (rewards.rewardTraitXp > 0) {
+                                    while (newSubXp >= newSubMaxXp) {
+                                        newSubXp -= newSubMaxXp;
+                                        newSubLevel += 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                        
+                                        if (newSubLevel % 5 === 0) {
+                                            setTimeout(() => {
+                                                addNotification({
+                                                    type: 'ACHIEVEMENT',
+                                                    label: `Rango: ${sub.name.toUpperCase()} LVL ${newSubLevel}`,
+                                                    fromLevel: `${sub.name}`,
+                                                    toLevel: `Título Especial Desbloqueado`,
+                                                    icon: Trophy,
+                                                    color: attr.color
+                                                });
+                                            }, 1500);
+                                        }
+                                    }
+                                } else {
+                                    while (newSubXp < 0 && newSubLevel > 1) {
+                                        newSubLevel -= 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                        newSubXp += newSubMaxXp;
+                                    }
+                                    if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                                }
+                                updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
                             }
                         }
-                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+
+                        const newAttributes = [...currentAttrs];
+                        newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
+                        setAttributes(newAttributes);
+
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                     }
                 }
 
@@ -3806,8 +4431,22 @@ export const useDashboardLogic = () => {
 
     const handleQuestConfirm = useCallback((questData: Partial<Quest>) => {
         // If ID exists, it's an update. If not, it's a create.
+        const existingQuest = questData.id ? quests.find(q => q.id === questData.id) : null;
+        let isRescheduledFromOverdue = false;
+        
+        if (existingQuest && !existingQuest.completed) {
+            const todayStr = toLocalISOString(new Date());
+            const oldDeadline = existingQuest.deadline;
+            const newDeadline = questData.deadline;
+            
+            if (oldDeadline && oldDeadline < todayStr && newDeadline && newDeadline >= todayStr) {
+                isRescheduledFromOverdue = true;
+                console.log(`[RESILIENCIA] Task "${existingQuest.title}" rescheduled from overdue (${oldDeadline}) to active (${newDeadline})`);
+            }
+        }
+
         const quest: Quest = questData.id 
-            ? questData as Quest 
+            ? { ...existingQuest, ...questData, rescheduledFromOverdue: isRescheduledFromOverdue || existingQuest?.rescheduledFromOverdue } as Quest 
             : { 
                 id: Date.now().toString(), 
                 completed: false, 
@@ -4130,7 +4769,7 @@ export const useDashboardLogic = () => {
                             while (newAttrXp >= newAttrMaxXp) {
                                 newAttrXp -= newAttrMaxXp;
                                 newAttrLevel += 1;
-                                newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                                newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                             }
                         } else {
                             newAttrXp = Math.max(0, newAttrXp);
@@ -4558,7 +5197,7 @@ export const useDashboardLogic = () => {
                      while (newAttrXp >= newAttrMaxXp) {
                         newAttrXp -= newAttrMaxXp;
                         newAttrLevel += 1;
-                        newAttrMaxXp = Math.floor(newAttrMaxXp * 1.2);
+                        newAttrMaxXp = calculateAttributeMaxXp(newAttrLevel);
                      }
                      
                      const updatedAttr = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
@@ -4624,6 +5263,7 @@ export const useDashboardLogic = () => {
             negativeImpact: data.negativeImpact || '',
             timeConsumed: data.timeConsumed || 0,
             penalties: data.penalties || { hp: 0, xp: 0, gold: 0 },
+            lastCheckedDate: toLocalISOString(new Date()),
             ...data
         } as BadHabit;
 
@@ -4661,6 +5301,7 @@ export const useDashboardLogic = () => {
                     reachedDays: 0,
                     currentTarget: STREAK_TARGETS[nextTargetIndex],
                     relapsedToday: true,
+                    lastCheckedDate: toLocalISOString(new Date()),
                     history: [...habit.history, today]
                 };
             } else {
@@ -4687,13 +5328,14 @@ export const useDashboardLogic = () => {
                     xp: -penalty.xp,
                     gold: 0
                 });
-                updateAttributeXp(habit.attribute, -penalty.xp);
+                updateAttributeXp(habit.attribute, -penalty.xp, habit.subAttribute);
 
                 updatedHabit = {
                     ...habit,
                     reachedDays: 0,
                     currentTarget: previousTarget,
                     relapsedToday: true,
+                    lastCheckedDate: toLocalISOString(new Date()),
                     history: [...habit.history, today]
                 };
             }
@@ -4733,7 +5375,7 @@ export const useDashboardLogic = () => {
                             ...attr,
                             level: newAttrLevel,
                             xp: newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0,
-                            maxXp: 20 * Math.pow(newAttrLevel + 1, 2)
+                            maxXp: calculateAttributeMaxXp(newAttrLevel)
                         };
                     }));
                 });
@@ -4754,7 +5396,7 @@ export const useDashboardLogic = () => {
                     xp: -penalty.xp,
                     gold: 0
                 });
-                updateAttributeXp(habit.attribute, -penalty.xp);
+                updateAttributeXp(habit.attribute, -penalty.xp, habit.subAttribute);
             }
             }
 
@@ -4762,6 +5404,7 @@ export const useDashboardLogic = () => {
                 ...habit,
                 streak: 0,
                 relapsedToday: true,
+                lastCheckedDate: toLocalISOString(new Date()),
                 history: [...habit.history, today]
             };
         }
@@ -4948,6 +5591,9 @@ export const useDashboardLogic = () => {
         showStreakCelebration,
         setShowStreakCelebration,
         weekStartDay,
-        updateWeekStartDay
+        updateWeekStartDay,
+        addSubTrait,
+        updateSubTrait,
+        deleteSubTrait
     };
 };

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Project, Attribute } from '../../../types';
+import { Project, Attribute, SubTrait } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
@@ -12,10 +12,10 @@ interface ActiveSessionViewProps {
  project: Project;
  attribute?: Attribute;
  onExit: () => void;
- onCompleteSession: (duration: number, type: 'POMO' | 'STOPWATCH') => void;
+ onCompleteSession: (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
  onUpdateProject: (p: Project) => void;
  onDeleteSession?: (projectId: string, sessionId: string) => void;
- onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => void;
+ onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void;
  onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void;
  autoStart?: boolean;
  onAutoStartConsumed?: () => void;
@@ -26,6 +26,108 @@ import { useAudioAlarm } from '../hooks/useAudioAlarm';
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+
+// Sub-trait picker modal shown after a session ends
+const SubTraitPickerModal = ({ 
+  subTraits, 
+  attribute, 
+  themeColor,
+  onConfirm 
+}: { 
+  subTraits: SubTrait[]; 
+  attribute: Attribute;
+  themeColor: string;
+  onConfirm: (subTraitId?: string) => void; 
+}) => {
+  const [selected, setSelected] = useState<string | undefined>(undefined);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        className="w-full max-w-sm bg-[#10101a] border border-white/10 rounded-3xl p-6 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}30` }}>
+            ✅
+          </div>
+          <h3 className="text-white font-black text-lg tracking-tight">¡Sesión Completada!</h3>
+          <p className="text-white/40 text-xs mt-1 font-medium">¿A qué sub-rasgo va este tiempo?</p>
+        </div>
+
+        {/* Options */}
+        <div className="space-y-2 mb-6">
+          {/* Main trait option */}
+          <button
+            onClick={() => setSelected(undefined)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all"
+            style={!selected ? { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}40` } : { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}
+          >
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border" style={{ backgroundColor: `${themeColor}20`, borderColor: `${themeColor}30` }}>
+              🎯
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-sm font-bold" style={{ color: !selected ? themeColor : 'rgba(255,255,255,0.5)' }}>
+                Solo al Rasgo Principal
+              </span>
+              <p className="text-[10px] text-white/30 font-medium">{attribute.label || attribute.id}</p>
+            </div>
+            {!selected && (
+              <Check size={16} style={{ color: themeColor }} />
+            )}
+          </button>
+
+          {/* Sub-trait options */}
+          {subTraits.map(st => (
+            <button
+              key={st.id}
+              onClick={() => setSelected(st.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all"
+              style={selected === st.id ? { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}40` } : { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}
+            >
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}25` }}>
+                <span className="text-xs font-bold" style={{ color: themeColor }}>Lv{st.level}</span>
+              </div>
+              <div className="flex-1 text-left">
+                <span className="text-sm font-bold" style={{ color: selected === st.id ? themeColor : 'rgba(255,255,255,0.5)' }}>
+                  {st.name}
+                </span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden max-w-[80px]">
+                    <div className="h-full rounded-full" style={{ width: `${st.maxXp > 0 ? (st.xp / st.maxXp) * 100 : 0}%`, backgroundColor: themeColor }} />
+                  </div>
+                  <span className="text-[9px] text-white/20 font-mono">{st.xp}/{st.maxXp}</span>
+                </div>
+              </div>
+              {selected === st.id && (
+                <Check size={16} style={{ color: themeColor }} />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Confirm button */}
+        <button
+          onClick={() => onConfirm(selected)}
+          className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.97]"
+          style={{ backgroundColor: themeColor, color: 'white', boxShadow: `0 0 25px ${themeColor}40` }}
+        >
+          Confirmar
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  project,
@@ -44,6 +146,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  const [isEditingTime, setIsEditingTime] = useState(false);
  const [editTimeValue, setEditTimeValue] = useState('25');
  const [showFocusProtectionModal, setShowFocusProtectionModal] = useState(false);
+ const [pendingSessionData, setPendingSessionData] = useState<{ duration: number; mode: 'POMO' | 'STOPWATCH' } | null>(null);
  
  // SMART PERMISSIONS STATE
  const [permissions, setPermissions] = useState({
@@ -56,6 +159,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  const inputRef = useRef<HTMLInputElement>(null);
 
  const { playAlarm } = useAudioAlarm();
+
+ const subTraits = attribute?.subTraits ?? [];
+ const hasSubTraits = subTraits.length > 0;
 
  // Check Advanced Permissions on Mount
  const checkAllPermissions = useCallback(async () => {
@@ -132,8 +238,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  }
 
- onCompleteSession(safeDuration, mode);
- }, [onCompleteSession, playAlarm, project.title]);
+ // If attribute has sub-traits, show picker first
+ if (hasSubTraits) {
+   setPendingSessionData({ duration: safeDuration, mode });
+ } else {
+   onCompleteSession(safeDuration, mode, undefined);
+ }
+ }, [onCompleteSession, playAlarm, project.title, hasSubTraits]);
 
  // Helper to get emoji for attribute
  const getTraitEmoji = (id: string) => {
@@ -176,18 +287,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  }, [isEditingTime]);
 
- const handleAddManualSessionWrapper = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string) => {
- console.log("💎 [ActiveSessionView] Adding manual session...", { projectId, durationMinutes, type });
+ const handleAddManualSessionWrapper = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => {
+ console.log("💎 [ActiveSessionView] Adding manual session...", { projectId, durationMinutes, type, subTraitId });
  if (onAddManualSession) {
- onAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate);
+ onAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate, subTraitId);
  } else {
  console.error("❌ [ActiveSessionView] onAddManualSession prop is MISSING!");
  }
- 
- // Removed forced exit to allow user to see the success state in the modal or continue working
- // if (!isActive) {
- // onExit();
- // }
  }, [onAddManualSession, isActive, onExit]);
 
  const handleTimeSubmit = () => {
@@ -408,7 +514,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  {/* Timer Ring */}
  <div className="relative w-[320px] h-[320px] flex items-center justify-center shrink-0 pointer-events-none">
  {/* SVG Ring - Using pointer-events-none to prevent blocking */}
-              <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible pointer-events-none" viewBox="0 0 320 320">
+               <svg className="absolute w-full h-full rotate-[-90deg] overflow-visible pointer-events-none" viewBox="0 0 320 320">
  <defs>
  <linearGradient id={`gradient-${project.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
  <stop offset="0%" stopColor={themeColor} stopOpacity="1" />
@@ -533,6 +639,21 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  </motion.button>
  </div>
 
+ {/* Sub-Trait Picker Overlay (after session ends) */}
+ <AnimatePresence>
+   {pendingSessionData && hasSubTraits && attribute && (
+     <SubTraitPickerModal
+       subTraits={subTraits}
+       attribute={attribute}
+       themeColor={themeColor}
+       onConfirm={(subTraitId) => {
+         onCompleteSession(pendingSessionData.duration, pendingSessionData.mode, subTraitId);
+         setPendingSessionData(null);
+       }}
+     />
+   )}
+ </AnimatePresence>
+
  {/* Session History Modal */}
  <AnimatePresence>
  {showHistory && (
@@ -540,10 +661,11 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  isOpen={showHistory} 
  onClose={() => setShowHistory(false)} 
  project={project} 
+ attribute={attribute}
  onUpdateProject={onUpdateProject} 
  onDeleteSession={onDeleteSession}
- onAddSession={(durationMinutes, type, sessionId, sessionDate) => {
- handleAddManualSessionWrapper(project.id, durationMinutes, type, sessionId, sessionDate);
+ onAddSession={(durationMinutes, type, sessionId, sessionDate, subTraitId) => {
+ handleAddManualSessionWrapper(project.id, durationMinutes, type, sessionId, sessionDate, subTraitId);
  }}
  onEditSession={onEditSession}
  isActive={isActive}
