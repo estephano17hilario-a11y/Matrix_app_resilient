@@ -111,8 +111,17 @@ export const notificationService = {
  sound: 'lux_sound.wav', // optional
  visibility: 1
  });
+ 
+ await LocalNotifications.createChannel({
+ id: 'lux_focus',
+ name: 'Focus Session',
+ importance: 2,
+ description: 'Active Focus Session Timer',
+ sound: null,
+ visibility: 1
+ });
  } catch (channelError) {
- console.warn('Failed to create channel', channelError);
+ console.warn('Failed to create channels', channelError);
  }
 
  return { success: true, token: "native-registered" }; // Token handled by listener
@@ -243,6 +252,7 @@ export const notificationService = {
  },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_lux', // The Lux Logo
+ largeIcon: 'lux_logo',
  actionTypeId: 'OPEN_APP'
  };
  });
@@ -295,6 +305,7 @@ export const notificationService = {
  },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_lux',
+ largeIcon: 'lux_logo',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
@@ -356,6 +367,7 @@ export const notificationService = {
  },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_lux',
+ largeIcon: 'lux_logo',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }));
@@ -409,6 +421,7 @@ export const notificationService = {
  schedule: { at: dueDate, allowWhileIdle: true },
  channelId: 'lux_daily',
  smallIcon: 'ic_stat_lux',
+ largeIcon: 'lux_logo',
  iconColor: color || '#6366f1',
  actionTypeId: 'OPEN_APP'
  }]
@@ -442,6 +455,7 @@ export const notificationService = {
  schedule: { at: new Date(Date.now() + 1000 * 5) }, // 5 sec delay
  sound: 'beep.wav',
  smallIcon: 'ic_stat_lux',
+ largeIcon: 'lux_logo',
  iconColor: '#a855f7',
  attachments: [],
  actionTypeId: '',
@@ -478,6 +492,7 @@ export const notificationService = {
   schedule: { at: date, allowWhileIdle: true },
   sound: 'beep.wav',
   smallIcon: 'ic_stat_lux',
+  largeIcon: 'lux_logo',
   iconColor: color || '#ec4899',
   actionTypeId: '',
   extra: { type: 'EVENT', originalId: id }

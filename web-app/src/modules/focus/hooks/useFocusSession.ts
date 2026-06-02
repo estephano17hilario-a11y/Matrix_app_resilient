@@ -48,6 +48,63 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
     };
 
+    const ONGOING_NOTIFICATION_ID = 9998;
+
+    const cancelOngoingNotification = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                await LocalNotifications.cancel({ notifications: [{ id: ONGOING_NOTIFICATION_ID }] });
+            } catch (e) {
+                console.error("Failed to cancel ongoing notification", e);
+            }
+        }
+    };
+
+    const updateOngoingNotification = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                if (isActive) {
+                    const formatTimeStr = (seconds: number) => {
+                        const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+                        const m = Math.floor(safeSeconds / 60);
+                        const s = safeSeconds % 60;
+                        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    };
+                    const timeStr = formatTimeStr(timeLeft);
+                    const titleText = isPaused 
+                        ? `Enfoque Pausado: ${project.title} ⏸️`
+                        : `Enfoque Activo: ${project.title} ⏱️`;
+                    const bodyText = mode === 'POMO' 
+                        ? `Tiempo restante: ${timeStr}`
+                        : `Tiempo transcurrido: ${timeStr}`;
+
+                    await LocalNotifications.schedule({
+                        notifications: [
+                            {
+                                id: ONGOING_NOTIFICATION_ID,
+                                title: titleText,
+                                body: bodyText,
+                                schedule: { at: new Date(Date.now() + 50) },
+                                ongoing: true,
+                                autoCancel: false,
+                                channelId: 'lux_focus',
+                                smallIcon: 'ic_stat_lux',
+                                largeIcon: 'lux_logo',
+                                iconColor: project.color || '#a855f7',
+                                actionTypeId: '',
+                                extra: null
+                            }
+                        ]
+                    });
+                } else {
+                    await cancelOngoingNotification();
+                }
+            } catch (e) {
+                console.error("Failed to update ongoing notification", e);
+            }
+        }
+    };
+
     const scheduleLocalNotification = async (targetTimeMs: number) => {
         if (Capacitor.isNativePlatform()) {
             try {
@@ -68,6 +125,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                             schedule: { at: new Date(targetTimeMs) },
                             sound: 'beep.wav',
                             smallIcon: 'ic_stat_lux',
+                            largeIcon: 'lux_logo',
                             iconColor: '#a855f7',
                             actionTypeId: '',
                             extra: null
@@ -88,6 +146,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         setIsPaused(false);
         localStorage.removeItem(STORAGE_KEY);
         cancelLocalNotification();
+        cancelOngoingNotification();
     }, [project.pomoDuration, STORAGE_KEY]);
 
     // 1. Load State on Mount (or Project Change)
@@ -251,6 +310,18 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
             if (intervalId) clearInterval(intervalId);
         };
     }, [isActive, isPaused, mode, totalDuration, project.id]);
+
+    // Sync ongoing notification on tick/state change
+    useEffect(() => {
+        if (isActive) {
+            updateOngoingNotification();
+        } else {
+            cancelOngoingNotification();
+        }
+        return () => {
+            cancelOngoingNotification();
+        };
+    }, [timeLeft, isActive, isPaused, mode, project.title, project.color]);
 
     const toggleTimer = useCallback(() => {
         if (!isActive) {

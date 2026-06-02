@@ -50,6 +50,15 @@ export const useNotificationSystem = (isEnabled: boolean) => {
             visibility: 1
         }).catch(e => console.warn("Failed to create lux channel", e));
 
+        await LocalNotifications.createChannel({
+            id: 'lux_focus',
+            name: 'Focus Session',
+            importance: 2, // Low importance to prevent sound/vibration on updates
+            description: 'Active Focus Session Timer',
+            sound: null,
+            visibility: 1
+        }).catch(e => console.warn("Failed to create focus channel", e));
+
         // 2. Request Permissions (Aggressive Strategy)
         // Check Push first (includes Local in some versions)
         let permStatus = await PushNotifications.checkPermissions();
