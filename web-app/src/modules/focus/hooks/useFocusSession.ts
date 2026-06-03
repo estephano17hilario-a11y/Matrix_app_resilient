@@ -368,6 +368,16 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                     if (isActive) {
                         if (prev.isActive !== isActive) {
                             console.log("Starting native FocusSession...", { timeLeft: timeLeftRef.current, mode });
+                            if (Capacitor.isNativePlatform()) {
+                                try {
+                                    const perm = await LocalNotifications.checkPermissions();
+                                    if (perm.display !== 'granted') {
+                                        await LocalNotifications.requestPermissions();
+                                    }
+                                } catch (err) {
+                                    console.error("Failed to check/request notifications permissions", err);
+                                }
+                            }
                             await FocusSession.start({
                                 duration: mode === 'POMO' ? timeLeftRef.current : 0,
                                 mode: mode,

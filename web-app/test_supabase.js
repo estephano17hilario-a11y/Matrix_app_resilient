@@ -18,8 +18,8 @@ envFile.split('\n').forEach(line => {
 const supabase = createClient(url, key);
 
 async function test() {
-    const { data, error } = await supabase.from('users').select('stats, preferences, daily_limits').limit(1);
+    const { data, error } = await supabase.from('users').select('id, display_name, stats, preferences').limit(5);
     console.log("Error:", error);
-    console.log("Data:", data);
+    console.log("Data:", JSON.stringify(data, null, 2));
 }
 test();

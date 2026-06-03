@@ -180,16 +180,17 @@ export const formatDateRange = (date: Date, range: 'DAY' | 'WEEK' | 'MONTH' | 'Y
 
 export const toLocalISOString = (date: Date): string => {
     const d = new Date(date);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 export const parseLocalDate = (dateString: string): Date => {
     if (!dateString) return new Date();
-    // If it's a full ISO string, parse directly
     if (dateString.includes('T')) return new Date(dateString);
-    // If it's YYYY-MM-DD, append time to force local
-    return new Date(`${dateString}T00:00:00`);
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
 };
 
 export const getHistoryDateKey = (value: string | Date): string => {

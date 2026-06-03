@@ -25,6 +25,7 @@ interface ActiveSessionViewProps {
 import { useAudioAlarm } from '../hooks/useAudioAlarm';
 
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 // Sub-trait picker modal shown after a session ends
@@ -206,13 +207,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  console.log("Battery optimization request requires native plugin");
  };
 
- const handleExitAttempt = () => {
- if (isActive) {
- setShowFocusProtectionModal(true);
- } else {
- onExit();
- }
- };
+  const handleExitAttempt = () => {
+  if (isActive) {
+  setShowFocusProtectionModal(true);
+  } else {
+  onExit();
+  }
+  };
 
  const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false) => {
  const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
@@ -359,6 +360,40 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  return Math.max(0, timeLeft);
  }, [timeLeft, totalDuration]);
+
+  const handleConfirmExit = () => {
+    setShowFocusProtectionModal(false);
+    if (isActive) {
+      const elapsed = getElapsedSeconds(mode);
+      if (elapsed >= 5) {
+        onCompleteSession(elapsed, mode, undefined);
+      }
+      stopSession();
+    }
+    onExit();
+  };
+
+  // Hardware back button listener for native platforms
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const registerBackListener = async () => {
+      const backListener = await App.addListener('backButton', () => {
+        if (isActive) {
+          setShowFocusProtectionModal(true);
+        } else {
+          onExit();
+        }
+      });
+      return backListener;
+    };
+
+    const backListenerPromise = registerBackListener();
+
+    return () => {
+      backListenerPromise.then(listener => listener.remove()).catch(console.error);
+    };
+  }, [isActive, onExit]);
 
   const handleStop = () => {
     if (!isActive) {
@@ -674,16 +709,16 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  )}
  </AnimatePresence>
 
- <ConfirmationModal
- isOpen={showFocusProtectionModal}
- onClose={() => setShowFocusProtectionModal(false)}
- onConfirm={() => setShowFocusProtectionModal(false)}
- title="Focus Mode Active"
- message="You must finish or stop the current focus session before performing this action."
- confirmText="Understood"
- cancelText={null}
- variant="warning"
- />
+  <ConfirmationModal
+  isOpen={showFocusProtectionModal}
+  onClose={() => setShowFocusProtectionModal(false)}
+  onConfirm={isActive ? handleConfirmExit : () => { setShowFocusProtectionModal(false); onExit(); }}
+  title={isActive ? "¿Detener y Salir?" : "Focus Mode Active"}
+  message={isActive ? "Si sales ahora, la sesión de enfoque actual se detendrá. Se guardará el progreso acumulado." : "You must finish or stop the current focus session before performing this action."}
+  confirmText={isActive ? "Detener y Salir" : "Entendido"}
+  cancelText={isActive ? "Cancelar" : null}
+  variant="warning"
+  />
  </motion.div>
  );
 };

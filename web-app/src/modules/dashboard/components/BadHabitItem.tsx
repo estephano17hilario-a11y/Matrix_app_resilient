@@ -7,6 +7,7 @@ const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
 interface BadHabitItemProps {
     habit: BadHabit;
+    attributes?: Attribute[];
     attribute?: Attribute;
     onRelapse: (habit: BadHabit) => void;
     onShowActions?: (habit: BadHabit) => void;
@@ -14,16 +15,25 @@ interface BadHabitItemProps {
 
 export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     habit,
+    attributes,
     attribute,
     onRelapse,
     onShowActions
 }) => {
     const isRelapsed = habit.relapsedToday;
-    const color = attribute?.color || '#10b981';
+    const resolvedAttributes = React.useMemo(() => {
+        if (!habit.attribute) return attribute ? [attribute] : [];
+        const ids = habit.attribute.split(',').map(s => s.trim()).filter(Boolean);
+        const list = ids.map(id => attributes?.find(a => a.id === id)).filter(Boolean) as Attribute[];
+        if (list.length === 0 && attribute) return [attribute];
+        return list;
+    }, [habit.attribute, attributes, attribute]);
+
+    const color = resolvedAttributes[0]?.color || attribute?.color || '#f43f5e';
     const isIntelligent = habit.intelligentStreak;
     const currentTarget = habit.currentTarget || 3;
     const reachedDays = habit.reachedDays || 0;
-    const subTrait = attribute?.subTraits?.find(st => st.id === habit.subAttribute);
+    const subTrait = resolvedAttributes[0]?.subTraits?.find(st => st.id === habit.subAttribute);
 
     const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
@@ -150,17 +160,30 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                         </div>
                     ) : (
                         <div className="flex flex-wrap items-center gap-2">
-                            <div
-                                style={{
-                                    borderColor: isRelapsed ? undefined : `${color}18`,
-                                    backgroundColor: isRelapsed ? undefined : `${color}08`,
-                                    color: isRelapsed ? undefined : '#94a3b8'
-                                }}
-                                className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
-                            >
-                                {attribute?.label?.replace('traits.', '').toUpperCase() || 'HABIT'}
-                                {subTrait && ` › ${subTrait.name.toUpperCase()}`}
-                            </div>
+                            {resolvedAttributes.map(attr => {
+                                const attrColor = attr.color || '#f43f5e';
+                                return (
+                                    <div
+                                        key={attr.id}
+                                        style={{
+                                            borderColor: isRelapsed ? undefined : `${attrColor}18`,
+                                            backgroundColor: isRelapsed ? undefined : `${attrColor}08`,
+                                            color: isRelapsed ? undefined : '#94a3b8'
+                                        }}
+                                        className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
+                                    >
+                                        {attr.label?.replace('traits.', '').toUpperCase()}
+                                        {resolvedAttributes.length === 1 && subTrait && ` › ${subTrait.name.toUpperCase()}`}
+                                    </div>
+                                );
+                            })}
+                            {resolvedAttributes.length === 0 && (
+                                <div
+                                    className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
+                                >
+                                    HABIT
+                                </div>
+                            )}
                             <div
                                 style={{
                                     color: isRelapsed ? undefined : color,

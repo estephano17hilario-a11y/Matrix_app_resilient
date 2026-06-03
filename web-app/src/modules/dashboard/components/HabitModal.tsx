@@ -383,10 +383,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 1 && (
                                     <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-2 overflow-hidden"
                                     >
                                         {/* Title */}
@@ -440,10 +440,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {isAttrPickerOpen && (
                                                     <motion.div
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: "auto" }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        transition={{ duration: 0.2 }}
+                                                        initial={{ opacity: 0, y: -4 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -4 }}
+                                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
@@ -594,10 +594,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 2 && (
                                     <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         {/* Frequency */}
@@ -1014,10 +1014,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             <AnimatePresence>
                                                                 {openMenu?.id === task.id && (
                                                                     <motion.div 
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: "auto" }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        transition={{ duration: 0.2 }}
+                                                                        initial={{ opacity: 0, y: -4 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        exit={{ opacity: 0, y: -4 }}
+                                                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                                                         className="border-t border-white/5 bg-black/20 overflow-hidden"
                                                                     >
                                                                         {openMenu.type === 'COLOR' && (
@@ -1143,10 +1143,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                             <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 3 && (
                                     <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
                                         {/* Estimated Time */}
@@ -1177,10 +1177,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                             <AnimatePresence>
                                                 {reminder && (
                                                     <motion.div 
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: "auto" }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        transition={{ duration: 0.2 }}
+                                                        initial={{ opacity: 0, y: -4 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -4 }}
+                                                        transition={{ duration: 0.15, ease: "easeOut" }}
                                                         className="space-y-2 overflow-hidden"
                                                     >
                                                         {/* Notification Permission Gate */}
@@ -1282,11 +1282,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                         <AnimatePresence>
                             {canSubmit && reminder && (
                                 <motion.div 
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex justify-center gap-2 flex-wrap overflow-hidden"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="flex justify-center gap-2 flex-wrap"
                                 >
                                     {/* XP */}
                                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">

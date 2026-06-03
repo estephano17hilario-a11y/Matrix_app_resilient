@@ -91,7 +91,7 @@ export const GlobalStyles = React.memo(() => (
       padding: 1.5px;
       border-radius: inherit;
       background: conic-gradient(from var(--angle), #3b82f6, #8b5cf6, #d946ef, #06b6d4, #3b82f6);
-      animation: spin-aura 4s linear infinite; z-index: -2; 
+      z-index: -2; 
       opacity: 0; transition: opacity 0.5s ease-in-out; will-change: opacity;
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -105,7 +105,10 @@ export const GlobalStyles = React.memo(() => (
       transition: background 0.5s ease;
       box-shadow: inset 0 0 14px rgba(255,255,255,0.04);
     }
-    .aura-active::before { opacity: 1; }
+    .aura-active::before { 
+      opacity: 1; 
+      animation: spin-aura 4s linear infinite; 
+    }
     .aura-active::after { background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.45)); box-shadow: inset 0 0 16px rgba(255,255,255,0.03); } 
     .aura-active { box-shadow: 0 16px 40px -18px rgba(0,0,0,0.7); border: none; }
 

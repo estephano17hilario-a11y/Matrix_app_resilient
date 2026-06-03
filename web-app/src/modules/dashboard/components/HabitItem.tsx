@@ -347,11 +347,11 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           {isExpanded && (
             <motion.div 
                 key="expanded-content"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="w-full overflow-hidden" 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="w-full" 
                 onClick={e => e.stopPropagation()}
             >
                 <div className="mt-3 pt-3 border-t border-white/5 space-y-3">

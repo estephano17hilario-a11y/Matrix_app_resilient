@@ -37,7 +37,7 @@ export const BackupService = {
             persistenceService.attributes.getAll(uid),
             persistenceService.settings.get(uid),
             persistenceService.dailyFeed.getAll(uid),
-            supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', uid).maybeSingle()
+            supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items').eq('id', uid).maybeSingle()
         ]);
 
         return {

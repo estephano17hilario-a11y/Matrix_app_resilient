@@ -131,7 +131,7 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
             console.log("📶 LUX: Offline detected. Using local cache only.");
             setLoading(false);
         } else {
-            supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', userId).limit(1).then(({ data, error }) => {
+            supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items').eq('id', userId).limit(1).then(({ data, error }) => {
                 const userData = data && data.length > 0 ? data[0] : null;
                 if (error) {
                     console.error("Lux Data Initial Fetch Error:", error);
@@ -179,7 +179,7 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
         if (document.visibilityState === 'visible' && userId && navigator.onLine) {
             console.log("📶 LUX: Visibility visible, refetching user stats...");
             supabase.from('users')
-                .select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at')
+                .select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items')
                 .eq('id', userId)
                 .limit(1)
                 .then(({ data, error }) => {

@@ -277,11 +277,10 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
             {expanded && (
               <motion.div
                 key="expanded-content"
-                initial={{ opacity: 0, height: 0, scaleY: 0.98 }}
-                animate={{ opacity: 1, height: "auto", scaleY: 1 }}
-                exit={{ opacity: 0, height: 0, scaleY: 0.98 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                style={{ transformOrigin: 'top' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="pb-4 pl-4 pr-4 sm:pl-[3.75rem] sm:pr-4"> {/* Responsive Padding */}

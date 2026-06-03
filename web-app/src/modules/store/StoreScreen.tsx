@@ -5,6 +5,7 @@ import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
 import { StoreItem } from '../../services/economyService';
+import confetti from 'canvas-confetti';
 import { 
     Coins, Zap, Palette, ShoppingBag, 
     Check, Brain, ShieldAlert, Clock,
@@ -110,6 +111,133 @@ const ConfirmationModal = ({
     );
 };
 
+const PurchaseSuccessModal = ({ 
+    item, 
+    onClose, 
+    onGoToInventory,
+    isOpen 
+}: { 
+    item: StoreItem | null, 
+    onClose: () => void, 
+    onGoToInventory: () => void,
+    isOpen: boolean
+}) => {
+    const { t } = useTranslation();
+    const [isFlying, setIsFlying] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsFlying(true);
+        }
+    }, [isOpen]);
+
+    if (!item) return null;
+    const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="absolute inset-0 bg-black/90 backdrop-blur-md" 
+                    />
+                    
+                    {/* Floating Item Animation */}
+                    {isFlying && (
+                        <motion.div
+                            initial={{ scale: 1.5, opacity: 1, y: -50 }}
+                            animate={{ 
+                                y: 250, 
+                                scale: 0.2, 
+                                opacity: 0 
+                            }}
+                            transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
+                            onAnimationComplete={() => setIsFlying(false)}
+                            className="absolute z-[110] w-16 h-16 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-500 flex items-center justify-center text-black shadow-lg pointer-events-none"
+                        >
+                            <Icon size={24} strokeWidth={2.5} />
+                        </motion.div>
+                    )}
+
+                    <motion.div 
+                        initial={{ scale: 0.85, opacity: 0, y: 30 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.85, opacity: 0, y: 30 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                        className="relative w-full max-w-sm bg-gradient-to-b from-[#242427] to-[#1c1c1e] border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden text-center"
+                    >
+                        {/* Background Glow */}
+                        <div 
+                            className="absolute top-0 left-0 right-0 h-40 opacity-30 pointer-events-none" 
+                            style={{ background: 'radial-gradient(circle at 50% 0%, #eab308 0%, transparent 70%)' }}
+                        />
+
+                        {/* Animated Sparkles / Success Rings */}
+                        <div className="relative flex flex-col items-center">
+                            <motion.div 
+                                initial={{ scale: 0 }}
+                                animate={{ scale: [0, 1.2, 1] }}
+                                transition={{ delay: 0.1, duration: 0.5 }}
+                                className="w-24 h-24 rounded-full bg-gradient-to-tr from-yellow-500/20 to-amber-500/10 border border-yellow-500/30 flex items-center justify-center mb-6 shadow-lg shadow-yellow-500/5 relative"
+                            >
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="absolute inset-0 rounded-full border-2 border-dashed border-yellow-500/40 animate-spin"
+                                    style={{ animationDuration: '8s' }}
+                                />
+                                <Icon size={44} className="text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" strokeWidth={1.5} />
+                            </motion.div>
+                            
+                            <motion.h3 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-2xl font-black text-white tracking-tight mb-2"
+                            >
+                                ¡COMPRA EXITOSA!
+                            </motion.h3>
+                            
+                            <motion.p 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-white/60 text-sm mb-8 leading-relaxed px-4"
+                            >
+                                Has adquirido <span className="text-yellow-400 font-bold">{t(item.name)}</span>. El objeto ha sido enviado a tu inventario.
+                            </motion.p>
+
+                            <motion.div 
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="flex flex-col gap-3 w-full"
+                            >
+                                <button 
+                                    onClick={onGoToInventory}
+                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-[11px] uppercase tracking-[0.2em] hover:from-yellow-600 hover:to-amber-600 active:scale-[0.98] shadow-lg shadow-yellow-500/10"
+                                >
+                                    Ir al Inventario
+                                </button>
+                                <button 
+                                    onClick={onClose}
+                                    className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-[11px] uppercase tracking-[0.2em] transition-all border border-white/5"
+                                >
+                                    Seguir Comprando
+                                </button>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};
+
 
 
 interface StoreScreenProps {
@@ -124,6 +252,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
   
   // Confirmation State
   const [itemToBuy, setItemToBuy] = useState<StoreItem | null>(null);
+  const [successItem, setSuccessItem] = useState<StoreItem | null>(null);
   
   // Generate Filters based on items
   // We want: All, Power Ups, Themes
@@ -150,12 +279,17 @@ const StoreContent = ({ }: StoreScreenProps) => {
       if (!itemToBuy) return;
       
       const item = itemToBuy;
-      const result = await purchase(item); // purchase now returns bool
+      const result = await purchase(item);
       
       setItemToBuy(null);
 
       if (result) {
-          // Success Feedback (Haptic handled in provider)
+          setSuccessItem(item);
+          confetti({
+              particleCount: 80,
+              spread: 60,
+              origin: { y: 0.6 }
+          });
       }
   };
 
@@ -173,6 +307,17 @@ const StoreContent = ({ }: StoreScreenProps) => {
             isOpen={!!itemToBuy} 
             onCancel={() => setItemToBuy(null)} 
             onConfirm={confirmPurchase}
+       />
+
+       {/* Purchase Success Modal */}
+       <PurchaseSuccessModal 
+            item={successItem} 
+            isOpen={!!successItem} 
+            onClose={() => setSuccessItem(null)} 
+            onGoToInventory={() => {
+                setActiveFilter('inventory');
+                setSuccessItem(null);
+            }}
        />
 
       <div className="relative z-10 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto px-4 pt-6">

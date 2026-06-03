@@ -75,7 +75,19 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [direction, setDirection] = useState(0);
 
     const [title, setTitle] = useState(initialData?.title || '');
-    const [attribute, setAttribute] = useState(initialData?.attribute || '');
+    const [selectedAttributes, setSelectedAttributes] = useState<string[]>(() => {
+        if (initialData?.attribute) {
+            return initialData.attribute.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        return [];
+    });
+    const attribute = selectedAttributes[0] || '';
+    const setAttribute = (val: string) => {
+        setSelectedAttributes(prev => {
+            if (val === '') return [];
+            return [val];
+        });
+    };
     const [subAttribute, setSubAttribute] = useState(initialData?.subAttribute || '');
     const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);
     const [reason, setReason] = useState(initialData?.reason || '');
@@ -118,7 +130,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             const timer = setTimeout(() => {
                 setStep(1);
                 setTitle('');
-                setAttribute('');
+                setSelectedAttributes([]);
                 setSubAttribute('');
                 setReason('');
                 setImpactLevel(3);
@@ -142,7 +154,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     useEffect(() => {
         if (isOpen && initialData) {
             setTitle(initialData.title || '');
-            setAttribute(initialData.attribute || '');
+            const initialAttrs = initialData.attribute ? initialData.attribute.split(',').map(s => s.trim()).filter(Boolean) : [];
+            setSelectedAttributes(initialAttrs);
             setSubAttribute(initialData.subAttribute || '');
             setReason(initialData.reason || '');
             setIntelligentStreak(initialData.intelligentStreak || false);
@@ -183,8 +196,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         onConfirm({
             ...(initialData || {}),
             title,
-            attribute,
-            subAttribute: subAttribute || undefined,
+            attribute: selectedAttributes.join(','),
+            subAttribute: selectedAttributes.length === 1 ? (subAttribute || undefined) : undefined,
             reason,
             negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
@@ -424,37 +437,61 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     {t('badHabits.wizard.affectsAttribute', 'Afecta a tu atributo:')}
                                                 </label>
                                                 <div className="grid grid-cols-2 gap-2 pr-1">
-                                                    {attributes.map(attr => (
-                                                        <motion.button
-                                                            key={attr.id}
-                                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.06)" }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => { if (attr.id !== attribute) { setAttribute(attr.id); setSubAttribute(''); } }}
-                                                            className={`relative p-3 rounded-xl border text-left transition-all duration-200 group ${
-                                                                attribute === attr.id
-                                                                    ? 'bg-rose-500/08 border-rose-500/40 ring-1 ring-rose-500/15'
-                                                                    : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2.5">
-                                                                <div className={`p-1.5 rounded-lg transition-colors ${
-                                                                    attribute === attr.id ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25' : 'bg-white/[0.05] text-white/40 group-hover:bg-white/10'
-                                                                }`}>
-                                                                    <Zap size={13} />
+                                                    {attributes.map(attr => {
+                                                        const isSelected = selectedAttributes.includes(attr.id);
+                                                        return (
+                                                            <motion.button
+                                                                key={attr.id}
+                                                                type="button"
+                                                                whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.06)" }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={() => {
+                                                                    setSelectedAttributes(prev => {
+                                                                        if (prev.includes(attr.id)) {
+                                                                            return prev.filter(id => id !== attr.id);
+                                                                        } else {
+                                                                            if (prev.length < 3) {
+                                                                                return [...prev, attr.id];
+                                                                            }
+                                                                            return prev;
+                                                                        }
+                                                                    });
+                                                                    setSubAttribute('');
+                                                                }}
+                                                                className={`relative p-3 rounded-xl border text-left transition-all duration-200 group ${
+                                                                    isSelected
+                                                                        ? 'bg-rose-500/10 border-rose-500/40 ring-1 ring-rose-500/15'
+                                                                        : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className={`p-1.5 rounded-lg transition-colors ${
+                                                                        isSelected ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25' : 'bg-white/[0.05] text-white/40 group-hover:bg-white/10'
+                                                                    }`}>
+                                                                        <Zap size={13} />
+                                                                    </div>
+                                                                    <span className={`text-[12px] sm:text-sm font-medium ${
+                                                                        isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/70'
+                                                                    }`}>
+                                                                        {t(attr.label, attr.label.replace('traits.', ''))}
+                                                                    </span>
                                                                 </div>
-                                                                <span className={`text-[12px] sm:text-sm font-medium ${
-                                                                    attribute === attr.id ? 'text-white' : 'text-white/50 group-hover:text-white/70'
-                                                                }`}>
-                                                                    {t(attr.label, attr.label.replace('traits.', ''))}
-                                                                </span>
-                                                            </div>
-                                                        </motion.button>
-                                                    ))}
+                                                            </motion.button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Info banner about splitting penalty */}
+                                                <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/10 flex items-start gap-2.5 mt-2 select-none">
+                                                    <Info size={14} className="text-rose-400 shrink-0 mt-0.5" />
+                                                    <span className="text-[11px] text-white/50 leading-normal">
+                                                        Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.
+                                                    </span>
                                                 </div>
                                             </div>
 
                                             {/* Sub-Trait Picker */}
-                                            {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
+                                            {selectedAttributes.length === 1 && selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
                                                 <div className="space-y-1.5 animate-in slide-in-from-top-1 fade-in">
                                                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block px-1">
                                                         Sub-Rasgo (Opcional)

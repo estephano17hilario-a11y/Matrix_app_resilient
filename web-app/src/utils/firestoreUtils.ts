@@ -52,6 +52,8 @@ export const normalizeUserProfile = (data: any): UserData => {
         lastLoginAt: data.lastLoginAt || Date.now(),
         onboarding: data.onboarding || { completedAt: 0 },
         // Preserve any other existing fields that might be in the data
-        ...data
+        ...data,
+        unlockedStoreItems: data.unlockedStoreItems || data.unlocked_store_items || [],
+        inventory: data.inventory || []
     };
 };

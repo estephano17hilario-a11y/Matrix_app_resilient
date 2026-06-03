@@ -57,16 +57,20 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     )}
 
                     {block.type === 'check' && (
-                        <div className="flex items-center gap-3 w-full group/check">
-                            <button onClick={() => !readOnly && updateBlock(block.id, { checked: !block.checked })} className={`w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-all ${block.checked ? 'bg-blue-500 border-blue-500' : 'border-white/30 bg-transparent group-hover/check:border-white/60'}`}>
+                        <div className="flex items-start gap-3 w-full group/check pt-1">
+                            <button onClick={() => !readOnly && updateBlock(block.id, { checked: !block.checked })} className={`w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center transition-all mt-1 flex-shrink-0 ${block.checked ? 'bg-blue-500 border-blue-500' : 'border-white/30 bg-transparent group-hover/check:border-white/60'}`}>
                                 {block.checked && <Check size={12} className="text-white" strokeWidth={3} />}
                             </button>
-                            <input 
-                                type="text" 
+                            <textarea 
+                                ref={el => { if (el) scheduleAdjustHeight(el) }}
                                 value={block.content} 
-                                onChange={(e) => updateBlock(block.id, { content: e.target.value })} 
-                                className={`w-full bg-transparent outline-none text-[17px] transition-all ${block.checked ? 'text-slate-500 line-through' : 'text-slate-100'}`}
+                                onChange={(e) => {
+                                    updateBlock(block.id, { content: e.target.value });
+                                    scheduleAdjustHeight(e.target);
+                                }} 
+                                className={`w-full bg-transparent resize-none outline-none text-[17px] transition-all leading-relaxed font-normal font-sans ${block.checked ? 'text-slate-500 line-through' : 'text-slate-100'}`}
                                 placeholder={t('components.blockEditor.todoItem')}
+                                style={{ minHeight: '1.5em', overflow: 'hidden' }}
                                 readOnly={readOnly}
                             />
                         </div>

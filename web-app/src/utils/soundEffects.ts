@@ -36,41 +36,84 @@ export function playLightSound() {
     }
 }
 
-// 2. Beautiful bell-chime Fmaj9 chord sound for completing a habit
+// 2. Beautiful bell-chime E-maj9 chord sound for completing a habit
 export function playHabitCompleteSound() {
     try {
         const ctx = getAudioContext();
         const t = ctx.currentTime;
         
-        // Fmaj9-like bell sound
-        const notes = [349.23, 440.00, 523.25, 659.25, 880.00]; // F4, A4, C5, E5, A5
+        // E-major 9th/C#minor 11th-like beautiful chime notes
+        const notes = [329.63, 415.30, 493.88, 622.25, 739.99, 987.77, 1318.51];
+        
+        // Dynamic lowpass filter to warm up the decay
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.Q.setValueAtTime(1.5, t);
+        filter.frequency.setValueAtTime(6000, t);
+        filter.frequency.exponentialRampToValueAtTime(1500, t + 1.8);
+        filter.connect(ctx.destination);
+
         notes.forEach((freq, index) => {
-            const delay = index * 0.06;
-            const dur = 1.5;
+            // Arpeggiate slightly for an elegant strum effect
+            const delay = index * 0.04;
+            const dur = 2.0 - (index * 0.15); // Higher notes decay faster
             
-            const osc = ctx.createOscillator();
-            const oscTriangle = ctx.createOscillator();
+            // Create stereo pan if supported
+            let targetNode: AudioNode = filter;
+            if (ctx.createStereoPanner) {
+                const panner = ctx.createStereoPanner();
+                // Pan notes left-to-right based on frequency/index
+                const panVal = (index / (notes.length - 1)) * 1.4 - 0.7; // Range -0.7 to 0.7
+                panner.pan.setValueAtTime(panVal, t + delay);
+                panner.connect(filter);
+                targetNode = panner;
+            }
+
             const gain = ctx.createGain();
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, t + delay);
-            
-            oscTriangle.type = 'triangle';
-            oscTriangle.frequency.setValueAtTime(freq, t + delay);
-            
             gain.gain.setValueAtTime(0, t + delay);
-            gain.gain.linearRampToValueAtTime(0.05, t + delay + 0.03);
+            // Soft click-free attack
+            gain.gain.linearRampToValueAtTime(0.04, t + delay + 0.015);
             gain.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+
+            // 1. Primary oscillator (sine)
+            const osc1 = ctx.createOscillator();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(freq, t + delay);
+            // Micro-detuning for chorus texture
+            osc1.detune.setValueAtTime(-4, t + delay);
+
+            // 2. Unison oscillator (triangle) detuned positive
+            const osc2 = ctx.createOscillator();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(freq, t + delay);
+            osc2.detune.setValueAtTime(4, t + delay);
+
+            // 3. High-pitch "Glass Tine" (metallic attack strike)
+            const oscTine = ctx.createOscillator();
+            oscTine.type = 'sine';
+            // Inharmonic frequency multiplier for glass chime metallic strike
+            oscTine.frequency.setValueAtTime(freq * 3.14, t + delay);
             
-            osc.connect(gain);
-            oscTriangle.connect(gain);
-            gain.connect(ctx.destination);
+            const tineGain = ctx.createGain();
+            tineGain.gain.setValueAtTime(0.04, t + delay);
+            tineGain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1); // very fast decay
+
+            // Connections
+            osc1.connect(gain);
+            osc2.connect(gain);
             
-            osc.start(t + delay);
-            oscTriangle.start(t + delay);
-            
-            osc.stop(t + delay + dur);
-            oscTriangle.stop(t + delay + dur);
+            oscTine.connect(tineGain);
+            tineGain.connect(gain);
+
+            gain.connect(targetNode);
+
+            osc1.start(t + delay);
+            osc2.start(t + delay);
+            oscTine.start(t + delay);
+
+            osc1.stop(t + delay + dur);
+            osc2.stop(t + delay + dur);
+            oscTine.stop(t + delay + dur);
         });
     } catch (e) {
         console.warn("Sound playback failed", e);

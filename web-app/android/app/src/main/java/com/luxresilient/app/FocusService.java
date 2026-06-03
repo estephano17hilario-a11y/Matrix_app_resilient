@@ -68,22 +68,34 @@ public class FocusService extends Service {
             if (currentMode == null) currentMode = "POMO";
             
             projectName = intent.getStringExtra("projectName");
+            if (projectName == null) projectName = intent.getStringExtra(EXTRA_PROJECT_NAME);
             if (projectName == null) projectName = "Focus Session";
             
             projectColor = intent.getStringExtra("projectColor");
+            if (projectColor == null) projectColor = intent.getStringExtra(EXTRA_PROJECT_COLOR);
             if (projectColor == null || projectColor.equals("#FFFFFF")) projectColor = "#6366f1"; // Modern indigo fallback
 
             projectIcon = intent.getStringExtra("projectIcon");
+            if (projectIcon == null) projectIcon = intent.getStringExtra(EXTRA_PROJECT_ICON);
             if (projectIcon == null) projectIcon = "✨";
 
             startTimer(durationSec * 1000);
             
             Notification notification = buildNotification();
-            if (Build.VERSION.SDK_INT >= 34) {
-                // For Android 14+ (API 34+), specialUse is required. ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE = 1073741824
-                startForeground(NOTIFICATION_ID, notification, 1073741824);
-            } else {
-                startForeground(NOTIFICATION_ID, notification);
+            try {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    // For Android 14+ (API 34+), specialUse is required. ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE = 1073741824
+                    startForeground(NOTIFICATION_ID, notification, 1073741824);
+                } else {
+                    startForeground(NOTIFICATION_ID, notification);
+                }
+            } catch (Exception e) {
+                android.util.Log.e("FocusService", "Failed to start foreground service: " + e.getMessage());
+                try {
+                    startForeground(NOTIFICATION_ID, notification);
+                } catch (Exception ex) {
+                    android.util.Log.e("FocusService", "Critical failure starting foreground service: " + ex.getMessage());
+                }
             }
 
         } else if (ACTION_STOP.equals(action)) {

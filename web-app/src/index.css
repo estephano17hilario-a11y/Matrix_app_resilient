@@ -34,7 +34,19 @@
 
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
   /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius to 16px (Rule of Gold) */
-  .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl {
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  .backdrop-blur-md {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  .backdrop-blur-lg {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
   }
@@ -52,10 +64,22 @@
 
   /* MOBILE PERFORMANCE OPTIMIZATIONS */
   @media (max-width: 768px) {
-      /* Optimize blurs on mobile - Cap max blur radius to 12px for performance */
-      .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl {
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
+      /* Optimize blurs on mobile - Cap max blur radius to 8px for performance */
+      .backdrop-blur-sm {
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+      }
+      .backdrop-blur-md {
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
+      }
+      .backdrop-blur-lg {
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+      }
+      .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
       }
       
       /* Exception for critical UI feedback */
@@ -228,7 +252,6 @@
   padding: 1.5px;
   border-radius: inherit;
   background: conic-gradient(from var(--angle), #3b82f6, #8b5cf6, #d946ef, #06b6d4, #3b82f6); 
-  animation: spin-aura 4s linear infinite; 
   z-index: -2; 
   opacity: 0; 
   transition: opacity 0.5s ease-in-out; 
@@ -252,7 +275,10 @@
   box-shadow: inset 0 0 30px rgba(255,255,255,0.08); 
 } 
 
-.aura-active::before { opacity: 1; } 
+.aura-active::before { 
+  opacity: 1; 
+  animation: spin-aura 4s linear infinite; 
+} 
 .aura-active::after { background: rgba(255, 255, 255, 0.05); } 
 .aura-active { 
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); 
@@ -479,7 +505,8 @@
       #ec4899, 
       #06b6d4
     );
-    animation: border-rotate 4s linear infinite;
+    /* Disabled continuous animation to prevent massive GPU rasterization overhead and lag */
+    /* animation: border-rotate 4s linear infinite; */
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -732,7 +759,8 @@ button:active, [role="button"]:active, .clickable:active {
     #ec4899, /* Pink */
     #06b6d4  /* Loop back to Cyan */
   );
-  animation: border-rotate 4s linear infinite;
+  /* Disabled continuous animation to prevent massive GPU rasterization overhead and lag */
+  /* animation: border-rotate 4s linear infinite; */
   
   /* The Mask Logic: Show ONLY the border area */
   -webkit-mask: 

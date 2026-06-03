@@ -7,7 +7,7 @@ import { DailyLimits } from '../../types/User';
 import { DAILY_LIMITS } from '../dashboard/constants';
 import { QuestItem } from './components/QuestItem';
 import { isWithinInterval, isSameDay, format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, addYears, subYears } from 'date-fns';
-import { startOfWeek, endOfWeek, parseLocalDate } from '../../utils/dateUtils';
+import { startOfWeek, endOfWeek, parseLocalDate, toLocalISOString } from '../../utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../context/AuthContext';
@@ -92,26 +92,48 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  }, [quests, hideCompleted, timeframe, dateRange, traitFilter, typeFilter, difficultyFilter]);
 
  // Optimization: Separate sorting from filtering to memoize efficiently
- const sortedQuests = useMemo(() => {
- // Create a new array to avoid mutating the filtered one (though filter returns new array, sort mutates)
- const list = [...filteredQuests];
- return list.sort((a, b) => {
- if (a.completed === b.completed) {
- if (a.deadline && b.deadline) {
- const timeDiff = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
- if (timeDiff !== 0) return timeDiff;
- }
- if (a.deadline && !b.deadline) return -1;
- if (!a.deadline && b.deadline) return 1;
-
- const difficultyRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
- const diffA = difficultyRank[a.difficulty as keyof typeof difficultyRank] || 0;
- const diffB = difficultyRank[b.difficulty as keyof typeof difficultyRank] || 0;
- return diffB - diffA;
- }
- return a.completed ? 1 : -1;
- });
- }, [filteredQuests]);
+  const sortedQuests = useMemo(() => {
+    // Create a new array to avoid mutating the filtered one
+    const list = [...filteredQuests];
+    const todayStr = toLocalISOString(new Date());
+    
+    return list.sort((a, b) => {
+      // 1. Completion status: completed tasks go to the bottom
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      
+      // 2. Overdue status: non-completed overdue tasks go to the top
+      const overdueA = !a.completed && a.deadline && a.deadline < todayStr;
+      const overdueB = !b.completed && b.deadline && b.deadline < todayStr;
+      if (overdueA !== overdueB) {
+        return overdueA ? -1 : 1;
+      }
+      
+      // 3. Chronological: closest deadline first (most actual)
+      if (a.deadline && b.deadline) {
+        const timeDiff = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        if (timeDiff !== 0) return timeDiff;
+      } else if (a.deadline && !b.deadline) {
+        return -1;
+      } else if (!a.deadline && b.deadline) {
+        return 1;
+      }
+      
+      // 4. Difficulty / Importance: S > A > B > C
+      const difficultyRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
+      const diffA = difficultyRank[a.difficulty as keyof typeof difficultyRank] || 0;
+      const diffB = difficultyRank[b.difficulty as keyof typeof difficultyRank] || 0;
+      if (diffB !== diffA) {
+        return diffB - diffA;
+      }
+      
+      // 5. Duration / Task Time: estimatedTime descending
+      const timeA = a.estimatedTime || 0;
+      const timeB = b.estimatedTime || 0;
+      return timeB - timeA;
+    });
+  }, [filteredQuests]);
 
  // Date Label Logic
  const dateRangeLabel = useMemo(() => {

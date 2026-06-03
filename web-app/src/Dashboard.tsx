@@ -551,8 +551,8 @@ export default function Dashboard() {
  const smartProject = activeSmartProjectId 
  ? smartProjects.find(p => p.id === activeSmartProjectId) || null
  : null;
- const [isWizardOpen, setIsWizardOpen] = useState(false);
- const isProModalOpen = activeModal === 'PRO';
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const isProModalOpen = activeModal === 'PRO';
  const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);
  const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
  const [habitViewMode, setHabitViewMode] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
@@ -679,6 +679,7 @@ export default function Dashboard() {
  // --- HABIT ACTIONS & CONFIRMATION ---
  const [habitActionsHabit, setHabitActionsHabit] = useState<Habit | null>(null);
  const [badHabitActionsHabit, setBadHabitActionsHabit] = useState<BadHabit | null>(null);
+ const isBackgroundHidden = !!activeModal || !!validationHabit || !!habitActionsHabit || !!badHabitActionsHabit || isSettingsOpen || isWizardOpen || isProgressOpen || isPomodoroActive || currentView === 'STREAK';
  const [confirmationModal, setConfirmationModal] = useState<{
  isOpen: boolean;
  title: string;
@@ -1165,6 +1166,12 @@ export default function Dashboard() {
  return;
  }
 
+ // If Pomodoro is active, the local ActiveSessionView handles back navigation
+ // We still add a safety net here in case the local listener fails
+ if (isPomodoroActive) {
+ return; // Let the local backButton listener in ActiveSessionView handle it
+ }
+
  // 4. Navigation (Smart History)
  if (viewHistory.length > 1) {
  // If we have history, pop the current view and go to the previous one
@@ -1225,6 +1232,7 @@ export default function Dashboard() {
  forceFocusOpen,
  isNoteTaking,
  currentView,
+ isPomodoroActive,
  handleExitFocusSession,
  setCurrentView,
  setActiveModal,
@@ -1343,9 +1351,9 @@ export default function Dashboard() {
  {/* FX LAYER */}
  <ParticleLayer particles={particles} />
 
- {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
- {!isWizardOpen && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && currentView !== 'STREAK' && !isPomodoroActive && !isProgressOpen && (
- <>
+  {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
+  {!isBackgroundHidden && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && (
+  <>
  <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe flex justify-center">
  <div className={`${APP_MAX_WIDTH} px-4 sm:px-6`}>
  <StatsHeader 
@@ -1406,7 +1414,10 @@ export default function Dashboard() {
  
  <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'max-w-none' : APP_MAX_WIDTH} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
 
- <div className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}>
+  <div 
+    className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}
+    style={{ visibility: isBackgroundHidden ? 'hidden' : 'visible' }}
+  >
  {/* ⚡ TASKS VIEW (Always loaded initially) */}
  <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
  <div className="flex flex-col gap-4 h-full min-h-0">

@@ -28,6 +28,7 @@ import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../ut
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
+import confetti from 'canvas-confetti';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useReward } from '@/modules/rewards/context/RewardContext';
@@ -2371,6 +2372,17 @@ export const useDashboardLogic = () => {
     const updateAttributeXp = useCallback((attrId: string, amount: number, subAttrId?: string) => {
         if (!user?.id || user.isSkeleton) return;
         
+        if (attrId && attrId.includes(',')) {
+            const attrIds = attrId.split(',').map(s => s.trim()).filter(Boolean);
+            if (attrIds.length > 0) {
+                const dividedAmount = Math.round(amount / attrIds.length);
+                attrIds.forEach(id => {
+                    updateAttributeXp(id, dividedAmount, subAttrId);
+                });
+            }
+            return;
+        }
+        
         const currentAttrs = attributesRef.current;
         const attrIndex = currentAttrs.findIndex(a => a.id === attrId);
         if (attrIndex === -1) return;
@@ -4112,6 +4124,24 @@ export const useDashboardLogic = () => {
              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
              spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#fff', Flame, 'fire');
              playHabitCompleteSound();
+             
+             // Localized beautiful double-burst confetti
+             const x = (rect.left + rect.width / 2) / window.innerWidth;
+             const y = (rect.top + rect.height / 2) / window.innerHeight;
+             confetti({
+                 particleCount: 50,
+                 spread: 60,
+                 origin: { x, y },
+                 colors: ['#8b5cf6', '#d946ef', '#3b82f6', '#10b981', '#fbbf24', '#f43f5e']
+             });
+             setTimeout(() => {
+                 confetti({
+                     particleCount: 30,
+                     spread: 90,
+                     origin: { x, y },
+                     colors: ['#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fbbf24']
+                 });
+             }, 150);
         }
 
         // 2. CALCULATE NEW STATE

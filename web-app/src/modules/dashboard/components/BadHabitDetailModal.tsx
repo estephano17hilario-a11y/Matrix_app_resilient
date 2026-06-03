@@ -10,6 +10,7 @@ interface BadHabitDetailModalProps {
  isOpen: boolean;
  onClose: () => void;
  habit: BadHabit | null;
+ attributes?: Attribute[];
  attribute?: Attribute;
 }
 
@@ -17,6 +18,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  isOpen,
  onClose,
  habit,
+ attributes,
  attribute
 }) => {
  const stats = useMemo(() => {
@@ -64,49 +66,67 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  };
  }, [habit]);
 
- if (!isOpen || !habit || !stats) return null;
+  // Must be called unconditionally (before any early returns) per React Rules of Hooks
+  const resolvedAttributes = useMemo(() => {
+    if (!habit?.attribute) return attribute ? [attribute] : [];
+    const ids = habit.attribute.split(',').map(s => s.trim()).filter(Boolean);
+    const list = ids.map(id => attributes?.find(a => a.id === id)).filter(Boolean) as Attribute[];
+    if (list.length === 0 && attribute) return [attribute];
+    return list;
+  }, [habit?.attribute, attributes, attribute]);
 
- const color = attribute?.color || '#f43f5e';
- const subTrait = attribute?.subTraits?.find(st => st.id === habit.subAttribute);
+  if (!isOpen || !habit || !stats) return null;
 
- return createPortal(
- <AnimatePresence>
- {isOpen && (
- <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- exit={{ opacity: 0 }}
- onClick={onClose}
- className="absolute inset-0 bg-black/90 "
- />
+  const color = resolvedAttributes[0]?.color || attribute?.color || '#f43f5e';
+  const subTrait = resolvedAttributes[0]?.subTraits?.find(st => st.id === habit.subAttribute);
 
- <motion.div
- initial={{ y: "100%", opacity: 0 }}
- animate={{ y: 0, opacity: 1 }}
- exit={{ y: "100%", opacity: 0 }}
- transition={{ type: "spring", damping: 25, stiffness: 450 }}
- className="relative w-full max-w-md bg-[#0b0b0d] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-md overflow-hidden"
- >
- {/* Background Effects */}
- <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(244,63,94,0.08)_0%,_transparent_60%)] pointer-events-none" />
- 
- <div className="p-6 pb-28 sm:p-6">
- <div className="flex items-start justify-between mb-6 relative z-10">
- <div className="flex items-center gap-3">
- <div 
- className="w-12 h-12 rounded-2xl flex items-center justify-center border"
- style={{ backgroundColor: `${color}15`, borderColor: `${color}30` }}
- >
- <Skull size={24} style={{ color }} />
- </div>
- <div>
- <h2 className="text-xl font-bold text-white tracking-tight">{habit.title}</h2>
- <p className="text-sm capitalize font-bold" style={{ color }}>
-  {attribute?.label?.replace('traits.', '') || 'General'}
-  {subTrait && ` › ${subTrait.name}`}
- </p>
- </div>
+  return createPortal(
+  <AnimatePresence>
+  {isOpen && (
+  <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  onClick={onClose}
+  className="absolute inset-0 bg-black/90 "
+  />
+
+  <motion.div
+  initial={{ y: "100%", opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  exit={{ y: "100%", opacity: 0 }}
+  transition={{ type: "spring", damping: 25, stiffness: 450 }}
+  className="relative w-full max-w-md bg-[#0b0b0d] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-md overflow-hidden"
+  >
+  {/* Background Effects */}
+  <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(244,63,94,0.08)_0%,_transparent_60%)] pointer-events-none" />
+  
+  <div className="p-6 pb-28 sm:p-6">
+  <div className="flex items-start justify-between mb-6 relative z-10">
+  <div className="flex items-center gap-3">
+  <div 
+  className="w-12 h-12 rounded-2xl flex items-center justify-center border"
+  style={{ backgroundColor: `${color}15`, borderColor: `${color}30` }}
+  >
+  <Skull size={24} style={{ color }} />
+  </div>
+  <div>
+  <h2 className="text-xl font-bold text-white tracking-tight">{habit.title}</h2>
+  <p className="text-sm capitalize font-bold flex flex-wrap gap-1" style={{ color }}>
+   {resolvedAttributes.length > 0 ? (
+     resolvedAttributes.map((attr, idx) => (
+       <span key={attr.id}>
+         {attr.label?.replace('traits.', '')}
+         {idx < resolvedAttributes.length - 1 && ', '}
+       </span>
+     ))
+   ) : (
+     'General'
+   )}
+   {resolvedAttributes.length === 1 && subTrait && ` › ${subTrait.name}`}
+  </p>
+  </div>
  </div>
  <button
  onClick={onClose}

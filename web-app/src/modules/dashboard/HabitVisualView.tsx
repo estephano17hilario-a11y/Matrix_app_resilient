@@ -48,6 +48,7 @@ interface HabitVisualViewProps {
 
 interface BadHabitWrapperProps {
     habit: BadHabit;
+    attributes: Attribute[];
     attributeMap: Map<string, Attribute>;
     onShowBadHabitActions?: (habit: BadHabit) => void;
     onOpenDetail?: (habit: BadHabit) => void;
@@ -57,6 +58,7 @@ interface BadHabitWrapperProps {
 
 const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
     habit,
+    attributes,
     attributeMap,
     onShowBadHabitActions,
     onOpenDetail,
@@ -89,6 +91,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
             >
                 <BadHabitItem
                     habit={habit}
+                    attributes={attributes}
                     attribute={attributeMap.get(habit.attribute)}
                     onRelapse={onRelapseBadHabit}
                     onShowActions={onShowBadHabitActions}
@@ -837,6 +840,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 <BadHabitWrapper 
                                     key={habit.id}
                                     habit={habit}
+                                    attributes={attributes}
                                     attributeMap={attributeMap}
                                     onShowBadHabitActions={onShowBadHabitActions}
                                     onOpenDetail={setSelectedDetailBadHabit}
@@ -920,6 +924,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 isOpen={!!selectedDetailBadHabit}
                 onClose={() => setSelectedDetailBadHabit(null)}
                 habit={selectedDetailBadHabit}
+                attributes={attributes}
                 attribute={selectedDetailBadHabit ? attributeMap.get(selectedDetailBadHabit.attribute) : undefined}
             />
 

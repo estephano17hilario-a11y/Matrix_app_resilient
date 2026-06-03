@@ -86,6 +86,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [showStats, setShowStats] = useState(false);
  const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
  const [moodSplash, setMoodSplash] = useState<string | null>(null);
+ const editorScrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+ useEffect(() => {
+   if (editorMode !== 'NONE' && editorScrollContainerRef.current) {
+     editorScrollContainerRef.current.scrollTop = 0;
+   }
+ }, [editorMode]);
 
  // Config & Security
  const [configOpen, setConfigOpen] = useState(false);
@@ -399,43 +406,41 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }, [onInteractionStart, canCreateNote, onShowPro]);
  
  const openJournal = useCallback((date: Date) => { 
- const dateStr = toLocalISOString(date); 
- const entry = journalEntryMap.get(dateStr); 
- setEditorMode('JOURNAL'); 
- setDraftDate(date); 
- setDraftId(entry?.id || Date.now().toString()); 
- 
- // Extract blocks
- const initialBlocks = entry?.blocks || [{ id: 'init-1', type: 'text', content: '' }];
- setDraftBlocks(initialBlocks);
- 
- // Extract Title for the new Input
- // If the first block is text, use it as title? Or just let user manage it?
- // To strictly follow "title that appears in list view", we use getEntryTitle logic:
- setDraftTitle(entry ? getEntryTitle(entry.blocks) : '');
-
- setDraftMood(entry?.mood); 
- setDraftTheme(entry?.theme || 'slate'); 
- onInteractionStart(); 
- }, [journalEntryMap, onInteractionStart]);
+     const dateStr = toLocalISOString(date); 
+     const entry = journalEntryMap.get(dateStr); 
+     setEditorMode('JOURNAL'); 
+     setDraftDate(date); 
+     setDraftId(entry?.id || Date.now().toString()); 
+     
+     // Extract blocks
+     let initialBlocks = entry?.blocks ? [...entry.blocks] : [{ id: 'init-1', type: 'text', content: '' }];
+     let extractedTitle = '';
+     
+     // Only extract the title if the first block starts with the 'title-' ID prefix (added during save)
+     if (initialBlocks.length > 0 && initialBlocks[0].id.startsWith('title-')) {
+         extractedTitle = initialBlocks[0].content;
+         initialBlocks = initialBlocks.slice(1);
+     }
+     
+     setDraftBlocks(initialBlocks.length > 0 ? initialBlocks : [{ id: 'init-1', type: 'text', content: '' }]);
+     setDraftTitle(extractedTitle);
+     setDraftMood(entry?.mood); 
+     setDraftTheme(entry?.theme || 'slate'); 
+     onInteractionStart(); 
+   }, [journalEntryMap, onInteractionStart]);
  
  const handleSave = () => { 
  if (editorMode === 'NOTE' && draftId) { 
  handleUpdateNote({ id: draftId, title: draftTitle, blocks: draftBlocks, theme: draftTheme, projectId: draftProjectId, updatedAt: new Date().toISOString() }); 
  } else if (editorMode === 'JOURNAL' && draftId) { 
- // Save draftTitle as the first block if it's not already there to ensure it persists as the entry title
- let finalBlocks = [...draftBlocks];
- if (draftTitle.trim()) {
- const firstBlock = finalBlocks[0];
- // Only prepend if the first block is not already the exact same title
- if (!firstBlock || firstBlock.type !== 'text' || firstBlock.content !== draftTitle) {
- finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
- }
- }
- handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
- } 
- closeEditor(); 
- };
+    let finalBlocks = [...draftBlocks];
+    if (draftTitle.trim()) {
+      finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
+    }
+    handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
+  } 
+  closeEditor(); 
+  };
  
  const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
  const closeEditor = () => { 
@@ -1149,7 +1154,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <button onClick={handleSave} className="h-8 sm:h-10 px-4 sm:px-6 bg-white text-black rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm flex-shrink-0 flex items-center justify-center whitespace-nowrap">{t('notes.save')}</button>
  </div>
  </div>
- <div className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
+ <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
  {editorMode === 'NOTE' ? (
  <div className="animate-in slide-in-from-bottom-4 duration-200">
  <div className="relative mb-6">
@@ -1165,6 +1170,15 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-6">
                   {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
                 </span>
+
+                {/* Journal Title Input */}
+                <input 
+                  type="text" 
+                  value={draftTitle} 
+                  onChange={(e) => setDraftTitle(e.target.value)} 
+                  placeholder={t('notes.untitledPlaceholder') || 'Título del día...'} 
+                  className="w-full bg-transparent text-3xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight text-center mb-6" 
+                />
 
                 {/* Memories and Quests vertically stacked cards */}
                 {(activeSpecialEvent || activeDayQuests.length > 0) && (
