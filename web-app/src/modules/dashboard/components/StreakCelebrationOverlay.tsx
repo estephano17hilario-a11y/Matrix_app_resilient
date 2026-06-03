@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Circle } from 'lucide-react';
 import { addDays, isSameDay, format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { startOfWeek } from '../../../utils/dateUtils';
+import { startOfWeek, parseLocalDate } from '../../../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 
 interface StreakCelebrationOverlayProps {
@@ -40,7 +40,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
         // Generate array of active dates based on streak and lastStreakDate
         const activeDates: string[] = [];
         if (lastStreakDate && streak > 0) {
-            const lastDate = new Date(lastStreakDate);
+            const lastDate = parseLocalDate(lastStreakDate);
             // Add the lastDate and (streak - 1) days before it
             for (let i = 0; i < streak; i++) {
                 activeDates.push(format(subDays(lastDate, i), 'yyyy-MM-dd'));

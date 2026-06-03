@@ -743,12 +743,12 @@ export const useDashboardLogic = () => {
                 
 
                 // 1.5 CHECK STREAK CONTINUITY (Global Streak)
-                const yesterday = new Date(today);
+                const yesterday = parseLocalDate(today);
                 yesterday.setDate(yesterday.getDate() - 1);
                 const yesterdayStr = toLocalISOString(yesterday);
                 
                 const streakFrozenUntil = user.stats?.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
-                const isFrozen = streakFrozenUntil && streakFrozenUntil > new Date(today);
+                const isFrozen = streakFrozenUntil && streakFrozenUntil > parseLocalDate(today);
                 const lastStreakDate = user.stats?.lastStreakDate;
                 
                 // If last streak date is older than yesterday (and not frozen), reset streak.
@@ -2291,6 +2291,51 @@ export const useDashboardLogic = () => {
 
         checkStreak();
     }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification]);
+
+    // Enforce streak reset if it's broken (even if daily reset date has already updated)
+    useEffect(() => {
+        if (!user?.id || !user.stats) return;
+        if (user.isSkeleton) return;
+
+        const currentStreak = user.stats.streak || 0;
+        const lastStreakDate = user.stats.lastStreakDate;
+        
+        if (currentStreak > 0) {
+            const today = toLocalISOString(new Date());
+            const streakFrozenUntil = user.stats.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
+            const isFrozen = streakFrozenUntil && streakFrozenUntil > new Date();
+            
+            if (!isFrozen) {
+                const yesterday = parseLocalDate(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = toLocalISOString(yesterday);
+                
+                if (!lastStreakDate || lastStreakDate < yesterdayStr) {
+                    console.log(`[STREAK RESET GUARD] Streak is broken. lastStreakDate: ${lastStreakDate}, yesterdayStr: ${yesterdayStr}. Resetting streak to 0.`);
+                    
+                    const updatedStats = {
+                        ...(user.stats || {}),
+                        streak: 0,
+                        previousStreak: currentStreak
+                    };
+
+                    updateProfileLocally({
+                        stats: updatedStats
+                    });
+
+                    // Persist to server
+                    (async () => {
+                        try {
+                            await supabase.from('users').update({ stats: updatedStats }).eq('id', user.id);
+                            console.log("[STREAK RESET GUARD] Successfully persisted streak reset to Supabase.");
+                        } catch (err) {
+                            console.error("[STREAK RESET GUARD] Failed to persist streak reset:", err);
+                        }
+                    })();
+                }
+            }
+        }
+    }, [user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, user?.stats?.streakFrozenUntil, updateProfileLocally]);
 
 
     // --- UNIFIED REWARD SYSTEM ---
