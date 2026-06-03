@@ -303,8 +303,11 @@ const StoreContent = ({ }: StoreScreenProps) => {
   );
 };
 
-export const StoreScreen = (props: StoreScreenProps) => {
+const StoreScreenComponent = (props: StoreScreenProps) => {
   return (
     <StoreContent {...props} />
   );
 };
+
+export const StoreScreen = React.memo(StoreScreenComponent);
+

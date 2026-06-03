@@ -3,6 +3,7 @@ import type { Project } from '../../../types';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import FocusSession from '../../../plugins/FocusPlugin';
 
 export interface FocusSessionState {
     projectId: string;
@@ -29,6 +30,11 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     
     const lastTickRef = useRef<number>(0);
     const onCompleteRef = useRef(onComplete);
+    const timeLeftRef = useRef(timeLeft);
+
+    useEffect(() => {
+        timeLeftRef.current = timeLeft;
+    }, [timeLeft]);
 
     // Update ref on prop change without triggering timer effect
     useEffect(() => {
@@ -149,6 +155,19 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         cancelOngoingNotification();
     }, [project.pomoDuration, STORAGE_KEY]);
 
+    const toggleTimer = useCallback(() => {
+        if (!isActive) {
+            setIsActive(true);
+            setIsPaused(false);
+        } else {
+            setIsPaused(prev => !prev);
+        }
+    }, [isActive]);
+
+    const stopSession = useCallback(() => {
+        resetSession();
+    }, [resetSession]);
+
     // 1. Load State on Mount (or Project Change)
     useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -258,11 +277,13 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
             
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-            // Sync Notifications
-            if (isActive && !isPaused && mode === 'POMO' && targetTime) {
-                scheduleLocalNotification(targetTime);
-            } else {
-                cancelLocalNotification();
+            // Sync Notifications (Web only)
+            if (!Capacitor.isNativePlatform()) {
+                if (isActive && !isPaused && mode === 'POMO' && targetTime) {
+                    scheduleLocalNotification(targetTime);
+                } else {
+                    cancelLocalNotification();
+                }
             }
         };
 
@@ -311,30 +332,117 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         };
     }, [isActive, isPaused, mode, totalDuration, project.id]);
 
-    // Sync ongoing notification on tick/state change
+    // Sync ongoing notification on tick/state change (Web only)
     useEffect(() => {
-        if (isActive) {
-            updateOngoingNotification();
-        } else {
-            cancelOngoingNotification();
+        if (!Capacitor.isNativePlatform()) {
+            if (isActive) {
+                updateOngoingNotification();
+            } else {
+                cancelOngoingNotification();
+            }
         }
         return () => {
-            cancelOngoingNotification();
+            if (!Capacitor.isNativePlatform()) {
+                cancelOngoingNotification();
+            }
         };
     }, [timeLeft, isActive, isPaused, mode, project.title, project.color]);
 
-    const toggleTimer = useCallback(() => {
-        if (!isActive) {
-            setIsActive(true);
-            setIsPaused(false);
-        } else {
-            setIsPaused(prev => !prev);
-        }
-    }, [isActive]);
+    // Sync React state to Native Focus Service
+    const isFirstMountRef = useRef(true);
+    const lastSyncedStateRef = useRef<{ isActive: boolean, isPaused: boolean }>({ isActive: false, isPaused: false });
 
-    const stopSession = useCallback(() => {
-        resetSession();
-    }, [resetSession]);
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        if (isFirstMountRef.current) {
+            isFirstMountRef.current = false;
+            lastSyncedStateRef.current = { isActive, isPaused };
+            return;
+        }
+
+        const syncNative = async () => {
+            try {
+                const prev = lastSyncedStateRef.current;
+                if (prev.isActive !== isActive || prev.isPaused !== isPaused) {
+                    if (isActive) {
+                        if (prev.isActive !== isActive) {
+                            console.log("Starting native FocusSession...", { timeLeft: timeLeftRef.current, mode });
+                            await FocusSession.start({
+                                duration: mode === 'POMO' ? timeLeftRef.current : 0,
+                                mode: mode,
+                                projectName: project.title,
+                                projectColor: project.color,
+                                projectIcon: projectIcon || '✨'
+                            });
+                        } else if (prev.isPaused !== isPaused) {
+                            if (isPaused) {
+                                console.log("Pausing native FocusSession...");
+                                await FocusSession.pause();
+                            } else {
+                                console.log("Resuming native FocusSession...");
+                                await FocusSession.resume();
+                            }
+                        }
+                    } else {
+                        if (prev.isActive !== isActive) {
+                            console.log("Stopping native FocusSession...");
+                            await FocusSession.stop();
+                        }
+                    }
+                    lastSyncedStateRef.current = { isActive, isPaused };
+                }
+            } catch (e) {
+                console.error("Failed to sync state with native FocusSession", e);
+            }
+        };
+
+        syncNative();
+    }, [isActive, isPaused, mode, project.title, project.color, projectIcon]);
+
+    // Native Focus Service Action Listeners
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        let pauseListener: any = null;
+        let resumeListener: any = null;
+        let stopListener: any = null;
+
+        const setupListeners = async () => {
+            try {
+                pauseListener = await FocusSession.addListener('onPause', () => {
+                    console.log("Native event: onPause");
+                    setIsPaused(true);
+                    lastSyncedStateRef.current = { isActive: true, isPaused: true };
+                });
+
+                resumeListener = await FocusSession.addListener('onResume', () => {
+                    console.log("Native event: onResume");
+                    setIsPaused(false);
+                    lastSyncedStateRef.current = { isActive: true, isPaused: false };
+                });
+
+                stopListener = await FocusSession.addListener('onStop', () => {
+                    console.log("Native event: onStop");
+                    setIsActive(false);
+                    setIsPaused(false);
+                    lastSyncedStateRef.current = { isActive: false, isPaused: false };
+                    stopSession();
+                });
+            } catch (e) {
+                console.error("Failed to register native listeners", e);
+            }
+        };
+
+        setupListeners();
+
+        return () => {
+            if (pauseListener) pauseListener.then((l: any) => l.remove()).catch(console.error);
+            if (resumeListener) resumeListener.then((l: any) => l.remove()).catch(console.error);
+            if (stopListener) stopListener.then((l: any) => l.remove()).catch(console.error);
+        };
+    }, [stopSession]);
+
 
     return {
         mode,
@@ -350,3 +458,4 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         resetSession,
     };
 };
+

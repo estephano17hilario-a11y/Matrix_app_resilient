@@ -146,7 +146,7 @@ const categoryLabels: Record<string, string> = {
  RANK: 'achievements.categories.rank'
 };
 
-export const AchievementsScreen: React.FC = () => {
+const AchievementsScreenComponent: React.FC = () => {
  const { user } = useLux();
  const { t } = useTranslation();
  const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'ALL'>('ALL');
@@ -314,3 +314,5 @@ export const AchievementsScreen: React.FC = () => {
  </div>
  );
 };
+
+export const AchievementsScreen = React.memo(AchievementsScreenComponent);

@@ -14,11 +14,12 @@ import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
+import { AuroraBackground } from '@/components/AuroraBackground';
+import Dashboard from './Dashboard';
+
 // 🚀 PERFORMANCE: Lazy load heavy components
-const AuroraBackground = lazy(() => import('@/components/AuroraBackground').then(m => ({ default: m.AuroraBackground })));
 const AuthScreen = lazy(() => import('@/modules/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
 const OnboardingFlow = lazy(() => import('@/modules/onboarding/OnboardingFlow').then(m => ({ default: m.OnboardingFlow })));
-const Dashboard = lazy(() => import('./Dashboard'));
 
 const AppRoutes = () => {
   const { user, profile, isLoading, isInitializing } = useAuth();
@@ -41,12 +42,6 @@ const AppRoutes = () => {
     };
     setupDeepLinks();
   }, []);
-
-  useEffect(() => {
-    if (user || profile) {
-      import('./Dashboard');
-    }
-  }, [user, profile]);
 
   // 🚀 PERFORMANCE: Hide Splash Screen ASAP (0 Delay)
   // BUT ONLY AFTER isInitializing IS FALSE
@@ -96,9 +91,7 @@ const AppRoutes = () => {
           <EconomyProvider>
             <RewardProvider>
               <NotesProvider>
-                <Suspense fallback={<LoadingScreen />}>
-                  <Dashboard />
-                </Suspense>
+                <Dashboard />
                 <RewardOverlay />
               </NotesProvider>
             </RewardProvider>
@@ -116,9 +109,7 @@ const AppRoutes = () => {
       />
       {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
       <div className="fixed inset-0 z-0">
-        <Suspense fallback={null}>
-          <AuroraBackground />
-        </Suspense>
+        <AuroraBackground />
       </div>
 
       {/* 2. LAYER 1: APP CONTENT */}

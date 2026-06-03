@@ -10,7 +10,7 @@ interface AuroraBackgroundProps {
   children?: React.ReactNode;
 }
 
-export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColor, className, children }) => {
+const AuroraBackgroundComponent: React.FC<AuroraBackgroundProps> = ({ overrideColor, className, children }) => {
   const { theme, vividMode, availableThemes, vicesMode } = useTheme();
   const themeConfig = availableThemes?.[theme];
   const isSolid = themeConfig?.isSolid;
@@ -214,3 +214,5 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({ overrideColo
     </div>
   );
 };
+
+export const AuroraBackground = React.memo(AuroraBackgroundComponent);
