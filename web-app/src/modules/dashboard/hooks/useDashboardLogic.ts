@@ -569,26 +569,19 @@ export const useDashboardLogic = () => {
                             focusTraitPoints: Number(user.dailyLimits.focusTraitPoints || 0)
                         });
                     } else {
-                        // Reset if server date is old
-                        setDailyLimits(prev => prev.date === today ? prev : { 
-                            date: today,
-                            taskXp: 0,
-                            taskGold: 0,
-                            taskTraitPoints: 0,
-                            habitsCompleted: 0,
-                            focusSeconds: 0,
-                            totalXp: 0,
-                            totalGold: 0,
-                            totalTraitPoints: 0,
-                            tasksCompleted: 0,
-                            notesCompleted: 0,
-                            focusMinutes: 0,
-                            focusXp: 0,
-                            focusGold: 0,
-                            focusTraitPoints: 0,
-                            habitXp: 0,
-                            habitGold: 0,
-                            habitTraitPoints: 0
+                        // Server date is old. Sync it with its old date so that processDailyReset can handle the transition.
+                        setDailyLimits({
+                            ...user.dailyLimits,
+                            focusSeconds: Number(user.dailyLimits.focusSeconds || 0),
+                            habitsCompleted: Number(user.dailyLimits.habitsCompleted || 0),
+                            taskXp: Number(user.dailyLimits.taskXp || 0),
+                            taskGold: Number(user.dailyLimits.taskGold || 0),
+                            taskTraitPoints: Number(user.dailyLimits.taskTraitPoints || 0),
+                            notesCompleted: Number(user.dailyLimits.notesCompleted || 0),
+                            tasksCompleted: Number(user.dailyLimits.tasksCompleted || 0),
+                            focusXp: Number(user.dailyLimits.focusXp || 0),
+                            focusGold: Number(user.dailyLimits.focusGold || 0),
+                            focusTraitPoints: Number(user.dailyLimits.focusTraitPoints || 0)
                         });
                     }
                 }
@@ -794,7 +787,8 @@ export const useDashboardLogic = () => {
                          updateProfileLocally({
                              stats: {
                                  ...(user.stats || {}),
-                                 streak: 0
+                                 streak: 0,
+                                 previousStreak: user.stats.streak
                              }
                          });
                     }
@@ -1061,6 +1055,7 @@ export const useDashboardLogic = () => {
                         const updatedStats = {
                             ...(dbUser.stats || {}),
                             streak: isBroken ? 0 : (dbUser.stats?.streak || 0),
+                            previousStreak: isBroken ? dbUser.stats?.streak : (dbUser.stats?.previousStreak || 0),
                             dailyLimits: newLimits
                         };
                         
@@ -3562,6 +3557,7 @@ export const useDashboardLogic = () => {
             newQuest = { 
                 ...quest, 
                 completed: false, 
+                completedAt: undefined,
                 rewardedXp: undefined, 
                 rewardedGold: undefined 
             };
@@ -3606,6 +3602,7 @@ export const useDashboardLogic = () => {
             newQuest = { 
                 ...quest, 
                 completed: true,
+                completedAt: new Date().toISOString(),
                 rewardedXp: rewardXp,
                 rewardedGold: rewardGold,
                 rescheduledFromOverdue: false // Clear the flag
