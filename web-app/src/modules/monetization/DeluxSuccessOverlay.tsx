@@ -40,11 +40,10 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden">
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden">
         {/* Dark Background */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -188,6 +187,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
 
         </div>
       </div>
-    </AnimatePresence>
+    )}
+  </AnimatePresence>
   );
 };

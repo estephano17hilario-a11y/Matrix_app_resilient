@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Check, ArrowUp, Minus, Plus } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 
 interface ValidationModalProps {
+    isOpen: boolean;
     habit: Habit | null;
     onClose: () => void;
     attributes: Attribute[];
@@ -14,12 +15,10 @@ interface ValidationModalProps {
     onValidate: () => void;
 }
 
-export const ValidationModal = React.memo(({ habit, onClose, attributes, valTempValue, setValTempValue, setValidationHabit, onValidate }: ValidationModalProps) => {
-    if (!habit) return null;
-
+export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes, valTempValue, setValTempValue, setValidationHabit, onValidate }: ValidationModalProps) => {
     if (typeof document === 'undefined') return null;
 
-    const attribute = useMemo(() => attributes.find(a => a.id === habit.attribute), [attributes, habit.attribute]);
+    const attribute = useMemo(() => habit ? attributes.find(a => a.id === habit.attribute) : undefined, [attributes, habit]);
     const attributeColor = attribute?.color || '#3b82f6';
     const attributeIcon = attribute?.icon;
     const iconType = typeof attributeIcon === 'function' || (typeof attributeIcon === 'object' && attributeIcon !== null && '$$typeof' in attributeIcon)
@@ -27,7 +26,9 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
         : Star;
 
     return createPortal(
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
+        <AnimatePresence>
+            {isOpen && habit && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
             <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -105,7 +106,9 @@ export const ValidationModal = React.memo(({ habit, onClose, attributes, valTemp
                 )}
                 <button onClick={onValidate} className="w-full mt-6 py-4 bg-white text-black font-black rounded-xl hover:scale-[1.02] active:scale-95 transition-[transform,background-color,color,border-color] shadow-md flex items-center justify-center gap-2">Update Progress <ArrowUp size={16} /></button>
             </motion.div>
-        </div>,
+                </div>
+            )}
+        </AnimatePresence>,
         document.body
     );
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Skull, Coins, Heart, AlertTriangle, ShieldCheck, Sparkles, RotateCcw, Check, ArrowDown } from 'lucide-react';
 import { BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 interface RelapseModalProps {
     isOpen: boolean;
     onClose: () => void;
-    habit: BadHabit;
+    habit: BadHabit | null;
     onConfirm: (method: 'GOLD' | 'HP') => void;
     userGold: number;
 }
@@ -30,23 +30,25 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
     userGold
 }) => {
     const { t } = useTranslation();
-    if (!isOpen || typeof document === 'undefined') return null;
+    if (typeof document === 'undefined') return null;
 
-    const isIntelligent = habit.intelligentStreak;
-    const currentTarget = habit.currentTarget || 1;
-    const reachedDays = habit.reachedDays || 0;
+    const isIntelligent = habit?.intelligentStreak || false;
+    const currentTarget = habit?.currentTarget || 1;
+    const reachedDays = habit?.reachedDays || 0;
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
 
-    const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
+    const targetIndex = habit ? STREAK_TARGETS.indexOf(currentTarget) : -1;
     const previousTarget = targetIndex > 0 ? STREAK_TARGETS[targetIndex - 1] : 1;
-    const nextTarget = targetIndex < STREAK_TARGETS.length - 1 ? STREAK_TARGETS[targetIndex + 1] : null;
-    const { penalties } = habit;
-    const canAffordGold = userGold >= penalties.gold && !isIntelligent;
+    const nextTarget = (habit && targetIndex < STREAK_TARGETS.length - 1) ? STREAK_TARGETS[targetIndex + 1] : null;
+    const penalties = habit?.penalties || { gold: 0, hp: 0, xp: 0 };
+    const canAffordGold = habit ? (userGold >= penalties.gold && !isIntelligent) : false;
     // HP Penalty should be based on impact or default to a reasonable value for intelligent vice
     const hpPenalty = isIntelligent ? Math.max(5, Math.floor(penalties.hp * 0.5)) : Math.max(1, Math.floor(penalties.hp * 0.5));
 
     return createPortal(
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+        <AnimatePresence>
+            {isOpen && habit && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -270,7 +272,9 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                     )}
                 </div>
             </motion.div>
-        </div>,
+                </div>
+            )}
+        </AnimatePresence>,
         document.body
     );
 };

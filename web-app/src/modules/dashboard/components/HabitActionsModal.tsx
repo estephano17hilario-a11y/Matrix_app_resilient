@@ -1,11 +1,12 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Archive, Trash2, Edit2, X, RotateCcw } from 'lucide-react';
 import { Habit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 interface HabitActionsModalProps {
+    isOpen: boolean;
     habit: Habit | null;
     onClose: () => void;
     onEdit: (habit: Habit) => void;
@@ -14,6 +15,7 @@ interface HabitActionsModalProps {
 }
 
 export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
+    isOpen,
     habit,
     onClose,
     onEdit,
@@ -21,14 +23,14 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
     onDelete
 }) => {
     const { t } = useTranslation();
-    if (!habit) return null;
-
     if (typeof document === 'undefined') return null;
 
-    const isArchived = habit.archived;
+    const isArchived = habit?.archived || false;
 
     return createPortal(
-        <div className="fixed inset-0 z-[550] flex items-end sm:items-center justify-center p-4 sm:p-6">
+        <AnimatePresence>
+            {isOpen && habit && (
+                <div className="fixed inset-0 z-[550] flex items-end sm:items-center justify-center p-4 sm:p-6">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -113,7 +115,9 @@ export const HabitActionsModal: React.FC<HabitActionsModalProps> = ({
                     </button>
                 </div>
             </motion.div>
-        </div>,
+                </div>
+            )}
+        </AnimatePresence>,
         document.body
     );
 };

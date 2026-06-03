@@ -127,8 +127,6 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  setLocalConfig(DEFAULT_DOCK_CONFIG);
  };
 
- if (!isOpen) return null;
-
  return createPortal(
  <AnimatePresence>
  {isOpen && (

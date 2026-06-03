@@ -318,12 +318,24 @@
   }
 
 
-
-  .android-webview .backdrop-blur-sm transform-gpu backface-hidden .transform-gpu ,
-  .android-webview .backdrop-blur.transform-gpu {
-    backdrop-filter: blur(2px) !important;
-    -webkit-backdrop-filter: blur(2px) !important;
-    /* Removed translate3d and backface-visibility as they cause layer explosion on mobile */
+  .android-webview .backdrop-blur-sm,
+  .android-webview .backdrop-blur-md,
+  .android-webview .backdrop-blur-lg,
+  .android-webview .backdrop-blur-xl,
+  .android-webview .backdrop-blur-2xl,
+  .android-webview .backdrop-blur-3xl,
+  .android-webview .backdrop-blur,
+  .android-webview [class*="backdrop-blur"],
+  .android-webview .aura-container::after,
+  .android-webview .liquid-glass-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .android-webview .glass-panel::before,
+  .android-webview .rgb-border-container::before,
+  .android-webview .premium-fab::before,
+  .android-webview .aura-container::before {
+    animation: none !important;
   }
 
   [data-theme='vision_pro'] {

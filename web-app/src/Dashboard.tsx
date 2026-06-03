@@ -1248,7 +1248,6 @@ export default function Dashboard() {
  <GlobalStyles />
  
  <Suspense fallback={null}>
- {(isProModalOpen || activeModal === 'PRO') && (
  <ProUpgradeModal 
  isOpen={isProModalOpen || activeModal === 'PRO'}
  onClose={() => {
@@ -1256,25 +1255,20 @@ export default function Dashboard() {
  if (activeModal === 'PRO') setActiveModal(null);
  }}
  />
- )}
  </Suspense>
 
  {/* Global Streak Celebration Overlay */}
- {showStreakCelebration && (
  <StreakCelebrationOverlay 
  isOpen={showStreakCelebration}
  onClose={() => setShowStreakCelebration(false)}
  streak={displayStreak}
  lastStreakDate={user?.stats?.lastStreakDate}
  />
- )}
 
- {showDeluxSuccess && (
  <DeluxSuccessOverlay 
  isOpen={showDeluxSuccess}
  onClose={() => setShowDeluxSuccess(false)}
  />
- )}
 
  <StatsTutorialOverlay 
  isOpen={showStatsTutorial}
@@ -1741,159 +1735,124 @@ export default function Dashboard() {
  document.body
  )}
  
- <AnimatePresence>
-    {isDockConfigOpen && (
-      <DockConfigModal
-        isOpen={true}
-        onClose={() => setIsDockConfigOpen(false)}
-        config={dockConfig}
-        onSave={updateDockConfig}
-      />
-    )}
-  </AnimatePresence>
+  <DockConfigModal
+    isOpen={isDockConfigOpen}
+    onClose={() => setIsDockConfigOpen(false)}
+    config={dockConfig}
+    onSave={updateDockConfig}
+  />
   
   {/* --- GLOBAL BACKDROP (REMOVED: Each modal has its own backdrop) --- */}
 
   {/* MODALS */}
-  <AnimatePresence>
-    {activeModal === 'QUEST' && (
-      <QuestModal 
-        isOpen={true} 
-        onClose={handleQuestModalClose} 
-        attributes={attributes} 
-        projects={projects} 
-        smartProjects={smartProjects}
-        onConfirm={handleQuestSave}
-        lockedAttributeId={smartTaskProps?.lockedAttributeId}
-        lockedDate={smartTaskProps?.lockedDate}
-        lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
-        isSmartTask={!!smartTaskProps}
-        initialValues={editingQuest || undefined}
-      />
-    )}
-  </AnimatePresence>
+  <QuestModal 
+    isOpen={activeModal === 'QUEST'} 
+    onClose={handleQuestModalClose} 
+    attributes={attributes} 
+    projects={projects} 
+    smartProjects={smartProjects}
+    onConfirm={handleQuestSave}
+    lockedAttributeId={smartTaskProps?.lockedAttributeId}
+    lockedDate={smartTaskProps?.lockedDate}
+    lockedSmartProjectId={smartTaskProps?.lockedSmartProjectId}
+    isSmartTask={!!smartTaskProps}
+    initialValues={editingQuest || undefined}
+  />
 
-  <AnimatePresence>
-    {activeModal === 'HABIT' && (
-      <HabitModal 
-        isOpen={true} 
-        onClose={() => { 
-          setActiveModal(null); 
-          setEditingHabit(null); 
-          setModalInitialContext(null); 
-          window.dispatchEvent(new CustomEvent('habit-created'));
-        }} 
-        attributes={attributes} 
-        smartProjects={smartProjects}
-        projects={projects}
-        onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
-        initialData={editingHabit || modalInitialContext || undefined}
-        onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
-      />
-    )}
-  </AnimatePresence>
+  <HabitModal 
+    isOpen={activeModal === 'HABIT'} 
+    onClose={() => { 
+      setActiveModal(null); 
+      setEditingHabit(null); 
+      setModalInitialContext(null); 
+      window.dispatchEvent(new CustomEvent('habit-created'));
+    }} 
+    attributes={attributes} 
+    smartProjects={smartProjects}
+    projects={projects}
+    onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
+    initialData={editingHabit || modalInitialContext || undefined}
+    onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
+  />
 
-  <AnimatePresence>
-    {activeModal === 'PROJECT' && (
-      <ProjectModal 
-        isOpen={true} 
-        onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
-        attributes={attributes} 
-        smartProjects={smartProjects} 
-        onConfirm={handleProjectConfirmAndReset} 
-        onDelete={handleDeleteProjectRequest}
-        initialData={modalInitialContext || undefined}
-      />
-    )}
-  </AnimatePresence>
+  <ProjectModal 
+    isOpen={activeModal === 'PROJECT'} 
+    onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
+    attributes={attributes} 
+    smartProjects={smartProjects} 
+    onConfirm={handleProjectConfirmAndReset} 
+    onDelete={handleDeleteProjectRequest}
+    initialData={modalInitialContext || undefined}
+  />
 
-  <AnimatePresence>
-    {activeModal === 'BAD_HABIT' && (
-      <BadHabitWizard 
-        isOpen={true}
-        onClose={() => { 
-          setActiveModal(null); 
-          setEditingBadHabit(null); 
-          window.dispatchEvent(new CustomEvent('bad-habit-created'));
-        }}
-        onConfirm={handleBadHabitConfirm}
-        attributes={attributes}
-        isFirstIdentify={badHabits.length === 0}
-        onSwitchToHabit={() => setActiveModal('HABIT')}
-        initialData={editingBadHabit || undefined}
-      />
-    )}
-  </AnimatePresence>
+  <BadHabitWizard 
+    isOpen={activeModal === 'BAD_HABIT'}
+    onClose={() => { 
+      setActiveModal(null); 
+      setEditingBadHabit(null); 
+      window.dispatchEvent(new CustomEvent('bad-habit-created'));
+    }}
+    onConfirm={handleBadHabitConfirm}
+    attributes={attributes}
+    isFirstIdentify={badHabits.length === 0}
+    onSwitchToHabit={() => setActiveModal('HABIT')}
+    initialData={editingBadHabit || undefined}
+  />
 
-  <AnimatePresence>
-    {activeModal === 'RELAPSE' && relapsingHabit && (
-      <RelapseModal 
-        isOpen={true}
-        onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
-        habit={relapsingHabit}
-        onConfirm={(method) => {
-          handleBadHabitRelapse(relapsingHabit, method);
-          setActiveModal(null);
-          setRelapsingHabit(null);
-        }}
-        userGold={player.gold}
-      />
-    )}
-  </AnimatePresence>
+  <RelapseModal 
+    isOpen={activeModal === 'RELAPSE' && !!relapsingHabit}
+    onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
+    habit={relapsingHabit}
+    onConfirm={(method) => {
+      if (relapsingHabit) {
+        handleBadHabitRelapse(relapsingHabit, method);
+      }
+      setActiveModal(null);
+      setRelapsingHabit(null);
+    }}
+    userGold={player.gold}
+  />
   
   {/* Validation Modal */}
-  <AnimatePresence>
-    {validationHabit && (
-      <ValidationModal 
-        habit={validationHabit} 
-        onClose={() => setValidationHabit(null)} 
-        attributes={attributes} 
-        valTempValue={valTempValue} 
-        setValTempValue={setValTempValue} 
-        setValidationHabit={setValidationHabit} 
-        onValidate={validateHabitProgress} 
-      />
-    )}
-  </AnimatePresence>
+  <ValidationModal 
+    isOpen={!!validationHabit}
+    habit={validationHabit} 
+    onClose={() => setValidationHabit(null)} 
+    attributes={attributes} 
+    valTempValue={valTempValue} 
+    setValTempValue={setValTempValue} 
+    setValidationHabit={setValidationHabit} 
+    onValidate={validateHabitProgress} 
+  />
 
   {/* --- HABIT ACTIONS & CONFIRMATION --- */}
-  <AnimatePresence>
-    {habitActionsHabit && (
-      <HabitActionsModal 
-        habit={habitActionsHabit}
-        onClose={() => setHabitActionsHabit(null)}
-        onEdit={(h) => handleEditHabit(h)}
-        onArchive={handleArchiveHabit}
-        onDelete={handleDeleteHabitRequest}
-      />
-    )}
-  </AnimatePresence>
+  <HabitActionsModal 
+    isOpen={!!habitActionsHabit}
+    habit={habitActionsHabit}
+    onClose={() => setHabitActionsHabit(null)}
+    onEdit={(h) => handleEditHabit(h)}
+    onArchive={handleArchiveHabit}
+    onDelete={handleDeleteHabitRequest}
+  />
 
-  <AnimatePresence>
-    {badHabitActionsHabit && (
-      <BadHabitActionsModal 
-        habit={badHabitActionsHabit}
-        onClose={() => setBadHabitActionsHabit(null)}
-        onEdit={(h) => handleEditBadHabit(h)}
-        onArchive={handleArchiveBadHabit}
-        onDelete={handleDeleteBadHabitRequest}
-      />
-    )}
-  </AnimatePresence>
+  <BadHabitActionsModal 
+    isOpen={!!badHabitActionsHabit}
+    habit={badHabitActionsHabit}
+    onClose={() => setBadHabitActionsHabit(null)}
+    onEdit={(h) => handleEditBadHabit(h)}
+    onArchive={handleArchiveBadHabit}
+    onDelete={handleDeleteBadHabitRequest}
+  />
 
-  <AnimatePresence>
-    {confirmationModal.isOpen && (
-      <ConfirmationModal
-        isOpen={true}
-        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmationModal.onConfirm}
-        title={confirmationModal.title}
-        message={confirmationModal.message}
-        confirmText={confirmationModal.confirmText}
-        variant={confirmationModal.variant}
-      />
-    )}
-  </AnimatePresence>
+  <ConfirmationModal
+    isOpen={confirmationModal.isOpen}
+    onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+    onConfirm={confirmationModal.onConfirm}
+    title={confirmationModal.title}
+    message={confirmationModal.message}
+    confirmText={confirmationModal.confirmText}
+    variant={confirmationModal.variant}
+  />
 
  </main>
 

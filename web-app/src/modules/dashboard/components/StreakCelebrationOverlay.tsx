@@ -70,9 +70,6 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
         });
     }, [streak, lastStreakDate]);
 
-    // If not open, return null immediately
-    if (!isOpen) return null;
-
     return createPortal(
         <AnimatePresence>
             {isOpen && (
