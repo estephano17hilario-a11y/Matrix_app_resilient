@@ -15,7 +15,6 @@ import { cn } from '../../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
-import { FocusLimits } from '../FocusLimits';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
@@ -26,7 +25,6 @@ type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'T
 export const FocusStats = React.memo(({ 
     projects, 
     attributes,
-    dailyLimits: propDailyLimits,
     showArchived,
     onToggleArchived,
     isPro,
@@ -50,14 +48,6 @@ export const FocusStats = React.memo(({
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
-    const dailyLimits: DailyLimits = propDailyLimits ?? user?.dailyLimits ?? {
-        date: '',
-        taskXp: 0,
-        taskGold: 0,
-        taskTraitPoints: 0,
-        habitsCompleted: 0,
-        focusSeconds: 0
-    };
     
     const ALL_RANGES = useMemo(() => [
         { value: 'DAY' as TimeRange, label: t('dashboard.today') },

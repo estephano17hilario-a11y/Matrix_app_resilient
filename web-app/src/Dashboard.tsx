@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
-import { ArrowUp, AlertTriangle, Plus, TrendingUp, X, Target, Shield } from 'lucide-react';
+import { ArrowUp, AlertTriangle, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { toLocalISOString, startOfWeek, endOfWeek } from './utils/dateUtils';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
-import { TRAITS_LIST } from './modules/dashboard/constants';
-import { calculateSubTraitMaxXp } from './utils/leveling';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 const ResponsiveContainerAny = ResponsiveContainer as any;

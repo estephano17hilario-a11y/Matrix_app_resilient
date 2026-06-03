@@ -55,7 +55,7 @@ export const useNotificationSystem = (isEnabled: boolean) => {
             name: 'Focus Session',
             importance: 2, // Low importance to prevent sound/vibration on updates
             description: 'Active Focus Session Timer',
-            sound: null,
+            sound: undefined,
             visibility: 1
         }).catch(e => console.warn("Failed to create focus channel", e));
 

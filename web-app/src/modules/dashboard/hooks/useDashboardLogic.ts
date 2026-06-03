@@ -734,36 +734,8 @@ export const useDashboardLogic = () => {
                 // 1. Calculate Penalty based on CURRENT habits (previous day's state)
                 const canProcessHabits = areHabitsLoaded;
                 
-                // 🛡️ TIME MACHINE FIX: Only count habits that existed YESTERDAY
-                // If a habit was created TODAY (after yesterday), it shouldn't count towards yesterday's target
-                let relevantHabits = habits;
-                if (canProcessHabits) {
-                    const yesterdayEndOfDay = new Date(lastDate);
-                    yesterdayEndOfDay.setHours(23, 59, 59, 999);
-                    const lastDateObj = new Date(lastDate + 'T12:00:00');
-                    
-                    relevantHabits = habits.filter(h => {
-                        let createdAt = h.createdAt ? new Date(h.createdAt) : null;
-                        
-                        // If no createdAt, infer from history (Legacy Fix)
-                        if (!createdAt) {
-                            if (h.history && h.history.length > 0) {
-                                const dates = h.history.map(d => new Date(d).getTime());
-                                createdAt = new Date(Math.min(...dates));
-                            } else {
-                                // Assume today if no history/created
-                                createdAt = new Date();
-                            }
-                        }
-                        
-                        const isCreatedBefore = createdAt <= yesterdayEndOfDay;
-                        if (!isCreatedBefore) return false;
-                        
-                        return isHabitActive(h, lastDateObj);
-                    });
-                }
 
-                const _totalHabits = canProcessHabits ? relevantHabits.length : 0;
+
                 let damage = 0; // Health penalty for incomplete habits is disabled per user request
 
                 // 2. Prepare Batch
@@ -2854,7 +2826,7 @@ export const useDashboardLogic = () => {
             const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
             setPlayer(newPlayerStats);
 
-            let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+            let traitUpdate: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | undefined = undefined;
             if (attrId) {
                 const attrIndex = attributes.findIndex(a => a.id === attrId);
                 if (attrIndex !== -1) {
@@ -3057,7 +3029,7 @@ export const useDashboardLogic = () => {
             const newPlayerStats = { ...player, xp: newXp, gold: player.gold + totalGold, level: newLevel, nextXp: newNextXp };
             setPlayer(newPlayerStats);
 
-            let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+            let traitUpdate: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | undefined = undefined;
             if (targetProj.attribute) {
                 const attrIndex = attributes.findIndex(a => a.id === targetProj.attribute);
                 if (attrIndex !== -1) {

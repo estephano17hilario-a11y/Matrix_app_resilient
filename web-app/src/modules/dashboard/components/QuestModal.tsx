@@ -171,7 +171,7 @@ export const QuestModal = React.memo(({
                 title, 
                 description: desc, 
                 attribute: attrId, 
-                subAttribute: subAttrId || undefined,
+                subAttribute: (subAttrId || null) as any,
                 projectId: finalProjectId,
                 smartProjectId: finalSmartProjectId,
                 difficulty, 
@@ -288,7 +288,14 @@ export const QuestModal = React.memo(({
                                                 return (
                                                     <button 
                                                         key={p.id} 
-                                                        onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                        onClick={() => { 
+                                                            setProjectId(p.id); 
+                                                            if (p.traitId) {
+                                                                setAttrId(p.traitId);
+                                                                setSubAttrId('');
+                                                            }
+                                                            setProjectPickerOpen(false); 
+                                                        }}
                                                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
                                                     >
                                                         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.traitColor || attr?.color || '#333' }}>
@@ -313,7 +320,14 @@ export const QuestModal = React.memo(({
                                                 return (
                                                     <button 
                                                         key={p.id} 
-                                                        onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                        onClick={() => { 
+                                                            setProjectId(p.id); 
+                                                            if (p.attribute) {
+                                                                setAttrId(p.attribute);
+                                                                setSubAttrId('');
+                                                            }
+                                                            setProjectPickerOpen(false); 
+                                                        }}
                                                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
                                                     >
                                                         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>

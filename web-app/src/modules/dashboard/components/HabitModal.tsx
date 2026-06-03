@@ -286,7 +286,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                 impact,
                 projectId: projectId || undefined,
                 smartProjectId: smartProjectId || undefined,
-                subAttribute: subAttrId || undefined,
+                subAttribute: (subAttrId || null) as any,
                 ...(initialData?.id ? { id: initialData.id } : {})
             });
             onClose();
@@ -1249,7 +1249,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                             return (
                                                                 <button 
                                                                     key={p.id} 
-                                                                    onClick={() => { setProjectId(p.id); setProjectPickerOpen(false); }}
+                                                                    onClick={() => { 
+                                                                        setProjectId(p.id); 
+                                                                        if (p.attribute) {
+                                                                            setAttrId(p.attribute);
+                                                                            setSubAttrId('');
+                                                                        }
+                                                                        setProjectPickerOpen(false); 
+                                                                    }}
                                                                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left"
                                                                 >
                                                                     <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>

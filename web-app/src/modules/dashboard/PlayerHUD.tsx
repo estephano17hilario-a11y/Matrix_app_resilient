@@ -10,18 +10,6 @@ import { TraitRadarChart } from './components/TraitRadarChart';
 import { TRAITS_LIST } from './constants';
 import { Attribute } from '@/types';
 import { calculateSubTraitMaxXp } from '@/utils/leveling';
-import { toLocalISOString } from '../../utils/dateUtils';
-import { ResponsiveContainer, LineChart, Line, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-
-const ResponsiveContainerAny = ResponsiveContainer as any;
-const LineChartAny = LineChart as any;
-const LineAny = Line as any;
-const AreaChartAny = AreaChart as any;
-const AreaAny = Area as any;
-const CartesianGridAny = CartesianGrid as any;
-const XAxisAny = XAxis as any;
-const YAxisAny = YAxis as any;
-const TooltipAny = Tooltip as any;
 
 interface PlayerHUDProps {
  attributes?: Attribute[];

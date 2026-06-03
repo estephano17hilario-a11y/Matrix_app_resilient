@@ -13,6 +13,7 @@ export interface UserStats {
   streak: number;   // Días consecutivos
   streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
   lastStreakDate?: string; // Fecha de la última vez que se incrementó la racha
+  previousStreak?: number;
 }
 
 export interface DailyLimits {

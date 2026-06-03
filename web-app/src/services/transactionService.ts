@@ -101,7 +101,7 @@ export const TransactionService = {
             // Using update() which does a direct UPSERT by ID without needing to fetch first
             await persistenceService.quests.update(userId, questId, {
                 completed: isCompleted,
-                completedAt: isCompleted ? new Date().toISOString() : null,
+                completedAt: isCompleted ? new Date().toISOString() : undefined,
                 rewardedXp: isCompleted ? rewardXp : 0,
                 rewardedGold: isCompleted ? rewardGold : 0
             });

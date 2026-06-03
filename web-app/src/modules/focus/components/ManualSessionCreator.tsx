@@ -2,12 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { TimeWheel } from './TimeWheel';
-import { useTranslation } from 'react-i18next';
+
 
 interface ManualSessionCreatorProps {
   initialDuration: number; // in minutes
@@ -30,7 +30,6 @@ export const ManualSessionCreator = ({
   onDelete,
   isEditing = false
 }: ManualSessionCreatorProps) => {
-  const { t } = useTranslation();
   // Start at 0h 0m by default (unless editing an existing session)
   const defaultHours = isEditing ? Math.floor(initialDuration / 60) : 0;
   const defaultMinutes = isEditing ? (initialDuration % 60) : 0;

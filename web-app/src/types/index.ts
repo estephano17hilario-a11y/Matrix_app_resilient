@@ -261,6 +261,7 @@ export interface UserStats {
   gold: number;
   streak: number;
   nextXp?: number;
+  previousStreak?: number;
 }
 
 export interface UserProfile {

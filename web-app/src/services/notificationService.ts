@@ -117,7 +117,7 @@ export const notificationService = {
  name: 'Focus Session',
  importance: 2,
  description: 'Active Focus Session Timer',
- sound: null,
+ sound: undefined,
  visibility: 1
  });
  } catch (channelError) {
