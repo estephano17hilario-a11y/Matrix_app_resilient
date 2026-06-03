@@ -238,7 +238,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  stiffness: 300, 
  damping: 28
  }}
- className="pointer-events-none relative bg-[#0a0a0a]/30 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
+ className="pointer-events-none relative bg-[#0a0a0a]/30 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
  style={{ willChange: 'transform, height' }}
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />

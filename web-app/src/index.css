@@ -364,6 +364,34 @@
     animation: none !important;
   }
 
+  /* RESTORE DOCK BLUR SPECIFICALLY FOR AESTHETICS AND SEPARATING FROM BACKGROUND */
+  .android-webview [data-tour="dock"],
+  .android-webview [data-tour="dock"] .backdrop-blur-sm,
+  .android-webview [data-tour="dock"] .aura-container {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  .android-webview [data-tour="dock"] .backdrop-blur-md,
+  .android-webview [data-tour="dock"] .backdrop-blur {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  @media (max-width: 768px) {
+    .android-webview [data-tour="dock"],
+    .android-webview [data-tour="dock"] .backdrop-blur-sm,
+    .android-webview [data-tour="dock"] .aura-container {
+      backdrop-filter: blur(2px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
+    }
+    .android-webview [data-tour="dock"] .backdrop-blur-md,
+    .android-webview [data-tour="dock"] .backdrop-blur {
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+    }
+  }
+
+
   [data-theme='vision_pro'] {
     --color-bg-depth: 10 10 15;
     --color-primary-glow: 50 150 255;
