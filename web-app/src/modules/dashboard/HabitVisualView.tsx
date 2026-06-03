@@ -139,8 +139,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         const saved = localStorage.getItem('habitViewPreference');
         return (saved === 'CHRONOLOGICAL' || saved === 'DEFAULT') ? saved : (defaultViewPreference || 'DEFAULT');
     });
-    const [hideCompletedChronological, setHideCompletedChronological] = useState(() => {
-        const saved = localStorage.getItem('hideCompletedChronological');
+    const [hideCompleted, setHideCompleted] = useState(() => {
+        const saved = localStorage.getItem('hideCompletedHabits');
+        return saved === 'true';
+    });
+    const [showAllHabits, setShowAllHabits] = useState(() => {
+        const saved = localStorage.getItem('showAllHabits');
         return saved === 'true';
     });
 
@@ -155,8 +159,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     }, [viewPreference]);
 
     useEffect(() => {
-        localStorage.setItem('hideCompletedChronological', hideCompletedChronological.toString());
-    }, [hideCompletedChronological]);
+        localStorage.setItem('hideCompletedHabits', hideCompleted.toString());
+    }, [hideCompleted]);
+
+    useEffect(() => {
+        localStorage.setItem('showAllHabits', showAllHabits.toString());
+    }, [showAllHabits]);
 
     // Split habits into active and archived
     const { activeHabits, archivedHabits } = useMemo(() => {
@@ -283,7 +291,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     ))
                 ));
 
-            if (!isDue) return;
+            if (!isDue && !showAllHabits) return;
 
             const attribute = attributeMap.get(habit.attribute);
             const baseColor = habit.customColor || attribute?.color || '#6366f1';
@@ -306,7 +314,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             time: sub.reminderTime || habit.reminderTime || '23:59',
                             isCompleted: sub.completed,
                             color: sub.color || baseColor,
-                            Icon: Icon
+                            Icon: Icon,
+                            isDue: isDue
                         });
                     }
                 });
@@ -326,7 +335,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                         time: t.time,
                         isCompleted: isCompleted,
                         color: baseColor,
-                        Icon: Icon
+                        Icon: Icon,
+                        isDue: isDue
                     });
                     accumulated += t.amount;
                 });
@@ -359,7 +369,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     time: displayTime,
                     isCompleted: habit.completedToday,
                     color: baseColor,
-                    Icon: Icon
+                    Icon: Icon,
+                    isDue: isDue
                 });
             }
         });
@@ -374,11 +385,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             };
             return parseTime(a.time) - parseTime(b.time);
         });
-        if (hideCompletedChronological) {
+        if (hideCompleted) {
             sortedItems = sortedItems.filter(item => !item.isCompleted);
         }
         return sortedItems;
-    }, [displayedHabits, currentDate, viewPreference, attributeMap, hideCompletedChronological]);
+    }, [displayedHabits, currentDate, viewPreference, attributeMap, hideCompleted, showAllHabits]);
 
     const reduceMotion = useMemo(() => {
         return displayedHabits.length + badHabits.length > 20;
@@ -473,7 +484,20 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     />
                                     
                                     {/* View Switcher and Controls */}
-                                    <div className="flex items-center justify-center gap-2 mt-1 -mb-1.5 mx-auto w-full max-w-[260px]">
+                                    <div className="flex items-center justify-center gap-2 mt-1 -mb-1.5 mx-auto w-full max-w-[320px]">
+                                        <button
+                                            onClick={() => setShowAllHabits(!showAllHabits)}
+                                            className={cn(
+                                                "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
+                                                showAllHabits 
+                                                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
+                                                    : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                            )}
+                                            title={showAllHabits ? t('habits.showTodayOnly', 'Mostrar solo hoy') : t('habits.showAll', 'Mostrar todos')}
+                                        >
+                                            {showAllHabits ? <LucideIcons.CalendarOff size={16} /> : <LucideIcons.Calendar size={16} />}
+                                        </button>
+
                                         <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-0.5 flex-1">
                                             <button
                                                 onClick={() => setViewPreference('DEFAULT')}
@@ -513,20 +537,18 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             </button>
                                         </div>
                                         
-                                        {viewPreference === 'CHRONOLOGICAL' && (
-                                            <button
-                                                onClick={() => setHideCompletedChronological(!hideCompletedChronological)}
-                                                className={cn(
-                                                    "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
-                                                    hideCompletedChronological 
-                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
-                                                        : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
-                                                )}
-                                                title={hideCompletedChronological ? t('habits.showCompleted', 'Mostrar completados') : t('habits.hideCompleted', 'Ocultar completados')}
-                                            >
-                                                {hideCompletedChronological ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => setHideCompleted(!hideCompleted)}
+                                            className={cn(
+                                                "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
+                                                hideCompleted 
+                                                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
+                                                    : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                            )}
+                                            title={hideCompleted ? t('habits.showCompleted', 'Mostrar completados') : t('habits.hideCompleted', 'Ocultar completados')}
+                                        >
+                                            {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -557,7 +579,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.15, delay: idx * 0.05, ease: "easeOut" }}
-                                        className="w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden"
+                                        className={cn("w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden", !item.isDue && !item.isCompleted && "opacity-60 grayscale")}
                                         style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
                                         onClick={() => setMasteryHabit(item.habit)}
                                         onContextMenu={(e) => {
@@ -592,7 +614,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             <div className="flex items-center gap-2 overflow-hidden">
                                                 <span className={cn(
                                                     "text-[14px] font-semibold truncate transition-colors",
-                                                    item.isCompleted ? "text-white/30 line-through" : "text-white/70"
+                                                    item.isCompleted ? "text-white/30 line-through" : (!item.isDue ? "text-white/30" : "text-white/70")
                                                 )}>
                                                     {item.text}
                                                 </span>
@@ -697,7 +719,21 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     </div>
                                 ))
                             ) : (
-                                displayedHabits.map(habit => {
+                                displayedHabits.filter(habit => {
+                                    const isDue = habit.frequency === 'DAILY' || 
+                                                    (habit.frequency === 'WEEKLY' && 
+                                                    (habit.weeklyType === 'FLEXIBLE_COUNT' || !habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||
+                                                    (habit.frequency === 'MONTHLY' && (
+                                                    habit.monthlyType === 'FLEXIBLE_COUNT' ||
+                                                    ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (
+                                                        (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||
+                                                        (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
+                                                    ))
+                                                ));
+                                    if (hideCompleted && habit.completedToday) return false;
+                                    if (!showAllHabits && !isDue) return false;
+                                    return true;
+                                }).map(habit => {
                                     const isDue = habit.frequency === 'DAILY' || 
                                                     (habit.frequency === 'WEEKLY' && 
                                                     (habit.weeklyType === 'FLEXIBLE_COUNT' || !habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||

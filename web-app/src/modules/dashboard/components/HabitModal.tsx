@@ -156,10 +156,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         }
     }, [isOpen, initialData]);
 
-    // Clear subAttrId when attrId changes
-    useEffect(() => {
-        setSubAttrId('');
-    }, [attrId]);
+    // Reset subAttrId only when attribute is manually changed or reset, not automatically on mount/populate
 
     // Smart Auto-linking by Keywords in title
     useEffect(() => {
@@ -172,7 +169,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                     const matched = subWords.some(word => title.toLowerCase().includes(word)) || title.toLowerCase().includes(sub.name.toLowerCase());
                     if (matched) {
                         setAttrId(attr.id);
-                        setTimeout(() => setSubAttrId(sub.id), 0);
+                        setSubAttrId(sub.id);
                         return;
                     }
                 }
@@ -458,7 +455,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                         key={attr.id} 
                                                                         onClick={(e) => { 
                                                                             e.stopPropagation(); 
-                                                                            setAttrId(attr.id); 
+                                                                            if (attr.id !== attrId) {
+                                                                                setAttrId(attr.id); 
+                                                                                setSubAttrId('');
+                                                                            }
                                                                             setAttrPickerOpen(false); 
                                                                         }} 
                                                                         className={cn(

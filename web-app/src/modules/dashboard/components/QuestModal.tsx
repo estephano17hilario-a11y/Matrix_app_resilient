@@ -64,10 +64,7 @@ export const QuestModal = React.memo(({
     const [estimatedTime, setEstimatedTime] = useState(0);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
 
-    // Clear subAttrId when attrId changes
-    React.useEffect(() => {
-        setSubAttrId('');
-    }, [attrId]);
+    // Reset subAttrId only when attribute is manually changed, not on mount/populate
 
     // Smart Auto-linking by Keywords in title
     React.useEffect(() => {
@@ -80,8 +77,7 @@ export const QuestModal = React.memo(({
                     const matched = subWords.some(word => title.toLowerCase().includes(word)) || title.toLowerCase().includes(sub.name.toLowerCase());
                     if (matched) {
                         setAttrId(attr.id);
-                        // Using setTimeout to let setAttrId resolve and clear subAttrId first
-                        setTimeout(() => setSubAttrId(sub.id), 0);
+                        setSubAttrId(sub.id);
                         return;
                     }
                 }
@@ -375,7 +371,7 @@ export const QuestModal = React.memo(({
                                              {attributes.map((attr) => {
                                                  const Icon = attr.icon;
                                                  return (
-                                                     <button key={attr.id} onClick={(e) => { e.stopPropagation(); setAttrId(attr.id); setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                                                     <button key={attr.id} onClick={(e) => { e.stopPropagation(); if (attr.id !== attrId) { setAttrId(attr.id); setSubAttrId(''); } setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                                          <Icon size={16} style={{ color: attr.color }} />
                                                         <span className="text-[9px] font-bold text-slate-400 mt-1">{t(attr.label, attr.label.replace('traits.', ''))}</span>
                                                      </button>

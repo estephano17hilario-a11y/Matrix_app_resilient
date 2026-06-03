@@ -157,10 +157,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         }
     }, [isOpen, initialData]);
 
-    // Clear subAttribute when selected attribute changes
-    useEffect(() => {
-        setSubAttribute('');
-    }, [attribute]);
+    // Reset subAttribute only when attribute is manually changed, not on mount/populate
 
     const handleNext = () => {
         if (step < (intelligentStreak ? 4 : 3)) {
@@ -432,7 +429,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                             key={attr.id}
                                                             whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.06)" }}
                                                             whileTap={{ scale: 0.98 }}
-                                                            onClick={() => setAttribute(attr.id)}
+                                                            onClick={() => { if (attr.id !== attribute) { setAttribute(attr.id); setSubAttribute(''); } }}
                                                             className={`relative p-3 rounded-xl border text-left transition-all duration-200 group ${
                                                                 attribute === attr.id
                                                                     ? 'bg-rose-500/08 border-rose-500/40 ring-1 ring-rose-500/15'
