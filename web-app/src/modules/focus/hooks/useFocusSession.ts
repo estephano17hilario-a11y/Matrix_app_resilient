@@ -144,16 +144,22 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
     };
 
-    const resetSession = useCallback(() => {
-        setMode('POMO');
-        setTimeLeft(project.pomoDuration * 60);
-        setTotalDuration(project.pomoDuration * 60);
+    const resetSession = useCallback((customMode?: 'POMO' | 'STOPWATCH') => {
+        const nextMode = customMode || mode;
+        setMode(nextMode);
+        if (nextMode === 'POMO') {
+            setTimeLeft(project.pomoDuration * 60);
+            setTotalDuration(project.pomoDuration * 60);
+        } else {
+            setTimeLeft(0);
+            setTotalDuration(0);
+        }
         setIsActive(false);
         setIsPaused(false);
         localStorage.removeItem(STORAGE_KEY);
         cancelLocalNotification();
         cancelOngoingNotification();
-    }, [project.pomoDuration, STORAGE_KEY]);
+    }, [project.pomoDuration, STORAGE_KEY, mode]);
 
     const toggleTimer = useCallback(() => {
         if (!isActive) {
@@ -165,8 +171,8 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     }, [isActive]);
 
     const stopSession = useCallback(() => {
-        resetSession();
-    }, [resetSession]);
+        resetSession(mode);
+    }, [resetSession, mode]);
 
     // 1. Load State on Mount (or Project Change)
     useEffect(() => {
