@@ -634,7 +634,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                         </div>
 
                         {/* Label & Ticks */}
-                        <div className="flex flex-col items-center mt-2 h-7 shrink-0 w-full">
+                        <div className="flex flex-col items-center mt-2 h-7 shrink-0 w-full justify-end">
                             {showTicks && (
                                 <div className="h-2 flex items-start justify-center mb-1">
                                     <div className={cn(
