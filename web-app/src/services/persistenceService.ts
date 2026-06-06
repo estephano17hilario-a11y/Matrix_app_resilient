@@ -139,21 +139,22 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
           .eq('collection_name', collectionName)
           .contains('data', { id: itemId });
 
+        if (fetchError) throw fetchError;
+
+        if (!existingRecords || existingRecords.length === 0) {
+            console.warn(`[Persistence] Record not found for update: ${collectionName}/${itemId}. Skipping update to prevent data loss.`);
+            return;
+        }
+
         // Prefer the new format if multiple exist, otherwise take the first
-        let currentData = {};
-         
-         if (!fetchError && existingRecords && existingRecords.length > 0) {
-            const preferred = existingRecords.find(r => r.id === uniqueRecordId) || existingRecords[0];
-            currentData = preferred.data || {};
-            // We'll update the existing row if it's not the uniqueRecordId to avoid duplicates
-            // Actually, best is to upsert uniqueRecordId and delete legacy ones, OR just update the legacy one
-            // Let's just update the uniqueRecordId and if there were legacy ones, delete them.
-            if (preferred.id !== uniqueRecordId) {
-                // Delete legacy records
-                const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
-                if (legacyIds.length > 0) {
-                    await supabase.from('user_collections').delete().in('id', legacyIds);
-                }
+        const preferred = existingRecords.find(r => r.id === uniqueRecordId) || existingRecords[0];
+        const currentData = preferred.data || {};
+        
+        if (preferred.id !== uniqueRecordId) {
+            // Delete legacy records
+            const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
+            if (legacyIds.length > 0) {
+                await supabase.from('user_collections').delete().in('id', legacyIds);
             }
         }
 
