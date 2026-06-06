@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { isSameDay, isLastDayOfMonth } from 'date-fns';
 import { useTheme } from '@/context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
-import { getHistoryDateKey } from '../../utils/dateUtils';
 import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
 import * as LucideIcons from 'lucide-react';
@@ -25,13 +24,13 @@ interface HabitVisualViewProps {
     habits: Habit[];
     badHabits: BadHabit[];
     attributes: Attribute[];
-    onCompleteHabit: (e: React.MouseEvent, h: Habit, targetDate?: Date) => void;
+    onCompleteHabit: (e: React.MouseEvent, h: Habit) => void;
     onToggleHabitDay?: (habitId: string, date: string) => void;
     onCreateHabit: () => void;
     onCreateBadHabit: () => void;
     onDeleteHabit?: (habitId: string) => void;
     onEditHabit?: (habit: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) => void;
-    onUpdateHabit?: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
+    onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
     onShowActions?: (habit: Habit) => void;
     onShowBadHabitActions?: (habit: BadHabit) => void;
@@ -45,8 +44,6 @@ interface HabitVisualViewProps {
     defaultViewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
     weekStartDay?: 0 | 1;
     defaultChartViews?: any;
-    currentDate?: Date;
-    setCurrentDate?: (date: Date) => void;
 }
 
 interface BadHabitWrapperProps {
@@ -125,9 +122,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onOpenPro,
     defaultViewPreference = 'DEFAULT',
     weekStartDay = 1,
-    defaultChartViews,
-    currentDate: currentDateProp,
-    setCurrentDate: setCurrentDateProp
+    defaultChartViews
 }) => {
     const { t } = useTranslation();
     const { setVicesMode } = useTheme();
@@ -141,9 +136,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     
     // Header State
     const [viewMode] = useState<ViewMode>('DAY');
-    const [localCurrentDate, localSetCurrentDate] = useState(new Date());
-    const currentDate = currentDateProp || localCurrentDate;
-    const setCurrentDate = setCurrentDateProp || localSetCurrentDate;
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [viewPreference, setViewPreference] = useState<'DEFAULT' | 'CHRONOLOGICAL'>(() => {
         const saved = localStorage.getItem('habitViewPreference');
@@ -268,32 +261,17 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         return sortedList.map(habit => {
             const isCompleted = isCurrentDay 
                 ? habit.completedToday 
-                : habit.history?.some(d => getHistoryDateKey(d) === getHistoryDateKey(currentDate)) ?? false;
-            
-            let overriddenChecklist = habit.checklist;
-            if (!isCurrentDay && habit.checklist) {
-                overriddenChecklist = habit.checklist.map(i => ({
-                    ...i,
-                    completed: i.history?.includes(getHistoryDateKey(currentDate)) ?? false
-                }));
-            }
-
-            let overriddenValue = habit.currentValue;
-            if (!isCurrentDay) {
-                overriddenValue = habit.valueHistory?.[getHistoryDateKey(currentDate)] || 0;
-            }
+                : habit.history?.some(d => isSameDay(new Date(d), currentDate)) ?? false;
             
             // OPTIMIZATION: Return the exact same object reference if the value hasn't changed.
             // This preserves React.memo on HabitItem.
-            if (habit.completedToday === isCompleted && habit.checklist === overriddenChecklist && habit.currentValue === overriddenValue) {
+            if (habit.completedToday === isCompleted) {
                 return habit;
             }
             
             return {
                 ...habit,
-                completedToday: isCompleted,
-                checklist: overriddenChecklist,
-                currentValue: overriddenValue
+                completedToday: isCompleted
             };
         });
     }, [showArchived, archivedHabits, activeHabits, currentDate, viewPreference]);
@@ -508,46 +486,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         initialTimeframe={defaultChartViews?.habits}
                                     />
                                     
-                                    {/* Date Navigation Banner */}
-                                    {!isSameDay(currentDate, new Date()) && (
-                                        <div className="w-full mb-3 px-1">
-                                            <div className="w-full rounded-2xl border p-2 flex items-center justify-between transition-all duration-300 relative overflow-hidden bg-black/40 backdrop-blur-md border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
-                                                {/* Glowing light indicator */}
-                                                <div className="absolute top-0 bottom-0 left-0 w-[4px] transition-colors duration-300 bg-orange-500 animate-pulse" />
-
-                                                <div className="flex flex-col pl-3">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                                                        Modo de Registro
-                                                    </span>
-                                                    <span className="text-xs font-black tracking-wide transition-colors duration-200 mt-0.5 text-orange-400">
-                                                        Modificando: Ayer
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
                                     {/* View Switcher and Controls */}
                                     <div className="flex items-center justify-center gap-2 mt-1 -mb-1.5 mx-auto w-full max-w-[320px]">
-                                        
-                                        {/* Yesterday Navigation Button (Only shows when on Today, Left of Calendar) */}
-                                        {isSameDay(currentDate, new Date()) && (
-                                            <button
-                                                onClick={() => {
-                                                    if (window.confirm("¿Seguro que quiere ir al día anterior?")) {
-                                                        const yesterday = new Date();
-                                                        yesterday.setDate(yesterday.getDate() - 1);
-                                                        setCurrentDate(yesterday);
-                                                    }
-                                                }}
-                                                className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-[#111112] border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5"
-                                                title="Ir al día anterior"
-                                            >
-                                                <LucideIcons.ChevronLeft size={16} />
-                                            </button>
-                                        )}
-
-                                        {/* Calendar Button */}
                                         <button
                                             onClick={() => setShowAllHabits(!showAllHabits)}
                                             className={cn(
@@ -560,17 +500,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         >
                                             {showAllHabits ? <LucideIcons.CalendarOff size={16} /> : <LucideIcons.Calendar size={16} />}
                                         </button>
-
-                                        {/* Today Navigation Button (Only shows when on Yesterday, Right of Calendar) */}
-                                        {!isSameDay(currentDate, new Date()) && (
-                                            <button
-                                                onClick={() => setCurrentDate(new Date())}
-                                                className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse"
-                                                title="Volver a hoy"
-                                            >
-                                                <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
-                                            </button>
-                                        )}
 
                                         <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-0.5 flex-1">
                                             <button
@@ -776,14 +705,14 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     if (item.habit.type === 'QUANTITY' && onUpdateHabit) {
                                                         setQuantityModalHabit(item.habit);
                                                     } else {
-                                                        onCompleteHabit(e as any, item.habit, currentDate);
+                                                        onCompleteHabit(e as any, item.habit);
                                                     }
                                                 } else if (item.type === 'SUBTASK' && onUpdateHabit) {
                                                     const newChecklist = item.habit.checklist.map((sub: any) => 
                                                         sub.id === item.subtaskId ? { ...sub, completed: !sub.completed } : sub
                                                     );
                                                     
-                                                    onUpdateHabit(item.habitId, { checklist: newChecklist }, currentDate);
+                                                    onUpdateHabit(item.habitId, { checklist: newChecklist });
                                                 }
                                             }}
                                         >
@@ -846,7 +775,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     reduceMotion={reduceMotion}
                                                     viewPreference={viewPreference}
                                                     weekStartDay={weekStartDay}
-                                                    targetDate={currentDate}
                                                 />
                                             </div>
                                         </div>
@@ -1006,7 +934,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     isOpen={!!quantityModalHabit}
                     onClose={() => setQuantityModalHabit(null)}
                     onUpdate={onUpdateHabit}
-                    targetDate={currentDate}
                 />
             )}
 

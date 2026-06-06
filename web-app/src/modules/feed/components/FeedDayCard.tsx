@@ -174,13 +174,29 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
         )}
 
         <div className="relative p-3.5 sm:p-4">
-          {/* Header: Date + Score */}
+          {/* Header: Strava-style User + Date + Score */}
           <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-white/[0.05]">
             <div className="flex items-center gap-2.5">
+              {/* User Avatar Initials */}
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={displayName} 
+                  className="w-8 h-8 rounded-full border border-white/10 shadow-sm shrink-0 object-cover" 
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xs border border-white/10 shadow-sm shrink-0">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              
               <div>
-                <h3 className="text-xl sm:text-2xl font-black text-white leading-tight uppercase tracking-tight">
-                  {isToday ? 'Hoy' : `${dayName} ${day} ${month}`}
+                <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
+                  {displayName}
                 </h3>
+                <span className="text-[9px] text-white/35 font-semibold">
+                  {isToday ? 'Hoy' : `${dayName} ${day} de ${month}`}
+                </span>
               </div>
             </div>
 

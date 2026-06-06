@@ -159,8 +159,7 @@ export const TransactionService = {
         isNewDay: boolean,
         newLevel: number,
         newNextXp: number,
-        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] },
-        skipDailyLimitsUpdate: boolean = false
+        attributeUpdates?: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] }
      ) => {
         try {
             // 1. Fetch current user
@@ -185,29 +184,27 @@ export const TransactionService = {
             stats.level = newLevel;
             stats.nextXp = newNextXp;
 
-            if (!skipDailyLimitsUpdate) {
-                let newDailyLimits: any = { ...dailyLimits };
+            let newDailyLimits: any = { ...dailyLimits };
 
-                if (isNewDay) {
-                    newDailyLimits = { 
-                        date: toLocalISOString(new Date()), 
-                        taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
-                        habitsCompleted: isCompleted ? 1 : 0, 
-                        focusSeconds: 0, tasksCompleted: 0, notesCompleted: 0,
-                        focusXp: 0, focusGold: 0, focusTraitPoints: 0,
-                        habitXp: Math.max(0, rewardXp), 
-                        habitGold: Math.max(0, rewardGold), 
-                        habitTraitPoints: Math.max(0, rewardTraitXp)
-                    };
-                } else {
-                    newDailyLimits.habitsCompleted = (newDailyLimits.habitsCompleted || 0) + (isCompleted ? 1 : -1);
-                    newDailyLimits.habitXp = (newDailyLimits.habitXp || 0) + rewardXp;
-                    newDailyLimits.habitGold = (newDailyLimits.habitGold || 0) + rewardGold;
-                    newDailyLimits.habitTraitPoints = (newDailyLimits.habitTraitPoints || 0) + rewardTraitXp;
-                }
-
-                stats.dailyLimits = newDailyLimits;
+            if (isNewDay) {
+                newDailyLimits = { 
+                    date: toLocalISOString(new Date()), 
+                    taskXp: 0, taskGold: 0, taskTraitPoints: 0, 
+                    habitsCompleted: isCompleted ? 1 : 0, 
+                    focusSeconds: 0, tasksCompleted: 0, notesCompleted: 0,
+                    focusXp: 0, focusGold: 0, focusTraitPoints: 0,
+                    habitXp: Math.max(0, rewardXp), 
+                    habitGold: Math.max(0, rewardGold), 
+                    habitTraitPoints: Math.max(0, rewardTraitXp)
+                };
+            } else {
+                newDailyLimits.habitsCompleted = (newDailyLimits.habitsCompleted || 0) + (isCompleted ? 1 : -1);
+                newDailyLimits.habitXp = (newDailyLimits.habitXp || 0) + rewardXp;
+                newDailyLimits.habitGold = (newDailyLimits.habitGold || 0) + rewardGold;
+                newDailyLimits.habitTraitPoints = (newDailyLimits.habitTraitPoints || 0) + rewardTraitXp;
             }
+
+            stats.dailyLimits = newDailyLimits;
 
             // 3. Update User
             const { error: updateError } = await supabase.from('users').update({

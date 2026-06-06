@@ -11,11 +11,10 @@ interface ChecklistModalProps {
  habit: Habit;
  isOpen: boolean;
  onClose: () => void;
- onUpdate: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
- targetDate?: Date;
+ onUpdate: (habitId: string, data: Partial<Habit>) => void;
 }
 
-export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate, targetDate }) => {
+export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate }) => {
  const { t } = useTranslation();
  
  // Lock body scroll when modal is open
@@ -56,7 +55,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  item.id === itemId ? { ...item, completed: !currentStatus } : item
  );
  
- onUpdate(habit.id, { checklist: newChecklist }, targetDate);
+ onUpdate(habit.id, { checklist: newChecklist });
  };
 
  // Calculate progress percentage

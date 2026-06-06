@@ -150,7 +150,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
            animate={{ opacity: 1 }}
            exit={{ opacity: 0 }}
            transition={{ duration: 0.2 }}
-           className={`fixed inset-0 z-[350] bg-black/85 backdrop-blur-3xl ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
+           className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
            onClick={() => onToggle(false)}
          />
        )}
@@ -238,7 +238,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  stiffness: 300, 
  damping: 28
  }}
- className="pointer-events-none relative bg-[#0a0a0a]/30 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
+ className="pointer-events-none relative bg-[#0a0a0a]/30 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
  style={{ willChange: 'transform, height' }}
  >
  <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />
@@ -331,7 +331,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  style={{ willChange: 'transform, height' }}
  className={` 
  pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
- backdrop-blur-xl
+ backdrop-blur-sm 
  ${isOpen ? 'aura-active' : ''} 
  `}
  > 
@@ -438,8 +438,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
  <div 
- className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-3xl"
- style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.15)' : 'rgba(15,15,15,0.15)' }}
+ className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-md"
+ style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)' }}
  >
  <div className="relative w-full h-full pointer-events-auto">
  <motion.div 

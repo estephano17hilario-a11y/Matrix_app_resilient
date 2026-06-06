@@ -13,20 +13,19 @@ import { useTranslation } from 'react-i18next';
 interface HabitItemProps {
   habit: Habit;
   attribute?: Attribute;
-  onComplete: (e: React.MouseEvent, h: Habit, targetDate?: Date) => void;
+  onComplete: (e: React.MouseEvent, h: Habit) => void;
   onClick?: (habit: Habit) => void;
   onEdit?: (habit: Habit) => void;
-  onUpdate?: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
+  onUpdate?: (habitId: string, data: Partial<Habit>) => void;
   onShowActions?: (habit: Habit) => void;
   reduceMotion?: boolean;
   isDue?: boolean;
   completedOverride?: boolean;
   viewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
   weekStartDay?: 0 | 1;
-  targetDate?: Date;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT', targetDate }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT' }: HabitItemProps) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
@@ -101,7 +100,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         item.id === itemId ? { ...item, completed: !currentStatus } : item
     );
     
-    onUpdate(habit.id, { checklist: newChecklist }, targetDate);
+    onUpdate(habit.id, { checklist: newChecklist });
   };
 
   // Helper for time display
@@ -527,7 +526,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                         } else if (habit.type === 'CHECKLIST' && onUpdate) {
                             setIsChecklistModalOpen(true);
                         } else {
-                            onComplete(e, habit, targetDate);
+                            onComplete(e, habit);
                         }
                     }}
                 />
@@ -556,7 +555,6 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             isOpen={isQuantityModalOpen}
             onClose={() => setIsQuantityModalOpen(false)}
             onUpdate={onUpdate}
-            targetDate={targetDate}
         />
     )}
 
@@ -566,7 +564,6 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             isOpen={isChecklistModalOpen}
             onClose={() => setIsChecklistModalOpen(false)}
             onUpdate={onUpdate}
-            targetDate={targetDate}
         />
     )}
     </>
