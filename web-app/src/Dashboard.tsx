@@ -370,10 +370,10 @@ export default function Dashboard() {
  const logicRef = useRef(dashboardLogic);
  useEffect(() => { logicRef.current = dashboardLogic; }, [dashboardLogic]);
 
- const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit) => logicRef.current.handleHabitClick(e, habit), []);
+ const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit, targetDate?: Date) => logicRef.current.handleHabitClick(e, habit, targetDate), []);
  const handleToggleHabitDay = useCallback((habitId: string, date: string) => logicRef.current.handleToggleHabitDay(habitId, date), []);
  const handleDeleteHabit = useCallback((id: string) => logicRef.current.handleDeleteHabit(id), []);
- const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>) => logicRef.current.handleHabitUpdate(id, data), []);
+ const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>, targetDate?: Date) => logicRef.current.handleHabitUpdate(id, data, targetDate), []);
  const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);
  const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);
  const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);

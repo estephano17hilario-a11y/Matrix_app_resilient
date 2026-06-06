@@ -10,10 +10,11 @@ interface QuantityUpdateModalProps {
  habit: Habit;
  isOpen: boolean;
  onClose: () => void;
- onUpdate: (habitId: string, data: Partial<Habit>) => void;
+ onUpdate: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
+ currentDate?: Date;
 }
 
-export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit, isOpen, onClose, onUpdate }) => {
+export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit, isOpen, onClose, onUpdate, currentDate }) => {
  const { t } = useTranslation();
  const [value, setValue] = useState(habit.currentValue || 0);
  const [isEditing, setIsEditing] = useState(false);
@@ -82,7 +83,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  updateData.nextInstanceTime = nextTime.toISOString();
  }
  
- onUpdate(habit.id, updateData);
+  onUpdate(habit.id, updateData, currentDate);
  };
 
  const handleDecrement = () => {
@@ -97,7 +98,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  updateData.nextInstanceTime = undefined; // Or null depending on DB. We can omit it.
  }
  
- onUpdate(habit.id, updateData);
+  onUpdate(habit.id, updateData, currentDate);
  };
 
  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,13 +108,13 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
 
  const handleInputBlur = () => {
  setIsEditing(false);
- onUpdate(habit.id, { currentValue: value });
+ onUpdate(habit.id, { currentValue: value }, currentDate);
  };
 
  const handleInputKeyDown = (e: React.KeyboardEvent) => {
  if (e.key === 'Enter') {
  setIsEditing(false);
- onUpdate(habit.id, { currentValue: value });
+ onUpdate(habit.id, { currentValue: value }, currentDate);
  }
  };
 
@@ -373,10 +374,10 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  if (isItemCompleted) {
  const newValue = Math.max(0, accumulated - item.amount);
  setValue(newValue);
- onUpdate(habit.id, { currentValue: newValue });
+ onUpdate(habit.id, { currentValue: newValue }, currentDate);
  } else {
  setValue(accumulated);
- onUpdate(habit.id, { currentValue: accumulated });
+ onUpdate(habit.id, { currentValue: accumulated }, currentDate);
  }
  }}
  >

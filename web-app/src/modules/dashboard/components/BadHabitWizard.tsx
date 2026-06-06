@@ -340,6 +340,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="space-y-3">
@@ -553,6 +554,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="space-y-3">
@@ -689,6 +691,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24"
                                         >
                                             <div className="bg-gradient-to-br from-violet-950/20 to-indigo-950/20 border border-violet-500/15 rounded-2xl p-5 mb-5">
@@ -783,6 +786,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
                                             <div className="bg-rose-950/15 border border-rose-500/15 rounded-2xl p-5 mb-5">
@@ -848,6 +852,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             animate="center"
                                             exit="exit"
                                             transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
                                             <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>

@@ -11,7 +11,7 @@ interface ChecklistModalProps {
  habit: Habit;
  isOpen: boolean;
  onClose: () => void;
- onUpdate: (habitId: string, data: Partial<Habit>) => void;
+ onUpdate: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
  currentDate?: Date;
 }
 
@@ -56,7 +56,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  item.id === itemId ? { ...item, completed: !currentStatus } : item
  );
  
- onUpdate(habit.id, { checklist: newChecklist });
+ onUpdate(habit.id, { checklist: newChecklist }, currentDate);
  };
 
  // Calculate progress percentage

@@ -19,18 +19,19 @@ import { useLongPress } from '../../hooks/useLongPress';
 import { BadHabitDetailModal } from './components/BadHabitDetailModal';
 import { HabitMasteryModal } from './components/HabitMasteryModal';
 import { cn } from '../../utils/cn';
+import { getHistoryDateKey } from '../../utils/dateUtils';
 
 interface HabitVisualViewProps {
     habits: Habit[];
     badHabits: BadHabit[];
     attributes: Attribute[];
-    onCompleteHabit: (e: React.MouseEvent, h: Habit) => void;
+    onCompleteHabit: (e: React.MouseEvent, h: Habit, targetDate?: Date) => void;
     onToggleHabitDay?: (habitId: string, date: string) => void;
     onCreateHabit: () => void;
     onCreateBadHabit: () => void;
     onDeleteHabit?: (habitId: string) => void;
     onEditHabit?: (habit: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) => void;
-    onUpdateHabit?: (habitId: string, data: Partial<Habit>) => void;
+    onUpdateHabit?: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
     onShowActions?: (habit: Habit) => void;
     onShowBadHabitActions?: (habit: BadHabit) => void;
@@ -175,13 +176,48 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         localStorage.setItem('showAllHabits', showAllHabits.toString());
     }, [showAllHabits]);
 
+    // Virtualize habits for the current selected date to prevent checked status bleeding
+    const virtualizedHabits = useMemo(() => {
+        const todayStr = getHistoryDateKey(new Date());
+        const targetKey = getHistoryDateKey(currentDate);
+        const isTargetToday = targetKey === todayStr;
+
+        if (isTargetToday) {
+            return habits;
+        }
+
+        return habits.map(habit => {
+            const completedToday = habit.history?.some(d => getHistoryDateKey(d) === targetKey) ?? false;
+            
+            let currentValue = habit.currentValue;
+            if (habit.type === 'QUANTITY') {
+                currentValue = habit.valueHistory?.[targetKey] ?? 0;
+            }
+            
+            let checklist = habit.checklist;
+            if (habit.type === 'CHECKLIST' && habit.checklist) {
+                checklist = habit.checklist.map(item => ({
+                    ...item,
+                    completed: item.history?.includes(targetKey) ?? false
+                }));
+            }
+            
+            return {
+                ...habit,
+                completedToday,
+                currentValue,
+                checklist
+            };
+        });
+    }, [habits, currentDate]);
+
     // Split habits into active and archived
     const { activeHabits, archivedHabits } = useMemo(() => {
         return {
-            activeHabits: habits.filter(h => !h.archived),
-            archivedHabits: habits.filter(h => h.archived)
+            activeHabits: virtualizedHabits.filter(h => !h.archived),
+            archivedHabits: virtualizedHabits.filter(h => h.archived)
         };
-    }, [habits]);
+    }, [virtualizedHabits]);
 
     const { activeBadHabits, archivedBadHabits } = useMemo(() => {
         return {
@@ -491,51 +527,44 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     )}
                                     
                                     {/* View Switcher and Controls */}
-                                    <div className="flex items-center justify-center gap-2 mt-1 -mb-1.5 mx-auto w-full max-w-[320px]">
-                                        {/* Yesterday Navigation Button */}
-                                        {isSameDay(currentDate, new Date()) && (
-                                            <button
-                                                onClick={() => {
-                                                    const yesterday = new Date();
-                                                    yesterday.setDate(yesterday.getDate() - 1);
-                                                    setCurrentDate(yesterday);
-                                                }}
-                                                className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-[#111112] border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5"
-                                                title="Ir al día anterior"
-                                            >
-                                                <LucideIcons.ChevronLeft size={16} />
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={() => setShowAllHabits(!showAllHabits)}
-                                            className={cn(
-                                                "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
-                                                showAllHabits 
-                                                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
-                                                    : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                    <div className="relative w-full max-w-[320px] mx-auto flex items-center justify-center mt-1 -mb-1.5 h-10">
+                                        {/* Left Controls */}
+                                        <div className="absolute left-0 flex items-center gap-1.5">
+                                            {/* Yesterday Navigation Button */}
+                                            {isSameDay(currentDate, new Date()) && (
+                                                <button
+                                                    onClick={() => {
+                                                        const yesterday = new Date();
+                                                        yesterday.setDate(yesterday.getDate() - 1);
+                                                        setCurrentDate(yesterday);
+                                                    }}
+                                                    className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-[#111112] border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5"
+                                                    title="Ir al día anterior"
+                                                >
+                                                    <LucideIcons.ChevronLeft size={16} />
+                                                </button>
                                             )}
-                                            title={showAllHabits ? t('habits.showTodayOnly', 'Mostrar solo hoy') : t('habits.showAll', 'Mostrar todos')}
-                                        >
-                                            {showAllHabits ? <LucideIcons.CalendarOff size={16} /> : <LucideIcons.Calendar size={16} />}
-                                        </button>
 
-                                        {/* Today Navigation Button */}
-                                        {!isSameDay(currentDate, new Date()) && (
                                             <button
-                                                onClick={() => setCurrentDate(new Date())}
-                                                className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse"
-                                                title="Volver a hoy"
+                                                onClick={() => setShowAllHabits(!showAllHabits)}
+                                                className={cn(
+                                                    "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
+                                                    showAllHabits 
+                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
+                                                        : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                                )}
+                                                title={showAllHabits ? t('habits.showTodayOnly', 'Mostrar solo hoy') : t('habits.showAll', 'Mostrar todos')}
                                             >
-                                                <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
+                                                {showAllHabits ? <LucideIcons.CalendarOff size={16} /> : <LucideIcons.Calendar size={16} />}
                                             </button>
-                                        )}
+                                        </div>
 
-                                        <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-0.5 flex-1">
+                                        {/* Center Switch (Fixed Width to keep it perfectly centered) */}
+                                        <div className="flex relative bg-[#111112] border border-white/5 rounded-xl p-0.5 w-[160px] z-10">
                                             <button
                                                 onClick={() => setViewPreference('DEFAULT')}
                                                 className={cn(
-                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
+                                                    "relative flex-1 z-10 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
                                                     viewPreference === 'DEFAULT' 
                                                         ? "text-white" 
                                                         : "text-white/40 hover:text-white/60"
@@ -553,7 +582,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             <button
                                                 onClick={() => setViewPreference('CHRONOLOGICAL')}
                                                 className={cn(
-                                                    "relative flex-1 z-10 px-2.5 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
+                                                    "relative flex-1 z-10 py-1 rounded-[10px] text-[9px] font-bold uppercase tracking-wider transition-colors duration-200",
                                                     viewPreference === 'CHRONOLOGICAL' 
                                                         ? "text-indigo-400" 
                                                         : "text-white/40 hover:text-white/60"
@@ -569,19 +598,33 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 <span className="relative z-20">{t('habits.viewChronological', 'Cronológico')}</span>
                                             </button>
                                         </div>
-                                        
-                                        <button
-                                            onClick={() => setHideCompleted(!hideCompleted)}
-                                            className={cn(
-                                                "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
-                                                hideCompleted 
-                                                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
-                                                    : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+
+                                        {/* Right Controls */}
+                                        <div className="absolute right-0 flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => setHideCompleted(!hideCompleted)}
+                                                className={cn(
+                                                    "p-2 rounded-xl border transition-colors duration-200 flex items-center justify-center shrink-0",
+                                                    hideCompleted 
+                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-400" 
+                                                        : "bg-[#111112] border-white/5 text-white/40 hover:text-white/60"
+                                                )}
+                                                title={hideCompleted ? t('habits.showCompleted', 'Mostrar completados') : t('habits.hideCompleted', 'Ocultar completados')}
+                                            >
+                                                {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
+                                            </button>
+
+                                            {/* Today Navigation Button */}
+                                            {!isSameDay(currentDate, new Date()) && (
+                                                <button
+                                                    onClick={() => setCurrentDate(new Date())}
+                                                    className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse"
+                                                    title="Volver a hoy"
+                                                >
+                                                    <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
+                                                </button>
                                             )}
-                                            title={hideCompleted ? t('habits.showCompleted', 'Mostrar completados') : t('habits.hideCompleted', 'Ocultar completados')}
-                                        >
-                                            {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -735,14 +778,14 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     if (item.habit.type === 'QUANTITY' && onUpdateHabit) {
                                                         setQuantityModalHabit(item.habit);
                                                     } else {
-                                                        onCompleteHabit(e as any, item.habit);
+                                                        onCompleteHabit(e as any, item.habit, currentDate);
                                                     }
                                                 } else if (item.type === 'SUBTASK' && onUpdateHabit) {
                                                     const newChecklist = item.habit.checklist.map((sub: any) => 
                                                         sub.id === item.subtaskId ? { ...sub, completed: !sub.completed } : sub
                                                     );
                                                     
-                                                    onUpdateHabit(item.habitId, { checklist: newChecklist });
+                                                    onUpdateHabit(item.habitId, { checklist: newChecklist }, currentDate);
                                                 }
                                             }}
                                         >
