@@ -357,7 +357,9 @@ export default function Dashboard() {
  dockConfig,
  weekStartDay,
  showStreakCelebration,
- setShowStreakCelebration
+ setShowStreakCelebration,
+ currentDate,
+ setCurrentDate
  } = dashboardLogic;
 
   const liveScore = useMemo(() => {
@@ -1560,6 +1562,8 @@ export default function Dashboard() {
  habits={habits} 
  badHabits={badHabits}
  attributes={attributes} 
+ currentDate={currentDate}
+ setCurrentDate={setCurrentDate}
  onCompleteHabit={handleHabitClick}
  onToggleHabitDay={handleToggleHabitDay as any}
  onCreateHabit={handleAddHabit}

@@ -23,15 +23,16 @@ interface HabitItemProps {
   completedOverride?: boolean;
   viewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
   weekStartDay?: 0 | 1;
+  currentDate?: Date;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT' }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT', currentDate }: HabitItemProps) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
   
-  const today = new Date().getDay();
+  const today = (currentDate || new Date()).getDay();
   const subTrait = React.useMemo(() => {
     return attribute?.subTraits?.find(st => st.id === habit.subAttribute);
   }, [attribute?.subTraits, habit.subAttribute]);
@@ -50,7 +51,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const progressText = React.useMemo(() => {
     if (habit.frequency === 'WEEKLY' && habit.weeklyType === 'FLEXIBLE_COUNT' && habit.weeklyFlexibleCount) {
-        const now = new Date();
+        const now = currentDate || new Date();
         // Calculate start of week and end of week (assuming Monday as start)
         const day = now.getDay() || 7; // Convert Sunday (0) to 7
         const startOfWeek = new Date(now);
@@ -65,7 +66,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     }
 
     if (habit.frequency === 'MONTHLY' && habit.monthlyType === 'FLEXIBLE_COUNT' && habit.monthlyFlexibleCount) {
-        const now = new Date();
+        const now = currentDate || new Date();
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         const completions = habit.history?.filter(d => d.startsWith(currentMonth)).length || 0;
         return `${completions}/${habit.monthlyFlexibleCount} ${t('common.thisMonth')}`;
@@ -91,7 +92,9 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     habit.targetValue,
     habit.unit,
     habit.checklist,
-    isCompletedToday
+    isCompletedToday,
+    currentDate,
+    today
   ]);
 
   const handleChecklistToggle = (itemId: string, currentStatus: boolean) => {
@@ -122,8 +125,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             }
         } else if (habit.nextInstanceTime) {
             const nextDate = new Date(habit.nextInstanceTime);
-            const today = new Date();
-            if (nextDate.getDate() === today.getDate() && nextDate.getMonth() === today.getMonth()) {
+            const targetDate = currentDate || new Date();
+            if (nextDate.getDate() === targetDate.getDate() && nextDate.getMonth() === targetDate.getMonth()) {
                 const hours = nextDate.getHours().toString().padStart(2, '0');
                 const minutes = nextDate.getMinutes().toString().padStart(2, '0');
                 return `Próx: ${hours}:${minutes}`;
@@ -134,7 +137,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     return habit.reminderTime;
   };
 
-  const timeDisplay = React.useMemo(() => getTimeDisplay(), [habit.reminderTime, habit.nextInstanceTime, habit.isDivided, habit.type]);
+  const timeDisplay = React.useMemo(() => getTimeDisplay(), [habit.reminderTime, habit.nextInstanceTime, habit.isDivided, habit.type, currentDate]);
 
   // Removed containIntrinsicSize to fix dynamic height issues
   const wrapperStyle: React.CSSProperties = { contentVisibility: 'auto' };
@@ -564,6 +567,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             isOpen={isChecklistModalOpen}
             onClose={() => setIsChecklistModalOpen(false)}
             onUpdate={onUpdate}
+            currentDate={currentDate}
         />
     )}
     </>

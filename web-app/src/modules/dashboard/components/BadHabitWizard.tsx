@@ -82,12 +82,6 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         return [];
     });
     const attribute = selectedAttributes[0] || '';
-    const setAttribute = (val: string) => {
-        setSelectedAttributes(prev => {
-            if (val === '') return [];
-            return [val];
-        });
-    };
     const [subAttribute, setSubAttribute] = useState(initialData?.subAttribute || '');
     const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);
     const [reason, setReason] = useState(initialData?.reason || '');

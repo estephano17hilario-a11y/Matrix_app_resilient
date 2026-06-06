@@ -12,9 +12,10 @@ interface ChecklistModalProps {
  isOpen: boolean;
  onClose: () => void;
  onUpdate: (habitId: string, data: Partial<Habit>) => void;
+ currentDate?: Date;
 }
 
-export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate }) => {
+export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, onClose, onUpdate, currentDate }) => {
  const { t } = useTranslation();
  
  // Lock body scroll when modal is open
@@ -30,7 +31,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  }
  }, [isOpen]);
 
- const today = new Date().getDay();
+ const today = (currentDate || new Date()).getDay();
  const visibleItems = React.useMemo(() => {
  return habit.checklist?.filter(item => !item.days || item.days.length === 0 || item.days.includes(today)) || [];
  }, [habit.checklist, today]);

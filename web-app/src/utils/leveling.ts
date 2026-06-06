@@ -1,4 +1,3 @@
-import { GAMIFICATION_CONFIG } from '../config/gamification';
 
 export const calculateXpForLevel = (level: number): number => {
     if (level <= 1) return 0;

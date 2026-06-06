@@ -109,9 +109,11 @@ export interface Habit {
     color?: string; // Custom color for this item
     days?: number[]; // Specific days this item should appear [0-6]
     reminderTime?: string; // Optional alarm/reminder time for this subtask
+    history?: string[]; // Date keys when this subtask was completed
   }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
+  valueHistory?: Record<string, number>; // Date key to quantity value mapping
   projectId?: string;
   smartProjectId?: string;
   color?: string; // Optional UI color override
