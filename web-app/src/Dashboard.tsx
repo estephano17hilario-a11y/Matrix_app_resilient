@@ -310,68 +310,71 @@ export default function Dashboard() {
 
  const dashboardLogic = useDashboardLogic();
  const {
- user,
- lastAchievement,
- setLastAchievement,
- currentTheme,
- setCurrentTheme,
- currentView,
- setCurrentView,
- isDockOpen,
- setIsDockOpen,
- isFocusMode,
- isNoteTaking,
- setIsNoteTaking,
- isPomodoroActive,
- setIsPomodoroActive,
- showProfile,
- setShowProfile,
- player,
- dailyLimits,
- health,
- attributes,
- quests,
- setQuests,
- habits,
- projects,
- smartProjects,
- setSmartProjects,
- notifications,
- particles,
- activeModal,
- setActiveModal,
- validationHabit,
- setValidationHabit,
- valTempValue,
- setValTempValue,
- defaultChartMode,
- setDefaultChartMode,
- dashboardStyle,
- avatarShape,
- badHabits,
- vividMode,
- setVividMode,
- habitSectionControl,
- defaultHabitView,
- allowDockSectionSwitch,
- dockConfig,
- weekStartDay,
- showStreakCelebration,
- setShowStreakCelebration
- } = dashboardLogic;
+  user,
+  lastAchievement,
+  setLastAchievement,
+  currentTheme,
+  setCurrentTheme,
+  currentView,
+  setCurrentView,
+  isDockOpen,
+  setIsDockOpen,
+  isFocusMode,
+  isNoteTaking,
+  setIsNoteTaking,
+  isPomodoroActive,
+  setIsPomodoroActive,
+  showProfile,
+  setShowProfile,
+  player,
+  dailyLimits,
+  health,
+  attributes,
+  quests,
+  setQuests,
+  habits,
+  projects,
+  smartProjects,
+  setSmartProjects,
+  notifications,
+  particles,
+  activeModal,
+  setActiveModal,
+  validationHabit,
+  setValidationHabit,
+  valTempValue,
+  setValTempValue,
+  defaultChartMode,
+  setDefaultChartMode,
+  dashboardStyle,
+  avatarShape,
+  badHabits,
+  vividMode,
+  setVividMode,
+  habitSectionControl,
+  defaultHabitView,
+  allowDockSectionSwitch,
+  dockConfig,
+  weekStartDay,
+  showStreakCelebration,
+  setShowStreakCelebration,
+  currentDate,
+  setCurrentDate,
+  displayedDailyLimits
+  } = dashboardLogic;
 
-  const liveScore = useMemo(() => {
-    return calculateLiveProductivityScore(quests, habits, projects, dailyLimits);
-  }, [quests, habits, projects, dailyLimits]);
+   const liveScore = useMemo(() => {
+     return calculateLiveProductivityScore(quests, habits, projects, displayedDailyLimits, currentDate);
+   }, [quests, habits, projects, displayedDailyLimits, currentDate]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);
  useEffect(() => { logicRef.current = dashboardLogic; }, [dashboardLogic]);
 
- const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit) => logicRef.current.handleHabitClick(e, habit), []);
+ const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit, targetDate?: Date) => logicRef.current.handleHabitClick(e, habit, targetDate), []);
  const handleToggleHabitDay = useCallback((habitId: string, date: string) => logicRef.current.handleToggleHabitDay(habitId, date), []);
  const handleDeleteHabit = useCallback((id: string) => logicRef.current.handleDeleteHabit(id), []);
- const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>) => logicRef.current.handleHabitUpdate(id, data), []);
+ const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>, targetDate?: Date) => logicRef.current.handleHabitUpdate(id, data, targetDate), []);
  const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);
  const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);
  const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);
@@ -1380,7 +1383,7 @@ export default function Dashboard() {
  avatarId={user?.avatarId}
  avatarShape={avatarShape}
  isHabitsCompleted={isStreakActiveToday}
- dailyLimits={dailyLimits}
+ dailyLimits={displayedDailyLimits}
  productivityScore={liveScore}
  onNavigate={handleDockViewChange}
  />
@@ -1448,18 +1451,18 @@ export default function Dashboard() {
  <>
  {/* ACTIVE MISSIONS */}
  <TaskList 
- quests={quests} 
- attributes={attributes} 
- smartProjects={smartProjects}
- onCompleteQuest={completeQuest} 
- onDeleteQuest={handleDeleteQuest} 
- onEditQuest={handleEditQuest}
- onAddQuest={handleAddQuest}
- onFocusProject={handleFocusProject}
- projects={projects}
- dailyLimits={dailyLimits}
- defaultChartViews={user?.defaultChartViews}
- />
+  quests={quests} 
+  attributes={attributes} 
+  smartProjects={smartProjects}
+  onCompleteQuest={completeQuest} 
+  onDeleteQuest={handleDeleteQuest} 
+  onEditQuest={handleEditQuest}
+  onAddQuest={handleAddQuest}
+  onFocusProject={handleFocusProject}
+  projects={projects}
+  dailyLimits={displayedDailyLimits}
+  defaultChartViews={user?.defaultChartViews}
+  />
  </>
  ) : (
  <div className="h-full flex-1 min-h-[500px] flex flex-col gap-8 pb-24 overflow-y-auto pr-2 no-scrollbar">
@@ -1557,9 +1560,11 @@ export default function Dashboard() {
 
  <Suspense fallback={<SuspenseFallback />}>
  <HabitVisualView 
- habits={habits} 
- badHabits={badHabits}
- attributes={attributes} 
+  habits={habits} 
+  badHabits={badHabits}
+  attributes={attributes} 
+  currentDate={currentDate}
+  setCurrentDate={setCurrentDate} 
  onCompleteHabit={handleHabitClick}
  onToggleHabitDay={handleToggleHabitDay as any}
  onCreateHabit={handleAddHabit}
@@ -1589,9 +1594,9 @@ export default function Dashboard() {
  <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0" variant="minimal">
  <Suspense fallback={<SuspenseFallback />}>
  <FocusView 
- projects={projects} 
- attributes={attributes} 
- dailyLimits={dailyLimits}
+  projects={projects} 
+  attributes={attributes} 
+  dailyLimits={displayedDailyLimits}
  onCompleteSession={handleCompleteSession} 
  onAddManualSession={handleAddManualSession}
  onDeleteSession={handleDeleteSession}

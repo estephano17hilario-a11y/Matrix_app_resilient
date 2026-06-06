@@ -413,7 +413,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      setDraftId(entry?.id || Date.now().toString()); 
      
      // Extract blocks
-     let initialBlocks = entry?.blocks ? [...entry.blocks] : [{ id: 'init-1', type: 'text', content: '' }];
+     let initialBlocks: NoteBlock[] = entry?.blocks ? [...entry.blocks] : [{ id: 'init-1', type: 'text', content: '' }];
      let extractedTitle = '';
      
      // Only extract the title if the first block starts with the 'title-' ID prefix (added during save)

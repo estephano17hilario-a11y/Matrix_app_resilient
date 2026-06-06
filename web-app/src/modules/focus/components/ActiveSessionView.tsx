@@ -6,6 +6,7 @@ import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
+import { calculateSubTraitMaxXp } from '../../../utils/leveling';
 // import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface ActiveSessionViewProps {
@@ -89,32 +90,35 @@ const SubTraitPickerModal = ({
           </button>
 
           {/* Sub-trait options */}
-          {subTraits.map(st => (
-            <button
-              key={st.id}
-              onClick={() => setSelected(st.id)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all"
-              style={selected === st.id ? { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}40` } : { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}
-            >
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}25` }}>
-                <span className="text-xs font-bold" style={{ color: themeColor }}>Lv{st.level}</span>
-              </div>
-              <div className="flex-1 text-left">
-                <span className="text-sm font-bold" style={{ color: selected === st.id ? themeColor : 'rgba(255,255,255,0.5)' }}>
-                  {st.name}
-                </span>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden max-w-[80px]">
-                    <div className="h-full rounded-full" style={{ width: `${st.maxXp > 0 ? (st.xp / st.maxXp) * 100 : 0}%`, backgroundColor: themeColor }} />
-                  </div>
-                  <span className="text-[9px] text-white/20 font-mono">{st.xp}/{st.maxXp}</span>
+          {subTraits.map(st => {
+            const stMaxXp = calculateSubTraitMaxXp(st.level);
+            return (
+              <button
+                key={st.id}
+                onClick={() => setSelected(st.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all"
+                style={selected === st.id ? { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}40` } : { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}
+              >
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}25` }}>
+                  <span className="text-xs font-bold" style={{ color: themeColor }}>Lv{st.level}</span>
                 </div>
-              </div>
-              {selected === st.id && (
-                <Check size={16} style={{ color: themeColor }} />
-              )}
-            </button>
-          ))}
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-bold" style={{ color: selected === st.id ? themeColor : 'rgba(255,255,255,0.5)' }}>
+                    {st.name}
+                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden max-w-[80px]">
+                      <div className="h-full rounded-full" style={{ width: `${stMaxXp > 0 ? (st.xp / stMaxXp) * 100 : 0}%`, backgroundColor: themeColor }} />
+                    </div>
+                    <span className="text-[9px] text-white/20 font-mono">{st.xp}/{stMaxXp}</span>
+                  </div>
+                </div>
+                {selected === st.id && (
+                  <Check size={16} style={{ color: themeColor }} />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Confirm button */}

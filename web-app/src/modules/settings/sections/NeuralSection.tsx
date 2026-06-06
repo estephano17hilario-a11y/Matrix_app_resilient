@@ -523,7 +523,7 @@ export const NeuralSection = () => {
                         <div className="space-y-2">
                           {attr.subTraits.map((st: any) => {
                             const isEditingSub = editingSubId === st.id;
-                            const stMaxXp = st.maxXp || calculateSubTraitMaxXp(st.level);
+                            const stMaxXp = calculateSubTraitMaxXp(st.level);
                             const stXp = Math.round(st.xp);
                             const percent = Math.min(100, Math.max(0, (stXp / stMaxXp) * 100));
                             
