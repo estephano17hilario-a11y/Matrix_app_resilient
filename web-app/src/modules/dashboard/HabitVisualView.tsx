@@ -270,15 +270,30 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 ? habit.completedToday 
                 : habit.history?.some(d => getHistoryDateKey(d) === getHistoryDateKey(currentDate)) ?? false;
             
+            let overriddenChecklist = habit.checklist;
+            if (!isCurrentDay && habit.checklist) {
+                overriddenChecklist = habit.checklist.map(i => ({
+                    ...i,
+                    completed: i.history?.includes(getHistoryDateKey(currentDate)) ?? false
+                }));
+            }
+
+            let overriddenValue = habit.currentValue;
+            if (!isCurrentDay) {
+                overriddenValue = habit.valueHistory?.[getHistoryDateKey(currentDate)] || 0;
+            }
+            
             // OPTIMIZATION: Return the exact same object reference if the value hasn't changed.
             // This preserves React.memo on HabitItem.
-            if (habit.completedToday === isCompleted) {
+            if (habit.completedToday === isCompleted && habit.checklist === overriddenChecklist && habit.currentValue === overriddenValue) {
                 return habit;
             }
             
             return {
                 ...habit,
-                completedToday: isCompleted
+                completedToday: isCompleted,
+                checklist: overriddenChecklist,
+                currentValue: overriddenValue
             };
         });
     }, [showArchived, archivedHabits, activeHabits, currentDate, viewPreference]);

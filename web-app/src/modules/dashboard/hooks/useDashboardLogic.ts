@@ -5004,6 +5004,12 @@ export const useDashboardLogic = () => {
         if (h.type === 'QUANTITY' && typeof data.currentValue === 'number') {
             const target = h.targetValue || 0;
             const newValue = data.currentValue;
+            
+            let valueHistory = { ...(h.valueHistory || {}) };
+            valueHistory[todayKey] = newValue;
+            next.valueHistory = valueHistory;
+            next.currentValue = isTargetToday ? newValue : h.currentValue;
+
             const wasComplete = isTargetToday ? h.completedToday : (h.history?.some(d => getHistoryDateKey(d) === todayKey) ?? false);
             const isNowComplete = target > 0 && newValue >= target;
 
@@ -5024,11 +5030,34 @@ export const useDashboardLogic = () => {
             }
         }
         
-        if (h.type === 'CHECKLIST' && data.checklist) {
+        if (h.type === 'CHECKLIST' && data.checklist && h.checklist) {
+            next.checklist = h.checklist.map(oldItem => {
+                const updatedItem = data.checklist!.find(i => i.id === oldItem.id);
+                if (!updatedItem) return oldItem;
+
+                let itemHistory = oldItem.history || [];
+                const isCompletedInRequest = updatedItem.completed;
+
+                if (isCompletedInRequest) {
+                    if (!itemHistory.includes(todayKey)) itemHistory.push(todayKey);
+                } else {
+                    itemHistory = itemHistory.filter(d => d !== todayKey);
+                }
+
+                return {
+                    ...oldItem,
+                    completed: isTargetToday ? isCompletedInRequest : oldItem.completed,
+                    history: itemHistory
+                };
+            });
+            data.checklist = next.checklist;
+
             const wasComplete = isTargetToday ? h.completedToday : (h.history?.some(d => getHistoryDateKey(d) === todayKey) ?? false);
             const currentDay = targetDate ? targetDate.getDay() : new Date().getDay();
-            const visibleItems = data.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(currentDay));
-            const isNowComplete = visibleItems.length > 0 && visibleItems.every(item => item.completed);
+            
+            // To evaluate if the whole checklist is complete for the targetDate:
+            const visibleItems = next.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(currentDay));
+            const isNowComplete = visibleItems.length > 0 && visibleItems.every(item => isTargetToday ? item.completed : item.history?.includes(todayKey));
             
             if (isNowComplete && !wasComplete) {
                 const nextHistory = [...(h.history || []), todayHistory];

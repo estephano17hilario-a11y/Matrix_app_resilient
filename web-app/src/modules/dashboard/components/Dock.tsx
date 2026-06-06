@@ -150,7 +150,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
            animate={{ opacity: 1 }}
            exit={{ opacity: 0 }}
            transition={{ duration: 0.2 }}
-           className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
+           className={`fixed inset-0 z-[350] bg-black/85 backdrop-blur-3xl ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
            onClick={() => onToggle(false)}
          />
        )}
@@ -438,8 +438,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
  <div 
- className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-2xl"
- style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)' }}
+ className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-3xl"
+ style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.15)' : 'rgba(15,15,15,0.15)' }}
  >
  <div className="relative w-full h-full pointer-events-auto">
  <motion.div 

@@ -228,16 +228,17 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
     // Deficit shared evenly among the remaining days
     const deficitShare = remainingDays > 0 ? Math.max(accumulatedDeficit, 0) / remainingDays : 0;
 
-    // Today's meta is last week's today score + deficit share (capped at 100)
-    const prevWeekTodayScore = prevWeekScores[todayIdx] || 0;
-    const todayTargetScore = Math.min(prevWeekTodayScore + deficitShare, 100);
+    // Use average of last week instead of the exact same day, but guarantee a minimum baseline of 40%
+    const prevWeekAverage = prevWeekTotal / 7;
+    const baselineScore = Math.max(40, prevWeekAverage);
+    const todayTargetScore = Math.min(baselineScore + deficitShare, 100);
 
     return {
       prevWeekTotal,
       accumulatedDeficit: Math.max(accumulatedDeficit, 0),
       remainingDays,
       deficitShare,
-      prevWeekTodayScore,
+      prevWeekTodayScore: baselineScore, // Passed to UI as the baseline to beat
       todayTargetScore,
       todayIdx,
       hasDrop: accumulatedDeficit > 0

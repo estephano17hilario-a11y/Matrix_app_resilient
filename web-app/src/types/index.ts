@@ -109,7 +109,9 @@ export interface Habit {
     color?: string; // Custom color for this item
     days?: number[]; // Specific days this item should appear [0-6]
     reminderTime?: string; // Optional alarm/reminder time for this subtask
+    history?: string[]; // ISO date strings of completions for this specific subtask
   }[];
+  valueHistory?: Record<string, number>; // History of currentValue by date string
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions
   projectId?: string;
