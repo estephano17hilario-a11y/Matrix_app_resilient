@@ -75,7 +75,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  };
 
  loadEvents();
- }, [isOpen, eventsKey, user?.id]);
+ }, [user?.id]);
 
  // Save events whenever they change, but ONLY if we have already loaded
  useEffect(() => {

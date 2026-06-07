@@ -30,6 +30,42 @@ const MOODS = [
  { id: 'awful', icon: '⛈️', color: '#ef4444', label: 'Drained' },
 ];
 
+const getInitialNotesConfig = (userId?: string): NotesConfig => {
+  const defaultConfig: NotesConfig = {
+    enabledFeatures: [],
+    security: {
+      pin: '',
+      recoveryMethod: 'PASSWORD',
+      protectedAreas: { memories: false, notes: false, charts: false, journal: false }
+    }
+  };
+  if (typeof window === 'undefined') return defaultConfig;
+  const configKey = userId ? `notes_config_v2_${userId}` : 'notes_config_v2';
+  const saved = localStorage.getItem(configKey);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {}
+  }
+  const oldConfigKey = userId ? `notes_config_${userId}` : 'notes_config';
+  const oldSaved = localStorage.getItem(oldConfigKey);
+  if (oldSaved) {
+    try {
+      const parsed = JSON.parse(oldSaved);
+      return {
+        enabledFeatures: parsed.buttons || [],
+        security: {
+          pin: parsed.password || '',
+          recoveryMethod: 'PASSWORD',
+          protectedAreas: { memories: false, notes: false, charts: false, journal: false }
+        }
+      };
+    } catch (e) {}
+  }
+  return defaultConfig;
+};
+
+
 interface NotesViewProps {
  onInteractionStart: () => void;
  onInteractionEnd: () => void;
@@ -94,16 +130,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
    }
  }, [editorMode]);
 
- // Config & Security
- const [configOpen, setConfigOpen] = useState(false);
- const [config, setConfig] = useState<NotesConfig>({
- enabledFeatures: [],
- security: {
- pin: '',
- recoveryMethod: 'PASSWORD',
- protectedAreas: { memories: false, notes: false, charts: false, journal: false }
- }
- });
+  // Config & Security
+  const [configOpen, setConfigOpen] = useState(false);
+  const { user } = useAuth();
+  const [config, setConfig] = useState<NotesConfig>(() => getInitialNotesConfig(user?.id));
 
  const [isLocked, setIsLocked] = useState(false);
  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
@@ -111,87 +141,29 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
- const { user } = useAuth();
+  // Load Config from LocalStorage and Supabase
+  useEffect(() => {
+    // 1. Sync config synchronously from localStorage as soon as user?.id changes to prevent layout flickering
+    const localConfig = getInitialNotesConfig(user?.id);
+    setConfig(localConfig);
 
- // Load Config from LocalStorage
- useEffect(() => {
- const loadConfig = async () => {
- let finalConfig: NotesConfig | null = null;
- if (user?.id) {
- try {
- const supaSettings = await persistenceService.settings.get(user.id);
- if (supaSettings && supaSettings.notes_config_v2) {
- finalConfig = supaSettings.notes_config_v2;
- }
- } catch (e) {
- console.error("Failed to load notes config from Supabase", e);
- }
- }
-
- const configKey = user?.id ? `notes_config_v2_${user.id}` : 'notes_config_v2';
- 
- if (!finalConfig) {
- const savedConfig = localStorage.getItem(configKey);
- if (savedConfig) {
- try {
- const parsed = JSON.parse(savedConfig);
- finalConfig = parsed;
- if (user?.id) {
- const currentSettings = await persistenceService.settings.get(user.id) || {};
- await persistenceService.settings.save(user.id, { ...currentSettings, notes_config_v2: finalConfig });
- }
- } catch (e) {
- console.error("Failed to load notes config", e);
- }
- } else {
- const oldConfigKey = user?.id ? `notes_config_${user.id}` : 'notes_config';
- const oldConfig = localStorage.getItem(oldConfigKey);
- if (oldConfig) {
- try {
- const parsed = JSON.parse(oldConfig);
- finalConfig = {
- enabledFeatures: parsed.buttons || [],
- security: {
- pin: parsed.password || '',
- recoveryMethod: 'PASSWORD',
- protectedAreas: { memories: false, notes: false, charts: false, journal: false }
- }
- };
- if (user?.id) {
- const currentSettings = await persistenceService.settings.get(user.id) || {};
- await persistenceService.settings.save(user.id, { ...currentSettings, notes_config_v2: finalConfig });
- }
- } catch(e) {}
- }
- }
- }
-
- if (finalConfig) {
- setConfig(finalConfig);
- const isProtected = subView === 'NOTES' 
- ? finalConfig.security.protectedAreas.notes 
- : finalConfig.security.protectedAreas.journal;
- 
- if (isProtected) {
- setIsLocked(true);
- } else {
- setIsLocked(false);
- }
- } else {
- setConfig({
- enabledFeatures: [],
- security: {
- pin: '',
- recoveryMethod: 'PASSWORD',
- protectedAreas: { memories: false, notes: false, charts: false, journal: false }
- }
- });
- setIsLocked(false);
- }
- };
-
- loadConfig();
- }, [user?.id, subView]);
+    // 2. Fetch and sync from Supabase asynchronously
+    const fetchConfig = async () => {
+      if (!user?.id) return;
+      try {
+        const supaSettings = await persistenceService.settings.get(user.id);
+        if (supaSettings && supaSettings.notes_config_v2) {
+          const finalConfig = supaSettings.notes_config_v2;
+          setConfig(finalConfig);
+          const configKey = `notes_config_v2_${user.id}`;
+          localStorage.setItem(configKey, JSON.stringify(finalConfig));
+        }
+      } catch (e) {
+        console.error("Failed to load notes config from Supabase", e);
+      }
+    };
+    fetchConfig();
+  }, [user?.id]);
 
  // Save Config Helper
  const handleSaveConfig = async (newConfig: NotesConfig) => {
@@ -741,7 +713,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {/* Center: Switch */}
  <div className="flex justify-center flex-[2]">
  {sectionControl === 'VISIBLE' && !showStats && (
- <div className="bg-black/60 p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
+ <div className="bg-black/60 backdrop-blur-xl p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
  <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
  subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
  }`} />

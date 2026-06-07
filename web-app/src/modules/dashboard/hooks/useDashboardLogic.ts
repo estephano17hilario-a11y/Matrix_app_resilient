@@ -4924,15 +4924,24 @@ export const useDashboardLogic = () => {
             }
         }
 
-        setHabits(prev => {
-            if (data.id) {
-                // Edit mode
-                const exists = prev.find(h => h.id === data.id);
-                if (exists) {
-                    const updated = { ...exists, ...data } as Habit;
-                    if (user?.id) persistenceService.habits.save(user.id, updated);
-                    
-                    // 🔔 NOTIFICATION SYNC (UPDATE)
+        if (data.id) {
+            // Edit mode
+            const exists = habits.find(h => h.id === data.id);
+            if (exists) {
+                const updated = { ...exists, ...data } as Habit;
+                
+                setHabits(prev => {
+                    const newHabits = prev.map(h => h.id === data.id ? updated : h);
+                    if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+                    return newHabits;
+                });
+
+                // Async DB Save & Notification Sync (OUTSIDE setHabits)
+                if (user?.id) {
+                    persistenceService.habits.save(user.id, updated).catch(err => console.error("Failed to save edited habit:", err));
+                }
+
+                try {
                     const days = updated.frequencyDays && updated.frequencyDays.length > 0 ? updated.frequencyDays : [0,1,2,3,4,5,6];
                     if (updated.reminderTime) {
                         notificationService.scheduleHabitReminder(updated.id, updated.title, updated.reminderTime, days, updated.color || undefined);
@@ -4940,7 +4949,6 @@ export const useDashboardLogic = () => {
                         notificationService.cancelHabitReminder(updated.id);
                     }
 
-                    // Subtask Notifications Sync
                     if (updated.type === 'CHECKLIST' && updated.checklist) {
                         updated.checklist.forEach(sub => {
                             if (sub.reminderTime) {
@@ -4951,13 +4959,11 @@ export const useDashboardLogic = () => {
                             }
                         });
                     }
-
-                    const newHabits = prev.map(h => h.id === data.id ? updated : h);
-                    if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
-                    return newHabits;
+                } catch (e) {
+                    console.warn("Failed to sync notifications for edited habit:", e);
                 }
             }
-            
+        } else {
             // Create mode
             const newHabit: Habit = { 
                 id: Date.now().toString(), 
@@ -4968,27 +4974,35 @@ export const useDashboardLogic = () => {
                 createdAt: Date.now(),
                 ...data 
             } as Habit;
-            
-            if (user?.id) persistenceService.habits.save(user.id, newHabit);
 
-            // 🔔 NOTIFICATION SYNC (CREATE)
-            const days = newHabit.frequencyDays && newHabit.frequencyDays.length > 0 ? newHabit.frequencyDays : [0,1,2,3,4,5,6];
-            if (newHabit.reminderTime) {
-                notificationService.scheduleHabitReminder(newHabit.id, newHabit.title, newHabit.reminderTime, days, newHabit.color || undefined);
-            }
-            if (newHabit.type === 'CHECKLIST' && newHabit.checklist) {
-                newHabit.checklist.forEach(sub => {
-                    if (sub.reminderTime) {
-                        const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
-                        notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays, newHabit.color || undefined);
-                    }
-                });
+            setHabits(prev => {
+                const newHabits = [newHabit, ...prev];
+                if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
+                return newHabits;
+            });
+
+            // Async DB Save & Notification Sync (OUTSIDE setHabits)
+            if (user?.id) {
+                persistenceService.habits.save(user.id, newHabit).catch(err => console.error("Failed to save new habit:", err));
             }
 
-            const newHabits = [newHabit, ...prev];
-            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', newHabits);
-            return newHabits;
-        });
+            try {
+                const days = newHabit.frequencyDays && newHabit.frequencyDays.length > 0 ? newHabit.frequencyDays : [0,1,2,3,4,5,6];
+                if (newHabit.reminderTime) {
+                    notificationService.scheduleHabitReminder(newHabit.id, newHabit.title, newHabit.reminderTime, days, newHabit.color || undefined);
+                }
+                if (newHabit.type === 'CHECKLIST' && newHabit.checklist) {
+                    newHabit.checklist.forEach(sub => {
+                        if (sub.reminderTime) {
+                            const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
+                            notificationService.scheduleHabitReminder(sub.id, `Subtask: ${sub.text}`, sub.reminderTime, subDays, newHabit.color || undefined);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn("Failed to sync notifications for new habit:", e);
+            }
+        }
         
         setActiveModal(null);
     }, [user, habits]);

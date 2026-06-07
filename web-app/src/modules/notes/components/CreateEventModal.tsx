@@ -58,11 +58,11 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  }
  }, [isOpen, initialEvent]);
 
- const isFormComplete = title.trim() !== '' && date !== '' && time !== '' && notes.trim() !== '';
+ const isFormComplete = title.trim() !== '' && date !== '' && time !== '';
 
  const handleSave = () => {
  if (!isFormComplete) {
- toast.error("Please fill in all required fields (including notes and time)");
+ toast.error("Please fill in all required fields (including date and time)");
  return;
  }
 
