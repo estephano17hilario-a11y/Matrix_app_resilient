@@ -68,16 +68,27 @@ public class FocusPlugin extends Plugin {
 
     @PluginMethod
     public void requestExactAlarmPermission(PluginCall call) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
-                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(intent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                        intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getContext().startActivity(intent);
+                    } catch (Exception e) {
+                        // Fallback: open exact alarm settings without package URI (always works)
+                        Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getContext().startActivity(intent);
+                    }
+                }
             }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to request exact alarm permission", e);
         }
-        call.resolve();
     }
 
     @PluginMethod

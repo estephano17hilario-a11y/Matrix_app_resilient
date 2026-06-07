@@ -139,7 +139,7 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [theme, isCosmicTheme]);
+  }, [theme, isCosmicTheme, vicesMode]);
 
   if (!isCosmicTheme) return null;
 
