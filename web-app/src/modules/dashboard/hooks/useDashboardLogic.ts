@@ -5899,8 +5899,19 @@ export const useDashboardLogic = () => {
     }, [user?.id]);
 
     const handleReorderHabits = useCallback(async (newOrder: Habit[]) => {
-        // Optimistic update
-        setHabits(newOrder);
+        setHabits(prev => {
+            const updated = prev.map(h => {
+                const index = newOrder.findIndex(nh => nh.id === h.id);
+                if (index !== -1) {
+                    return { ...h, order: index };
+                }
+                return h;
+            });
+            if (user?.id) {
+                PersistenceService.saveCollection(user.id, 'habits', updated);
+            }
+            return updated;
+        });
         
         if (!user?.id) return;
         
@@ -5908,17 +5919,25 @@ export const useDashboardLogic = () => {
             await Promise.all(newOrder.map((habit, index) => 
                 persistenceService.habits.update(user!.id, habit.id, { order: index })
             ));
-            
-            // Update cache
-            PersistenceService.saveCollection(user.id, 'habits', newOrder);
         } catch (error) {
             console.error("Failed to reorder habits:", error);
         }
     }, [user?.id]);
 
     const handleReorderProjects = useCallback(async (newOrder: Project[]) => {
-        // Optimistic update
-        setProjects(newOrder);
+        setProjects(prev => {
+            const updated = prev.map(p => {
+                const index = newOrder.findIndex(np => np.id === p.id);
+                if (index !== -1) {
+                    return { ...p, order: index };
+                }
+                return p;
+            });
+            if (user?.id) {
+                PersistenceService.saveCollection(user.id, 'projects', updated);
+            }
+            return updated;
+        });
         
         if (!user?.id) return;
         
@@ -5926,26 +5945,32 @@ export const useDashboardLogic = () => {
             await Promise.all(newOrder.map((project, index) => 
                 persistenceService.projects.update(user!.id, project.id, { order: index })
             ));
-            
-             // Update cache
-            PersistenceService.saveCollection(user.id, 'projects', newOrder);
         } catch (error) {
             console.error("Failed to reorder projects:", error);
         }
     }, [user?.id]);
 
     const handleReorderBadHabits = useCallback(async (newOrder: BadHabit[]) => {
-        setBadHabits(newOrder);
+        setBadHabits(prev => {
+            const updated = prev.map(bh => {
+                const index = newOrder.findIndex(nbh => nbh.id === bh.id);
+                if (index !== -1) {
+                    return { ...bh, order: index };
+                }
+                return bh;
+            });
+            if (user?.id) {
+                PersistenceService.saveCollection(user.id, 'badHabits', updated);
+            }
+            return updated;
+        });
         
         if (!user?.id) return;
         
         try {
-            // Update Supabase
             await Promise.all(newOrder.map((habit, index) => 
                 persistenceService.badHabits.update(user!.id, habit.id, { order: index })
             ));
-            
-            PersistenceService.saveCollection(user.id, 'badHabits', newOrder);
         } catch (error) {
             console.error("Failed to reorder bad habits:", error);
         }
