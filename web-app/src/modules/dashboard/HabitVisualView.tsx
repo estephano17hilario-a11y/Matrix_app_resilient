@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Skull, Archive, ChevronLeft } from 'lucide-react';
+import { Skull, Archive, ChevronLeft, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSameDay, isLastDayOfMonth } from 'date-fns';
 import { useTheme } from '@/context/ThemeContext';
@@ -613,6 +613,15 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             >
                                                 {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
                                             </button>
+                                            {!showArchived && onReorder && viewPreference === 'DEFAULT' && (
+                                                <button
+                                                    onClick={() => setIsReorderModalOpen(true)}
+                                                    className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
+                                                    title="Organizar Orden"
+                                                >
+                                                    <ArrowUpDown size={16} />
+                                                </button>
+                                            )}
 
                                             {/* Today Navigation Button */}
                                             {!isSameDay(currentDate, new Date()) && (
@@ -907,6 +916,18 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         onOpenPro={onOpenPro}
                                         weekStartDay={weekStartDay || 1}
                                     />
+                                </div>
+                            )}
+
+                            {!showArchived && onReorderBadHabits && activeBadHabits.length > 1 && (
+                                <div className="w-full flex justify-end px-2 mb-1">
+                                    <button
+                                        onClick={handleBadHabitReorderRequest}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
+                                    >
+                                        <ArrowUpDown size={12} />
+                                        <span>ORGANIZAR ORDEN</span>
+                                    </button>
                                 </div>
                             )}
 

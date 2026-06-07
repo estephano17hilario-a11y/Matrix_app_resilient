@@ -31,16 +31,23 @@ export const calculateTaskRewards = (
   
   // 1. Base Rewards for Duration
   // Habits use an increased timeModifier (0.35), Tasks restored to original (0.18)
-  const timeModifier = type === 'HABIT' ? 0.35 : 0.18; 
+  // Boost initial task rewards for tasks under 1 hour, smoothly regularizing back to 0.18 at 1 hour.
+  let timeModifier = type === 'HABIT' ? 0.35 : 0.18; 
+  if (type === 'TASK' && hours < 1) {
+      timeModifier = 0.18 + 0.27 * (1 - hours);
+  }
   
   // Use a semi-linear curve
   // Habits decay heavily (0.55), Tasks restored to original (0.89)
   // PER USER REQUEST: "el daimiento de proyects quiero que ahora sea de 0.92"
+  // Boost initial task rewards with a gentler exponent (0.5) for short tasks.
   let timeExponent = 0.89; // Default for TASK
   if (type === 'HABIT') {
       timeExponent = 0.55;
   } else if (type === 'PROJECT') {
       timeExponent = 0.92;
+  } else if (type === 'TASK' && hours < 1) {
+      timeExponent = 0.5;
   }
   const timeMultiplier = Math.pow(hours, timeExponent) * timeModifier;
 
@@ -51,7 +58,13 @@ export const calculateTaskRewards = (
   // 2. Completion Bonus
   // Apply the decay curve to the bonus for habits, but keep tasks linear as original
   const maxDurationCap = type === 'HABIT' ? 3.0 : 1.0;
-  const effectiveHoursForBonus = type === 'HABIT' ? Math.pow(hours, timeExponent) : hours;
+  // Boost initial task duration factor for completion bonus
+  let effectiveHoursForBonus = hours;
+  if (type === 'HABIT') {
+      effectiveHoursForBonus = Math.pow(hours, timeExponent);
+  } else if (type === 'TASK' && hours < 1) {
+      effectiveHoursForBonus = Math.pow(hours, 0.5);
+  }
   const durationFactor = Math.min(maxDurationCap, Math.max(0.1, effectiveHoursForBonus)); // Reduced min from 0.2 to 0.1 to allow tiny tasks to give very little
   
   // Habits base bonus set to 11.6, Tasks restored to original (8.4)

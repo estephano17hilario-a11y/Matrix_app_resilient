@@ -57,7 +57,9 @@ const AuroraBackgroundComponent: React.FC<AuroraBackgroundProps> = ({ overrideCo
     <div 
       className={`fixed inset-0 z-0 pointer-events-none overflow-hidden transition-all duration-200 ease-in-out ${className || ''}`}
       style={{ 
-          background: bgStyle || 'rgb(var(--color-bg-depth))'
+          background: vicesMode 
+            ? 'linear-gradient(135deg, #150505 0%, #300a0a 100%)'
+            : (bgStyle || 'rgb(var(--color-bg-depth))')
       }}
     >
       {children}

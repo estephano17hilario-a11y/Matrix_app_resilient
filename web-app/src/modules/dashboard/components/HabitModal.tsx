@@ -233,7 +233,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         if (logic === 'CHECKLIST' && subtasks.length === 0 && !newSubtask.trim()) return false;
         return true;
     })();
-    const isBlock3Valid = true;
+    const isBlock3Valid = estimatedTime > 0 && reminder !== '';
 
     const canSubmit = isBlock1Valid && isBlock2Valid && isBlock3Valid;
 

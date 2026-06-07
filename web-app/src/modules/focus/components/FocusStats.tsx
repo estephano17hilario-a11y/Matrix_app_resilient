@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Target, Layers, Plus, ChevronDown, Calendar as CalendarIcon, SlidersHorizontal, Check, Archive, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target, Layers, Plus, ChevronDown, Calendar as CalendarIcon, SlidersHorizontal, Check, Archive, Lock, ArrowUpDown } from 'lucide-react';
 import { Project, Attribute } from '../../../types';
 import { DailyLimits } from '../../../types/User';
 import { BarChart } from '../../../components/charts/BarChart';
@@ -27,6 +27,7 @@ export const FocusStats = React.memo(({
     attributes,
     showArchived,
     onToggleArchived,
+    onReorder,
     isPro,
     onOpenPro,
     weekStartDay = 1,
@@ -38,6 +39,7 @@ export const FocusStats = React.memo(({
     dailyLimits?: DailyLimits,
     showArchived?: boolean,
     onToggleArchived?: () => void,
+    onReorder?: () => void,
     isPro?: boolean,
     onOpenPro?: () => void,
     weekStartDay?: 0 | 1,
@@ -498,6 +500,16 @@ export const FocusStats = React.memo(({
                                     title={showArchived ? "Ver Proyectos Activos" : "Ver Proyectos Archivados"}
                                 >
                                     <Archive size={12} />
+                                </button>
+                            )}
+                            {/* Reorder Button */}
+                            {!showArchived && onReorder && (
+                                <button
+                                    onClick={onReorder}
+                                    className="w-6 h-6 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all"
+                                    title="Reorganizar Proyectos"
+                                >
+                                    <ArrowUpDown size={12} />
                                 </button>
                             )}
                         </div>

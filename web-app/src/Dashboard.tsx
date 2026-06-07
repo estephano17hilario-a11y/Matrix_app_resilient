@@ -681,7 +681,7 @@ export default function Dashboard() {
  // --- HABIT ACTIONS & CONFIRMATION ---
  const [habitActionsHabit, setHabitActionsHabit] = useState<Habit | null>(null);
  const [badHabitActionsHabit, setBadHabitActionsHabit] = useState<BadHabit | null>(null);
- const isBackgroundHidden = !!activeModal || !!validationHabit || !!habitActionsHabit || !!badHabitActionsHabit || isSettingsOpen || isWizardOpen || isProgressOpen || isPomodoroActive || currentView === 'STREAK';
+ const isBackgroundHidden = !!validationHabit || !!habitActionsHabit || !!badHabitActionsHabit || isSettingsOpen || isWizardOpen || isProgressOpen || isPomodoroActive || currentView === 'STREAK';
  const [confirmationModal, setConfirmationModal] = useState<{
  isOpen: boolean;
  title: string;

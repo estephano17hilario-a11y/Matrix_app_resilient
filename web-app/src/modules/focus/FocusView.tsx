@@ -150,6 +150,7 @@ export const FocusView = React.memo(({
                     dailyLimits={dailyLimits}
                     showArchived={showArchived}
                     onToggleArchived={() => setShowArchived(!showArchived)}
+                    onReorder={() => setIsReorderModalOpen(true)}
                     isPro={isPro}
                     onOpenPro={onOpenPro}
                     defaultChartViews={defaultChartViews}
