@@ -1737,6 +1737,12 @@ export const useDashboardLogic = () => {
     }, [quests, user?.id]);
 
     useEffect(() => {
+        if (user?.id && areHabitsLoaded && projectsHydratedRef.current && questsHydratedRef.current) {
+            notificationService.syncAllNotifications(user.id);
+        }
+    }, [user?.id, areHabitsLoaded, projectsHydratedRef.current, questsHydratedRef.current]);
+
+    useEffect(() => {
         const handleQuestUpdated = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             if (!detail || !detail.questId) return;
@@ -3983,6 +3989,27 @@ export const useDashboardLogic = () => {
             return nextQuests;
         });
 
+        // Sync local notification reminders for task completion
+        try {
+            if (newQuest.completed) {
+                notificationService.cancelTaskReminder(quest.id);
+            } else if (newQuest.deadline) {
+                const deadlineDate = parseLocalDate(newQuest.deadline);
+                if (!isNaN(deadlineDate.getTime())) {
+                    notificationService.scheduleTaskReminder(newQuest.id, newQuest.title, deadlineDate, newQuest.color || undefined);
+                }
+            }
+
+            if (spawnedQuest && spawnedQuest.deadline) {
+                const spawnedDeadlineDate = parseLocalDate(spawnedQuest.deadline);
+                if (!isNaN(spawnedDeadlineDate.getTime())) {
+                    notificationService.scheduleTaskReminder(spawnedQuest.id, spawnedQuest.title, spawnedDeadlineDate, spawnedQuest.color || undefined);
+                }
+            }
+        } catch (err) {
+            console.warn("Failed to sync task notifications in completeQuest:", err);
+        }
+
         if (!userId) {
             if (rewardXp !== 0 || rewardGold !== 0) {
                 let newXp = player.xp + rewardXp;
@@ -4881,15 +4908,19 @@ export const useDashboardLogic = () => {
             return newQuests;
         });
 
-        // Schedule Notification Reminder for Task with Deadline
-        if (quest.deadline && quest.id) {
+        // Schedule/Cancel Notification Reminder for Task
+        if (quest.id) {
             try {
-                const deadlineDate = parseLocalDate(quest.deadline);
-                if (!isNaN(deadlineDate.getTime())) {
-                    notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate, quest.color || undefined);
+                if (quest.completed || !quest.deadline) {
+                    notificationService.cancelTaskReminder(quest.id);
+                } else {
+                    const deadlineDate = parseLocalDate(quest.deadline);
+                    if (!isNaN(deadlineDate.getTime())) {
+                        notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate, quest.color || undefined);
+                    }
                 }
             } catch (e: any) {
-                console.warn("Failed to schedule task notification:", e);
+                console.warn("Failed to sync task notification in handleQuestConfirm:", e);
             }
         }
 
@@ -4907,6 +4938,13 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.id, 'quests', newQuests);
             return newQuests;
         });
+
+        try {
+            notificationService.cancelTaskReminder(questId);
+        } catch (e) {
+            console.warn("Failed to cancel task notification:", e);
+        }
+
         try {
             await persistenceService.quests.delete(user.id, questId);
         } catch (error) {
@@ -5424,12 +5462,20 @@ export const useDashboardLogic = () => {
             return nextProjects;
         });
 
-        // Schedule Notification Reminder for Project
-        if (resolvedProject?.reminder && resolvedProject.id) {
-            const days = resolvedProject.workingDays && resolvedProject.workingDays.length > 0
-                ? resolvedProject.workingDays
-                : [0, 1, 2, 3, 4, 5, 6];
-            notificationService.scheduleProjectReminder(resolvedProject.id, resolvedProject.title, resolvedProject.reminder, days, resolvedProject.color || undefined);
+        // Schedule/Cancel Notification Reminder for Project
+        if (resolvedProject?.id) {
+            try {
+                if (resolvedProject.completed || resolvedProject.archived || resolvedProject.deleted || !resolvedProject.reminder) {
+                    notificationService.cancelProjectReminder(resolvedProject.id);
+                } else {
+                    const days = resolvedProject.workingDays && resolvedProject.workingDays.length > 0
+                        ? resolvedProject.workingDays
+                        : [0, 1, 2, 3, 4, 5, 6];
+                    notificationService.scheduleProjectReminder(resolvedProject.id, resolvedProject.title, resolvedProject.reminder, days, resolvedProject.color || undefined);
+                }
+            } catch (e) {
+                console.warn("Failed to sync project notification reminder:", e);
+            }
         }
 
         // Async Save (Outside State Update)
@@ -5470,6 +5516,12 @@ export const useDashboardLogic = () => {
         });
 
         // 2. FIRESTORE & CLEANUP (Hard Delete + Subcollections)
+        try {
+            notificationService.cancelProjectReminder(projectId);
+        } catch (e) {
+            console.warn("Failed to cancel project reminder:", e);
+        }
+
         try {
             console.log("☁️ Deleting from Firestore (HARD DELETE)...");
             

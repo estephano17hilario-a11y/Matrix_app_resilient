@@ -613,16 +613,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             >
                                                 {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
                                             </button>
-                                            {!showArchived && onReorder && viewPreference === 'DEFAULT' && (
-                                                <button
-                                                    onClick={() => setIsReorderModalOpen(true)}
-                                                    className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
-                                                    title="Organizar Orden"
-                                                >
-                                                    <ArrowUpDown size={16} />
-                                                </button>
-                                            )}
-
                                             {/* Today Navigation Button */}
                                             {!isSameDay(currentDate, new Date()) && (
                                                 <button
@@ -631,6 +621,16 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     title="Volver a hoy"
                                                 >
                                                     <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
+                                                </button>
+                                            )}
+
+                                            {!showArchived && onReorder && viewPreference === 'DEFAULT' && (
+                                                <button
+                                                    onClick={() => setIsReorderModalOpen(true)}
+                                                    className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
+                                                    title="Organizar Orden"
+                                                >
+                                                    <ArrowUpDown size={16} />
                                                 </button>
                                             )}
                                         </div>

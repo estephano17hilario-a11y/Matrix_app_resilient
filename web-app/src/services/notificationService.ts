@@ -4,6 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import FocusSession from '../plugins/FocusPlugin';
+import { PersistenceService } from './persistence';
+import { parseLocalDate } from '../utils/dateUtils';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push Certificates
 // const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
@@ -268,131 +270,174 @@ export const notificationService = {
  },
 
  scheduleHabitReminder: async (habitId: string, title: string, time: string, days: number[], color?: string) => {
- if (!Capacitor.isNativePlatform()) {
- console.log(`Web fallback: Habit reminder for ${title} scheduled for ${time} on days ${days}`);
- return;
- }
+  if (!Capacitor.isNativePlatform()) {
+  console.log(`Web fallback: Habit reminder for ${title} scheduled for ${time} on days ${days}`);
+  return;
+  }
 
- const hasExact = await notificationService.ensureExactAlarmPermission();
- if (!hasExact) return;
+  const hasExact = await notificationService.ensureExactAlarmPermission();
+  if (!hasExact) return;
 
- try {
- // Generate Numeric ID base from Habit ID using djb2 hash
- const baseId = generateId(habitId, 2000000); 
+  try {
+  const baseId = generateId(habitId, 2000000); 
 
- const [h, m] = time.split(':').map(Number);
- if (isNaN(h) || isNaN(m)) return;
+  const [h, m] = time.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return;
 
- // Cancel existing for this habit
- const pending = await LocalNotifications.getPending();
- // We assume we use baseId + dayIndex (0-6)
- const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
- if (toCancel.length > 0) {
- await LocalNotifications.cancel({ notifications: toCancel });
- }
+  const pending = await LocalNotifications.getPending();
+  const toCancel = pending.notifications.filter(n => n.id === baseId || (n.id >= baseId && n.id <= baseId + 6));
+  if (toCancel.length > 0) {
+  await LocalNotifications.cancel({ notifications: toCancel });
+  }
 
- const notifications = days.map(dayIndex => ({
- id: baseId + dayIndex,
- title: "Habit Protocol",
- body: title,
- schedule: {
- on: {
- weekday: dayIndex + 1,
- hour: h,
- minute: m
- },
- allowWhileIdle: true
- },
- channelId: 'lux_daily',
- smallIcon: 'ic_stat_lux',
- largeIcon: 'lux_logo',
- iconColor: color || '#6366f1',
- actionTypeId: 'OPEN_APP'
- }));
+  const activeDays = days && days.length > 0 ? days : [0, 1, 2, 3, 4, 5, 6];
+  let notifications: any[] = [];
 
- await LocalNotifications.schedule({ notifications });
- console.log(`Scheduled ${notifications.length} reminders for habit ${title}`);
- } catch (e) {
- console.error("Failed to schedule habit reminder", e);
- }
- },
+  if (activeDays.length === 7) {
+  notifications.push({
+  id: baseId,
+  title: "Habit Protocol",
+  body: title,
+  schedule: {
+  on: {
+  hour: h,
+  minute: m
+  },
+  allowWhileIdle: true
+  },
+  channelId: 'lux_daily',
+  smallIcon: 'ic_stat_lux',
+  largeIcon: 'lux_logo',
+  iconColor: color || '#6366f1',
+  actionTypeId: 'OPEN_APP'
+  });
+  } else {
+  notifications = activeDays.map(dayIndex => ({
+  id: baseId + dayIndex,
+  title: "Habit Protocol",
+  body: title,
+  schedule: {
+  on: {
+  weekday: dayIndex + 1,
+  hour: h,
+  minute: m
+  },
+  allowWhileIdle: true
+  },
+  channelId: 'lux_daily',
+  smallIcon: 'ic_stat_lux',
+  largeIcon: 'lux_logo',
+  iconColor: color || '#6366f1',
+  actionTypeId: 'OPEN_APP'
+  }));
+  }
 
- cancelHabitReminder: async (habitId: string) => {
- if (!Capacitor.isNativePlatform()) return;
- try {
- const baseId = generateId(habitId, 2000000);
+  await LocalNotifications.schedule({ notifications });
+  console.log(`Scheduled ${notifications.length} reminders for habit ${title}`);
+  } catch (e) {
+  console.error("Failed to schedule habit reminder", e);
+  }
+  },
 
- const pending = await LocalNotifications.getPending();
- const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
- if (toCancel.length > 0) {
- await LocalNotifications.cancel({ notifications: toCancel });
- }
- } catch (e) {
- console.error("Failed to cancel habit reminder", e);
- }
- },
+  cancelHabitReminder: async (habitId: string) => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+  const baseId = generateId(habitId, 2000000);
+
+  const pending = await LocalNotifications.getPending();
+  const toCancel = pending.notifications.filter(n => n.id === baseId || (n.id >= baseId && n.id <= baseId + 6));
+  if (toCancel.length > 0) {
+  await LocalNotifications.cancel({ notifications: toCancel });
+  }
+  } catch (e) {
+  console.error("Failed to cancel habit reminder", e);
+  }
+  },
 
  scheduleProjectReminder: async (projectId: string, title: string, time: string, days: number[], color?: string) => {
- if (!Capacitor.isNativePlatform()) {
- console.log(`Web fallback: Project reminder for ${title} scheduled for ${time} on days ${days}`);
- return;
- }
+  if (!Capacitor.isNativePlatform()) {
+  console.log(`Web fallback: Project reminder for ${title} scheduled for ${time} on days ${days}`);
+  return;
+  }
 
- const hasExact = await notificationService.ensureExactAlarmPermission();
- if (!hasExact) return;
+  const hasExact = await notificationService.ensureExactAlarmPermission();
+  if (!hasExact) return;
 
- try {
- const baseId = generateId(projectId, 5000000);
+  try {
+  const baseId = generateId(projectId, 5000000);
 
- const [h, m] = time.split(':').map(Number);
- if (isNaN(h) || isNaN(m)) return;
+  const [h, m] = time.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return;
 
- const pending = await LocalNotifications.getPending();
- const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
- if (toCancel.length > 0) {
- await LocalNotifications.cancel({ notifications: toCancel });
- }
+  const pending = await LocalNotifications.getPending();
+  const toCancel = pending.notifications.filter(n => n.id === baseId || (n.id >= baseId && n.id <= baseId + 6));
+  if (toCancel.length > 0) {
+  await LocalNotifications.cancel({ notifications: toCancel });
+  }
 
- const notifications = days.map(dayIndex => ({
- id: baseId + dayIndex,
- title: "Project Protocol",
- body: title,
- schedule: {
- on: {
- weekday: dayIndex + 1,
- hour: h,
- minute: m
- },
- allowWhileIdle: true
- },
- channelId: 'lux_daily',
- smallIcon: 'ic_stat_lux',
- largeIcon: 'lux_logo',
- iconColor: color || '#6366f1',
- actionTypeId: 'OPEN_APP'
- }));
+  const activeDays = days && days.length > 0 ? days : [0, 1, 2, 3, 4, 5, 6];
+  let notifications: any[] = [];
 
- await LocalNotifications.schedule({ notifications });
- console.log(`Scheduled ${notifications.length} reminders for project ${title}`);
- } catch (e) {
- console.error("Failed to schedule project reminder", e);
- }
- },
+  if (activeDays.length === 7) {
+  notifications.push({
+  id: baseId,
+  title: "Project Protocol",
+  body: title,
+  schedule: {
+  on: {
+  hour: h,
+  minute: m
+  },
+  allowWhileIdle: true
+  },
+  channelId: 'lux_daily',
+  smallIcon: 'ic_stat_lux',
+  largeIcon: 'lux_logo',
+  iconColor: color || '#6366f1',
+  actionTypeId: 'OPEN_APP'
+  });
+  } else {
+  notifications = activeDays.map(dayIndex => ({
+  id: baseId + dayIndex,
+  title: "Project Protocol",
+  body: title,
+  schedule: {
+  on: {
+  weekday: dayIndex + 1,
+  hour: h,
+  minute: m
+  },
+  allowWhileIdle: true
+  },
+  channelId: 'lux_daily',
+  smallIcon: 'ic_stat_lux',
+  largeIcon: 'lux_logo',
+  iconColor: color || '#6366f1',
+  actionTypeId: 'OPEN_APP'
+  }));
+  }
 
- cancelProjectReminder: async (projectId: string) => {
- if (!Capacitor.isNativePlatform()) return;
- try {
- const baseId = generateId(projectId, 5000000);
+  await LocalNotifications.schedule({ notifications });
+  console.log(`Scheduled ${notifications.length} reminders for project ${title}`);
+  } catch (e) {
+  console.error("Failed to schedule project reminder", e);
+  }
+  },
 
- const pending = await LocalNotifications.getPending();
- const toCancel = pending.notifications.filter(n => n.id >= baseId && n.id <= baseId + 6);
- if (toCancel.length > 0) {
- await LocalNotifications.cancel({ notifications: toCancel });
- }
- } catch (e) {
- console.error("Failed to cancel project reminder", e);
- }
- },
+  cancelProjectReminder: async (projectId: string) => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+  const baseId = generateId(projectId, 5000000);
+
+  const pending = await LocalNotifications.getPending();
+  const toCancel = pending.notifications.filter(n => n.id === baseId || (n.id >= baseId && n.id <= baseId + 6));
+  if (toCancel.length > 0) {
+  await LocalNotifications.cancel({ notifications: toCancel });
+  }
+  } catch (e) {
+  console.error("Failed to cancel project reminder", e);
+  }
+  },
 
  scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date, color?: string) => {
  if (!Capacitor.isNativePlatform()) {
@@ -519,9 +564,242 @@ export const notificationService = {
  },
 
  cancelEventNotification: async (id: string) => {
- const numericId = generateId(id, 9000000);
- if (numericId && Capacitor.isNativePlatform()) {
- await LocalNotifications.cancel({ notifications: [{ id: numericId }] });
- }
- }
+  const numericId = generateId(id, 9000000);
+  if (numericId && Capacitor.isNativePlatform()) {
+  await LocalNotifications.cancel({ notifications: [{ id: numericId }] });
+  }
+  },
+
+  syncAllNotifications: async (userId?: string) => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+      const uid = userId || sessionStorage.getItem('MATRIX_ACTIVE_SESSION_UID') || localStorage.getItem('MATRIX_ACTIVE_SESSION_UID');
+      if (!uid) {
+        console.log("No active user found for notification sync.");
+        return;
+      }
+
+      console.log("🔄 Syncing all local notifications for user:", uid);
+
+      const pending = await LocalNotifications.getPending();
+      const toCancel = pending.notifications.filter(n => n.id !== 9998 && n.id !== 9999);
+      if (toCancel.length > 0) {
+        await LocalNotifications.cancel({ notifications: toCancel });
+        console.log(`Cancelled ${toCancel.length} orphaned/stale notifications.`);
+      }
+
+      const hasExact = await notificationService.ensureExactAlarmPermission();
+      if (!hasExact) {
+         console.warn("Exact alarms permission not granted, skipping reschedule.");
+         return;
+      }
+
+      const habits = PersistenceService.getCollection<any>(uid, 'habits') || [];
+      const projects = PersistenceService.getCollection<any>(uid, 'projects') || [];
+      const quests = PersistenceService.getCollection<any>(uid, 'quests') || [];
+      
+      let specialEvents: any[] = [];
+      const eventsRaw = localStorage.getItem(`special_events_${uid}`);
+      if (eventsRaw) {
+        try {
+          specialEvents = JSON.parse(eventsRaw);
+        } catch (e) {
+          console.error("Failed to parse special events for sync", e);
+        }
+      }
+
+      const notificationsToSchedule: any[] = [];
+
+      const getNextEventDate = (eventDateStr: string, recurrence: 'ANNUAL' | 'MONTHLY' | 'NONE') => {
+        const [year, month, day] = eventDateStr.split('-').map(Number);
+        const baseDate = new Date(year, month - 1, day);
+        baseDate.setHours(0, 0, 0, 0);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (!recurrence || recurrence === 'NONE') return baseDate;
+        if (recurrence === 'ANNUAL') {
+          const nextDate = new Date(baseDate);
+          nextDate.setFullYear(now.getFullYear());
+          if (nextDate.getTime() < now.getTime()) nextDate.setFullYear(now.getFullYear() + 1);
+          return nextDate;
+        }
+        if (recurrence === 'MONTHLY') {
+          const nextDate = new Date(baseDate);
+          nextDate.setFullYear(now.getFullYear());
+          nextDate.setMonth(now.getMonth());
+          if (nextDate.getTime() < now.getTime()) nextDate.setMonth(now.getMonth() + 1);
+          return nextDate;
+        }
+        return baseDate;
+      };
+
+      habits.forEach(habit => {
+        if (habit.archived || !habit.reminderTime) return;
+        const baseId = generateId(habit.id, 2000000);
+        const [h, m] = habit.reminderTime.split(':').map(Number);
+        if (isNaN(h) || isNaN(m)) return;
+
+        const days = habit.frequencyDays && habit.frequencyDays.length > 0 ? habit.frequencyDays : [0, 1, 2, 3, 4, 5, 6];
+        
+        if (days.length === 7) {
+          notificationsToSchedule.push({
+            id: baseId,
+            title: "Habit Protocol",
+            body: habit.title,
+            schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+            channelId: 'lux_daily',
+            smallIcon: 'ic_stat_lux',
+            largeIcon: 'lux_logo',
+            iconColor: habit.color || '#6366f1',
+            actionTypeId: 'OPEN_APP'
+          });
+        } else {
+          days.forEach(dayIndex => {
+            notificationsToSchedule.push({
+              id: baseId + dayIndex,
+              title: "Habit Protocol",
+              body: habit.title,
+              schedule: { on: { weekday: dayIndex + 1, hour: h, minute: m }, allowWhileIdle: true },
+              channelId: 'lux_daily',
+              smallIcon: 'ic_stat_lux',
+              largeIcon: 'lux_logo',
+              iconColor: habit.color || '#6366f1',
+              actionTypeId: 'OPEN_APP'
+            });
+          });
+        }
+
+        if (habit.type === 'CHECKLIST' && habit.checklist) {
+          habit.checklist.forEach((sub: any) => {
+            if (!sub.reminderTime) return;
+            const subBaseId = generateId(sub.id, 2000000);
+            const [sh, sm] = sub.reminderTime.split(':').map(Number);
+            if (isNaN(sh) || isNaN(sm)) return;
+
+            const subDays = sub.days && sub.days.length > 0 ? sub.days : days;
+            if (subDays.length === 7) {
+              notificationsToSchedule.push({
+                id: subBaseId,
+                title: "Habit Protocol",
+                body: `Subtask: ${sub.text}`,
+                schedule: { on: { hour: sh, minute: sm }, allowWhileIdle: true },
+                channelId: 'lux_daily',
+                smallIcon: 'ic_stat_lux',
+                largeIcon: 'lux_logo',
+                iconColor: habit.color || '#6366f1',
+                actionTypeId: 'OPEN_APP'
+              });
+            } else {
+              subDays.forEach((dayIndex: number) => {
+                notificationsToSchedule.push({
+                  id: subBaseId + dayIndex,
+                  title: "Habit Protocol",
+                  body: `Subtask: ${sub.text}`,
+                  schedule: { on: { weekday: dayIndex + 1, hour: sh, minute: sm }, allowWhileIdle: true },
+                  channelId: 'lux_daily',
+                  smallIcon: 'ic_stat_lux',
+                  largeIcon: 'lux_logo',
+                  iconColor: habit.color || '#6366f1',
+                  actionTypeId: 'OPEN_APP'
+                });
+              });
+            }
+          });
+        }
+      });
+
+      projects.forEach(project => {
+        if (project.completed || project.archived || !project.reminder) return;
+        const baseId = generateId(project.id, 5000000);
+        const [h, m] = project.reminder.split(':').map(Number);
+        if (isNaN(h) || isNaN(m)) return;
+
+        const days = project.reminderDays && project.reminderDays.length > 0 ? project.reminderDays : [0, 1, 2, 3, 4, 5, 6];
+        
+        if (days.length === 7) {
+          notificationsToSchedule.push({
+            id: baseId,
+            title: "Project Protocol",
+            body: project.title,
+            schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+            channelId: 'lux_daily',
+            smallIcon: 'ic_stat_lux',
+            largeIcon: 'lux_logo',
+            iconColor: project.color || '#6366f1',
+            actionTypeId: 'OPEN_APP'
+          });
+        } else {
+          days.forEach(dayIndex => {
+            notificationsToSchedule.push({
+              id: baseId + dayIndex,
+              title: "Project Protocol",
+              body: project.title,
+              schedule: { on: { weekday: dayIndex + 1, hour: h, minute: m }, allowWhileIdle: true },
+              channelId: 'lux_daily',
+              smallIcon: 'ic_stat_lux',
+              largeIcon: 'lux_logo',
+              iconColor: project.color || '#6366f1',
+              actionTypeId: 'OPEN_APP'
+            });
+          });
+        }
+      });
+
+      quests.forEach(quest => {
+        if (quest.completed || !quest.deadline) return;
+        const baseId = generateId(quest.id, 8000000);
+        const deadlineDate = parseLocalDate(quest.deadline);
+        if (!isNaN(deadlineDate.getTime()) && deadlineDate.getTime() > Date.now()) {
+          notificationsToSchedule.push({
+            id: baseId,
+            title: "Task Due",
+            body: quest.title,
+            schedule: { at: deadlineDate, allowWhileIdle: true },
+            channelId: 'lux_daily',
+            smallIcon: 'ic_stat_lux',
+            largeIcon: 'lux_logo',
+            iconColor: quest.color || '#6366f1',
+            actionTypeId: 'OPEN_APP'
+          });
+        }
+      });
+
+      specialEvents.forEach(event => {
+        if (!event.notifyTime) return;
+        const numericId = generateId(event.id, 9000000);
+        const nextDate = getNextEventDate(event.date, event.type);
+        const [hours, minutes] = event.notifyTime.split(':').map(Number);
+        nextDate.setHours(hours, minutes, 0, 0);
+
+        if (nextDate.getTime() > Date.now()) {
+          notificationsToSchedule.push({
+            id: numericId,
+            title: "🎉 Today is special!",
+            body: `It's ${event.title}'s ${event.type === 'BIRTHDAY' ? 'Birthday' : event.type === 'ANNIVERSARY' ? 'Anniversary' : 'Special Day'}! Don't forget to celebrate.`,
+            schedule: { at: nextDate, allowWhileIdle: true },
+            sound: 'beep.wav',
+            smallIcon: 'ic_stat_lux',
+            largeIcon: 'lux_logo',
+            iconColor: event.type === 'BIRTHDAY' ? '#ec4899' : event.type === 'ANNIVERSARY' ? '#ef4444' : '#fbbf24',
+            actionTypeId: '',
+            extra: { type: 'EVENT', originalId: event.id }
+          });
+        }
+      });
+
+      if (notificationsToSchedule.length > 0) {
+        let toSchedule = notificationsToSchedule;
+        if (toSchedule.length > 450) {
+          console.warn(`Total notifications to schedule (${toSchedule.length}) exceeds safety limit. Truncating to 450.`);
+          toSchedule = toSchedule.slice(0, 450);
+        }
+        await LocalNotifications.schedule({ notifications: toSchedule });
+        console.log(`Successfully synced and scheduled ${toSchedule.length} local notifications.`);
+      }
+    } catch (error) {
+      console.error("Failed to sync notifications", error);
+    }
+  }
 };
