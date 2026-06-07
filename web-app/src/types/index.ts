@@ -181,6 +181,7 @@ export interface Project {
   sessions?: Session[];
   archived?: boolean;
   deleted?: boolean;
+  completed?: boolean;
   smartProjectId?: string;
   createdAt?: number;
   lastSessionDate?: string;

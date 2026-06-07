@@ -656,7 +656,7 @@ export const notificationService = {
             actionTypeId: 'OPEN_APP'
           });
         } else {
-          days.forEach(dayIndex => {
+          days.forEach((dayIndex: number) => {
             notificationsToSchedule.push({
               id: baseId + dayIndex,
               title: "Habit Protocol",
@@ -731,7 +731,7 @@ export const notificationService = {
             actionTypeId: 'OPEN_APP'
           });
         } else {
-          days.forEach(dayIndex => {
+          days.forEach((dayIndex: number) => {
             notificationsToSchedule.push({
               id: baseId + dayIndex,
               title: "Project Protocol",
