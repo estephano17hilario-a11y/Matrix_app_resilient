@@ -7,7 +7,6 @@
     <!-- ============================================================ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -76,20 +75,13 @@
         </provider>
 
         <!-- ============================================================ -->
-        <!--  FOREGROUND SERVICE - specialUse                            -->
-        <!--  Mantiene el temporizador de sesiones de enfoque (Pomodoro) -->
-        <!--  activo cuando la pantalla se apaga o el usuario cambia     -->
-        <!--  de aplicación. SIN esta declaración Google rechaza el APK. -->
+        <!--  FOREGROUND SERVICE - Standard (sin specialUse)             -->
+        <!--  Mantiene el temporizador de sesiones de enfoque activo.    -->
         <!-- ============================================================ -->
         <service
             android:name=".FocusService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="specialUse"
-            android:description="@string/focus_service_description">
-            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                      android:value="Productivity focus timer and habit tracking sync" />
-        </service>
+            android:exported="false" />
 
         <!-- Google Play Services version -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />

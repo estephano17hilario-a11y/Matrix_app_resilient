@@ -18,7 +18,6 @@ import androidx.media.app.NotificationCompat.MediaStyle;
 
 import java.util.Locale;
 
-import android.content.pm.ServiceInfo;
 
 public class FocusService extends Service {
 
@@ -83,19 +82,10 @@ public class FocusService extends Service {
             
             Notification notification = buildNotification();
             try {
-                if (Build.VERSION.SDK_INT >= 34) {
-                    // For Android 14+ (API 34+), specialUse is required. ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE = 1073741824
-                    startForeground(NOTIFICATION_ID, notification, 1073741824);
-                } else {
-                    startForeground(NOTIFICATION_ID, notification);
-                }
+                // Standard foreground service — no specialUse type needed
+                startForeground(NOTIFICATION_ID, notification);
             } catch (Exception e) {
                 android.util.Log.e("FocusService", "Failed to start foreground service: " + e.getMessage());
-                try {
-                    startForeground(NOTIFICATION_ID, notification);
-                } catch (Exception ex) {
-                    android.util.Log.e("FocusService", "Critical failure starting foreground service: " + ex.getMessage());
-                }
             }
 
         } else if (ACTION_STOP.equals(action)) {
