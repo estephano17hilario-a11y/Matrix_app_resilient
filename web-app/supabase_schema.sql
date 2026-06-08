@@ -73,11 +73,7 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can read own data" ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own data" ON public.users 
   FOR UPDATE USING (auth.uid() = id)
-  WITH CHECK (
-    auth.uid() = id AND 
-    plan = (SELECT plan FROM public.users WHERE id = auth.uid()) AND
-    es_pro = (SELECT es_pro FROM public.users WHERE id = auth.uid())
-  );
+  WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can insert own data" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Projects Policy
@@ -131,3 +127,19 @@ $$ language 'plpgsql' SET search_path = public;
 CREATE TRIGGER update_projects_modtime
     BEFORE UPDATE ON public.projects
     FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+-- Trigger to automatically uppercase the plan column to avoid check constraint violations
+CREATE OR REPLACE FUNCTION public.handle_user_plan_uppercase()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.plan IS NOT NULL THEN
+    NEW.plan := UPPER(NEW.plan);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER tr_user_plan_uppercase
+  BEFORE INSERT OR UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_user_plan_uppercase();
+

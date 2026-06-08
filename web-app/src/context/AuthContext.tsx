@@ -344,25 +344,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const active = await checkProEntitlement();
         const dbIsPro = profile.plan === 'PRO';
         
-        // 🔐 DOWNGRADE SHIELD: Never downgrade a PRO user to FREE unless RevenueCat
-        // explicitly confirmed inactivity (active === false, not undefined/null/error).
-        // If active is false but the user is offline, we keep them PRO.
-        if (!active && dbIsPro && !navigator.onLine) {
-          console.log("[RevenueCat Sync] Offline — keeping PRO status. Will re-check on next foreground.");
-          return;
-        }
-
-        if (active !== dbIsPro) {
-          // 🔐 EXTRA GUARD: Only downgrade to FREE if we have a confirmed negative from RevenueCat
-          // AND device is online (so RevenueCat actually reached its servers).
-          if (!active && !navigator.onLine) {
-            console.log("[RevenueCat Sync] Cannot downgrade PRO — device is offline.");
-            return;
-          }
-
-          console.log(`[RevenueCat Sync] Mismatch. RevenueCat isPremium: ${active}, Supabase is PRO: ${dbIsPro}. Syncing...`);
-          const nextPlan = active ? 'PRO' : 'FREE';
-          const nextEsPro = active;
+        // Only perform upgrades from the client side.
+        // Downgrades are handled securely via backend webhooks (RevenueCat/MercadoPago)
+        // to prevent client-side synchronization errors from reverting developer-assigned or manually set PRO statuses.
+        if (active && !dbIsPro) {
+          console.log(`[RevenueCat Sync] Mismatch. RevenueCat isPremium: ${active}, Supabase is PRO: ${dbIsPro}. Upgrading to PRO...`);
+          const nextPlan = 'PRO';
+          const nextEsPro = true;
           
           const { error } = await supabase
             .from('users')
@@ -373,8 +361,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("[RevenueCat Sync] Error updating Supabase user:", error);
           } else {
             updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro });
-            console.log(`[RevenueCat Sync] Synchronized successfully to ${nextPlan}.`);
+            console.log(`[RevenueCat Sync] Upgraded successfully to ${nextPlan}.`);
           }
+        } else if (!active && dbIsPro) {
+          console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (relying on DB/Webhook/MercadoPago source of truth).");
         }
       } catch (e) {
         // 🔐 CRITICAL: If RevenueCat throws ANY error (network, config, etc.),
