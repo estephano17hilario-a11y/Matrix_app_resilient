@@ -149,6 +149,11 @@ export const useDashboardLogic = () => {
         if (luxUser.id === authProfile.uid || luxUser.id === authProfile.id) {
             return {
                 ...luxUser,
+                // 🔐 PLAN PERSISTENCE: ALWAYS prefer authProfile for plan/es_pro.
+                // luxUser (LuxContext) does NOT fetch plan from Supabase, so it defaults to undefined.
+                // authProfile is the source of truth for subscription status.
+                plan: authProfile.plan || luxUser.plan || 'FREE',
+                es_pro: authProfile.es_pro ?? luxUser.es_pro ?? false,
                 // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
                 avatarId: authProfile.avatarId || luxUser.avatarId,
                 displayName: luxUser.displayName || authProfile.displayName,
@@ -175,6 +180,7 @@ export const useDashboardLogic = () => {
         }
         return luxUser;
     }, [luxUser, authProfile]);
+
 
     const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);

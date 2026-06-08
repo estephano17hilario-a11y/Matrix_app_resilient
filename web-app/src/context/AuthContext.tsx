@@ -344,7 +344,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const active = await checkProEntitlement();
         const dbIsPro = profile.plan === 'PRO';
         
+        // 🔐 DOWNGRADE SHIELD: Never downgrade a PRO user to FREE unless RevenueCat
+        // explicitly confirmed inactivity (active === false, not undefined/null/error).
+        // If active is false but the user is offline, we keep them PRO.
+        if (!active && dbIsPro && !navigator.onLine) {
+          console.log("[RevenueCat Sync] Offline — keeping PRO status. Will re-check on next foreground.");
+          return;
+        }
+
         if (active !== dbIsPro) {
+          // 🔐 EXTRA GUARD: Only downgrade to FREE if we have a confirmed negative from RevenueCat
+          // AND device is online (so RevenueCat actually reached its servers).
+          if (!active && !navigator.onLine) {
+            console.log("[RevenueCat Sync] Cannot downgrade PRO — device is offline.");
+            return;
+          }
+
           console.log(`[RevenueCat Sync] Mismatch. RevenueCat isPremium: ${active}, Supabase is PRO: ${dbIsPro}. Syncing...`);
           const nextPlan = active ? 'PRO' : 'FREE';
           const nextEsPro = active;
@@ -362,7 +377,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (e) {
-        console.log("[RevenueCat Sync] Check failed (network offline or config error):", e);
+        // 🔐 CRITICAL: If RevenueCat throws ANY error (network, config, etc.),
+        // we NEVER downgrade the user. We keep their current plan as-is.
+        console.warn("[RevenueCat Sync] Check failed — keeping current plan intact. Error:", e);
       }
     };
 
