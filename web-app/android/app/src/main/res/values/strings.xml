@@ -5,4 +5,5 @@
     <string name="package_name">com.luxresilient.app</string>
     <string name="custom_url_scheme">luxapp</string>
     <string name="server_client_id">337956413837-50tlt5kf1l8o39bobc1bispknmun857o.apps.googleusercontent.com</string>
+    <string name="focus_service_description">Lux mantiene el temporizador de sesiones de enfoque activo para sincronizar hábitos y estadísticas de productividad en segundo plano.</string>
 </resources>

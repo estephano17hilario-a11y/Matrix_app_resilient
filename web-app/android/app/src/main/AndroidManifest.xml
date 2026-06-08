@@ -1,10 +1,32 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ============================================================ -->
+    <!--  PERMISOS PRINCIPALES                                        -->
+    <!-- ============================================================ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
+    <!-- ============================================================ -->
+    <!--  ELIMINAR AD_ID: Evita que cualquier plugin o dependencia    -->
+    <!--  (Firebase, RevenueCat, etc.) inyecte este permiso.         -->
+    <!--  Esta app NO usa anuncios ni AdMob.                         -->
+    <!-- ============================================================ -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+                     tools:node="remove"/>
 
+    <!-- ============================================================ -->
+    <!--  QUERIES: Aplicaciones externas que puede abrir la app      -->
+    <!-- ============================================================ -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -22,6 +44,8 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
+
+        <!-- Main Activity -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -33,6 +57,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep Link: luxapp:// para OAuth de Supabase -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -41,6 +66,7 @@
             </intent-filter>
         </activity>
 
+        <!-- File Provider -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -49,31 +75,25 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- ============================================================ -->
+        <!--  FOREGROUND SERVICE - specialUse                            -->
+        <!--  Mantiene el temporizador de sesiones de enfoque (Pomodoro) -->
+        <!--  activo cuando la pantalla se apaga o el usuario cambia     -->
+        <!--  de aplicación. SIN esta declaración Google rechaza el APK. -->
+        <!-- ============================================================ -->
         <service
             android:name=".FocusService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="specialUse"
+            android:description="@string/focus_service_description">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                      android:value="Focus timer and gamification rewards tracking" />
+                      android:value="Productivity focus timer and habit tracking sync" />
         </service>
 
-
+        <!-- Google Play Services version -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
+
     </application>
 
-    <!-- Permissions -->
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="com.android.vending.BILLING" />
 </manifest>
