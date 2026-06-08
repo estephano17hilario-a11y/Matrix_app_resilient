@@ -2,9 +2,9 @@ import { Capacitor } from '@capacitor/core';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 
-const RC_API_KEY_ANDROID = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw"; // Update to production API key when available
-const RC_API_KEY_IOS = "test_OtemQPGOYBmJYcHcYmeMPxmjMTw";
-const ENTITLEMENT_ID = "Lux Pro";
+const RC_API_KEY_ANDROID = "goog_RyxihFYkPbaoMKdkUyJOVYivfCj";
+const RC_API_KEY_IOS = "goog_RyxihFYkPbaoMKdkUyJOVYivfCj";
+const ENTITLEMENT_ID = "lux_pro_access";
 
 /**
  * Initializes the RevenueCat SDK and links it to the Supabase user.
@@ -71,7 +71,7 @@ export const checkProEntitlement = async (): Promise<boolean> => {
     return typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== "undefined";
   } catch (error) {
     console.error("Error fetching customer info from RevenueCat:", error);
-    return false;
+    throw error;
   }
 };
 

@@ -5,6 +5,7 @@ import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, F
 import * as LucideIcons from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { IconPicker } from './IconPicker';
 
 interface BadHabitWizardProps {
     isOpen: boolean;
@@ -75,6 +76,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [direction, setDirection] = useState(0);
 
     const [title, setTitle] = useState(initialData?.title || '');
+    const [iconName, setIconName] = useState<string>('Skull');
+    const [customColor, setCustomColor] = useState<string>('#f43f5e');
     const [selectedAttributes, setSelectedAttributes] = useState<string[]>(() => {
         if (initialData?.attribute) {
             return initialData.attribute.split(',').map(s => s.trim()).filter(Boolean);
@@ -118,51 +121,56 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     };
 
     const minutes = getMinutesFromIndex(timeIndex);
+    const SelectedIconComponent = iconName && (LucideIcons as any)[iconName]
+        ? (LucideIcons as any)[iconName]
+        : null;
 
     useEffect(() => {
-        if (!isOpen) {
-            const timer = setTimeout(() => {
-                setStep(1);
+        if (isOpen) {
+            setStep(1);
+            setDirection(0);
+            if (initialData) {
+                setTitle(initialData.title || '');
+                const initialAttrs = initialData.attribute ? initialData.attribute.split(',').map(s => s.trim()).filter(Boolean) : [];
+                setSelectedAttributes(initialAttrs);
+                setSubAttribute(initialData.subAttribute || '');
+                setReason(initialData.reason || '');
+                setIntelligentStreak(initialData.intelligentStreak || false);
+                if (initialData.negativeImpact) {
+                    const match = initialData.negativeImpact.match(/\d+/);
+                    if (match) setImpactLevel(parseInt(match[0], 10));
+                } else {
+                    setImpactLevel(3);
+                }
+                if (initialData.timeConsumed) {
+                    const timeMap: Record<number, number> = { 15: 0, 30: 1, 60: 2, 120: 3, 180: 4, 240: 5 };
+                    setTimeIndex(timeMap[initialData.timeConsumed] ?? 4);
+                } else {
+                    setTimeIndex(4);
+                }
+                setIconName(initialData.iconName || 'Skull');
+                setCustomColor(initialData.customColor || '#f43f5e');
+            } else {
                 setTitle('');
                 setSelectedAttributes([]);
                 setSubAttribute('');
                 setReason('');
                 setImpactLevel(3);
                 setTimeIndex(4);
-                setDirection(0);
                 setIntelligentStreak(false);
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-        setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
-        setViceList([
-            t('badHabits.tags.procrastinate', 'Procrastinar'),
-            t('badHabits.tags.socialMedia', 'Redes sociales'),
-            t('badHabits.tags.junkFood', 'Comida chatarra'),
-            t('badHabits.tags.fap', 'Fap')
-        ]);
-        setListDraft('');
-    }, [isOpen, isFirstIdentify]);
-
-    // Sync initial data when modal opens
-    useEffect(() => {
-        if (isOpen && initialData) {
-            setTitle(initialData.title || '');
-            const initialAttrs = initialData.attribute ? initialData.attribute.split(',').map(s => s.trim()).filter(Boolean) : [];
-            setSelectedAttributes(initialAttrs);
-            setSubAttribute(initialData.subAttribute || '');
-            setReason(initialData.reason || '');
-            setIntelligentStreak(initialData.intelligentStreak || false);
-            if (initialData.negativeImpact) {
-                const match = initialData.negativeImpact.match(/\d+/);
-                if (match) setImpactLevel(parseInt(match[0], 10));
+                setIconName('Skull');
+                setCustomColor('#f43f5e');
             }
-            if (initialData.timeConsumed) {
-                const timeMap: Record<number, number> = { 15: 0, 30: 1, 60: 2, 120: 3, 180: 4, 240: 5 };
-                setTimeIndex(timeMap[initialData.timeConsumed] ?? 4);
-            }
+            setInputMode(isFirstIdentify ? 'LIST' : 'CUSTOM');
+            setViceList([
+                t('badHabits.tags.procrastinate', 'Procrastinar'),
+                t('badHabits.tags.socialMedia', 'Redes sociales'),
+                t('badHabits.tags.junkFood', 'Comida chatarra'),
+                t('badHabits.tags.fap', 'Fap')
+            ]);
+            setListDraft('');
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, isFirstIdentify, t]);
 
     // Reset subAttribute only when attribute is manually changed, not on mount/populate
 
@@ -196,6 +204,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
             intelligentStreak,
+            iconName,
+            customColor,
             currentTarget: initialData ? (intelligentStreak ? (initialData.currentTarget || 1) : undefined) : (intelligentStreak ? 1 : undefined),
             reachedDays: initialData ? (intelligentStreak ? (initialData.reachedDays || 0) : undefined) : 0,
             penalties: {
@@ -425,6 +435,15 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                         autoFocus
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <IconPicker
+                                                    selectedIcon={iconName || null}
+                                                    onSelectIcon={(icon) => setIconName(icon || 'Skull')}
+                                                    selectedColor={customColor}
+                                                    onSelectColor={(color) => setCustomColor(color || '#f43f5e')}
+                                                />
                                             </div>
 
                                             <div className="space-y-3 pb-2">
@@ -856,11 +875,16 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
                                             <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
-                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}>
-                                                    {intelligentStreak ? (
+                                                <div 
+                                                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}
+                                                    style={{ color: customColor }}
+                                                >
+                                                    {SelectedIconComponent ? (
+                                                        <SelectedIconComponent size={28} />
+                                                    ) : intelligentStreak ? (
                                                         <Sparkles size={28} className="text-violet-300" />
                                                     ) : (
-                                                        <Skull size={28} className="text-rose-400" />
+                                                        <Skull size={28} />
                                                     )}
                                                 </div>
                                                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>

@@ -12,7 +12,6 @@ import {
  Crown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { showPaywall } from '../../services/revenueCatService';
 import { useRevenueCat } from '../../hooks/useRevenueCat';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
@@ -86,8 +85,37 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  const [mounted, setMounted] = useState(false);
  const [isCelebrating, setIsCelebrating] = useState(false);
  const isNative = Capacitor.isNativePlatform();
- const { currentOffering, isPremium, purchasePackage } = useRevenueCat();
+ const { weeklyPackage, monthlyPackage, isPremium, comprarPaquete, restaurarCompras } = useRevenueCat();
  const { user, updateProfileLocally } = useAuth();
+ 
+ const handlePurchase = async (rcPackage: any) => {
+   const toastId = toast.loading('Procesando compra...');
+   try {
+     const isProNow = await comprarPaquete(rcPackage);
+     
+     if (isProNow && user?.id) {
+       // Force DB update manually to ensure instant activation on client without waiting for webhook
+       await supabase.from('users').update({
+         plan: 'PRO',
+         es_pro: true
+       }).eq('id', user.id);
+       
+       updateProfileLocally({ plan: 'PRO', es_pro: true });
+       toast.dismiss(toastId);
+       setIsCelebrating(true);
+       
+       // Restart app after celebration
+       setTimeout(() => {
+         window.location.reload();
+       }, 4500);
+     } else {
+       toast.dismiss(toastId);
+     }
+   } catch (error: any) {
+     console.error(error);
+     toast.error('Error al procesar la compra', { id: toastId });
+   }
+ };
  
  const features = [
  {
@@ -208,81 +236,106 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
 
  <div className="w-full flex flex-col items-center justify-center mb-12 md:mb-0 mt-2">
  {isNative ? (
- <motion.button
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.4 }}
- whileHover={{ scale: 1.05 }}
- whileTap={{ scale: 0.95 }}
- onClick={async () => {
- const toastId = toast.loading('Procesando compra...');
- try {
-   let isProNow = false;
-   if (currentOffering?.weekly) {
-     isProNow = await purchasePackage(currentOffering.weekly);
-   } else {
-     console.log("No weekly package found, attempting fallback showPaywall");
-     isProNow = await showPaywall();
-   }
+  <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
+    {/* Weekly Package Button */}
+    {weeklyPackage && (
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => handlePurchase(weeklyPackage)}
+        className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+      >
+        <motion.div 
+          className="absolute inset-0 z-0 opacity-90"
+          animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+          style={{
+            backgroundColor: '#050010',
+            backgroundImage: `
+              radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+              radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+              radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)
+            `,
+            backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+          }}
+        />
+        <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+          <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+            {t('pro.activateWeekly', "Plan Semanal")}
+          </span>
+          <span className="text-white/70 text-xs font-bold mt-1">
+            {weeklyPackage.product.priceString} / {t('pro.week', 'Semana')}
+          </span>
+        </div>
+      </motion.button>
+    )}
 
-   if (isProNow && user?.id) {
-     // Force DB update manually to ensure instant activation on client without waiting for webhook
-     await supabase.from('users').update({
-       plan: 'PRO',
-       es_pro: true
-     }).eq('id', user.id);
-     
-     updateProfileLocally({ plan: 'PRO', es_pro: true });
-     toast.dismiss(toastId);
-     setIsCelebrating(true);
-     
-     // Restart app after celebration
-     setTimeout(() => {
-       window.location.reload();
-     }, 4500);
-   } else {
-     toast.dismiss(toastId);
-   }
- } catch (error) {
-   console.error(error);
-   toast.error('Error al procesar la compra', { id: toastId });
- }
- }}
- className="relative w-[90%] sm:w-[80%] md:w-auto mx-auto overflow-hidden rounded-full group shadow-[0_0_50px_rgba(168,85,247,0.6)] hover:shadow-[0_0_80px_rgba(168,85,247,0.9)] transition-shadow duration-200 border border-purple-500/50 bg-[#0a0014] "
- >
- {/* Cosmos Inner Background */}
- <motion.div 
- className="absolute inset-0 z-0 opacity-90"
- animate={{ 
- backgroundPosition: ['0% 0%', '100% 100%'],
- }}
- transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
- style={{
- backgroundColor: '#050010',
- backgroundImage: `
- radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
- radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
- radial-gradient(2px 2px at 55% 85%, white 100%, transparent), 
- radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,0.6) 100%, transparent), 
- radial-gradient(1.5px 1.5px at 85% 65%, white 100%, transparent),
- radial-gradient(1px 1px at 25% 95%, rgba(255,255,255,0.9) 100%, transparent),
- radial-gradient(circle at 50% 50%, rgba(99,102,241,0.5) 0%, rgba(168,85,247,0.3) 50%, transparent 100%)
- `,
- backgroundSize: '200px 200px, 200px 200px, 200px 200px, 200px 200px, 200px 200px, 200px 200px, 200% 200%'
- }}
- />
- 
- <div className="relative z-10 px-8 md:px-16 py-3.5 flex flex-col items-center justify-center">
- <span className="font-black text-lg md:text-xl uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
- {t('pro.activateDelux', "Activar Delux")}
- </span>
- {currentOffering?.weekly && (
- <span className="text-white/70 text-xs font-bold mt-1">
- {currentOffering.weekly.product.priceString} / {t('pro.week', 'Semana')}
- </span>
- )}
- </div>
- </motion.button>
+    {/* Monthly Package Button */}
+    {monthlyPackage && (
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => handlePurchase(monthlyPackage)}
+        className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+      >
+        <motion.div 
+          className="absolute inset-0 z-0 opacity-90"
+          animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+          style={{
+            backgroundColor: '#050010',
+            backgroundImage: `
+              radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+              radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+              radial-gradient(circle at 50% 50%, rgba(168,85,247,0.4) 0%, rgba(99,102,241,0.2) 50%, transparent 100%)
+            `,
+            backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+          }}
+        />
+        <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+          <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+            {t('pro.activateMonthly', "Plan Mensual")}
+          </span>
+          <span className="text-white/70 text-xs font-bold mt-1">
+            {monthlyPackage.product.priceString} / {t('pro.month', 'Mes')}
+          </span>
+        </div>
+      </motion.button>
+    )}
+
+    {/* Restore Purchases Button */}
+    <button
+      onClick={async () => {
+        const toastId = toast.loading('Restaurando compras...');
+        try {
+          const isProNow = await restaurarCompras();
+          if (isProNow && user?.id) {
+            await supabase.from('users').update({
+              plan: 'PRO',
+              es_pro: true
+            }).eq('id', user.id);
+            updateProfileLocally({ plan: 'PRO', es_pro: true });
+            toast.success('¡Suscripción restaurada con éxito!');
+          } else {
+            toast.error('No se encontró ninguna compra para restaurar.');
+          }
+        } catch (error) {
+          toast.error('Error al restaurar las compras.');
+        } finally {
+          toast.dismiss(toastId);
+        }
+      }}
+      className="text-xs text-white/40 hover:text-white/80 transition-colors mt-2 block mx-auto underline cursor-pointer"
+    >
+      Restaurar Compras
+    </button>
+  </div>
  ) : (
  <motion.div
  initial={{ opacity: 0, y: 20 }}
@@ -295,7 +348,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.
  </p>
  <a 
- href="https://play.google.com/store/apps/details?id=com.lux.app" 
+ href="https://play.google.com/store/apps/details?id=com.luxresilient.app" 
  target="_blank" 
  rel="noreferrer"
  className="mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200"

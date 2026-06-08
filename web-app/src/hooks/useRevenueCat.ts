@@ -1,90 +1,109 @@
-import { useEffect, useState } from 'react'; 
+import { useEffect, useState, useCallback } from 'react'; 
 import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor'; 
 import { Capacitor } from '@capacitor/core'; 
 import { App } from '@capacitor/app';
 
+const ENTITLEMENT_ID = 'lux_pro_access';
+
 export const useRevenueCat = () => { 
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null); 
+  const [weeklyPackage, setWeeklyPackage] = useState<PurchasesPackage | null>(null);
+  const [monthlyPackage, setMonthlyPackage] = useState<PurchasesPackage | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null); 
   const [isPremium, setIsPremium] = useState<boolean>(false); 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => { 
-    const fetchRevenueCatData = async () => { 
-      const platform = Capacitor.getPlatform(); 
-      if (platform !== 'android' && platform !== 'ios') { 
-        console.warn("RevenueCat no está soportado en la web nativamente en este SDK."); 
-        return; 
-      } 
+  const checkPremiumStatus = useCallback((info: CustomerInfo) => {
+    return typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+  }, []);
 
-      try {
-        // 1. Ver si el usuario ya es premium (revisa tu entitlement 'Lux Pro' o el nombre que le pusiste) 
-        const info = await Purchases.getCustomerInfo(); 
-        setCustomerInfo(info.customerInfo); 
-        setIsPremium(typeof info.customerInfo.entitlements.active['Lux Pro'] !== "undefined"); 
+  const fetchRevenueCatData = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) {
+      console.warn("RevenueCat: No soportado en la plataforma web.");
+      return;
+    }
 
-        // 2. Traer tu Offering 'default' y el paquete 'weekly' 
-        const offerings = await Purchases.getOfferings(); 
-        if (offerings.current !== null) { 
-          setCurrentOffering(offerings.current); 
-        } 
-      } catch (e) { 
-        console.error("Error trayendo los datos de RevenueCat:", e); 
-      } 
-    }; 
+    try {
+      const info = await Purchases.getCustomerInfo();
+      setCustomerInfo(info.customerInfo);
+      setIsPremium(checkPremiumStatus(info.customerInfo));
 
-    fetchRevenueCatData(); 
+      const offerings = await Purchases.getOfferings();
+      if (offerings.current) {
+        setCurrentOffering(offerings.current);
+        setWeeklyPackage(offerings.current.weekly || null);
+        setMonthlyPackage(offerings.current.monthly || null);
+      }
+    } catch (e) {
+      console.error("Error al obtener datos de RevenueCat:", e);
+    }
+  }, [checkPremiumStatus]);
 
-    // ESTA ES LA MAGIA: Cada vez que el usuario vuelve a abrir la app 
-    const appStateListener = App.addListener('appStateChange', async ({ isActive }) => { 
-      if (isActive) { 
-        const platform = Capacitor.getPlatform(); 
-        if (platform !== 'android' && platform !== 'ios') return;
+  useEffect(() => {
+    fetchRevenueCatData();
 
-        console.log("App en primer plano: Verificando suscripción silenciosamente..."); 
-        try { 
-          const info = await Purchases.getCustomerInfo(); 
-          // Si el mes ya pasó y no renovó, RevenueCat devolverá "undefined" 
-          const isStillPro = typeof info.customerInfo.entitlements.active['Lux Pro'] !== "undefined"; 
-          
-          setIsPremium(isStillPro); 
-        } catch (e) { 
-          console.error("Error verificando estado en background", e); 
-        } 
-      } 
-    }); 
+    const appStateListener = App.addListener('appStateChange', async ({ isActive }) => {
+      if (isActive && Capacitor.isNativePlatform()) {
+        try {
+          const info = await Purchases.getCustomerInfo();
+          setIsPremium(checkPremiumStatus(info.customerInfo));
+        } catch (e) {
+          console.error("Error verificando suscripción en background:", e);
+        }
+      }
+    });
 
-    return () => { 
-      appStateListener.then(listener => listener.remove()); 
-    }; 
-  }, []); 
+    return () => {
+      appStateListener.then(listener => listener.remove());
+    };
+  }, [fetchRevenueCatData, checkPremiumStatus]);
 
-  // Función para disparar el paywall 
-  const purchasePackage = async (rcPackage: PurchasesPackage): Promise<boolean> => { 
-    console.log("1. INICIANDO PROCESO DE COMPRA..."); 
-    try { 
-      const result = await Purchases.purchasePackage({ aPackage: rcPackage }); 
-      console.log("2. RESPUESTA CRUDA DE REVENUECAT:", result); 
-      
-      const { customerInfo } = result; 
-  
-      console.log("3. ENTITLEMENTS ACTIVOS:", JSON.stringify(customerInfo.entitlements.active, null, 2)); 
-  
-      // Usando el ID real que confirmamos 
-      if (typeof customerInfo.entitlements.active['Lux Pro'] !== "undefined") { 
-        console.log("4. ¡ÉXITO! EL USUARIO YA ES LUX PRO."); 
-        setIsPremium(true); 
-        return true;
-      } else { 
-        console.warn("4. ALERTA: La compra pasó, pero no detectó el ID 'Lux Pro'."); 
-        return false;
-      } 
-    } catch (e: any) { 
-      // AHORA IMPRIMIMOS TODO, SIN IMPORTAR QUÉ SEA 
-      console.error("X. ERROR DURANTE LA COMPRA:", e); 
-      console.log("CÓDIGO DE ERROR DE REVENUECAT:", e.code); 
+  const comprarPaquete = async (rcPackage: PurchasesPackage): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const result = await Purchases.purchasePackage({ aPackage: rcPackage });
+      const active = checkPremiumStatus(result.customerInfo);
+      setIsPremium(active);
+      setCustomerInfo(result.customerInfo);
+      return active;
+    } catch (e: any) {
+      // Check for cancel code: e.userCancelled is standard in Capacitor, e.code === 'USER_CANCELLED' or 1 represents cancel
+      if (e.userCancelled || e.code === 'USER_CANCELLED' || e.code === 1 || e.code === '1') {
+        console.log("Compra cancelada por el usuario.");
+      } else {
+        console.error("Error al procesar la compra en RevenueCat:", e);
+        throw e;
+      }
       return false;
-    } 
-  }; 
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  return { currentOffering, customerInfo, isPremium, purchasePackage }; 
+  const restaurarCompras = async (): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const result = await Purchases.restorePurchases();
+      const active = checkPremiumStatus(result.customerInfo);
+      setIsPremium(active);
+      setCustomerInfo(result.customerInfo);
+      return active;
+    } catch (e: any) {
+      console.error("Error al restaurar compras:", e);
+      throw e;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    currentOffering,
+    weeklyPackage,
+    monthlyPackage,
+    customerInfo,
+    isPremium,
+    isLoading,
+    comprarPaquete,
+    restaurarCompras
+  };
 };

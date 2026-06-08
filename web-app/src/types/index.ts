@@ -156,6 +156,8 @@ export interface BadHabit {
   lastCheckedDate?: string;
   archived?: boolean;
   order?: number;
+  iconName?: string;
+  customColor?: string;
 }
 
 export interface Project {

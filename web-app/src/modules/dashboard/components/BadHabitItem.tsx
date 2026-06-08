@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import * as LucideIcons from 'lucide-react';
 import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical } from 'lucide-react';
 import { BadHabit, Attribute } from '../../../types';
 
@@ -29,7 +30,11 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
         return list;
     }, [habit.attribute, attributes, attribute]);
 
-    const color = resolvedAttributes[0]?.color || attribute?.color || '#f43f5e';
+    const color = habit.customColor || resolvedAttributes[0]?.color || attribute?.color || '#f43f5e';
+    const CustomIcon = React.useMemo(() => {
+        if (!habit.iconName) return null;
+        return (LucideIcons as any)[habit.iconName] || null;
+    }, [habit.iconName]);
     const isIntelligent = habit.intelligentStreak;
     const currentTarget = habit.currentTarget || 3;
     const reachedDays = habit.reachedDays || 0;
@@ -81,16 +86,20 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                 >
                     {isRelapsed ? (
                         <Skull size={24} className="text-rose-500" />
+                    ) : CustomIcon ? (
+                        <div className="relative">
+                            <CustomIcon size={22} style={{ color: color }} />
+                            {isIntelligent && (
+                                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
+                            )}
+                        </div>
                     ) : isIntelligent ? (
                         <div className="relative">
                             <Sparkles size={22} className="text-violet-400" />
                             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
                         </div>
                     ) : (
-                        <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: color, color: color }}
-                        />
+                        <Skull size={20} style={{ color: color }} />
                     )}
                 </div>
 

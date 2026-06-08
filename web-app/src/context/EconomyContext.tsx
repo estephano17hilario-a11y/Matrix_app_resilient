@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { purchaseItem, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
 import { useLux } from '@/context/LuxContext';
+import { toast } from 'react-hot-toast';
 
 export interface EconomyContextType {
   purchase: (item: StoreItem) => Promise<boolean>;
@@ -77,6 +78,15 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
     } else {
       // Error Haptic
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      
+      let errorMsg = result.error || 'Error al realizar la compra';
+      if (errorMsg === 'Insufficient funds') {
+        errorMsg = 'Fondos insuficientes (Oro)';
+      } else if (errorMsg === 'User not found') {
+        errorMsg = 'Usuario no encontrado';
+      }
+      toast.error(errorMsg);
+      
       return false;
     }
   }, [user?.id]);

@@ -6,6 +6,8 @@ import { User } from '@supabase/supabase-js';
 import { initRevenueCat } from '../services/revenueCatService';
 import { toast } from 'react-hot-toast';
 import { OfflineSyncService } from '../services/offlineSync';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -274,6 +276,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         subscription.unsubscribe();
     };
   }, []);
+
+  // Sync RevenueCat subscription status with Supabase and local profile
+  useEffect(() => {
+    if (!profile || !profile.id) return;
+
+    let appStateListener: any = null;
+
+    const performSubscriptionSync = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      try {
+        const { checkProEntitlement } = await import('../services/revenueCatService');
+        const active = await checkProEntitlement();
+        const dbIsPro = profile.plan === 'PRO';
+        
+        if (active !== dbIsPro) {
+          console.log(`[RevenueCat Sync] Mismatch. RevenueCat isPremium: ${active}, Supabase is PRO: ${dbIsPro}. Syncing...`);
+          const nextPlan = active ? 'PRO' : 'FREE';
+          const nextEsPro = active;
+          
+          const { error } = await supabase
+            .from('users')
+            .update({ plan: nextPlan, es_pro: nextEsPro })
+            .eq('id', profile.id);
+            
+          if (error) {
+            console.error("[RevenueCat Sync] Error updating Supabase user:", error);
+          } else {
+            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro });
+            console.log(`[RevenueCat Sync] Synchronized successfully to ${nextPlan}.`);
+          }
+        }
+      } catch (e) {
+        console.log("[RevenueCat Sync] Check failed (network offline or config error):", e);
+      }
+    };
+
+    // Run on startup / profile load
+    performSubscriptionSync();
+
+    // Listen to foreground app state transitions
+    if (Capacitor.isNativePlatform()) {
+      appStateListener = App.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          console.log("[RevenueCat Sync] App returned to foreground, checking status...");
+          await performSubscriptionSync();
+        }
+      });
+    }
+
+    return () => {
+      if (appStateListener) {
+        appStateListener.then((listener: any) => listener.remove());
+      }
+    };
+  }, [profile?.id, profile?.plan, updateProfileLocally]);
 
   const value = useMemo(() => ({
     user,
