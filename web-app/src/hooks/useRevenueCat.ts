@@ -3,7 +3,8 @@ import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@r
 import { Capacitor } from '@capacitor/core'; 
 import { App } from '@capacitor/app';
 
-const ENTITLEMENT_ID = 'lux_pro_access';
+const ENTITLEMENT_ID = 'lux_pro';
+const OFFERING_ID = 'defaultt';
 
 export const useRevenueCat = () => { 
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null); 
@@ -29,10 +30,34 @@ export const useRevenueCat = () => {
       setIsPremium(checkPremiumStatus(info.customerInfo));
 
       const offerings = await Purchases.getOfferings();
-      if (offerings.current) {
-        setCurrentOffering(offerings.current);
-        setWeeklyPackage(offerings.current.weekly || null);
-        setMonthlyPackage(offerings.current.monthly || null);
+      console.log("RevenueCat offerings on mount:", offerings);
+      
+      // Buscar específicamente el offering por su ID "defaultt"
+      const offering = offerings.all[OFFERING_ID] || null;
+      if (offering) {
+        setCurrentOffering(offering);
+        
+        let w = offering.weekly || null;
+        if (!w && offering.availablePackages) {
+          w = offering.availablePackages.find(p => 
+            p.packageType === 'WEEKLY' || 
+            p.identifier === '$rc_weekly' || 
+            p.identifier.toLowerCase().includes('weekly') ||
+            p.identifier.toLowerCase().includes('semanal')
+          ) || null;
+        }
+        setWeeklyPackage(w);
+
+        let m = offering.monthly || null;
+        if (!m && offering.availablePackages) {
+          m = offering.availablePackages.find(p => 
+            p.packageType === 'MONTHLY' || 
+            p.identifier === '$rc_monthly' || 
+            p.identifier.toLowerCase().includes('monthly') ||
+            p.identifier.toLowerCase().includes('mensual')
+          ) || null;
+        }
+        setMonthlyPackage(m);
       }
     } catch (e) {
       console.error("Error al obtener datos de RevenueCat:", e);
@@ -58,16 +83,59 @@ export const useRevenueCat = () => {
     };
   }, [fetchRevenueCatData, checkPremiumStatus]);
 
-  const comprarPaquete = async (rcPackage: PurchasesPackage): Promise<boolean> => {
+  const comprarPaquete = async (rcPackageOrType: PurchasesPackage | 'weekly' | 'monthly'): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const result = await Purchases.purchasePackage({ aPackage: rcPackage });
+      let pkg: PurchasesPackage | null = null;
+      if (typeof rcPackageOrType === 'string') {
+        if (rcPackageOrType === 'weekly') pkg = weeklyPackage;
+        else pkg = monthlyPackage;
+
+        if (!pkg) {
+          const offerings = await Purchases.getOfferings();
+          console.log("RevenueCat offerings on demand:", offerings);
+          const offering = offerings.all[OFFERING_ID];
+          if (offering) {
+            setCurrentOffering(offering);
+            
+            let w = offering.weekly || null;
+            if (!w && offering.availablePackages) {
+              w = offering.availablePackages.find(p => 
+                p.packageType === 'WEEKLY' || 
+                p.identifier === '$rc_weekly' || 
+                p.identifier.toLowerCase().includes('weekly')
+              ) || null;
+            }
+            
+            let m = offering.monthly || null;
+            if (!m && offering.availablePackages) {
+              m = offering.availablePackages.find(p => 
+                p.packageType === 'MONTHLY' || 
+                p.identifier === '$rc_monthly' || 
+                p.identifier.toLowerCase().includes('monthly')
+              ) || null;
+            }
+            
+            setWeeklyPackage(w);
+            setMonthlyPackage(m);
+            pkg = rcPackageOrType === 'weekly' ? w : m;
+          }
+        }
+      } else {
+        pkg = rcPackageOrType;
+      }
+
+      if (!pkg) {
+        throw new Error("Suscripción no disponible en este momento. Inténtalo de nuevo.");
+      }
+
+      console.log("Starting purchase process for package:", pkg);
+      const result = await Purchases.purchasePackage({ aPackage: pkg });
       const active = checkPremiumStatus(result.customerInfo);
       setIsPremium(active);
       setCustomerInfo(result.customerInfo);
       return active;
     } catch (e: any) {
-      // Check for cancel code: e.userCancelled is standard in Capacitor, e.code === 'USER_CANCELLED' or 1 represents cancel
       if (e.userCancelled || e.code === 'USER_CANCELLED' || e.code === 1 || e.code === '1') {
         console.log("Compra cancelada por el usuario.");
       } else {

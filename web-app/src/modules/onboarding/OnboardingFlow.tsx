@@ -90,7 +90,7 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      if (selectedTraits.length >= 16) {
+      if (selectedTraits.length >= 5) {
         // Intelligent replacement: Remove the oldest unlocked trait to make room for the new one
         const traitToRemove = selectedTraits.find(t => !lockedTraitIds.includes(t));
         if (traitToRemove) {

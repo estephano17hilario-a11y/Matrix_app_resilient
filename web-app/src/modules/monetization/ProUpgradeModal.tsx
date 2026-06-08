@@ -112,8 +112,23 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
        toast.dismiss(toastId);
      }
    } catch (error: any) {
-     console.error(error);
-     toast.error('Error al procesar la compra', { id: toastId });
+     console.error("Purchase error captured:", error);
+     const isConfigError = 
+       error.code === '23' || 
+       error.code === 23 || 
+       error.readableErrorCode === 'ConfigurationError' ||
+       error.readable_error_code === 'ConfigurationError' ||
+       (error.message && error.message.includes('ConfigurationError')) ||
+       (error.underlyingErrorMessage && error.underlyingErrorMessage.includes('Store products'));
+
+     if (isConfigError) {
+       toast.error(
+         'Error de Configuración de RevenueCat: Registra tus productos de Google Play y vincúlalos a tus Ofertas (Offerings) en el panel de RevenueCat.',
+         { id: toastId, duration: 8000 }
+       );
+     } else {
+       toast.error(error.message || 'Error al procesar la compra', { id: toastId });
+     }
    }
  };
  
@@ -238,76 +253,72 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  {isNative ? (
   <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
     {/* Weekly Package Button */}
-    {weeklyPackage && (
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => handlePurchase(weeklyPackage)}
-        className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
-      >
-        <motion.div 
-          className="absolute inset-0 z-0 opacity-90"
-          animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-          transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
-          style={{
-            backgroundColor: '#050010',
-            backgroundImage: `
-              radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
-              radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
-              radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)
-            `,
-            backgroundSize: '200px 200px, 200px 200px, 200% 200%'
-          }}
-        />
-        <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
-          <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
-            {t('pro.activateWeekly', "Plan Semanal")}
-          </span>
-          <span className="text-white/70 text-xs font-bold mt-1">
-            {weeklyPackage.product.priceString} / {t('pro.week', 'Semana')}
-          </span>
-        </div>
-      </motion.button>
-    )}
+    <motion.button
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => handlePurchase(weeklyPackage || 'weekly')}
+      className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+    >
+      <motion.div 
+        className="absolute inset-0 z-0 opacity-90"
+        animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+        style={{
+          backgroundColor: '#050010',
+          backgroundImage: `
+            radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+            radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+            radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)
+          `,
+          backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+        }}
+      />
+      <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+        <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+          {t('pro.activateWeekly', "Plan Semanal")}
+        </span>
+        <span className="text-white/70 text-xs font-bold mt-1">
+          {weeklyPackage ? weeklyPackage.product.priceString : "S/. 7.90"} / {t('pro.week', 'Semana')}
+        </span>
+      </div>
+    </motion.button>
 
     {/* Monthly Package Button */}
-    {monthlyPackage && (
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45 }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => handlePurchase(monthlyPackage)}
-        className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
-      >
-        <motion.div 
-          className="absolute inset-0 z-0 opacity-90"
-          animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-          transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
-          style={{
-            backgroundColor: '#050010',
-            backgroundImage: `
-              radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
-              radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
-              radial-gradient(circle at 50% 50%, rgba(168,85,247,0.4) 0%, rgba(99,102,241,0.2) 50%, transparent 100%)
-            `,
-            backgroundSize: '200px 200px, 200px 200px, 200% 200%'
-          }}
-        />
-        <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
-          <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
-            {t('pro.activateMonthly', "Plan Mensual")}
-          </span>
-          <span className="text-white/70 text-xs font-bold mt-1">
-            {monthlyPackage.product.priceString} / {t('pro.month', 'Mes')}
-          </span>
-        </div>
-      </motion.button>
-    )}
+    <motion.button
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.45 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => handlePurchase(monthlyPackage || 'monthly')}
+      className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+    >
+      <motion.div 
+        className="absolute inset-0 z-0 opacity-90"
+        animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+        style={{
+          backgroundColor: '#050010',
+          backgroundImage: `
+            radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+            radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+            radial-gradient(circle at 50% 50%, rgba(168,85,247,0.4) 0%, rgba(99,102,241,0.2) 50%, transparent 100%)
+          `,
+          backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+        }}
+      />
+      <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+        <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+          {t('pro.activateMonthly', "Plan Mensual")}
+        </span>
+        <span className="text-white/70 text-xs font-bold mt-1">
+          {monthlyPackage ? monthlyPackage.product.priceString : "S/. 19.90"} / {t('pro.month', 'Mes')}
+        </span>
+      </div>
+    </motion.button>
 
     {/* Restore Purchases Button */}
     <button

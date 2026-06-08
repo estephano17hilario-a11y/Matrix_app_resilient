@@ -380,12 +380,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 1 && "rotate-180")} />
                             </button>
                             
-                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 1 && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-2 overflow-hidden"
                                     >
@@ -568,7 +566,6 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
                                     </motion.div>
                                 )}
-                            </AnimatePresence>
                         </div>
 
                         {/* BLOCK 2: MECÁNICA */}
@@ -591,12 +588,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 2 && "rotate-180")} />
                             </button>
 
-                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 2 && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
@@ -1117,7 +1112,6 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
                                     </motion.div>
                                 )}
-                            </AnimatePresence>
                         </div>
 
                         {/* BLOCK 3: COMPROMISO */}
@@ -1140,12 +1134,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                 <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/30", expandedBlock === 3 && "rotate-180")} />
                             </button>
 
-                            <AnimatePresence initial={false} mode="sync">
                                 {expandedBlock === 3 && (
                                     <motion.div
                                         initial={{ opacity: 0, y: -8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.15, ease: "easeOut" }}
                                         className="px-3 pb-3 space-y-3 overflow-hidden"
                                     >
@@ -1272,7 +1264,6 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                         </div>
                                     </motion.div>
                                 )}
-                            </AnimatePresence>
                         </div>
                     </div>
 

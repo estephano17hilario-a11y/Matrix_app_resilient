@@ -4,7 +4,7 @@ import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 
 const RC_API_KEY_ANDROID = "goog_RyxihFYkPbaoMKdkUyJOVYivfCj";
 const RC_API_KEY_IOS = "goog_RyxihFYkPbaoMKdkUyJOVYivfCj";
-const ENTITLEMENT_ID = "lux_pro_access";
+const ENTITLEMENT_ID = "lux_pro";
 
 /**
  * Initializes the RevenueCat SDK and links it to the Supabase user.
