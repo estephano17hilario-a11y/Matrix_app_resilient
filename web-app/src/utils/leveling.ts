@@ -1,15 +1,43 @@
 
 export const calculateXpForLevel = (level: number): number => {
     if (level <= 1) return 0;
-    const n = level - 1;
-    return n * 100 + (n * (n - 1) / 2) * 65;
+    let totalXp = 0;
+    let currentReq = 120;
+    for (let l = 1; l < level; l++) {
+        totalXp += currentReq;
+        if (l < 9) {
+            currentReq += 55;
+        } else if (l < 19) {
+            currentReq += 65;
+        } else if (l < 29) {
+            currentReq += 75;
+        } else {
+            currentReq += 85;
+        }
+    }
+    return totalXp;
 };
 
 export const calculateLevelFromXp = (xp: number): number => {
-    if (xp < 0) return 1;
+    if (xp <= 0) return 1;
+    let totalXp = 0;
+    let currentReq = 120;
     let level = 1;
-    while (calculateXpForLevel(level + 1) <= xp) {
+    while (true) {
+        if (totalXp + currentReq > xp) {
+            break;
+        }
+        totalXp += currentReq;
         level++;
+        if (level - 1 < 9) {
+            currentReq += 55;
+        } else if (level - 1 < 19) {
+            currentReq += 65;
+        } else if (level - 1 < 29) {
+            currentReq += 75;
+        } else {
+            currentReq += 85;
+        }
     }
     return level;
 };

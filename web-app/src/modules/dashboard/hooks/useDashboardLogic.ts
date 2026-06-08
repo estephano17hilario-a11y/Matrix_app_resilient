@@ -5883,7 +5883,7 @@ export const useDashboardLogic = () => {
                         ...prev,
                         level: newLevel,
                         xp: newXp,
-                        nextXp: 20 * Math.pow(newLevel + 1, 2)
+                        nextXp: calculateNextLevelXp(newLevel)
                     }));
                     setHealth(100);
                     

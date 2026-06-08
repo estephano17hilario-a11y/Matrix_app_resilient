@@ -3,7 +3,7 @@ import { UserStats } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
 import { persistenceService } from './persistenceService';
 import { TRAITS_LIST } from '../modules/dashboard/constants';
-import { calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../utils/leveling';
+import { calculateSubTraitMaxXp, calculateAttributeMaxXp, calculateXpForLevel, calculateNextLevelXp } from '../utils/leveling';
 
 const TRAIT_ICON_NAMES: Record<string, string> = {
     DISCIPLINA: 'Target',
@@ -285,7 +285,7 @@ export const TransactionService = {
 
             if (calculatedLevel) {
                 stats.level = calculatedLevel;
-                stats.nextXp = calculatedLevel * 1000; // Mock or replace with actual logic
+                stats.nextXp = calculateNextLevelXp(calculatedLevel);
             }
 
             const { error: updateError } = await supabase.from('users').update({
@@ -530,7 +530,7 @@ export const TransactionService = {
     halveStats: async (userId: string, currentAttributes: any[], currentLevel: number) => {
         try {
             const newLevel = Math.max(1, Math.floor(currentLevel / 2));
-            const newXp = newLevel > 1 ? 20 * Math.pow(newLevel, 2) : 0; 
+            const newXp = calculateXpForLevel(newLevel); 
 
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
@@ -547,7 +547,7 @@ export const TransactionService = {
             const stats = userDoc.stats || {};
             stats.level = newLevel;
             stats.xp = newXp;
-            stats.nextXp = 20 * Math.pow(newLevel + 1, 2);
+            stats.nextXp = calculateNextLevelXp(newLevel);
             stats.hp = 100; // Reset HP
 
             await supabase.from('users').update({ stats }).eq('id', userId);
