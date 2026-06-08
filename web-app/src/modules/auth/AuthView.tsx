@@ -291,42 +291,33 @@ export const AuthView = () => {
 
  const handleGoogleLogin = async () => {
  if (isGoogleLoggingIn) return;
- setIsGoogleLoggingIn(true);
- setIsLoading(true);
- setError(null);
- try {
- const isOnline = await isNetworkAvailable();
- if (!isOnline) {
- throw new Error(t('auth.errors.network', "No network connection."));
- }
- 
- const user = await loginWithGoogle();
- 
- // If loginWithGoogle returned null, it means it fell back to redirect method
- // The redirect result will be handled by the useEffect above
- if (user) {
-   try {
-     await Purchases.logIn({ appUserID: user.id });
-   } catch (rcError) {
-     console.error('RevenueCat google login sync error:', rcError);
-   }
-   setIsLoading(false);
- // The global onAuthStateChanged in AuthContext will handle the rest
- }
- } catch (err: any) {
- console.error('Google login error:', err);
- if (err.code === 'auth/popup-blocked') {
- setError(t('auth.errors.popupBlocked', 'Popup was blocked. Please allow popups for this site.'));
- } else if (err.code === 'auth/cancelled-popup-request') {
- // Just ignore cancellation, don't show error
- } else {
- setError(err.message || t('auth.errors.generic', 'An error occurred with Google sign-in.'));
- }
- setIsLoading(false);
- } finally {
- setIsGoogleLoggingIn(false);
- }
- };
+    if (isGoogleLoggingIn) return;
+    setIsGoogleLoggingIn(true);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const isOnline = await isNetworkAvailable();
+      if (!isOnline) {
+        throw new Error(t('auth.errors.network', "No network connection."));
+      }
+      
+      await loginWithGoogle();
+      // On mobile, loginWithGoogle redirects to the external browser.
+      // The session will be established when the deep link triggers.
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        setError(t('auth.errors.popupBlocked', 'Popup was blocked. Please allow popups for this site.'));
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Just ignore cancellation, don't show error
+      } else {
+        setError(err.message || t('auth.errors.generic', 'An error occurred with Google sign-in.'));
+      }
+      setIsLoading(false);
+    } finally {
+      setIsGoogleLoggingIn(false);
+    }
+  };
 
  return (
  <AuthLayout>

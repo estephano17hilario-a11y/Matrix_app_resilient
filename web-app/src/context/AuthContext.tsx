@@ -277,6 +277,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Handle native deep links for OAuth (Supabase redirection)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const handleDeepLink = async (event: any) => {
+      console.log('🔗 [Deep Link] Received URL:', event.url);
+      
+      // We look for our custom scheme 'luxapp://'
+      if (event.url.includes('luxapp://') || event.url.includes('login-callback')) {
+        try {
+          // Parse access_token and refresh_token from the URL hash fragment
+          const urlObj = new URL(event.url.replace('#', '?'));
+          const access_token = urlObj.searchParams.get('access_token');
+          const refresh_token = urlObj.searchParams.get('refresh_token');
+
+          if (access_token && refresh_token) {
+            console.log('🔐 [Deep Link] Tokens found. Setting Supabase session...');
+            setIsLoading(true);
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (error) throw error;
+            console.log('✅ [Deep Link] Supabase session established for user:', data.user?.id);
+          } else {
+            console.warn('⚠️ [Deep Link] URL does not contain access_token and refresh_token');
+          }
+        } catch (err: any) {
+          console.error('🔥 [Deep Link] Error setting session from deep link:', err);
+          toast.error(`Error al iniciar sesión con Google: ${err.message || err}`);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const setupListener = async () => {
+      try {
+        const listener = await App.addListener('appUrlOpen', handleDeepLink);
+        return listener;
+      } catch (err) {
+        console.error('Failed to setup deep link listener:', err);
+      }
+    };
+
+    const listenerPromise = setupListener();
+
+    return () => {
+      listenerPromise.then(listener => {
+        if (listener) listener.remove();
+      }).catch(console.error);
+    };
+  }, []);
+
   // Sync RevenueCat subscription status with Supabase and local profile
   useEffect(() => {
     if (!profile || !profile.id) return;

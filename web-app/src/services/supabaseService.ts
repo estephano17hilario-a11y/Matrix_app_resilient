@@ -65,7 +65,7 @@ export const loginWithGoogle = async (): Promise<any | null> => {
     try {
         const isMobile = Capacitor.isNativePlatform();
         const redirectTo = isMobile 
-            ? 'lux://login-callback' 
+            ? 'luxapp://login-callback' 
             : window.location.origin;
 
         const { data, error } = await supabase.auth.signInWithOAuth({
@@ -116,7 +116,7 @@ export const linkGoogleAccount = async (targetEmail: string) => {
 
         const isMobile = Capacitor.isNativePlatform();
         const redirectTo = isMobile 
-            ? 'lux://login-callback' 
+            ? 'luxapp://login-callback' 
             : `${window.location.origin}/settings?linked=true`;
 
         // 2. Ejecutar Link Identity forzando el correo (login_hint) y pidiendo tokens offline
