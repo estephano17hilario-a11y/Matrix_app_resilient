@@ -181,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     return;
                 }
 
-                const { data: userDataList, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at').eq('id', currentUser.id).limit(1);
+                const { data: userDataList, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items').eq('id', currentUser.id).limit(1);
         const userData = userDataList && userDataList.length > 0 ? userDataList[0] : null;
                 
                 if (userData && !error) {
@@ -201,10 +201,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         theme: userData.theme || 'MATRIX',
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                         lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
-                        onboarding: userData.onboarding || null, // FIX: Use null if not present, don't force DEFAULT_ONBOARDING
+                        onboarding: userData.onboarding || null,
                         isSkeleton: false,
-                        unlockedAchievements: userData.preferences?.unlockedAchievements || []
+                        unlockedAchievements: userData.preferences?.unlockedAchievements || [],
+                        // 🏪 STORE: Inventory & unlocked items
+                        inventory: userData.inventory || [],
+                        unlocked_store_items: userData.unlocked_store_items || []
                     };
+
                     
                     console.log("✅ MATRIX: Profile loaded from Supabase.");
 

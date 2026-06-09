@@ -76,8 +76,9 @@ export function OnboardingFlow() {
     console.log('[Onboarding] handleNext triggered', { step, selectedTraits, userId: user?.id });
     
     if (step === 'traits') {
-      if (selectedTraits.length < 3) {
-         // Fallback validation (button should be disabled anyway)
+      // Need at least 1 free trait selected (DISCIPLINA + RESILIENCIA already counted)
+      const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
+      if (freeSelected.length < 1) {
          return;
       }
       await handleSubmit();
@@ -90,15 +91,13 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      if (selectedTraits.length >= 5) {
-        // Intelligent replacement: Remove the oldest unlocked trait to make room for the new one
-        const traitToRemove = selectedTraits.find(t => !lockedTraitIds.includes(t));
-        if (traitToRemove) {
-          setSelectedTraits([...selectedTraits.filter(t => t !== traitToRemove), id]);
-        }
-      } else {
-        setSelectedTraits([...selectedTraits, id]);
+      // Count only FREE (non-locked) selected traits
+      const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
+      if (freeSelected.length >= 4) {
+        // Already at max 4 free traits — do NOT add more
+        return;
       }
+      setSelectedTraits([...selectedTraits, id]);
     }
   };
 
@@ -292,18 +291,21 @@ export function OnboardingFlow() {
                             {t('onboarding.traits.title', 'Choose your Traits')}
                         </h1>
                         <p className="text-white/60 text-lg font-light tracking-wide">
-                            {t('onboarding.traits.subtitle', { count: selectedTraits.length })}
+                            {t('onboarding.traits.subtitle', { count: selectedTraits.filter(id => !lockedTraitIds.includes(id)).length })}
+                        </p>
+                        <p className="text-white/30 text-sm mt-1">
+                            {t('onboarding.traits.maxHint', 'Elige hasta 4 rasgos')}
                         </p>
                       </motion.div>
                       
-                      {selectedTraits.length < 3 && (
+                      {selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1 && (
                          <motion.div 
                             key="traits-validation"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="text-sm text-red-300 mt-2 font-medium bg-red-500/15 py-2 px-4 rounded-full inline-block border border-red-500/30 bg-gradient-to-b from-white/5 to-transparent"
                          >
-                           {t('common.selectAtLeast', { count: 3 }) || `Select at least 3 (Selected: ${selectedTraits.length})`}
+                           {t('common.selectAtLeast', { count: 1 }) || `Selecciona al menos 1 rasgo`}
                          </motion.div>
                       )}
                   </div>
@@ -322,11 +324,13 @@ export function OnboardingFlow() {
                       ) : (
                       <div className="relative rounded-3xl border border-white/10 bg-[#0a0a0f] p-4 sm:p-6">
                         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-3xl" />
-                        <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          {TRAITS_LIST.map((trait, index) => {
+                        <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                          {TRAITS_LIST.filter(trait => !lockedTraitIds.includes(trait.id)).map((trait, index) => {
                               const isSelected = selectedTraits.includes(trait.id);
-                              const isMaxReached = false; // Intelligent system doesn't block, it replaces
-                              const isLocked = lockedTraitIds.includes(trait.id);
+                              // Count only free (non-locked) selected traits
+                              const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
+                              const isAtMax = freeSelected.length >= 4;
+                              const isGreyedOut = isAtMax && !isSelected;
                               const Icon = (trait.icon || Sparkles) as any;
                               const backgroundColor = isSelected ? `${trait.color}15` : 'rgba(255,255,255,0.03)';
                               
@@ -336,26 +340,27 @@ export function OnboardingFlow() {
                                         type="button"
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ 
-                                            opacity: isMaxReached ? 0.5 : 1, 
+                                            opacity: isGreyedOut ? 0.3 : 1, 
                                             scale: 1,
-                                            filter: isMaxReached ? 'grayscale(100%)' : 'grayscale(0%)'
+                                            filter: isGreyedOut ? 'grayscale(100%)' : 'grayscale(0%)'
                                         }}
-                                        whileHover={!isMaxReached && !isLocked ? { scale: 1.05, y: -5 } : undefined}
-                                        whileTap={!isMaxReached && !isLocked ? { scale: 0.95 } : undefined}
+                                        whileHover={!isGreyedOut ? { scale: 1.05, y: -5 } : undefined}
+                                        whileTap={!isGreyedOut ? { scale: 0.95 } : undefined}
                                         transition={{ delay: index * 0.03, type: "spring", stiffness: 400, damping: 17 }}
                                         onClick={() => { 
-                                          if (isLocked) {
-                                            return;
-                                          }
+                                          if (isGreyedOut) return;
                                           toggleTrait(trait.id); 
                                         }}
-                                        disabled={isMaxReached && !isSelected}
+                                        disabled={isGreyedOut && !isSelected}
                                         className={`
-                                            relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 transition-all duration-200 group cursor-pointer
+                                            relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 transition-all duration-200 group
                                             border
+                                            ${isGreyedOut ? 'cursor-not-allowed' : 'cursor-pointer'}
                                             ${isSelected 
                                                 ? 'shadow-lg border-opacity-100' 
-                                                : 'hover:bg-white/10 hover:border-white/30 hover:shadow-md border-white/10'
+                                                : isGreyedOut
+                                                    ? 'border-white/5'
+                                                    : 'hover:bg-white/10 hover:border-white/30 hover:shadow-md border-white/10'
                                             }
                                         `}
                                         style={{
@@ -382,11 +387,6 @@ export function OnboardingFlow() {
                                       <span className={`text-xs font-bold text-center leading-tight tracking-wide ${isSelected ? 'text-white' : 'text-white/60'}`}>
                                           {t(trait.label)}
                                       </span>
-                                      {isLocked && (
-                                          <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/60 border border-white/15 flex items-center justify-center">
-                                              <Lock size={12} className="text-white/80" />
-                                          </div>
-                                      )}
                                       
                                       {isSelected && (
                                           <motion.div 
@@ -474,29 +474,26 @@ export function OnboardingFlow() {
                   e.stopPropagation();
                   handleNext();
                 }}
-                disabled={selectedTraits.length < 3}
-                whileHover={selectedTraits.length >= 3 ? { scale: 1.02 } : {}}
-                whileTap={selectedTraits.length >= 3 ? { scale: 0.98 } : {}}
+                disabled={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1}
+                whileHover={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? { scale: 1.02 } : {}}
+                whileTap={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? { scale: 0.98 } : {}}
                 className={`
                   pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border
-                  ${selectedTraits.length < 3
+                  ${selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1
                     ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
                     : 'bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10'
                   }
                 `}
               >
                 {/* Glow Effect - Optimized */}
-                {selectedTraits.length >= 3 && (
+                {selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 && (
                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-200 group-hover:translate-x-[100%]" />
                 )}
                 
                 <span>
-                  {t('common.continue', 'Continuar')} 
-                  {selectedTraits.length > 0 && selectedTraits.length < 3 && (
-                    <span className="ml-1 opacity-60 text-sm">({selectedTraits.length}/3)</span>
-                  )}
+                  {t('common.continue', 'Continuar')}
                 </span>
-                <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.length >= 3 ? 'group-hover:translate-x-1' : ''}`} />
+                <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? 'group-hover:translate-x-1' : ''}`} />
               </motion.button>
             </motion.div>
           )}

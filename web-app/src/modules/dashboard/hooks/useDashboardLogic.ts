@@ -961,14 +961,24 @@ export const useDashboardLogic = () => {
                         // Check if the original habit differs from the updated one
                         const original = habits.find(orig => orig.id === h.id);
                         if (original && original !== h) {
-                             const updates: any = {};
+                             const updates: any = {
+                                 // 🛡️ FIX: Always stamp lastUpdatedDate=today so individual
+                                 // checkDailyReset won't try to double-reset this habit
+                                 lastUpdatedDate: today
+                             };
                              if (original.completedToday !== h.completedToday) updates.completedToday = h.completedToday;
                              if (original.currentValue !== h.currentValue) updates.currentValue = h.currentValue;
                              if (original.checklist !== h.checklist) updates.checklist = h.checklist;
                              if (original.streak !== h.streak) updates.streak = h.streak;
+                             if (h.valueHistory !== original.valueHistory) updates.valueHistory = h.valueHistory;
                              
                              persistenceService.habits.update(user.id, h.id, updates).catch(console.error);
                         }
+                    });
+                    // Ensure in-memory habits also have lastUpdatedDate updated
+                    resetHabits = resetHabits.map(h => {
+                        const original = habits.find(orig => orig.id === h.id);
+                        return (original && original !== h) ? { ...h, lastUpdatedDate: today } : h;
                     });
 
                     // 4.5 Apply TP penalties for incomplete habits on active days
@@ -1150,6 +1160,11 @@ export const useDashboardLogic = () => {
                     });
                     
                     console.log(`[DAILY FEED] ✅ Saved feed entry for ${lastDate} to offline queue and local cache`);
+                    
+                    // 🔄 FIX: Notify useDailyFeed hook to reload from cache
+                    try {
+                        window.dispatchEvent(new CustomEvent('matrix:feed-updated', { detail: { date: lastDate } }));
+                    } catch (e) { /* ignore */ }
                 } catch (feedError) {
                     console.warn('[DAILY FEED] Failed to save feed entry (non-critical):', feedError);
                 }
@@ -2099,14 +2114,19 @@ export const useDashboardLogic = () => {
     }, []);
 
     // Midnight Check (Every Minute)
+    // 🛡️ FIX: Track last known date to detect ANY day change (handles app staying open across midnight)
+    const lastKnownDateRef = useRef(toLocalISOString(new Date()));
     useEffect(() => {
         const interval = setInterval(() => {
             const now = new Date();
-            if (now.getHours() === 0 && now.getMinutes() === 0) {
-                console.log("🕛 MIDNIGHT: Triggering Daily Reset");
+            const currentDate = toLocalISOString(now);
+            if (currentDate !== lastKnownDateRef.current) {
+                console.log(`🕛 DAY CHANGE DETECTED: ${lastKnownDateRef.current} → ${currentDate}. Triggering Daily Reset.`);
+                lastKnownDateRef.current = currentDate;
                 setDailyResetTrigger(prev => prev + 1);
+                setSyncTrigger(prev => prev + 1);
             }
-        }, 60000); // Check every minute
+        }, 30000); // Check every 30 seconds for reliability
         return () => clearInterval(interval);
     }, []);
 

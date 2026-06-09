@@ -71,7 +71,9 @@ export interface UserProfile {
   dailyLimits?: DailyLimits;
   unlockedAchievements?: string[];
   unlockedStoreItems?: string[];
+  unlocked_store_items?: string[]; // Snake_case from Supabase DB column
   inventory?: { itemId: string; quantity: number; acquiredAt: number }[];
+
   equippedItems?: { [slot: string]: string }; // e.g. { "background": "theme_neon_purple" }
   createdAt: number; // Timestamp
   lastLoginAt: number;

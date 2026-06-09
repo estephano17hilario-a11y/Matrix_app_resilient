@@ -59,6 +59,17 @@ export const useDailyFeed = ({
     };
 
     loadFeed();
+
+    // 🔄 FIX: Listen for daily reset event to reload feed from cache
+    const handleFeedUpdated = () => {
+      const cached = PersistenceService.getCollection<DailyFeedEntry>(userId, 'dailyFeed');
+      if (cached && cached.length > 0) {
+        const sorted = [...cached].sort((a, b) => b.date.localeCompare(a.date));
+        setFeedEntries(sorted);
+      }
+    };
+    window.addEventListener('matrix:feed-updated', handleFeedUpdated);
+    return () => window.removeEventListener('matrix:feed-updated', handleFeedUpdated);
   }, [userId]);
 
   // Calculate today's entry in real-time from live data
