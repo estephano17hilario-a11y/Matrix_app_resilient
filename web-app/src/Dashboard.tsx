@@ -436,28 +436,28 @@ export default function Dashboard() {
  const updateWeekStartDay = useCallback((d: any) => logicRef.current.updateWeekStartDay(d), []);
 
  useEffect(() => {
- if (user?.id) {
- const tutorialKey = `matrix_stats_tutorial_seen_${user.id}`;
- const hasSeen = localStorage.getItem(tutorialKey);
- const storedLang = localStorage.getItem('i18nextLng') || i18n.language || navigator.language || 'en';
- 
- // Si el usuario ya tiene XP o ha completado el onboarding en otro dispositivo, 
- // no le mostramos el tutorial de nuevo.
- const hasExperience = (user.stats?.xp || 0) > 0 || (user.stats?.level || 1) > 1;
- const hasCompletedOnboarding = user.onboarding?.completedAt && user.onboarding.completedAt > 0;
- 
- if (!hasSeen && !hasExperience && !hasCompletedOnboarding) {
- if (storedLang.startsWith('es')) {
- i18n.changeLanguage('es');
- } else {
- i18n.changeLanguage('en');
- }
- setShowStatsTutorial(true);
- }
- // Siempre marcamos como visto en localStorage para evitar chequeos futuros
- localStorage.setItem(tutorialKey, 'true');
- }
- }, [user?.id, user?.stats?.xp, user?.stats?.level, user?.onboarding?.completedAt, i18n]);
+  if (user?.id) {
+  const tutorialKey = `matrix_stats_tutorial_seen_${user.id}`;
+  const hasSeen = localStorage.getItem(tutorialKey);
+  const storedLang = localStorage.getItem('i18nextLng') || i18n.language || navigator.language || 'en';
+  
+  const hasExperience = (user.stats?.xp || 0) > 0 || (user.stats?.level || 1) > 1;
+  const hasCompletedOnboarding = user.onboarding?.completedAt && user.onboarding.completedAt > 0;
+  
+  if (hasCompletedOnboarding) {
+  if (!hasSeen && !hasExperience) {
+  if (storedLang.startsWith('es')) {
+  i18n.changeLanguage('es');
+  } else {
+  i18n.changeLanguage('en');
+  }
+  setShowStatsTutorial(true);
+  } else if (!hasSeen && hasExperience) {
+  localStorage.setItem(tutorialKey, 'true');
+  }
+  }
+  }
+  }, [user?.id, user?.stats?.xp, user?.stats?.level, user?.onboarding?.completedAt, i18n]);
 
  const archetypeTheme = user?.archetype ? ARCHETYPE_THEMES[user.archetype] || ARCHETYPE_THEMES['NEO'] : ARCHETYPE_THEMES['NEO'];
 
@@ -1281,16 +1281,19 @@ export default function Dashboard() {
  />
 
  <StatsTutorialOverlay 
- isOpen={showStatsTutorial}
- onClose={() => {
- setShowStatsTutorial(false);
- // Start interactive tour after stats tutorial
- if (user?.id && !localStorage.getItem(`matrix_tour_seen_${user.id}`)) {
- window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
- localStorage.setItem(`matrix_tour_seen_${user.id}`, 'true');
- }
- }}
- />
+  isOpen={showStatsTutorial}
+  onClose={() => {
+  setShowStatsTutorial(false);
+  if (user?.id) {
+  localStorage.setItem(`matrix_stats_tutorial_seen_${user.id}`, 'true');
+  // Start interactive tour after stats tutorial
+  if (!localStorage.getItem(`matrix_tour_seen_${user.id}`)) {
+  window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
+  localStorage.setItem(`matrix_tour_seen_${user.id}`, 'true');
+  }
+  }
+  }}
+  />
 
  {notificationRoot && createPortal(
  <AnimatePresence mode="sync">
@@ -1425,7 +1428,6 @@ export default function Dashboard() {
  <div className="flex flex-col gap-4 h-full min-h-0">
 
  {/* ⚡ TASK SECTION SWITCHER */}
- {habitSectionControl === 'VISIBLE' && (
  <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
  <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
  <button
@@ -1444,7 +1446,6 @@ export default function Dashboard() {
  </button>
  </div>
  </div>
- )}
 
  {taskViewMode === 'LIST' ? (
  <>

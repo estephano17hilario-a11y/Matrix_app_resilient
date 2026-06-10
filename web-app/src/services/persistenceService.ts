@@ -204,38 +204,30 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
 
       try {
-        // First, let's find if there's any existing record with this itemId in its data
-        // This is crucial for legacy records from Firebase that don't use the uniqueRecordId format
-        const { data: existingRecords, error: fetchError } = await supabase
-          .from('user_collections')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('collection_name', collectionName)
-          .contains('data', { id: itemId });
+        // Mark both legacy row (id = itemId) and new row (id = uniqueRecordId) as deleted
+        // This is 100% robust since we target the string primary key columns directly
+        const { error: deleteError } = await supabase
+            .from('user_collections')
+            .update({ deleted: true, data: { id: itemId, deleted: true } })
+            .eq('user_id', userId)
+            .eq('collection_name', collectionName)
+            .or(`id.eq.${uniqueRecordId},id.eq.${itemId}`);
 
-        if (!fetchError && existingRecords && existingRecords.length > 0) {
-            // Delete all matching records (legacy or current)
-            const idsToDelete = existingRecords.map(r => r.id);
-            const { error: deleteError } = await supabase
-                .from('user_collections')
-                .update({ deleted: true, data: { id: itemId, deleted: true } })
-                .in('id', idsToDelete);
-                
-            if (deleteError) throw deleteError;
-        } else {
-            // Fallback to upserting the uniqueRecordId
-            const { error } = await supabase
-              .from('user_collections')
-              .upsert({
-                id: uniqueRecordId,
-                user_id: userId,
-                collection_name: collectionName,
-                data: { id: itemId, deleted: true },
-                deleted: true
-              }, { onConflict: 'id' });
-    
-            if (error) throw error;
-        }
+        if (deleteError) throw deleteError;
+
+        // Fallback/Safety: Explicitly upsert the uniqueRecordId as deleted
+        const { error: upsertError } = await supabase
+          .from('user_collections')
+          .upsert({
+            id: uniqueRecordId,
+            user_id: userId,
+            collection_name: collectionName,
+            data: { id: itemId, deleted: true },
+            deleted: true
+          }, { onConflict: 'id' });
+
+        if (upsertError) throw upsertError;
+
       } catch (networkError: any) {
         const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
         if (isNetwork) {

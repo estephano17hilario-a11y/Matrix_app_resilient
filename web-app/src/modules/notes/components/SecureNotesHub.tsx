@@ -11,7 +11,7 @@ import { persistenceService } from '@/services/persistenceService';
 
 interface SecureItem {
  id: string;
- type: 'LOGIN' | 'NOTE' | 'CARD';
+ type: 'LOGIN' | 'NOTE';
  title: string;
  value: string; // Password or Content
  secondaryValue?: string; // Username or Card Number
@@ -38,7 +38,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  const [setupPin, setSetupPin] = useState('');
  const [isSetupMode, setIsSetupMode] = useState(false);
  const [items, setItems] = useState<SecureItem[]>([]);
- const [activeTab, setActiveTab] = useState<'ALL' | 'LOGIN' | 'NOTE' | 'CARD'>('ALL');
+ const [activeTab, setActiveTab] = useState<'ALL' | 'LOGIN' | 'NOTE'>('ALL');
  const [searchQuery, setSearchQuery] = useState('');
  const [selectedItem, setSelectedItem] = useState<SecureItem | null>(null);
  const [isCreateMode, setIsCreateMode] = useState(false);
@@ -93,7 +93,14 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  }
 
  if (vaultData && Array.isArray(vaultData)) {
- setItems(vaultData);
+ // Silent migration: convert CARD type to NOTE
+ const migrated = vaultData.map((item: any) => {
+ if (item.type === 'CARD') {
+ return { ...item, type: 'NOTE' as const };
+ }
+ return item;
+ });
+ setItems(migrated);
  }
 
  const savedPin = localStorage.getItem(legacyPinKey);
@@ -103,7 +110,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  }
  };
 
- if (isOpen && items.length === 0) {
+ if (isOpen) {
  loadSavedData();
  }
  }, [isOpen, pinHashKey, legacyPinKey, vaultDataKey, user?.id]);
@@ -291,7 +298,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  !isSetupMode ? (
  <SecurityGate
  isOpen={true}
- pin={localStorage.getItem('secure_vault_pin') || ''}
+ pin={localStorage.getItem(pinHashKey) || localStorage.getItem(legacyPinKey) || ''}
  onUnlock={() => {
  setIsUnlocked(true);
  toast.success("Vault Unlocked");
@@ -381,7 +388,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <div className="h-full flex flex-col">
  {/* Toolbar */}
  <div className="px-6 py-4 flex gap-3 overflow-x-auto no-scrollbar border-b border-white/5">
- {['ALL', 'LOGIN', 'NOTE', 'CARD'].map((tab) => (
+ {['ALL', 'LOGIN', 'NOTE'].map((tab) => (
  <button
  key={tab}
  onClick={() => setActiveTab(tab as any)}
@@ -431,20 +438,14 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  className="bg-[#111] border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group"
  >
  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
- item.type === 'LOGIN' ? 'bg-blue-500/20 text-blue-400' :
- item.type === 'NOTE' ? 'bg-yellow-500/20 text-yellow-400' :
- 'bg-purple-500/20 text-purple-400'
+ item.type === 'LOGIN' ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'
  }`}>
- {item.type === 'LOGIN' ? <Key size={20} /> :
- item.type === 'NOTE' ? <FileText size={20} /> :
- <CreditCard size={20} />}
+ {item.type === 'LOGIN' ? <Key size={20} /> : <FileText size={20} />}
  </div>
  <div className="flex-1 min-w-0">
  <h4 className="text-white font-bold truncate">{item.title}</h4>
  <p className="text-white/40 text-xs truncate">
- {item.type === 'LOGIN' ? item.secondaryValue || '********' : 
- item.type === 'CARD' ? `•••• ${item.secondaryValue?.slice(-4) || '****'}` : 
- 'Secure Note'}
+ {item.type === 'LOGIN' ? item.secondaryValue || '********' : 'Secure Note'}
  </p>
  </div>
  <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
@@ -535,8 +536,8 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
 
  <div className="p-6 space-y-6 overflow-y-auto">
  {/* Type Selector */}
- <div className="grid grid-cols-3 gap-3">
- {['LOGIN', 'NOTE', 'CARD'].map((t) => (
+ <div className="grid grid-cols-2 gap-3">
+ {['LOGIN', 'NOTE'].map((t) => (
  <button
  key={t}
  onClick={() => setType(t as any)}
@@ -546,7 +547,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
  }`}
  >
- {t === 'LOGIN' ? <Key size={20} /> : t === 'NOTE' ? <FileText size={20} /> : <CreditCard size={20} />}
+ {t === 'LOGIN' ? <Key size={20} /> : <FileText size={20} />}
  <span className="text-[10px] font-bold uppercase">{t}</span>
  </button>
  ))}
@@ -560,7 +561,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  type="text" 
  value={title}
  onChange={e => setTitle(e.target.value)}
- placeholder={type === 'LOGIN' ? 'e.g. Netflix' : type === 'CARD' ? 'e.g. Visa Gold' : 'e.g. Private Note'}
+ placeholder={type === 'LOGIN' ? 'e.g. Netflix' : 'e.g. Private Note'}
  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30"
  />
  </div>
@@ -586,7 +587,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
 
  <div className="space-y-1">
  <label className="text-xs font-bold text-white/40 uppercase ml-1">
- {type === 'LOGIN' ? 'Password' : type === 'CARD' ? 'Card Number' : 'Content'}
+ {type === 'LOGIN' ? 'Password' : 'Content'}
  </label>
  <div className="relative">
  {type === 'NOTE' ? (
@@ -617,29 +618,6 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  )}
  </div>
  </div>
-
- {type === 'CARD' && (
- <div className="grid grid-cols-2 gap-4">
- <div className="space-y-1">
- <label className="text-xs font-bold text-white/40 uppercase ml-1">Expiry</label>
- <input 
- type="text" 
- placeholder="MM/YY"
- value={secondaryValue}
- onChange={e => setSecondaryValue(e.target.value)}
- className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30 text-center"
- />
- </div>
- <div className="space-y-1">
- <label className="text-xs font-bold text-white/40 uppercase ml-1">CVV</label>
- <input 
- type="text" 
- placeholder="123"
- className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30 text-center"
- />
- </div>
- </div>
- )}
  </div>
 
  {/* Actions */}

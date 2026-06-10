@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Sparkles, Lock, ChevronDown } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles, Lock, ChevronDown, Target, Flame, Zap, Coins } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
@@ -16,7 +16,7 @@ import { calculateAttributeMaxXp } from '../../utils/leveling';
 
 
 // Modified steps: Removed 'intro' and 'language' as they are now pre-auth
-type Step = 'avatar' | 'traits' | 'saving';
+type Step = 'avatar' | 'traits' | 'tutorial' | 'saving';
 
 export function OnboardingFlow() {
   const { user, profile, updateProfileLocally } = useAuth();
@@ -34,6 +34,34 @@ export function OnboardingFlow() {
   
   // Explicit step management - No complex derived states
   const isTraitsStep = step === 'traits';
+  const [tutorialSlide, setTutorialSlide] = useState(0);
+
+  const slides = [
+    {
+      title: "Misiones y Estrategia",
+      description: "Convierte tus metas en misiones diarias. Suma XP y Oro al completarlas, y sube el nivel de tus rasgos.",
+      icon: Target,
+      color: "#f43f5e", // Rose
+    },
+    {
+      title: "Hábitos y Rachas",
+      description: "El pilar de la disciplina. Completa tus hábitos diarios para mantener viva tu racha global y desbloquear recompensas.",
+      icon: Flame,
+      color: "#f97316", // Orange
+    },
+    {
+      title: "Focus y Productividad",
+      description: "Utiliza el temporizador de Enfoque para concentrarte en tus proyectos. Cada minuto cuenta para tus estadísticas.",
+      icon: Zap,
+      color: "#eab308", // Yellow
+    },
+    {
+      title: "Tienda y Recompensas",
+      description: "Usa tu oro acumulado para comprar cosméticos premium y personalizar tu espacio de automejora.",
+      icon: Coins,
+      color: "#10b981", // Emerald
+    }
+  ];
 
   // Cleanup safety timer on unmount
   useEffect(() => {
@@ -47,7 +75,9 @@ export function OnboardingFlow() {
   // --- HARDWARE BACK BUTTON HANDLER ---
   useEffect(() => {
     const handleBackButton = async () => {
-        if (step === 'traits') {
+        if (step === 'tutorial') {
+            setStep('traits');
+        } else if (step === 'traits') {
             setStep('avatar');
         } else if (step === 'avatar') {
             App.exitApp();
@@ -73,15 +103,13 @@ export function OnboardingFlow() {
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'en';
 
   const handleNext = async () => {
-    console.log('[Onboarding] handleNext triggered', { step, selectedTraits, userId: user?.id });
-    
     if (step === 'traits') {
       // Need at least 1 free trait selected (DISCIPLINA + RESILIENCIA already counted)
       const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
       if (freeSelected.length < 1) {
          return;
       }
-      await handleSubmit();
+      setStep('tutorial');
     }
   };
 
@@ -165,6 +193,9 @@ export function OnboardingFlow() {
     if (typeof window !== 'undefined') {
         localStorage.setItem('lux_last_view', 'TASKS');
         localStorage.setItem('matrix_last_view', 'TASKS');
+        // Reset tutorial keys to force dashboard tour for this user
+        localStorage.removeItem(`matrix_stats_tutorial_seen_${userId}`);
+        localStorage.removeItem(`matrix_tour_seen_${userId}`);
     }
 
     // 🔥 2. OPTIMISTIC UPDATE: Instantly trigger navigation and update UI
@@ -241,9 +272,10 @@ export function OnboardingFlow() {
                 exit={{ opacity: 0, y: -20 }}
                 className="absolute top-0 left-0 right-0 flex justify-center gap-2 py-10 z-[60] pointer-events-none"
               >
-                  {/* Visual Steps: Avatar -> Traits */}
-                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${!isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
-                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${isTraitsStep ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  {/* Visual Steps: Avatar -> Traits -> Tutorial */}
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'avatar' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'traits' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'tutorial' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
               </motion.div>
           )}
         </AnimatePresence>
@@ -431,7 +463,93 @@ export function OnboardingFlow() {
               </motion.div>
             )}
             
-            {/* STEP 3: SAVING */}
+            {/* STEP 3: TUTORIAL VIGNETTES */}
+            {step === 'tutorial' && (
+              <motion.div
+                key="tutorial"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                className="absolute inset-0 flex flex-col items-center justify-center p-6 z-[60] pointer-events-auto"
+              >
+                <div 
+                  className="w-full max-w-md p-8 rounded-[2rem] flex flex-col items-center text-center relative overflow-hidden"
+                  style={{
+                    background: 'rgba(20, 20, 25, 0.75)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  {/* Dynamic background glow */}
+                  <div 
+                    className="absolute -top-20 -left-20 w-40 h-40 rounded-full opacity-25 blur-[50px] transition-all duration-500"
+                    style={{ background: slides[tutorialSlide].color }}
+                  />
+
+                  {/* Icon with glowing border */}
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 relative transition-all duration-300"
+                    style={{
+                      background: `${slides[tutorialSlide].color}15`,
+                      border: `1px solid ${slides[tutorialSlide].color}30`,
+                      boxShadow: `0 10px 30px -5px ${slides[tutorialSlide].color}20`
+                    }}
+                  >
+                    {(() => {
+                      const IconComponent = slides[tutorialSlide].icon;
+                      return <IconComponent size={36} style={{ color: slides[tutorialSlide].color }} />;
+                    })()}
+                  </div>
+
+                  <h2 className="text-2xl font-bold text-white mb-4 tracking-tight">
+                    {slides[tutorialSlide].title}
+                  </h2>
+                  
+                  <p className="text-white/60 text-sm leading-relaxed mb-8 max-w-[280px] font-medium">
+                    {slides[tutorialSlide].description}
+                  </p>
+
+                  {/* Indicator Dots */}
+                  <div className="flex gap-2 mb-8">
+                    {slides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setTutorialSlide(idx)}
+                        className="h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: idx === tutorialSlide ? '1.5rem' : '0.5rem',
+                          background: idx === tutorialSlide ? slides[tutorialSlide].color : 'rgba(255,255,255,0.15)'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Next / Finish Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tutorialSlide < slides.length - 1) {
+                        setTutorialSlide(tutorialSlide + 1);
+                      } else {
+                        handleSubmit();
+                      }
+                    }}
+                    className="w-full py-4 rounded-xl font-bold text-sm tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2"
+                    style={{
+                      background: slides[tutorialSlide].color,
+                      color: '#000000',
+                      boxShadow: `0 8px 25px -5px ${slides[tutorialSlide].color}50`
+                    }}
+                  >
+                    <span>{tutorialSlide === slides.length - 1 ? "Comenzar" : "Siguiente"}</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 4: SAVING */}
             {step === 'saving' && (
                  <motion.div 
                     key="saving"

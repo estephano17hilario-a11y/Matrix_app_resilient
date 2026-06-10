@@ -217,14 +217,29 @@ export const OfflineSyncService = {
           if (error) throw error;
         } else if (action.type === 'DELETE') {
           const uniqueRecordId = `${action.userId}_${action.collectionName}_${action.itemId}`;
+          
+          // Soft delete in offline sync queue to match persistence service behavior
           const { error } = await supabase
             .from('user_collections')
-            .delete()
-            .in('id', [uniqueRecordId, action.itemId])
+            .update({ deleted: true, data: { id: action.itemId, deleted: true } })
             .eq('user_id', action.userId)
-            .eq('collection_name', action.collectionName);
+            .eq('collection_name', action.collectionName)
+            .or(`id.eq.${uniqueRecordId},id.eq.${action.itemId}`);
 
           if (error) throw error;
+
+          // Fallback/Safety: Explicitly upsert the uniqueRecordId as deleted
+          const { error: upsertError } = await supabase
+            .from('user_collections')
+            .upsert({
+              id: uniqueRecordId,
+              user_id: action.userId,
+              collection_name: action.collectionName,
+              data: { id: action.itemId, deleted: true },
+              deleted: true
+            }, { onConflict: 'id' });
+
+          if (upsertError) throw upsertError;
         } else if (action.type === 'SETTINGS_SAVE') {
            const { error } = await supabase
               .from('user_collections')

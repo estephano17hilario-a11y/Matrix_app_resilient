@@ -5,6 +5,7 @@ import { Subtask } from '../../../types';
 import { useSubtasks } from '../hooks/useSubtasks';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import { hapticService } from '../../../services/hapticService';
 
 interface SubtaskManagerProps {
   taskId: string;
@@ -82,7 +83,8 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
   };
 
   const handleToggle = (id: string) => {
-    if (navigator.vibrate) navigator.vibrate(10); // Light haptic
+    // 🔊 Haptic: light vibration for subtask complete
+    hapticService.subtaskComplete();
     toggleSubtask(id);
   };
 

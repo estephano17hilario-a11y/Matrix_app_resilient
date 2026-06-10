@@ -19,6 +19,7 @@ import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
 import { BackupService } from '@/services/backupService';
 import { OfflineSyncService } from '@/services/offlineSync';
+import { hapticService } from '@/services/hapticService';
 
 import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
@@ -1038,11 +1039,34 @@ export const useDashboardLogic = () => {
                 };
                 
 
+                // Reset Project Streaks if goal was not met yesterday
+                const resetProjects = projects.map(p => {
+                    if (p.goalTarget > 0 && p.streak && p.streak > 0) {
+                        const lastCompletion = p.lastStreakDate || '';
+                        if (lastCompletion < yesterdayStr && !isFrozen) {
+                            console.log(`❌ [Project Streak] LOST for "${p.title}". Last: ${lastCompletion}, Yesterday: ${yesterdayStr}`);
+                            return { ...p, streak: 0 };
+                        }
+                    }
+                    return p;
+                });
+
                 // OPTIMISTIC UPDATE: Update UI immediately
                 if (damage > 0) setHealth(newHealth);
                 if (canProcessHabits) {
                     setHabits(resetHabits);
                     PersistenceService.saveCollection(user.id, 'habits', resetHabits);
+                }
+                const projectsChanged = resetProjects.some((p, idx) => p.streak !== (projects[idx]?.streak ?? 0));
+                if (projectsChanged) {
+                    setProjects(resetProjects);
+                    PersistenceService.saveCollection(user.id, 'projects', resetProjects);
+                    resetProjects.forEach(p => {
+                        const original = projects.find(orig => orig.id === p.id);
+                        if (original && original.streak !== p.streak) {
+                            projectService.saveProject(user.id, p).catch(console.error);
+                        }
+                    });
                 }
 
                 // 📊 FEED DE MEJORA: Save yesterday's feed entry before resetting dailyLimits
@@ -2498,6 +2522,7 @@ export const useDashboardLogic = () => {
 
             if (tasksCompleted >= 2 && habitsCompleted >= 1 && focusSeconds >= 3600) {
                 console.log("🔥 STREAK ACTIVATED!");
+                hapticService.streakActivated();
                 isActivatingStreak.current = true;
                 
                 try {
@@ -3001,6 +3026,7 @@ export const useDashboardLogic = () => {
         let bonusGold = 0;
         let bonusTP = 0;
 
+        let goalMetNow = false;
         if (proj && proj.goalTarget > 0) {
             // Calculate previous daily progress
             const now = new Date();
@@ -3026,6 +3052,7 @@ export const useDashboardLogic = () => {
             
             // Trigger bonus only if we crossed the line just now
             if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
+                goalMetNow = true;
                 const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1, 0, 'PROJECT');
                 
                 // PER USER REQUEST: "se de su recompensa (la que sale al terminar de crear su proyect)"
@@ -3070,10 +3097,49 @@ export const useDashboardLogic = () => {
                 }
 
                 const targetProj = prev[targetIndex];
+                
+                // Calculate Project Streak
+                let streak = targetProj.streak || 0;
+                let lastStreakDate = targetProj.lastStreakDate || '';
+                let longestStreak = targetProj.longestStreak || 0;
+                
+                if (goalMetNow) {
+                    const todayKey = toLocalISOString(new Date());
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayKey = toLocalISOString(yesterday);
+                    
+                    if (lastStreakDate !== todayKey) {
+                        if (lastStreakDate === yesterdayKey) {
+                            streak += 1;
+                        } else {
+                            streak = 1;
+                        }
+                        lastStreakDate = todayKey;
+                        longestStreak = Math.max(longestStreak, streak);
+                        
+                        console.log(`🔥 [PROJECT STREAK] Project "${targetProj.title}" streak updated to ${streak}`);
+                        
+                        // Haptic feedback & Notification
+                        hapticService.streakActivated();
+                        setTimeout(() => {
+                            addNotification({
+                                type: 'GLOBAL',
+                                label: `RACHA: ${targetProj.title.toUpperCase()} ${streak} DÍAS`,
+                                icon: Flame,
+                                color: targetProj.color || '#6366f1'
+                            });
+                        }, 500);
+                    }
+                }
+
                 const updatedProject = { 
                     ...targetProj, 
                     totalTime: (targetProj.totalTime || 0) + finalDurationSeconds,
-                    sessions: [newSession, ...(targetProj.sessions || [])]
+                    sessions: [newSession, ...(targetProj.sessions || [])],
+                    streak,
+                    lastStreakDate,
+                    longestStreak
                 };
 
                 const nextProjects = [...prev];
@@ -4559,7 +4625,11 @@ export const useDashboardLogic = () => {
         }
 
         // 1. FEEDBACK
-        if(navigator.vibrate) navigator.vibrate(isReversal ? 5 : [5, 20, 5]);
+        if (!isReversal) {
+            hapticService.habitComplete();
+        } else {
+            if (navigator.vibrate) navigator.vibrate(5);
+        }
         
         if (!isReversal && (habit.type === 'SIMPLE' || habit.type === 'BOOLEAN')) {
              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -4757,6 +4827,7 @@ export const useDashboardLogic = () => {
         let rewards = { rewardXp: 0, rewardGold: 0, rewardTraitXp: 0 };
 
         if (isComplete) {
+            hapticService.habitComplete();
             rewards = await applyHabitRewards(validationHabit, false, true);
         }
 

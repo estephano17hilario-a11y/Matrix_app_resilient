@@ -11,6 +11,7 @@ import { SubtaskManager } from './SubtaskManager';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { hapticService } from '../../../services/hapticService';
 
 interface QuestItemProps {
   quest: Quest;
@@ -35,6 +36,9 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
     e.stopPropagation();
     if (!quest.completed) {
       const rect = e.currentTarget.getBoundingClientRect();
+
+      // 🔊 Haptic: heavy vibration for task complete
+      hapticService.taskComplete();
 
       // Coins
       if (coins > 0) {

@@ -188,6 +188,9 @@ export interface Project {
   createdAt?: number;
   lastSessionDate?: string;
   order?: number;
+  streak?: number;
+  lastStreakDate?: string;
+  longestStreak?: number;
 }
 
 export interface Session {
