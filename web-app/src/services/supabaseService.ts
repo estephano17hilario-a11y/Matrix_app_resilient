@@ -67,6 +67,13 @@ export const loginWithGoogle = async (): Promise<any | null> => {
         const isMobile = Capacitor.isNativePlatform();
         
         if (isMobile) {
+            try {
+                // Forzar cierre de sesión previo para que siempre pida seleccionar cuenta
+                await GoogleAuth.signOut();
+            } catch (e) {
+                // Ignorar si no había sesión activa o si falla
+            }
+
             // 1. Iniciar sesión nativa con el selector nativo de Google
             const googleUser = await GoogleAuth.signIn();
             const idToken = googleUser.authentication.idToken;
@@ -81,7 +88,11 @@ export const loginWithGoogle = async (): Promise<any | null> => {
                 token: idToken,
             });
             
-            if (error) throw error;
+            if (error) {
+                console.error("Supabase rechazó el token:", error.message);
+                alert("Error en Supabase: " + error.message);
+                throw error;
+            }
             
             if (data.user) {
                 PersistenceService.setSession(data.user.id);
