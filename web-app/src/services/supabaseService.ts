@@ -72,6 +72,9 @@ export const loginWithGoogle = async (): Promise<any | null> => {
             provider: 'google',
             options: {
                 redirectTo,
+                queryParams: {
+                    prompt: 'select_account'
+                }
             }
         });
 

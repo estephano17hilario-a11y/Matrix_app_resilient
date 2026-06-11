@@ -95,7 +95,6 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                                 autoCancel: false,
                                 channelId: 'lux_focus',
                                 smallIcon: 'ic_stat_lux',
-                                largeIcon: 'lux_foto',
                                 iconColor: project.color || '#a855f7',
                                 actionTypeId: '',
                                 extra: null
@@ -131,7 +130,6 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                             schedule: { at: new Date(targetTimeMs) },
                             sound: 'beep.wav',
                             smallIcon: 'ic_stat_lux',
-                            largeIcon: 'lux_foto',
                             iconColor: '#a855f7',
                             actionTypeId: '',
                             extra: null
