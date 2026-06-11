@@ -2,6 +2,8 @@ import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { supabase } from '@/services/supabase';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -108,6 +110,16 @@ const AppRoutes = () => {
 };
 
 export default function App() {
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      GoogleAuth.initialize({
+        clientId: '797112490087-lt0j7dcdh35732enp07ig3ga3oqk1q6k.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     const handleDeepLink = async (event: any) => {
       console.log('🔗 [Deep Link App.tsx] Received URL:', event.url);

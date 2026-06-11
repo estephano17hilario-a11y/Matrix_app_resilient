@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { PersistenceService } from './persistence';
 import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 /**
  * Registra un nuevo usuario con Email y Contraseña.
@@ -59,28 +60,50 @@ export const atomicLogin = async (email: string, password: string): Promise<any>
 };
 
 /**
- * Inicia sesión con Google OAuth.
+ * Inicia sesión con Google OAuth (Nativo en móvil, Standard OAuth en web).
  */
 export const loginWithGoogle = async (): Promise<any | null> => {
     try {
         const isMobile = Capacitor.isNativePlatform();
-        const redirectTo = isMobile 
-            ? 'com.luxresilient.app://auth/callback' 
-            : window.location.origin;
-
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo,
-                queryParams: {
-                    prompt: 'select_account'
-                }
-            }
-        });
-
-        if (error) throw error;
         
-        return data; // Note: OAuth redirection might not return the user immediately
+        if (isMobile) {
+            // 1. Iniciar sesión nativa con el selector nativo de Google
+            const googleUser = await GoogleAuth.signIn();
+            const idToken = googleUser.authentication.idToken;
+            
+            if (!idToken) {
+                throw new Error("No se recibió el ID Token de Google Auth.");
+            }
+            
+            // 2. Enviar el ID Token a Supabase para autenticar la sesión
+            const { data, error } = await supabase.auth.signInWithIdToken({
+                provider: 'google',
+                token: idToken,
+            });
+            
+            if (error) throw error;
+            
+            if (data.user) {
+                PersistenceService.setSession(data.user.id);
+            }
+            
+            return data;
+        } else {
+            // Flujo Web standard
+            const redirectTo = window.location.origin;
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo,
+                    queryParams: {
+                        prompt: 'select_account'
+                    }
+                }
+            });
+
+            if (error) throw error;
+            return data;
+        }
     } catch (error) {
         console.error("Google Login Failed (Supabase):", error);
         throw error;
