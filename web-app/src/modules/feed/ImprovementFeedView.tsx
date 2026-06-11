@@ -11,6 +11,7 @@ import { Quest, Habit, Project } from '../../types';
 import { DailyLimits } from '../../types/User';
 import { toLocalISOString, startOfWeek as utilsStartOfWeek, endOfWeek as utilsEndOfWeek, parseLocalDate } from '../../utils/dateUtils';
 import { isHabitActive, isProjectActive, getDetailedScoreBreakdown } from '../../utils/productivityScore';
+import { useTranslation } from 'react-i18next';
 
 
 interface ImprovementFeedViewProps {
@@ -27,6 +28,7 @@ interface ImprovementFeedViewProps {
 export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
   userId, user, quests, habits, projects, dailyLimits, player, streak
 }) => {
+  const { t, i18n } = useTranslation();
   const { feedEntries, todayEntry, isLoading, saveFeedEntry } = useDailyFeed({
     userId, quests, habits, projects, dailyLimits, player, streak
   });
@@ -78,12 +80,14 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
     const end = utilsEndOfWeek(selectedDate);
     const format = (d: Date) => {
       const day = d.getDate();
-      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = i18n.language === 'es' ? monthsEs : monthsEn;
       const month = months[d.getMonth()];
       return `${day} ${month}`;
     };
     return `${format(start)} - ${format(end)}`;
-  }, [selectedDate]);
+  }, [selectedDate, i18n.language]);
 
   // Dynamic values for real-time formula visualization
   const todayDate = useMemo(() => new Date(), []);
@@ -145,7 +149,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
 
   // Score breakdown data for weekly chart (scored per category per day)
   const scoreBreakdownData = useMemo(() => {
-    const dayNames = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // getDay() mapping
+    const dayNames = i18n.language === 'es'
+      ? ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+      : ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // getDay() mapping
     const todayStr = toLocalISOString(new Date());
     
     return currentWeekDays.map((d) => {
@@ -165,7 +171,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
         total: breakdown.total,
       };
     });
-  }, [currentWeekDays, quests, habits, projects]);
+  }, [currentWeekDays, quests, habits, projects, i18n.language]);
 
   // Consistency Assistant Logic (Inteligencia de Compensación de Rendimiento)
   const consistencyAssistant = useMemo(() => {
@@ -394,10 +400,10 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               <h1 className="text-2xl font-black text-white tracking-tight">
                 {feedViewMode === 'daily' ? (
                   <>
-                    <span className="text-white/60">Feed</span> DIARIO
+                    <span className="text-white/60">Feed</span> {t('feed.titleDaily')}
                   </>
                 ) : (
-                  'Feed SEMANAL'
+                  `Feed ${t('feed.titleWeekly')}`
                 )}
               </h1>
             </div>
@@ -406,7 +412,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
           <motion.button
             onClick={() => setShowFormulaModal(true)}
             className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
-            title="Ver fórmula y recalibración de score"
+            title={t('feed.viewFormulaTooltip')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -441,7 +447,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 : 'text-white/40 hover:text-white/65'
             }`}
           >
-            Diario
+            {t('feed.labelDaily')}
           </button>
           <button
             onClick={() => setFeedViewMode('weekly')}
@@ -451,7 +457,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 : 'text-white/40 hover:text-white/65'
             }`}
           >
-            Semanal
+            {t('feed.labelWeekly')}
           </button>
         </div>
       </motion.div>
@@ -536,7 +542,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       >
                         {productivityScore}
                       </motion.span>
-                      <span className="text-[7px] font-bold text-white/25 uppercase tracking-wider">Score</span>
+                      <span className="text-[7px] font-bold text-white/25 uppercase tracking-wider">{t('feed.score')}</span>
                     </div>
                   </div>
 
@@ -544,12 +550,12 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1.5">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={12} className="text-orange-400 shrink-0" />
-                      <span className="text-xs text-white/50 font-medium">Tareas</span>
+                      <span className="text-xs text-white/50 font-medium">{t('feed.tasks')}</span>
                       <span className="text-xs font-black text-white ml-auto tabular-nums">{todayEntry.tasksCompleted}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock size={12} className="text-indigo-400 shrink-0" />
-                      <span className="text-xs text-white/50 font-medium">Focus</span>
+                      <span className="text-xs text-white/50 font-medium">{t('feed.focus')}</span>
                       <span className="text-xs font-black text-white ml-auto tabular-nums">
                         {todayEntry.focusMinutes < 60 
                           ? `${todayEntry.focusMinutes}m` 
@@ -558,12 +564,12 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <Flame size={12} className="text-emerald-400 shrink-0" />
-                      <span className="text-xs text-white/50 font-medium">Hábitos</span>
+                      <span className="text-xs text-white/50 font-medium">{t('feed.habits')}</span>
                       <span className="text-xs font-black text-white ml-auto tabular-nums">{todayEntry.habitsCompleted}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <ListChecks size={12} className="text-cyan-400 shrink-0" />
-                      <span className="text-xs text-white/50 font-medium">Sub-hab</span>
+                      <span className="text-xs text-white/50 font-medium">{t('feed.subHab')}</span>
                       <span className="text-xs font-black text-white ml-auto tabular-nums">{todayEntry.subHabitsCompleted}</span>
                     </div>
                   </div>
@@ -582,7 +588,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
                     <Sparkles size={13} className="text-yellow-400" />
-                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">XP:</span>
+                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">{t('feed.xp')}</span>
                     <span className="text-xs font-black text-yellow-400 tabular-nums">+{todayEntry.xpEarned}</span>
                   </motion.div>
                   <div className="w-px h-3 bg-white/[0.08]" />
@@ -592,7 +598,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
                     <Coins size={13} className="text-amber-400" />
-                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">Oro:</span>
+                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">{t('feed.gold')}</span>
                     <span className="text-xs font-black text-amber-400 tabular-nums">+{todayEntry.goldEarned}</span>
                   </motion.div>
                   <div className="w-px h-3 bg-white/[0.08]" />
@@ -602,7 +608,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
                     <Star size={13} className="text-purple-400" />
-                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">TP:</span>
+                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider">{t('feed.tp')}</span>
                     <span className="text-xs font-black text-purple-400 tabular-nums">+{todayEntry.tpEarned || 0}</span>
                   </motion.div>
                 </motion.div>
@@ -645,33 +651,47 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   <div className="flex-1 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-wider text-white">
-                        {consistencyAssistant.hasDrop ? 'Asistente de Constancia Inteligente' : 'Rendimiento Óptimo'}
+                        {consistencyAssistant.hasDrop ? t('feed.consistencyAssistant') : t('feed.optimalPerformance')}
                       </span>
                       <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full border ${
                         consistencyAssistant.hasDrop
                           ? 'text-amber-400 bg-amber-500/5 border-amber-500/10'
                           : 'text-emerald-400 bg-emerald-500/5 border-emerald-500/10'
                       }`}>
-                        {consistencyAssistant.hasDrop ? 'Compensación Activa' : 'Ritmo Excelente'}
+                        {consistencyAssistant.hasDrop ? t('feed.activeCompensation') : t('feed.excellentPace')}
                       </span>
                     </div>
 
                     {consistencyAssistant.hasDrop ? (
                       <p className="text-[11px] text-white/70 leading-normal">
-                        Tu score acumulado esta semana ha bajado en <strong className="text-amber-400">{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> respecto a la semana pasada.
-                        Para compensarlo de forma equilibrada en los <strong className="text-white">{consistencyAssistant.remainingDays} días</strong> restantes, hoy deberías alcanzar un score meta de:
+                        {i18n.language === 'es' ? (
+                          <>
+                            Tu score acumulado esta semana ha bajado en <strong className="text-amber-400">{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> respecto a la semana pasada. Para compensarlo de forma equilibrada en los <strong className="text-white">{consistencyAssistant.remainingDays} días</strong> restantes, hoy deberías alcanzar un score meta de:
+                          </>
+                        ) : (
+                          <>
+                            Your accumulated score this week has dropped by <strong className="text-amber-400">{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> compared to last week. To compensate for it evenly over the remaining <strong className="text-white">{consistencyAssistant.remainingDays} days</strong>, today you should reach a target score of:
+                          </>
+                        )}
                       </p>
                     ) : (
                       <p className="text-[11px] text-white/70 leading-normal">
-                        ¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por <strong className="text-emerald-400">{Math.abs(consistencyAssistant.accumulatedDeficit).toFixed(0)} pts</strong>. 
-                        Para mantener esta constancia, tu score meta recomendado de hoy es:
+                        {i18n.language === 'es' ? (
+                          <>
+                            ¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por <strong className="text-emerald-400">{Math.abs(consistencyAssistant.accumulatedDeficit).toFixed(0)} pts</strong>. Para mantener esta constancia, tu score meta recomendado de hoy es:
+                          </>
+                        ) : (
+                          <>
+                            You are doing excellent! You are exceeding last week's accumulated performance by <strong className="text-emerald-400">{Math.abs(consistencyAssistant.accumulatedDeficit).toFixed(0)} pts</strong>. To maintain this consistency, your recommended target score today is:
+                          </>
+                        )}
                       </p>
                     )}
 
                     {/* Meta representation */}
                     <div className="flex items-center justify-between bg-black/20 p-2.5 rounded-xl border border-white/[0.04]">
                       <div>
-                        <div className="text-[9px] text-white/30 uppercase font-black tracking-wider">Score Meta de Hoy</div>
+                        <div className="text-[9px] text-white/30 uppercase font-black tracking-wider">{t('feed.todayTargetScore')}</div>
                         <div className="flex items-baseline gap-1 mt-0.5">
                           <span className="text-base font-black text-white">{consistencyAssistant.todayTargetScore.toFixed(0)}%</span>
                           {consistencyAssistant.hasDrop && (
@@ -683,7 +703,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       </div>
                       
                       <div className="text-right">
-                        <div className="text-[9px] text-white/30 uppercase font-black tracking-wider">Tu Score de Hoy</div>
+                        <div className="text-[9px] text-white/30 uppercase font-black tracking-wider">{t('feed.todayScore')}</div>
                         <div className="text-base font-black mt-0.5" style={{ color: productivityScore >= consistencyAssistant.todayTargetScore ? '#10b981' : '#f59e0b' }}>
                           {productivityScore.toFixed(0)}%
                         </div>
@@ -693,7 +713,17 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     {/* Progress feedback bar */}
                     {productivityScore < consistencyAssistant.todayTargetScore ? (
                       <div className="text-[10px] text-white/50 flex items-center justify-between pt-0.5">
-                        <span>Faltan <strong className="text-amber-400">{(consistencyAssistant.todayTargetScore - productivityScore).toFixed(0)}%</strong> para alcanzar la meta diaria</span>
+                        <span>
+                          {i18n.language === 'es' ? (
+                            <>
+                              Faltan <strong className="text-amber-400">{(consistencyAssistant.todayTargetScore - productivityScore).toFixed(0)}%</strong> para alcanzar la meta diaria
+                            </>
+                          ) : (
+                            <>
+                              Need <strong className="text-amber-400">{(consistencyAssistant.todayTargetScore - productivityScore).toFixed(0)}%</strong> more to reach daily goal
+                            </>
+                          )}
+                        </span>
                         <div className="w-24 h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-amber-400 rounded-full" 
@@ -703,7 +733,11 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       </div>
                     ) : (
                       <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 pt-0.5">
-                        <span>✓ ¡Meta de constancia superada hoy! (+{(productivityScore - consistencyAssistant.todayTargetScore).toFixed(0)}% extra)</span>
+                        <span>
+                          {t('feed.goalExceeded', { 
+                            extra: (productivityScore - consistencyAssistant.todayTargetScore).toFixed(0) 
+                          })}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -722,7 +756,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             >
               <div className="flex items-center gap-2 flex-grow">
                 <Calendar size={14} className="text-white/30" />
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">Historial Diario</span>
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">{t('feed.dailyHistory')}</span>
                 <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
               </div>
               
@@ -733,7 +767,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 whileTap={{ scale: 0.97 }}
               >
                 <Calendar size={12} className="text-indigo-400" />
-                <span>Buscar Fecha</span>
+                <span>{t('feed.searchDate')}</span>
               </motion.button>
             </motion.div>
 
@@ -787,8 +821,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
                     <Sparkles size={24} className="text-white/20" />
                   </div>
-                  <p className="text-sm text-white/30 font-medium">Tu historial aparecerá aquí</p>
-                  <p className="text-[11px] text-white/15 mt-1">Cada día se guardará automáticamente</p>
+                  <p className="text-sm text-white/30 font-medium">{t('feed.emptyHistory')}</p>
+                  <p className="text-[11px] text-white/15 mt-1">{t('feed.savedAutomatically')}</p>
                 </motion.div>
               )}
             </div>
@@ -833,7 +867,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 transition={{ delay: 0.2 }}
               >
                 <Calendar size={14} className="text-white/30" />
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">Historial Semanal</span>
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em]">{t('feed.weeklyHistory')}</span>
                 <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
               </motion.div>
 
@@ -859,8 +893,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
                     <Calendar size={24} className="text-white/20" />
                   </div>
-                  <p className="text-sm text-white/30 font-medium">No hay suficientes datos semanales</p>
-                  <p className="text-[11px] text-white/15 mt-1">Registra actividades diarias para consolidar semanas.</p>
+                  <p className="text-sm text-white/30 font-medium">{t('feed.insufficientData')}</p>
+                  <p className="text-[11px] text-white/15 mt-1">{t('feed.logActivitiesToConsolidate')}</p>
                 </motion.div>
               )}
             </div>
@@ -893,8 +927,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     <Activity size={16} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white">Fórmula de Productividad</h3>
-                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-wider">Recalibración Dinámica</p>
+                    <h3 className="text-sm font-black text-white">{t('feed.productivityFormula')}</h3>
+                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-wider">{t('feed.dynamicRecalibration')}</p>
                   </div>
                 </div>
                 
@@ -910,7 +944,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               {/* Scrollable Body */}
               <div className="flex-1 overflow-y-auto p-5 pt-3.5 space-y-5 text-xs leading-relaxed text-white/70 scrollbar-thin scrollbar-thumb-white/10">
                 <p className="text-[11px] text-white/50">
-                  El <strong>Score de Productividad</strong> se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:
+                  {i18n.language === 'es' ? (
+                    <>
+                      El <strong>Score de Productividad</strong> se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:
+                    </>
+                  ) : (
+                    <>
+                      The <strong>Productivity Score</strong> is automatically recalibrated based on the availability of your assigned tasks for today:
+                    </>
+                  )}
                 </p>
 
                 {/* Real-time configuration badge */}
@@ -919,11 +961,11 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   
                   <div className="flex items-center gap-2">
                     <Sparkles size={12} className="text-yellow-400" />
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Tus Métricas de Hoy</span>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t('feed.todayMetrics')}</span>
                   </div>
                   
                   <p className="text-[10px] text-white/50">
-                    Actualmente tu score se recalcula en base a:
+                    {t('feed.currentlyRecalculatedBasedOn')}
                   </p>
 
                   <div className="grid grid-cols-1 gap-2 pt-1">
@@ -932,15 +974,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <div className="flex items-center gap-2">
                         <Flame size={14} className="text-emerald-400 shrink-0" />
                         <div>
-                          <div className="font-bold text-white">Hábitos Activos Hoy</div>
-                          <div className="text-white/40 text-[9px]">{habitsCount} programados para hoy</div>
+                          <div className="font-bold text-white">{t('feed.activeHabitsToday')}</div>
+                          <div className="text-white/40 text-[9px]">{habitsCount} {t('feed.scheduledForToday')}</div>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-emerald-400 font-bold">
-                          {habitsCount > 0 ? `${((hasTasksToday ? 40 : 45) / habitsCount).toFixed(1)}% c/u` : '0%'}
+                          {habitsCount > 0 ? `${((hasTasksToday ? 40 : 45) / habitsCount).toFixed(1)}% ${t('feed.each')}` : '0%'}
                         </span>
-                        <div className="text-white/30 text-[8px] uppercase tracking-wider">Peso individual</div>
+                        <div className="text-white/30 text-[8px] uppercase tracking-wider">{t('feed.individualWeight')}</div>
                       </div>
                     </div>
 
@@ -949,15 +991,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <div className="flex items-center gap-2">
                         <Clock size={14} className="text-indigo-400 shrink-0" />
                         <div>
-                          <div className="font-bold text-white">Focus diario programado</div>
-                          <div className="text-white/40 text-[9px]">{totalTargetMinutes} minutos de meta</div>
+                          <div className="font-bold text-white">{t('feed.scheduledDailyFocus')}</div>
+                          <div className="text-white/40 text-[9px]">{totalTargetMinutes} {t('feed.minutesGoal')}</div>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-indigo-400 font-bold">
-                          {hasTasksToday ? '40%' : '55%'} Max
+                          {hasTasksToday ? '40%' : '55%'} {t('feed.max')}
                         </span>
-                        <div className="text-white/30 text-[8px] uppercase tracking-wider">Aporte global</div>
+                        <div className="text-white/30 text-[8px] uppercase tracking-wider">{t('feed.globalContribution')}</div>
                       </div>
                     </div>
 
@@ -984,20 +1026,20 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
 
                 {/* Mathematical Fraction Explanations */}
                 <div className="space-y-3.5">
-                  <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">Ecuaciones del Score</div>
+                  <div className="text-[10px] font-black text-white/30 uppercase tracking-widest">{t('feed.scoreEquations')}</div>
                   
                   {/* Hábitos Equation */}
                   <div className="bg-white/[0.01] border border-white/[0.04] rounded-xl p-3.5 space-y-3">
                     <div className="flex items-center justify-between text-[11px] font-bold text-emerald-400">
-                      <span>Hábitos & Sub-hábitos</span>
-                      <span className="text-[9px] text-white/30 uppercase">Aporte: {hasTasksToday ? '40%' : '45%'}</span>
+                      <span>{t('feed.habitsSubhabits')}</span>
+                      <span className="text-[9px] text-white/30 uppercase">{t('feed.contribution')} {hasTasksToday ? '40%' : '45%'}</span>
                     </div>
                     
                     <div className="flex items-center justify-center gap-3 py-2 bg-black/20 rounded-lg">
                       <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-black text-emerald-300">Suma de Progresos Individuales</span>
+                        <span className="text-[9px] font-black text-emerald-300">{t('feed.individualProgressSum')}</span>
                         <div className="w-40 h-px bg-white/20 my-1" />
-                        <span className="text-[8px] font-bold text-white/40">Hábitos Activos Hoy</span>
+                        <span className="text-[8px] font-bold text-white/40">{t('feed.activeHabitsToday')}</span>
                       </div>
                       <span className="text-white/30 font-black text-sm">×</span>
                       <span className="text-[10px] font-black text-white bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
@@ -1008,33 +1050,63 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     <div className="space-y-2 text-[10px] text-white/40 pl-2.5 border-l border-white/[0.06] pt-1">
                       {/* Checklist tree visualization */}
                       <div>
-                        <span className="font-bold text-white/70">Sub-hábitos (Hábitos tipo Lista):</span>
-                        <p className="text-[9px] mt-0.5 mb-2">Se dividen equitativamente entre las sub-tareas asignadas para hoy.</p>
+                        {i18n.language === 'es' ? (
+                          <>
+                            <span className="font-bold text-white/70">Sub-hábitos (Hábitos tipo Lista):</span>
+                            <p className="text-[9px] mt-0.5 mb-2">Se dividen equitativamente entre las sub-tareas asignadas para hoy.</p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-bold text-white/70">Sub-habits (List-type Habits):</span>
+                            <p className="text-[9px] mt-0.5 mb-2">Divided equally among the sub-tasks assigned for today.</p>
+                          </>
+                        )}
                         
                         <div className="bg-[#0b0c10] border border-white/[0.04] p-3 rounded-lg flex items-center justify-between">
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-white">
                               <ListChecks size={12} className="text-cyan-400" />
-                              <span>Hábito con Checklist (Ejemplo)</span>
+                              <span>{t('feed.habitChecklistExample')}</span>
                             </div>
                             <div className="pl-4 text-[8px] text-white/40 font-mono space-y-0.5 border-l border-white/10 ml-1.5">
-                              <div>├── Sub-tarea 1 ➔ 33.3% del hábito</div>
-                              <div>├── Sub-tarea 2 ➔ 33.3% del hábito</div>
-                              <div>└── Sub-tarea 3 ➔ 33.3% del hábito</div>
+                              {i18n.language === 'es' ? (
+                                <>
+                                  <div>├── Sub-tarea 1 ➔ 33.3% del hábito</div>
+                                  <div>├── Sub-tarea 2 ➔ 33.3% del hábito</div>
+                                  <div>└── Sub-tarea 3 ➔ 33.3% del hábito</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>├── Sub-task 1 ➔ 33.3% of the habit</div>
+                                  <div>├── Sub-task 2 ➔ 33.3% of the habit</div>
+                                  <div>└── Sub-task 3 ➔ 33.3% of the habit</div>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="text-[8px] text-white/50 font-bold uppercase tracking-wider text-right max-w-[120px] bg-white/5 p-1.5 rounded border border-white/5">
-                            Auto-ajuste de Pesos
+                            {t('feed.weightAutoadjustment')}
                           </div>
                         </div>
                       </div>
 
                       {/* Quantity habits */}
                       <div className="pt-1.5">
-                        <span className="font-bold text-white/70">Hábitos Cuantitativos:</span>
-                        <p className="text-[9px] mt-0.5">
-                          Calculan su progreso fraccional como <code className="text-amber-400 font-mono bg-amber-500/5 px-1 py-0.5 rounded">progreso / meta</code> (máx 1.0), aportando proporcionalmente al valor del hábito.
-                        </p>
+                        {i18n.language === 'es' ? (
+                          <>
+                            <span className="font-bold text-white/70">Hábitos Cuantitativos:</span>
+                            <p className="text-[9px] mt-0.5">
+                              Calculan su progreso fraccional como <code className="text-amber-400 font-mono bg-amber-500/5 px-1 py-0.5 rounded">progreso / meta</code> (máx 1.0), aportando proporcionalmente al valor del hábito.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-bold text-white/70">Quantitative Habits:</span>
+                            <p className="text-[9px] mt-0.5">
+                              Calculate their fractional progress as <code className="text-amber-400 font-mono bg-amber-500/5 px-1 py-0.5 rounded">progress / target</code> (max 1.0), contributing proportionally to the habit's value.
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1042,15 +1114,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   {/* Focus Equation */}
                   <div className="bg-white/[0.01] border border-white/[0.04] rounded-xl p-3.5 space-y-3">
                     <div className="flex items-center justify-between text-[11px] font-bold text-indigo-400">
-                      <span>Tiempo de Focus</span>
-                      <span className="text-[9px] text-white/30 uppercase">Aporte: {hasTasksToday ? '40%' : '55%'}</span>
+                      <span>{t('feed.focusTime')}</span>
+                      <span className="text-[9px] text-white/30 uppercase">{t('feed.contribution')} {hasTasksToday ? '40%' : '55%'}</span>
                     </div>
 
                     <div className="flex items-center justify-center gap-3 py-2 bg-black/20 rounded-lg">
                       <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-black text-indigo-300">Minutos Reales Focus</span>
+                        <span className="text-[9px] font-black text-indigo-300">{t('feed.realFocusMinutes')}</span>
                         <div className="w-36 h-px bg-white/20 my-1" />
-                        <span className="text-[8px] font-bold text-white/40">Suma Metas de Proyectos Hoy</span>
+                        <span className="text-[8px] font-bold text-white/40">{t('feed.projectsGoalSum')}</span>
                       </div>
                       <span className="text-white/30 font-black text-sm">×</span>
                       <span className="text-[10px] font-black text-white bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
@@ -1059,7 +1131,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     </div>
                     
                     <p className="text-[9px] text-white/40 pl-2.5 border-l border-white/[0.06]">
-                      Se calcula en base a la meta total de minutos de proyectos activos hoy. Si no hay proyectos o metas configuradas hoy, se toma un valor por defecto de 60 min como meta de focus.
+                      {t('feed.focusTimeDescription')}
                     </p>
                   </div>
 
@@ -1067,15 +1139,15 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   {hasTasksToday && (
                     <div className="bg-white/[0.01] border border-white/[0.04] rounded-xl p-3.5 space-y-3">
                       <div className="flex items-center justify-between text-[11px] font-bold text-orange-400">
-                        <span>Tareas Diarias (Misiones)</span>
-                        <span className="text-[9px] text-white/30 uppercase">Aporte: 20%</span>
+                        <span>{t('feed.dailyQuests')}</span>
+                        <span className="text-[9px] text-white/30 uppercase">{t('feed.questsFormulaDescription')}</span>
                       </div>
 
                       <div className="flex items-center justify-center gap-3 py-2 bg-black/20 rounded-lg">
                         <div className="flex flex-col items-center">
-                          <span className="text-[9px] font-black text-orange-300">Tareas Completadas</span>
+                          <span className="text-[9px] font-black text-orange-300">{t('feed.completedQuests')}</span>
                           <div className="w-36 h-px bg-white/20 my-1" />
-                          <span className="text-[8px] font-bold text-white/40">Total Tareas de Hoy</span>
+                          <span className="text-[8px] font-bold text-white/40">{t('feed.totalTodayQuests')}</span>
                         </div>
                         <span className="text-white/30 font-black text-sm">×</span>
                         <span className="text-[10px] font-black text-white bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded">
@@ -1093,7 +1165,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                   onClick={() => setShowFormulaModal(false)}
                   className="px-5 py-2.5 rounded-xl bg-white text-black font-black uppercase text-[10px] tracking-wider hover:bg-white/90 transition-all shadow-md active:scale-95"
                 >
-                  Entendido
+                  {t('feed.understood')}
                 </button>
               </div>
             </motion.div>

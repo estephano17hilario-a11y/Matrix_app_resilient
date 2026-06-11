@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Clock, Flame, ListChecks, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DayScore {
   date: string;
@@ -34,10 +35,10 @@ interface FeedScoreBreakdownChartProps {
 type ChartViewMode = 'general' | 'tasks' | 'habits' | 'focus' | 'subHabits';
 
 const CATEGORIES = [
-  { key: 'tasks' as const, label: 'Tareas', color: '#f97316', gradientEnd: '#fb923c', icon: CheckCircle2 },
-  { key: 'habits' as const, label: 'Hábitos', color: '#22c55e', gradientEnd: '#4ade80', icon: Flame },
-  { key: 'focus' as const, label: 'Focus', color: '#6366f1', gradientEnd: '#818cf8', icon: Clock },
-  { key: 'subHabits' as const, label: 'Sub-hab', color: '#06b6d4', gradientEnd: '#22d3ee', icon: ListChecks },
+  { key: 'tasks' as const, color: '#f97316', gradientEnd: '#fb923c', icon: CheckCircle2 },
+  { key: 'habits' as const, color: '#22c55e', gradientEnd: '#4ade80', icon: Flame },
+  { key: 'focus' as const, color: '#6366f1', gradientEnd: '#818cf8', icon: Clock },
+  { key: 'subHabits' as const, color: '#06b6d4', gradientEnd: '#22d3ee', icon: ListChecks },
 ];
 
 export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = ({ 
@@ -49,6 +50,8 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
   onNextWeek,
   consistencyAssistant
 }) => {
+  const { t, i18n } = useTranslation();
+  const isSpanish = i18n.language === 'es';
   const [viewMode, setViewMode] = useState<ChartViewMode>('general');
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -101,14 +104,14 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
         <div className="flex items-center gap-2">
           <Activity size={12} className="text-indigo-400 animate-pulse" />
           <span className="text-[10px] font-black text-white/45 uppercase tracking-[0.15em]">
-            Score por Categoría
+            {t('feed.scoreByCategory')}
           </span>
         </div>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[9px] font-black uppercase text-white/60 hover:text-white hover:bg-white/[0.08] transition-all duration-300"
         >
-          {isExpanded ? 'Minimizar' : 'Maximizar'}
+          {isExpanded ? (isSpanish ? 'Minimizar' : 'Minimize') : (isSpanish ? 'Maximizar' : 'Maximize')}
         </button>
       </div>
 
@@ -127,7 +130,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                 <button
                   onClick={onPrevWeek}
                   className="w-7 h-7 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-                  title="Semana Anterior"
+                  title={isSpanish ? 'Semana Anterior' : 'Previous Week'}
                 >
                   <ChevronLeft size={14} />
                 </button>
@@ -138,7 +141,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                   </span>
                   {isCurrentWeek && (
                     <span className="ml-1.5 text-[7px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/15 px-1 py-0.5 rounded">
-                      Actual
+                      {isSpanish ? 'Actual' : 'Current'}
                     </span>
                   )}
                 </div>
@@ -151,7 +154,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                       ? 'opacity-20 cursor-not-allowed bg-transparent text-white/20' 
                       : 'bg-white/[0.03] border border-white/[0.06] text-white/60 hover:text-white hover:bg-white/[0.08]'
                   }`}
-                  title="Siguiente Semana"
+                  title={isSpanish ? 'Siguiente Semana' : 'Next Week'}
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -179,9 +182,9 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                     )}
                     <span className="relative z-10">
                       {mode === 'general' ? 'General' :
-                       mode === 'tasks' ? 'Tareas' :
-                       mode === 'habits' ? 'Hábitos' :
-                       mode === 'focus' ? 'Focus' : 'Sub-hab'}
+                       mode === 'tasks' ? t('feed.tasks') :
+                       mode === 'habits' ? t('feed.habits') :
+                       mode === 'focus' ? t('feed.focus') : t('feed.subHab')}
                     </span>
                   </button>
                 );
@@ -215,7 +218,8 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                   let totalHeight = 0;
                   const categoryHeights = CATEGORIES.map(cat => {
                     const isVisible = viewMode === 'general' || viewMode === cat.key;
-                    const val = day[cat.key];
+                    const keyResolved = cat.key;
+                    const val = day[keyResolved];
                     const rawHeight = isVisible ? (val / (viewMode === 'general' ? 100 : currentMax)) * chartHeight : 0;
                     const height = Math.max(rawHeight, 0);
                     totalHeight += height;
@@ -248,10 +252,10 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                           style={{ 
                             bottom: Math.min((consistencyAssistant.todayTargetScore / 100) * chartHeight, chartHeight - 2),
                           }}
-                          title={`Meta de Hoy: ${consistencyAssistant.todayTargetScore.toFixed(0)}%`}
+                          title={`${isSpanish ? 'Meta de Hoy' : 'Today\'s Goal'}: ${consistencyAssistant.todayTargetScore.toFixed(0)}%`}
                         >
                           <span className="absolute -top-3.5 right-0.5 text-[6px] font-black text-amber-400 bg-[#0c0d1b] px-0.5 rounded border border-amber-500/20 whitespace-nowrap">
-                            Meta {consistencyAssistant.todayTargetScore.toFixed(0)}%
+                            {isSpanish ? 'Meta' : 'Goal'} {consistencyAssistant.todayTargetScore.toFixed(0)}%
                           </span>
                         </div>
                       )}
@@ -282,7 +286,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                       >
                         <div className="bg-[#10121d]/95 border border-white/[0.08] backdrop-blur-md rounded-xl p-2.5 shadow-2xl whitespace-nowrap text-left">
                           <div className="text-[9px] font-black text-white/50 uppercase tracking-wider mb-1.5 border-b border-white/[0.05] pb-1 font-mono">
-                            {day.label} &middot; Detalle
+                            {day.label} &middot; {isSpanish ? 'Detalle' : 'Detail'}
                           </div>
                           
                           {viewMode === 'general' ? (
@@ -290,7 +294,9 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                               {categoryHeights.filter(s => s.value > 0).map(s => (
                                 <div key={s.key} className="flex items-center gap-2 text-[9px]">
                                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                                  <span className="text-white/40 font-bold uppercase tracking-wider">{s.label}:</span>
+                                  <span className="text-white/40 font-bold uppercase tracking-wider">
+                                    {s.key === 'subHabits' ? t('feed.subHab') : t(`feed.${s.key}`)}:
+                                  </span>
                                   <span className="font-black text-white ml-auto tabular-nums">{s.value.toFixed(1)}%</span>
                                 </div>
                               ))}
@@ -304,11 +310,13 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                           ) : (
                             (() => {
                               const seg = categoryHeights.find(c => c.key === viewMode);
-                              if (!seg) return <div className="text-[9px] text-white/40">Sin datos</div>;
+                              if (!seg) return <div className="text-[9px] text-white/40">{isSpanish ? 'Sin datos' : 'No data'}</div>;
                               return (
                                 <div className="text-[9px] flex items-center gap-2">
                                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
-                                  <span className="text-white/40 font-bold uppercase tracking-wider">{seg.label}:</span>
+                                  <span className="text-white/40 font-bold uppercase tracking-wider">
+                                    {seg.key === 'subHabits' ? t('feed.subHab') : t(`feed.${seg.key}`)}:
+                                  </span>
                                   <span className="font-black text-white tabular-nums">{seg.value.toFixed(1)} / {currentMax}</span>
                                 </div>
                               );
@@ -390,7 +398,9 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                     className={`flex items-center gap-1 transition-all duration-300 hover:brightness-125 ${isDimmed ? 'opacity-25' : 'opacity-100'}`}
                   >
                     <Icon size={9} style={{ color: cat.color }} />
-                    <span className="text-[8px] font-bold text-white/35 uppercase tracking-wider">{cat.label}</span>
+                    <span className="text-[8px] font-bold text-white/35 uppercase tracking-wider">
+                      {cat.key === 'subHabits' ? t('feed.subHab') : t(`feed.${cat.key}`)}
+                    </span>
                   </button>
                 );
               })}

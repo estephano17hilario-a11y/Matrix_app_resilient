@@ -593,7 +593,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  pin={config.security.pin}
  onUnlock={() => {
  setIsLocked(false);
- toast.success("Identity Verified");
+ toast.success(t('notes.verified', 'Identity Verified'));
  if (pendingAction) {
  pendingAction();
  setPendingAction(null);
@@ -602,8 +602,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  onCancel={() => {
  if (onClose) onClose();
  }} 
- title="Security Lock"
- description="Verification Required"
+ title={t('notes.securityLock', 'Security Lock')}
+ description={t('notes.verificationRequired', 'Verification Required')}
  isRecoveryAllowed={true}
  onRecovery={() => setIsRecoveryMode(true)}
  />
@@ -625,11 +625,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/50 to-teal-500/50" />
  
  <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/5">
- <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-[0.2em] mb-2">Security Challenge</p>
+ <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-[0.2em] mb-2">{t('notes.recoveryTitle', 'Security Challenge')}</p>
  <p className="text-sm text-white/90 font-bold leading-relaxed">
  {config.security.recoveryMethod === 'PASSWORD' 
- ? "Enter your account password"
- : (config.security.recoveryQuestion || "Recovery Question")}
+ ? t('notes.recovery.enterPassword', 'Enter your account password')
+ : (config.security.recoveryQuestion || t('notes.recovery.question', 'Recovery Question'))}
  </p>
  </div>
 
@@ -637,7 +637,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  type={config.security.recoveryMethod === 'PASSWORD' ? "password" : "text"}
  value={recoveryInput}
  onChange={(e) => setRecoveryInput(e.target.value)}
- placeholder="Type your response..."
+ placeholder={t('notes.challenge.placeholder', 'Type your response...')}
  className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-emerald-500/50 transition-all mb-4"
  autoFocus
  />
@@ -663,18 +663,18 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  setIsLocked(false);
  setIsRecoveryMode(false);
  setRecoveryInput('');
- toast.success("Verified");
+ toast.success(t('notes.verified', 'Verified'));
  if (pendingAction) {
  pendingAction();
  setPendingAction(null);
  }
  } else {
- toast.error("Incorrect response");
+ toast.error(t('notes.incorrectResponse', 'Incorrect response'));
  }
  }}
  className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-[0_10px_20px_rgba(16,185,129,0.2)]"
  >
- Verify Identity
+ {t('notes.challenge.verify', 'Verify Identity')}
  </button>
  
  <button 
@@ -684,7 +684,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }}
  className="w-full mt-4 text-[10px] font-bold text-white/20 hover:text-white/60 transition-all uppercase tracking-widest py-2"
  >
- Back to PIN
+ {t('notes.challenge.back', 'Back to PIN')}
  </button>
  </motion.div>
  </motion.div>
@@ -773,7 +773,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <button 
  onClick={openConfigModal}
  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 hover:rotate-45 transition-all duration-200 text-white/60 hover:text-white shadow-sm"
- title="Settings"
+ title={t('notes.settings', 'Settings')}
  >
  <Settings size={14} />
  </button>
@@ -797,7 +797,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByProject', 'Filter by Project')}</span>
  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
  <button onClick={() => setFilterProject('ALL')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${filterProject === 'ALL' ? 'bg-white text-black border-white shadow-lg scale-105' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10'}`}>
- All Projects
+ {t('notes.allProjects', 'All Projects')}
  </button>
  {projects.map(p => (
  <button key={p.id} onClick={() => setFilterProject(p.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-2 ${filterProject === p.id ? 'bg-white text-black border-white shadow-lg scale-105' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10'}`}>
@@ -812,7 +812,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">{t('notes.filterByColor', 'Filter by Color')}</span>
  <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
  <button onClick={() => setFilterTheme('ALL')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${filterTheme === 'ALL' ? 'bg-white text-black border-white shadow-lg scale-105' : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10'}`}>
- All Colors
+ {t('notes.allColors', 'All Colors')}
  </button>
  {NOTE_THEMES.map(t => (
  <button key={t.id} onClick={() => setFilterTheme(t.id)} className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center transition-all border ${filterTheme === t.id ? 'scale-110 ring-2 ring-white border-white shadow-lg' : 'hover:scale-110 opacity-60 hover:opacity-100 border-transparent'}`} style={{ backgroundColor: t.color }}>
@@ -833,8 +833,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
- <span className="text-xs font-bold uppercase tracking-widest opacity-60">Section Locked</span>
- <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">Unlock</button>
+ <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('notes.sectionLocked', 'Section Locked')}</span>
+ <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.unlock', 'Unlock')}</button>
  </div>
  ) : (
  <div className="columns-2 md:columns-3 gap-4">
@@ -843,7 +843,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {/* Create Button */}
  <button onClick={createNote} data-tour="notes-fab" className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
  <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
- <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">New Note</span>
+ <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">{t('notes.newNote', 'New Note')}</span>
  </button>
  
  {/* Notes List */}
@@ -852,9 +852,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-200" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
  <div className="relative z-10 flex flex-col h-full">
  {project && <div className="inline-flex self-start items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
- <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || 'Untitled'}</h3>
+ <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || t('notes.untitled', 'Untitled')}</h3>
  <div className="relative flex-1 overflow-hidden">
- <p className="text-[13px] text-white/60 leading-relaxed font-medium break-words line-clamp-[8]">{previewText || <span className="italic opacity-50">Empty...</span>}</p>
+ <p className="text-[13px] text-white/60 leading-relaxed font-medium break-words line-clamp-[8]">{previewText || <span className="italic opacity-50">{t('notes.empty', 'Empty...')}</span>}</p>
  {/* Gradient Fade at bottom if too long - though max-height handles container, line-clamp handles text */}
  </div>
  </div>
@@ -870,7 +870,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  onClick={handleLoadMore}
  className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/60 text-xs font-bold uppercase tracking-widest border border-white/5 transition-colors"
  >
- Load More
+ {t('notes.loadMore', 'Load More')}
  </button>
  </div>
  )}
@@ -883,20 +883,20 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
  <Lock size={48} className="text-white/20" />
  </div>
- <span className="text-xs font-bold uppercase tracking-widest opacity-60">Journal Locked</span>
- <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">Unlock Journal</button>
+ <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('notes.journal.locked', 'Journal Locked')}</span>
+ <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.journal.unlock', 'Unlock Journal')}</button>
  </div>
  ) : (
  <>
  <div className="flex justify-between items-end px-6 mb-6">
  <div>
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
- <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString('en-US', { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
+ <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
  </div>
  <div className="flex items-center gap-2">
  <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
- <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Calendar View"><Calendar size={14} /></button>
- <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title="Notebook View"><AlignLeft size={14} /></button>
+ <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.calendarView', 'Calendar View')}><Calendar size={14} /></button>
+ <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.notebookView', 'Notebook View')}><AlignLeft size={14} /></button>
  </div>
  <div className="flex gap-2">
  <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
@@ -1035,9 +1035,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex items-center justify-between gap-4 pb-1">
  <div className="flex items-center gap-3 truncate">
  {entry ? (
- <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">Untitled Entry</span>}</span>
+ <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">{t('notes.untitledEntry', 'Untitled Entry')}</span>}</span>
  ) : (
- <span className="text-base text-white/10 font-serif italic">Empty page...</span>
+ <span className="text-base text-white/10 font-serif italic">{t('notes.emptyPage', 'Empty page...')}</span>
  )}
  </div>
  {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
@@ -1080,7 +1080,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  pin={config.security.pin}
  onUnlock={() => {
  setShowPasswordPrompt(false);
- toast.success("Unlocked");
+ toast.success(t('notes.unlocked', 'Unlocked'));
  if (pendingAction) {
  pendingAction();
  setPendingAction(null);
@@ -1090,8 +1090,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  setShowPasswordPrompt(false);
  setPendingAction(null);
  }}
- title="Enter PIN"
- description="Protected Area Access"
+ title={t('notes.enterPin', 'Enter PIN')}
+ description={t('notes.protectedAccess', 'Protected Area Access')}
  isRecoveryAllowed={true}
  onRecovery={() => {
  setShowPasswordPrompt(false);
@@ -1118,7 +1118,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex items-center gap-1.5 sm:gap-4 flex-shrink-1 min-w-0 justify-end">
  <div className="flex items-center gap-1">
  <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
- <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title="Save as Blueprint"><Save size={18} /></button>
+ <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}><Save size={18} /></button>
  <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />
  </div>
  <div className="w-[1px] h-6 bg-white/10 mx-1" />
@@ -1131,7 +1131,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="animate-in slide-in-from-bottom-4 duration-200">
  <div className="relative mb-6">
  {draftProjectId && (<div className="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-md bg-white/5 border border-white/5"><Briefcase size={10} className="text-slate-400"/><span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">{projects.find((p) => p.id === draftProjectId)?.title}</span></div>)}
- <input type="text" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder={t('notes.untitledPlaceholder')} className="w-full bg-transparent text-4xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight" />
+ <input type="text" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder={t('notes.untitledPlaceholder', 'Untitled Note')} className="w-full bg-transparent text-4xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight" />
  </div>
  <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
  </div>
@@ -1148,7 +1148,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   type="text" 
                   value={draftTitle} 
                   onChange={(e) => setDraftTitle(e.target.value)} 
-                  placeholder={t('notes.untitledPlaceholder') || 'Título del día...'} 
+                  placeholder={t('notes.untitledPlaceholder', 'Untitled Note')} 
                   className="w-full bg-transparent text-3xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight text-center mb-6" 
                 />
 
@@ -1168,7 +1168,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                           <h3 className="text-lg font-black text-white tracking-tight leading-tight line-clamp-1">{activeSpecialEvent.title}</h3>
                           <div className="flex items-center gap-1.5 text-pink-400 mt-0.5">
                             <Gift size={10} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">{activeSpecialEvent.type}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest">{t(`notes.event.types.${activeSpecialEvent.type}`, activeSpecialEvent.type) as string}</span>
                           </div>
                         </div>
                       </div>
@@ -1189,7 +1189,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                           <h3 className="text-lg font-black text-white tracking-tight leading-tight truncate">{quest.title}</h3>
                           <div className="flex items-center gap-1.5 mt-0.5" style={{ color: quest.journalIconColor || '#3b82f6' }}>
                             <Repeat size={10} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">Tarea Repetida</span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest">{t('notes.editor.repeatedTask', 'Repeated Task')}</span>
                           </div>
                         </div>
                       </div>
@@ -1274,9 +1274,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <Calendar size={16} />
  </div>
  <div>
- <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-0.5">Date & Time</p>
+ <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-0.5">{t('notes.dateTime', 'Date & Time')}</p>
  <p className="text-sm font-semibold text-white">
- {new Date(selectedMemory.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+ {new Date(selectedMemory.date).toLocaleDateString(i18n.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
  {selectedMemory.time && ` • ${selectedMemory.time}`}
  </p>
  </div>
@@ -1286,7 +1286,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2">
  <div className="flex items-center gap-2 text-white/40">
  <AlignLeft size={14} />
- <span className="text-[10px] font-bold uppercase tracking-wider">Note</span>
+ <span className="text-[10px] font-bold uppercase tracking-wider">{t('notes.noteLabel', 'Note')}</span>
  </div>
  <p className="text-sm text-white/80 leading-relaxed font-medium">
  {selectedMemory.notes}
@@ -1299,7 +1299,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  onClick={() => setSelectedMemory(null)}
  className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 mt-2 relative z-10"
  >
- Close
+ {t('notes.close', 'Close')}
  </button>
  </div>
  </div>,
@@ -1337,7 +1337,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  )}
  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest mt-4" style={{ color: selectedQuest.journalIconColor || '#3b82f6' }}>
  <Repeat size={14} />
- <span>Tarea Repetida</span>
+ <span>{t('notes.editor.repeatedTask', 'Repeated Task')}</span>
  </div>
  </div>
 
@@ -1345,9 +1345,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  onClick={() => setSelectedQuest(null)}
  className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 mt-2 relative z-10"
  >
- Close
+ {t('notes.close', 'Close')}
  </button>
-
  </div>
  </div>,
  document.body

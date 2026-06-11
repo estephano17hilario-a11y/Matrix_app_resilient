@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Target, Plus, Calendar, Clock, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { ManualSessionCreator } from './ManualSessionCreator';
@@ -20,6 +21,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
     isActive?: boolean,
     onShowWarning?: () => void
 }) => {
+    const { t, i18n } = useTranslation();
     const [mode, setMode] = useState<'LIST' | 'ADD' | 'EDIT'>('LIST');
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
@@ -59,7 +61,8 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
     };
 
     const handleDelete = (sessionId: string) => {
-        if (confirm('Delete this session?')) {
+        const confirmMsg = i18n.language === 'es' ? '¿Eliminar esta sesión?' : 'Delete this session?';
+        if (confirm(confirmMsg)) {
             if (onDeleteSession) {
                 onDeleteSession(project.id, sessionId);
             }
@@ -96,7 +99,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                             animate={{ opacity: 1, x: 0 }}
                         >
                             <h3 className="text-white font-black text-xl tracking-tight flex items-center gap-2">
-                                History
+                                {t('focus.history.title')}
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                             </h3>
                             <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest truncate max-w-[200px]">
@@ -145,8 +148,8 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                                 <Calendar size={32} className="text-white/20" />
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-white/60 font-medium text-sm">No sessions yet</p>
-                                                <p className="text-[10px] text-white/20 uppercase tracking-widest">Start tracking your progress</p>
+                                                <p className="text-white/60 font-medium text-sm">{t('focus.history.noSessions')}</p>
+                                                <p className="text-[10px] text-white/20 uppercase tracking-widest">{t('focus.history.startTracking')}</p>
                                             </div>
                                         </div>
                                     ) : (
@@ -213,13 +216,13 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                         className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 group"
                                     >
                                         <Plus size={16} className="text-white/40 group-hover:text-white transition-colors" />
-                                        Log Past Session
+                                        {t('focus.history.logPast')}
                                     </button>
                                     
                                     <div className="mt-4 flex items-center justify-center gap-2 opacity-40">
                                         <Clock size={12} />
                                         <span className="text-[10px] font-medium uppercase tracking-widest">
-                                            Total: {Math.floor(project.totalTime / 60)} min
+                                            {t('focus.history.total')} {Math.floor(project.totalTime / 60)} {t('focus.history.min')}
                                         </span>
                                     </div>
                                 </div>

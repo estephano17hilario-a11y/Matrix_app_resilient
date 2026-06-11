@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, Trash2 } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { Project, Attribute } from '../../../types';
@@ -30,6 +31,7 @@ export const ManualSessionCreator = ({
   onDelete,
   isEditing = false
 }: ManualSessionCreatorProps) => {
+  const { t, i18n } = useTranslation();
   // Start at 0h 0m by default (unless editing an existing session)
   const defaultHours = isEditing ? Math.floor(initialDuration / 60) : 0;
   const defaultMinutes = isEditing ? (initialDuration % 60) : 0;
@@ -82,7 +84,9 @@ export const ManualSessionCreator = ({
             style={{ backgroundColor: themeColor, color: themeColor }}
           />
           <h2 className="text-[15px] font-black text-white tracking-tight uppercase">
-            {isEditing ? 'Editar sesión' : 'Nueva sesión'}
+            {isEditing 
+              ? (i18n.language === 'es' ? 'Editar sesión' : 'Edit Session') 
+              : (i18n.language === 'es' ? 'Nueva sesión' : 'New Session')}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -122,7 +126,7 @@ export const ManualSessionCreator = ({
             } : {}}
           >
             <span className="text-[9px] font-black uppercase tracking-[0.2em] mb-1" style={{ color: activePicker === 'DURATION' ? themeColor : 'rgba(255,255,255,0.3)' }}>
-              DURACIÓN
+              {t('focus.manual.duration')}
             </span>
             <span className={cn("text-[32px] font-black tracking-tight tabular-nums leading-none transition-colors", activePicker === 'DURATION' ? "text-white" : "text-white/30")}>
               {hours}<span className="text-[16px] font-medium text-white/30 mx-0.5">h</span>{minutes.toString().padStart(2, '0')}<span className="text-[16px] font-medium text-white/30 mx-0.5">m</span>
@@ -148,7 +152,7 @@ export const ManualSessionCreator = ({
             } : {}}
           >
             <span className="text-[9px] font-black uppercase tracking-[0.2em] mb-1" style={{ color: activePicker === 'START_TIME' ? themeColor : 'rgba(255,255,255,0.3)' }}>
-              INICIO → FIN
+              {t('focus.manual.startEnd')}
             </span>
             <span className={cn("text-[22px] font-black tracking-tight tabular-nums leading-none transition-colors", activePicker === 'START_TIME' ? "text-white" : "text-white/30")}>
               {format(startDate, 'H:mm')}
@@ -222,7 +226,7 @@ export const ManualSessionCreator = ({
       {/* SUB-TRAIT SELECTOR (only if attribute has sub-traits) */}
       {hasSubTraits && (
         <div className="relative z-10 px-5 mb-3 shrink-0">
-          <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Sub-Rasgo (Opcional)</p>
+          <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">{t('focus.manual.subTraitOptional')}</p>
           <div className="flex flex-wrap gap-2">
             {/* "None" option */}
             <button
@@ -235,7 +239,7 @@ export const ManualSessionCreator = ({
               )}
               style={!selectedSubTrait ? { backgroundColor: `${themeColor}15`, borderColor: `${themeColor}40`, color: themeColor } : {}}
             >
-              Al Rasgo Principal
+              {t('focus.manual.toMainTrait')}
             </button>
             {subTraits.map(st => (
               <button
@@ -261,7 +265,7 @@ export const ManualSessionCreator = ({
         <div className="w-full py-3 px-4 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
           <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: themeColor, boxShadow: `0 0 8px ${themeColor}` }} />
           <span className="text-xs font-bold text-white/60 truncate flex-1">{project.title}</span>
-          <span className="text-[9px] text-white/20 font-mono shrink-0">{Math.floor(project.totalTime / 60)}min total</span>
+          <span className="text-[9px] text-white/20 font-mono shrink-0">{Math.floor(project.totalTime / 60)} {t('focus.manual.minTotal')}</span>
         </div>
       </div>
 
@@ -277,7 +281,9 @@ export const ManualSessionCreator = ({
             boxShadow: totalMinutes > 0 ? `0 0 30px ${themeColor}40` : 'none'
           }}
         >
-          {isEditing ? 'Guardar Cambios' : 'Guardar Sesión'}
+          {isEditing 
+            ? (i18n.language === 'es' ? 'Guardar Cambios' : 'Save Changes') 
+            : (i18n.language === 'es' ? 'Guardar Sesión' : 'Save Session')}
         </button>
       </div>
     </motion.div>

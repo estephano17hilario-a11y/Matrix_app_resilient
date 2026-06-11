@@ -2,9 +2,9 @@
   {
     "file": "\\App.tsx",
     "texts": [
-      ";\r\n    }\r\n\r\n    if (!canEnterLux) {\r\n      return",
-      ";\r\n    }\r\n\r\n    if (profile && !profile.isSkeleton && !profile.onboarding?.completedAt) {\r\n      return",
-      ";\r\n    }\r\n\r\n    return (",
+      ";\r\n    }\r\n\r\n    if (!canEnterLux) {\r\n      return (",
+      ");\r\n    }\r\n\r\n    if (profile && !profile.isSkeleton && !profile.onboarding?.completedAt) {\r\n      return (",
+      ");\r\n    }\r\n\r\n    return (",
       ");\r\n  };\r\n\r\n  return (",
       ");\r\n};\r\n\r\nexport default function App() {\r\n  return ("
     ]
@@ -33,10 +33,10 @@
   {
     "file": "\\components\\charts\\LineChart.tsx",
     "texts": [
-      "d.data), 1);\n    }, [datasets, max]);\n\n    const [activeIndex, setActiveIndex] = useState",
-      "(null);\n    const [tooltipPos, setTooltipPos] = useState",
-      "(null);\n    const containerRef = useRef",
-      "(index / Math.max(numPoints - 1, 1)) * 100;\n    const getY = (val: number) => 100 - (val / maxValue) * 100;\n\n    return ("
+      "d.data), 1);\r\n    }, [datasets, max]);\r\n\r\n    const [activeIndex, setActiveIndex] = useState",
+      "(null);\r\n    const [tooltipPos, setTooltipPos] = useState",
+      "(null);\r\n    const containerRef = useRef",
+      "(index / Math.max(numPoints - 1, 1)) * 100;\r\n    const getY = (val: number) => 100 - (val / maxValue) * 100;\r\n\r\n    return ("
     ]
   },
   {
@@ -44,13 +44,6 @@
     "texts": [
       "SYSTEM FAILURE",
       "window.location.reload()}\r\n            className=\"mt-8 px-6 py-3 bg-red-600 hover:bg-red-700 rounded text-white font-bold transition-colors\"\r\n          >\r\n            REBOOT SYSTEM"
-    ]
-  },
-  {
-    "file": "\\components\\FloatingTourButton.tsx",
-    "texts": [
-      "startTour(getTourId())}\r\n      className=\"fixed top-4 right-4 z-[8888] w-6 h-6 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all active:scale-85\"\r\n      title=\"Guía\"\r\n    >",
-      "Guía"
     ]
   },
   {
@@ -93,24 +86,24 @@
   {
     "file": "\\components\\ui\\DockConfigModal.tsx",
     "texts": [
-      "(config);\r\n const [activeTab, setActiveTab] = useState",
-      "('organize');\r\n const [replacingIndex, setReplacingIndex] = useState",
+      "(config);\n const [activeTab, setActiveTab] = useState",
+      "('organize');\n const [replacingIndex, setReplacingIndex] = useState",
       "Dock Configuration",
       "Organize your navigation",
       "Dock Bar",
       "Plus Menu",
       "Active Items (drag to reorder)",
-      "i.id === id)!;\r\n const Icon = item.icon;\r\n const isReplacing = replacingIndex === index;\r\n return (",
+      "i.id === id)!;\n const Icon = item.icon;\n const isReplacing = replacingIndex === index;\n return (",
       "(Required)",
       "Select an item below to replace",
       "Available Items to Replace",
-      "!localConfig.order.slice(0, 4).includes(item.id)).map((item) => {\r\n const Icon = item.icon;\r\n return (",
+      "!localConfig.order.slice(0, 4).includes(item.id)).map((item) => {\n const Icon = item.icon;\n return (",
       "Reset to default",
-      "!currentExpandedItems.includes(item.id));\r\n\r\n return (",
+      "!currentExpandedItems.includes(item.id));\n\n return (",
       "Plus Menu Items (drag to reorder)",
-      "i.id === id)!;\r\n const Icon = item.icon;\r\n const isMandatory = id === 'ACHIEVEMENTS';\r\n return (",
+      "i.id === id)!;\n const Icon = item.icon;\n const isMandatory = id === 'ACHIEVEMENTS';\n return (",
       "Available Items",
-      "handleToggleExpandedItem(item.id)}\r\n className=\"bg-white/5 border border-white/5 rounded-xl p-3 flex items-center gap-2 hover:bg-white/10 transition-colors\"\r\n >",
+      "handleToggleExpandedItem(item.id)}\n className=\"bg-white/5 border border-white/5 rounded-xl p-3 flex items-center gap-2 hover:bg-white/10 transition-colors\"\n >",
       "Save Configuration"
     ]
   },
@@ -140,17 +133,17 @@
   {
     "file": "\\components\\ui\\TimePicker.tsx",
     "texts": [
-      "void;\r\n    placeholder?: string;\r\n    className?: string;\r\n    label?: string;\r\n}\r\n\r\nexport const TimePicker: React.FC",
-      "('AM');\r\n    const [activeTab, setActiveTab] = useState",
-      "('HOUR');\r\n\r\n    // String states for manual input\r\n    const [hourStr, setHourStr] = useState('12');\r\n    const [minuteStr, setMinuteStr] = useState('00');\r\n    \r\n    // Manual editing mode\r\n    const [manualEditMode, setManualEditMode] = useState",
-      "('NONE');\r\n    const hourInputRef = useRef",
-      "(null);\r\n    const minuteInputRef = useRef",
+      "void;\r\n placeholder?: string;\r\n className?: string;\r\n label?: string;\r\n}\r\n\r\nexport const TimePicker: React.FC",
+      "('AM');\r\n const [activeTab, setActiveTab] = useState",
+      "('HOUR');\r\n\r\n // String states for manual input\r\n const [hourStr, setHourStr] = useState('12');\r\n const [minuteStr, setMinuteStr] = useState('00');\r\n \r\n // Manual editing mode\r\n const [manualEditMode, setManualEditMode] = useState",
+      "('NONE');\r\n const hourInputRef = useRef",
+      "(null);\r\n const minuteInputRef = useRef",
       "= 0 && num",
       "= 1 && num",
-      "12) num = 12;\r\n        setHour(num);\r\n        setHourStr(num.toString());\r\n    };\r\n\r\n    const handleMinuteChange = (e: React.ChangeEvent",
+      "12) num = 12;\r\n setHour(num);\r\n setHourStr(num.toString());\r\n };\r\n\r\n const handleMinuteChange = (e: React.ChangeEvent",
       "OFF",
-      "setIsOpen(false)}\r\n                                className=\"absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu \"\r\n                            />",
-      "setIsOpen(false)}\r\n                                        className=\"w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors\"\r\n                                    >",
+      "setIsOpen(false)}\r\n className=\"absolute inset-0 bg-black/80 \"\r\n />",
+      "setIsOpen(false)}\r\n className=\"w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors\"\r\n >",
       "Doble toque para escribir",
       "AM",
       "PM",
@@ -169,9 +162,9 @@
     "texts": [
       "Promise",
       ";\r\n  updateProfileLocally: (updates: Partial",
-      ") => void;\r\n}\r\n\r\nexport const AuthContext = createContext",
+      ") => void;\r\n}\r\n\r\n// Authentication context\r\nexport const AuthContext = createContext",
       "(null);\r\n  const [profile, setProfile] = useState",
-      "(() => PersistenceService.getProfile());\r\n  const [isLoading, setIsLoading] = useState(true);\r\n  const [isInitializing, setIsInitializing] = useState(true);\r\n  const [error, setError] = useState",
+      "(() => PersistenceService.getProfile());\r\n  const [isLoading, setIsLoading] = useState(true);\r\n  const [isInitializing, setIsInitializing] = useState(() => !PersistenceService.getProfile());\r\n  const [error, setError] = useState",
       "(null);\r\n\r\n  const updateProfileLocally = useCallback((updates: Partial"
     ]
   },
@@ -179,8 +172,6 @@
     "file": "\\context\\EconomyContext.tsx",
     "texts": [
       "Promise",
-      ";\r\n  watchAd: () => Promise",
-      ";\r\n  grantAdReward: () => Promise",
       ";\r\n  useItem: (itemId: string) => Promise",
       ";\r\n  consume: (itemId: string) => Promise",
       "; // Alias for backward compatibility\r\n  isTransactionPending: boolean;\r\n  storeItems: StoreItem[];\r\n  inventory: InventoryItem[];\r\n}\r\n\r\nconst EconomyContext = createContext"
@@ -197,13 +188,16 @@
   {
     "file": "\\Dashboard.tsx",
     "texts": [
-      ") => logicRef.current.handleHabitUpdate(id, data), []);\r\n const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);\r\n const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);\r\n const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);\r\n const handleHabitConfirm = useCallback((data: Partial",
+      "(undefined);\r\n const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);\r\n const [showStatsTutorial, setShowStatsTutorial] = useState(false);\r\n const [isProgressOpen, setIsProgressOpen] = useState(false);\r\n const [selectedProgressTrait, setSelectedProgressTrait] = useState",
+      "('DISCIPLINA');\r\n const [progressTimeRange, setProgressTimeRange] = useState",
+      ", targetDate?: Date) => logicRef.current.handleHabitUpdate(id, data, targetDate), []);\r\n const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);\r\n const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);\r\n const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);\r\n const handleHabitConfirm = useCallback((data: Partial",
       ") => logicRef.current.handleHabitConfirm(data), []);\r\n const handleBadHabitConfirm = useCallback((data: Partial",
+      ") => logicRef.current.updateAttributeMetadata(id, updates), []);\r\n const addAttribute = useCallback((id: string) => logicRef.current.addAttribute(id), []);\r\n const addCustomAttribute = useCallback((attr: Omit",
       "(null);\r\n const [activeSmartProjectId, setActiveSmartProjectId] = useState",
       "(null); // Added state for active project\r\n const [relapsingHabit, setRelapsingHabit] = useState",
       "(null);\r\n const [editingBadHabit, setEditingBadHabit] = useState",
       "(null);\r\n\r\n // --- NAVIGATION HISTORY STACK ---\r\n // Tracks the history of views to support \"Back to Previous Page\" functionality\r\n const [viewHistory, setViewHistory] = useState",
-      "p.id === activeSmartProjectId) || null\r\n : null;\r\n const [isWizardOpen, setIsWizardOpen] = useState(false);\r\n const isProModalOpen = activeModal === 'PRO';\r\n const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);\r\n const [taskViewMode, setTaskViewMode] = useState",
+      "p.id === activeSmartProjectId) || null\r\n : null;\r\n  const [isWizardOpen, setIsWizardOpen] = useState(false);\r\n  const isProModalOpen = activeModal === 'PRO';\r\n const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);\r\n const [taskViewMode, setTaskViewMode] = useState",
       "('LIST');\r\n const [habitViewMode, setHabitViewMode] = useState",
       "('PROTOCOLS');\r\n const [noteViewMode, setNoteViewMode] = useState",
       "('NOTES');\r\n const [smartTaskProps, setSmartTaskProps] = useState",
@@ -212,15 +206,31 @@
       "(null);\r\n const [focusTargetProjectId, setFocusTargetProjectId] = useState",
       "(null);\r\n const [focusOpenArchived, setFocusOpenArchived] = useState(false);\r\n \r\n // PERSIST FOCUS PROJECT ID\r\n const [focusAutoStartProjectId, setFocusAutoStartProjectId] = useState",
       "(null);\r\n const [badHabitActionsHabit, setBadHabitActionsHabit] = useState",
-      "(null);\r\n const [confirmationModal, setConfirmationModal] = useState",
+      "(null);\r\n const isBackgroundHidden = !!validationHabit || !!habitActionsHabit || !!badHabitActionsHabit || isSettingsOpen || isWizardOpen || isProgressOpen || isPomodoroActive || currentView === 'STREAK';\r\n const [confirmationModal, setConfirmationModal] = useState",
       "Initialize Protocol",
-      "setIsProModalOpen(true)}\r\n onComplete={(project) => {\r\n let newQuests = convertNodeToQuests(project.rootNode, project.traitId || '', project.id);\r\n \r\n // LIMIT CHECK: Enforce max active tasks\r\n if (user?.plan !== 'PRO') {\r\n const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;\r\n const remainingSlots = Math.max(0, FREE_LIMITS.ACTIVE_STRATEGIES - currentActive);\r\n \r\n if (remainingSlots"
+      "p.status === 'ACTIVE' || !p.status).length;\r\n const remainingSlots = Math.max(0, FREE_LIMITS.ACTIVE_STRATEGIES - currentActive);\r\n \r\n if (remainingSlots",
+      "0 ? historyEntries[historyEntries.length - 1]?.xp ?? 0 : 0),\r\n          level: entry?.level ?? (activeTrait?.level ?? 1)\r\n        };\r\n      });\r\n\r\n      return (",
+      "Progreso",
+      "Rasgos Transversales",
+      "setIsProgressOpen(false)}\r\n              className=\"w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all\"\r\n            >",
+      "setIsProgressOpen(false)}\r\n              className=\"w-full py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-sm transition-all\"\r\n            >\r\n              Cerrar"
     ]
   },
   {
     "file": "\\hooks\\useLongPress.ts",
     "texts": [
       "(null);\r\n  const target = useRef"
+    ]
+  },
+  {
+    "file": "\\hooks\\useRevenueCat.ts",
+    "texts": [
+      "(null); \n  const [weeklyPackage, setWeeklyPackage] = useState",
+      "(null);\n  const [monthlyPackage, setMonthlyPackage] = useState",
+      "(null);\n  const [customerInfo, setCustomerInfo] = useState",
+      "(null); \n  const [isPremium, setIsPremium] = useState",
+      "(false); \n  const [isLoading, setIsLoading] = useState",
+      "listener.remove());\n    };\n  }, [fetchRevenueCatData, checkPremiumStatus]);\n\n  const comprarPaquete = async (rcPackageOrType: PurchasesPackage | 'weekly' | 'monthly'): Promise"
     ]
   },
   {
@@ -259,31 +269,10 @@
     ]
   },
   {
-    "file": "\\modules\\customization\\ArchetypeSelector.tsx",
-    "texts": [
-      "void;\r\n}\r\n\r\nexport const ArchetypeSelector: React.FC",
-      "REWRITING DNA..."
-    ]
-  },
-  {
-    "file": "\\modules\\customization\\AvatarSelector.tsx",
-    "texts": [
-      "void;\r\n}\r\n\r\nexport const AvatarSelector: React.FC",
-      "UPDATING REALITY..."
-    ]
-  },
-  {
     "file": "\\modules\\customization\\components\\AvatarSelectorCard.tsx",
     "texts": [
       "void;\r\n className?: string;\r\n}\r\n\r\nexport const AvatarSelectorCard: React.FC",
       "No Signal"
-    ]
-  },
-  {
-    "file": "\\modules\\dashboard\\components\\AvatarDisplay.tsx",
-    "texts": [
-      "setAvatarError(true)}\r\n                 className=\"w-full h-full object-cover object-[50%_20%]\"\r\n               />",
-      ");\r\n};\r\n\r\nconst GlitchOverlay = React.memo(() => {\r\n    // Stable random delay using memo, but for glitches we might want variation.\r\n    // However, for animation definition in render, we should use a constant or pre-defined random.\r\n    // Let's use a fixed random value seeded by something or just a set of random constants.\r\n    // Better yet, let framer handle the randomness via keyframes or just use a fixed fast repeat.\r\n    \r\n    return ("
     ]
   },
   {
@@ -296,7 +285,9 @@
   {
     "file": "\\modules\\dashboard\\components\\BadHabitDetailModal.tsx",
     "texts": [
-      "void;\r\n habit: BadHabit | null;\r\n attribute?: Attribute;\r\n}\r\n\r\nexport const BadHabitDetailModal: React.FC",
+      "void;\r\n habit: BadHabit | null;\r\n attributes?: Attribute[];\r\n attribute?: Attribute;\r\n}\r\n\r\nexport const BadHabitDetailModal: React.FC",
+      "s.trim()).filter(Boolean);\r\n    const list = ids.map(id => attributes?.find(a => a.id === id)).filter(Boolean) as Attribute[];\r\n    if (list.length === 0 && attribute) return [attribute];\r\n    return list;\r\n  }, [habit?.attribute, attributes, attribute]);\r\n\r\n  if (!isOpen || !habit || !stats) return null;\r\n\r\n  const color = resolvedAttributes[0]?.color || attribute?.color || '#f43f5e';\r\n  const subTrait = resolvedAttributes[0]?.subTraits?.find(st => st.id === habit.subAttribute);\r\n\r\n  return createPortal(",
+      "0 ? (\r\n     resolvedAttributes.map((attr, idx) => (",
       "Racha Actual",
       "días",
       "Mejor Racha",
@@ -308,30 +299,47 @@
     "file": "\\modules\\dashboard\\components\\BadHabitItem.tsx",
     "texts": [
       "void;\r\n    onShowActions?: (habit: BadHabit) => void;\r\n}\r\n\r\nexport const BadHabitItem: React.FC",
+      ") : CustomIcon ? (",
       ") : isIntelligent ? (",
       "AI",
-      "i;\r\n                                    return ("
+      "i;\r\n                                    return (",
+      "HABIT"
     ]
   },
   {
     "file": "\\modules\\dashboard\\components\\BadHabitWizard.tsx",
     "texts": [
       "void;\r\n    onConfirm: (data: Partial",
+      "('Skull');\r\n    const [customColor, setCustomColor] = useState",
+      "('#f43f5e');\r\n    const [selectedAttributes, setSelectedAttributes] = useState",
       "('CUSTOM');\r\n    const [viceList, setViceList] = useState",
       "2 && attribute;\r\n        if (step === 2) return reason.length > 5;\r\n        return true;\r\n    };\r\n\r\n    const getStepCount = () => intelligentStreak ? 4 : 3;\r\n\r\n    if (typeof document === 'undefined') return null;\r\n\r\n    return createPortal(",
+      "id !== attr.id);\r\n                                                                        } else {\r\n                                                                            if (prev.length",
+      "Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.",
+      "Sub-Rasgo (Opcional)",
+      "setSubAttrPickerOpen(!isSubAttrPickerOpen)}\r\n                                                            className=\"w-full h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between px-4 text-xs font-medium text-white transition-colors hover:bg-white/[0.06]\"\r\n                                                        >",
+      "Vincular a un sub-rasgo (Opcional)",
+      "Ninguno",
       "setShowIntelligentInfo(!showIntelligentInfo)}\r\n                                                        className=\"text-violet-400/70 hover:text-violet-300 transition-colors p-1\"\r\n                                                    >",
       "15m",
       "2h",
-      "12h"
+      "12h",
+      ") : intelligentStreak ? ("
     ]
   },
   {
     "file": "\\modules\\dashboard\\components\\ChecklistModal.tsx",
     "texts": [
-      "void;\r\n    onUpdate: (habitId: string, data: Partial",
-      ") => void;\r\n    onComplete: (e: React.MouseEvent, h: Habit) => void;\r\n}\r\n\r\nexport const ChecklistModal: React.FC",
-      "i.completed).length;\r\n    const totalCount = visibleItems.length;\r\n    const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;\r\n    \r\n    // Base color of the habit for the tint\r\n    const habitColor = habit.customColor || '#6366f1'; // fallback to indigo if no color\r\n\r\n    return createPortal(",
+      "void;\r\n onUpdate: (habitId: string, data: Partial",
+      ", targetDate?: Date) => void;\r\n currentDate?: Date;\r\n}\r\n\r\nexport const ChecklistModal: React.FC",
+      "i.completed).length;\r\n const totalCount = visibleItems.length;\r\n const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;\r\n \r\n // Base color of the habit for the tint\r\n const habitColor = habit.customColor || '#6366f1'; // fallback to indigo if no color\r\n\r\n return createPortal(",
       "Estatus del Protocolo"
+    ]
+  },
+  {
+    "file": "\\modules\\dashboard\\components\\ColorPicker.tsx",
+    "texts": [
+      "Limpiar"
     ]
   },
   {
@@ -351,6 +359,7 @@
   {
     "file": "\\modules\\dashboard\\components\\Dock.tsx",
     "texts": [
+      "id === 'STRATEGY' ? 'FEED' : id);\r\n const feedIdx = mappedItems.indexOf('FEED');\r\n const storeIdx = mappedItems.indexOf('STORE');\r\n if (feedIdx !== -1 && storeIdx !== -1 && feedIdx",
       "item.id === id);\r\n if (!item) return null;\r\n const Icon = item.icon;\r\n const isActive = currentView === id;\r\n\r\n return (",
       "handleSmartNav(id)}\r\n className=\"group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full\"\r\n >",
       ");\r\n };\r\n\r\n const renderLegacyDockButton = (id: DockItemId) => {\r\n const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);\r\n if (!item) return null;\r\n const Icon = item.icon;\r\n const isActive = currentView === id;\r\n const indicator = getIndicator(id);\r\n\r\n return (",
@@ -359,7 +368,8 @@
       ");\r\n };\r\n \r\n // --- GLASS STYLE (VISION OS) ---\r\n if (isGlass) {\r\n return (",
       "handleModal('QUEST')} className=\"relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group\">",
       "New Mission",
-      "Single Task"
+      "Single Task",
+      ");\r\n }\r\n\r\n // --- ANIMATED AURA DOCK (User Requested) ---\r\n if (isAura) {\r\n return ("
     ]
   },
   {
@@ -385,30 +395,30 @@
   {
     "file": "\\modules\\dashboard\\components\\HabitConsistencyChart.tsx",
     "texts": [
-      "void;\r\n    isActive?: boolean;\r\n    isPro?: boolean;\r\n    onOpenPro?: () => void;\r\n    weekStartDay?: 0 | 1;\r\n    initialTimeframe?: TimeFrame;\r\n}\r\n\r\ntype TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';\r\n\r\nconst getRequiredPercentForDay = (day: number) => {\r\n    if (day",
-      "(null);\r\n    const [timeframe, setTimeframe] = useState",
-      "();\r\n        const completionByMonth = new Map",
-      "!d.isFuture);\r\n        const currentAvg = Math.round(validData.reduce((acc, curr) => acc + curr.percent, 0) / validData.length) || 0;\r\n        const bestDay = Math.max(...validData.map(d => d.percent));\r\n        \r\n        // Streak calculation: Consecutive days with >= 75% completion\r\n        // Iterate backwards from yesterday (since today might not be over)\r\n        // OR: Include today if completed? Usually streak includes today if done, or yesterday if today pending.\r\n        // Let's count backwards from TODAY. If today",
+      "void;\n    isActive?: boolean;\n    isPro?: boolean;\n    onOpenPro?: () => void;\n    weekStartDay?: 0 | 1;\n    initialTimeframe?: TimeFrame;\n}\n\ntype TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';\n\nconst getRequiredPercentForDay = (day: number) => {\n    if (day",
+      "(null);\n    const [timeframe, setTimeframe] = useState",
+      "();\n        const completionByMonth = new Map",
+      "!d.isFuture);\n        const currentAvg = Math.round(validData.reduce((acc, curr) => acc + curr.percent, 0) / validData.length) || 0;\n        const bestDay = Math.max(...validData.map(d => d.percent));\n        \n        // Streak calculation: Consecutive days with >= 75% completion\n        // Iterate backwards from yesterday (since today might not be over)\n        // OR: Include today if completed? Usually streak includes today if done, or yesterday if today pending.\n        // Let's count backwards from TODAY. If today",
       "= todayStats.requiredToday && ("
     ]
   },
   {
     "file": "\\modules\\dashboard\\components\\HabitDetailView.tsx",
     "texts": [
-      ");\r\n    }\r\n    \r\n    if (type === 'BOOLEAN' || type === 'SIMPLE') return",
-      ";\r\n    \r\n    return (",
-      "habit?.customColor || attributeColor || '#0ea5e9', [habit?.customColor, attributeColor]);\r\n\r\n    const [timeRange, setTimeRange] = useState",
-      "('WEEK');\r\n    const [pinnedRanges, setPinnedRanges] = useState",
+      ");\r\n }\r\n \r\n if (type === 'BOOLEAN' || type === 'SIMPLE') return",
+      ";\r\n \r\n return (",
+      "habit?.customColor || project?.color || attributeColor || '#0ea5e9', [habit?.customColor, project?.color, attributeColor]);\r\n\r\n const [timeRange, setTimeRange] = useState",
+      "('WEEK');\r\n const [pinnedRanges, setPinnedRanges] = useState",
       "= blockStart && s.dateObj",
       "s.dateObj",
-      "new Date(d));\r\n                minDate = dates.reduce((min, d) => d",
-      ");\r\n\r\n    if (!activeItem) return null;\r\n\r\n    return createPortal(",
+      "new Date(d));\r\n minDate = dates.reduce((min, d) => d",
+      ");\r\n\r\n if (!activeItem) return null;\r\n\r\n return createPortal(",
       "Análisis Detallado",
       "Editar",
-      "r.value === range)?.label || range;\r\n                                    const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);\r\n                                    \r\n                                    return (",
+      "r.value === range)?.label || range;\r\n const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);\r\n \r\n return (",
       "Período Seleccionado",
       "Progreso",
-      "as any\r\n                                                }\r\n                                                value={",
+      "as any\r\n }\r\n value={",
       "DELUX"
     ]
   },
@@ -437,18 +447,22 @@
     "file": "\\modules\\dashboard\\components\\HabitItem.tsx",
     "texts": [
       "void;\r\n  onClick?: (habit: Habit) => void;\r\n  onEdit?: (habit: Habit) => void;\r\n  onUpdate?: (habitId: string, data: Partial",
-      "= start && dateObj",
+      "= startOfWeek && date",
+      "a.time.localeCompare(b.time));\r\n            let accumulated = 0;\r\n            let nextTime = null;\r\n            for (const t of times) {\r\n                accumulated += t.amount;\r\n                if ((habit.currentValue || 0)",
       "0 && percentage",
       "!i.days || i.days.length === 0 || i.days.includes(today)).map(item => (",
       "Trait",
-      "Subtasks"
+      "Subtasks",
+      "Horarios Programados",
+      "= accumulated || habit.completedToday;\r\n                                \r\n                                return (",
+      "Cambiar alarma"
     ]
   },
   {
     "file": "\\modules\\dashboard\\components\\HabitMasteryModal.tsx",
     "texts": [
-      ");\n\nexport const HabitMasteryModal: React.FC",
-      "= masteryTarget;\n\n  const modalContent = ("
+      ");\r\n\r\nexport const HabitMasteryModal: React.FC",
+      "= masteryTarget;\r\n\r\n const modalContent = ("
     ]
   },
   {
@@ -458,22 +472,45 @@
       ") => Promise",
       "(1);\r\n    \r\n    // Block 1: Identity\r\n    const [title, setTitle] = useState('');\r\n    const [desc, setDesc] = useState('');\r\n    const [attrId, setAttrId] = useState('');\r\n    const [customColor, setCustomColor] = useState",
       "(undefined);\r\n    const [customIconName, setCustomIconName] = useState",
-      "(null);\r\n    const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);\r\n\r\n    // Block 2: Mechanics\r\n    const [freq, setFreq] = useState('DAILY');\r\n    const [weekDays, setWeekDays] = useState",
+      "(null);\r\n    const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);\r\n    const [subAttrId, setSubAttrId] = useState('');\r\n    const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);\r\n\r\n    // Block 2: Mechanics\r\n    const [freq, setFreq] = useState('DAILY');\r\n    const [weekDays, setWeekDays] = useState",
       "([]);\r\n    const [weeklyType, setWeeklyType] = useState",
       "('SPECIFIC_DAYS');\r\n    const [weeklyFlexibleCount, setWeeklyFlexibleCount] = useState",
       "(1);\r\n    const [monthlyType, setMonthlyType] = useState",
       "('SPECIFIC_DATES');\r\n    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState",
       "(1);\r\n    const [monthlyLastDay, setMonthlyLastDay] = useState",
       "(false);\r\n    const [logic, setLogic] = useState",
-      "('BOOLEAN');\r\n    const [target, setTarget] = useState('');\r\n    const [unit, setUnit] = useState('');\r\n    const [subtasks, setSubtasks] = useState",
+      "('BOOLEAN');\r\n    const [target, setTarget] = useState('');\r\n    const [unit, setUnit] = useState('');\r\n    const [isDivided, setIsDivided] = useState(false);\r\n    const [dividedMode, setDividedMode] = useState",
+      "('INTERVAL');\r\n    const [dividedTimes, setDividedTimes] = useState",
+      "([]);\r\n    const [dividedQuantity, setDividedQuantity] = useState('1');\r\n    const [dividedInterval, setDividedInterval] = useState('90');\r\n    const [subtasks, setSubtasks] = useState",
       "([]);\r\n    const [openMenu, setOpenMenu] = useState",
       "(null);\r\n    const [newSubtask, setNewSubtask] = useState('');\r\n    const [impact, setImpact] = useState(1);\r\n\r\n    // Block 3: Commitment\r\n    const [estimatedTime, setEstimatedTime] = useState(0);\r\n    const [reminder, setReminder] = useState('');\r\n    const [smartProjectId, setSmartProjectId] = useState('');\r\n    const [projectId, setProjectId] = useState('');\r\n    const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);\r\n    const [isSubmitting, setIsSubmitting] = useState(false);\r\n    \r\n    const scrollContainerRef = useRef",
       "(null);\r\n    const iconPickerRef = useRef",
       "handleBlockChange(1)}\r\n                                className=\"w-full flex items-center justify-between p-3\"\r\n                            >",
+      "Sub-Rasgo",
+      "setSubAttrPickerOpen(!isSubAttrPickerOpen)}\r\n                                                        className=\"w-full h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between px-4 text-xs font-bold text-white transition-colors hover:bg-white/10\"\r\n                                                    >",
+      "Seleccionar Sub-Rasgo (Opcional)",
+      "Ninguno",
       "handleBlockChange(2)}\r\n                                className=\"w-full flex items-center justify-between p-3\"\r\n                            >",
       "setLogic(t => t === 'BOOLEAN' ? 'QUANTITY' : t === 'QUANTITY' ? 'CHECKLIST' : 'BOOLEAN')} \r\n                                                className=\"bg-black/20 rounded-xl p-2.5 flex items-center justify-between group hover:bg-black/30 transition-colors border border-white/5\"\r\n                                            >",
       ": logic === 'QUANTITY' ?",
+      "setIsDivided(e.target.checked)}\r\n                                                        className=\"w-4 h-4 rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0\"\r\n                                                    />",
+      "Dividir meta en intervalos (Recordatorios automáticos)",
+      "Intervalos",
+      "Horarios Fijos",
+      "Cantidad por vez",
+      "setDividedQuantity(e.target.value)} className=\"w-full bg-transparent text-sm font-bold text-white outline-none px-1\" />",
+      "Frecuencia",
+      "Cada",
+      "setDividedInterval(e.target.value)} className=\"w-full bg-transparent text-sm font-bold text-white outline-none px-1\" />",
+      "min",
+      "Total:",
+      "Hora",
+      "Cant.",
+      "setDividedTimes(dividedTimes.filter(t => t.id !== item.id))} \r\n                                                                                className=\"w-8 h-8 flex items-center justify-center rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors\"\r\n                                                                            >",
+      "Añadir Horario",
+      "sum + t.amount, 0)",
       "setSubtasks(subtasks.filter(t => t.id !== task.id))}\r\n                                                                        className=\"p-1.5 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors\"\r\n                                                                    >",
+      "Alarma Opcional",
       "handleBlockChange(3)}\r\n                                className=\"w-full flex items-center justify-between p-3\"\r\n                            >",
       "a.id === p.attribute);\r\n                                                            return ("
     ]
@@ -481,29 +518,15 @@
   {
     "file": "\\modules\\dashboard\\components\\HabitTrendChart.tsx",
     "texts": [
-      "void;\n}\n\ntype TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';\n\nexport const HabitTrendChart: React.FC",
-      "setIsTimeDropdownOpen(!isTimeDropdownOpen)}\n                        className=\"w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5 ml-0.5\"\n                    >",
-      "navigateDate(-1)} \n                        className=\"w-7 h-7 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 transition-colors\"\n                    >"
+      "void;\r\n}\r\n\r\ntype TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';\r\n\r\nexport const HabitTrendChart: React.FC",
+      "setIsTimeDropdownOpen(!isTimeDropdownOpen)}\r\n                        className=\"w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5 ml-0.5\"\r\n                    >",
+      "navigateDate(-1)} \r\n                        className=\"w-7 h-7 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 transition-colors\"\r\n                    >"
     ]
   },
   {
     "file": "\\modules\\dashboard\\components\\HabitViewHeader.tsx",
     "texts": [
       "void;\r\n    onDateChange: (date: Date) => void;\r\n    onGroupingChange: (mode: GroupingMode) => void;\r\n    onOpenDateModal: () => void;\r\n    onCreateHabit: () => void;\r\n}\r\n\r\nexport const HabitViewHeader: React.FC"
-    ]
-  },
-  {
-    "file": "\\modules\\dashboard\\components\\HabitVisualCard.tsx",
-    "texts": [
-      "void;\r\n    onToggleDay: (h: Habit, date: string) => void;\r\n    onDelete?: (id: string) => void;\r\n    onEdit?: (habit: Habit) => void;\r\n    onUpdateHabit?: (habitId: string, data: Partial",
-      ") : progress.state === 'partial' ? ("
-    ]
-  },
-  {
-    "file": "\\modules\\dashboard\\components\\HabitWeekView.tsx",
-    "texts": [
-      "void;\r\n  weekStartDay?: 0 | 1;\r\n}\r\n\r\nexport const HabitWeekView: React.FC",
-      ") : (\r\n                            day.isToday && ("
     ]
   },
   {
@@ -526,10 +549,13 @@
       "void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial",
       ") => Promise",
       "| void, onDelete?: (projectId: string) => void, initialData?: Partial",
-      "(1);\r\n\r\n    // Block 1: Identity\r\n    const [title, setTitle] = useState('');\r\n    const [desc, setDesc] = useState('');\r\n    const [attrId, setAttrId] = useState('');\r\n    const [smartProjectId, setSmartProjectId] = useState('');\r\n    const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);\r\n\r\n    // Block 2: Mechanics (Goals)\r\n    const [goalTarget, setGoalTarget] = useState(1);\r\n    const [goalUnit, setGoalUnit] = useState",
+      "(1);\r\n\r\n    // Block 1: Identity\r\n    const [title, setTitle] = useState('');\r\n    const [desc, setDesc] = useState('');\r\n    const [attrId, setAttrId] = useState('');\r\n    const [customColor, setCustomColor] = useState",
+      "(undefined);\r\n    const [smartProjectId, setSmartProjectId] = useState('');\r\n    const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);\r\n\r\n    // Block 2: Mechanics (Goals)\r\n    const [goalTarget, setGoalTarget] = useState(1);\r\n    const [goalUnit, setGoalUnit] = useState",
       "('HOURS');\r\n    const [goalFreq, setGoalFreq] = useState('DAILY');\r\n    const [workingDays, setWorkingDays] = useState",
       "([1, 2, 3, 4, 5]); // Mon-Fri default\r\n    const [monthlyType, setMonthlyType] = useState",
-      "('SPECIFIC_DATES');\r\n    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState(10);\r\n    const [monthlyLastDay, setMonthlyLastDay] = useState(false);\r\n\r\n    // Block 3: Commitment (Session)\r\n    const [pomoDuration, setPomoDuration] = useState(25);\r\n    const [reminder, setReminder] = useState('');\r\n    const [impact, setImpact] = useState(1);\r\n    \r\n    const [isSubmitting, setIsSubmitting] = useState(false);\r\n    const scrollContainerRef = useRef",
+      "('SPECIFIC_DATES');\r\n    const [monthlyFlexibleCount, setMonthlyFlexibleCount] = useState",
+      "(10);\r\n    const [monthlyLastDay, setMonthlyLastDay] = useState(false);\r\n\r\n    // Block 3: Commitment (Session)\r\n    const [pomoDuration, setPomoDuration] = useState",
+      "(25);\r\n    const [reminder, setReminder] = useState('');\r\n    const [impact, setImpact] = useState(1);\r\n    \r\n    const [isSubmitting, setIsSubmitting] = useState(false);\r\n    const scrollContainerRef = useRef",
       "handleBlockChange(1)}\r\n                                className=\"w-full flex items-center justify-between p-4\"\r\n                            >",
       "handleBlockChange(2)}\r\n                                className=\"w-full flex items-center justify-between p-3\"\r\n                            >",
       "24 || goalTarget",
@@ -543,9 +569,12 @@
   {
     "file": "\\modules\\dashboard\\components\\QuantityUpdateModal.tsx",
     "texts": [
-      "void;\n    onUpdate: (habitId: string, data: Partial",
-      ") => void;\n}\n\nexport const QuantityUpdateModal: React.FC",
-      "Objetivo"
+      "void;\r\n onUpdate: (habitId: string, data: Partial",
+      ", targetDate?: Date) => void;\r\n currentDate?: Date;\r\n}\r\n\r\nexport const QuantityUpdateModal: React.FC",
+      "a.time.localeCompare(b.time));\r\n let accumulated = 0;\r\n let nextTime = null;\r\n for (const t of times) {\r\n accumulated += t.amount;\r\n if ((value || 0)",
+      ");\r\n }\r\n }\r\n return null;\r\n };\r\n\r\n return createPortal(",
+      "Objetivo",
+      "= accumulated || isComplete;\r\n const isNextItem = !isItemCompleted && ((value || 0) >= accumulated - item.amount);\r\n \r\n return ("
     ]
   },
   {
@@ -554,12 +583,27 @@
       "void, \r\n    attributes: Attribute[], \r\n    projects?: Project[],\r\n    smartProjects?: SmartProject[],\r\n    onConfirm: (data: Partial",
       ") => Promise",
       "| void,\r\n    lockedAttributeId?: string,\r\n    lockedDate?: string,\r\n    lockedSmartProjectId?: string,\r\n    isSmartTask?: boolean,\r\n    initialValues?: Partial",
+      "('C');\r\n    const [deadline, setDeadline] = useState(toLocalISOString(new Date()));\r\n    \r\n    // Recurrence State\r\n    const [recurrenceType, setRecurrenceType] = useState",
+      "('NONE');\r\n    const [recurrenceInterval, setRecurrenceInterval] = useState",
+      "(1);\r\n    const [recurrenceDays, setRecurrenceDays] = useState",
+      "([]);\r\n    const [recurrenceMonths, setRecurrenceMonths] = useState",
+      "([0,1,2,3,4,5,6,7,8,9,10,11]);\r\n    const [monthlyType, setMonthlyType] = useState",
+      "('SPECIFIC_DATES');\r\n    const [isRecurrencePickerOpen, setRecurrencePickerOpen] = useState(false);\r\n    const [showInJournaling, setShowInJournaling] = useState",
+      "(false);\r\n    const [journalIconColor, setJournalIconColor] = useState",
       "Strategic",
       "a.id === p.traitId);\r\n                                                return (",
       "Strategy",
       "Protocols",
       "a.id === p.attribute);\r\n                                                return (",
-      "setDifficulty(diff.id)}\r\n                                        className=\"relative flex-1 h-8 flex items-center justify-center rounded-[1rem] transition-all duration-300 z-10\"\r\n                                    >\r\n                                        {isSelected && ("
+      "Sub-Rasgo",
+      "setSubAttrPickerOpen(!isSubAttrPickerOpen)}\r\n                                        className=\"w-full h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between px-4 text-xs font-bold text-white transition-colors hover:bg-white/10\"\r\n                                    >",
+      "Seleccionar Sub-Rasgo (Opcional)",
+      "Ninguno",
+      "setDifficulty(diff.id)}\r\n                                        className=\"relative flex-1 h-8 flex items-center justify-center rounded-[1rem] transition-all duration-200 z-10\"\r\n                                    >\r\n                                        {isSelected && (",
+      "setRecurrencePickerOpen(!isRecurrencePickerOpen)}\r\n                                className=\"flex items-center justify-between cursor-pointer group\"\r\n                            >",
+      "Mostrar en el Journaling",
+      "Agrega esta tarea al calendario de Journal",
+      "Color del Icono"
     ]
   },
   {
@@ -574,10 +618,10 @@
   {
     "file": "\\modules\\dashboard\\components\\RelapseModal.tsx",
     "texts": [
-      "void;\r\n    habit: BadHabit;\r\n    onConfirm: (method: 'GOLD' | 'HP') => void;\r\n    userGold: number;\r\n}\r\n\r\nconst AuroraBackground = () => (",
+      "void;\r\n    habit: BadHabit | null;\r\n    onConfirm: (method: 'GOLD' | 'HP') => void;\r\n    userGold: number;\r\n}\r\n\r\nconst AuroraBackground = () => (",
       ");\r\n\r\nexport const RelapseModal: React.FC",
-      "0 ? STREAK_TARGETS[targetIndex - 1] : 1;\r\n    const nextTarget = targetIndex",
-      "= penalties.gold && !isIntelligent;\r\n    // HP Penalty should be based on impact or default to a reasonable value for intelligent vice\r\n    const hpPenalty = isIntelligent ? Math.max(5, Math.floor(penalties.hp * 0.5)) : Math.max(1, Math.floor(penalties.hp * 0.5));\r\n\r\n    return createPortal(",
+      "0 ? STREAK_TARGETS[targetIndex - 1] : 1;\r\n    const nextTarget = (habit && targetIndex",
+      "= penalties.gold && !isIntelligent) : false;\r\n    // HP Penalty should be based on impact or default to a reasonable value for intelligent vice\r\n    const hpPenalty = isIntelligent ? Math.max(5, Math.floor(penalties.hp * 0.5)) : Math.max(1, Math.floor(penalties.hp * 0.5));\r\n\r\n    return createPortal(",
       "onConfirm('HP')}\r\n                                        className=\"flex-1 py-3.5 rounded-xl font-bold text-[13px] bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-lg hover:shadow-rose-500/25 transition-all flex items-center justify-center gap-2\"\r\n                                    >",
       "NO DMG",
       "onConfirm('HP')}\r\n                                    className=\"relative p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 hover:bg-rose-900/30 hover:scale-[1.02] transition-all group hover:shadow-[0_0_20px_rgba(225,29,72,0.15)]\"\r\n                                >",
@@ -592,13 +636,6 @@
     ]
   },
   {
-    "file": "\\modules\\dashboard\\components\\SmartDurationPicker.tsx",
-    "texts": [
-      "void;\r\n}\r\n\r\nexport const SmartDurationPicker: React.FC",
-      "(null);\r\n\r\n    const handleDateChange = (e: React.ChangeEvent"
-    ]
-  },
-  {
     "file": "\\modules\\dashboard\\components\\StreakCelebrationOverlay.tsx",
     "texts": [
       "void;\r\n    streak: number;\r\n    lastStreakDate?: string;\r\n}\r\n\r\nexport const StreakCelebrationOverlay: React.FC",
@@ -609,7 +646,7 @@
     "file": "\\modules\\dashboard\\components\\StreakStatusModal.tsx",
     "texts": [
       "void;\r\n    dailyLimits: DailyLimits;\r\n    streak?: number;\r\n    lastStreakDate?: string;\r\n    onNavigate?: (view: string) => void;\r\n}\r\n\r\nexport const StreakStatusModal: React.FC",
-      "r.current >= r.target).length;\r\n    const allCompleted = completedCount === REQUIREMENTS.length;\r\n    const progressPercent = (completedCount / REQUIREMENTS.length) * 100;\r\n\r\n    // 3. Calculate Weekly View Data\r\n    const weekData = React.useMemo(() => {\r\n        const today = new Date();\r\n        const start = startOfWeek(today); // Start on Monday\r\n        \r\n        // Generate array of active dates based on streak and lastStreakDate\r\n        const activeDates: string[] = [];\r\n        if (lastStreakDate && streak > 0) {\r\n            const lastDate = new Date(lastStreakDate);\r\n            // Add the lastDate and (streak - 1) days before it\r\n            for (let i = 0; i",
+      "r.current >= r.target).length;\r\n    const allCompleted = completedCount === REQUIREMENTS.length;\r\n    const progressPercent = (completedCount / REQUIREMENTS.length) * 100;\r\n\r\n    // 3. Calculate Weekly View Data\r\n    const weekData = React.useMemo(() => {\r\n        const today = new Date();\r\n        const start = startOfWeek(today); // Start on Monday\r\n        \r\n        // Generate array of active dates based on streak and lastStreakDate\r\n        const activeDates: string[] = [];\r\n        if (lastStreakDate && streak > 0) {\r\n            const lastDate = parseLocalDate(lastStreakDate);\r\n            // Add the lastDate and (streak - 1) days before it\r\n            for (let i = 0; i",
       "DÍAS",
       "= req.target;\r\n                                                    \r\n                                                    return ("
     ]
@@ -628,7 +665,7 @@
     "file": "\\modules\\dashboard\\components\\ValidationModal.tsx",
     "texts": [
       "void;\r\n    attributes: Attribute[];\r\n    valTempValue: string;\r\n    setValTempValue: (val: string) => void;\r\n    setValidationHabit: React.Dispatch",
-      "attributes.find(a => a.id === habit.attribute), [attributes, habit.attribute]);\r\n    const attributeColor = attribute?.color || '#3b82f6';\r\n    const attributeIcon = attribute?.icon;\r\n    const iconType = typeof attributeIcon === 'function' || (typeof attributeIcon === 'object' && attributeIcon !== null && '$$typeof' in attributeIcon)\r\n        ? attributeIcon\r\n        : Star;\r\n\r\n    return createPortal(",
+      "habit ? attributes.find(a => a.id === habit.attribute) : undefined, [attributes, habit]);\r\n    const attributeColor = attribute?.color || '#3b82f6';\r\n    const attributeIcon = attribute?.icon;\r\n    const iconType = typeof attributeIcon === 'function' || (typeof attributeIcon === 'object' && attributeIcon !== null && '$$typeof' in attributeIcon)\r\n        ? attributeIcon\r\n        : Star;\r\n\r\n    return createPortal(",
       "Validate Progress",
       "Current:",
       "Target:",
@@ -637,45 +674,44 @@
     ]
   },
   {
-    "file": "\\modules\\dashboard\\HabitList.tsx",
-    "texts": [
-      "void;\r\n  onOpenStreak?: () => void;\r\n}\r\n\r\nexport const HabitList: React.FC",
-      "new Map(attributes.map(attr => [attr.id, attr])), [attributes]);\r\n\r\n  // Stats calculation\r\n  const totalHabits = habits.length;\r\n  const completedHabits = habits.filter(h => h.completedToday).length;\r\n  const streak = habits.reduce((acc, h) => acc + h.streak, 0);\r\n  \r\n  // Cognitive Load Limit (Top 12)\r\n  const limit = DAILY_LIMITS.HABITS.MAX_COUNT;\r\n\r\n  // 75% Rule Logic (Still applies for \"Safe Protocol\")\r\n  const minTarget = Math.ceil(totalHabits * 0.75);\r\n  const isSafe = completedHabits >= minTarget;\r\n  const deficit = isSafe ? 0 : minTarget - completedHabits;\r\n  const potentialDamage = deficit * 3;\r\n\r\n  return (",
-      "= limit;\r\n          const isLimitBoundary = index === limit;\r\n\r\n          return (",
-      "Carga Cognitiva Máxima (No XP)"
-    ]
-  },
-  {
     "file": "\\modules\\dashboard\\HabitVisualView.tsx",
     "texts": [
       "void;\r\n    onUpdateHabit?: (habitId: string, data: Partial",
-      ") => void;\r\n    onRelapseBadHabit: (habit: BadHabit) => void;\r\n    onShowActions?: (habit: Habit) => void;\r\n    onShowBadHabitActions?: (habit: BadHabit) => void;\r\n    isActive?: boolean;\r\n    currentSection?: 'PROTOCOLS' | 'VICES';\r\n    onOpenStreak?: () => void;\r\n    onReorder?: (habits: Habit[]) => void;\r\n    onReorderBadHabits?: (habits: BadHabit[]) => void;\r\n    isPro?: boolean;\r\n    onOpenPro?: () => void;\r\n    defaultViewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';\r\n    weekStartDay?: 0 | 1;\r\n    defaultChartViews?: any;\r\n}\r\n\r\ninterface BadHabitWrapperProps {\r\n    habit: BadHabit;\r\n    attributeMap: Map",
+      ", targetDate?: Date) => void;\r\n    onRelapseBadHabit: (habit: BadHabit) => void;\r\n    onShowActions?: (habit: Habit) => void;\r\n    onShowBadHabitActions?: (habit: BadHabit) => void;\r\n    isActive?: boolean;\r\n    currentSection?: 'PROTOCOLS' | 'VICES';\r\n    onOpenStreak?: () => void;\r\n    onReorder?: (habits: Habit[]) => void;\r\n    onReorderBadHabits?: (habits: BadHabit[]) => void;\r\n    isPro?: boolean;\r\n    onOpenPro?: () => void;\r\n    defaultViewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';\r\n    weekStartDay?: 0 | 1;\r\n    defaultChartViews?: any;\r\n    currentDate?: Date;\r\n    setCurrentDate?: (date: Date) => void;\r\n}\r\n\r\ninterface BadHabitWrapperProps {\r\n    habit: BadHabit;\r\n    attributes: Attribute[];\r\n    attributeMap: Map",
       ";\r\n    onShowBadHabitActions?: (habit: BadHabit) => void;\r\n    onOpenDetail?: (habit: BadHabit) => void;\r\n    onRelapseBadHabit: (habit: BadHabit) => void;\r\n    onReorderRequest?: () => void;\r\n}\r\n\r\nconst BadHabitWrapper: React.FC",
-      ");\r\n};\r\n\r\nexport const HabitVisualView: React.FC",
+      ");\r\n});\r\n\r\nexport const HabitVisualView: React.FC",
       "('PROTOCOLS');\r\n    const [showArchived, setShowArchived] = useState(false);\r\n    const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);\r\n    const [isBadHabitReorderModalOpen, setIsBadHabitReorderModalOpen] = useState(false);\r\n    const [selectedDetailBadHabit, setSelectedDetailBadHabit] = useState",
       "(null);\r\n    const [quantityModalHabit, setQuantityModalHabit] = useState",
       "(null);\r\n    const [masteryHabit, setMasteryHabit] = useState",
       "(null);\r\n    \r\n    // Header State\r\n    const [viewMode] = useState",
-      "('DAY');\r\n    const [currentDate, setCurrentDate] = useState(new Date());\r\n    const [isDateModalOpen, setIsDateModalOpen] = useState(false);\r\n    const [viewPreference, setViewPreference] = useState",
+      "('DAY');\r\n    const [localCurrentDate, setLocalCurrentDate] = useState(new Date());\r\n    const currentDate = propsCurrentDate || localCurrentDate;\r\n    const setCurrentDate = propsSetCurrentDate || setLocalCurrentDate;\r\n    const [isDateModalOpen, setIsDateModalOpen] = useState(false);\r\n    const [viewPreference, setViewPreference] = useState",
+      "a.time.localeCompare(b.time));\r\n                            \r\n                            // Find the first uncompleted time slot based on current value\r\n                            let accumulated = 0;\r\n                            let nextFixedTime: string | null = null;\r\n                            for (const t of times) {\r\n                                accumulated += t.amount;\r\n                                if ((habit.currentValue || 0)",
+      "Modo de Registro",
+      "Modificando: Ayer",
+      "setCurrentDate(new Date())}\r\n                                                    className=\"p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse\"\r\n                                                    title=\"Volver a hoy\"\r\n                                                >",
+      "setIsReorderModalOpen(true)}\r\n                                                    className=\"p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95\"\r\n                                                    title=\"Organizar Orden\"\r\n                                                >",
       "setShowArchived(false)}\r\n                                        className=\"p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors\"\r\n                                    >",
-      "))\r\n                            ) : (\r\n                                displayedHabits.map(habit => {\r\n                                    const isDue = habit.frequency === 'DAILY' || \r\n                                                (habit.frequency === 'WEEKLY' && \r\n                                                (habit.weeklyType === 'FLEXIBLE_COUNT' || !habit.frequencyDays || habit.frequencyDays.length === 0 || habit.frequencyDays.includes(currentDate.getDay()))) ||\r\n                                                (habit.frequency === 'MONTHLY' && (\r\n                                                    habit.monthlyType === 'FLEXIBLE_COUNT' ||\r\n                                                    ((habit.monthlyType === 'SPECIFIC_DATES' || !habit.monthlyType) && (\r\n                                                        (habit.frequencyDays && habit.frequencyDays.includes(currentDate.getDate())) ||\r\n                                                        (habit.monthlyLastDay && isLastDayOfMonth(currentDate))\r\n                                                    ))\r\n                                                ));\r\n\r\n                                    return (",
+      "st.id === item.habit.subAttribute);\r\n                                                if (attribute && subTrait) {\r\n                                                    return (",
       "Crear Protocolo",
       "setShowArchived(true)}\r\n                                        className=\"flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-xs font-medium text-white/40 hover:text-white hover:bg-white/10 transition-all hover:scale-105\"\r\n                                    >",
+      "ORGANIZAR ORDEN",
       "Zona Despejada",
-      "No hay vicios archivados"
+      "No hay vicios archivados",
+      "Ir al día anterior",
+      "Volver a hoy",
+      "Organizar Orden",
+      "Cambiar alarma"
     ]
   },
   {
     "file": "\\modules\\dashboard\\hooks\\useDashboardLogic.ts",
     "texts": [
-      "(undefined);\r\n    const [showProfile, setShowProfile] = useState(true);\r\n    const [defaultChartMode, setDefaultChartMode] = useState",
-      "('RADAR');\r\n    const [dashboardStyle, setDashboardStyle] = useState",
-      "('BORDER');\r\n    const [avatarShape, setAvatarShape] = useState",
-      "('CIRCLE');\r\n    const [habitSectionControl, setHabitSectionControl] = useState",
-      "('VISIBLE');\r\n    const [defaultHabitView, setDefaultHabitView] = useState",
-      "('DEFAULT');\r\n    const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState",
-      "(true);\r\n    const [dockConfig, setDockConfig] = useState",
-      "(DEFAULT_DOCK_CONFIG);\r\n    const [weekStartDay, setWeekStartDay] = useState",
+      "(() => user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER');\r\n    const [avatarShape, setAvatarShape] = useState",
+      "(() => user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE');\r\n    const [habitSectionControl, setHabitSectionControl] = useState",
+      "(() => user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE');\r\n    const [defaultHabitView, setDefaultHabitView] = useState",
+      "(() => user?.preferences?.defaultHabitView || user?.defaultHabitView || 'DEFAULT');\r\n    const [allowDockSectionSwitch, setAllowDockSectionSwitch] = useState",
+      "(() => user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? true);\r\n    const [dockConfig, setDockConfig] = useState",
+      "(() => user?.preferences?.dockConfig || user?.dockConfig || DEFAULT_DOCK_CONFIG);\r\n    const [weekStartDay, setWeekStartDay] = useState",
       "([]);\r\n    const [habits, setHabits] = useState",
       "([]);\r\n    const [badHabits, setBadHabits] = useState",
       "([]);\r\n    const [areHabitsLoaded, setAreHabitsLoaded] = useState(false);\r\n    const [isDailyCheckDone, setIsDailyCheckDone] = useState(false);\r\n    const [projects, setProjects] = useState",
@@ -683,40 +719,78 @@
       "([]);\r\n    const deletedProjectIdsRef = useRef",
       "IGNORE Server\r\n    // 2. External updates (Server changes) -> SYNC Local\r\n    const lastServerStats = useRef",
       "(null);\r\n    const lastServerLimits = useRef",
-      "d.startsWith(lastDate));\r\n                     }).length;\r\n                     \r\n                     if (completed",
-      "new Date(today);\r\n                const lastStreakDate = user.stats?.lastStreakDate;\r\n                \r\n                // If last streak date is older than yesterday (and not frozen), reset streak.\r\n                if (user.stats?.streak && user.stats.streak > 0 && !isFrozen) {\r\n                    if (lastStreakDate && lastStreakDate",
-      "([]);\r\n    const prevAttributes = useRef(attributes);\r\n    const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);\r\n    const projectsHydratedRef = useRef(false);\r\n    const allowEmptyProjectsSaveRef = useRef(false);\r\n    const lastNonEmptyProjectsRef = useRef",
+      "0;\r\n                \r\n\r\n\r\n                let damage = 0; // Health penalty for incomplete habits is disabled per user request\r\n\r\n                // 2. Prepare Batch\r\n                \r\n                \r\n\r\n                // 1.5 CHECK STREAK CONTINUITY (Global Streak)\r\n                const yesterday = parseLocalDate(today);\r\n                yesterday.setDate(yesterday.getDate() - 1);\r\n                const yesterdayStr = toLocalISOString(yesterday);\r\n                \r\n                const streakFrozenUntil = user.stats?.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;\r\n                const isFrozen = streakFrozenUntil && streakFrozenUntil > parseLocalDate(today);\r\n                const lastStreakDate = user.stats?.lastStreakDate;\r\n                \r\n                // If last streak date is older than yesterday (and not frozen), reset streak.\r\n                if (user.stats?.streak && user.stats.streak > 0 && !isFrozen) {\r\n                    if (!lastStreakDate || lastStreakDate",
+      "0 \r\n                            ? getHistoryDateKey(h.history[h.history.length - 1])\r\n                            : null;\r\n                        const isStreakBroken = h.streak > 0 && (!lastCompletion || lastCompletion",
+      "= 1 && level",
+      "10 && level",
+      "20 && level",
+      "40 && level",
+      "60 && level",
+      "0 && p.streak && p.streak > 0) {\r\n                        const lastCompletion = p.lastStreakDate || '';\r\n                        if (lastCompletion",
+      "h.title).slice(0, 5),\r\n                        createdAt: Date.now(),\r\n                        score: yesterdayScore\r\n                    };\r\n\r\n                    // Update local cache optimistically\r\n                    const currentFeed = PersistenceService.getCollection",
+      "0 && !isFrozen && (!lastStreakDate || lastStreakDate",
+      "([]);\r\n    const attributesRef = useRef(attributes);\r\n    attributesRef.current = attributes;\r\n    const prevAttributes = useRef(attributes);\r\n    const [areAttributesLoaded, setAreAttributesLoaded] = useState(false);\r\n    const projectsHydratedRef = useRef(false);\r\n    const allowEmptyProjectsSaveRef = useRef(false);\r\n    const lastNonEmptyProjectsRef = useRef",
       "(uid, 'projects');\r\n        const cachedProjects = (primaryProjectsCache && primaryProjectsCache.length > 0)\r\n            ? primaryProjectsCache\r\n            : PersistenceService.getCollectionSafe",
+      "persistenceService.projects.save(uid, p));\r\n                        return;\r\n                    }\r\n                    let merged: Project[] = [];\r\n                    let canSave = false;\r\n                    setProjects(prev => {\r\n                        merged = mergeProjects(prev, resolvedProjects);\r\n                        if (merged.length",
+      "persistenceService.badHabits.save(uid, bh));\r\n                        return;\r\n                    }\r\n                    setBadHabits(resolvedItems);\r\n                    PersistenceService.saveCollection(uid, 'badHabits', resolvedItems);\r\n                    badHabitsHydratedRef.current = true;\r\n                });\r\n            }\r\n\r\n            if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {\r\n                persistenceService.smartProjects.getAll(uid).then(items => {\r\n                    if (!items) return;\r\n                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'smartProjects', items);\r\n                    const cached = PersistenceService.getCollection",
+      "persistenceService.smartProjects.save(uid, sp));\r\n                        return;\r\n                    }\r\n                    setSmartProjects(resolvedItems);\r\n                    PersistenceService.saveCollection(uid, 'smartProjects', resolvedItems);\r\n                    smartProjectsHydratedRef.current = true;\r\n                });\r\n            }\r\n\r\n            if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {\r\n                persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {\r\n                    if (!fetchedAttrs) return;\r\n                    \r\n                    const cached = PersistenceService.getCollection",
+      "persistenceService.attributes.save(uid, a));\r\n                        return;\r\n                    }\r\n                    \r\n                    // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge\r\n                    try {\r\n                        const fbAttrs = await persistenceService.attributes.getAll(uid) || [];\r\n                        \r\n                        // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, \r\n                        // but Firebase takes precedence for XP/Level if it's higher)\r\n                        const mergedMap = new Map",
+      "[...prev, newAttr]);\r\n\r\n        // Save to DB\r\n        if (!user?.id) return;\r\n        await persistenceService.attributes.save(user.id, newAttr);\r\n    };\r\n\r\n    const addCustomAttribute = async (attrData: Omit",
       "TRUE -> Reset.\r\n                // e.g. Today=3, Yesterday=2. Last=2. 2",
       "FALSE -> Keep.\r\n                // e.g. Today=3, Yesterday=2. Last=3. 3",
       "FALSE -> Keep.\r\n                \r\n                const isStreakBroken = habit.streak > 0 && (!lastCompletion || lastCompletion",
-      "= currentTarget && targetIndex",
+      "0 && habit.history && habit.history.length > 0;\r\n\r\n                    for (let day = 0; day",
+      "currentTgt) {\r\n                            if (tgtIdx",
       "([]);\r\n    const [particles, setParticles] = useState",
       "([]);\r\n    const [activeModal, setActiveModal] = useState",
       "(null);\r\n    const [validationHabit, setValidationHabit] = useState",
       "setNotifications(prev => prev.filter(n => n.id !== id)), 4000);\r\n    }, []);\r\n\r\n    // --- NOTIFICATION EFFECTS (Safe from Render Cycle) ---\r\n    const isFirstLoad = useRef(true);\r\n    const isAttributesSync = useRef(true);\r\n    const processingQuests = useRef",
+      "new Date();\r\n            \r\n            if (!isFrozen) {\r\n                const yesterday = parseLocalDate(today);\r\n                yesterday.setDate(yesterday.getDate() - 1);\r\n                const yesterdayStr = toLocalISOString(yesterday);\r\n                \r\n                if (!lastStreakDate || lastStreakDate",
+      "console.error(\"Error updating attribute XP in DB:\", err));\r\n    }, [user?.id, user?.isSkeleton]);\r\n\r\n    const updateAttributeMetadata = useCallback((attrId: string, updates: Partial",
       "0.1 min (6 seconds)\r\n        if (finalRewardableMinutes >= 0.1) {\r\n            if (finalXp",
       "0 || totalGold > 0 || finalDurationSeconds > 0)) {\r\n            const today = toLocalISOString(new Date());\r\n            const isNewDay = dailyLimits.date !== today;\r\n            let newXp = player.xp + totalXp;\r\n            if (newXp",
-      "acc + (s.duration || 0), 0);\r\n            const newDurationSeconds = previousDurationSeconds + durationSeconds;\r\n            \r\n            const goalSeconds = targetProj.goalTarget * 60;\r\n            \r\n            if (previousDurationSeconds",
-      "console.log(\"✅ Session deleted and project saved\"))\r\n                    .catch(e => console.error(\"❌ Failed to save project after delete:\", e));\r\n            }\r\n            \r\n            return prevProjects.map(p => p.id === projectId ? updatedProject : p);\r\n        });\r\n\r\n        // 3. Reverse Rewards & Limits using TransactionService\r\n        if (user?.id) {\r\n            const today = toLocalISOString(new Date());\r\n            const isNewDay = dailyLimits.date !== today;\r\n            \r\n            const rXp = -(xpToRevert || 0);\r\n            const rGold = -(goldToRevert || 0);\r\n            const rTP = -(tpToRevert || 0);\r\n            const rSec = -durationSeconds;\r\n\r\n            let newXp = player.xp + rXp;\r\n            if (newXp",
-      "prev.map(q => q.id === quest.id ? newQuest : q));\r\n\r\n        if (!userId) {\r\n            if (rewardXp !== 0 || rewardGold !== 0) {\r\n                let newXp = player.xp + rewardXp;\r\n                let newGold = player.gold + rewardGold;\r\n                let newLevel = player.level;\r\n                let newNextXp = player.nextXp;\r\n\r\n                // Reversal logic\r\n                if (newXp",
-      "prev.map(h => h.id === habit.id ? newHabit : h));\r\n\r\n        // 5. ATOMIC PERSISTENCE\r\n        try {\r\n            if (user?.id) {\r\n                const isNewDay = dailyLimits.date !== todayHistory;\r\n                let newXp = player.xp + rewards.rewardXp;\r\n                if (newXp"
+      "= 1 min\r\n        if (rewardableMinutes >= 1) {\r\n            if (finalXp",
+      "console.log(\"✅ Session deleted and project saved\"))\r\n                    .catch(e => console.error(\"❌ Failed to save project after delete:\", e));\r\n            }\r\n            \r\n            return prevProjects.map(p => p.id === projectId ? updatedProject : p);\r\n        });\r\n\r\n        // 3. Reverse Rewards & Limits using TransactionService\r\n        if (user?.id) {\r\n            const today = toLocalISOString(new Date());\r\n            const isNewDay = dailyLimits.date !== today;\r\n            \r\n            const rXp = -(xpToRevert || 0);\r\n            const rGold = -(goldToRevert || 0);\r\n            const rTP = -(tpToRevert || 0);\r\n            const rSec = -durationSeconds;\r\n\r\n            const currentPlayer = playerRef.current;\r\n            let newXp = currentPlayer.xp + rXp;\r\n            if (newXp",
+      "a.id === project.attribute);\r\n                if (attrIndex !== -1) {\r\n                    const attr = currentAttrs[attrIndex];\r\n                    let newAttrXp = attr.xp + rTP;\r\n                    let newAttrLevel = attr.level;\r\n                    let newAttrMaxXp = attr.maxXp;\r\n\r\n                    while (newAttrXp",
+      "March 3)\r\n                            currentSearchDate = new Date(nextDate.getFullYear(), nextDate.getMonth() + i, 1);\r\n                            const searchMonth = currentSearchDate.getMonth();\r\n                            \r\n                            if (validMonths.includes(searchMonth)) {\r\n                                const lastDayOfSearchMonth = new Date(currentSearchDate.getFullYear(), searchMonth + 1, 0).getDate();\r\n                                let validDaysInSearchMonth = [...days].filter(d => d",
+      "h.id === habit.id ? newHabit : h);\r\n            if (user?.id) PersistenceService.saveCollection(user.id, 'habits', nextHabitsList);\r\n            return nextHabitsList;\r\n        });\r\n\r\n        // 5. ATOMIC PERSISTENCE\r\n        try {\r\n            if (user?.id) {\r\n                const isNewDay = dailyLimits.date !== todayHistory;\r\n                const currentPlayer = playerRef.current;\r\n                let newXp = currentPlayer.xp + rewards.rewardXp;\r\n                if (newXp",
+      "q.id === questData.id) : null;\r\n        let isRescheduledFromOverdue = false;\r\n        \r\n        if (existingQuest && !existingQuest.completed) {\r\n            const todayStr = toLocalISOString(new Date());\r\n            const oldDeadline = existingQuest.deadline;\r\n            const newDeadline = questData.deadline;\r\n            \r\n            if (oldDeadline && oldDeadline"
     ]
   },
   {
     "file": "\\modules\\dashboard\\PlayerHUD.tsx",
     "texts": [
-      "0) ? Math.round(attribute.maxXp) : 1;\r\n  \r\n  const Icon = attribute.icon || HelpCircle;\r\n  const barColor = getTraitColor(attribute.id);\r\n  \r\n  return (",
+      "Promise",
+      "| void;\r\n onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise",
+      "| void;\r\n onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise",
+      "| void;\r\n onOpenProgress?: () => void;\r\n}\r\n\r\nconst getTraitColor = (traitId: string): 'indigo' | 'cyan' | 'emerald' | 'rose' | 'amber' | 'blue' | 'pink' | 'violet' | 'gray' => {\r\n const map: Record",
+      ";\r\n }\r\n return",
+      "0);\r\n\r\n return (",
+      "setEditingSubId(null)}\r\n                className=\"w-7 h-7 bg-white/5 text-white/50 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors\"\r\n              >",
+      ");\r\n         }\r\n\r\n         return (",
+      "Sin sub-rasgos. Crea uno para especializarte.",
+      "Sugerencias:",
+      "Icono:",
+      "setIsAdding(true)}\r\n          className=\"w-full h-7 rounded-lg border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/20 transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold text-white/50 hover:text-white/80 mt-2\"\r\n        >",
+      "Añadir Sub-Rasgo",
       ");\r\n};\r\n\r\nexport const PlayerHUD: React.FC",
-      "Neural Stats",
-      "No metrics available"
+      "Ver Progreso",
+      "No metrics available",
+      "Nombre...",
+      "Editar",
+      "Eliminar",
+      "Nuevo sub-rasgo (ej. Cardio)..."
     ]
   },
   {
     "file": "\\modules\\dashboard\\SettingsView.tsx",
     "texts": [
       "void;\r\n  showProfile: boolean;\r\n  onToggleProfile: (show: boolean) => void;\r\n  defaultChartMode: 'RADAR' | 'BAR';\r\n  onSetDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;\r\n  attributes?: Attribute[];\r\n  onUpdateAttribute?: (id: string, updates: Partial",
-      ") => void;\r\n  onAddAttribute?: (id: string) => void;\r\n  onRemoveAttribute?: (id: string) => void;\r\n  onClose: () => void;\r\n  onShowPro?: () => void;\r\n  isPro?: boolean;\r\n  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';\r\n  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;\r\n  avatarShape?: 'CIRCLE' | 'SQUARE';\r\n  onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;\r\n  vividMode?: boolean;\r\n  onToggleVividMode?: (enabled: boolean) => void;\r\n  habitSectionControl?: 'VISIBLE' | 'HIDDEN';\r\n  onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;\r\n  defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';\r\n  onUpdateDefaultHabitView?: (view: 'DEFAULT' | 'CHRONOLOGICAL') => void;\r\n  allowDockSectionSwitch?: boolean;\r\n  onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;\r\n  onOpenDockConfig?: () => void;\r\n  weekStartDay?: 0 | 1;\r\n  onWeekStartDayChange?: (day: 0 | 1) => void;\r\n  defaultChartViews?: any;\r\n  onUpdateDefaultChartViews?: (views: any) => void;\r\n  defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';\r\n  onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;\r\n}\r\n\r\nexport const SettingsView = (props: SettingsViewProps) => {\r\n  return ("
+      ") => void;\r\n  onAddAttribute?: (id: string) => void;\r\n  onAddCustomAttribute?: (attr: Omit",
+      ") => void;\r\n  onRemoveAttribute?: (id: string) => void;\r\n  onAddSubTrait?: (parentAttrId: string, name: string, iconName: string) => Promise",
+      "| void;\r\n  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise",
+      "| void;\r\n  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise",
+      "| void;\r\n  onClose: () => void;\r\n  onShowPro?: () => void;\r\n  isPro?: boolean;\r\n  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';\r\n  onDashboardStyleChange?: (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => void;\r\n  avatarShape?: 'CIRCLE' | 'SQUARE';\r\n  onAvatarShapeChange?: (shape: 'CIRCLE' | 'SQUARE') => void;\r\n  vividMode?: boolean;\r\n  onToggleVividMode?: (enabled: boolean) => void;\r\n  habitSectionControl?: 'VISIBLE' | 'HIDDEN';\r\n  onUpdateHabitSectionControl?: (control: 'VISIBLE' | 'HIDDEN') => void;\r\n  defaultHabitView?: 'DEFAULT' | 'CHRONOLOGICAL';\r\n  onUpdateDefaultHabitView?: (view: 'DEFAULT' | 'CHRONOLOGICAL') => void;\r\n  allowDockSectionSwitch?: boolean;\r\n  onUpdateAllowDockSectionSwitch?: (allow: boolean) => void;\r\n  onOpenDockConfig?: () => void;\r\n  weekStartDay?: 0 | 1;\r\n  onWeekStartDayChange?: (day: 0 | 1) => void;\r\n  defaultChartViews?: any;\r\n  onUpdateDefaultChartViews?: (views: any) => void;\r\n  defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';\r\n  onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;\r\n  defaultTaskFilters?: any;\r\n  onUpdateDefaultTaskFilters?: (filters: any) => void;\r\n}\r\n\r\nexport const SettingsView = (props: SettingsViewProps) => {\r\n  return ("
     ]
   },
   {
@@ -732,25 +806,186 @@
     ]
   },
   {
-    "file": "\\modules\\focus\\components\\ActiveSessionView.tsx",
+    "file": "\\modules\\feed\\components\\FeedCalendarModal.tsx",
     "texts": [
-      "Enable Notifications",
-      "Unrestrict Battery",
-      "Enable Live View",
-      "setShowHistory(true)}\r\n                    className=\"w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-colors relative\"\r\n                >",
-      "FOCUS",
-      "FLOW",
-      "MIN",
-      "Focus Mode Active"
+      "void;\n    feedEntries: DailyFeedEntry[];\n    onSelectDate: (dateStr: string) => void;\n}\n\nexport const FeedCalendarModal: React.FC",
+      "setViewDate(d => subMonths(d, 1))}\n                        className=\"p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors border border-white/5 bg-white/5\"\n                    >",
+      "setViewDate(d => addMonths(d, 1))}\n                        className=\"p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors border border-white/5 bg-white/5\"\n                    >",
+      ");\n    };\n\n    if (typeof document === 'undefined') return null;\n\n    return createPortal(",
+      "Búsqueda por Fecha",
+      "Historial Diario"
     ]
   },
   {
-    "file": "\\modules\\focus\\components\\FocusAlarmOverlay.tsx",
+    "file": "\\modules\\feed\\components\\FeedDayCard.tsx",
     "texts": [
-      "void;\r\n    project: Project;\r\n    duration: number; // in seconds\r\n    mode: 'POMO' | 'STOPWATCH';\r\n}\r\n\r\nexport const FocusAlarmOverlay: React.FC",
-      "Time spent on",
-      "Claim Victory",
-      "project icon"
+      "Promise",
+      "0;\r\n    const Icon = isPos ? ArrowUpRight : ArrowDownRight;\r\n    const colorClass = isPos ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';\r\n    \r\n    const formattedDiff = isMinutes\r\n      ? diff",
+      ");\r\n  };\r\n\r\n  return (",
+      "En vivo",
+      "Productividad",
+      "Focus",
+      "Tareas",
+      "hechas",
+      "Hábitos",
+      "completados",
+      "Sub-hab",
+      "hechos",
+      "Sin actividad registrada",
+      "Misiones Completadas"
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\components\\FeedMiniChart.tsx",
+    "texts": [
+      ");\n  }\n\n  // Bar chart\n  return (",
+      "0 ? (d.value / maxValue) * (height - (showLabels ? 16 : 0)) : 2;\n        \n        return ("
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\components\\FeedScoreBreakdownChart.tsx",
+    "texts": [
+      "('general');\n  const [isExpanded, setIsExpanded] = useState(false);\n  const [activeIndex, setActiveIndex] = useState",
+      "Score por Categoría",
+      "Actual",
+      "s.value > 0).map(s => (",
+      "Total:",
+      "c.key === viewMode);\n                              if (!seg) return",
+      "Sin datos",
+      ";\n                              return (",
+      "Semana Anterior",
+      "Siguiente Semana"
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\components\\FeedStatCircle.tsx",
+    "texts": [
+      "= max && max > 0;\n\n  return ("
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\components\\FeedWeekCard.tsx",
+    "texts": [
+      "= 0 && dayIdx",
+      "0;\n    const Icon = isPos ? ArrowUpRight : ArrowDownRight;\n    const colorClass = isPos ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';\n    \n    return (",
+      ");\n  };\n\n  return (",
+      "Score Semanal",
+      "0 || entry.goldEarned > 0 || entry.tpEarned > 0) && (",
+      "Focus Total",
+      "Tareas",
+      "completadas",
+      "Hábitos",
+      "completados",
+      "Sub-hab",
+      "sub-hábitos"
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\components\\FeedWeekSummary.tsx",
+    "texts": [
+      "Resumen de Score Semanal",
+      "Tareas completadas",
+      "Tiempo en Focus",
+      "Hábitos realizados",
+      "Días Activos",
+      "Ajuste por Pérdida de Rendimiento",
+      "Constancia Semanal",
+      "Tu score acumulado está",
+      "por debajo de la semana pasada. \n                  Para compensarlo de forma gradual en los",
+      "restantes, hoy necesitas un score de:",
+      "XP obtenida:",
+      "Oro ganado:",
+      "TP ganado:"
+    ]
+  },
+  {
+    "file": "\\modules\\feed\\ImprovementFeedView.tsx",
+    "texts": [
+      "0) target += p.goalTarget;\r\n    });\r\n    return target === 0 ? 60 : target;\r\n  }, [activeProjectsToday]);\r\n\r\n  // Aligned current week's 7 days based on the user's start day setting\r\n  const currentWeekDays = useMemo(() => {\r\n    const start = utilsStartOfWeek(selectedDate);\r\n    const days: any[] = [];\r\n    for (let i = 0; i",
+      "Feed",
+      "DIARIO",
+      "Diario",
+      "Semanal",
+      "Score",
+      "Tareas",
+      "Focus",
+      "Hábitos",
+      "Sub-hab",
+      "XP:",
+      "Oro:",
+      "TP:",
+      "Tu score acumulado esta semana ha bajado en",
+      "respecto a la semana pasada.\r\n                        Para compensarlo de forma equilibrada en los",
+      "restantes, hoy deberías alcanzar un score meta de:",
+      "¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por",
+      ". \r\n                        Para mantener esta constancia, tu score meta recomendado de hoy es:",
+      "Score Meta de Hoy",
+      "Tu Score de Hoy",
+      "Faltan",
+      "para alcanzar la meta diaria",
+      "Historial Diario",
+      "Buscar Fecha",
+      "))\r\n              ) : historicalEntries.length > 0 ? (\r\n                historicalEntries.map((entry, i) => (",
+      "Tu historial aparecerá aquí",
+      "Cada día se guardará automáticamente",
+      "Historial Semanal",
+      "))\r\n              ) : weeklyEntries.length > 0 ? (\r\n                weeklyEntries.map((week, i) => (",
+      "No hay suficientes datos semanales",
+      "Registra actividades diarias para consolidar semanas.",
+      "Fórmula de Productividad",
+      "Recalibración Dinámica",
+      "setShowFormulaModal(false)}\r\n                  className=\"w-7 h-7 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all\"\r\n                >",
+      "El",
+      "Score de Productividad",
+      "se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:",
+      "Tus Métricas de Hoy",
+      "Actualmente tu score se recalcula en base a:",
+      "Hábitos Activos Hoy",
+      "Peso individual",
+      "Focus diario programado",
+      "Aporte global",
+      "Misiones Asignadas",
+      "Ecuaciones del Score",
+      "Hábitos & Sub-hábitos",
+      "Suma de Progresos Individuales",
+      "Sub-hábitos (Hábitos tipo Lista):",
+      "Se dividen equitativamente entre las sub-tareas asignadas para hoy.",
+      "Hábito con Checklist (Ejemplo)",
+      "├── Sub-tarea 1 ➔ 33.3% del hábito",
+      "├── Sub-tarea 2 ➔ 33.3% del hábito",
+      "└── Sub-tarea 3 ➔ 33.3% del hábito",
+      "Auto-ajuste de Pesos",
+      "Hábitos Cuantitativos:",
+      "Calculan su progreso fraccional como",
+      "progreso / meta",
+      "(máx 1.0), aportando proporcionalmente al valor del hábito.",
+      "Tiempo de Focus",
+      "Minutos Reales Focus",
+      "Suma Metas de Proyectos Hoy",
+      "Se calcula en base a la meta total de minutos de proyectos activos hoy. Si no hay proyectos o metas configuradas hoy, se toma un valor por defecto de 60 min como meta de focus.",
+      "Tareas Diarias (Misiones)",
+      "Aporte: 20%",
+      "Tareas Completadas",
+      "Total Tareas de Hoy",
+      "setShowFormulaModal(false)}\r\n                  className=\"px-5 py-2.5 rounded-xl bg-white text-black font-black uppercase text-[10px] tracking-wider hover:bg-white/90 transition-all shadow-md active:scale-95\"\r\n                >\r\n                  Entendido",
+      "Ver fórmula y recalibración de score"
+    ]
+  },
+  {
+    "file": "\\modules\\focus\\components\\ActiveSessionView.tsx",
+    "texts": [
+      "(undefined);\r\n  \r\n  return (",
+      "¡Sesión Completada!",
+      "¿A qué sub-rasgo va este tiempo?",
+      "Solo al Rasgo Principal",
+      "Confirmar",
+      ");\r\n};\r\n\r\nexport const ActiveSessionView: React.FC",
+      "Enable Notifications",
+      "Unrestrict Battery",
+      "setShowHistory(true)}\r\n className=\"w-12 h-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-colors relative\"\r\n >",
+      "FOCUS",
+      "FLOW",
+      "MIN"
     ]
   },
   {
@@ -763,30 +998,25 @@
       "= start && today",
       "Math.ceil(base / s)",
       "20) return 'px-[1px] md:px-0.5'; // 24 items (Day) -> Very tight\r\n        if (count > 12) return 'px-0.5 md:px-1';\r\n        return 'px-1 md:px-2';\r\n    }, [stats.labels.length, timeRange]);\r\n\r\n    const formatMinutes = (mins: number) => {\r\n        if (mins",
-      "r.value === range)?.label || range;\r\n                                    \r\n                                    return (",
+      "r.value === range)?.label || range;\r\n                                        \r\n                                        return (",
       "SIN DIVIDIR",
       "DIVIDIR POR RASGO",
       "DIVIDIR POR PROYECTO",
       "Descanso",
-      ") : showGoal && ("
+      ") : showGoal && (",
+      "Reorganizar Proyectos"
     ]
   },
   {
     "file": "\\modules\\focus\\components\\ManualSessionCreator.tsx",
     "texts": [
-      "(initialDate);\r\n const [activePicker, setActivePicker] = useState",
-      "i), []); \r\n \r\n const handleSave = () => {\r\n if (totalMinutes",
+      "(initialDate);\n  const [activePicker, setActivePicker] = useState",
+      "('DURATION');\n  const [selectedSubTrait, setSelectedSubTrait] = useState",
+      "i), []);\n\n  const handleSave = () => {\n    if (totalMinutes",
       "DURACIÓN",
-      "INICIO",
-      "FIN",
-      "PROYECTO SELECCIONADO",
-      "Guardar Sesión"
-    ]
-  },
-  {
-    "file": "\\modules\\focus\\components\\ProjectCard.tsx",
-    "texts": [
-      "void;\r\n    onClick: (project: Project) => void;\r\n}\r\n\r\nexport const ProjectCard: React.FC"
+      "INICIO → FIN",
+      "Sub-Rasgo (Opcional)",
+      "Al Rasgo Principal"
     ]
   },
   {
@@ -796,32 +1026,14 @@
     ]
   },
   {
-    "file": "\\modules\\focus\\components\\ProjectSimpleItem.tsx",
-    "texts": [
-      "LIVE"
-    ]
-  },
-  {
     "file": "\\modules\\focus\\components\\SessionHistoryModal.tsx",
     "texts": [
-      "('LIST');\r\n    const [selectedSessionId, setSelectedSessionId] = useState",
+      "('LIST');\n    const [selectedSessionId, setSelectedSessionId] = useState",
       "History",
       "No sessions yet",
       "Start tracking your progress",
-      ") : (\r\n                                        sortedSessions.map((session) => (",
+      ") : (\n                                        sortedSessions.map((session) => (",
       "Log Past Session"
-    ]
-  },
-  {
-    "file": "\\modules\\focus\\components\\SessionRewardModal.tsx",
-    "texts": [
-      "Session Complete",
-      "Focus Protocol Executed",
-      "Time",
-      "Bonus",
-      "XP GAINED",
-      "GOLD",
-      "Continue"
     ]
   },
   {
@@ -844,7 +1056,7 @@
       "selectedProjectId ? projects.find(p => p.id === selectedProjectId) : null,\r\n    [selectedProjectId, projects]);\r\n\r\n    if (selectedProject) {\r\n        const attribute = attributes.find(a => a.id === selectedProject.attribute);\r\n        return (",
       ");\r\n    }\r\n\r\n    return (",
       "a.id === project.attribute);\r\n                    return (",
-      "onOpenProjectModal()}\r\n                        className=\"relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95\"\r\n                    >",
+      "onOpenProjectModal()}\r\n                            className=\"relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95\"\r\n                        >",
       "Create New Project"
     ]
   },
@@ -858,7 +1070,7 @@
   {
     "file": "\\modules\\focus\\PomodoroView.tsx",
     "texts": [
-      "setIsProjectSelectorOpen(!isProjectSelectorOpen)}\r\n className=\"flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-sm transform-gpu transition-all active:scale-95 group shadow-md\"\r\n >",
+      "setIsProjectSelectorOpen(!isProjectSelectorOpen)}\r\n className=\"flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 hover:bg-white/10 border border-white/10 transition-all active:scale-95 group shadow-md\"\r\n >",
       "Quick Focus",
       "!p.archived).map(project => {\r\n const attr = attributes.find(a => a.id === project.attribute);\r\n return (",
       ");\r\n\r\n // Use Portal to ensure it is always on top and centered relative to viewport\r\n // avoiding scroll context issues from parent containers\r\n if (typeof document === 'undefined') return null;\r\n\r\n return createPortal("
@@ -880,8 +1092,13 @@
     "file": "\\modules\\monetization\\ProUpgradeModal.tsx",
     "texts": [
       ");\r\n};\r\n\r\nexport const ProUpgradeModal: React.FC",
+      "handlePurchase(weeklyPackage || 'weekly')}\r\n      className=\"relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]\"\r\n    >",
+      "handlePurchase(monthlyPackage || 'monthly')}\r\n      className=\"relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]\"\r\n    >",
+      "Restaurar Compras",
       "Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.",
-      "Descargar en Google Play"
+      "Descargar en Google Play",
+      "¡AHORA ERES LUX PRO!",
+      "Reiniciando el sistema..."
     ]
   },
   {
@@ -896,11 +1113,9 @@
     "file": "\\modules\\notes\\components\\BlueprintSelector.tsx",
     "texts": [
       "void;\r\n}\r\n\r\nexport const BlueprintSelector: React.FC",
+      "([]);\r\n  \r\n  // Composition Note State\r\n  const [isCreating, setIsCreating] = useState(false);\r\n  const [draftBlocks, setDraftBlocks] = useState",
       "setIsOpen(true)}\r\n        className=\"p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors\"\r\n        title=\"Blueprints\"\r\n      >",
-      "Blueprint",
-      "Deck",
-      "setIsOpen(false)} className=\"text-white/50 hover:text-white transition-colors\">",
-      "handleDelete(e, bp.id)}\r\n                                                    className=\"text-white/20 hover:text-red-400 transition-colors p-1\"\r\n                                                >",
+      "setIsOpen(false)} className=\"w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors active:scale-95\">",
       "Blueprints"
     ]
   },
@@ -958,7 +1173,7 @@
     "file": "\\modules\\notes\\components\\NotesConfigModal.tsx",
     "texts": [
       "Master PIN (5 Digits)\r\n                                            {!isPro &&",
-      "handlePinChange(e.target.value)}\r\n                                            placeholder=\"•••••\"\r\n                                            className=\"w-full bg-[#050505] border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white shadow-inner\"\r\n                                        />",
+      "handlePinChange(e.target.value)}\r\n                                            placeholder=\"•••••\"\r\n                                            className=\"w-full bg-[#050505] border border-white/10 rounded-xl p-4 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-white/30 transition-colors text-white shadow-md\"\r\n                                        />",
       "toggleProtectedArea(area.id as any)}\r\n                                                            className=\"sr-only peer\" \r\n                                                        />",
       "If you forget your PIN, these methods will be the",
       "only way",
@@ -990,7 +1205,7 @@
   {
     "file": "\\modules\\notes\\components\\SaveBlueprintModal.tsx",
     "texts": [
-      "void;\r\n  currentBlocks: NoteBlock[];\r\n}\r\n\r\nconst COLORS = [\r\n  'from-rose-500 to-red-600',\r\n  'from-amber-400 to-orange-500',\r\n  'from-emerald-400 to-teal-500',\r\n  'from-blue-500 to-indigo-600',\r\n  'from-violet-500 to-purple-600',\r\n  'from-fuchsia-500 to-pink-600',\r\n  'from-slate-700 to-slate-900', // Monochrome\r\n];\r\n\r\nconst EMOJIS = ['📝', '🧠', '🏛️', '🏃', '💡', '✅', '📊', '📅', '🚀', '🧘'];\r\n\r\nexport const SaveBlueprintModal: React.FC"
+      "void;\r\n  currentBlocks: NoteBlock[];\r\n  existingBlueprint?: NoteBlueprint | null;\r\n}\r\n\r\nconst COLORS = [\r\n  'from-rose-500 to-red-600',\r\n  'from-amber-400 to-orange-500',\r\n  'from-emerald-400 to-teal-500',\r\n  'from-blue-500 to-indigo-600',\r\n  'from-violet-500 to-purple-600',\r\n  'from-fuchsia-500 to-pink-600',\r\n  'from-slate-700 to-slate-900', // Monochrome\r\n];\r\n\r\nconst EMOJIS = ['📝', '🧠', '🏛️', '🏃', '💡', '✅', '📊', '📅', '🚀', '🧘'];\r\n\r\nexport const SaveBlueprintModal: React.FC"
     ]
   },
   {
@@ -1006,23 +1221,17 @@
       "No items found",
       ") : (\r\n filteredItems.map(item => (",
       "setSelectedItem(item)}\r\n className=\"bg-[#111] border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group\"\r\n >",
-      ":\r\n item.type === 'NOTE' ?",
-      "setIsUnlocked(false)}\r\n className=\"flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5 backdrop-blur-sm transform-gpu \"\r\n >",
+      "setIsUnlocked(false)}\r\n className=\"flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5\"\r\n >",
       "Lock Vault",
-      ": t === 'NOTE' ?",
       "Title",
       "Username / Email",
       "setSecondaryValue(e.target.value)}\r\n className=\"w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30\"\r\n />\r\n {secondaryValue && (",
       "copyToClipboard(secondaryValue)} className=\"absolute right-3 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-white\">",
       "setShowValue(!showValue)} className=\"p-2 text-white/40 hover:text-white\">\r\n {showValue ?",
       "copyToClipboard(value)} className=\"p-2 text-white/40 hover:text-white\">",
-      "Expiry",
-      "setSecondaryValue(e.target.value)}\r\n className=\"w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30 text-center\"\r\n />",
-      "CVV",
       "Save Item",
       "Access Vault",
-      "Search vault...",
-      "MM/YY"
+      "Search vault..."
     ]
   },
   {
@@ -1062,8 +1271,10 @@
       "(undefined);\r\n const [draftProjectId, setDraftProjectId] = useState",
       "(undefined);\r\n const [draftDate, setDraftDate] = useState",
       "(new Date());\r\n const [currentMonth, setCurrentMonth] = useState(new Date());\r\n const [showStats, setShowStats] = useState(false);\r\n const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);\r\n const [moodSplash, setMoodSplash] = useState",
-      "(null);\r\n\r\n // Config & Security\r\n const [configOpen, setConfigOpen] = useState(false);\r\n const [config, setConfig] = useState",
+      "(null);\r\n const editorScrollContainerRef = useRef",
+      "(() => getInitialNotesConfig(user?.id));\r\n\r\n const [isLocked, setIsLocked] = useState(false);\r\n const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);\r\n const [recoveryInput, setRecoveryInput] = useState('');\r\n const [isRecoveryMode, setIsRecoveryMode] = useState(false);\r\n const [pendingAction, setPendingAction] = useState",
       "([]);\r\n const [selectedMemory, setSelectedMemory] = useState",
+      "(null);\r\n const [selectedQuest, setSelectedQuest] = useState",
       "('ALL');\r\n const [filterTheme, setFilterTheme] = useState",
       "calculateStreak(journalEntries), [journalEntries]);\r\n const themeColorMap = useMemo(() => new Map(NOTE_THEMES.map(t => [t.id, t.color])), []);\r\n const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);\r\n const journalEntryMap = useMemo(() => {\r\n const map = new Map",
       "Security Challenge",
@@ -1080,12 +1291,13 @@
       "Journal Locked",
       "setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className=\"p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors\">",
       "setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className=\"p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors\">",
-      ") : mood ? (\r\n // Fix: Overlap logic. Make emoji large but behind? Or just manageable size?\r\n // User wants: \"ambos emoji como el numero de la fecha, convivan y se puedan ver ambos\"\r\n // Let's put emoji in center and date at bottom right, ensuring no overlap or readable overlap.",
-      ") : isFuture ? (",
+      ") : (!specialEvent && (!dayQuests || dayQuests.length === 0) && isFuture) ? (",
+      ") : (dayQuests && dayQuests.length > 0) ? (",
       "Untitled Entry",
       "Empty page...",
       "setShowSaveBlueprintModal(true)} className=\"hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors\" title=\"Save as Blueprint\">",
-      "setSelectedMemory(activeSpecialEvent)}\r\n className=\"mb-6 w-full max-w-sm rounded-[24px] bg-gradient-to-b from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.1)] relative overflow-hidden group\"\r\n >",
+      "setSelectedMemory(activeSpecialEvent)}\r\n                        className=\"w-full rounded-[24px] bg-gradient-to-r from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.05)] group relative overflow-hidden\"\r\n                      >",
+      "Tarea Repetida",
       "setSelectedMemory(null)}\r\n className=\"w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors\"\r\n >",
       "Date & Time",
       "Note",
@@ -1097,27 +1309,6 @@
       "Notebook View",
       "Enter PIN",
       "Save as Blueprint"
-    ]
-  },
-  {
-    "file": "\\modules\\notifications\\NotificationSettings.tsx",
-    "texts": [
-      "Calibrating...",
-      ";\r\n\r\n  return (",
-      "Enable Neural Updates?",
-      "Lux needs permission to send you critical protocol reminders,",
-      "setShowPermissionModal(false)}\r\n                      className=\"flex-1 py-3 rounded-xl bg-white/5 border border-white/5 text-white/50 text-sm hover:bg-white/10\"\r\n                    >\r\n                      Ignore",
-      "Connect",
-      "System Alerts",
-      "Allow Lux to contact you",
-      "Initialize",
-      "ACTIVE",
-      "Daily Protocol Sync",
-      "Sync Time",
-      "Active Days",
-      "Diagnostics",
-      "notificationService.testLocalNotification(\"Test Protocol\", \"Visual and Haptic Feedback Operational.\")}\r\n                            className=\"text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1.5 rounded hover:bg-indigo-500/30 transition-colors\"\r\n                        >\r\n                            Test Local Alert",
-      "Verify Timing Logic"
     ]
   },
   {
@@ -1135,28 +1326,20 @@
     ]
   },
   {
-    "file": "\\modules\\onboarding\\components\\TraitSelector.tsx",
-    "texts": [
-      "t !== id));\r\n    } else {\r\n      if (selected.length",
-      "Intelligence Profile",
-      "Your Edge",
-      "Select up to 3 dominant traits."
-    ]
-  },
-  {
     "file": "\\modules\\onboarding\\OnboardingFlow.tsx",
     "texts": [
       "('avatar');\r\n  \r\n  const [selectedTraits, setSelectedTraits] = useState",
-      "([lockedTraitId]);\r\n  const [selectedAvatarId, setSelectedAvatarId] = useState",
+      "(lockedTraitIds);\r\n  const [selectedAvatarId, setSelectedAvatarId] = useState",
       "(null);\r\n  const [showScrollHint, setShowScrollHint] = useState(true);\r\n  const traitsScrollRef = useRef",
       "(null);\r\n  const safetyTimerRef = useRef",
-      "t !== id));\r\n    } else {\r\n      if (selectedTraits.length",
+      "!lockedTraitIds.includes(t));\r\n      if (freeSelected.length",
+      "!lockedTraitIds.includes(t)).length",
       "System Error: Traits module offline.",
       "window.location.reload()}\r\n                                  className=\"px-6 py-2 bg-white/10 rounded-full text-white text-sm hover:bg-white/20 transition-all border border-white/10\"\r\n                              >\r\n                                  Reinitialize",
       "Scroll",
       "Initializing Matrix...",
       "Synchronizing Neural Interface",
-      "0 && selectedTraits.length"
+      "!lockedTraitIds.includes(t)).length >= 1 && ("
     ]
   },
   {
@@ -1195,6 +1378,7 @@
       ";\r\n      case 'neural': return",
       ";\r\n      case 'system': return",
       ";\r\n      case 'account': return",
+      ";\r\n      case 'data': return",
       ";\r\n      default: return",
       ";\r\n    }\r\n  };\r\n\r\n  return ("
     ]
@@ -1202,17 +1386,55 @@
   {
     "file": "\\modules\\settings\\sections\\AccountSection.tsx",
     "texts": [
-      "setShowLogoutConfirm(true)}\r\n          className=\"w-full flex items-center gap-4 p-5 bg-gradient-to-br from-red-500/5 to-red-900/10 hover:from-red-500/10 hover:to-red-900/20 rounded-[20px] border border-red-500/10 hover:border-red-500/30 transition-all group active:scale-[0.98]\"\r\n        >"
+      "Cuentas Vinculadas",
+      "Google",
+      "handleUnlinkGoogle()}\r\n                  disabled={linkedIdentities.length",
+      "Desvincular",
+      ") : isLinkingGoogle ? (",
+      "setTargetGoogleEmail(e.target.value)}\r\n                    className=\"bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-white text-xs outline-none focus:border-blue-500 w-36\"\r\n                    autoFocus\r\n                  />",
+      "setIsLinkingGoogle(false)}\r\n                    className=\"p-1.5 rounded-md bg-white/10 text-white/60 hover:bg-white/20\"\r\n                  >",
+      "setIsLinkingGoogle(true)}\r\n                  className=\"flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-medium transition-colors\"\r\n                >",
+      "Vincular",
+      "Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google.",
+      "setShowLogoutConfirm(true)}\r\n          className=\"w-full flex items-center gap-4 p-5 bg-gradient-to-br from-red-500/5 to-red-900/10 hover:from-red-500/10 hover:to-red-900/20 rounded-[20px] border border-red-500/10 hover:border-red-500/30 transition-all group active:scale-[0.98]\"\r\n        >",
+      "Correo de Google..."
+    ]
+  },
+  {
+    "file": "\\modules\\settings\\sections\\DataSection.tsx",
+    "texts": [
+      "(null);\n    const fileInputRef = useRef"
     ]
   },
   {
     "file": "\\modules\\settings\\sections\\NeuralSection.tsx",
     "texts": [
-      "(null);\r\n  const [editForm, setEditForm] = useState",
+      "(null);\r\n  const [deletingId, setDeletingId] = useState",
+      "(null);\r\n  const [isCreating, setIsCreating] = useState(false);\r\n  const [editForm, setEditForm] = useState",
+      "setIsCreating(false)} className=\"p-2.5 bg-white/10 text-white/60 rounded-xl hover:bg-white/20 transition-colors shadow-sm\">",
       "setEditingId(null)} className=\"p-2.5 bg-white/10 text-white/60 rounded-xl hover:bg-white/20 transition-colors shadow-sm\">",
+      "Sub-Rasgos",
+      "Añadir Sub-Rasgo",
+      "Sugerencias (Añadir al instante):",
+      "(hacer clic para cambiar)",
+      ");\r\n                            }\r\n\r\n                            const SubIcon = (LucideIcons as any)[st.iconName || 'Hexagon'] || Hexagon;\r\n\r\n                            return (",
+      "Sin sub-rasgos. Crea uno para especializarte.",
       "startEditing(attr)}\r\n                        className=\"p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-colors\"\r\n                      >",
       "removeAttribute(attr.id)}\r\n                          className=\"p-2 text-rose-400/40 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors\"\r\n                        >",
-      "handleAddAttribute(trait.id)}\r\n                  className=\"w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.06] border border-transparent hover:border-white/[0.05] transition-all group text-left relative overflow-hidden\"\r\n                >"
+      "¿Eliminar este rasgo DEFINITIVAMENTE?",
+      "NO PODRÁS RECUPERARLO.",
+      "handlePermanentDelete(trait.id)}\r\n                          className=\"flex-1 p-2 bg-rose-500 text-white text-xs font-bold rounded-lg hover:bg-rose-600 transition-colors\"\r\n                        >\r\n                          Sí, eliminar",
+      "setDeletingId(null)}\r\n                          className=\"flex-1 p-2 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-colors\"\r\n                        >\r\n                          Cancelar",
+      "handleAddAttribute(trait.id)}\r\n                        className=\"flex-1 flex items-center gap-4 p-3 text-left relative\"\r\n                      >",
+      "setDeletingId(trait.id)}\r\n                        className=\"p-3 text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors z-10 h-full\"\r\n                        title=\"Eliminar definitivamente\"\r\n                      >",
+      "PRO",
+      "Trait Name",
+      "Nombre (ej. Cardio)...",
+      "Crear sub-rasgo (Enter)",
+      "Nombre...",
+      "Editar",
+      "Eliminar",
+      "Eliminar definitivamente"
     ]
   },
   {
@@ -1220,16 +1442,28 @@
     "texts": [
       "English",
       "Español",
-      ";\r\n\r\n              return ("
+      "Dashboard Layout",
+      "Select dock style",
+      "Legacy Dock",
+      "Aura Dock",
+      ";\r\n\r\n return ("
     ]
   },
   {
     "file": "\\modules\\settings\\SettingsContext.tsx",
     "texts": [
-      "void;\r\n  closeSettings: () => void;\r\n\r\n  // Theme & Visuals\r\n  currentTheme: ThemeId | string;\r\n  setTheme: (theme: ThemeId) => void;\r\n  vividMode: boolean;\r\n  toggleVividMode: (enabled: boolean) => void;\r\n  dashboardStyle: 'BORDER' | 'LIQUID' | 'GLASS';\r\n  setDashboardStyle: (style: 'BORDER' | 'LIQUID' | 'GLASS') => void;\r\n  avatarShape: 'CIRCLE' | 'SQUARE';\r\n  setAvatarShape: (shape: 'CIRCLE' | 'SQUARE') => void;\r\n\r\n  // Profile & Attributes\r\n  showProfile: boolean;\r\n  toggleProfile: (show: boolean) => void;\r\n  attributes: Attribute[];\r\n  updateAttribute: (id: string, updates: Partial",
-      "void;\r\n  defaultProjectView: 'PROJECT' | 'TRAIT' | 'NONE';\r\n  updateDefaultProjectView: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;\r\n\r\n  // Account\r\n  isPro: boolean;\r\n  showProModal: () => void;\r\n  logout: () => Promise",
+      "void;\r\n  closeSettings: () => void;\r\n\r\n  // Theme & Visuals\r\n  currentTheme: ThemeId | string;\r\n  setTheme: (theme: ThemeId) => void;\r\n  vividMode: boolean;\r\n  toggleVividMode: (enabled: boolean) => void;\r\n  dashboardStyle: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';\r\n  setDashboardStyle: (style: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA') => void;\r\n  avatarShape: 'CIRCLE' | 'SQUARE';\r\n  setAvatarShape: (shape: 'CIRCLE' | 'SQUARE') => void;\r\n\r\n  // Profile & Attributes\r\n  showProfile: boolean;\r\n  toggleProfile: (show: boolean) => void;\r\n  attributes: Attribute[];\r\n  updateAttribute: (id: string, updates: Partial",
+      ") => void;\r\n  addAttribute: (id: string) => void;\r\n  addCustomAttribute: (attr: Omit",
+      ") => void;\r\n  removeAttribute: (id: string) => void;\r\n  addSubTrait: (parentAttrId: string, name: string, iconName: string) => Promise",
+      ";\r\n  updateSubTrait: (parentAttrId: string, subTraitId: string, updates: any) => Promise",
+      ";\r\n  deleteSubTrait: (parentAttrId: string, subTraitId: string) => Promise",
+      "void;\r\n\r\n  // Account\r\n  isPro: boolean;\r\n  showProModal: () => void;\r\n  logout: () => Promise",
       ";\r\n  user: any;\r\n}\r\n\r\nconst SettingsContext = createContext",
-      "(undefined);\r\n\r\ninterface SettingsProviderProps {\r\n  children: ReactNode;\r\n  onClose: () => void;\r\n  // ... all the props from SettingsView\r\n  initialTab?: string;\r\n  currentTheme: ThemeId | string;\r\n  onThemeToggle: (theme: ThemeId) => void;\r\n  showProfile: boolean;\r\n  onToggleProfile: (show: boolean) => void;\r\n  defaultChartMode: 'RADAR' | 'BAR';\r\n  onSetDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;\r\n  attributes?: Attribute[];\r\n  onUpdateAttribute?: (id: string, updates: Partial"
+      "(undefined);\r\n\r\ninterface SettingsProviderProps {\r\n  children: ReactNode;\r\n  onClose: () => void;\r\n  // ... all the props from SettingsView\r\n  initialTab?: string;\r\n  currentTheme: ThemeId | string;\r\n  onThemeToggle: (theme: ThemeId) => void;\r\n  showProfile: boolean;\r\n  onToggleProfile: (show: boolean) => void;\r\n  defaultChartMode: 'RADAR' | 'BAR';\r\n  onSetDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;\r\n  attributes?: Attribute[];\r\n  onUpdateAttribute?: (id: string, updates: Partial",
+      ") => void;\r\n  onAddAttribute?: (id: string) => void;\r\n  onAddCustomAttribute?: (attr: Omit",
+      ") => void;\r\n  onRemoveAttribute?: (id: string) => void;\r\n  onAddSubTrait?: (parentAttrId: string, name: string, iconName: string) => Promise",
+      "| void;\r\n  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise",
+      "| void;\r\n  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise"
     ]
   },
   {
@@ -1274,7 +1508,7 @@
       "(''); \r\n  const [inputType, setInputType] = useState",
       "('date');\r\n  const [duration, setDuration] = useState",
       "(null);\r\n  const [fractalPreview, setFractalPreview] = useState",
-      "setActiveField(null)}\r\n                                    className=\"w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-inner\" \r\n                                />"
+      "setActiveField(null)}\r\n                                    className=\"w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md\" \r\n                                />"
     ]
   },
   {
@@ -1317,16 +1551,6 @@
     ]
   },
   {
-    "file": "\\modules\\store\\components\\AdShard.tsx",
-    "texts": [
-      "Ver Transmisión",
-      "+50 ORO",
-      "Espacio Publicitario",
-      "Aquí puedes integrar tu etiqueta de Google Ads (AdSense o AdMob).",
-      "Continuar"
-    ]
-  },
-  {
     "file": "\\modules\\store\\components\\GoldCounter.tsx",
     "texts": [
       "unsubscribe();\r\n  }, [value, spring, displayValue]);\r\n\r\n  return"
@@ -1344,9 +1568,16 @@
     "texts": [
       "unsubscribe();\r\n  }, [value, spring, displayValue]);\r\n\r\n  return",
       ";\r\n};\r\n\r\n// Icon Map (Should be shared but keeping simple for now)\r\nconst IconMap: Record",
+      "setIsFlying(false)}\r\n                            className=\"absolute z-[110] w-16 h-16 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-500 flex items-center justify-center text-black shadow-lg pointer-events-none\"\r\n                        >",
+      "¡COMPRA EXITOSA!",
+      "Has adquirido",
+      ". El objeto ha sido enviado a tu inventario.",
+      "Ir al Inventario",
+      "Seguir Comprando",
       "('all');\r\n  \r\n  // Confirmation State\r\n  const [itemToBuy, setItemToBuy] = useState",
+      "(null);\r\n  const [successItem, setSuccessItem] = useState",
       "))\r\n                ) : (\r\n                    inventory.length > 0 ? inventory.map((invItem) => {\r\n                        const storeItem = storeItems.find(si => si.id === invItem.itemId);\r\n                        if (!storeItem) return null;\r\n                        const Icon = IconMap[storeItem.iconName || 'ShoppingBag'] || ShoppingBag;\r\n                        return (",
-      ");\r\n};\r\n\r\nexport const StoreScreen = (props: StoreScreenProps) => {\r\n  return ("
+      ");\r\n};\r\n\r\nconst StoreScreenComponent = (props: StoreScreenProps) => {\r\n  return ("
     ]
   },
   {
@@ -1381,10 +1612,10 @@
     "file": "\\modules\\tasks\\TaskList.tsx",
     "texts": [
       "void;\r\n onDeleteQuest?: (id: string) => void;\r\n onEditQuest?: (quest: Quest) => void;\r\n onAddQuest?: () => void;\r\n onFocusProject?: (projectId: string) => void;\r\n defaultChartViews?: any;\r\n}\r\n\r\n// Optimization: Memoized Item Wrapper\r\nconst MemoizedQuestItem = React.memo(QuestItem);\r\n\r\nexport const TaskList: React.FC",
-      "(defaultChartViews?.tasks || 'ALL');\r\n const [currentDate, setCurrentDate] = useState(new Date());\r\n const [isDateModalOpen, setIsDateModalOpen] = useState(false);\r\n\r\n const [traitFilter, setTraitFilter] = useState",
-      "('all');\r\n const [typeFilter, setTypeFilter] = useState",
-      "('all');\r\n const [difficultyFilter, setDifficultyFilter] = useState",
-      "('all');\r\n const [hideCompleted, setHideCompleted] = useState",
+      "(defaultTaskFilters.timeframe || defaultChartViews?.tasks || 'ALL');\r\n const [currentDate, setCurrentDate] = useState(new Date());\r\n const [isDateModalOpen, setIsDateModalOpen] = useState(false);\r\n\r\n const [traitFilter, setTraitFilter] = useState",
+      "(defaultTaskFilters.traitFilter || 'all');\r\n const [typeFilter, setTypeFilter] = useState",
+      "(defaultTaskFilters.typeFilter || 'all');\r\n const [difficultyFilter, setDifficultyFilter] = useState",
+      "(defaultTaskFilters.difficultyFilter || 'all');\r\n const [hideCompleted, setHideCompleted] = useState",
       "(null);\r\n const filtersRef = useRef",
       "(null);\r\n const ITEM_ESTIMATE = 160; // Reduced slightly to ensure density\r\n const OVERSCAN = 5;\r\n const [scrollTop, setScrollTop] = useState(0);\r\n const [viewportHeight, setViewportHeight] = useState(600); // Default estimate\r\n\r\n // Only virtualize if list is long enough\r\n const isVirtualized = sortedQuests.length > 20;\r\n\r\n const handleScroll = useCallback((e: React.UIEvent",
       "= 999999 ? '∞' : Math.round(maxTaskGold).toString();\r\n\r\n return (",
@@ -1398,28 +1629,28 @@
   {
     "file": "\\plugins\\FocusPlugin.ts",
     "texts": [
-      ";\r\n  stop(): Promise",
-      ";\r\n  pause(): Promise",
-      ";\r\n  resume(): Promise",
-      ";\r\n  \r\n  // Advanced Permissions\r\n  checkPermissions(): Promise",
-      ";\r\n  requestBatteryPermission(): Promise",
-      ";\r\n  requestOverlayPermission(): Promise",
-      ";\r\n  openNotificationSettings(): Promise",
-      ";\r\n\r\n  // Privacy\r\n  enablePrivacy(): Promise",
-      ";\r\n  disablePrivacy(): Promise",
-      ";\r\n}\r\n\r\nconst FocusSession = registerPlugin"
+      ";\n    requestExactAlarmPermission(): Promise",
+      ";\n    requestBatteryPermission(): Promise",
+      ";\n    openNotificationSettings(): Promise",
+      ";\n    stop(): Promise",
+      ";\n    pause(): Promise",
+      ";\n    resume(): Promise",
+      ";\n    enablePrivacy(): Promise",
+      ";\n    disablePrivacy(): Promise",
+      ";\n    addListener(eventName: string, listenerFunc: (info: any) => void): Promise",
+      "void }>;\n}\n\nconst FocusSession = registerPlugin"
     ]
   },
   {
     "file": "\\services\\achievementListener.ts",
     "texts": [
-      "();\r\n\r\nexport const checkAchievements = async (\r\n  user: UserData,\r\n  attributes?: Attribute[],\r\n  triggerCategory?: AchievementCategory\r\n): Promise"
+      "();\r\nlet firestoreAchievementsPromise: Promise"
     ]
   },
   {
     "file": "\\services\\economyService.ts",
     "texts": [
-      "i.itemId === itemId);\r\n            \r\n            if (itemIndex === -1 || inventory[itemIndex].quantity"
+      "i.itemId === itemId);\n    \n    if (itemIndex === -1 || inventory[itemIndex].quantity"
     ]
   },
   {
@@ -1432,7 +1663,10 @@
     "file": "\\services\\notificationService.ts",
     "texts": [
       "n.id >= 100 && n.id",
-      "0 && diff"
+      "n.id === baseId || (n.id >= baseId && n.id",
+      "0 && diff",
+      "(uid, 'habits') || [];\r\n      const projects = PersistenceService.getCollection",
+      "(uid, 'projects') || [];\r\n      const quests = PersistenceService.getCollection"
     ]
   },
   {
@@ -1443,7 +1677,7 @@
       "| null => {\r\n  if (!raw) return null;\r\n  try {\r\n    const parsed = JSON.parse(raw) as PersistedEnvelope",
       "(key: string, uid: string): T | null => {\r\n  const primary = parseEnvelope",
       "(safeStorage.getItem(key), uid);\r\n  if (primary) return primary.data;\r\n  \r\n  const backupRaw = safeStorage.getItem(key + '_BACKUP');\r\n  const backup = parseEnvelope",
-      "(userId: string, collectionName: string): T[] | null => {\r\n    try {\r\n      const key = buildCollectionKey(userId, collectionName);\r\n      return readWithBackup",
+      "(userId: string, collectionName: string): T[] | null => {\r\n    try {\r\n      const key = buildCollectionKey(userId, collectionName);\r\n      \r\n      // EMERGENCY RECOVERY: If main cache is an empty array but backup is populated, restore from backup!\r\n      const mainStr = safeStorage.getItem(key);\r\n      const backupStr = safeStorage.getItem(key + '_BACKUP');\r\n      \r\n      let mainData: any[] | null = null;\r\n      let backupData: any[] | null = null;\r\n      \r\n      if (mainStr) {\r\n          try {\r\n              const parsed = JSON.parse(mainStr) as PersistedEnvelope",
       "(userId: string, collectionName: string): T[] | null => {\r\n    try {\r\n      const key = buildCollectionSafeKey(userId, collectionName);\r\n      return readWithBackup"
     ]
   },
@@ -1459,13 +1693,10 @@
       "('journal');\r\nexport const attributeService = createSubCollectionService",
       "('attributes');\r\nexport const smartProjectService = createSubCollectionService",
       "('smartProjects');\r\nexport const projectService = createSubCollectionService",
-      "('projects');\r\nexport const badHabitService = createSubCollectionService"
-    ]
-  },
-  {
-    "file": "\\services\\phantom.ts",
-    "texts": [
-      "Promise"
+      "('projects');\r\nexport const badHabitService = createSubCollectionService",
+      "('badHabits');\r\nexport const specialEventsService = createSubCollectionService",
+      "('specialEvents');\r\nexport const secureNotesService = createSubCollectionService",
+      "('secureNotes');\r\nexport const dailyFeedService = createSubCollectionService"
     ]
   },
   {
@@ -1511,6 +1742,12 @@
       "= periodStart && sDate",
       "0 ? 1 : 0;\r\n            }\r\n\r\n        } else {\r\n            // Specific Dates or Default\r\n            const tempDate = new Date(today);\r\n            while (tempDate",
       "0 ? project.workingDays : undefined;\r\n    let strictRemainingDays = 0;\r\n    let physicalRemainingDays = 0;\r\n    \r\n    // First pass: Count strictly working days AND physical days\r\n    const tempPhysicalDate = new Date(today);\r\n    while (tempPhysicalDate"
+    ]
+  },
+  {
+    "file": "\\utils\\rewardCalculator.ts",
+    "texts": [
+      "= 0) ? estimatedTime : 15;\r\n  const hours = minutes / 60;\r\n  \r\n  // 1. Base Rewards for Duration\r\n  // Habits use an increased timeModifier (0.35), Tasks restored to original (0.18)\r\n  // Boost initial task rewards for tasks under 1 hour, smoothly regularizing back to 0.18 at 1 hour.\r\n  let timeModifier = type === 'HABIT' ? 0.35 : 0.18; \r\n  if (type === 'TASK' && hours"
     ]
   }
 ]

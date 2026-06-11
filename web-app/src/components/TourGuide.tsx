@@ -168,6 +168,7 @@ const TourOverlay: React.FC<{
  onPrev: () => void;
  onEnd: () => void;
 }> = ({ step, currentStep, totalSteps, onNext, onPrev, onEnd }) => {
+ const { t } = useTranslation();
  const [rect, setRect] = useState<DOMRect | null>(null);
  const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
 
@@ -366,12 +367,12 @@ const TourOverlay: React.FC<{
  {step.interaction === 'click' && hole ? (
  <div className="h-9 px-4 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[13px] font-bold flex items-center gap-2">
  <Pointer size={14} className="animate-bounce" />
- <span className="hidden sm:inline">Haz click en el área resaltada</span>
- <span className="sm:hidden">Pulsa el área</span>
+ <span className="hidden sm:inline">{t('tour.clickHighlighted', 'Click the highlighted area')}</span>
+ <span className="sm:hidden">{t('tour.tapArea', 'Tap the area')}</span>
  </div>
  ) : (
  <button onClick={onNext} className="h-9 px-5 rounded-full bg-white text-black hover:bg-gray-200 text-[14px] font-bold transition-transform active:scale-95 flex items-center gap-1.5 shadow-lg shadow-white/20">
- <span>{currentStep === totalSteps - 1 ? 'Finalizar' : 'Siguiente'}</span>
+ <span>{currentStep === totalSteps - 1 ? t('tour.finish', 'Finish') : t('tour.next', 'Next')}</span>
  {currentStep === totalSteps - 1 ? <Check size={16} /> : <ChevronRight size={16} />}
  </button>
  )}

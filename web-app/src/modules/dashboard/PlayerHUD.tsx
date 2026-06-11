@@ -39,76 +39,148 @@ const getTraitColor = (traitId: string): 'indigo' | 'cyan' | 'emerald' | 'rose' 
  return map[traitId] || 'indigo';
 };
 
-const SUBTRAIT_PRESETS: Record<string, { name: string; iconName: string }[]> = {
- FISICO: [
-   { name: 'Cardio', iconName: 'Heart' },
-   { name: 'Fuerza', iconName: 'Dumbbell' },
-   { name: 'Flexibilidad', iconName: 'Wind' },
-   { name: 'Resistencia', iconName: 'Zap' },
- ],
- MENTAL: [
-   { name: 'Estudio', iconName: 'BookOpen' },
-   { name: 'Programación', iconName: 'Code' },
-   { name: 'Lectura', iconName: 'Book' },
-   { name: 'Idiomas', iconName: 'Languages' },
- ],
- CREATIVIDAD: [
-   { name: 'Dibujo', iconName: 'Palette' },
-   { name: 'Música', iconName: 'Music' },
-   { name: 'Fotografía', iconName: 'Camera' },
-   { name: 'Edición', iconName: 'Video' },
- ],
- SOCIAL: [
-   { name: 'Oratoria', iconName: 'Mic' },
-   { name: 'Empatía', iconName: 'HeartHandshake' },
-   { name: 'Idiomas', iconName: 'Languages' },
-   { name: 'Carisma', iconName: 'Sparkles' },
- ],
- ESPIRITU: [
-   { name: 'Meditación', iconName: 'Smile' },
-   { name: 'Yoga', iconName: 'Flower2' },
-   { name: 'Mindfulness', iconName: 'Compass' },
-   { name: 'Estoicismo', iconName: 'Shield' },
- ],
- FINANZAS: [
-   { name: 'Ahorro', iconName: 'PiggyBank' },
-   { name: 'Inversión', iconName: 'TrendingUp' },
-   { name: 'Presupuesto', iconName: 'Coins' },
-   { name: 'Negocios', iconName: 'Briefcase' },
- ],
- ORDEN: [
-   { name: 'Limpieza', iconName: 'Trash2' },
-   { name: 'Organización', iconName: 'Grid' },
-   { name: 'Rutinas', iconName: 'Calendar' },
-   { name: 'Minimalismo', iconName: 'Minimize2' },
- ],
- VITALIDAD: [
-   { name: 'Nutrición', iconName: 'Apple' },
-   { name: 'Sueño', iconName: 'Moon' },
-   { name: 'Hidratación', iconName: 'Droplet' },
-   { name: 'Descanso', iconName: 'Sun' },
- ],
- LIDERAZGO: [
-   { name: 'Oratoria', iconName: 'Mic' },
-   { name: 'Gestión', iconName: 'FolderKanban' },
-   { name: 'Negociación', iconName: 'Briefcase' },
-   { name: 'Delegación', iconName: 'Share2' },
- ],
- RESILIENCIA: [
-   { name: 'Estoicismo', iconName: 'ShieldAlert' },
-   { name: 'Paciencia', iconName: 'Hourglass' },
-   { name: 'Adaptabilidad', iconName: 'RefreshCw' },
- ],
- ESTILO: [
-   { name: 'Moda', iconName: 'Shirt' },
-   { name: 'Higiene', iconName: 'Sparkles' },
-   { name: 'Postura', iconName: 'Accessibility' },
- ],
- DISCIPLINA: [
-   { name: 'Foco', iconName: 'Target' },
-   { name: 'Puntualidad', iconName: 'Clock' },
-   { name: 'Consistencia', iconName: 'Flame' },
- ],
+const SUBTRAIT_PRESETS_ES: Record<string, { name: string; iconName: string }[]> = {
+  FISICO: [
+    { name: 'Cardio', iconName: 'Heart' },
+    { name: 'Fuerza', iconName: 'Dumbbell' },
+    { name: 'Flexibilidad', iconName: 'Wind' },
+    { name: 'Resistencia', iconName: 'Zap' },
+  ],
+  MENTAL: [
+    { name: 'Estudio', iconName: 'BookOpen' },
+    { name: 'Programación', iconName: 'Code' },
+    { name: 'Lectura', iconName: 'Book' },
+    { name: 'Idiomas', iconName: 'Languages' },
+  ],
+  CREATIVIDAD: [
+    { name: 'Dibujo', iconName: 'Palette' },
+    { name: 'Música', iconName: 'Music' },
+    { name: 'Fotografía', iconName: 'Camera' },
+    { name: 'Edición', iconName: 'Video' },
+  ],
+  SOCIAL: [
+    { name: 'Oratoria', iconName: 'Mic' },
+    { name: 'Empatía', iconName: 'HeartHandshake' },
+    { name: 'Idiomas', iconName: 'Languages' },
+    { name: 'Carisma', iconName: 'Sparkles' },
+  ],
+  ESPIRITU: [
+    { name: 'Meditación', iconName: 'Smile' },
+    { name: 'Yoga', iconName: 'Flower2' },
+    { name: 'Mindfulness', iconName: 'Compass' },
+    { name: 'Estoicismo', iconName: 'Shield' },
+  ],
+  FINANZAS: [
+    { name: 'Ahorro', iconName: 'PiggyBank' },
+    { name: 'Inversión', iconName: 'TrendingUp' },
+    { name: 'Presupuesto', iconName: 'Coins' },
+    { name: 'Negocios', iconName: 'Briefcase' },
+  ],
+  ORDEN: [
+    { name: 'Limpieza', iconName: 'Trash2' },
+    { name: 'Organización', iconName: 'Grid' },
+    { name: 'Rutinas', iconName: 'Calendar' },
+    { name: 'Minimalismo', iconName: 'Minimize2' },
+  ],
+  VITALIDAD: [
+    { name: 'Nutrición', iconName: 'Apple' },
+    { name: 'Sueño', iconName: 'Moon' },
+    { name: 'Hidratación', iconName: 'Droplet' },
+    { name: 'Descanso', iconName: 'Sun' },
+  ],
+  LIDERAZGO: [
+    { name: 'Oratoria', iconName: 'Mic' },
+    { name: 'Gestión', iconName: 'FolderKanban' },
+    { name: 'Negociación', iconName: 'Briefcase' },
+    { name: 'Delegación', iconName: 'Share2' },
+  ],
+  RESILIENCIA: [
+    { name: 'Estoicismo', iconName: 'ShieldAlert' },
+    { name: 'Paciencia', iconName: 'Hourglass' },
+    { name: 'Adaptabilidad', iconName: 'RefreshCw' },
+  ],
+  ESTILO: [
+    { name: 'Moda', iconName: 'Shirt' },
+    { name: 'Higiene', iconName: 'Sparkles' },
+    { name: 'Postura', iconName: 'Accessibility' },
+  ],
+  DISCIPLINA: [
+    { name: 'Foco', iconName: 'Target' },
+    { name: 'Puntualidad', iconName: 'Clock' },
+    { name: 'Consistencia', iconName: 'Flame' },
+  ],
+};
+
+const SUBTRAIT_PRESETS_EN: Record<string, { name: string; iconName: string }[]> = {
+  FISICO: [
+    { name: 'Cardio', iconName: 'Heart' },
+    { name: 'Strength', iconName: 'Dumbbell' },
+    { name: 'Flexibility', iconName: 'Wind' },
+    { name: 'Endurance', iconName: 'Zap' },
+  ],
+  MENTAL: [
+    { name: 'Study', iconName: 'BookOpen' },
+    { name: 'Programming', iconName: 'Code' },
+    { name: 'Reading', iconName: 'Book' },
+    { name: 'Languages', iconName: 'Languages' },
+  ],
+  CREATIVIDAD: [
+    { name: 'Drawing', iconName: 'Palette' },
+    { name: 'Music', iconName: 'Music' },
+    { name: 'Photography', iconName: 'Camera' },
+    { name: 'Editing', iconName: 'Video' },
+  ],
+  SOCIAL: [
+    { name: 'Public Speaking', iconName: 'Mic' },
+    { name: 'Empathy', iconName: 'HeartHandshake' },
+    { name: 'Languages', iconName: 'Languages' },
+    { name: 'Charisma', iconName: 'Sparkles' },
+  ],
+  ESPIRITU: [
+    { name: 'Meditation', iconName: 'Smile' },
+    { name: 'Yoga', iconName: 'Flower2' },
+    { name: 'Mindfulness', iconName: 'Compass' },
+    { name: 'Stoicism', iconName: 'Shield' },
+  ],
+  FINANZAS: [
+    { name: 'Savings', iconName: 'PiggyBank' },
+    { name: 'Investment', iconName: 'TrendingUp' },
+    { name: 'Budget', iconName: 'Coins' },
+    { name: 'Business', iconName: 'Briefcase' },
+  ],
+  ORDEN: [
+    { name: 'Cleaning', iconName: 'Trash2' },
+    { name: 'Organization', iconName: 'Grid' },
+    { name: 'Routines', iconName: 'Calendar' },
+    { name: 'Minimalism', iconName: 'Minimize2' },
+  ],
+  VITALIDAD: [
+    { name: 'Nutrition', iconName: 'Apple' },
+    { name: 'Sleep', iconName: 'Moon' },
+    { name: 'Hydration', iconName: 'Droplet' },
+    { name: 'Rest', iconName: 'Sun' },
+  ],
+  LIDERAZGO: [
+    { name: 'Public Speaking', iconName: 'Mic' },
+    { name: 'Management', iconName: 'FolderKanban' },
+    { name: 'Negotiation', iconName: 'Briefcase' },
+    { name: 'Delegation', iconName: 'Share2' },
+  ],
+  RESILIENCIA: [
+    { name: 'Stoicism', iconName: 'ShieldAlert' },
+    { name: 'Patience', iconName: 'Hourglass' },
+    { name: 'Adaptability', iconName: 'RefreshCw' },
+  ],
+  ESTILO: [
+    { name: 'Fashion', iconName: 'Shirt' },
+    { name: 'Hygiene', iconName: 'Sparkles' },
+    { name: 'Posture', iconName: 'Accessibility' },
+  ],
+  DISCIPLINA: [
+    { name: 'Focus', iconName: 'Target' },
+    { name: 'Punctuality', iconName: 'Clock' },
+    { name: 'Consistency', iconName: 'Flame' },
+  ],
 };
 
 const renderLucideIcon = (iconName: string, size = 12, className = '') => {
@@ -132,7 +204,7 @@ const TraitBar = ({
  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise<void> | void;
  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise<void> | void;
 }) => {
- const { t } = useTranslation();
+ const { t, i18n } = useTranslation();
  const [isExpanded, setIsExpanded] = useState(false);
  
  // Creation state
@@ -152,7 +224,7 @@ const TraitBar = ({
  const Icon = attribute.icon || HelpCircle;
  const barColor = getTraitColor(attribute.id);
 
- const presets = SUBTRAIT_PRESETS[attribute.id] || [];
+ const presets = (i18n.language === 'es' ? SUBTRAIT_PRESETS_ES : SUBTRAIT_PRESETS_EN)[attribute.id] || [];
 
  const handleAddSubmit = (e: React.FormEvent) => {
    e.preventDefault();
@@ -244,7 +316,7 @@ const TraitBar = ({
                value={editSubName}
                onChange={(e) => setEditSubName(e.target.value)}
                maxLength={15}
-               placeholder="Nombre..."
+               placeholder={t('settings.subTraitNamePlaceholder', 'Name...')}
                className="flex-1 h-7 bg-white/5 rounded-lg px-2 text-[10px] font-bold text-white outline-none border border-white/10 focus:border-white/20"
              />
              <div className="flex gap-1 shrink-0">
@@ -306,19 +378,19 @@ const TraitBar = ({
                  setEditSubIcon(st.iconName || 'Hexagon');
                 }}
                 className="w-5 h-5 rounded hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
-                title="Editar"
+                title={t('settings.editSubTrait', 'Edit')}
               >
                 <LucideIcons.Edit2 size={10} />
               </button>
               <button
                 onClick={(e) => {
                  e.stopPropagation();
-                 if (onDeleteSubTrait && confirm(`¿Estás seguro de eliminar el sub-rasgo "${st.name}"?`)) {
+                 if (onDeleteSubTrait && confirm(t('settings.deleteSubTraitConfirm', { name: st.name }))) {
                    onDeleteSubTrait(attribute.id, st.id);
                  }
                 }}
                 className="w-5 h-5 rounded hover:bg-red-500/10 flex items-center justify-center text-white/40 hover:text-red-400 transition-colors"
-                title="Eliminar"
+                title={t('settings.deleteSubTrait', 'Delete')}
               >
                 <LucideIcons.Trash2 size={10} />
               </button>
@@ -338,7 +410,7 @@ const TraitBar = ({
        </div>
       ) : (
        <div className="text-[10px] text-white/20 text-center py-2 italic">
-        Sin sub-rasgos. Crea uno para especializarte.
+        {t('settings.noSubTraits', 'No sub-traits. Create one to specialize.')}
        </div>
       )}
 
@@ -351,7 +423,7 @@ const TraitBar = ({
             value={newSubName}
             onChange={(e) => setNewSubName(e.target.value)}
             maxLength={15}
-            placeholder="Nuevo sub-rasgo (ej. Cardio)..."
+            placeholder={t('settings.newSubTraitPlaceholder', 'New sub-trait...')}
             className="flex-1 h-7 bg-white/5 rounded-lg px-2 text-[10px] font-bold text-white placeholder:text-white/20 outline-none border border-white/10 focus:border-white/20"
             autoFocus
           />
@@ -379,7 +451,7 @@ const TraitBar = ({
 
          {presets.length > 0 && (
           <div className="space-y-1">
-           <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">Sugerencias:</span>
+           <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.suggestions', 'Suggestions:')}</span>
            <div className="flex flex-wrap gap-1">
             {presets.map(p => (
               <button
@@ -399,7 +471,7 @@ const TraitBar = ({
          )}
 
          <div className="space-y-1">
-          <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">Icono:</span>
+          <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.icon', 'Icon:')}</span>
           <div className="grid grid-cols-6 gap-1">
            {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => (
              <button
@@ -426,7 +498,7 @@ const TraitBar = ({
           className="w-full h-7 rounded-lg border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/20 transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold text-white/50 hover:text-white/80 mt-2"
         >
          <LucideIcons.Plus size={10} />
-         Añadir Sub-Rasgo
+         {t('settings.addSubTrait', 'Add Sub-Trait')}
         </button>
        )
       )}
@@ -446,6 +518,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
  onDeleteSubTrait,
  onOpenProgress,
 }) => {
+ const { t } = useTranslation();
  const [chartMode, setChartMode] = useState<'RADAR' | 'BAR'>(defaultChartMode);
 
  useEffect(() => {
@@ -486,7 +559,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
         className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-[10px] font-bold text-white/70 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
       >
         <LucideIcons.TrendingUp size={11} className="text-cyan-400" />
-        <span>Ver Progreso</span>
+        <span>{t('dashboard.viewProgress', 'View Progress')}</span>
       </button>
 
       {/* Right: Radar/Bar toggles */}

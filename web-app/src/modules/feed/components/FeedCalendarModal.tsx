@@ -16,6 +16,7 @@ import { startOfWeek, endOfWeek, getWeekStartDay, toLocalISOString } from '../..
 import { es } from 'date-fns/locale';
 import { cn } from '../../../utils/cn';
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
+import { useTranslation } from 'react-i18next';
 
 interface FeedCalendarModalProps {
     isOpen: boolean;
@@ -30,6 +31,7 @@ export const FeedCalendarModal: React.FC<FeedCalendarModalProps> = ({
     feedEntries,
     onSelectDate
 }) => {
+    const { t, i18n } = useTranslation();
     const [viewDate, setViewDate] = useState(new Date());
 
     React.useEffect(() => {
@@ -51,7 +53,7 @@ export const FeedCalendarModal: React.FC<FeedCalendarModalProps> = ({
         const endDate = endOfWeek(monthEnd);
         const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-        const weekDays = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+        const weekDays = i18n.language === 'es' ? ['D', 'L', 'M', 'M', 'J', 'V', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         const weekStartSetting = getWeekStartDay(); // 1 = Monday, 0 = Sunday
         const weekDaysHeader = weekStartSetting === 1 ? [...weekDays.slice(1), weekDays[0]] : weekDays;
 
@@ -66,7 +68,7 @@ export const FeedCalendarModal: React.FC<FeedCalendarModalProps> = ({
                         <ChevronLeft size={16} />
                     </button>
                     <span className="text-sm font-black text-white tracking-tight capitalize">
-                        {format(viewDate, 'MMMM yyyy', { locale: es })}
+                        {format(viewDate, 'MMMM yyyy', { locale: i18n.language === 'es' ? es : undefined })}
                     </span>
                     <button 
                         onClick={() => setViewDate(d => addMonths(d, 1))}
@@ -175,10 +177,10 @@ export const FeedCalendarModal: React.FC<FeedCalendarModalProps> = ({
                                     </div>
                                     <div>
                                         <h2 className="text-base font-black text-white leading-none">
-                                            Búsqueda por Fecha
+                                            {t('feed.calendar.title')}
                                         </h2>
                                         <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">
-                                            Historial Diario
+                                            {t('feed.calendar.subtitle')}
                                         </p>
                                     </div>
                                 </div>

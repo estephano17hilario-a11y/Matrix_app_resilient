@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
 import { CheckCircle2, Clock, Flame, Calendar } from 'lucide-react';
 
@@ -19,6 +20,7 @@ interface FeedWeekSummaryProps {
 }
 
 export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay = 0, consistencyAssistant }) => {
+  const { t } = useTranslation();
   const stats = useMemo(() => {
     // Current week = last 7 entries (already padded or filled)
     const current = entries.slice(-7);
@@ -121,7 +123,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           />
           <span className="text-[9px] font-black text-white/45 uppercase tracking-[0.15em]">
-            Resumen de Score Semanal
+            {t('feed.weekly.summaryTitle')}
           </span>
         </div>
 
@@ -159,7 +161,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
                 <CheckCircle2 size={11} />
               </div>
               <div>
-                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">Tareas completadas</div>
+                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">{t('feed.weekly.completedTasks')}</div>
                 <div className="text-xs font-black text-white mt-0.5 tabular-nums">{stats.totalTasks}</div>
               </div>
             </div>
@@ -170,7 +172,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
                 <Clock size={11} />
               </div>
               <div>
-                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">Tiempo en Focus</div>
+                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">{t('feed.weekly.focusTime')}</div>
                 <div className="text-xs font-black text-white mt-0.5 tabular-nums">
                   {stats.totalFocus < 60 ? `${stats.totalFocus}m` : `${Math.floor(stats.totalFocus / 60)}h ${stats.totalFocus % 60}m`}
                 </div>
@@ -183,7 +185,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
                 <Flame size={11} />
               </div>
               <div>
-                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">Hábitos realizados</div>
+                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">{t('feed.weekly.habitsDone')}</div>
                 <div className="text-xs font-black text-white mt-0.5 tabular-nums">{stats.totalHabits}</div>
               </div>
             </div>
@@ -194,7 +196,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
                 <Calendar size={11} />
               </div>
               <div>
-                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">Días Activos</div>
+                <div className="text-[7px] text-white/35 font-bold uppercase tracking-wider leading-none">{t('feed.weekly.activeDays')}</div>
                 <div className="text-xs font-black text-white mt-0.5 tabular-nums">{stats.activeDays} / 7</div>
               </div>
             </div>
@@ -212,15 +214,14 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">
-                    Ajuste por Pérdida de Rendimiento
+                    {t('feed.weekly.performanceAdjustment')}
                   </span>
                   <span className="text-[8px] font-bold text-white/40">
-                    Constancia Semanal
+                    {t('feed.weekly.weeklyConsistency')}
                   </span>
                 </div>
                 <p className="text-[10px] text-white/60 leading-normal">
-                  Tu score acumulado está <strong className="text-amber-400 font-black">-{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> por debajo de la semana pasada. 
-                  Para compensarlo de forma gradual en los <strong className="text-white">{consistencyAssistant.remainingDays} días</strong> restantes, hoy necesitas un score de:
+                  {t('feed.weekly.scoreIs')} <strong className="text-amber-400 font-black">-{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> {t('feed.weekly.belowLastWeek', { days: consistencyAssistant.remainingDays })}
                 </p>
                 <div className="flex items-baseline gap-1 mt-1.5 bg-black/15 p-1.5 rounded-lg border border-white/[0.02] w-fit">
                   <span className="text-xs font-black text-white">{consistencyAssistant.todayTargetScore.toFixed(0)}%</span>
@@ -242,19 +243,19 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
         >
           <div className="flex items-center gap-1.5">
             <span className="text-xs">⚡</span>
-            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">XP obtenida:</span>
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">{t('feed.weekly.xpEarned')}</span>
             <span className="text-xs font-black text-yellow-400 tabular-nums">+{stats.totalXp.toLocaleString()}</span>
           </div>
           <div className="w-px h-3.5 bg-white/[0.06]" />
           <div className="flex items-center gap-1.5">
             <span className="text-xs">🪙</span>
-            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Oro ganado:</span>
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">{t('feed.weekly.goldEarned')}</span>
             <span className="text-xs font-black text-amber-400 tabular-nums">+{stats.totalGold.toLocaleString()}</span>
           </div>
           <div className="w-px h-3.5 bg-white/[0.06]" />
           <div className="flex items-center gap-1.5">
             <span className="text-xs">⭐</span>
-            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">TP ganado:</span>
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">{t('feed.weekly.tpEarned')}</span>
             <span className="text-xs font-black text-purple-400 tabular-nums">+{stats.totalTp.toLocaleString()}</span>
           </div>
         </motion.div>

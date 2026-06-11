@@ -6,9 +6,6 @@
     "SYSTEM FAILURE",
     "REBOOT SYSTEM"
   ],
-  "\\components\\FloatingTourButton.tsx": [
-    "Guía"
-  ],
   "\\components\\StatsTutorialOverlay.tsx": [
     "XP"
   ],
@@ -54,7 +51,12 @@
   ],
   "\\Dashboard.tsx": [
     "LEVEL UP",
-    "Initialize Protocol"
+    "Initialize Protocol",
+    "Progreso",
+    "Rasgos Transversales",
+    "Nivel",
+    "XP",
+    "Cerrar"
   ],
   "\\modules\\achievements\\AchievementsScreen.tsx": [
     "XP",
@@ -67,17 +69,8 @@
     "Neo",
     "neo@matrix.com"
   ],
-  "\\modules\\customization\\ArchetypeSelector.tsx": [
-    "REWRITING DNA..."
-  ],
-  "\\modules\\customization\\AvatarSelector.tsx": [
-    "UPDATING REALITY..."
-  ],
   "\\modules\\customization\\components\\AvatarSelectorCard.tsx": [
     "No Signal"
-  ],
-  "\\modules\\dashboard\\components\\AvatarDisplay.tsx": [
-    "User Avatar"
   ],
   "\\modules\\dashboard\\components\\AvatarWidget.tsx": [
     "Avatar"
@@ -94,9 +87,15 @@
   ],
   "\\modules\\dashboard\\components\\BadHabitItem.tsx": [
     "AI",
-    "días"
+    "días",
+    "HABIT"
   ],
   "\\modules\\dashboard\\components\\BadHabitWizard.tsx": [
+    "Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.",
+    "Sub-Rasgo (Opcional)",
+    "Vincular a un sub-rasgo (Opcional)",
+    "Ninguno",
+    "Lvl",
     "15m",
     "2h",
     "12h",
@@ -105,6 +104,9 @@
   "\\modules\\dashboard\\components\\ChecklistModal.tsx": [
     "XP",
     "Estatus del Protocolo"
+  ],
+  "\\modules\\dashboard\\components\\ColorPicker.tsx": [
+    "Limpiar"
   ],
   "\\modules\\dashboard\\components\\DateSelectionModal.tsx": [
     "Viaja en el tiempo"
@@ -124,10 +126,29 @@
     "DELUX"
   ],
   "\\modules\\dashboard\\components\\HabitItem.tsx": [
+    "Cambiar alarma",
     "Trait",
-    "Subtasks"
+    "Subtasks",
+    "Horarios Programados"
   ],
   "\\modules\\dashboard\\components\\HabitModal.tsx": [
+    "Sub-Rasgo",
+    "Seleccionar Sub-Rasgo (Opcional)",
+    "Ninguno",
+    "Lvl",
+    "Dividir meta en intervalos (Recordatorios automáticos)",
+    "Intervalos",
+    "Horarios Fijos",
+    "Cantidad por vez",
+    "Frecuencia",
+    "Cada",
+    "min",
+    "Horarios Fijos (",
+    "Total:",
+    "Hora",
+    "Cant.",
+    "Añadir Horario",
+    "Alarma Opcional",
     "XP"
   ],
   "\\modules\\dashboard\\components\\IconPicker.tsx": [
@@ -138,13 +159,21 @@
     "MIN"
   ],
   "\\modules\\dashboard\\components\\QuantityUpdateModal.tsx": [
+    "Próximo:",
     "Objetivo"
   ],
   "\\modules\\dashboard\\components\\QuestModal.tsx": [
     "Mission:",
     "Strategic",
     "Strategy",
-    "Protocols"
+    "Protocols",
+    "Sub-Rasgo",
+    "Seleccionar Sub-Rasgo (Opcional)",
+    "Ninguno",
+    "Lvl",
+    "Mostrar en el Journaling",
+    "Agrega esta tarea al calendario de Journal",
+    "Color del Icono"
   ],
   "\\modules\\dashboard\\components\\RelapseModal.tsx": [
     "NO DMG",
@@ -167,20 +196,32 @@
     "Target:",
     "Update Progress"
   ],
-  "\\modules\\dashboard\\HabitList.tsx": [
-    "XP Limit:",
-    "Carga Cognitiva Máxima (No XP)"
-  ],
   "\\modules\\dashboard\\HabitVisualView.tsx": [
+    "Modo de Registro",
+    "Modificando: Ayer",
+    "Ir al día anterior",
+    "Volver a hoy",
+    "Organizar Orden",
     "Archivos (",
+    "Cambiar alarma",
     "Crear Protocolo",
     "Ver Archivados (",
+    "ORGANIZAR ORDEN",
     "Zona Despejada",
     "No hay vicios archivados"
   ],
   "\\modules\\dashboard\\PlayerHUD.tsx": [
     "Lvl",
-    "Neural Stats",
+    "Nombre...",
+    "XP",
+    "Editar",
+    "Eliminar",
+    "Sin sub-rasgos. Crea uno para especializarte.",
+    "Nuevo sub-rasgo (ej. Cardio)...",
+    "Sugerencias:",
+    "Icono:",
+    "Añadir Sub-Rasgo",
+    "Ver Progreso",
     "No metrics available"
   ],
   "\\modules\\dashboard\\StreakRoadmapView.tsx": [
@@ -188,21 +229,163 @@
     "Día",
     "NUEVO NIVEL"
   ],
+  "\\modules\\feed\\components\\FeedCalendarModal.tsx": [
+    "Búsqueda por Fecha",
+    "Historial Diario"
+  ],
+  "\\modules\\feed\\components\\FeedDayCard.tsx": [
+    "En vivo",
+    "Productividad",
+    "XP",
+    "TP",
+    "Focus",
+    "Tareas",
+    "hechas",
+    "Hábitos",
+    "completados",
+    "Sub-hab",
+    "hechos",
+    "Sin actividad registrada",
+    "Misiones Completadas"
+  ],
+  "\\modules\\feed\\components\\FeedScoreBreakdownChart.tsx": [
+    "Score por Categoría",
+    "Semana Anterior",
+    "Actual",
+    "Siguiente Semana",
+    "Meta",
+    "&middot; Detalle",
+    "Total:",
+    "Sin datos"
+  ],
+  "\\modules\\feed\\components\\FeedWeekCard.tsx": [
+    "Semana",
+    "de 7 días activos",
+    "Score Semanal",
+    "XP",
+    "TP",
+    "Focus Total",
+    "Prom:",
+    "m/día",
+    "Tareas",
+    "completadas",
+    "Hábitos",
+    "completados",
+    "Sub-hab",
+    "sub-hábitos"
+  ],
+  "\\modules\\feed\\components\\FeedWeekSummary.tsx": [
+    "Resumen de Score Semanal",
+    "Tareas completadas",
+    "Tiempo en Focus",
+    "Hábitos realizados",
+    "Días Activos",
+    "Ajuste por Pérdida de Rendimiento",
+    "Constancia Semanal",
+    "Tu score acumulado está",
+    "pts",
+    "por debajo de la semana pasada. \n                  Para compensarlo de forma gradual en los",
+    "días",
+    "restantes, hoy necesitas un score de:",
+    "% base +",
+    "% comp.)",
+    "XP obtenida:",
+    "Oro ganado:",
+    "TP ganado:"
+  ],
+  "\\modules\\feed\\ImprovementFeedView.tsx": [
+    "Feed",
+    "DIARIO",
+    "Ver fórmula y recalibración de score",
+    "Diario",
+    "Semanal",
+    "Score",
+    "Tareas",
+    "Focus",
+    "Hábitos",
+    "Sub-hab",
+    "XP:",
+    "Oro:",
+    "TP:",
+    "Tu score acumulado esta semana ha bajado en",
+    "pts",
+    "respecto a la semana pasada.\r\n                        Para compensarlo de forma equilibrada en los",
+    "días",
+    "restantes, hoy deberías alcanzar un score meta de:",
+    "¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por",
+    ". \r\n                        Para mantener esta constancia, tu score meta recomendado de hoy es:",
+    "Score Meta de Hoy",
+    "% base +",
+    "% comp.)",
+    "Tu Score de Hoy",
+    "Faltan",
+    "para alcanzar la meta diaria",
+    "✓ ¡Meta de constancia superada hoy! (+",
+    "% extra)",
+    "Historial Diario",
+    "Buscar Fecha",
+    "Tu historial aparecerá aquí",
+    "Cada día se guardará automáticamente",
+    "Historial Semanal",
+    "No hay suficientes datos semanales",
+    "Registra actividades diarias para consolidar semanas.",
+    "Fórmula de Productividad",
+    "Recalibración Dinámica",
+    "El",
+    "Score de Productividad",
+    "se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:",
+    "Tus Métricas de Hoy",
+    "Actualmente tu score se recalcula en base a:",
+    "Hábitos Activos Hoy",
+    "programados para hoy",
+    "Peso individual",
+    "Focus diario programado",
+    "minutos de meta",
+    "Max",
+    "Aporte global",
+    "Misiones Asignadas",
+    "tareas hoy (",
+    "completadas)",
+    "% c/u",
+    "Ecuaciones del Score",
+    "Hábitos & Sub-hábitos",
+    "Aporte:",
+    "Suma de Progresos Individuales",
+    "Sub-hábitos (Hábitos tipo Lista):",
+    "Se dividen equitativamente entre las sub-tareas asignadas para hoy.",
+    "Hábito con Checklist (Ejemplo)",
+    "├── Sub-tarea 1 ➔ 33.3% del hábito",
+    "├── Sub-tarea 2 ➔ 33.3% del hábito",
+    "└── Sub-tarea 3 ➔ 33.3% del hábito",
+    "Auto-ajuste de Pesos",
+    "Hábitos Cuantitativos:",
+    "Calculan su progreso fraccional como",
+    "progreso / meta",
+    "(máx 1.0), aportando proporcionalmente al valor del hábito.",
+    "Tiempo de Focus",
+    "Minutos Reales Focus",
+    "Suma Metas de Proyectos Hoy",
+    "Se calcula en base a la meta total de minutos de proyectos activos hoy. Si no hay proyectos o metas configuradas hoy, se toma un valor por defecto de 60 min como meta de focus.",
+    "Tareas Diarias (Misiones)",
+    "Aporte: 20%",
+    "Tareas Completadas",
+    "Total Tareas de Hoy",
+    "Entendido"
+  ],
   "\\modules\\focus\\components\\ActiveSessionView.tsx": [
+    "¡Sesión Completada!",
+    "¿A qué sub-rasgo va este tiempo?",
+    "Solo al Rasgo Principal",
+    "Lv",
+    "Confirmar",
     "Enable Notifications",
     "Unrestrict Battery",
-    "Enable Live View",
     "FOCUS",
     "FLOW",
-    "MIN",
-    "Focus Mode Active"
-  ],
-  "\\modules\\focus\\components\\FocusAlarmOverlay.tsx": [
-    "Time spent on",
-    "minutes.",
-    "Claim Victory"
+    "MIN"
   ],
   "\\modules\\focus\\components\\FocusStats.tsx": [
+    "Reorganizar Proyectos",
     "SIN DIVIDIR",
     "DIVIDIR POR RASGO",
     "DIVIDIR POR PROYECTO",
@@ -210,13 +393,10 @@
   ],
   "\\modules\\focus\\components\\ManualSessionCreator.tsx": [
     "DURACIÓN",
-    "INICIO",
-    "FIN",
-    "PROYECTO SELECCIONADO",
-    "Guardar Sesión"
-  ],
-  "\\modules\\focus\\components\\ProjectSimpleItem.tsx": [
-    "LIVE"
+    "INICIO → FIN",
+    "Sub-Rasgo (Opcional)",
+    "Al Rasgo Principal",
+    "min total"
   ],
   "\\modules\\focus\\components\\SessionHistoryModal.tsx": [
     "History",
@@ -225,15 +405,6 @@
     "Log Past Session",
     "Total:",
     "min"
-  ],
-  "\\modules\\focus\\components\\SessionRewardModal.tsx": [
-    "Session Complete",
-    "Focus Protocol Executed",
-    "Time",
-    "Bonus",
-    "XP GAINED",
-    "GOLD",
-    "Continue"
   ],
   "\\modules\\focus\\FocusLimits.tsx": [
     "XP",
@@ -255,16 +426,17 @@
     "Auditoría de Transacción: Verificada"
   ],
   "\\modules\\monetization\\ProUpgradeModal.tsx": [
+    "Restaurar Compras",
     "Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.",
-    "Descargar en Google Play"
+    "Descargar en Google Play",
+    "¡AHORA ERES LUX PRO!",
+    "Reiniciando el sistema..."
   ],
   "\\modules\\notes\\components\\BlockEditor.tsx": [
     "Attachment"
   ],
   "\\modules\\notes\\components\\BlueprintSelector.tsx": [
-    "Blueprints",
-    "Blueprint",
-    "Deck"
+    "Blueprints"
   ],
   "\\modules\\notes\\components\\CreateEventModal.tsx": [
     "Event Title",
@@ -322,9 +494,6 @@
     "Lock Vault",
     "Title",
     "Username / Email",
-    "Expiry",
-    "MM/YY",
-    "CVV",
     "Save Item"
   ],
   "\\modules\\notes\\components\\SpecialEventsHub.tsx": [
@@ -358,36 +527,13 @@
     "Empty page...",
     "Enter PIN",
     "Save as Blueprint",
+    "Tarea Repetida",
     "Date & Time",
     "Note",
     "Close"
   ],
-  "\\modules\\notifications\\NotificationSettings.tsx": [
-    "Calibrating...",
-    "Enable Neural Updates?",
-    "Lux needs permission to send you critical protocol reminders,",
-    "Ignore",
-    "Connect",
-    "System Alerts",
-    "Allow Lux to contact you",
-    "Initialize",
-    "ACTIVE",
-    "Daily Protocol Sync",
-    "Sync Time",
-    "Active Days",
-    "Server-Side Synchronization ID:",
-    "Diagnostics",
-    "Test Local Alert",
-    "Verify Timing Logic"
-  ],
   "\\modules\\onboarding\\components\\avatar-carousel\\AvatarCarousel.tsx": [
     "CONFIRM IDENTITY"
-  ],
-  "\\modules\\onboarding\\components\\TraitSelector.tsx": [
-    "Intelligence Profile",
-    "Your Edge",
-    "Select up to 3 dominant traits.",
-    "Finalize"
   ],
   "\\modules\\onboarding\\OnboardingFlow.tsx": [
     "System Error: Traits module offline.",
@@ -409,14 +555,44 @@
     "SELECT THIS AVATAR"
   ],
   "\\modules\\settings\\sections\\AccountSection.tsx": [
-    "Avatar"
+    "Avatar",
+    "Cuentas Vinculadas",
+    "Google",
+    "Desvincular",
+    "Correo de Google...",
+    "Vincular",
+    "Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google."
   ],
   "\\modules\\settings\\sections\\NeuralSection.tsx": [
-    "LVL"
+    "Trait Name",
+    "Sub-Rasgos",
+    "Añadir Sub-Rasgo",
+    "Nombre (ej. Cardio)...",
+    "Crear sub-rasgo (Enter)",
+    "Sugerencias (Añadir al instante):",
+    "Icono:",
+    "(hacer clic para cambiar)",
+    "Nombre...",
+    "XP",
+    "Lvl",
+    "Editar",
+    "Eliminar",
+    "Sin sub-rasgos. Crea uno para especializarte.",
+    "LVL",
+    "¿Eliminar este rasgo DEFINITIVAMENTE?",
+    "NO PODRÁS RECUPERARLO.",
+    "Sí, eliminar",
+    "Cancelar",
+    "Eliminar definitivamente",
+    "PRO"
   ],
   "\\modules\\settings\\sections\\SystemSection.tsx": [
     "English",
-    "Español"
+    "Español",
+    "Dashboard Layout",
+    "Select dock style",
+    "Legacy Dock",
+    "Aura Dock"
   ],
   "\\modules\\smart-tasks\\components\\StrategicMapView.tsx": [
     "DEADLINE:",
@@ -425,13 +601,12 @@
   "\\modules\\smart-tasks\\SmartTaskWizard.tsx": [
     "Close"
   ],
-  "\\modules\\store\\components\\AdShard.tsx": [
-    "Ver Transmisión",
-    "Google Ads (",
-    "+50 ORO",
-    "Espacio Publicitario",
-    "Aquí puedes integrar tu etiqueta de Google Ads (AdSense o AdMob).",
-    "Continuar"
+  "\\modules\\store\\StoreScreen.tsx": [
+    "¡COMPRA EXITOSA!",
+    "Has adquirido",
+    ". El objeto ha sido enviado a tu inventario.",
+    "Ir al Inventario",
+    "Seguir Comprando"
   ],
   "\\modules\\tasks\\components\\QuestItem.tsx": [
     "XP",

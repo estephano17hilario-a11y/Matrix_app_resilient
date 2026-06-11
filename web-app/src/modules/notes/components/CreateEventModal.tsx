@@ -4,6 +4,8 @@ import { X, Calendar, Clock, Gift, Heart, Star, Type, Bell, Check, Repeat, Trash
 import { toast } from 'react-hot-toast';
 import { SpecialEvent } from './types';
 import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { TimePicker } from '../../../components/ui/TimePicker';
 
 interface CreateEventModalProps {
@@ -27,6 +29,7 @@ const RECURRENCE_OPTIONS = [
 ];
 
 export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEvent }: CreateEventModalProps) => {
+ const { t, i18n } = useTranslation();
  const [title, setTitle] = useState(initialEvent?.title || '');
 
  const [date, setDate] = useState('');
@@ -61,10 +64,10 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  const isFormComplete = title.trim() !== '' && date !== '' && time !== '';
 
  const handleSave = () => {
- if (!isFormComplete) {
- toast.error("Please fill in all required fields (including date and time)");
- return;
- }
+  if (!isFormComplete) {
+  toast.error(t('notes.event.fillAllFieldsError', "Please fill in all required fields (including date and time)"));
+  return;
+  }
 
  const newEvent: SpecialEvent = {
  id: initialEvent ? initialEvent.id : Date.now().toString(),
@@ -82,13 +85,20 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  };
 
  const getRecurrenceLabel = () => {
- if (!date) return '';
- try {
- const dateObj = parseISO(date);
- if (recurrence === 'ANNUAL') return `Every year on ${format(dateObj, 'MMMM do')}`;
- if (recurrence === 'MONTHLY') return `Every month on the ${format(dateObj, 'do')}`;
- } catch (e) { return ''; }
- return 'No recurrence';
+  if (!date) return '';
+  try {
+  const dateObj = parseISO(date);
+  const isEs = i18n.language === 'es';
+  if (recurrence === 'ANNUAL') {
+    const formattedDate = format(dateObj, isEs ? "d 'de' MMMM" : "MMMM do", { locale: isEs ? es : undefined });
+    return isEs ? `Cada año el ${formattedDate}` : `Every year on ${formattedDate}`;
+  }
+  if (recurrence === 'MONTHLY') {
+    const formattedDate = format(dateObj, isEs ? "d" : "do", { locale: isEs ? es : undefined });
+    return isEs ? `Cada mes el día ${formattedDate}` : `Every month on the ${formattedDate}`;
+  }
+  } catch (e) { return ''; }
+  return i18n.language === 'es' ? 'Sin repetición' : 'No recurrence';
  };
 
  return (
@@ -117,8 +127,8 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  </button>
  </div>
  <div>
- <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-md">{initialEvent ? 'Edit Memory' : 'New Memory'}</h2>
- <p className="text-white/60 text-xs font-medium uppercase tracking-widest">{initialEvent ? 'Update details' : 'Create a timeless reminder'}</p>
+ <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-md">{initialEvent ? t('notes.event.editMemory', 'Edit Memory') : t('notes.event.newMemory', 'New Memory')}</h2>
+ <p className="text-white/60 text-xs font-medium uppercase tracking-widest">{initialEvent ? t('notes.event.updateDetails', 'Update details') : t('notes.event.createTimelessReminder', 'Create a timeless reminder')}</p>
  </div>
  </div>
 
@@ -129,13 +139,13 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Type size={12} />
- Event Title
+ {t('notes.event.title', 'Event Title')}
  </label>
  <input 
  type="text" 
  value={title}
  onChange={(e) => setTitle(e.target.value)}
- placeholder="e.g. Mom's Birthday"
+ placeholder={t('notes.event.placeholder', "e.g. Mom's Birthday")}
  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all text-lg font-medium"
  />
  </div>
@@ -144,17 +154,17 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Star size={12} />
- Event Type
+ {t('notes.event.type', 'Event Type')}
  </label>
  <div className="grid grid-cols-3 gap-3">
- {EVENT_TYPES.map(t => (
+ {EVENT_TYPES.map(t_type => (
  <button
- key={t.id}
- onClick={() => setType(t.id)}
- className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${type === t.id ? 'bg-white/10 border-white/30 text-white shadow-lg scale-105' : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/80'}`}
+ key={t_type.id}
+ onClick={() => setType(t_type.id)}
+ className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${type === t_type.id ? 'bg-white/10 border-white/30 text-white shadow-lg scale-105' : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10 hover:text-white/80'}`}
  >
- <t.icon size={20} style={{ color: type === t.id ? t.color : 'currentColor' }} className="mb-2" />
- <span className="text-[10px] font-bold uppercase tracking-wider">{t.label}</span>
+ <t_type.icon size={20} style={{ color: type === t_type.id ? t_type.color : 'currentColor' }} className="mb-2" />
+ <span className="text-[10px] font-bold uppercase tracking-wider">{t(`notes.event.types.${t_type.id}`, t_type.label)}</span>
  </button>
  ))}
  </div>
@@ -165,7 +175,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Calendar size={12} />
- Date
+ {t('notes.event.date', 'Date')}
  </label>
  <input 
  type="date" 
@@ -177,7 +187,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Clock size={12} />
- Notify At
+ {t('notes.event.notifyAt', 'Notify At')}
  </label>
  <TimePicker 
  value={time}
@@ -191,7 +201,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Repeat size={12} />
- Recurrence
+ {t('notes.event.recurrence', 'Recurrence')}
  </label>
  <div className="grid grid-cols-3 gap-3">
  {RECURRENCE_OPTIONS.map(opt => (
@@ -200,14 +210,14 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  onClick={() => setRecurrence(opt.id as any)}
  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${recurrence === opt.id ? 'bg-indigo-500/20 border-indigo-500 text-indigo-200' : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'}`}
  >
- <span className="text-xs font-bold mb-1">{opt.label}</span>
- <span className="text-[10px] opacity-60">{opt.description}</span>
+ <span className="text-xs font-bold mb-1">{t(`notes.event.recurrences.${opt.id}.label`, opt.label)}</span>
+ <span className="text-[10px] opacity-60">{t(`notes.event.recurrences.${opt.id}.description`, opt.description)}</span>
  </button>
  ))}
  </div>
  {recurrence !== 'NONE' && date && (
  <div className="text-center text-xs text-indigo-300 mt-2 bg-indigo-500/10 py-2 rounded-lg border border-indigo-500/20">
- Will repeat: <strong>{getRecurrenceLabel()}</strong>
+ {t('notes.event.willRepeat', 'Will repeat:')} <strong>{getRecurrenceLabel()}</strong>
  </div>
  )}
  </div>
@@ -219,8 +229,8 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <Calendar size={14} />
  </div>
  <div className="flex flex-col">
- <span className="text-sm font-bold text-white">Show in Calendar</span>
- <span className="text-[10px] text-white/40">Visible in Journaling view</span>
+ <span className="text-sm font-bold text-white">{t('notes.event.showInCalendar', 'Show in Calendar')}</span>
+ <span className="text-[10px] text-white/40">{t('notes.event.visibleInJournal', 'Visible in Journaling view')}</span>
  </div>
  </div>
  <label className="relative inline-flex items-center cursor-pointer">
@@ -238,12 +248,12 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <div className="space-y-2">
  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
  <Type size={12} />
- Personal Note
+ {t('notes.event.personalNote', 'Personal Note')}
  </label>
  <textarea 
  value={notes}
  onChange={(e) => setNotes(e.target.value)}
- placeholder="Write a special message..."
+ placeholder={t('notes.event.specialMessagePlaceholder', 'Write a special message...')}
  rows={3}
  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all text-sm resize-none"
  />
@@ -255,9 +265,12 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  <Bell size={18} />
  </div>
  <div>
- <p className="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-0.5">System Notification</p>
+ <p className="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-0.5">{t('notes.event.systemNotification', 'System Notification')}</p>
  <p className="text-xs text-white/60 leading-tight">
- You will receive a personalized alert on <span className="text-white font-mono">{date || 'YYYY-MM-DD'}</span> at <span className="text-white font-mono">{time}</span>.
+ {t('notes.event.alertDescStart', 'You will receive a personalized alert on')}{' '}
+ <span className="text-white font-mono">{date || 'YYYY-MM-DD'}</span>{' '}
+ {t('notes.event.alertDescAt', 'at')}{' '}
+ <span className="text-white font-mono">{time}</span>.
  </p>
  </div>
  </div>
@@ -276,7 +289,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  `}
  >
  <Check size={18} />
- {isFormComplete ? 'Confirm Event' : 'Fill All Fields'}
+ {isFormComplete ? t('notes.event.confirm', 'Confirm Event') : t('notes.event.fillAllFields', 'Fill All Fields')}
  </button>
  {initialEvent && onDelete && (
  <button 
@@ -284,7 +297,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  className="w-full mt-3 py-3 rounded-xl bg-red-500/10 text-red-500 font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
  >
  <Trash2 size={18} />
- Delete Event
+ {t('notes.event.delete', 'Delete Event')}
  </button>
  )}
  </div>

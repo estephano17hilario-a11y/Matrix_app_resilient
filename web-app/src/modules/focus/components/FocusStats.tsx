@@ -17,7 +17,6 @@ import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../../i18n';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
@@ -46,7 +45,7 @@ export const FocusStats = React.memo(({
     defaultChartViews?: any,
     defaultProjectView?: 'TOTAL' | 'ATTRIBUTE' | 'PROJECT'
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n: reactiveI18n } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
     const avatarColor = avatarConfig?.themeColor || '#6366f1';
@@ -161,12 +160,12 @@ export const FocusStats = React.memo(({
             const next = addDays(currentDate, i);
             if (workingDays.includes(next.getDay())) {
                 if (i === 1) return t('tomorrow');
-                const label = format(next, 'EEEE', { locale: i18n.language === 'es' ? es : undefined });
+                const label = format(next, 'EEEE', { locale: reactiveI18n.language === 'es' ? es : undefined });
                 return label.charAt(0).toUpperCase() + label.slice(1);
             }
         }
         return '';
-    }, [activeProject, currentDate, t, i18n.language]);
+    }, [activeProject, currentDate, t, reactiveI18n.language]);
 
     const dailyGoalMinutes = useMemo(() => {
         if (['3_MONTHS', 'YEAR', 'TOTAL'].includes(timeRange)) return 0;
@@ -240,31 +239,32 @@ export const FocusStats = React.memo(({
 
     const dateRangeLabel = useMemo(() => {
         let start: Date, end: Date;
+        const dateLocale = reactiveI18n.language === 'es' ? es : undefined;
         if (timeRange === 'DAY') {
-            return format(currentDate, 'EEEE d MMM', { locale: es }).toUpperCase();
+            return format(currentDate, 'EEEE d MMM', { locale: dateLocale }).toUpperCase();
         } else if (timeRange === 'WEEK') {
             start = startOfWeek(currentDate);
             end = endOfWeek(currentDate);
-            return `${format(start, 'd MMM').toUpperCase()} - ${format(end, 'd MMM', { locale: es }).toUpperCase()}`;
+            return `${format(start, 'd MMM', { locale: dateLocale }).toUpperCase()} - ${format(end, 'd MMM', { locale: dateLocale }).toUpperCase()}`;
         } else if (timeRange === '8_WEEKS') {
             end = endOfWeek(currentDate);
             start = subWeeks(end, 7);
             start = startOfWeek(start);
-            return `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
+            return `${format(start, 'd MMM', { locale: dateLocale })} - ${format(end, 'd MMM', { locale: dateLocale })}`;
         } else if (timeRange === 'MONTH') {
             start = startOfMonth(currentDate);
-            const label = format(start, 'MMMM yyyy', { locale: es });
+            const label = format(start, 'MMMM yyyy', { locale: dateLocale });
             return label.charAt(0).toUpperCase() + label.slice(1);
         } else if (timeRange === '3_MONTHS') {
             const start = startOfQuarter(currentDate);
             const end = endOfQuarter(currentDate);
-            return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy', { locale: es })}`;
+            return `${format(start, 'MMM', { locale: dateLocale })} - ${format(end, 'MMM yyyy', { locale: dateLocale })}`;
         } else if (timeRange === 'YEAR') {
             return format(currentDate, 'yyyy');
         } else {
-             return 'Histórico Completo';
+             return reactiveI18n.language === 'es' ? 'Histórico Completo' : 'Full History';
         }
-    }, [timeRange, currentDate, weekStartDay]);
+    }, [timeRange, currentDate, weekStartDay, reactiveI18n.language]);
 
     const isCurrentRange = useMemo(() => {
         const today = new Date();
@@ -530,7 +530,7 @@ export const FocusStats = React.memo(({
                                             className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'TOTAL' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
                                         >
                                             <div className={`w-3 h-3 rounded-[2px] ${viewMode === 'TOTAL' ? 'bg-black' : 'bg-indigo-400'}`} />
-                                            <span className="text-[10px] font-bold">SIN DIVIDIR</span>
+                                            <span className="text-[10px] font-bold">{t('focus.stats.noDivision')}</span>
                                         </button>
                                         
                                         <button 
@@ -538,7 +538,7 @@ export const FocusStats = React.memo(({
                                             className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'ATTRIBUTE' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
                                         >
                                             <Layers size={12} />
-                                            <span className="text-[10px] font-bold">DIVIDIR POR RASGO</span>
+                                            <span className="text-[10px] font-bold">{t('focus.stats.splitByTrait')}</span>
                                         </button>
 
                                         <button 
@@ -555,7 +555,7 @@ export const FocusStats = React.memo(({
                                         >
                                             <div className="flex items-center gap-2">
                                                 <Target size={12} />
-                                                <span className="text-[10px] font-bold">DIVIDIR POR PROYECTO</span>
+                                                <span className="text-[10px] font-bold">{t('focus.stats.splitByProject')}</span>
                                             </div>
                                             {!isPro && <Lock size={10} className="text-yellow-400/80" />}
                                         </button>
@@ -624,7 +624,7 @@ export const FocusStats = React.memo(({
                                             "text-[10px] font-bold tracking-wide whitespace-nowrap font-mono",
                                             isCurrentRange ? "text-blue-200/90" : "text-amber-200/90"
                                         )}>
-                                            {format(currentDate, 'MMMM yyyy', { locale: es })}
+                                            {format(currentDate, 'MMMM yyyy', { locale: reactiveI18n.language === 'es' ? es : undefined })}
                                         </span>
                                     </button>
                                 </div>
@@ -637,7 +637,7 @@ export const FocusStats = React.memo(({
                 <div className="px-1 mt-0">
                     <div className="flex justify-between items-end mb-1 px-0.5">
                         <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">
-                            {isNonWorkingDay ? "Descanso" : showGoal ? "Goal" : "Total Focus"}
+                            {isNonWorkingDay ? t('focus.stats.break') : showGoal ? "Goal" : "Total Focus"}
                         </span>
                         <div className="flex items-baseline gap-1.5">
                             {/* Increased from text-[10px] to text-sm (14px) or text-xs (12px) */}
@@ -660,9 +660,11 @@ export const FocusStats = React.memo(({
                     
                     {isNonWorkingDay ? (
                         <div className="flex items-center justify-between px-0.5 py-2 rounded-lg bg-white/5 border border-white/10">
-                            <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">Descanso</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{t('focus.stats.break')}</span>
                             <span className="text-[11px] font-semibold text-white/70">
-                                {nextWorkingLabel ? `Siguiente sesión: ${nextWorkingLabel}` : 'Siguiente sesión pronto'}
+                                {nextWorkingLabel 
+                                    ? `${reactiveI18n.language === 'es' ? 'Siguiente sesión:' : 'Next session:'} ${nextWorkingLabel}` 
+                                    : (reactiveI18n.language === 'es' ? 'Siguiente sesión pronto' : 'Next session soon')}
                             </span>
                         </div>
                     ) : showGoal && (

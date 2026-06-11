@@ -12,7 +12,7 @@ import { calculateSubTraitMaxXp } from '../../../utils/leveling';
 
 const COLORS = ['#3b82f6', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#64748b', '#6366f1', '#f97316', '#84cc16', '#d946ef', '#eab308'];
 
-const SUBTRAIT_PRESETS: Record<string, { name: string; iconName: string }[]> = {
+const SUBTRAIT_PRESETS_ES: Record<string, { name: string; iconName: string }[]> = {
   FISICO: [
     { name: 'Cardio', iconName: 'Heart' },
     { name: 'Fuerza', iconName: 'Dumbbell' },
@@ -84,8 +84,80 @@ const SUBTRAIT_PRESETS: Record<string, { name: string; iconName: string }[]> = {
   ],
 };
 
+const SUBTRAIT_PRESETS_EN: Record<string, { name: string; iconName: string }[]> = {
+  FISICO: [
+    { name: 'Cardio', iconName: 'Heart' },
+    { name: 'Strength', iconName: 'Dumbbell' },
+    { name: 'Flexibility', iconName: 'Wind' },
+    { name: 'Endurance', iconName: 'Zap' },
+  ],
+  MENTAL: [
+    { name: 'Study', iconName: 'BookOpen' },
+    { name: 'Programming', iconName: 'Code' },
+    { name: 'Reading', iconName: 'Book' },
+    { name: 'Languages', iconName: 'Languages' },
+  ],
+  CREATIVIDAD: [
+    { name: 'Drawing', iconName: 'Palette' },
+    { name: 'Music', iconName: 'Music' },
+    { name: 'Photography', iconName: 'Camera' },
+    { name: 'Editing', iconName: 'Video' },
+  ],
+  SOCIAL: [
+    { name: 'Public Speaking', iconName: 'Mic' },
+    { name: 'Empathy', iconName: 'HeartHandshake' },
+    { name: 'Languages', iconName: 'Languages' },
+    { name: 'Charisma', iconName: 'Sparkles' },
+  ],
+  ESPIRITU: [
+    { name: 'Meditation', iconName: 'Smile' },
+    { name: 'Yoga', iconName: 'Flower2' },
+    { name: 'Mindfulness', iconName: 'Compass' },
+    { name: 'Stoicism', iconName: 'Shield' },
+  ],
+  FINANZAS: [
+    { name: 'Savings', iconName: 'PiggyBank' },
+    { name: 'Investment', iconName: 'TrendingUp' },
+    { name: 'Budget', iconName: 'Coins' },
+    { name: 'Business', iconName: 'Briefcase' },
+  ],
+  ORDEN: [
+    { name: 'Cleaning', iconName: 'Trash2' },
+    { name: 'Organization', iconName: 'Grid' },
+    { name: 'Routines', iconName: 'Calendar' },
+    { name: 'Minimalism', iconName: 'Minimize2' },
+  ],
+  VITALIDAD: [
+    { name: 'Nutrition', iconName: 'Apple' },
+    { name: 'Sleep', iconName: 'Moon' },
+    { name: 'Hydration', iconName: 'Droplet' },
+    { name: 'Rest', iconName: 'Sun' },
+  ],
+  LIDERAZGO: [
+    { name: 'Public Speaking', iconName: 'Mic' },
+    { name: 'Management', iconName: 'FolderKanban' },
+    { name: 'Negotiation', iconName: 'Briefcase' },
+    { name: 'Delegation', iconName: 'Share2' },
+  ],
+  RESILIENCIA: [
+    { name: 'Stoicism', iconName: 'ShieldAlert' },
+    { name: 'Patience', iconName: 'Hourglass' },
+    { name: 'Adaptability', iconName: 'RefreshCw' },
+  ],
+  ESTILO: [
+    { name: 'Fashion', iconName: 'Shirt' },
+    { name: 'Hygiene', iconName: 'Sparkles' },
+    { name: 'Posture', iconName: 'Accessibility' },
+  ],
+  DISCIPLINA: [
+    { name: 'Focus', iconName: 'Target' },
+    { name: 'Punctuality', iconName: 'Clock' },
+    { name: 'Consistency', iconName: 'Flame' },
+  ],
+};
+
 export const NeuralSection = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { profile: user, updateProfileLocally } = useAuth();
   const { 
     attributes, 
@@ -312,7 +384,9 @@ export const NeuralSection = () => {
               </motion.div>
             )}
 
-            {attributes.map((attr) => (
+            {attributes.map((attr) => {
+              const presets = (i18n.language === 'es' ? SUBTRAIT_PRESETS_ES : SUBTRAIT_PRESETS_EN)[attr.id] || [];
+              return (
               <motion.div
                 key={attr.id}
                 layout
@@ -373,7 +447,7 @@ export const NeuralSection = () => {
                     <div className="border-t border-white/5 pt-4 mt-4 space-y-4 relative z-10 w-full">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">Sub-Rasgos</span>
+                          <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">{t('settings.subTraits', 'Sub-Traits')}</span>
                           {attr.subTraits && attr.subTraits.length > 0 && (
                             <span className="text-[10px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full font-bold">
                               {attr.subTraits.length}
@@ -392,7 +466,7 @@ export const NeuralSection = () => {
                             className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/25 rounded-lg text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all shadow-sm"
                           >
                             <Plus size={10} />
-                            Añadir Sub-Rasgo
+                            {t('settings.addSubTrait', 'Add Sub-Trait')}
                           </button>
                         )}
                       </div>
@@ -411,7 +485,7 @@ export const NeuralSection = () => {
                                 }
                               }}
                               maxLength={15}
-                              placeholder="Nombre (ej. Cardio)..."
+                              placeholder={t('settings.subTraitName', 'Sub-trait name (e.g. Cardio)...')}
                               className="flex-1 h-8 bg-black/60 border border-white/10 rounded-lg px-3 text-xs font-bold text-white placeholder:text-white/20 outline-none focus:border-cyan-500/50"
                               autoFocus
                             />
@@ -421,7 +495,7 @@ export const NeuralSection = () => {
                                 disabled={!newSubName.trim()}
                                 onClick={(e) => handleAddSubTraitSubmit(e, attr.id)}
                                 className="w-8 h-8 bg-emerald-500/20 text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center hover:bg-emerald-500/30 transition-colors"
-                                title="Crear sub-rasgo (Enter)"
+                                title={t('settings.createSubTraitTitle', 'Add Sub-Trait (Enter)')}
                               >
                                 <Check size={14} strokeWidth={3} className="pointer-events-none" />
                               </button>
@@ -443,11 +517,11 @@ export const NeuralSection = () => {
                           </div>
 
                           {/* Suggestions/Presets (Instant 1-Click Add) */}
-                          {SUBTRAIT_PRESETS[attr.id] && SUBTRAIT_PRESETS[attr.id].length > 0 && (
+                          {presets && presets.length > 0 && (
                             <div className="space-y-1">
-                              <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block">Sugerencias (Añadir al instante):</span>
+                              <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.suggestions', 'Suggestions (Add instantly):')}</span>
                               <div className="flex flex-wrap gap-1.5">
-                                {SUBTRAIT_PRESETS[attr.id].map(p => (
+                                {presets.map(p => (
                                   <button
                                     key={p.name}
                                     type="button"
@@ -484,8 +558,8 @@ export const NeuralSection = () => {
                               }}
                               className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
                             >
-                              <span>Icono: {newSubIcon}</span>
-                              <span className="text-[8px] text-white/35">(hacer clic para cambiar)</span>
+                              <span>{t('settings.subTraitIcon', 'Icon: {{name}}', { name: newSubIcon })}</span>
+                              <span className="text-[8px] text-white/35">{t('settings.clickToChange', '(click to change)')}</span>
                             </button>
                             
                             {showIconGrid && (
@@ -541,7 +615,7 @@ export const NeuralSection = () => {
                                         }
                                       }}
                                       maxLength={15}
-                                      placeholder="Nombre..."
+                                      placeholder={t('settings.subTraitNamePlaceholder', 'Name...')}
                                       className="flex-1 h-8 bg-black/60 border border-white/10 rounded-lg px-3 text-xs font-bold text-white outline-none focus:border-cyan-500/50"
                                       autoFocus
                                     />
@@ -579,8 +653,8 @@ export const NeuralSection = () => {
                                       }}
                                       className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
                                     >
-                                      <span>Icono: {editSubIcon}</span>
-                                      <span className="text-[8px] text-white/35">(hacer clic para cambiar)</span>
+                                      <span>{t('settings.subTraitIcon', 'Icon: {{name}}', { name: editSubIcon })}</span>
+                                      <span className="text-[8px] text-white/35">{t('settings.clickToChange', '(click to change)')}</span>
                                     </button>
                                     
                                     {showEditIconGrid && (
@@ -642,7 +716,7 @@ export const NeuralSection = () => {
                                           setShowEditIconGrid(false);
                                         }}
                                         className="w-6 h-6 rounded hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
-                                        title="Editar"
+                                        title={t('settings.editSubTrait', 'Edit')}
                                       >
                                         <LucideIcons.Edit2 size={11} />
                                       </button>
@@ -651,12 +725,12 @@ export const NeuralSection = () => {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           e.preventDefault();
-                                          if (deleteSubTrait && confirm(`¿Estás seguro de eliminar el sub-rasgo "${st.name}"?`)) {
+                                          if (deleteSubTrait && confirm(t('settings.deleteSubTraitConfirm', { name: st.name }))) {
                                             deleteSubTrait(attr.id, st.id);
                                           }
                                         }}
                                         className="w-6 h-6 rounded hover:bg-rose-500/10 flex items-center justify-center text-white/40 hover:text-rose-400 transition-colors"
-                                        title="Eliminar"
+                                        title={t('settings.deleteSubTrait', 'Delete')}
                                       >
                                         <LucideIcons.Trash2 size={11} />
                                       </button>
@@ -676,7 +750,7 @@ export const NeuralSection = () => {
                         </div>
                       ) : (
                         <div className="text-[11px] text-white/20 text-center py-3 italic bg-black/10 rounded-xl border border-dashed border-white/5">
-                          Sin sub-rasgos. Crea uno para especializarte.
+                          {t('settings.noSubTraits', 'No sub-traits. Create one to specialize.')}
                         </div>
                       )}
                     </div>
@@ -722,7 +796,7 @@ export const NeuralSection = () => {
                   </>
                 )}
               </motion.div>
-            ))}
+            ); })}
           </AnimatePresence>
         </div>
       </div>
@@ -743,21 +817,21 @@ export const NeuralSection = () => {
                   {deletingId === trait.id ? (
                     <div className="flex flex-col gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
                       <p className="text-xs text-rose-300 font-bold uppercase tracking-wider">
-                        ¿Eliminar este rasgo DEFINITIVAMENTE?
+                        {t('settings.deleteTraitConfirmTitle', 'DELETE THIS TRAIT PERMANENTLY?')}
                       </p>
-                      <p className="text-[10px] text-white/50">NO PODRÁS RECUPERARLO.</p>
+                      <p className="text-[10px] text-white/50">{t('settings.deleteTraitConfirmDesc', 'YOU WILL NOT BE ABLE TO RECOVER IT.')}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <button 
                           onClick={() => handlePermanentDelete(trait.id)}
                           className="flex-1 p-2 bg-rose-500 text-white text-xs font-bold rounded-lg hover:bg-rose-600 transition-colors"
                         >
-                          Sí, eliminar
+                          {t('settings.deleteTraitConfirmBtn', 'Yes, delete')}
                         </button>
                         <button 
                           onClick={() => setDeletingId(null)}
                           className="flex-1 p-2 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-colors"
                         >
-                          Cancelar
+                          {t('settings.deleteTraitCancelBtn', 'Cancel')}
                         </button>
                       </div>
                     </div>
@@ -784,7 +858,7 @@ export const NeuralSection = () => {
                       <button
                         onClick={() => setDeletingId(trait.id)}
                         className="p-3 text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors z-10 h-full"
-                        title="Eliminar definitivamente"
+                        title={t('settings.deleteSubTrait', 'Delete')}
                       >
                         <Trash2 size={16} />
                       </button>

@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Plus, Bell, Gift, Heart, Star, Trash2, Edit2, Settings, X, Calendar, Repeat } from 'lucide-react';
 import { CreateEventModal } from '@/modules/notes/components/CreateEventModal';
 import { format, differenceInDays, isSameDay, startOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { notificationService } from '../../../services/notificationService';
 import { createPortal } from 'react-dom';
 
@@ -29,6 +31,7 @@ const EVENT_TYPES = {
 };
 
 export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpenPro }: SpecialEventsHubProps) => {
+ const { t, i18n } = useTranslation();
  const { user } = useAuth();
  const eventsKey = user?.id ? `special_events_${user.id}` : 'special_events';
 
@@ -120,40 +123,43 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  return [...prev, newEvent];
  });
  
- // Schedule Notification
- if (newEvent.notifyTime) {
- // Cancel any existing notification first if updating
- try {
- // If it's a new event, no problem. If updating, we should ideally cancel the old one.
- // But we don't store notification IDs separately usually (assuming event.id is enough).
- // Let's just schedule new one, it will overwrite if ID matches in some systems, 
- // or just be a new one. To be safe, we could cancel first.
- // notificationService.cancelEventNotification(newEvent.id);
- } catch (e) {
- console.warn("Failed to cancel old notification", e);
- }
+  // Schedule Notification
+  if (newEvent.notifyTime) {
+  // Cancel any existing notification first if updating
+  try {
+  // If it's a new event, no problem. If updating, we should ideally cancel the old one.
+  // But we don't store notification IDs separately usually (assuming event.id is enough).
+  // Let's just schedule new one, it will overwrite if ID matches in some systems, 
+  // or just be a new one. To be safe, we could cancel first.
+  // notificationService.cancelEventNotification(newEvent.id);
+  } catch (e) {
+  console.warn("Failed to cancel old notification", e);
+  }
 
- const nextDate = getNextEventDate(newEvent);
- const [hours, minutes] = newEvent.notifyTime.split(':').map(Number);
- nextDate.setHours(hours, minutes, 0, 0);
- 
- await notificationService.scheduleEventNotification(
- newEvent.id,
- `🎉 Today is special!`,
- `It's ${newEvent.title}'s ${EVENT_TYPES[newEvent.type].label}! Don't forget to celebrate.`,
- nextDate,
- EVENT_TYPES[newEvent.type].color
- );
- toast.success("Reminder updated");
- }
- setIsCreateModalOpen(false);
- setSelectedEvent(null);
- };
+  const nextDate = getNextEventDate(newEvent);
+  const [hours, minutes] = newEvent.notifyTime.split(':').map(Number);
+  nextDate.setHours(hours, minutes, 0, 0);
+  
+  await notificationService.scheduleEventNotification(
+  newEvent.id,
+  t('notes.event.notifTitle', '🎉 Today is special!'),
+  t('notes.event.notifBody', "It's {{name}}'s {{type}}! Don't forget to celebrate.", {
+     name: newEvent.title,
+     type: t(`notes.event.types.${newEvent.type}`, EVENT_TYPES[newEvent.type].label)
+   }),
+  nextDate,
+  EVENT_TYPES[newEvent.type].color
+  );
+  toast.success(t('notes.event.reminderUpdated', 'Reminder updated'));
+  }
+  setIsCreateModalOpen(false);
+  setSelectedEvent(null);
+  };
 
  const handleDeleteEvent = (id: string) => {
  setEvents(prev => prev.filter(e => e.id !== id));
  notificationService.cancelEventNotification(id);
- toast.success("Event removed");
+ toast.success(t('notes.event.removed', 'Event removed'));
  };
 
  const handleEditEvent = (event: SpecialEvent) => {
@@ -200,9 +206,9 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.2)]">
  <Gift size={20} />
  </div>
- <span className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em]">Memories</span>
+ <span className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em]">{t('notes.celebrationsMemories', 'Memories')}</span>
  </motion.div>
- <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter drop-shadow-md">Celebrations</h2>
+ <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter drop-shadow-md">{t('notes.celebrations', 'Celebrations')}</h2>
  </div>
  
  {/* Actions - Now positioned nicely and responsive */}
@@ -233,14 +239,14 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <Calendar size={64} className="text-white/20 relative z-10" />
  </div>
  <div>
- <h3 className="text-2xl font-bold text-white mb-2">No Upcoming Events</h3>
- <p className="text-white/40 max-w-xs mx-auto text-lg leading-relaxed">Add birthdays, anniversaries, or special milestones to get personalized reminders.</p>
+ <h3 className="text-2xl font-bold text-white mb-2">{t('notes.event.noUpcoming', 'No Upcoming Events')}</h3>
+ <p className="text-white/40 max-w-xs mx-auto text-lg leading-relaxed">{t('notes.event.noUpcomingDesc', 'Add birthdays, anniversaries, or special milestones to get personalized reminders.')}</p>
  </div>
  <button 
  onClick={handleOpenCreateModal}
  className="px-10 py-4 bg-white text-black rounded-full font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.2)] text-sm"
  >
- Add First Event
+ {t('notes.event.addFirst', 'Add First Event')}
  </button>
  </div>
  ) : (
@@ -254,7 +260,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-md relative z-10">
  <Plus size={24} className="text-white/60 group-hover:text-white" />
  </div>
- <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80 relative z-10">Add Event</span>
+ <span className="text-[11px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/80 relative z-10">{t('notes.event.add', 'Add Event')}</span>
  </button>
 
  {/* Event Cards */}
@@ -314,11 +320,11 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  </div>
  {isToday ? (
  <span className="px-3 py-1 rounded-full bg-pink-500 text-white text-[10px] font-bold uppercase tracking-wider animate-pulse shadow-[0_0_15px_rgba(236,72,153,0.4)]">
- Today!
+ {t('notes.event.today', 'Today!')}
  </span>
  ) : (
  <span className="px-3 py-1 rounded-full bg-white/5 text-white/40 text-[10px] font-bold uppercase tracking-wider border border-white/5">
- {daysLeft > 0 ? `${daysLeft} days left` : 'Passed'}
+ {daysLeft > 0 ? t('notes.event.daysLeft', '{{count}} days left', { count: daysLeft }) : t('notes.event.passed', 'Passed')}
  </span>
  )}
  </div>
@@ -327,7 +333,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1.5 truncate tracking-tight drop-shadow-sm">{event.title}</h3>
  <div className="flex items-center gap-2 text-white/40 text-xs font-medium">
  <Calendar size={12} />
- {format(nextDate, 'MMMM do, yyyy')}
+ {format(nextDate, i18n.language === 'es' ? "d 'de' MMMM, yyyy" : "MMMM do, yyyy", { locale: i18n.language === 'es' ? es : undefined })}
  {event.recurrence && event.recurrence !== 'NONE' && (
  <Repeat size={10} className="opacity-50" />
  )}

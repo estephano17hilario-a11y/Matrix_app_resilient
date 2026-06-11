@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Key, FileText, CreditCard, Eye, EyeOff, Copy, Plus, Trash2, Shield, Search, ChevronLeft, ChevronRight, LogOut, ShieldAlert, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, Lock, Key, FileText, Eye, EyeOff, Copy, Plus, Trash2, Shield, Search, ChevronLeft, ChevronRight, LogOut, ShieldAlert, Settings } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import FocusSession from '@/plugins/FocusPlugin';
@@ -28,6 +29,7 @@ interface SecureNotesHubProps {
 const PIN_LENGTH = 5;
 
 export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesHubProps) => {
+ const { t, i18n } = useTranslation();
  const { user } = useAuth();
  const pinHashKey = user?.id ? `secure_vault_pin_hash_${user.id}` : 'secure_vault_pin_hash';
  const legacyPinKey = user?.id ? `secure_vault_pin_${user.id}` : 'secure_vault_pin';
@@ -166,9 +168,9 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  setIsUnlocked(true);
  setPin('');
  setSetupPin('');
- toast.success("Security PIN configured successfully");
+ toast.success(i18n.language === 'es' ? "PIN de seguridad configurado con éxito" : "Security PIN configured successfully");
  } else {
- toast.error("PINs do not match. Try again.");
+ toast.error(i18n.language === 'es' ? "Los PINs no coinciden. Inténtalo de nuevo." : "PINs do not match. Try again.");
  setPin('');
  setSetupPin('');
  }
@@ -201,9 +203,9 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  }
  setIsUnlocked(true);
  setPin('');
- toast.success("Vault Unlocked");
+ toast.success(i18n.language === 'es' ? "Bóveda Desbloqueada" : "Vault Unlocked");
  } else {
- toast.error("Incorrect PIN");
+ toast.error(i18n.language === 'es' ? "PIN Incorrecto" : "Incorrect PIN");
  setPin('');
  }
  }
@@ -226,19 +228,19 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  const handleAddItem = (newItem: SecureItem) => {
  setItems(prev => [newItem, ...prev]);
  setIsCreateMode(false);
- toast.success("Item secured");
+ toast.success(i18n.language === 'es' ? "Elemento asegurado" : "Item secured");
  };
 
  const handleUpdateItem = (updatedItem: SecureItem) => {
  setItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
  setSelectedItem(null);
- toast.success("Item updated");
+ toast.success(i18n.language === 'es' ? "Elemento actualizado" : "Item updated");
  };
 
  const handleDeleteItem = (id: string) => {
  setItems(prev => prev.filter(item => item.id !== id));
  setSelectedItem(null);
- toast.success("Item deleted");
+ toast.success(i18n.language === 'es' ? "Elemento eliminado" : "Item deleted");
  };
 
  const filteredItems = items.filter(item => {
@@ -270,9 +272,9 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-500">
  <Shield size={10} className="md:w-4 md:h-4" />
  </div>
- <span className="text-[8px] md:text-xs font-bold text-emerald-500 uppercase tracking-widest">Secure Vault</span>
+ <span className="text-[8px] md:text-xs font-bold text-emerald-500 uppercase tracking-widest">{t('vault.title')}</span>
  </div>
- <h2 className="text-lg md:text-3xl font-black text-white tracking-tight">Passwords & Notes</h2>
+ <h2 className="text-lg md:text-3xl font-black text-white tracking-tight">{t('vault.subtitle')}</h2>
  </div>
  <div className="flex items-center gap-2">
  {onOpenSettings && isUnlocked && (
@@ -301,11 +303,11 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  pin={localStorage.getItem(pinHashKey) || localStorage.getItem(legacyPinKey) || ''}
  onUnlock={() => {
  setIsUnlocked(true);
- toast.success("Vault Unlocked");
+ toast.success(i18n.language === 'es' ? "Bóveda Desbloqueada" : "Vault Unlocked");
  }}
  onCancel={onClose}
- title="Access Vault"
- description="Enter your 5-digit security code."
+ title={i18n.language === 'es' ? "Acceder a la Bóveda" : "Access Vault"}
+ description={i18n.language === 'es' ? "Introduce tu código de seguridad de 5 dígitos." : "Enter your 5-digit security code."}
  />
  ) : (
  <div className="h-full flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-200 bg-[#050505]">
@@ -329,10 +331,12 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  </div>
 
  <h3 className="text-2xl font-black text-white mb-3">
- {setupPin ? "Confirm PIN" : "Create Vault PIN"}
+ {setupPin 
+    ? (i18n.language === 'es' ? 'Confirmar PIN' : 'Confirm PIN') 
+    : (i18n.language === 'es' ? 'Crear PIN de Bóveda' : 'Create Vault PIN')}
  </h3>
  <p className="text-white/30 text-[11px] font-bold uppercase tracking-[0.2em] mb-12 max-w-[240px] text-center leading-relaxed">
- Set a 5-digit security code for your private vault.
+ {t('vault.setupDesc')}
  </p>
 
  {/* PIN Dots */}
@@ -398,7 +402,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  : 'bg-white/5 text-white/40 border-transparent hover:bg-white/10 hover:text-white'
  }`}
  >
- {tab === 'ALL' ? 'All Items' : tab}
+ {tab === 'ALL' ? (i18n.language === 'es' ? 'Todo' : 'All Items') : tab}
  </button>
  ))}
  </div>
@@ -409,7 +413,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={16} />
  <input 
  type="text" 
- placeholder="Search vault..." 
+ placeholder={t('vault.search')} 
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-white/20 transition-colors placeholder:text-white/20"
@@ -428,7 +432,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  {filteredItems.length === 0 ? (
  <div className="flex flex-col items-center justify-center py-20 opacity-40">
  <ShieldAlert size={48} className="mb-4 text-white/20" />
- <p className="text-sm font-medium">No items found</p>
+ <p className="text-sm font-medium">{t('vault.noItems')}</p>
  </div>
  ) : (
  filteredItems.map(item => (
@@ -445,7 +449,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  <div className="flex-1 min-w-0">
  <h4 className="text-white font-bold truncate">{item.title}</h4>
  <p className="text-white/40 text-xs truncate">
- {item.type === 'LOGIN' ? item.secondaryValue || '********' : 'Secure Note'}
+ {item.type === 'LOGIN' ? item.secondaryValue || '********' : (i18n.language === 'es' ? 'Nota Segura' : 'Secure Note')}
  </p>
  </div>
  <ChevronRight size={16} className="text-white/20 group-hover:text-white/60 transition-colors" />
@@ -461,7 +465,7 @@ export const SecureNotesHub = ({ isOpen, onClose, onOpenSettings }: SecureNotesH
  className="flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest border border-white/5"
  >
  <LogOut size={12} />
- Lock Vault
+ {t('vault.lock')}
  </button>
  </div>
  </div>
@@ -492,6 +496,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  onSave: (item: SecureItem) => void;
  onDelete?: () => void;
 }) => {
+ const { t, i18n } = useTranslation();
  const [title, setTitle] = useState(item?.title || '');
  const [value, setValue] = useState(item?.value || '');
  const [secondaryValue, setSecondaryValue] = useState(item?.secondaryValue || '');
@@ -500,7 +505,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
 
  const handleSave = () => {
  if (!title) {
- toast.error("Title is required");
+ toast.error(i18n.language === 'es' ? "El título es requerido" : "Title is required");
  return;
  }
  onSave({
@@ -516,7 +521,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
 
  const copyToClipboard = (text: string) => {
  navigator.clipboard.writeText(text);
- toast.success("Copied to clipboard");
+ toast.success(i18n.language === 'es' ? "Copiado al portapapeles" : "Copied to clipboard");
  };
 
  return (
@@ -530,25 +535,25 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-md flex flex-col max-h-[90vh]"
  >
  <div className="p-6 border-b border-white/5 flex justify-between items-center">
- <h3 className="text-xl font-bold text-white">{item ? 'Edit Item' : 'New Secure Item'}</h3>
+ <h3 className="text-xl font-bold text-white">{item ? (i18n.language === 'es' ? 'Editar Elemento' : 'Edit Item') : (i18n.language === 'es' ? 'Nuevo Elemento Seguro' : 'New Secure Item')}</h3>
  <button onClick={onClose} className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white"><X size={20} /></button>
  </div>
 
  <div className="p-6 space-y-6 overflow-y-auto">
  {/* Type Selector */}
  <div className="grid grid-cols-2 gap-3">
- {['LOGIN', 'NOTE'].map((t) => (
+ {['LOGIN', 'NOTE'].map((itemType) => (
  <button
- key={t}
- onClick={() => setType(t as any)}
+ key={itemType}
+ onClick={() => setType(itemType as any)}
  className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
- type === t 
+ type === itemType 
  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
  : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
  }`}
  >
- {t === 'LOGIN' ? <Key size={20} /> : <FileText size={20} />}
- <span className="text-[10px] font-bold uppercase">{t}</span>
+ {itemType === 'LOGIN' ? <Key size={20} /> : <FileText size={20} />}
+ <span className="text-[10px] font-bold uppercase">{itemType === 'LOGIN' ? (i18n.language === 'es' ? 'ACCESO' : 'LOGIN') : (i18n.language === 'es' ? 'NOTA' : 'NOTE')}</span>
  </button>
  ))}
  </div>
@@ -556,19 +561,19 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  {/* Fields */}
  <div className="space-y-4">
  <div className="space-y-1">
- <label className="text-xs font-bold text-white/40 uppercase ml-1">Title</label>
+ <label className="text-xs font-bold text-white/40 uppercase ml-1">{t('vault.itemTitle')}</label>
  <input 
  type="text" 
  value={title}
  onChange={e => setTitle(e.target.value)}
- placeholder={type === 'LOGIN' ? 'e.g. Netflix' : 'e.g. Private Note'}
+ placeholder={type === 'LOGIN' ? 'e.g. Netflix' : (i18n.language === 'es' ? 'Ej. Nota Privada' : 'e.g. Private Note')}
  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-white/30"
  />
  </div>
 
  {type === 'LOGIN' && (
  <div className="space-y-1">
- <label className="text-xs font-bold text-white/40 uppercase ml-1">Username / Email</label>
+ <label className="text-xs font-bold text-white/40 uppercase ml-1">{t('vault.usernameEmail')}</label>
  <div className="relative">
  <input 
  type="text" 
@@ -587,7 +592,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
 
  <div className="space-y-1">
  <label className="text-xs font-bold text-white/40 uppercase ml-1">
- {type === 'LOGIN' ? 'Password' : 'Content'}
+ {type === 'LOGIN' ? (i18n.language === 'es' ? 'Contraseña' : 'Password') : (i18n.language === 'es' ? 'Contenido' : 'Content')}
  </label>
  <div className="relative">
  {type === 'NOTE' ? (
@@ -634,7 +639,7 @@ const ItemDetailModal = ({ onClose, item, onSave, onDelete }: {
  onClick={handleSave}
  className="flex-1 py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
  >
- Save Item
+ {t('vault.save')}
  </button>
  </div>
  </div>

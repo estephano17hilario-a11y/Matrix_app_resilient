@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Flame, ListChecks, ArrowUpRight, ArrowDownRight, Z
 import { FeedScoreBreakdownChart } from './FeedScoreBreakdownChart';
 import { calculateFallbackProductivityScore, getDetailedScoreBreakdown } from '../../../utils/productivityScore';
 import { getWeekStartDay, parseLocalDate } from '../../../utils/dateUtils';
+import { useTranslation } from 'react-i18next';
 
 export interface WeeklyFeedEntry {
   id: string;
@@ -37,7 +38,7 @@ interface FeedWeekCardProps {
   index: number;
 }
 
-const formatDateRange = (startStr: string, endStr: string) => {
+const formatDateRange = (startStr: string, endStr: string, isSpanish: boolean) => {
   const parseDate = (str: string) => {
     const parts = str.split('-');
     return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -46,7 +47,9 @@ const formatDateRange = (startStr: string, endStr: string) => {
   const start = parseDate(startStr);
   const end = parseDate(endStr);
   
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const months = isSpanish
+    ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
   return `${start.getDate()} ${months[start.getMonth()]} - ${end.getDate()} ${months[end.getMonth()]}`;
 };
@@ -59,8 +62,10 @@ const formatFocusHours = (minutes: number) => {
 };
 
 export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, index }) => {
+  const { t, i18n } = useTranslation();
+  const isSpanish = i18n.language === 'es';
   const delay = Math.min(index * 0.06, 0.4);
-  const labelRange = formatDateRange(entry.startDate, entry.endDate);
+  const labelRange = formatDateRange(entry.startDate, entry.endDate, isSpanish);
 
   // Build score breakdown data for the inline chart
   const weekScoreBreakdown = React.useMemo(() => {
@@ -186,9 +191,9 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
                 <Calendar size={18} />
               </motion.div>
               <div>
-                <h3 className="text-sm font-black text-white tracking-tight">Semana {labelRange}</h3>
+                <h3 className="text-sm font-black text-white tracking-tight">{t('feed.weekly.week')} {labelRange}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-white/35 font-medium">{entry.activeDays} de 7 días activos</span>
+                  <span className="text-[10px] text-white/35 font-medium">{entry.activeDays} {t('feed.weekly.daysActive')}</span>
                 </div>
               </div>
             </div>
@@ -197,7 +202,7 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-1.5">
                 <TrendingUp size={11} className="text-indigo-400" />
-                <span className="text-[8px] font-black text-white/30 uppercase tracking-wider">Score Semanal</span>
+                <span className="text-[8px] font-black text-white/30 uppercase tracking-wider">{t('feed.weekly.title')}</span>
               </div>
               <motion.div 
                 className={`px-3 py-1 rounded-lg text-sm font-black border ${
@@ -255,7 +260,7 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
             >
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                  <Clock size={12} className="text-indigo-400" /> Focus Total
+                  <Clock size={12} className="text-indigo-400" /> {t('feed.weekly.focusTotal')}
                 </span>
                 {renderWeekDelta(entry.focusMinutes, prevEntry?.focusMinutes)}
               </div>
@@ -263,7 +268,7 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
                 <span className="text-base font-black text-white tabular-nums">{formatFocusHours(entry.focusMinutes)}</span>
                 {entry.focusMinutes > 0 && (
                   <span className="text-[9px] text-white/20 font-bold tabular-nums">
-                    Prom: {Math.round(entry.focusMinutes / entry.days.length)}m/día
+                    {t('feed.weekly.avg')} {Math.round(entry.focusMinutes / entry.days.length)}{t('feed.weekly.perDay')}
                   </span>
                 )}
               </div>
@@ -278,13 +283,13 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
             >
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                  <CheckCircle2 size={12} className="text-orange-400" /> Tareas
+                  <CheckCircle2 size={12} className="text-orange-400" /> {t('feed.tasks')}
                 </span>
                 {renderWeekDelta(entry.tasksCompleted, prevEntry?.tasksCompleted)}
               </div>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-base font-black text-white tabular-nums">{entry.tasksCompleted}</span>
-                <span className="text-[9px] text-white/25 font-bold">completadas</span>
+                <span className="text-[9px] text-white/25 font-bold">{isSpanish ? 'completadas' : 'completed'}</span>
               </div>
             </motion.div>
 
@@ -297,13 +302,13 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
             >
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                  <Flame size={12} className="text-emerald-400" /> Hábitos
+                  <Flame size={12} className="text-emerald-400" /> {t('feed.habits')}
                 </span>
                 {renderWeekDelta(entry.habitsCompleted, prevEntry?.habitsCompleted)}
               </div>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-base font-black text-white tabular-nums">{entry.habitsCompleted}</span>
-                <span className="text-[9px] text-white/25 font-bold">completados</span>
+                <span className="text-[9px] text-white/25 font-bold">{isSpanish ? 'completados' : 'completed'}</span>
               </div>
             </motion.div>
 
@@ -316,13 +321,13 @@ export const FeedWeekCard: React.FC<FeedWeekCardProps> = ({ entry, prevEntry, in
             >
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                  <ListChecks size={12} className="text-cyan-400" /> Sub-hab
+                  <ListChecks size={12} className="text-cyan-400" /> {t('feed.subHab')}
                 </span>
                 {renderWeekDelta(entry.subHabitsCompleted, prevEntry?.subHabitsCompleted)}
               </div>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-base font-black text-white tabular-nums">{entry.subHabitsCompleted}</span>
-                <span className="text-[9px] text-white/25 font-bold">sub-hábitos</span>
+                <span className="text-[9px] text-white/25 font-bold">{isSpanish ? 'sub-hábitos' : 'sub-habits'}</span>
               </div>
             </motion.div>
           </div>

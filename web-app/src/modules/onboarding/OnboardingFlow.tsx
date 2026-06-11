@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Sparkles, Lock, ChevronDown, Target, Flame, Zap, Coins } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles, ChevronDown, Target, Flame, Zap, Coins } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';

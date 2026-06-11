@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { App as CapacitorApp } from '@capacitor/app';
+import { supabase } from '@/services/supabase';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -106,6 +108,68 @@ const AppRoutes = () => {
 };
 
 export default function App() {
+  useEffect(() => {
+    const handleDeepLink = async (event: any) => {
+      console.log('🔗 [Deep Link App.tsx] Received URL:', event.url);
+      if (event.url && event.url.includes('com.luxresilient.app://auth/callback')) {
+        try {
+          let access_token: string | null = null;
+          let refresh_token: string | null = null;
+
+          // Try parsing from hash first
+          const hash = event.url.split('#')[1];
+          if (hash) {
+            const params = new URLSearchParams(hash);
+            access_token = params.get('access_token');
+            refresh_token = params.get('refresh_token');
+          }
+
+          // If not found in hash, try parsing from query string
+          if (!access_token || !refresh_token) {
+            const querySplit = event.url.split('?')[1];
+            if (querySplit) {
+              const query = querySplit.split('#')[0];
+              const params = new URLSearchParams(query);
+              access_token = access_token || params.get('access_token');
+              refresh_token = refresh_token || params.get('refresh_token');
+            }
+          }
+
+          if (access_token && refresh_token) {
+            console.log('🔐 [Deep Link App.tsx] Tokens found. Setting Supabase session...');
+            const { error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (error) throw error;
+            console.log('✅ [Deep Link App.tsx] Session established successfully');
+          } else {
+            console.warn('⚠️ [Deep Link App.tsx] Missing access_token or refresh_token in URL');
+          }
+        } catch (err: any) {
+          console.error('🔥 [Deep Link App.tsx] Error setting session:', err);
+        }
+      }
+    };
+
+    const setupListener = async () => {
+      try {
+        const listener = await CapacitorApp.addListener('appUrlOpen', handleDeepLink);
+        return listener;
+      } catch (err) {
+        console.error('Failed to setup App.tsx deep link listener:', err);
+      }
+    };
+
+    const listenerPromise = setupListener();
+
+    return () => {
+      listenerPromise.then(listener => {
+        if (listener) listener.remove();
+      }).catch(console.error);
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <ThemeProvider>

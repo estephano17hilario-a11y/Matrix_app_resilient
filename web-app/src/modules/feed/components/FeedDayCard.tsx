@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, ArrowUpRight, ArrowDownRight, Star, Edit2 } from 'lucide-react';
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
 import { calculateFallbackProductivityScore } from '../../../utils/productivityScore';
+import { useTranslation } from 'react-i18next';
 
 interface FeedDayCardProps {
   entry: DailyFeedEntry;
@@ -13,15 +14,18 @@ interface FeedDayCardProps {
   onSaveEntry?: (entry: DailyFeedEntry) => Promise<void>;
 }
 
-const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr: string, isSpanish: boolean) => {
   const parts = dateStr.split('-');
   const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-  const dayName = DAY_NAMES[date.getDay()];
+  const dayNames = isSpanish 
+    ? ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const monthNames = isSpanish
+    ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayName = dayNames[date.getDay()];
   const day = date.getDate();
-  const month = MONTH_NAMES[date.getMonth()];
+  const month = monthNames[date.getMonth()];
   return { dayName, day, month, fullDate: date };
 };
 
@@ -33,7 +37,9 @@ const formatFocusTime = (minutes: number) => {
 };
 
 export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, index, isToday = false, user, onSaveEntry }) => {
-  const { dayName, day, month } = formatDate(entry.date);
+  const { t, i18n } = useTranslation();
+  const isSpanish = i18n.language === 'es';
+  const { dayName, day, month } = formatDate(entry.date, isSpanish);
   const delay = Math.min(index * 0.06, 0.5); // Cap delay for performance
   
   const [isEditing, setIsEditing] = React.useState(false);
@@ -44,7 +50,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
   }, [entry.title]);
 
   const hasActivity = entry.tasksCompleted > 0 || entry.habitsCompleted > 0 || entry.focusMinutes > 0;
-  const displayName = user?.displayName || 'Tú';
+  const displayName = user?.displayName || (isSpanish ? 'Tú' : 'You');
 
   // Compute a daily score
   const score = React.useMemo(() => {
@@ -52,8 +58,12 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
   }, [entry]);
 
   const defaultTitle = React.useMemo(() => {
-    return score >= 75 ? '🔥 Superación Absoluta' : score >= 50 ? '⚡ Día de Progreso Activo' : '🌱 Pequeños Pasos Diarios';
-  }, [score]);
+    if (isSpanish) {
+      return score >= 75 ? '🔥 Superación Absoluta' : score >= 50 ? '⚡ Día de Progreso Activo' : '🌱 Pequeños Pasos Diarios';
+    } else {
+      return score >= 75 ? '🔥 Absolute Mastery' : score >= 50 ? '⚡ Active Progress Day' : '🌱 Small Daily Steps';
+    }
+  }, [score, isSpanish]);
 
   const handleSaveTitle = async () => {
     setIsEditing(false);
@@ -161,7 +171,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             />
-            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.15em]">En vivo</span>
+            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.15em]">{t('feed.card.live')}</span>
           </div>
         )}
 
@@ -195,7 +205,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
                   {displayName}
                 </h3>
                 <span className="text-[9px] text-white/35 font-semibold">
-                  {isToday ? 'Hoy' : `${dayName} ${day} de ${month}`}
+                  {isToday ? t('feed.card.today') : (isSpanish ? `${dayName} ${day} de ${month}` : `${dayName}, ${month} ${day}`)}
                 </span>
               </div>
             </div>
@@ -204,7 +214,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
             {hasActivity && (
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-end">
-                  <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider mb-0.5">Productividad</span>
+                  <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider mb-0.5">{t('feed.card.productivity')}</span>
                   <motion.span 
                     className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black border ${
                       score >= 75 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_12px_rgba(52,211,153,0.08)]' :
@@ -303,7 +313,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               >
                 <div className="flex items-center justify-between gap-1.5 mb-0.5">
                   <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <Clock size={10} className="text-indigo-400" /> Focus
+                    <Clock size={10} className="text-indigo-400" /> {t('feed.focus')}
                   </span>
                   {renderDelta(entry.focusMinutes, prevEntry?.focusMinutes, true)}
                 </div>
@@ -321,12 +331,12 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               >
                 <div className="flex items-center justify-between gap-1.5 mb-0.5">
                   <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 size={10} className="text-orange-400" /> Tareas
+                    <CheckCircle2 size={10} className="text-orange-400" /> {t('feed.tasks')}
                   </span>
                   {renderDelta(entry.tasksCompleted, prevEntry?.tasksCompleted)}
                 </div>
                 <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
-                  {entry.tasksCompleted} <span className="text-[8px] text-white/30 font-medium">hechas</span>
+                  {entry.tasksCompleted} <span className="text-[8px] text-white/30 font-medium">{t('feed.card.done')}</span>
                 </span>
               </motion.div>
 
@@ -339,12 +349,12 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               >
                 <div className="flex items-center justify-between gap-1.5 mb-0.5">
                   <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <Flame size={10} className="text-emerald-400" /> Hábitos
+                    <Flame size={10} className="text-emerald-400" /> {t('feed.habits')}
                   </span>
                   {renderDelta(entry.habitsCompleted, prevEntry?.habitsCompleted)}
                 </div>
                 <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
-                  {entry.habitsCompleted} <span className="text-[8px] text-white/30 font-medium">completados</span>
+                  {entry.habitsCompleted} <span className="text-[8px] text-white/30 font-medium">{t('feed.card.completed')}</span>
                 </span>
               </motion.div>
 
@@ -357,18 +367,18 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               >
                 <div className="flex items-center justify-between gap-1.5 mb-0.5">
                   <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1">
-                    <ListChecks size={10} className="text-cyan-400" /> Sub-hab
+                    <ListChecks size={10} className="text-cyan-400" /> {t('feed.subHab')}
                   </span>
                   {renderDelta(entry.subHabitsCompleted, prevEntry?.subHabitsCompleted)}
                 </div>
                 <span className="text-sm sm:text-base font-black text-white mt-0.5 tabular-nums">
-                  {entry.subHabitsCompleted} <span className="text-[8px] text-white/30 font-medium">hechos</span>
+                  {entry.subHabitsCompleted} <span className="text-[8px] text-white/30 font-medium">{t('feed.card.doneSub')}</span>
                 </span>
               </motion.div>
             </div>
           ) : (
             <div className="text-center py-4 bg-white/[0.01] border border-white/[0.03] rounded-xl text-white/20 text-xs font-semibold">
-              Sin actividad registrada
+              {t('feed.card.noActivity')}
             </div>
           )}
 
@@ -380,7 +390,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               animate={{ opacity: 1 }}
               transition={{ delay: delay + 0.35 }}
             >
-              <div className="text-[8px] font-black text-white/25 uppercase tracking-[0.12em] mb-1">Misiones Completadas</div>
+              <div className="text-[8px] font-black text-white/25 uppercase tracking-[0.12em] mb-1">{t('feed.card.completedMissions')}</div>
               <div className="space-y-1">
                 {entry.completedTaskTitles.map((title, i) => (
                   <motion.div 

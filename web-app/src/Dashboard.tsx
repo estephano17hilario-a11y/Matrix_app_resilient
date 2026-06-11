@@ -728,15 +728,15 @@ export default function Dashboard() {
  }, [t, handleDeleteHabit]);
 
  const handleDeleteBadHabitRequest = useCallback((habit: BadHabit) => {
- setConfirmationModal({
- isOpen: true,
- title: '¿Eliminar Vicio?',
- message: `¿Estás seguro de que quieres eliminar "${habit.title}" permanentemente?`,
- confirmText: 'Eliminar',
- variant: 'danger',
- onConfirm: () => handleDeleteBadHabit(habit.id),
- });
- }, [handleDeleteBadHabit]);
+  setConfirmationModal({
+  isOpen: true,
+  title: t('badHabits.deleteTitle', 'Delete Vice?'),
+  message: t('badHabits.deleteConfirm', 'Are you sure you want to delete "{{title}}" permanently?', { title: habit.title }),
+  confirmText: t('common.delete', 'Delete'),
+  variant: 'danger',
+  onConfirm: () => handleDeleteBadHabit(habit.id),
+  });
+  }, [t, handleDeleteBadHabit]);
 
  const handleDeleteProjectRequest = useCallback((projectId: string) => {
  const targetProject = projects.find(p => p.id === projectId);

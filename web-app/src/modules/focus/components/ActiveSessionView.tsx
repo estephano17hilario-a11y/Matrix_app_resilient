@@ -6,6 +6,7 @@ import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 // import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface ActiveSessionViewProps {
@@ -40,6 +41,7 @@ const SubTraitPickerModal = ({
   themeColor: string;
   onConfirm: (subTraitId?: string) => void; 
 }) => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string | undefined>(undefined);
   
   return (
@@ -62,8 +64,8 @@ const SubTraitPickerModal = ({
           <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}30` }}>
             ✅
           </div>
-          <h3 className="text-white font-black text-lg tracking-tight">¡Sesión Completada!</h3>
-          <p className="text-white/40 text-xs mt-1 font-medium">¿A qué sub-rasgo va este tiempo?</p>
+          <h3 className="text-white font-black text-lg tracking-tight">{t('focus.session.completed')}</h3>
+          <p className="text-white/40 text-xs mt-1 font-medium">{t('focus.session.whereToAssign')}</p>
         </div>
 
         {/* Options */}
@@ -79,7 +81,7 @@ const SubTraitPickerModal = ({
             </div>
             <div className="flex-1 text-left">
               <span className="text-sm font-bold" style={{ color: !selected ? themeColor : 'rgba(255,255,255,0.5)' }}>
-                Solo al Rasgo Principal
+                {t('focus.session.onlyMainTrait')}
               </span>
               <p className="text-[10px] text-white/30 font-medium">{attribute.label || attribute.id}</p>
             </div>
@@ -123,7 +125,7 @@ const SubTraitPickerModal = ({
           className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.97]"
           style={{ backgroundColor: themeColor, color: 'white', boxShadow: `0 0 25px ${themeColor}40` }}
         >
-          Confirmar
+          {t('focus.session.confirm')}
         </button>
       </motion.div>
     </motion.div>
@@ -143,6 +145,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  onAutoStartConsumed,
  customHeaderTitle
 }) => {
+ const { t, i18n } = useTranslation();
  const [showHistory, setShowHistory] = useState(false);
  const [isEditingTime, setIsEditingTime] = useState(false);
  const [editTimeValue, setEditTimeValue] = useState('25');
@@ -228,8 +231,12 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  // Show a web notification if permitted, so they know if they are in another tab
  if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
  try {
- new Notification('Focus Complete!', {
- body: `You finished your session for ${project.title}. Claim victory!`,
+ const notifTitle = i18n.language === 'es' ? '¡Enfoque Completado!' : 'Focus Complete!';
+ const notifBody = i18n.language === 'es' 
+   ? `Terminaste tu sesión para ${project.title}. ¡Reclama tu victoria!`
+   : `You finished your session for ${project.title}. Claim victory!`;
+ new Notification(notifTitle, {
+ body: notifBody,
  icon: '/favicon.ico',
  tag: 'focus-complete'
  });
@@ -463,7 +470,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-colors"
  >
  <BellOff size={12} />
- <span className="text-[10px] font-bold uppercase tracking-wide">Enable Notifications</span>
+ <span className="text-[10px] font-bold uppercase tracking-wide">{t('focus.session.enableNotifications')}</span>
  </motion.button>
  )}
  
@@ -477,7 +484,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-colors"
  >
  <Battery size={12} />
- <span className="text-[10px] font-bold uppercase tracking-wide">Unrestrict Battery</span>
+ <span className="text-[10px] font-bold uppercase tracking-wide">{t('focus.session.unrestrictBattery')}</span>
  </motion.button>
  )}
  </AnimatePresence>
@@ -622,7 +629,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  </div>
  )}
  <div className="mt-4 text-xs font-bold text-white/30 uppercase tracking-[0.3em] animate-pulse">
- {isActive ? (isPaused ? 'Paused' : 'Running') : (isEditingTime ? 'Set Duration' : 'Ready')}
+  {isActive 
+    ? (isPaused 
+      ? (i18n.language === 'es' ? 'Pausado' : 'Paused') 
+      : (i18n.language === 'es' ? 'En marcha' : 'Running')) 
+    : (isEditingTime 
+      ? (i18n.language === 'es' ? 'Ajustar Duración' : 'Set Duration') 
+      : (i18n.language === 'es' ? 'Listo' : 'Ready'))}
  </div>
  </div>
  </div>
@@ -713,10 +726,10 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   isOpen={showFocusProtectionModal}
   onClose={() => setShowFocusProtectionModal(false)}
   onConfirm={isActive ? handleConfirmExit : () => { setShowFocusProtectionModal(false); onExit(); }}
-  title={isActive ? "¿Detener y Salir?" : "Focus Mode Active"}
-  message={isActive ? "Si sales ahora, la sesión de enfoque actual se detendrá. Se guardará el progreso acumulado." : "You must finish or stop the current focus session before performing this action."}
-  confirmText={isActive ? "Detener y Salir" : "Entendido"}
-  cancelText={isActive ? "Cancelar" : null}
+  title={isActive ? t('focus.session.stopAndExit') : t('focus.session.activeWarningTitle')}
+  message={isActive ? t('focus.session.exitWarning') : t('focus.session.activeWarningMessage')}
+  confirmText={isActive ? t('focus.session.exitConfirmBtn') : t('focus.session.understood')}
+  cancelText={isActive ? t('common.cancel') : null}
   variant="warning"
   />
  </motion.div>

@@ -288,13 +288,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleDeepLink = async (event: any) => {
       console.log('🔗 [Deep Link] Received URL:', event.url);
       
-      // We look for our custom scheme 'luxapp://'
-      if (event.url.includes('luxapp://') || event.url.includes('login-callback')) {
+      // We look for our custom scheme 'luxapp://', 'com.luxresilient.app://' or 'login-callback'
+      if (event.url.includes('luxapp://') || event.url.includes('com.luxresilient.app://') || event.url.includes('login-callback')) {
         try {
-          // Parse access_token and refresh_token from the URL hash fragment
-          const urlObj = new URL(event.url.replace('#', '?'));
-          const access_token = urlObj.searchParams.get('access_token');
-          const refresh_token = urlObj.searchParams.get('refresh_token');
+          let access_token: string | null = null;
+          let refresh_token: string | null = null;
+
+          // Try parsing from hash first
+          const hash = event.url.split('#')[1];
+          if (hash) {
+            const params = new URLSearchParams(hash);
+            access_token = params.get('access_token');
+            refresh_token = params.get('refresh_token');
+          }
+
+          // If not found in hash, try parsing from query string
+          if (!access_token || !refresh_token) {
+            const querySplit = event.url.split('?')[1];
+            if (querySplit) {
+              const query = querySplit.split('#')[0];
+              const params = new URLSearchParams(query);
+              access_token = access_token || params.get('access_token');
+              refresh_token = refresh_token || params.get('refresh_token');
+            }
+          }
 
           if (access_token && refresh_token) {
             console.log('🔐 [Deep Link] Tokens found. Setting Supabase session...');
