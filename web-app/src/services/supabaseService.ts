@@ -138,36 +138,61 @@ export const getLinkedIdentities = async () => {
 /**
  * Vincula una cuenta de Google a la cuenta actual, con Pre-flight check estricto.
  */
-export const linkGoogleAccount = async (targetEmail: string) => {
+export const linkGoogleAccount = async () => {
     try {
-        // 1. Pre-flight Check: ¿Es una identidad virgen?
-        const { data: isVirgin, error: rpcError } = await supabase.rpc('check_virgin_identity', {
-            email_to_check: targetEmail.toLowerCase(),
-        });
+        const isMobile = Capacitor.isNativePlatform();
+        let targetEmail = '';
 
-        if (rpcError) throw new Error('Error al validar la identidad en el servidor.');
-        
-        if (!isVirgin) {
-            throw new Error('IDENTITY_NOT_VIRGIN');
+        if (isMobile) {
+            try {
+                // Clear previous session so Google selector always displays
+                await GoogleAuth.signOut();
+            } catch (e) {
+                // Ignore
+            }
+
+            // 1. Trigger native sign in modal to select Google Account
+            const googleUser = await GoogleAuth.signIn();
+            targetEmail = googleUser.email;
+
+            if (!targetEmail) {
+                throw new Error("No se obtuvo el correo electrónico del selector de Google.");
+            }
+
+            // 2. Pre-flight Check: Is it a virgin identity?
+            const { data: isVirgin, error: rpcError } = await supabase.rpc('check_virgin_identity', {
+                email_to_check: targetEmail.toLowerCase(),
+            });
+
+            if (rpcError) throw new Error('Error al validar la identidad en el servidor.');
+            
+            if (!isVirgin) {
+                throw new Error('IDENTITY_NOT_VIRGIN');
+            }
         }
 
-        const isMobile = Capacitor.isNativePlatform();
         const redirectTo = isMobile 
             ? 'com.luxresilient.app://auth/callback' 
             : `${window.location.origin}/settings?linked=true`;
 
-        // 2. Ejecutar Link Identity forzando el correo (login_hint) y pidiendo tokens offline
-        const { data, error } = await supabase.auth.linkIdentity({
+        // 3. Link Identity in Supabase
+        const linkOptions: any = {
             provider: 'google',
             options: {
                 queryParams: {
-                    access_type: 'offline', // Crucial para obtener el provider_refresh_token
-                    prompt: 'consent',      // Obliga a Google a devolver un refresh token nuevo
-                    login_hint: targetEmail // Fuerza a Google a usar este correo exacto
+                    access_type: 'offline', // Crucial to obtain provider_refresh_token
+                    prompt: 'consent'       // Forces new consent to get refresh token
                 },
                 redirectTo,
             }
-        });
+        };
+
+        // If mobile, force Google to link with the selected email using login_hint
+        if (isMobile && targetEmail) {
+            linkOptions.options.queryParams.login_hint = targetEmail;
+        }
+
+        const { data, error } = await supabase.auth.linkIdentity(linkOptions);
         if (error) throw error;
         return data;
     } catch (error) {

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Palette, Hexagon, Cpu, User, Database } from 'lucide-react';
+import { X, Palette, Hexagon, Cpu, User } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -8,14 +8,12 @@ import { VisualsSection } from '../sections/VisualsSection';
 import { SystemSection } from '../sections/SystemSection';
 import { AccountSection } from '../sections/AccountSection';
 import { NeuralSection } from '../sections/NeuralSection';
-import { DataSection } from '../sections/DataSection';
 
 const getTabs = (t: any) => [
   { id: 'visuals', label: t('settings.tabs.design', 'Design'), icon: Palette },
   { id: 'neural', label: t('settings.tabs.stats', 'Stats'), icon: Hexagon },
   { id: 'system', label: t('settings.tabs.prefs', 'Prefs'), icon: Cpu },
   { id: 'account', label: t('settings.tabs.profile', 'Profile'), icon: User },
-  { id: 'data', label: t('settings.tabs.data', 'Data'), icon: Database },
 ];
 
 export const SettingsModal = () => {
@@ -28,7 +26,6 @@ export const SettingsModal = () => {
       case 'neural': return <NeuralSection />;
       case 'system': return <SystemSection />;
       case 'account': return <AccountSection />;
-      case 'data': return <DataSection />;
       default: return <VisualsSection />;
     }
   };
