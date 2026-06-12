@@ -163,6 +163,7 @@ export const useDashboardLogic = () => {
                 defaultChartViews: authProfile.defaultChartViews || luxUser.defaultChartViews,
                 defaultProjectView: authProfile.defaultProjectView || luxUser.defaultProjectView,
                 defaultTaskFilters: authProfile.defaultTaskFilters || luxUser.defaultTaskFilters,
+                notesDefaultTab: authProfile.notesDefaultTab || (authProfile.preferences as any)?.notesDefaultTab || 'OVERVIEW',
                 dashboardStyle: authProfile.dashboardStyle || luxUser.dashboardStyle,
                 avatarShape: authProfile.avatarShape || luxUser.avatarShape,
                 habitSectionControl: authProfile.habitSectionControl || luxUser.habitSectionControl,

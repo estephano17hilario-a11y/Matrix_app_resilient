@@ -152,8 +152,8 @@ export const linkGoogleAccount = async () => {
 
             // 1. Trigger native sign in modal to select Google Account
             const googleUser = await GoogleAuth.signIn();
-            const idToken = googleUser.authentication.idToken;
-            const accessToken = googleUser.authentication.accessToken;
+            const idToken = googleUser.authentication?.idToken || (googleUser as any).idToken;
+            const accessToken = googleUser.authentication?.accessToken || (googleUser as any).accessToken;
             const targetEmail = googleUser.email;
 
             if (!idToken) {
@@ -179,6 +179,7 @@ export const linkGoogleAccount = async () => {
             const { data, error } = await supabase.auth.linkIdentity({
                 provider: 'google',
                 token: idToken,
+                // @ts-ignore
                 access_token: accessToken || undefined
             });
 

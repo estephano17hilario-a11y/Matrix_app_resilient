@@ -210,6 +210,15 @@ export const useDailyFeed = ({
     }
   }, [userId]);
 
+  // Debounced auto-save of today's entry
+  useEffect(() => {
+    if (!userId || isLoading) return;
+    const timer = setTimeout(() => {
+      saveFeedEntry(todayEntry);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [todayEntry, userId, isLoading, saveFeedEntry]);
+
   // All entries combined (today live + historical)
   const allEntries = useMemo(() => {
     const today = toLocalISOString(new Date());

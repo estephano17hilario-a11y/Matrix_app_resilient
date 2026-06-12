@@ -229,6 +229,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                         const now = Date.now();
                         
                         if (session.isActive && !session.isPaused) {
+                            lastTickRef.current = now; // Reset lastTickRef to prevent double-counting background duration on next interval tick!
                             if (session.mode === 'POMO') {
                                 const target = session.targetTime || (now + session.timeLeft * 1000);
                                 const remaining = Math.max(0, Math.ceil((target - now) / 1000));

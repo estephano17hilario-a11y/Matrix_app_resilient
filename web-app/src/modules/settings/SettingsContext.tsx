@@ -55,6 +55,8 @@ interface SettingsContextType {
   updateDefaultChartViews: (views: any) => void;
   defaultProjectView: 'PROJECT' | 'TRAIT' | 'NONE';
   updateDefaultProjectView: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
+  notesDefaultTab: 'OVERVIEW' | 'EMOTIONS';
+  updateNotesDefaultTab: (tab: 'OVERVIEW' | 'EMOTIONS') => void;
 
   defaultTaskFilters?: {
     timeframe?: 'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS';
@@ -115,6 +117,8 @@ interface SettingsProviderProps {
   onUpdateDefaultChartViews?: (views: any) => void;
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
+  notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
+  onUpdateNotesDefaultTab?: (tab: 'OVERVIEW' | 'EMOTIONS') => void;
 
   defaultTaskFilters?: any;
   onUpdateDefaultTaskFilters?: (filters: any) => void;
@@ -188,6 +192,8 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
     updateDefaultChartViews: props.onUpdateDefaultChartViews || (() => {}),
     defaultProjectView: props.defaultProjectView || 'PROJECT',
     updateDefaultProjectView: props.onUpdateDefaultProjectView || (() => {}),
+    notesDefaultTab: props.notesDefaultTab || 'OVERVIEW',
+    updateNotesDefaultTab: props.onUpdateNotesDefaultTab || (() => {}),
 
     defaultTaskFilters: props.defaultTaskFilters || {},
     updateDefaultTaskFilters: props.onUpdateDefaultTaskFilters || (() => {}),

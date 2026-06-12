@@ -1428,24 +1428,24 @@ export default function Dashboard() {
  <div className="flex flex-col gap-4 h-full min-h-0">
 
  {/* ⚡ TASK SECTION SWITCHER */}
- <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
- <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
- <button
- onClick={() => setTaskViewMode('LIST')}
- className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
- style={{  }}
- >
- {t('dashboard.tasks', 'TASKS')}
- </button>
- <button
- onClick={() => setTaskViewMode('STRATEGY')}
- className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
- style={{  }}
- >
- {t('dashboard.strategy', 'STRATEGY')}
- </button>
- </div>
- </div>
+ {habitSectionControl === 'VISIBLE' && (
+  <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
+  <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
+  <button
+  onClick={() => setTaskViewMode('LIST')}
+  className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+  >
+  {t('dashboard.tasks', 'TASKS')}
+  </button>
+  <button
+  onClick={() => setTaskViewMode('STRATEGY')}
+  className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
+  >
+  {t('dashboard.strategy', 'STRATEGY')}
+  </button>
+  </div>
+  </div>
+  )}
 
  {taskViewMode === 'LIST' ? (
  <>
@@ -1543,14 +1543,14 @@ export default function Dashboard() {
  <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm">
  <button
  onClick={() => setHabitViewMode('PROTOCOLS')}
- className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+ className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
  >
  {t('dashboard.protocols', 'PROTOCOLS')}
  </button>
  <button
  data-tour="habit-vices-tab"
  onClick={() => setHabitViewMode('VICES')}
- className={`flex-1 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
+ className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
  >
  {t('dashboard.vices', 'VICES')}
  </button>
@@ -2086,6 +2086,14 @@ export default function Dashboard() {
  if (user?.id) {
  const newPrefs = { ...(user.preferences || {}), defaultTaskFilters: filters };
  updateProfileLocally({ defaultTaskFilters: filters, preferences: newPrefs });
+ await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+ }
+ }}
+ notesDefaultTab={user?.notesDefaultTab || 'OVERVIEW'}
+ onUpdateNotesDefaultTab={async (tab) => {
+ if (user?.id) {
+ const newPrefs = { ...(user.preferences || {}), notesDefaultTab: tab };
+ updateProfileLocally({ notesDefaultTab: tab, preferences: newPrefs });
  await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
  }
  }}

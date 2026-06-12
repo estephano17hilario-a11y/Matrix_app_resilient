@@ -150,21 +150,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              setIsLoading(false); // ⚡ MATRIX: Instant Boot when cached!
         } else {
             // Optimistic Skeleton while we fetch
-            setProfile({
-                id: currentUser.id,
-                uid: currentUser.id,
-                email: currentUser.email || null,
-                displayName: currentUser.user_metadata?.full_name || "",
-                photoURL: currentUser.user_metadata?.avatar_url || null,
-                plan: 'FREE',
-                archetype: 'NEO',
-                stats: DEFAULT_USER_STATS,
-                theme: 'MATRIX',
-                createdAt: Date.now(),
-                lastLoginAt: Date.now(),
-                onboarding: { ...DEFAULT_ONBOARDING, completedAt: Date.now() }, // ASSUME COMPLETED temporarily to prevent flicker
-                isSkeleton: true
-            });
+             setProfile({
+                 id: currentUser.id,
+                 uid: currentUser.id,
+                 email: currentUser.email || null,
+                 displayName: currentUser.user_metadata?.display_name || currentUser.user_metadata?.full_name || "",
+                 photoURL: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null,
+                 plan: 'FREE',
+                 archetype: 'NEO',
+                 stats: DEFAULT_USER_STATS,
+                 theme: 'MATRIX',
+                 createdAt: Date.now(),
+                 lastLoginAt: Date.now(),
+                 onboarding: { ...DEFAULT_ONBOARDING, completedAt: Date.now() }, // ASSUME COMPLETED temporarily to prevent flicker
+                 isSkeleton: true
+             });
             // We set isLoading to false IMMEDIATELY to prevent the LoadingScreen from showing
             // while we fetch the actual profile in the background. The skeleton is enough to render the Dashboard.
             setIsLoading(false);
@@ -185,15 +185,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = userDataList && userDataList.length > 0 ? userDataList[0] : null;
                 
                 if (userData && !error) {
+                    // Auto-sync display_name and photo_url if missing in DB but present in auth metadata
+                    const dbDisplayName = userData.display_name;
+                    const metaDisplayName = currentUser.user_metadata?.display_name || currentUser.user_metadata?.full_name || "";
+                    if (!dbDisplayName && metaDisplayName) {
+                        console.log("📝 MATRIX AUTH: Database display_name is empty. Syncing from metadata:", metaDisplayName);
+                        supabase.from('users')
+                            .update({ display_name: metaDisplayName })
+                            .eq('id', currentUser.id)
+                            .then(({ error: updateErr }) => {
+                                if (updateErr) console.error("Failed to sync display_name to DB:", updateErr);
+                            });
+                        userData.display_name = metaDisplayName;
+                    }
+
+                    const dbPhotoUrl = userData.photo_url;
+                    const metaPhotoUrl = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || "";
+                    if (!dbPhotoUrl && metaPhotoUrl) {
+                        console.log("📝 MATRIX AUTH: Database photo_url is empty. Syncing from metadata:", metaPhotoUrl);
+                        supabase.from('users')
+                            .update({ photo_url: metaPhotoUrl })
+                            .eq('id', currentUser.id)
+                            .then(({ error: updateErr }) => {
+                                if (updateErr) console.error("Failed to sync photo_url to DB:", updateErr);
+                            });
+                        userData.photo_url = metaPhotoUrl;
+                    }
+
                     const finalProfile: UserProfile = {
                         ...userData,
                         uid: currentUser.id,
-                        displayName: userData.display_name || currentUser.user_metadata?.full_name || "",
-                        photoURL: userData.photo_url || currentUser.user_metadata?.avatar_url,
+                        displayName: userData.display_name || currentUser.user_metadata?.display_name || currentUser.user_metadata?.full_name || "",
+                        photoURL: userData.photo_url || currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null,
                         avatarId: userData.avatar_id || null,
                         preferences: userData.preferences || {},
                         defaultChartViews: userData.preferences?.defaultChartViews || {},
                         defaultProjectView: userData.preferences?.defaultProjectView || 'PROJECT',
+                        notesDefaultTab: userData.preferences?.notesDefaultTab || 'OVERVIEW',
                         archivedTraits: userData.preferences?.archivedTraits || {},
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',

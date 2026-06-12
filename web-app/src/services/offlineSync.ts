@@ -252,12 +252,16 @@ export const OfflineSyncService = {
               }, { onConflict: 'id' });
             if (error) throw error;
         } else if (action.type === 'STATS_SYNC') {
+           const updatePayload: any = {
+             stats: action.data.stats,
+             last_login_at: new Date().toISOString()
+           };
+           if (action.data.inventory) {
+             updatePayload.inventory = action.data.inventory;
+           }
            const { error } = await supabase
               .from('users')
-              .update({
-                stats: action.data.stats,
-                last_login_at: new Date().toISOString()
-              })
+              .update(updatePayload)
               .eq('id', action.userId);
             if (error) throw error;
         }

@@ -1,45 +1,13 @@
-
 export const calculateXpForLevel = (level: number): number => {
     if (level <= 1) return 0;
-    let totalXp = 0;
-    let currentReq = 120;
-    for (let l = 1; l < level; l++) {
-        totalXp += currentReq;
-        if (l < 9) {
-            currentReq += 55;
-        } else if (l < 19) {
-            currentReq += 65;
-        } else if (l < 29) {
-            currentReq += 75;
-        } else {
-            currentReq += 85;
-        }
-    }
-    return totalXp;
+    const n = level - 1;
+    return 120 * n + (23 * n * (n - 1)) / 2;
 };
 
 export const calculateLevelFromXp = (xp: number): number => {
     if (xp <= 0) return 1;
-    let totalXp = 0;
-    let currentReq = 120;
-    let level = 1;
-    while (true) {
-        if (totalXp + currentReq > xp) {
-            break;
-        }
-        totalXp += currentReq;
-        level++;
-        if (level - 1 < 9) {
-            currentReq += 55;
-        } else if (level - 1 < 19) {
-            currentReq += 65;
-        } else if (level - 1 < 29) {
-            currentReq += 75;
-        } else {
-            currentReq += 85;
-        }
-    }
-    return level;
+    const n = (-217 + Math.sqrt(47089 + 184 * xp)) / 46;
+    return Math.floor(n) + 1;
 };
 
 export const calculateNextLevelXp = (currentLevel: number): number => {
@@ -56,10 +24,10 @@ export const calculateLevelProgress = (xp: number, level: number): number => {
 
 export const calculateAttributeMaxXp = (level: number): number => {
     const lvl = Math.max(1, level);
-    return 100 + (lvl - 1) * 65;
+    return 80 + (lvl - 1) * 15;
 };
 
 export const calculateSubTraitMaxXp = (level: number): number => {
     const lvl = Math.max(1, level);
-    return 50 + (lvl - 1) * 35;
+    return 50 + (lvl - 1) * 10;
 };

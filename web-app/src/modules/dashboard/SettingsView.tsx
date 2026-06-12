@@ -43,6 +43,8 @@ export interface SettingsViewProps {
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
   defaultTaskFilters?: any;
   onUpdateDefaultTaskFilters?: (filters: any) => void;
+  notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
+  onUpdateNotesDefaultTab?: (tab: 'OVERVIEW' | 'EMOTIONS') => void;
 }
 
 export const SettingsView = (props: SettingsViewProps) => {

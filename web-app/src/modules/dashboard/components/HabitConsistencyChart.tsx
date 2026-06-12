@@ -50,13 +50,13 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
 
     useEffect(() => {
         if (isActive) {
-            setTimeframe('WEEK');
+            setTimeframe(initialTimeframe || 'WEEK');
             setCurrentDate(new Date());
         }
-    }, [isActive]);
+    }, [isActive, initialTimeframe]);
 
     const handleTabClick = (tf: TimeFrame) => {
-        if (!isPro && (tf === '3_MONTHS' || tf === 'YEAR' || tf === 'TOTAL')) {
+        if (!isPro && (tf === 'MONTH' || tf === '3_MONTHS' || tf === 'YEAR' || tf === 'TOTAL')) {
             if (onOpenPro) onOpenPro();
             return;
         }
@@ -483,7 +483,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                                     />
                                 )}
                                 <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
-                                {!isPro && (tf === 'MONTH' || tf === 'YEAR') && <Lock size={10} className="text-yellow-400/80" />}
+                                {!isPro && tf === 'YEAR' && <Lock size={10} className="text-yellow-400/80" />}
                             </button>
                         ))}
                     </div>

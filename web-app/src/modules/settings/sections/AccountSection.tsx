@@ -69,17 +69,18 @@ export const AccountSection = () => {
   };
 
   const handleUnlinkGoogle = async () => {
-    // Verificación de Contraseña (CRÍTICO)
-    const hasEmailIdentity = linkedIdentities.some(id => id.provider === 'email');
-    const hasLocalPassword = user?.user_metadata?.has_password === true;
-    if (!hasEmailIdentity && !hasLocalPassword) {
-      // Detener y desplegar modal para exigir contraseña
-      setShowCreatePasswordModal(true);
-      return;
-    }
-
+    setIsLoadingIdentities(true);
     try {
-      setIsLoadingIdentities(true);
+      // Verificación de Contraseña (CRÍTICO) con consulta fresca a Supabase
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      const hasEmailIdentity = linkedIdentities.some(id => id.provider === 'email');
+      const hasLocalPassword = freshUser?.user_metadata?.has_password === true;
+      if (!hasEmailIdentity && !hasLocalPassword) {
+        setShowCreatePasswordModal(true);
+        setIsLoadingIdentities(false);
+        return;
+      }
+
       await unlinkGoogleAccount();
       const updatedIdentities = await getLinkedIdentities();
       setLinkedIdentities(updatedIdentities);

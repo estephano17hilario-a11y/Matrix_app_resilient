@@ -71,6 +71,15 @@ export const FocusStats = React.memo(({
     const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'ATTRIBUTE'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     
+    // Sync defaultChartViews based on active viewMode
+    useEffect(() => {
+        if (viewMode === 'PROJECT' && defaultChartViews?.projects) {
+            setTimeRange(defaultChartViews.projects);
+        } else if ((viewMode === 'ATTRIBUTE' || viewMode === 'TOTAL') && defaultChartViews?.focus) {
+            setTimeRange(defaultChartViews.focus);
+        }
+    }, [viewMode, defaultChartViews]);
+
     // Reset date when range changes
     useEffect(() => {
         setCurrentDate(new Date());

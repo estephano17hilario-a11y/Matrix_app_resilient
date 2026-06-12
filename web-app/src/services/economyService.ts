@@ -103,7 +103,7 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
 /**
  * Consumes an item from the inventory.
  */
-export const consumeItem = async (userId: string, itemId: string, effect: StoreItem['effect']) => {
+export const consumeItem = async (userId: string, itemId: string, _effect: StoreItem['effect']) => {
   try {
     const { data: userData, error: fetchError } = await supabase
       .from('users')
@@ -119,69 +119,66 @@ export const consumeItem = async (userId: string, itemId: string, effect: StoreI
     const itemIndex = inventory.findIndex(i => i.itemId === itemId);
     
     if (itemIndex === -1 || inventory[itemIndex].quantity < 1) {
-      throw new Error("Item not in inventory");
-    }
-    
-    // 1. Remove from inventory
-    const newInventory = [...inventory];
-    const item = newInventory[itemIndex];
-    
-    if (item.quantity > 1) {
-      newInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
-    } else {
-      newInventory.splice(itemIndex, 1);
+      throw new Error("No tienes este ítem en tu inventario");
     }
     
     const stats = { ...(userData.stats || {}) };
+    
+    // Apply effect using switch (itemId)
+    switch (itemId) {
+      case 'potion_hp_small': {
+        const currentHp = stats.hp || 0;
+        const maxHp = stats.maxHp || 100;
+        if (currentHp >= maxHp) {
+          throw new Error("HP is already full.");
+        }
+        stats.hp = Math.min(maxHp, currentHp + 10);
+        stats.maxHp = maxHp;
+        break;
+      }
+      case 'potion_xp_restore': {
+        const newXp = (stats.xp || 0) + 100;
+        stats.xp = newXp;
+        // Recalculate level
+        const newLevel = calculateLevelFromXp(newXp);
+        stats.level = newLevel;
+        stats.nextXp = calculateNextLevelXp(newLevel);
+        break;
+      }
+      case 'redemption_token': {
+        const currentStreak = stats.streak || 0;
+        const previousStreak = stats.previousStreak || 0;
+        if (previousStreak > currentStreak) {
+          stats.streak = previousStreak;
+          stats.previousStreak = 0;
+        } else {
+          stats.streak = currentStreak + 1;
+        }
+        break;
+      }
+      case 'freeze_streak': {
+        const now = new Date();
+        const freezeUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        stats.streakFrozenUntil = freezeUntil.toISOString();
+        break;
+      }
+      default:
+        throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
+    }
+
+    // Deduct quantity and filter out if quantity is 0
+    const updatedInventory = inventory.map((invItem, idx) => {
+      if (idx === itemIndex) {
+        return { ...invItem, quantity: invItem.quantity - 1 };
+      }
+      return invItem;
+    });
+    const newInventory = updatedInventory.filter(invItem => invItem.quantity > 0);
+
     const updates: any = { 
       inventory: newInventory,
       stats: stats
     };
-    
-    // 2. Apply Effect
-    if (effect) {
-      switch (effect.type) {
-        case 'heal': {
-          const currentHp = stats.hp || 0;
-          const maxHp = 100; 
-          if (currentHp >= maxHp) {
-            throw new Error("HP is already full.");
-          }
-          stats.hp = Math.min(maxHp, currentHp + effect.value);
-          stats.maxHp = maxHp; // Sync DB to new rule
-          break;
-        }
-        case 'xp_boost': {
-          const newXp = (stats.xp || 0) + effect.value;
-          stats.xp = newXp;
-          // Recalculate level
-          const newLevel = calculateLevelFromXp(newXp);
-          stats.level = newLevel;
-          stats.nextXp = calculateNextLevelXp(newLevel);
-          break;
-        }
-        case 'restore_streak': {
-          const currentStreak = stats.streak || 0;
-          const previousStreak = stats.previousStreak || 0;
-          // If they have a previous streak saved (they lost it), restore it.
-          // Otherwise, just give +1.
-          if (previousStreak > currentStreak) {
-            stats.streak = previousStreak;
-            stats.previousStreak = 0; // consumed
-          } else {
-            stats.streak = currentStreak + (effect.value || 1);
-          }
-          break;
-        }
-        case 'freeze_streak': {
-          const now = new Date();
-          const durationHours = effect.duration || 24;
-          const freezeUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-          stats.streakFrozenUntil = freezeUntil.toISOString();
-          break;
-        }
-      }
-    }
     
     // Commit updates to Supabase
     const { error: updateError } = await supabase

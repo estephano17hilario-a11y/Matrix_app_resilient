@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase, configStatus } from '../services/supabase';
 import { UserData, UserStats, DEFAULT_USER_STATS } from '../types/User';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
@@ -13,6 +13,7 @@ export interface LuxDataHook {
   loading: boolean;
   error: string | null;
   isSyncing: boolean;
+  updateLuxLocally: (updates: Partial<UserData>) => void;
 }
 
 export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
@@ -199,5 +200,22 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
     };
   }, [userId]);
 
-  return { user, loading, error, isSyncing };
+  const updateLuxLocally = useCallback((updates: Partial<UserData>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = {
+        ...prev,
+        ...updates,
+        stats: updates.stats ? {
+          ...(prev.stats || {}),
+          ...updates.stats
+        } : prev.stats,
+      } as UserData;
+      PersistenceService.saveProfile(updated);
+      console.log("⚡ LUX: Profile updated locally (Optimistic):", updates);
+      return updated;
+    });
+  }, []);
+
+  return { user, loading, error, isSyncing, updateLuxLocally };
 };

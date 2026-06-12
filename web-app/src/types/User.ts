@@ -14,6 +14,7 @@ export interface UserStats {
   streakFrozenUntil?: string; // Fecha ISO hasta cuando está congelada la racha
   lastStreakDate?: string; // Fecha de la última vez que se incrementó la racha
   previousStreak?: number;
+  nextXp?: number;
 }
 
 export interface DailyLimits {
@@ -63,6 +64,7 @@ export interface UserProfile {
     defaultChartViews?: any;
     defaultProjectView?: any;
     defaultTaskFilters?: any;
+    notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
     traitChanges?: {
       count: number;
       weekStart: number;
@@ -104,6 +106,7 @@ export interface UserProfile {
     difficultyFilter?: 'all' | 'S' | 'A' | 'B' | 'C';
     hideCompleted?: boolean;
   };
+  notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
 
   // Rate Limiting
   traitChanges?: {

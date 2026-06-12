@@ -132,7 +132,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   // Config & Security
   const [configOpen, setConfigOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [config, setConfig] = useState<NotesConfig>(() => getInitialNotesConfig(user?.id));
 
  const [isLocked, setIsLocked] = useState(false);
@@ -717,8 +717,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
  subView === 'NOTES' ? 'left-[1%]' : 'left-[50%]'
  }`} />
- <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.notes', 'Notes')}</button>
- <button data-tour="journal-tab-btn" onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.journal', 'Journal')}</button>
+ <button onClick={() => setSubView('NOTES')} className={`relative w-1/2 py-2 rounded-full text-[9px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 whitespace-nowrap truncate min-w-0 ${subView === 'NOTES' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.tabs.notes', 'Notes')}</button>
+ <button data-tour="journal-tab-btn" onClick={() => setSubView('JOURNAL')} className={`relative w-1/2 py-2 rounded-full text-[9px] sm:text-xs font-bold uppercase tracking-widest transition-colors z-10 whitespace-nowrap truncate min-w-0 ${subView === 'JOURNAL' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}>{t('notes.tabs.journal', 'Journal')}</button>
  </div>
  )}
  </div>
@@ -1058,7 +1058,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  )}
  </div>
- <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={subView === 'JOURNAL' ? 'EMOTIONS' : 'OVERVIEW'} isPro={isPro} onOpenPro={onShowPro} defaultChartViews={defaultChartViews} />
+ <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={profile?.notesDefaultTab || 'OVERVIEW'} isPro={isPro} onOpenPro={onShowPro} defaultChartViews={defaultChartViews} />
  
  <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={openConfigModal} isPro={isPro} onOpenPro={onShowPro} />
  <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={openConfigModal} />

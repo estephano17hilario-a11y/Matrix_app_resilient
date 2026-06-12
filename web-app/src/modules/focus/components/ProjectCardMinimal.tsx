@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Project, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
-import { ChevronRight, Play } from 'lucide-react';
+import { ChevronRight, Play, Flame } from 'lucide-react';
 import { addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getDynamicDailyTarget } from '../../../utils/projectUtils';
@@ -91,10 +91,13 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
             whileTap={{ scale: 0.98 }}
             whileHover={{ scale: 1.02 }}
             className={cn(
-                "p-4 py-3 md:p-5 rounded-[24px] bg-black/37 border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex flex-row items-center gap-3 text-left cursor-pointer group",
-                isArchived && "opacity-60 grayscale bg-[#050505]/37"
+                "p-4 py-3 md:p-5 rounded-[24px] border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex flex-row items-center gap-3 text-left cursor-pointer group",
+                isArchived && "opacity-60 grayscale"
             )}
-            style={!isArchived ? { boxShadow: `0 10px 25px -5px ${displayColor}66, 0 8px 10px -6px ${displayColor}66` } : undefined}
+            style={{
+                backgroundColor: displayColor.startsWith('#') ? `${displayColor}3b` : displayColor,
+                ...(!isArchived ? { boxShadow: `0 10px 25px -5px ${displayColor}66, 0 8px 10px -6px ${displayColor}66` } : {})
+            }}
         >
             <button 
                 onClick={(e) => {
@@ -118,13 +121,37 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-1">
                     <h3 
-                        className="text-base md:text-lg font-bold leading-tight truncate"
+                        className="text-base md:text-lg font-bold leading-tight truncate flex items-center gap-2"
                         style={{ 
                             color: displayColor,
                             textShadow: `0 0 20px ${displayColor}40, 0 0 40px ${displayColor}20`
                         }}
                     >
-                        {project.title}
+                        <span className="truncate">{project.title}</span>
+                        {project.streak !== undefined && project.streak > 0 && (
+                            <span 
+                                className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 border transition-all shrink-0 font-black",
+                                    displayPercentage >= 100 
+                                        ? "bg-amber-500/10 border-amber-500/20 animate-pulse" 
+                                        : "bg-white/5 border-white/10"
+                                )}
+                                style={displayPercentage >= 100 ? {
+                                    color: themeColor,
+                                    backgroundColor: `${themeColor}15`,
+                                    borderColor: `${themeColor}30`,
+                                    boxShadow: `0 0 8px ${themeColor}40`
+                                } : {
+                                    color: 'rgba(255, 255, 255, 0.4)'
+                                }}
+                            >
+                                <Flame size={10} className={cn(
+                                    "transition-colors",
+                                    displayPercentage >= 100 ? "fill-current" : "fill-transparent"
+                                )} /> 
+                                {project.streak}
+                            </span>
+                        )}
                     </h3>
                     <ChevronRight size={16} className="text-white/20 shrink-0 group-hover:text-white/50 transition-colors" />
                 </div>

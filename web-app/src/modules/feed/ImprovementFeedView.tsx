@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Calendar, Sparkles, CheckCircle2, Clock, Flame, ListChecks, TrendingUp, Coins, Star, Info, X } from 'lucide-react';
 import { useDailyFeed } from '../../hooks/useDailyFeed';
@@ -903,9 +904,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showFormulaModal && (
+        {showFormulaModal && typeof window !== 'undefined' && createPortal(
           <motion.div
-            className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1009,15 +1010,23 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         <div className="flex items-center gap-2">
                           <CheckCircle2 size={14} className="text-orange-400 shrink-0" />
                           <div>
-                            <div className="font-bold text-white">Misiones Asignadas</div>
-                            <div className="text-white/40 text-[9px]">{todayTasksTotal} tareas hoy ({todayTasksCompleted} completadas)</div>
+                            <div className="font-bold text-white">
+                              {i18n.language === 'es' ? 'Misiones Asignadas' : 'Assigned Missions'}
+                            </div>
+                            <div className="text-white/40 text-[9px]">
+                              {i18n.language === 'es' 
+                                ? `${todayTasksTotal} tareas hoy (${todayTasksCompleted} completadas)` 
+                                : `${todayTasksTotal} tasks today (${todayTasksCompleted} completed)`}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <span className="font-mono text-orange-400 font-bold">
-                            {(20 / todayTasksTotal).toFixed(1)}% c/u
+                            {(20 / todayTasksTotal).toFixed(1)}% {i18n.language === 'es' ? 'c/u' : 'each'}
                           </span>
-                          <div className="text-white/30 text-[8px] uppercase tracking-wider">Peso individual</div>
+                          <div className="text-white/30 text-[8px] uppercase tracking-wider">
+                            {i18n.language === 'es' ? 'Peso individual' : 'Individual weight'}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1169,7 +1178,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
 

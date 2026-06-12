@@ -21,6 +21,7 @@ export const SystemSection = () => {
  defaultChartViews, updateDefaultChartViews,
  defaultProjectView, updateDefaultProjectView,
  defaultTaskFilters, updateDefaultTaskFilters,
+ notesDefaultTab, updateNotesDefaultTab,
  dashboardStyle, setDashboardStyle,
  attributes,
  isPro
@@ -417,7 +418,6 @@ export const SystemSection = () => {
 
  <div className="space-y-4 relative z-10">
  {([
- { key: 'tasks', label: 'Tasks', color: 'indigo' },
  { key: 'habits', label: 'Habits', color: 'rose' },
  { key: 'focus', label: 'Focus', color: 'amber' },
  { key: 'projects', label: 'Projects', color: 'emerald' },
@@ -425,13 +425,27 @@ export const SystemSection = () => {
  ] as const).map(section => {
  const currentVal = defaultChartViews?.[section.key] || 'WEEK';
  
- const options = [
+ let options: Array<{ val: any; label: string; pro?: boolean }> = [];
+ if (section.key === 'habits') {
+ options = [
  { val: 'WEEK', label: '1W' },
  { val: 'MONTH', label: '1M' },
+ { val: 'YEAR', label: '1Y', pro: true }
+ ];
+ } else if (section.key === 'focus' || section.key === 'projects') {
+ options = [
+ { val: 'WEEK', label: '1W' },
+ { val: '8_WEEKS', label: '8W' },
+ { val: 'MONTH', label: '1M', pro: true },
  { val: '3_MONTHS', label: '3M', pro: true },
- { val: 'YEAR', label: '1Y', pro: true },
- { val: 'TOTAL', label: 'ALL', pro: true }
- ] as Array<{ val: any; label: string; pro?: boolean }>;
+ { val: 'YEAR', label: '1Y', pro: true }
+ ];
+ } else if (section.key === 'notes') {
+ options = [
+ { val: 'WEEK', label: '1W' },
+ { val: 'MONTH', label: '1M' }
+ ];
+ }
 
  return (
  <div key={section.key} className="flex flex-col gap-2">
@@ -503,6 +517,48 @@ export const SystemSection = () => {
  className={cn(
  "p-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 text-xs font-bold relative",
  isActive ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10",
+ isDisabled ? "opacity-50 cursor-not-allowed grayscale" : "active:scale-95"
+ )}
+ >
+ {opt.label}
+ {opt.pro && !isPro && <Lock size={10} className="text-white/30" />}
+ </button>
+ );
+ })}
+ </div>
+ </div>
+
+ {/* Notes Default Tab */}
+ <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
+ <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
+ 
+ <div className="flex items-center gap-3 relative z-10">
+ <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+ <LayoutTemplate size={18} className="text-cyan-400" />
+ </div>
+ <div>
+ <div className="text-base font-bold text-white tracking-tight">{t('settings.notesDefaultTab', 'Notes Default Tab')}</div>
+ <div className="text-xs text-white/40 font-medium">{t('settings.notesDefaultTabDesc', 'Default tab when opening Notes Insights')}</div>
+ </div>
+ </div>
+
+ <div className="grid grid-cols-2 gap-2 relative z-10">
+ {[
+ { val: 'OVERVIEW', label: t('notes.tabOverview', 'Overview') },
+ { val: 'EMOTIONS', label: t('notes.tabEmotions', 'Emotions'), pro: true }
+ ].map(opt => {
+ const isActive = (notesDefaultTab || 'OVERVIEW') === opt.val;
+ const isDisabled = opt.pro && !isPro;
+ return (
+ <button
+ key={opt.val}
+ onClick={() => {
+ if (isDisabled) return;
+ updateNotesDefaultTab(opt.val as any);
+ }}
+ className={cn(
+ "p-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 text-xs font-bold relative",
+ isActive ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10",
  isDisabled ? "opacity-50 cursor-not-allowed grayscale" : "active:scale-95"
  )}
  >

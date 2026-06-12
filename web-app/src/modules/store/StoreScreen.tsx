@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
-import { StoreItem } from '../../services/economyService';
+import { StoreItem, InventoryItem } from '../../services/economyService';
 import confetti from 'canvas-confetti';
 import { 
     Coins, Zap, Palette, ShoppingBag, 
@@ -44,12 +44,14 @@ const ConfirmationModal = ({
     item, 
     onConfirm, 
     onCancel,
-    isOpen 
+    isOpen,
+    disabled
 }: { 
     item: StoreItem | null, 
     onConfirm: () => void, 
     onCancel: () => void,
-    isOpen: boolean
+    isOpen: boolean,
+    disabled: boolean
 }) => {
     const { t } = useTranslation();
     if (!item) return null;
@@ -63,7 +65,7 @@ const ConfirmationModal = ({
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
-                        onClick={onCancel}
+                        onClick={() => !disabled && onCancel()}
                         className="absolute inset-0 bg-black/90" 
                     />
                     <motion.div 
@@ -91,16 +93,34 @@ const ConfirmationModal = ({
                             <div className="flex gap-3 w-full">
                                 <button 
                                     onClick={onCancel}
-                                    className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors border border-white/5"
+                                    disabled={disabled}
+                                    className={clsx(
+                                        "flex-1 py-3.5 rounded-xl font-medium transition-colors border border-white/5",
+                                        disabled
+                                            ? "bg-white/5 text-white/20 cursor-not-allowed border-transparent"
+                                            : "bg-white/5 hover:bg-white/10 text-white"
+                                    )}
                                 >
                                     {t('store.confirm.no')}
                                 </button>
                                 <button 
                                     onClick={onConfirm}
-                                    className="flex-1 py-3.5 rounded-xl bg-white text-black font-bold hover:bg-white/90 transition-colors shadow-lg shadow-white/10 flex items-center justify-center gap-2"
+                                    disabled={disabled}
+                                    className={clsx(
+                                        "flex-1 py-3.5 rounded-xl font-bold transition-colors shadow-lg flex items-center justify-center gap-2",
+                                        disabled
+                                            ? "bg-white/20 text-white/40 cursor-not-allowed"
+                                            : "bg-white text-black hover:bg-white/90 shadow-white/10"
+                                    )}
                                 >
-                                    <Check size={18} />
-                                    {t('store.confirm.yes')}
+                                    {disabled ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Check size={18} />
+                                            {t('store.confirm.yes')}
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -253,6 +273,8 @@ const StoreContent = ({ }: StoreScreenProps) => {
   // Confirmation State
   const [itemToBuy, setItemToBuy] = useState<StoreItem | null>(null);
   const [successItem, setSuccessItem] = useState<StoreItem | null>(null);
+  const [consumingItemId, setConsumingItemId] = useState<string | null>(null);
+  const [isConsuming, setIsConsuming] = useState<boolean>(false);
   
   // Generate Filters based on items
   // We want: All, Power Ups, Themes
@@ -281,6 +303,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
       const item = itemToBuy;
       const result = await purchase(item);
       
+      // Close modal only after transaction completes
       setItemToBuy(null);
 
       if (result) {
@@ -290,6 +313,37 @@ const StoreContent = ({ }: StoreScreenProps) => {
               spread: 60,
               origin: { y: 0.6 }
           });
+      }
+  };
+
+  const handleConsume = async (itemId: string) => {
+      if (isConsuming) return;
+      setIsConsuming(true);
+      setConsumingItemId(itemId);
+      
+      try {
+          const userInventory = (user?.inventory || []) as InventoryItem[];
+          const item = userInventory.find(i => i.itemId === itemId);
+          if (!item || item.quantity < 1) {
+              throw new Error("No tienes este ítem en tu inventario");
+          }
+          
+          const success = await consume(itemId);
+          if (success) {
+              // Haptic feedback and confetti animation
+              if (navigator.vibrate) navigator.vibrate(30);
+              confetti({
+                  particleCount: 80,
+                  spread: 60,
+                  origin: { y: 0.6 }
+              });
+          }
+      } catch (error: any) {
+          console.error('[Inventory] Error consumiendo ítem:', error);
+          alert(error.message || 'Error al usar el objeto');
+      } finally {
+          setIsConsuming(false);
+          setConsumingItemId(null);
       }
   };
 
@@ -307,6 +361,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
             isOpen={!!itemToBuy} 
             onCancel={() => setItemToBuy(null)} 
             onConfirm={confirmPurchase}
+            disabled={isTransactionPending}
        />
 
        {/* Purchase Success Modal */}
@@ -411,11 +466,20 @@ const StoreContent = ({ }: StoreScreenProps) => {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => consume(invItem.itemId)}
-                                    disabled={isTransactionPending}
-                                    className="w-full py-2.5 rounded-xl font-semibold text-[13px] tracking-wide transition-all active:scale-[0.98] bg-white text-black hover:bg-white/90"
+                                    onClick={() => handleConsume(invItem.itemId)}
+                                    disabled={isConsuming || isTransactionPending}
+                                    className={clsx(
+                                        "w-full py-2.5 rounded-xl font-semibold text-[13px] tracking-wide transition-all active:scale-[0.98] flex items-center justify-center gap-1.5",
+                                        (isConsuming || isTransactionPending) 
+                                            ? "bg-white/10 text-white/30 cursor-not-allowed" 
+                                            : "bg-white text-black hover:bg-white/90"
+                                    )}
                                 >
-                                    {t('store.inventory.use')}
+                                    {consumingItemId === invItem.itemId && (isConsuming || isTransactionPending) ? (
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        t('store.inventory.use')
+                                    )}
                                 </button>
                             </motion.div>
                         );
