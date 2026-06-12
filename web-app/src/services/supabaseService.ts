@@ -141,7 +141,6 @@ export const getLinkedIdentities = async () => {
 export const linkGoogleAccount = async () => {
     try {
         const isMobile = Capacitor.isNativePlatform();
-        let targetEmail = '';
 
         if (isMobile) {
             try {
@@ -153,7 +152,13 @@ export const linkGoogleAccount = async () => {
 
             // 1. Trigger native sign in modal to select Google Account
             const googleUser = await GoogleAuth.signIn();
-            targetEmail = googleUser.email;
+            const idToken = googleUser.authentication.idToken;
+            const accessToken = googleUser.authentication.accessToken;
+            const targetEmail = googleUser.email;
+
+            if (!idToken) {
+                throw new Error("No se obtuvo el ID Token del proveedor nativo de Google.");
+            }
 
             if (!targetEmail) {
                 throw new Error("No se obtuvo el correo electrónico del selector de Google.");
@@ -169,32 +174,33 @@ export const linkGoogleAccount = async () => {
             if (!isVirgin) {
                 throw new Error('IDENTITY_NOT_VIRGIN');
             }
+
+            // 3. Link Identity natively in Supabase using the ID Token (no web redirects!)
+            const { data, error } = await supabase.auth.linkIdentity({
+                provider: 'google',
+                token: idToken,
+                access_token: accessToken || undefined
+            });
+
+            if (error) throw error;
+            return data;
+        } else {
+            // Web flow: Trigger OAuth browser redirect link
+            const redirectTo = `${window.location.origin}/settings?linked=true`;
+            const { data, error } = await supabase.auth.linkIdentity({
+                provider: 'google',
+                options: {
+                    queryParams: {
+                        access_type: 'offline', // Crucial to obtain provider_refresh_token
+                        prompt: 'consent'       // Forces new consent to get refresh token
+                    },
+                    redirectTo,
+                }
+            });
+
+            if (error) throw error;
+            return data;
         }
-
-        const redirectTo = isMobile 
-            ? 'com.luxresilient.app://auth/callback' 
-            : `${window.location.origin}/settings?linked=true`;
-
-        // 3. Link Identity in Supabase
-        const linkOptions: any = {
-            provider: 'google',
-            options: {
-                queryParams: {
-                    access_type: 'offline', // Crucial to obtain provider_refresh_token
-                    prompt: 'consent'       // Forces new consent to get refresh token
-                },
-                redirectTo,
-            }
-        };
-
-        // If mobile, force Google to link with the selected email using login_hint
-        if (isMobile && targetEmail) {
-            linkOptions.options.queryParams.login_hint = targetEmail;
-        }
-
-        const { data, error } = await supabase.auth.linkIdentity(linkOptions);
-        if (error) throw error;
-        return data;
     } catch (error) {
         console.error("Error linking Google account:", error);
         throw error;

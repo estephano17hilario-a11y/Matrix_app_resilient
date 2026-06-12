@@ -71,7 +71,8 @@ export const AccountSection = () => {
   const handleUnlinkGoogle = async () => {
     // Verificación de Contraseña (CRÍTICO)
     const hasEmailIdentity = linkedIdentities.some(id => id.provider === 'email');
-    if (!hasEmailIdentity) {
+    const hasLocalPassword = user?.user_metadata?.has_password === true;
+    if (!hasEmailIdentity && !hasLocalPassword) {
       // Detener y desplegar modal para exigir contraseña
       setShowCreatePasswordModal(true);
       return;
@@ -281,7 +282,7 @@ export const AccountSection = () => {
               )
             )}
           </div>
-          {linkedIdentities.length <= 1 && googleIdentity && (
+          {linkedIdentities.length <= 1 && !user?.user_metadata?.has_password && googleIdentity && (
             <p className="text-[10px] text-white/30 mt-3 pl-16">
               Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google.
             </p>
@@ -379,7 +380,10 @@ const CreatePasswordModal = ({ isOpen, onClose, onSuccess }: CreatePasswordModal
     setIsSaving(true);
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+        password: password,
+        data: {
+          has_password: true
+        }
       });
 
       if (updateError) throw updateError;
