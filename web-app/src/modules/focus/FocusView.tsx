@@ -106,6 +106,7 @@ export const FocusView = React.memo(({
             <AnimatePresence>
                 <HabitDetailView 
                     project={selectedProject} 
+                    attribute={attribute}
                     attributeColor={attribute?.color} 
                     onClose={() => setSelectedProjectId(null)}
                     onEdit={(item) => {

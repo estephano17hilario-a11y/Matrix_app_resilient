@@ -14,7 +14,9 @@ export const BarChart = React.memo(({
     yTickFormatter,
     xTickInterval = 1,
     barSpacing = "px-2",
-    paddingTop = "top-6"
+    paddingTop = "top-6",
+    tooltipValueFormatter,
+    tooltipLabelFormatter
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -29,6 +31,8 @@ export const BarChart = React.memo(({
     xTickInterval?: number;
     barSpacing?: string;
     paddingTop?: string;
+    tooltipValueFormatter?: (value: number) => string;
+    tooltipLabelFormatter?: (label: string) => string;
 }) => {
     // If stacked, max should be provided by parent or calculated by summing indices. 
     // Here we assume if max is provided it is correct.
@@ -121,7 +125,7 @@ export const BarChart = React.memo(({
                     {datasets.map((ds, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap">
                             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
-                            {ds.data[activeIndex]} <span className="text-[9px] text-white/40 font-bold ml-auto">{ds.label}</span>
+                            {tooltipValueFormatter ? tooltipValueFormatter(ds.data[activeIndex]) : ds.data[activeIndex]} <span className="text-[9px] text-white/40 font-bold ml-auto">{tooltipLabelFormatter ? tooltipLabelFormatter(ds.label || '') : ds.label}</span>
                         </div>
                     ))}
                     {/* Tiny Triangle Arrow */}
@@ -163,7 +167,7 @@ export const BarChart = React.memo(({
                                     return (
                                         <div 
                                             key={idx} 
-                                            className={`w-full transition duration-200 ease-out ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
+                                            className={`w-full ${roundingClass} relative overflow-hidden group-hover:brightness-110`}
                                             style={{ 
                                                 height: `${h * 100}%`,
                                                 backgroundColor: backgroundStyle,

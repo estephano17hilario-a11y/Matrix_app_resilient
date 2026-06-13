@@ -215,7 +215,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
     if (todayIdx === -1) return null;
 
     const prevWeekTotal = prevWeekScores.reduce((a, b) => a + b, 0);
-    if (prevWeekTotal === 0) return null; // No baseline data to compare with
+    if (feedEntries.length < 7 || prevWeekTotal === 0) return null; // No baseline data to compare with or first week
 
     // Sum scores up to yesterday (index 0 to todayIdx - 1)
     const currentWeekAccumulatedBeforeToday = currentWeekScores
@@ -410,15 +410,17 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             </div>
           </div>
           
-          <motion.button
-            onClick={() => setShowFormulaModal(true)}
-            className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowFormulaModal(true);
+            }}
+            className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95 transition-transform"
             title={t('feed.viewFormulaTooltip')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             <Info size={16} />
-          </motion.button>
+          </button>
         </div>
       </motion.div>
 
@@ -619,7 +621,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             {/* Consistency Assistant Widget (Inteligencia de Compensación) */}
             {consistencyAssistant && (
               <motion.div
-                className={`relative overflow-hidden rounded-2xl border p-4 mb-6 backdrop-blur-sm shadow-md transition-all duration-300 ${
+                className={`relative overflow-hidden rounded-2xl border p-3 py-2.5 mb-4 backdrop-blur-sm shadow-md transition-all duration-300 ${
                   consistencyAssistant.hasDrop
                     ? 'bg-gradient-to-br from-[#2a1711] via-[#090b0e] to-[#160e0a] border-amber-500/20 shadow-[0_4px_24px_rgba(245,158,11,0.05)]'
                     : 'bg-gradient-to-br from-[#0c2419] via-[#090b0e] to-[#071318] border-emerald-500/20 shadow-[0_4px_24px_rgba(16,185,129,0.05)]'
@@ -649,7 +651,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     {consistencyAssistant.hasDrop ? <TrendingUp size={15} className="rotate-180 text-amber-400" /> : <TrendingUp size={15} className="text-emerald-400" />}
                   </div>
                   
-                  <div className="flex-1 space-y-1.5">
+                  <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-wider text-white">
                         {consistencyAssistant.hasDrop ? t('feed.consistencyAssistant') : t('feed.optimalPerformance')}
@@ -690,7 +692,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                     )}
 
                     {/* Meta representation */}
-                    <div className="flex items-center justify-between bg-black/20 p-2.5 rounded-xl border border-white/[0.04]">
+                    <div className="flex items-center justify-between bg-black/20 p-2 py-1 rounded-xl border border-white/[0.04]">
                       <div>
                         <div className="text-[9px] text-white/30 uppercase font-black tracking-wider">{t('feed.todayTargetScore')}</div>
                         <div className="flex items-baseline gap-1 mt-0.5">

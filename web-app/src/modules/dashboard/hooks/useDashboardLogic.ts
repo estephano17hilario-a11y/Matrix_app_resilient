@@ -849,10 +849,10 @@ export const useDashboardLogic = () => {
         };
     }, [dailyLimits.date]);
 
-    // --- DAILY RESET & PENALTY LOGIC ---
     useEffect(() => {
         if (!user?.id || isDailyCheckDone) return;
         if (user.isSkeleton) return; // 🛡️ SKELETON PROTECTION
+        if (!areHabitsLoaded) return; // 🛡️ WAIT FOR HABITS TO BE LOADED
 
         const processDailyReset = async () => {
             const today = toLocalISOString(new Date());

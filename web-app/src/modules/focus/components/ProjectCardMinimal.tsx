@@ -95,7 +95,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                 isArchived && "opacity-60 grayscale"
             )}
             style={{
-                backgroundColor: displayColor.startsWith('#') ? `${displayColor}3b` : displayColor,
+                backgroundColor: displayColor.startsWith('#') ? `${displayColor}21` : displayColor,
                 ...(!isArchived ? { boxShadow: `0 10px 25px -5px ${displayColor}66, 0 8px 10px -6px ${displayColor}66` } : {})
             }}
         >

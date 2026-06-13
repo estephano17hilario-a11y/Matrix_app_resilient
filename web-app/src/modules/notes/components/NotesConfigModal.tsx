@@ -37,7 +37,7 @@ export interface NotesConfig {
 export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro, onOpenPro }: NotesConfigModalProps) => {
     const { t } = useTranslation();
     const [config, setConfig] = useState<NotesConfig>(initialConfig || {
-        enabledFeatures: [],
+        enabledFeatures: ['BIRTHDAY', 'KEY', 'TARGET'],
         security: {
             pin: '',
             recoveryMethod: 'PASSWORD',

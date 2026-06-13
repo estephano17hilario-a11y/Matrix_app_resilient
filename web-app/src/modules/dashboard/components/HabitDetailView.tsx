@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Lock } from 'lucide-react';
-import { Habit, Project } from '../../../types';
+import { Habit, Project, Attribute } from '../../../types';
 import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfYear, endOfYear, eachMonthOfInterval, subWeeks, addWeeks, subMonths, addMonths, subYears, addYears, isWithinInterval, differenceInDays, differenceInWeeks, startOfDay, endOfDay, addDays, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { startOfWeek, endOfWeek, eachWeekOfInterval, eachDayOfInterval } from '../../../utils/dateUtils';
@@ -95,7 +95,21 @@ const barVariants: Variants = {
  }
 };
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
+interface HabitDetailViewProps {
+ habit?: Habit | null;
+ project?: Project | null;
+ attribute?: Attribute | null;
+ attributeColor?: string;
+ onClose: () => void;
+ onEdit?: (item: Habit | Project) => void;
+ onDelete?: (itemId: string) => void;
+ onArchive?: (item: Habit | Project) => void;
+ isPro?: boolean;
+ onOpenPro?: () => void;
+ weekStartDay?: 0 | 1;
+}
+
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attribute, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
  const { t } = useTranslation();
  const themeColor = useMemo(() => habit?.customColor || project?.color || attributeColor || '#0ea5e9', [habit?.customColor, project?.color, attributeColor]);
 
@@ -103,6 +117,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const [pinnedRanges, setPinnedRanges] = useState<TimeRange[]>(['TODAY', 'WEEK', 'MONTH']);
  const [isConfigOpen, setIsConfigOpen] = useState(false);
  const [currentDate, setCurrentDate] = useState(new Date());
+ const [selectedSubTraitId, setSelectedSubTraitId] = useState<string>('ALL');
  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
  const [isMenuOpen, setIsMenuOpen] = useState(false);
  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -186,7 +201,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const unitLabel = isTimeBased ? 'h' : (habit?.unit || '');
 
  // --- DATA CALCULATION ENGINE ---
- const { chartData, totalValue, averageValue, bestDayValue, totalSessions, dateRangeLabel, summaryValue, goalValue, maxChartValue, streakDays } = useMemo(() => {
+ const { chartData, totalValue, averageValue, bestDayValue, totalSessions, dateRangeLabel, summaryValue, goalValue, unfilteredSummaryValue, unfilteredGoalValue, maxChartValue, streakDays } = useMemo(() => {
  if (!habit && !project) {
  return {
  chartData: [],
@@ -197,6 +212,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  dateRangeLabel: '',
  summaryValue: 0,
  goalValue: 0,
+ unfilteredSummaryValue: 0,
+ unfilteredGoalValue: 0,
  maxChartValue: 10,
  streakDays: 0
  };
@@ -205,15 +222,17 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const isTimeBasedItem = habit ? (habit.estimatedTime || 0) > 0 : true;
  const baseValue = habit 
  ? (isTimeBasedItem ? habit.estimatedTime! : (isQuantity ? (habit.targetValue || 1) : 1))
- : 0; // For project, baseValue isn't fixed per completion, it's duration based
+ : 0;
  
- // Prepare session/history data
- let sessionEntries: any[] = [];
+ let unfilteredSessionEntries: any[] = [];
  if (project && project.sessions) {
- sessionEntries = project.sessions
+ unfilteredSessionEntries = project.sessions
  .map(s => ({ ...s, dateObj: new Date(s.date) }))
  .filter(s => !isNaN(s.dateObj.getTime()));
  }
+ const sessionEntries = (project && selectedSubTraitId !== 'ALL')
+ ? unfilteredSessionEntries.filter(s => s.subTraitId === selectedSubTraitId)
+ : unfilteredSessionEntries;
 
  const goalTargetMinutes = project?.goalTarget || 0;
  const workingDaysCount = Math.max(1, project?.workingDays?.length || 7);
@@ -230,40 +249,45 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  let dataPoints: any[] = [];
  let calculatedGoalValue = 0;
 
- // 1. DETERMINE RANGE & DATA POINTS
+ const getVal = (entries: any[], blockStart: Date, blockEnd: Date) => {
+ return entries.reduce((acc, s) => {
+ if (s.dateObj >= blockStart && s.dateObj < blockEnd) {
+ return acc + (s.duration / 60);
+ }
+ return acc;
+ }, 0);
+ };
+ const getValDay = (entries: any[], day: Date) => {
+ return entries.reduce((acc, s) => isSameDay(s.dateObj, day) ? acc + (s.duration / 60) : acc, 0);
+ };
+ const getValInterval = (entries: any[], start: Date, end: Date) => {
+ return entries.reduce((acc, s) => isWithinInterval(s.dateObj, { start, end }) ? acc + (s.duration / 60) : acc, 0);
+ };
+
  if (timeRange === 'TODAY') {
  start = startOfDay(currentDate);
  end = endOfDay(currentDate);
  calculatedGoalValue = habit ? baseValue : (effectiveFrequency === 'WEEKLY' || effectiveFrequency === 'MONTHLY') && project ? getDynamicDailyTarget(project) : dailyGoalMinutes;
 
  if (project) {
- // 3-Hourly breakdown for Project
  const blocks = [];
  for (let i = 0; i < 24; i += 3) {
  blocks.push(addHours(start, i));
  }
  dataPoints = blocks.map(blockStart => {
  const blockEnd = addHours(blockStart, 3);
- const value = sessionEntries.reduce((acc, s) => {
- if (s.dateObj >= blockStart && s.dateObj < blockEnd) {
- return acc + (s.duration / 60);
- }
- return acc;
- }, 0);
+ const value = getVal(sessionEntries, blockStart, blockEnd);
+ const unfilteredValue = getVal(unfilteredSessionEntries, blockStart, blockEnd);
  return {
  label: format(blockStart, 'HH:mm'),
  fullDate: format(blockStart, 'yyyy-MM-dd HH:mm'),
  value,
+ unfilteredValue,
  isToday: true,
  date: blockStart
  };
  });
  } else if (habit) {
- // For Habit, Today View is just a single bar or maybe "Morning/Afternoon/Evening" buckets?
- // Let's stick to simple "Today" single bar for now or just show 1 point.
- // Or maybe show the last 7 days but highlight today?
- // The user wants "Today" specific stats. 
- // Let's show a single bar for "Today"
  const dateStr = format(currentDate, 'yyyy-MM-dd');
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  const value = completions * baseValue;
@@ -271,6 +295,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  label: t('dashboard.today'),
  fullDate: dateStr,
  value,
+ unfilteredValue: value,
  isToday: true,
  date: currentDate
  }];
@@ -287,17 +312,21 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  dataPoints = days.map(day => {
  const dateStr = format(day, 'yyyy-MM-dd');
  let value = 0;
+ let unfilteredValue = 0;
  if (project) {
- value = sessionEntries.reduce((acc, s) => isSameDay(s.dateObj, day) ? acc + (s.duration / 60) : acc, 0);
+ value = getValDay(sessionEntries, day);
+ unfilteredValue = getValDay(unfilteredSessionEntries, day);
  } else if (habit) {
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  value = completions * baseValue;
+ unfilteredValue = value;
  }
 
  return {
  label: format(day, 'EEE', { locale: es }).toUpperCase().slice(0, 1),
  fullDate: dateStr,
  value,
+ unfilteredValue,
  isToday: isSameDay(day, new Date()),
  date: day
  };
@@ -309,14 +338,16 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  start = startOfWeek(start);
  const weeks = eachWeekOfInterval({ start, end });
 
- calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 8; // Approx
+ calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 8;
 
  dataPoints = weeks.map(weekStart => {
  const weekEnd = endOfWeek(weekStart);
  let weeklyValue = 0;
+ let unfilteredWeeklyValue = 0;
  
  if (project) {
- weeklyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: weekStart, end: weekEnd }) ? acc + (s.duration / 60) : acc, 0);
+ weeklyValue = getValInterval(sessionEntries, weekStart, weekEnd);
+ unfilteredWeeklyValue = getValInterval(unfilteredSessionEntries, weekStart, weekEnd);
  } else if (habit) {
  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
  daysInWeek.forEach(day => {
@@ -324,11 +355,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  weeklyValue += completions * baseValue;
  });
+ unfilteredWeeklyValue = weeklyValue;
  }
 
  return {
  label: format(weekStart, 'd/M'),
  value: weeklyValue,
+ unfilteredValue: unfilteredWeeklyValue,
  isToday: isWithinInterval(new Date(), { start: weekStart, end: weekEnd }),
  date: weekStart
  };
@@ -345,11 +378,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  dataPoints = days.map(day => {
  const dateStr = format(day, 'yyyy-MM-dd');
  let value = 0;
+ let unfilteredValue = 0;
  if (project) {
- value = sessionEntries.reduce((acc, s) => isSameDay(s.dateObj, day) ? acc + (s.duration / 60) : acc, 0);
+ value = getValDay(sessionEntries, day);
+ unfilteredValue = getValDay(unfilteredSessionEntries, day);
  } else if (habit) {
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  value = completions * baseValue;
+ unfilteredValue = value;
  }
 
  const showLabel = [6, 14, 21, 28].includes(day.getDate());
@@ -358,6 +394,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  label: showLabel ? format(day, 'd') : '',
  fullDate: dateStr,
  value,
+ unfilteredValue,
  isToday: isSameDay(day, new Date()),
  date: day
  };
@@ -365,17 +402,19 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
  } else if (timeRange === '3_MONTHS') {
  end = endOfMonth(currentDate);
- start = subMonths(startOfMonth(end), 2); // Current + 2 prev = 3 months
+ start = subMonths(startOfMonth(end), 2);
  const weeks = eachWeekOfInterval({ start, end });
 
- calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 13; // Approx 13 weeks
+ calculatedGoalValue = (habit ? (baseValue * 7) : (dailyGoalMinutes * 7)) * 13;
 
  dataPoints = weeks.map(weekStart => {
  const weekEnd = endOfWeek(weekStart);
  let weeklyValue = 0;
+ let unfilteredWeeklyValue = 0;
  
  if (project) {
- weeklyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: weekStart, end: weekEnd }) ? acc + (s.duration / 60) : acc, 0);
+ weeklyValue = getValInterval(sessionEntries, weekStart, weekEnd);
+ unfilteredWeeklyValue = getValInterval(unfilteredSessionEntries, weekStart, weekEnd);
  } else if (habit) {
  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
  daysInWeek.forEach(day => {
@@ -383,11 +422,13 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  weeklyValue += completions * baseValue;
  });
+ unfilteredWeeklyValue = weeklyValue;
  }
 
  return {
  label: format(weekStart, 'd/M'),
  value: weeklyValue,
+ unfilteredValue: unfilteredWeeklyValue,
  isToday: isWithinInterval(new Date(), { start: weekStart, end: weekEnd }),
  date: weekStart
  };
@@ -403,9 +444,11 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  dataPoints = months.map(monthStart => {
  const monthEnd = endOfMonth(monthStart);
  let monthlyValue = 0;
+ let unfilteredMonthlyValue = 0;
  
  if (project) {
- monthlyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: monthStart, end: monthEnd }) ? acc + (s.duration / 60) : acc, 0);
+ monthlyValue = getValInterval(sessionEntries, monthStart, monthEnd);
+ unfilteredMonthlyValue = getValInterval(unfilteredSessionEntries, monthStart, monthEnd);
  } else if (habit) {
  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
  daysInMonth.forEach(day => {
@@ -413,60 +456,63 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  monthlyValue += completions * baseValue;
  });
+ unfilteredMonthlyValue = monthlyValue;
  }
 
  return {
  label: format(monthStart, 'MMM', { locale: es }).toUpperCase().slice(0, 3),
  value: monthlyValue,
+ unfilteredValue: unfilteredMonthlyValue,
  isToday: isWithinInterval(new Date(), { start: monthStart, end: monthEnd }),
  date: monthStart
  };
  });
 
  } else {
- // TOTAL
- // Determine start date from history
  let minDate = new Date();
- if (project && sessionEntries.length > 0) {
- minDate = sessionEntries.reduce((min, s) => s.dateObj < min ? s.dateObj : min, sessionEntries[0].dateObj);
+ if (project && unfilteredSessionEntries.length > 0) {
+ minDate = unfilteredSessionEntries.reduce((min, s) => s.dateObj < min ? s.dateObj : min, unfilteredSessionEntries[0].dateObj);
  } else if (habit && habit.history && habit.history.length > 0) {
  const dates = habit.history.map(d => new Date(d));
  minDate = dates.reduce((min, d) => d < min ? d : min, dates[0]);
  }
- start = startOfWeek(minDate); // Align to week start
- end = new Date(); // Now
+ start = startOfWeek(minDate);
+ end = new Date();
 
  const daysDiff = differenceInDays(end, start);
  
  if (daysDiff > 365) {
- // Group by Month if > 1 year
  const months = eachMonthOfInterval({ start, end });
  dataPoints = months.map(monthStart => {
  const monthEnd = endOfMonth(monthStart);
  let monthlyValue = 0;
+ let unfilteredMonthlyValue = 0;
  if (project) {
- monthlyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: monthStart, end: monthEnd }) ? acc + (s.duration / 60) : acc, 0);
+ monthlyValue = getValInterval(sessionEntries, monthStart, monthEnd);
+ unfilteredMonthlyValue = getValInterval(unfilteredSessionEntries, monthStart, monthEnd);
  } else if (habit) {
- // Simplify for perf: filter history by YYYY-MM
  const prefix = format(monthStart, 'yyyy-MM');
  const completions = habit.history?.filter((h: string) => h.startsWith(prefix)).length || 0;
  monthlyValue = completions * baseValue;
+ unfilteredMonthlyValue = monthlyValue;
  }
  return {
  label: format(monthStart, 'MMM', { locale: es }),
  value: monthlyValue,
+ unfilteredValue: unfilteredMonthlyValue,
  isToday: isWithinInterval(new Date(), { start: monthStart, end: monthEnd }),
  date: monthStart
  };
  });
  } else {
- // Group by Week
  const weeks = eachWeekOfInterval({ start, end });
  dataPoints = weeks.map(weekStart => {
  const weekEnd = endOfWeek(weekStart);
  let weeklyValue = 0;
+ let unfilteredWeeklyValue = 0;
  if (project) {
- weeklyValue = sessionEntries.reduce((acc, s) => isWithinInterval(s.dateObj, { start: weekStart, end: weekEnd }) ? acc + (s.duration / 60) : acc, 0);
+ weeklyValue = getValInterval(sessionEntries, weekStart, weekEnd);
+ unfilteredWeeklyValue = getValInterval(unfilteredSessionEntries, weekStart, weekEnd);
  } else if (habit) {
  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
  daysInWeek.forEach(day => {
@@ -474,31 +520,27 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const completions = habit.history?.filter((h: string) => h.startsWith(dateStr)).length || 0;
  weeklyValue += completions * baseValue;
  });
+ unfilteredWeeklyValue = weeklyValue;
  }
  return {
  label: format(weekStart, 'd/M'),
  value: weeklyValue,
+ unfilteredValue: unfilteredWeeklyValue,
  isToday: isWithinInterval(new Date(), { start: weekStart, end: weekEnd }),
  date: weekStart
  };
  });
  }
 
- // Calculate total goal based on duration
  if (project) {
  const totalDurationWeeks = differenceInWeeks(end, start) || 1;
  calculatedGoalValue = totalDurationWeeks * (effectiveFrequency === 'WEEKLY' ? weeklyGoalMinutes : dailyGoalMinutes * 7);
- if (project.totalTime) {
- // If we have totalTime project goal, use that? 
- // Usually project goal is recurring. If it's a fixed goal project, we might handle differently.
- }
  } else if (habit) {
  const totalDurationDays = differenceInDays(end, start) || 1;
  calculatedGoalValue = totalDurationDays * baseValue;
  }
  }
 
- // 2. AGGREGATE VALUES
  const total = dataPoints.reduce((acc, curr) => acc + curr.value, 0);
  const sessionCountInRange = project
  ? sessionEntries.filter(s => isWithinInterval(s.dateObj, { start, end })).length
@@ -509,6 +551,8 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  const best = Math.max(...dataPoints.map(d => d.value), 0);
  const sessionsCount = project ? sessionCountInRange : dataPoints.filter(d => d.value > 0).length;
  const maxVal = Math.max(best, 1);
+
+ const unfilteredSummaryValue = dataPoints.reduce((acc, curr) => acc + curr.unfilteredValue, 0);
 
  let rangeLabel = '';
  if (timeRange === 'TODAY') {
@@ -527,11 +571,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  rangeLabel = `${format(start, 'd MMM')} - ${format(end, 'd MMM', { locale: es })}`;
  }
 
- // Streak Calc (simplified)
  let streak = 0;
  if (habit) streak = habit.streak;
  else if (project) {
- // Project streak logic
  const uniqueDays = Array.from(new Set(sessionEntries.map(s => format(s.dateObj, 'yyyy-MM-dd'))));
  const sortedDays = uniqueDays.sort((a, b) => b.localeCompare(a));
  let cursor = new Date();
@@ -548,19 +590,20 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  bestDayValue: best,
  totalSessions: sessionsCount,
  dateRangeLabel: rangeLabel,
- summaryValue: total, // Summary is now the total of the selected range
+ summaryValue: total,
  goalValue: calculatedGoalValue,
+ unfilteredSummaryValue,
+ unfilteredGoalValue: calculatedGoalValue,
  maxChartValue: maxVal,
  streakDays: streak
  };
 
- }, [habit, project, timeRange, currentDate, isQuantity, weekStartDay]);
+ }, [habit, project, selectedSubTraitId, timeRange, currentDate, isQuantity, weekStartDay]);
 
  const summaryRatio = goalValue > 0 ? summaryValue / goalValue : 0;
  const summaryBarValue = Math.min(Math.max(summaryRatio, 0), 1);
  const summaryPercentage = Math.round(Math.max(summaryRatio, 0) * 100);
 
- // --- UI COMPONENTS ---
  const StatCard = ({ label, value, onClick }: { label: React.ReactNode; value: string | number; onClick?: () => void }) => (
  <motion.div 
  variants={itemVariants}
@@ -571,7 +614,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  onClick ? "cursor-pointer hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.08]" : "hover:border-white/[0.12]"
  )}
  >
- {/* Inner Glow */}
  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
  
  <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-center relative z-10 group-hover:text-white/50 transition-colors">
@@ -589,20 +631,19 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </motion.div>
  );
-
  if (!activeItem) return null;
 
  return createPortal(
  <AnimatePresence mode="wait">
- <motion.div
- key={`detail-${activeItem.id}`}
- initial={{ y: '100%', opacity: 0 }}
- animate={{ y: 0, opacity: 1 }}
- exit={{ y: '100%', opacity: 0 }}
- transition={{ type: "spring", damping: 25, stiffness: 400, mass: 0.8 }}
- className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
- >
- {/* Dynamic Atmosphere Background - GPU OPTIMIZED */}
+  <motion.div
+  key={`detail-${activeItem.id}`}
+  initial={{ y: '100vh', opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  exit={{ y: '100vh', opacity: 0 }}
+  transition={{ type: "tween", ease: [0.25, 1, 0.5, 1], duration: 0.3 }}
+  style={{ willChange: 'transform, opacity', transform: 'translate3d(0,0,0)', backfaceVisibility: 'hidden' }}
+  className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
+  >
  <div className="absolute inset-0 overflow-hidden pointer-events-none">
  <motion.div 
  animate={{ 
@@ -630,8 +671,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  />
  </div>
 
- {/* Header - Visionary Style */}
- <div className="relative z-[10000] flex items-center justify-between px-6 pt-14 pb-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent ">
+ <div className="relative z-[10000] flex items-center justify-between px-6 pt-10 pb-1.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent ">
  <button 
  onClick={onClose} 
  className="group flex items-center gap-1 text-white/60 hover:text-white font-semibold active:scale-95 transition-all"
@@ -715,16 +755,15 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </div>
 
- {/* Fixed Controls - VisionOS Style */}
  <motion.div 
  initial={{ opacity: 0, y: -20 }}
  animate={{ 
  opacity: 1, 
  y: 0,
- paddingBottom: isScrolled ? 4 : 16 // Reduce padding when scrolled to avoid dead space
+ paddingBottom: isScrolled ? 4 : 16 
  }}
  transition={{ delay: 0.2 }}
- className="relative z-50 px-4 sm:px-6 pt-1"
+ className="relative z-50 px-4 sm:px-6 pt-0 -mt-1"
  >
  <motion.div 
  className="flex flex-col items-center mx-auto transition-all duration-200 origin-top border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50 w-full max-w-[360px]"
@@ -738,16 +777,14 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  boxShadow: `0 8px 32px ${themeColor}20, 0 0 0 1px rgba(255,255,255,0.08) inset` 
  }}
  >
- {/* Subtle inner glow & light effect */}
  <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
  <div 
  className="absolute -top-[40%] -left-[20%] w-[140%] h-[100%] rounded-[100%] pointer-events-none"
- style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, willChange: 'opacity' }} // Lightened for GPU
+ style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, willChange: 'opacity' }} 
  />
  </div>
 
- {/* Row 1: Time Range Tabs */}
  <div className="flex items-center gap-1.5 relative z-10">
  <AnimatePresence>
  {pinnedRanges.map((range, index) => {
@@ -842,7 +879,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </div>
 
- {/* Row 2: Date Navigation - More Visual Impact */}
  <motion.div 
  className="flex items-center justify-between w-full px-2 mt-[1px]"
  animate={{
@@ -905,10 +941,39 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <ChevronRight size={18} strokeWidth={2.5} />
  </button>
  </motion.div>
+
+ {project && attribute && attribute.subTraits && attribute.subTraits.length > 0 && (
+    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5 max-w-full justify-center border-t border-white/[0.05] pt-2 w-full">
+      <button
+        onClick={() => setSelectedSubTraitId('ALL')}
+        className={cn(
+          "px-2.5 py-1 rounded-full text-[9px] font-black tracking-tight transition-all",
+          selectedSubTraitId === 'ALL'
+            ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+            : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+        )}
+      >
+        TODO
+      </button>
+      {attribute.subTraits.map((st) => (
+        <button
+          key={st.id}
+          onClick={() => setSelectedSubTraitId(st.id)}
+          className={cn(
+            "px-2.5 py-1 rounded-full text-[9px] font-black tracking-tight transition-all whitespace-nowrap",
+            selectedSubTraitId === st.id
+              ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+              : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+          )}
+        >
+          {st.name.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )}
  </motion.div>
  </motion.div>
 
- {/* Main Content */}
  <div 
  onScroll={handleScroll}
  className={cn(
@@ -924,13 +989,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="space-y-4 max-w-2xl mx-auto"
  >
 
-
- {/* 1. MAIN STATS CARD - Visionary Layout */}
  <motion.div 
  variants={itemVariants} 
  className="bg-[#121214]/80 rounded-[32px] p-8 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] mb-4 relative overflow-hidden group"
  >
- {/* Animated Inner Glow */}
  <motion.div
  animate={{ 
  scale: [1, 1.2, 1],
@@ -938,11 +1000,10 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  }}
  transition={{ duration: 8, repeat: Infinity }}
  className="absolute top-0 right-0 w-48 h-48 rounded-full -z-10 pointer-events-none"
- style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)` }} // Lightened for GPU
+ style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)` }}
  />
  
  <div className="flex flex-col gap-6">
- {/* Big Number - Maximum Impact */}
  <div className="text-center py-4 relative">
  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4">
  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">
@@ -974,7 +1035,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </div>
  
- {/* Advanced Progress Bar */}
  <div className="relative h-3 w-full rounded-full bg-white/[0.04] overflow-hidden border border-white/[0.05]">
  <motion.div
  initial={{ scaleX: 0 }}
@@ -983,7 +1043,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="h-full rounded-full origin-left relative"
  style={{ backgroundColor: themeColor }}
  >
- {/* Bar Pulse Effect */}
  <motion.div 
  animate={{ x: ['-100%', '100%'] }}
  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -995,7 +1054,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </motion.div>
 
- {/* 2. GOAL SUMMARY (Line Chart) */}
  <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group flex flex-col">
  <div className="flex items-center gap-2 mb-6">
  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: themeColor }} />
@@ -1009,7 +1067,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">{t('dashboard.workedThisPeriod', 'Worked')}</span>
  </div>
  <div className="text-3xl font-[1000] text-white tracking-tight">
- <FormattedValue value={summaryValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} />
+ <FormattedValue value={unfilteredSummaryValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} />
  </div>
  </div>
  <div className="text-right relative">
@@ -1018,17 +1076,16 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <div className="w-2 h-2 rounded-full bg-white/10" />
  </div>
  <div className="text-3xl font-[1000] text-white/60 tracking-tight">
- <FormattedValue value={goalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-end" />
+ <FormattedValue value={unfilteredGoalValue} type={habit?.type} unit={unitLabel} isDuration={isTimeBased} className="justify-end" />
  </div>
  </div>
  </div>
 
- {/* Line Chart Component */}
  <div className="h-[280px] relative mt-2 -mx-4 mb-0 w-[calc(100%+32px)] overflow-visible rounded-b-[32px] flex-grow">
  <HabitGoalChart 
- dataPoints={chartData}
- goalValue={goalValue}
- totalValue={summaryValue}
+ dataPoints={chartData.map((d: any) => ({ ...d, value: d.unfilteredValue }))}
+ goalValue={unfilteredGoalValue}
+ totalValue={unfilteredSummaryValue}
  startDate={chartData[0]?.date || new Date()}
  endDate={chartData[chartData.length - 1]?.date || new Date()}
  color={themeColor}
@@ -1036,7 +1093,6 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
  </motion.div>
 
- {/* 3. WORKED HOURS (Bar Chart) */}
  <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group">
  <div className="flex justify-between items-center mb-8">
  <div className="flex items-center gap-2">

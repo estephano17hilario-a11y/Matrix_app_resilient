@@ -704,7 +704,7 @@ export const FocusStats = React.memo(({
 
                 {/* CHART AREA */}
                 <BarChart 
-                    datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: activeFilterColor } : d)}
+                    datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: viewMode === 'TOTAL' ? avatarColor : activeFilterColor } : d)}
                     labels={stats.labels}
                     height={220}
                     max={chartMax}
@@ -717,6 +717,8 @@ export const FocusStats = React.memo(({
                     xTickInterval={xTickInterval}
                     barSpacing={barSpacing}
                     paddingTop="top-2"
+                    tooltipValueFormatter={formatMinutes}
+                    tooltipLabelFormatter={(label) => t(label)}
                 />
             </div>
             

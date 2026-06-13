@@ -32,7 +32,7 @@ const MOODS = [
 
 const getInitialNotesConfig = (userId?: string): NotesConfig => {
   const defaultConfig: NotesConfig = {
-    enabledFeatures: [],
+    enabledFeatures: ['BIRTHDAY', 'KEY', 'TARGET'],
     security: {
       pin: '',
       recoveryMethod: 'PASSWORD',
@@ -44,7 +44,11 @@ const getInitialNotesConfig = (userId?: string): NotesConfig => {
   const saved = localStorage.getItem(configKey);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (!parsed.enabledFeatures || !Array.isArray(parsed.enabledFeatures) || parsed.enabledFeatures.length === 0) {
+        parsed.enabledFeatures = ['BIRTHDAY', 'KEY', 'TARGET'];
+      }
+      return parsed;
     } catch (e) {}
   }
   const oldConfigKey = userId ? `notes_config_${userId}` : 'notes_config';
@@ -53,7 +57,7 @@ const getInitialNotesConfig = (userId?: string): NotesConfig => {
     try {
       const parsed = JSON.parse(oldSaved);
       return {
-        enabledFeatures: parsed.buttons || [],
+        enabledFeatures: (parsed.buttons && parsed.buttons.length > 0) ? parsed.buttons : ['BIRTHDAY', 'KEY', 'TARGET'],
         security: {
           pin: parsed.password || '',
           recoveryMethod: 'PASSWORD',
@@ -154,6 +158,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         const supaSettings = await persistenceService.settings.get(user.id);
         if (supaSettings && supaSettings.notes_config_v2) {
           const finalConfig = supaSettings.notes_config_v2;
+          if (!finalConfig.enabledFeatures || !Array.isArray(finalConfig.enabledFeatures) || finalConfig.enabledFeatures.length === 0) {
+            finalConfig.enabledFeatures = ['BIRTHDAY', 'KEY', 'TARGET'];
+          }
           setConfig(finalConfig);
           const configKey = `notes_config_v2_${user.id}`;
           localStorage.setItem(configKey, JSON.stringify(finalConfig));
