@@ -222,6 +222,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         defaultChartViews: userData.preferences?.defaultChartViews || {},
                         defaultProjectView: userData.preferences?.defaultProjectView || 'PROJECT',
                         notesDefaultTab: userData.preferences?.notesDefaultTab || 'OVERVIEW',
+                        defaultTaskFilters: userData.preferences?.defaultTaskFilters || {},
                         archivedTraits: userData.preferences?.archivedTraits || {},
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',

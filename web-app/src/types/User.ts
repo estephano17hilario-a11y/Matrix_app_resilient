@@ -80,7 +80,7 @@ export interface UserProfile {
   createdAt: number; // Timestamp
   lastLoginAt: number;
   // Configuración visual
-  theme: 'ETHER' | 'MATRIX' | 'SUNSET';
+  theme?: string;
   dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS';
   avatarShape?: 'CIRCLE' | 'SQUARE';
   habitSectionControl?: 'VISIBLE' | 'HIDDEN';

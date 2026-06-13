@@ -51,8 +51,8 @@ const AppRoutes = () => {
   // Determine what to show in the content layer
   const renderContent = () => {
     // 🚀 FIX: Prevent "flash" of Onboarding by showing LoadingScreen if we are still checking Auth state
-    // If isLoading is true and we haven't confirmed the user yet, show loading.
-    const shouldShowLoading = isLoading && !user && !profile;
+    // or if we only have a skeleton profile (real profile is still fetching).
+    const shouldShowLoading = isLoading || (profile && profile.isSkeleton);
 
     if (shouldShowLoading) {
       return <LoadingScreen />;

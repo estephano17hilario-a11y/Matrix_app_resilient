@@ -28,6 +28,8 @@ import { useAudioAlarm } from '../hooks/useAudioAlarm';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import FocusSession from '@/plugins/FocusPlugin';
+import toast from 'react-hot-toast';
 
 // Sub-trait picker modal shown after a session ends
 const SubTraitPickerModal = ({ 
@@ -167,20 +169,29 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  const subTraits = attribute?.subTraits ?? [];
  const hasSubTraits = subTraits.length > 0;
 
- // Check Advanced Permissions on Mount
- const checkAllPermissions = useCallback(async () => {
- try {
- if (Capacitor.isNativePlatform()) {
-     const perm = await LocalNotifications.checkPermissions();
-     setPermissions({
-         notifications: perm.display === 'granted',
-         battery: true // Assuming true for now since we removed custom plugin
-     });
- }
- } catch (e) {
- console.warn("Failed to check advanced permissions", e);
- }
- }, []);
+  // Check Advanced Permissions on Mount
+  const checkAllPermissions = useCallback(async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const perm = await LocalNotifications.checkPermissions();
+        let isIgnoringBattery = true;
+        if (Capacitor.getPlatform() === 'android') {
+          try {
+            const nativePerms = await FocusSession.checkPermissions();
+            isIgnoringBattery = nativePerms.battery;
+          } catch (err) {
+            console.error("Failed to check battery permission", err);
+          }
+        }
+        setPermissions({
+          notifications: perm.display === 'granted',
+          battery: isIgnoringBattery
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to check advanced permissions", e);
+    }
+  }, []);
 
  useEffect(() => {
  checkAllPermissions();
@@ -205,10 +216,19 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  };
 
- const handleDisableBatteryOpt = async () => {
- // Feature not available without custom plugin, could link to settings or remove
- console.log("Battery optimization request requires native plugin");
- };
+  const handleDisableBatteryOpt = async () => {
+    if (Capacitor.getPlatform() !== 'android') {
+      toast.error("Battery optimization is Android-only");
+      return;
+    }
+    try {
+      await FocusSession.requestBatteryPermission();
+      toast.success("Opening battery settings...");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to open battery settings");
+    }
+  };
 
   const handleExitAttempt = () => {
   if (isActive) {

@@ -12,15 +12,16 @@ import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 import { calculateAttributeMaxXp } from '../../utils/leveling';
-
-
+import { useTheme } from '@/context/ThemeContext';
+import { ThemeId } from '../../config/themes';
 
 // Modified steps: Removed 'intro' and 'language' as they are now pre-auth
-type Step = 'avatar' | 'traits' | 'tutorial' | 'saving';
+type Step = 'avatar' | 'traits' | 'background' | 'tutorial' | 'saving';
 
 export function OnboardingFlow() {
   const { user, profile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
+  const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
   
   // Initialize step directly to 'avatar'
@@ -28,6 +29,7 @@ export function OnboardingFlow() {
   
   const [selectedTraits, setSelectedTraits] = useState<string[]>(lockedTraitIds);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>('ether');
   const [showScrollHint, setShowScrollHint] = useState(true);
   const traitsScrollRef = useRef<HTMLDivElement | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,6 +78,8 @@ export function OnboardingFlow() {
   useEffect(() => {
     const handleBackButton = async () => {
         if (step === 'tutorial') {
+            setStep('background');
+        } else if (step === 'background') {
             setStep('traits');
         } else if (step === 'traits') {
             setStep('avatar');
@@ -109,6 +113,8 @@ export function OnboardingFlow() {
       if (freeSelected.length < 1) {
          return;
       }
+      setStep('background');
+    } else if (step === 'background') {
       setStep('tutorial');
     }
   };
@@ -167,7 +173,12 @@ export function OnboardingFlow() {
 
     const localUpdates = {
        onboarding: updatedOnboarding,
-       avatarId: selectedAvatarId ?? profile?.avatarId
+       avatarId: selectedAvatarId ?? profile?.avatarId,
+       theme: selectedThemeId,
+       preferences: {
+         ...(profile?.preferences || {}),
+         theme: selectedThemeId
+       }
     };
 
     console.log("[Onboarding] ⚡ PREPARING FIRESTORE UPDATE", localUpdates);
@@ -213,6 +224,11 @@ export function OnboardingFlow() {
         const onboardingDataToSave = {
             avatar_id: selectedAvatarId ?? profile?.avatarId,
             onboarding: updatedOnboarding,
+            theme: selectedThemeId,
+            preferences: {
+              ...(profile?.preferences || {}),
+              theme: selectedThemeId
+            },
             archetype: 'NEO',
             updated_at: new Date().toISOString()
         };
@@ -462,6 +478,92 @@ export function OnboardingFlow() {
 
               </motion.div>
             )}
+
+            {/* STEP 2.5: BACKGROUND SELECTION */}
+            {step === 'background' && (
+              <motion.div
+                key="background-selection"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                className="absolute inset-0 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50 pointer-events-auto"
+              >
+                <div className="min-h-full w-full flex flex-col items-center justify-start max-w-4xl mx-auto px-4 py-24">
+                  <div className="text-center mb-8 flex-shrink-0 max-w-2xl mx-auto px-4">
+                    <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-md">
+                      Elige tu Fondo Estelar
+                    </h1>
+                    <p className="text-white/60 text-lg font-light tracking-wide">
+                      Personaliza tu espacio de automejora. Selecciona un tema y previsualízalo en tiempo real.
+                    </p>
+                  </div>
+
+                  <div className="w-full max-w-5xl mx-auto px-4 pb-24">
+                    <div className="relative rounded-3xl border border-white/10 bg-[#0a0a0f] p-4 sm:p-6">
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-3xl" />
+                      <div className="relative grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {[
+                          { id: 'ether', name: 'Ether', desc: 'Sentient Glass Default', gradient: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)' },
+                          { id: 'matrix', name: 'Matrix', desc: 'Neon Code Stream', gradient: 'linear-gradient(135deg, #00ff88 0%, #004d2b 100%)' },
+                          { id: 'sunset', name: 'Sunset', desc: 'Solar warmth', gradient: 'linear-gradient(135deg, #ff5000 0%, #a855f7 100%)' },
+                          { id: 'neon', name: 'Neon', desc: 'Cyberpunk City', gradient: 'linear-gradient(135deg, #ff0078 0%, #00ffdc 100%)' },
+                          { id: 'aurora', name: 'Aurora', desc: 'Northern Lights', gradient: 'linear-gradient(135deg, #00ffb4 0%, #8c3cff 100%)' },
+                          { id: 'midnight_flow', name: 'Midnight Flow', desc: 'Deep Horizon', gradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 100%)' },
+                          { id: 'holo_spectrum', name: 'Holo Spectrum', desc: 'Prismatic Blur', gradient: 'linear-gradient(135deg, #ff00ff 0%, #00ffff 100%)' },
+                          { id: 'cosmic_void', name: 'Cosmic Void', desc: 'Deep Space', gradient: 'radial-gradient(circle at 50% 0%, #2e1065 0%, #000000 100%)' },
+                          { id: 'luxury', name: 'Luxury', desc: 'Gold & Velvet', gradient: 'linear-gradient(135deg, #ffd700 0%, #8b4513 100%)' },
+                          { id: 'stealth', name: 'Stealth', desc: 'Tactical Monochrome', gradient: 'linear-gradient(135deg, #ffffff 0%, #404040 100%)' }
+                        ].map((themeItem) => {
+                          const isSelected = selectedThemeId === themeItem.id;
+                          return (
+                            <div
+                              key={themeItem.id}
+                              className={`relative rounded-2xl p-4 border flex flex-col justify-between transition-all duration-300 ${
+                                isSelected ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className="w-10 h-10 rounded-xl shrink-0 border border-white/10"
+                                  style={{ background: themeItem.gradient }}
+                                />
+                                <div className="min-w-0">
+                                  <h3 className="text-white font-bold text-sm truncate">{themeItem.name}</h3>
+                                  <p className="text-white/40 text-xs truncate mt-0.5">{themeItem.desc}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 mt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedThemeId(themeItem.id as ThemeId);
+                                    setTheme(themeItem.id as ThemeId);
+                                  }}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    isSelected ? 'bg-indigo-500 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'
+                                  }`}
+                                >
+                                  Seleccionar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTheme(themeItem.id as ThemeId);
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold transition-all"
+                                >
+                                  Previsualizar
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
             
             {/* STEP 3: TUTORIAL VIGNETTES */}
             {step === 'tutorial' && (
@@ -606,12 +708,39 @@ export function OnboardingFlow() {
                 {/* Glow Effect - Optimized */}
                 {selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 && (
                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-200 group-hover:translate-x-[100%]" />
-                )}
+                 )}
                 
                 <span>
                   {t('common.continue', 'Continuar')}
                 </span>
                 <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? 'group-hover:translate-x-1' : ''}`} />
+              </motion.button>
+            </motion.div>
+          )}
+
+          {step === 'background' && (
+            <motion.div
+              key="background-action"
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-[9999] pointer-events-none bg-gradient-to-t from-black/80 to-transparent"
+            >
+              <motion.button
+                key="background-action-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10 animate-fade-in"
+              >
+                <span>
+                  {t('common.continue', 'Continuar')}
+                </span>
+                <ArrowRight className="w-5 h-5" />
               </motion.button>
             </motion.div>
           )}

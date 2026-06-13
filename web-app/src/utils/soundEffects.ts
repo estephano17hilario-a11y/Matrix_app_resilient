@@ -152,3 +152,66 @@ export function playQuestCompleteSound() {
         console.warn("Sound playback failed", e);
     }
 }
+
+// 4. Soft stellar constellation aura sound for app entry
+export function playStellarSound() {
+    try {
+        const ctx = getAudioContext();
+        const t = ctx.currentTime;
+        
+        // A. Low detuned warm drone pad (F# major triad)
+        // F#2 (92.50 Hz), C#3 (138.59 Hz), F#3 (185.00 Hz), A#3 (233.08 Hz)
+        const padFreqs = [92.50, 138.59, 185.00, 233.08];
+        const padGain = ctx.createGain();
+        padGain.gain.setValueAtTime(0, t);
+        padGain.gain.linearRampToValueAtTime(0.04, t + 0.5); // Very soft rise
+        padGain.gain.exponentialRampToValueAtTime(0.001, t + 3.0); // Smooth decay
+        padGain.connect(ctx.destination);
+
+        padFreqs.forEach(freq => {
+            const osc = ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            osc.detune.setValueAtTime(Math.random() * 10 - 5, t); // Slight detune for chorus
+            osc.connect(padGain);
+            osc.start(t);
+            osc.stop(t + 3.0);
+        });
+
+        // B. Sparkling high stellar notes (F# maj9 arpeggio sweep)
+        // F#4 (369.99), A#4 (466.16), C#5 (554.37), F5 (698.46), G#5 (830.61), C#6 (1108.73)
+        const sparkleNotes = [369.99, 466.16, 554.37, 698.46, 830.61, 1108.73];
+        sparkleNotes.forEach((freq, index) => {
+            const delay = 0.2 + index * 0.12; // Slow arpeggiator sweep
+            const dur = 1.6 - index * 0.12; // Higher notes decay faster
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t + delay);
+            
+            gain.gain.setValueAtTime(0, t + delay);
+            gain.gain.linearRampToValueAtTime(0.025, t + delay + 0.1); // Soft attack
+            gain.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+            
+            // Stereo panning
+            if (ctx.createStereoPanner) {
+                const panner = ctx.createStereoPanner();
+                const panVal = index % 2 === 0 ? -0.55 : 0.55;
+                panner.pan.setValueAtTime(panVal, t + delay);
+                osc.connect(panner);
+                panner.connect(gain);
+            } else {
+                osc.connect(gain);
+            }
+            
+            gain.connect(ctx.destination);
+            
+            osc.start(t + delay);
+            osc.stop(t + delay + dur);
+        });
+    } catch (e) {
+        console.warn("Stellar sound playback failed", e);
+    }
+}

@@ -187,7 +187,11 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectI
 export default function Dashboard() {
  const { updateProfileLocally } = useAuth();
  useEffect(() => {
- console.log("💎 MATRIX: Dashboard Mounted Successfully");
+   console.log("💎 MATRIX: Dashboard Mounted Successfully");
+   // Play stellar aura constellation sound
+   import('./utils/soundEffects').then(m => {
+     m.playStellarSound();
+   }).catch(e => console.warn("Failed to play stellar sound", e));
  }, []);
 
  const { t, i18n } = useTranslation();

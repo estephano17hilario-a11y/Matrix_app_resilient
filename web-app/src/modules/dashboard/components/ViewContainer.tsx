@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, Variants } from 'framer-motion';
 
 interface ViewContainerProps {
     isActive: boolean;
@@ -10,86 +9,41 @@ interface ViewContainerProps {
 }
 
 export const ViewContainer = React.memo(({ isActive, children, className = "", id, variant = 'default' }: ViewContainerProps) => {
-    
-    const variants: Record<string, Variants> = {
-        default: {
-            active: { 
-                display: "block",
-                opacity: 1, 
-                scale: 1, 
-                y: 0,
-                zIndex: 10,
-                transition: { 
-                    duration: 0.15,
-                    ease: "linear"
-                }
-            },
-            inactive: { 
-                opacity: 0, 
-                scale: 1, 
-                y: 0,
-                zIndex: 0,
-                transition: { 
-                    duration: 0,
-                    ease: "linear"
-                },
-                transitionEnd: {
-                    display: "none"
-                }
-            }
-        },
-        minimal: {
-            active: { 
-                display: "block",
-                opacity: 1, 
-                scale: 1, 
-                y: 0,
-                zIndex: 20, // Higher priority
-                transition: { 
-                    duration: 0.1,
-                    ease: "linear"
-                }
-            },
-            inactive: { 
-                opacity: 0, 
-                scale: 1, 
-                y: 0,
-                zIndex: 0,
-                transition: { 
-                    duration: 0,
-                    ease: "linear"
-                },
-                transitionEnd: {
-                    display: "none"
-                }
-            }
+    const [render, setRender] = React.useState(isActive);
+
+    React.useEffect(() => {
+        if (isActive) {
+            setRender(true);
+        } else {
+            // Delay setting display: none until opacity transition ends (120ms is perfect for a fast 100ms fade)
+            const timer = setTimeout(() => setRender(false), 120);
+            return () => clearTimeout(timer);
         }
-    };
+    }, [isActive]);
 
     return (
-        <motion.div 
+        <div 
             id={id} 
-            className={`${className} w-full ${isActive ? 'relative min-h-full h-auto' : 'absolute inset-0 h-full overflow-hidden'}`}
-            initial={false}
-            animate={isActive ? "active" : "inactive"}
-            variants={variants[variant as keyof typeof variants]}
+            className={`${className} w-full transition-all duration-100 ease-in-out ${
+                isActive ? 'opacity-100 relative' : 'opacity-0 absolute inset-0 pointer-events-none'
+            }`}
             style={{
-                willChange: "opacity, transform"
+                display: render ? 'block' : 'none',
+                willChange: "opacity",
+                zIndex: variant === 'minimal' ? 20 : 10
             }}
         >
             {children}
-        </motion.div>
+        </div>
     );
 }, (prev, next) => {
     // Custom comparison for performance
     // Only re-render if isActive changes or if it IS active and children props might have changed.
-    // Ideally, we rely on React.memo's default shallow compare, but since 'children' is a new object every render,
-    // we need to be careful.
     
-    // If transitioning from inactive to active, MUST re-render.
+    // If transitioning between active/inactive states, MUST re-render.
     if (prev.isActive !== next.isActive) return false;
     
-    // If inactive, NO NEED to re-render even if children changed (it's hidden).
+    // If inactive, no need to re-render even if children changed (it's hidden).
     if (!next.isActive) return true;
     
     // If active, use default shallow compare (return false to re-render)

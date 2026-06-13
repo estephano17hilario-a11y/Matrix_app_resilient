@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { User, LogOut, Edit2, Check, X, Link2, Unlink, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, LogOut, Edit2, Check, X, Link2, Unlink, Eye, EyeOff, Loader2, Lock } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '@/context/AuthContext';
+import { useLux } from '@/context/LuxContext';
 import { getAvatarPath } from '../../../config/avatars';
 import { AvatarCarouselQuick } from '../components/AvatarCarouselQuick';
 import { supabase } from '../../../services/supabase';
@@ -16,6 +17,7 @@ export const AccountSection = () => {
   const { t } = useTranslation();
   const { user, logout } = useSettings();
   const { profile, updateProfileLocally } = useAuth();
+  const { updateLuxLocally } = useLux();
   const [avatarError, setAvatarError] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
@@ -25,6 +27,7 @@ export const AccountSection = () => {
   const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [showCreatePasswordModal, setShowCreatePasswordModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const avatarPath = profile?.avatarId ? getAvatarPath(profile.avatarId) : user?.photoURL;
 
@@ -93,6 +96,7 @@ export const AccountSection = () => {
   };
 
   const googleIdentity = linkedIdentities.find(id => id.provider === 'google');
+  const hasPassword = user?.user_metadata?.has_password === true || linkedIdentities.some(id => id.provider === 'email');
 
   const formattedName = profile?.displayName || ((user?.displayName && !user.displayName.includes('@'))
     ? user.displayName
@@ -119,20 +123,24 @@ export const AccountSection = () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
-        await supabase.auth.updateUser({ data: { display_name: newName } });
+        const { error: authError } = await supabase.auth.updateUser({ data: { display_name: newName } });
+        if (authError) throw authError;
       }
 
-      if (user?.id) {
-        await supabase.from('users').update({ display_name: newName }).eq('id', user.id);
+      const targetId = user?.id || profile?.uid || profile?.id;
+      if (targetId) {
+        const { error: dbError } = await supabase.from('users').update({ display_name: newName }).eq('id', targetId);
+        if (dbError) throw dbError;
+
         updateProfileLocally({ displayName: newName });
-      } else if (profile?.uid) {
-        await supabase.from('users').update({ display_name: newName }).eq('id', profile.uid);
-        updateProfileLocally({ displayName: newName });
+        updateLuxLocally({ displayName: newName });
+        toast.success(t('settings.nameUpdated', 'Nombre de perfil actualizado con éxito'));
       }
 
       setIsEditingName(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update name:", error);
+      toast.error(error.message || t('settings.nameUpdateFailed', 'Error al actualizar el nombre'));
     } finally {
       setIsSavingName(false);
     }
@@ -225,6 +233,44 @@ export const AccountSection = () => {
 
         <div className="pt-2 relative z-10">
           <AvatarCarouselQuick />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-white tracking-wide">Seguridad</h3>
+          <div className="h-px flex-1 bg-gradient-to-r from-indigo-500/20 to-transparent" />
+        </div>
+
+        <div className="bg-black/20 border border-white/5 rounded-[20px] p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner text-indigo-400">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h4 className="text-white text-sm font-bold tracking-tight">Contraseña de la cuenta</h4>
+                <p className="text-white/40 text-xs font-medium mt-0.5">
+                  {hasPassword 
+                    ? 'Actualiza tu contraseña de acceso' 
+                    : 'Establece una contraseña para tu cuenta'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (hasPassword) {
+                  setShowChangePasswordModal(true);
+                } else {
+                  setShowCreatePasswordModal(true);
+                }
+              }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-xs font-bold transition-all active:scale-95 border border-indigo-500/20"
+            >
+              <span>{hasPassword ? 'Cambiar Contraseña' : 'Crear Contraseña'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -341,6 +387,12 @@ export const AccountSection = () => {
             console.error(err);
           }
         }}
+      />
+
+      <ChangePasswordModal 
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userEmail={user?.email || profile?.email}
       />
     </div>
   );
@@ -483,6 +535,178 @@ const CreatePasswordModal = ({ isOpen, onClose, onSuccess }: CreatePasswordModal
             >
               {isSaving && <Loader2 className="w-4 h-4 animate-spin text-white" />}
               <span>{isSaving ? 'Guardando...' : 'Establecer Contraseña'}</span>
+            </button>
+          </form>
+        </div>
+      </motion.div>
+    </div>,
+    document.body
+  );
+};
+
+// ----------------------------------------------------
+// CHANGE PASSWORD MODAL (CRITICAL SECURITY FLOW)
+// ----------------------------------------------------
+interface ChangePasswordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userEmail?: string | null;
+}
+
+const ChangePasswordModal = ({ isOpen, onClose, userEmail }: ChangePasswordModalProps) => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (newPassword.length < 6) {
+      setError('La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setError('La nueva contraseña debe ser diferente de la actual.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 1. Verify current password by performing a silent background login
+      if (userEmail) {
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: userEmail,
+          password: currentPassword
+        });
+
+        if (loginError) {
+          throw new Error('La contraseña actual es incorrecta.');
+        }
+      }
+
+      // 2. Perform password update
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) throw updateError;
+
+      toast.success('Contraseña actualizada con éxito.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al actualizar la contraseña. Por favor intenta de nuevo.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/80"
+      />
+      
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 15 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 15 }}
+        transition={{ type: "spring", damping: 25, stiffness: 450 }}
+        className="relative z-10 w-full max-w-[360px] bg-[#0c0c0e] border border-white/10 rounded-[2rem] p-8 shadow-2xl overflow-hidden"
+      >
+        <div 
+          className="absolute -top-24 -left-24 w-48 h-48 rounded-full pointer-events-none opacity-20"
+          style={{ background: `radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)` }}
+        />
+
+        <div className="relative z-10 flex flex-col">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-xl font-black text-white tracking-tight">Cambiar Contraseña</h3>
+            <button 
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/40 hover:text-white flex items-center justify-center transition-colors active:scale-95"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider font-bold text-white/40">Contraseña Actual</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña actual"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider font-bold text-white/40">Nueva Contraseña</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-white/30 hover:text-white/60 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider font-bold text-white/40">Confirmar Nueva Contraseña</label>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la nueva contraseña"
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="text-rose-400 text-xs p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSaving || !currentPassword || !newPassword || !confirmPassword}
+              className="w-full py-4 mt-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-sm uppercase tracking-wider shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100"
+            >
+              {isSaving && <Loader2 className="w-4 h-4 animate-spin text-white" />}
+              <span>{isSaving ? 'Actualizando...' : 'Actualizar Contraseña'}</span>
             </button>
           </form>
         </div>

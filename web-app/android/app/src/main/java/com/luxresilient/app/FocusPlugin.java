@@ -94,36 +94,56 @@ public class FocusPlugin extends Plugin {
     @PluginMethod
     public void requestBatteryPermission(PluginCall call) {
         try {
+            android.util.Log.d("FocusPlugin", "requestBatteryPermission called");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 Intent intent = new Intent();
                 String packageName = getContext().getPackageName();
                 PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
                 
-                if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
-                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    intent.setData(Uri.parse("package:" + packageName));
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    getContext().startActivity(intent);
+                if (pm != null) {
+                    boolean isIgnoring = pm.isIgnoringBatteryOptimizations(packageName);
+                    android.util.Log.d("FocusPlugin", "Current ignoring state: " + isIgnoring);
                 }
+
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            } else {
+                Intent settingsIntent = new Intent(Settings.ACTION_SETTINGS);
+                settingsIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(settingsIntent);
             }
             call.resolve();
         } catch (Exception e) {
+            android.util.Log.e("FocusPlugin", "Failed ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, attempting fallback list", e);
             try {
-                // Fallback to battery optimization settings list
+                // Fallback 1: Battery optimization settings list
                 Intent fallbackIntent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                 fallbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(fallbackIntent);
                 call.resolve();
             } catch (Exception fallbackErr) {
+                android.util.Log.e("FocusPlugin", "Failed ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, attempting App Info Details", fallbackErr);
                 try {
-                    // Final fallback: App Details page
+                    // Fallback 2: App Details page
                     Intent finalFallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                     finalFallback.setData(Uri.parse("package:" + getContext().getPackageName()));
                     finalFallback.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     getContext().startActivity(finalFallback);
                     call.resolve();
                 } catch (Exception e3) {
-                    call.reject("Failed to request battery permission", e3);
+                    android.util.Log.e("FocusPlugin", "Failed ACTION_APPLICATION_DETAILS_SETTINGS, attempting general Settings", e3);
+                    try {
+                        // Fallback 3: General System Settings
+                        Intent settingsIntent = new Intent(Settings.ACTION_SETTINGS);
+                        settingsIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getContext().startActivity(settingsIntent);
+                        call.resolve();
+                    } catch (Exception e4) {
+                        android.util.Log.e("FocusPlugin", "Failed general Settings fallback", e4);
+                        call.reject("Failed to request battery permission", e4);
+                    }
                 }
             }
         }

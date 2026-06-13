@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Flame, ListChecks, Zap, Coins, ArrowUpRight, Arrow
 import { DailyFeedEntry } from '../../../types/DailyFeedEntry';
 import { calculateFallbackProductivityScore } from '../../../utils/productivityScore';
 import { useTranslation } from 'react-i18next';
+import { getAvatarPath } from '../../../config/avatars';
 
 interface FeedDayCardProps {
   entry: DailyFeedEntry;
@@ -187,10 +188,10 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
           {/* Header: Strava-style User + Date + Score */}
           <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-white/[0.05]">
             <div className="flex items-center gap-2.5">
-              {/* User Avatar Initials */}
-              {user?.photoURL ? (
+              {/* User Avatar / Character Portrait */}
+              {user?.avatarId || user?.photoURL ? (
                 <img 
-                  src={user.photoURL} 
+                  src={user.avatarId ? getAvatarPath(user.avatarId) : user.photoURL} 
                   alt={displayName} 
                   className="w-8 h-8 rounded-full border border-white/10 shadow-sm shrink-0 object-cover" 
                 />
@@ -201,12 +202,12 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
               )}
               
               <div>
-                <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
+                <span className="block text-[10px] uppercase tracking-wider font-bold text-indigo-400/70">
                   {displayName}
-                </h3>
-                <span className="text-[9px] text-white/35 font-semibold">
-                  {isToday ? t('feed.card.today') : (isSpanish ? `${dayName} ${day} de ${month}` : `${dayName}, ${month} ${day}`)}
                 </span>
+                <h3 className="text-sm sm:text-base font-black text-white leading-tight mt-0.5">
+                  {isToday ? t('feed.card.today') : (isSpanish ? `${dayName} ${day} de ${month}` : `${dayName}, ${month} ${day}`)}
+                </h3>
               </div>
             </div>
 
