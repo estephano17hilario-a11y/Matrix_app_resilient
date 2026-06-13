@@ -27,27 +27,44 @@ export default defineConfig({
   },
   esbuild: {
     drop: ['console', 'debugger'],
+    // Remove dead code paths in production
+    treeShaking: true,
+    // Optimize for smallest output
+    legalComments: 'none',
   },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
-    target: 'esnext', // Use modern JS for smaller bundles
-    minify: 'esbuild', // Faster minification
+    target: 'esnext', // Use modern JS for smallest bundles
+    minify: 'esbuild', // Fastest + smallest
     cssMinify: true,
+    // Increase inline limit for small assets (saves HTTP requests)
+    assetsInlineLimit: 8192,
     rollupOptions: {
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+      },
       output: {
+        // Compact attribute names
+        compact: true,
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('firebase')) return 'firebase';
             // UI Vendor first (specifics)
             if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) return 'ui-vendor';
+            // Supabase client
+            if (id.includes('@supabase')) return 'supabase-vendor';
             // React Core last (catch-all)
             if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
+            // Heavy chart lib
+            if (id.includes('recharts') || id.includes('d3')) return 'charts-vendor';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1200,
   },
 })
+

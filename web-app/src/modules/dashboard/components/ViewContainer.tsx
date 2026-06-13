@@ -8,6 +8,9 @@ interface ViewContainerProps {
     variant?: 'default' | 'minimal';
 }
 
+// ⚡ ZERO-LAG VIEW CONTAINER
+// Pure CSS opacity transition - NO spring, NO scale, NO bounce, NO vector distortion.
+// GPU composited via will-change:opacity. Targeting 60fps on mobile.
 export const ViewContainer = React.memo(({ isActive, children, className = "", id, variant = 'default' }: ViewContainerProps) => {
     const [render, setRender] = React.useState(isActive);
 
@@ -15,8 +18,8 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
         if (isActive) {
             setRender(true);
         } else {
-            // Delay unmount until after the 75ms fade-out ends
-            const timer = setTimeout(() => setRender(false), 90);
+            // Delay unmount until after the 100ms fade-out ends
+            const timer = setTimeout(() => setRender(false), 120);
             return () => clearTimeout(timer);
         }
     }, [isActive]);
@@ -24,13 +27,18 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
     return (
         <div 
             id={id} 
-            className={`${className} w-full transition-opacity duration-75 ease-in-out ${
-                isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
+            className={`${className} w-full`}
             style={{
                 display: render ? 'block' : 'none',
-                willChange: "opacity",
-                zIndex: variant === 'minimal' ? 20 : 10
+                opacity: isActive ? 1 : 0,
+                // Faster fade-out than fade-in for snappy feel
+                transition: isActive
+                    ? 'opacity 150ms ease-out'
+                    : 'opacity 100ms ease-in',
+                // GPU-accelerated compositing — NO transform (avoids vector distortion)
+                willChange: 'opacity',
+                pointerEvents: isActive ? 'auto' : 'none',
+                zIndex: variant === 'minimal' ? 20 : 10,
             }}
         >
             {children}

@@ -879,3 +879,66 @@ button:active, [role="button"]:active, .clickable:active {
     z-index: 1;
     pointer-events: none;
   }
+
+/* ====================================================
+   🚀 PRODUCTION PERFORMANCE — CEO-LEVEL OPTIMIZATIONS
+   ==================================================== */
+
+/* Promote transition elements to their own GPU layer */
+.view-section {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Content-visibility: let the browser skip offscreen layout/paint */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* Optimized font rendering for legibility at any size */
+body, button, input, textarea {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-display: swap;
+}
+
+/* Prevent expensive repaints on scroll: isolate scroll containers */
+.scroll-container {
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+/* Smooth momentum scroll on iOS */
+.overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Disable pointer events on inactive layers for faster hit testing */
+.pointer-events-none {
+  contain: strict;
+}
+
+/* Reduce paint area for animated elements */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-pulse {
+    will-change: opacity;
+  }
+  .animate-spin {
+    will-change: transform;
+  }
+  .animate-bounce {
+    will-change: transform;
+  }
+}
+
+/* Force discrete compositing for glass elements to prevent blending overhead */
+.glass-panel, .glass-editor {
+  isolation: isolate;
+}
+
+/* ====================================================
+   END PERFORMANCE OPTIMIZATIONS
+   ==================================================== */
+

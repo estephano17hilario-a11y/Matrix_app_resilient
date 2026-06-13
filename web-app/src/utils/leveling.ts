@@ -1,12 +1,14 @@
 export const calculateXpForLevel = (level: number): number => {
     if (level <= 1) return 0;
     const n = level - 1;
-    return 120 * n + (23 * n * (n - 1)) / 2;
+    // Base 120 XP + 36 XP increment per level
+    return 120 * n + (36 * n * (n - 1)) / 2;
 };
 
 export const calculateLevelFromXp = (xp: number): number => {
     if (xp <= 0) return 1;
-    const n = (-217 + Math.sqrt(47089 + 184 * xp)) / 46;
+    // Quadratic inverse: 120n + 18n(n-1) = xp => 18n^2 + 102n - xp = 0
+    const n = (-102 + Math.sqrt(102 * 102 + 4 * 18 * xp)) / (2 * 18);
     return Math.floor(n) + 1;
 };
 
@@ -24,10 +26,12 @@ export const calculateLevelProgress = (xp: number, level: number): number => {
 
 export const calculateAttributeMaxXp = (level: number): number => {
     const lvl = Math.max(1, level);
-    return 80 + (lvl - 1) * 15;
+    // Trait: base 80 + 18 per level
+    return 80 + (lvl - 1) * 18;
 };
 
 export const calculateSubTraitMaxXp = (level: number): number => {
     const lvl = Math.max(1, level);
-    return 50 + (lvl - 1) * 10;
+    // Sub-trait: base 50 + 11 per level
+    return 50 + (lvl - 1) * 11;
 };

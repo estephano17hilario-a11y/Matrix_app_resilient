@@ -186,7 +186,7 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <TourProvider>
-          <MotionConfig transition={{ type: 'spring', stiffness: 300, damping: 25, mass: 0.8 }}>
+          <MotionConfig transition={{ type: 'tween', duration: 0.18, ease: [0.25, 0.1, 0.25, 1.0] }}>
             <Toaster
               position="top-center"
               toastOptions={{
