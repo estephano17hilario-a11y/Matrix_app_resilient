@@ -3360,7 +3360,8 @@ export const useDashboardLogic = () => {
             date: nextSessionDate,
             xpEarned: totalXp,
             goldEarned: totalGold,
-            traitPointsEarned: totalTP
+            traitPointsEarned: totalTP,
+            subTraitId: subTraitId
         };
 
         // 4. UPDATE PROJECT STATE

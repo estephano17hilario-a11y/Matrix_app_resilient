@@ -67,32 +67,20 @@ const FormattedValue = ({ value, type, unit, isDuration, className }: { value: n
 };
 
 // --- ANIMATION VARIANTS ---
+// Instant visibility — the parent slide-in tween provides the motion (60fps, no bounce)
 const containerVariants: Variants = {
- hidden: { opacity: 0 },
- visible: { 
- opacity: 1,
- transition: { 
- staggerChildren: 0.05,
- delayChildren: 0.1
- }
- }
+ hidden: { opacity: 1 },
+ visible: { opacity: 1 }
 };
 
 const itemVariants: Variants = {
- hidden: { opacity: 0, y: 20 },
- visible: { 
- opacity: 1, 
- y: 0,
- transition: { type: "spring", stiffness: 450, damping: 24 }
- }
+ hidden: { opacity: 1, y: 0 },
+ visible: { opacity: 1, y: 0 }
 };
 
 const barVariants: Variants = {
- hidden: { scaleY: 0 },
- visible: { 
- scaleY: 1,
- transition: { type: "spring", stiffness: 450, damping: 25 }
- }
+ hidden: { scaleY: 1 },
+ visible: { scaleY: 1 }
 };
 
 interface HabitDetailViewProps {
@@ -645,28 +633,18 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
   className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
   >
  <div className="absolute inset-0 overflow-hidden pointer-events-none">
- <motion.div 
- animate={{ 
- scale: [1, 1.1, 1],
- opacity: [0.15, 0.25, 0.15]
- }}
- transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+ <div 
  className="absolute -top-[15%] -left-[10%] w-[80%] h-[60%] rounded-full"
  style={{ 
  background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
- willChange: 'transform, opacity'
+ opacity: 0.18
  }} 
  />
- <motion.div 
- animate={{ 
- scale: [1.1, 1, 1.1],
- opacity: [0.1, 0.2, 0.1]
- }}
- transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+ <div 
  className="absolute -bottom-[10%] -right-[10%] w-[80%] h-[60%] rounded-full"
  style={{ 
  background: `radial-gradient(circle, ${themeColor} 0%, transparent 60%)`, 
- willChange: 'transform, opacity'
+ opacity: 0.12
  }} 
  />
  </div>
@@ -993,14 +971,9 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  variants={itemVariants} 
  className="bg-[#121214]/80 rounded-[32px] p-8 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] mb-4 relative overflow-hidden group"
  >
- <motion.div
- animate={{ 
- scale: [1, 1.2, 1],
- opacity: [0.1, 0.2, 0.1]
- }}
- transition={{ duration: 8, repeat: Infinity }}
+ <div
  className="absolute top-0 right-0 w-48 h-48 rounded-full -z-10 pointer-events-none"
- style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)` }}
+ style={{ background: `radial-gradient(circle, ${themeColor} 0%, transparent 75%)`, opacity: 0.14 }}
  />
  
  <div className="flex flex-col gap-6">
@@ -1039,21 +1012,16 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <motion.div
  initial={{ scaleX: 0 }}
  animate={{ scaleX: summaryBarValue }}
- transition={{ type: "spring", stiffness: 350, damping: 20 }}
- className="h-full rounded-full origin-left relative"
+ transition={{ type: "tween", duration: 0.4, ease: "easeOut" }}
+ className="h-full rounded-full origin-left"
  style={{ backgroundColor: themeColor }}
- >
- <motion.div 
- animate={{ x: ['-100%', '100%'] }}
- transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
- className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
  />
- </motion.div>
  </div>
  </div>
  </div>
  </motion.div>
 
+ {selectedSubTraitId === 'ALL' && (
  <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group flex flex-col">
  <div className="flex items-center gap-2 mb-6">
  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: themeColor }} />
@@ -1092,6 +1060,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  />
  </div>
  </motion.div>
+ )}
 
  <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-8 border border-white/[0.06] shadow-md relative overflow-hidden group">
  <div className="flex justify-between items-center mb-8">

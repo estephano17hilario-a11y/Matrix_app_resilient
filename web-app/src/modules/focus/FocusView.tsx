@@ -32,7 +32,7 @@ export const FocusView = React.memo(({
     onOpenProjectModal: (project?: Project) => void, 
     onStartFocus?: (projectId: string) => void,
     onDetailViewChange?: (isOpen: boolean) => void,
-    // Unused props kept for interface compatibility if needed, but not used in logic
+    // Unused props kept for interface compatibility
     onCompleteSession?: any, 
     onAddManualSession?: any,
     onDeleteSession?: any,
@@ -89,7 +89,6 @@ export const FocusView = React.memo(({
     // Long Press Handler
     const longPressHandlers = useLongPress(() => {
         if (!showArchived && onReorder) {
-            // Trigger vibration if available
             if (navigator.vibrate) navigator.vibrate(50);
             setIsReorderModalOpen(true);
         }
@@ -100,50 +99,13 @@ export const FocusView = React.memo(({
         selectedProjectId ? projects.find(p => p.id === selectedProjectId) : null,
     [selectedProjectId, projects]);
 
-    if (selectedProject) {
-        const attribute = attributes.find(a => a.id === selectedProject.attribute);
-        return (
-            <AnimatePresence>
-                <HabitDetailView 
-                    project={selectedProject} 
-                    attribute={attribute}
-                    attributeColor={attribute?.color} 
-                    onClose={() => setSelectedProjectId(null)}
-                    onEdit={(item) => {
-                        setSelectedProjectId(null); // Close detail view
-                        onOpenProjectModal(item as Project);
-                    }}
-                    onDelete={(id) => {
-                        console.log("FocusView: Deleting project", id);
-                        
-                        // Don't close manually, let the prop update close it naturally to ensure sync
-                        // setSelectedProjectId(null); 
-
-                        if (onDeleteProject) {
-                            onDeleteProject(id);
-                            // Fallback: Close after a short delay if prop update fails
-                            setTimeout(() => setSelectedProjectId(null), 100);
-                        } else {
-                            console.error("onDeleteProject function is missing in FocusView props");
-                            alert("Error: Delete function not connected. Please refresh.");
-                        }
-                    }}
-                    onArchive={(item) => {
-                        if (onUpdateProject) {
-                            onUpdateProject({ ...item, archived: !item.archived });
-                        }
-                    }}
-                    isPro={isPro}
-                    onOpenPro={onOpenPro}
-                    weekStartDay={weekStartDay}
-                />
-            </AnimatePresence>
-        );
-    }
+    const selectedAttribute = useMemo(() =>
+        selectedProject ? attributes.find(a => a.id === selectedProject.attribute) : null,
+    [selectedProject, attributes]);
 
     return (
         <div className="relative w-full font-sans flex flex-col p-4 pt-0">
-            {/* Stats - Always Visible (General Graph + Stops + Specific Graphics) */}
+            {/* Stats - Always Visible */}
             <div className="relative z-10 mb-2 -mt-1">
                 <FocusStats 
                     projects={projects} 
@@ -226,6 +188,44 @@ export const FocusView = React.memo(({
                     getItemColor={(p) => attributes.find(a => a.id === p.attribute)?.color || '#fff'}
                 />
             )}
+
+            {/* 
+                Detail View — rendered INLINE inside the main return tree.
+                This is critical: an early "return" would unmount the entire FocusView
+                component tree (including the parent Dock/+ button). By keeping it inline
+                with AnimatePresence the Dock stays mounted at all times.
+            */}
+            <AnimatePresence>
+                {selectedProject && (
+                    <HabitDetailView 
+                        key={selectedProject.id}
+                        project={selectedProject} 
+                        attribute={selectedAttribute ?? undefined}
+                        attributeColor={selectedAttribute?.color} 
+                        onClose={() => setSelectedProjectId(null)}
+                        onEdit={(item) => {
+                            setSelectedProjectId(null);
+                            onOpenProjectModal(item as Project);
+                        }}
+                        onDelete={(id) => {
+                            if (onDeleteProject) {
+                                onDeleteProject(id);
+                                setTimeout(() => setSelectedProjectId(null), 100);
+                            } else {
+                                console.error("onDeleteProject function is missing in FocusView props");
+                            }
+                        }}
+                        onArchive={(item) => {
+                            if (onUpdateProject) {
+                                onUpdateProject({ ...item, archived: !item.archived });
+                            }
+                        }}
+                        isPro={isPro}
+                        onOpenPro={onOpenPro}
+                        weekStartDay={weekStartDay}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 });

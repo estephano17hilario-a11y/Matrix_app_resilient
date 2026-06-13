@@ -15,8 +15,8 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
         if (isActive) {
             setRender(true);
         } else {
-            // Delay setting display: none until opacity transition ends (120ms is perfect for a fast 100ms fade)
-            const timer = setTimeout(() => setRender(false), 120);
+            // Delay unmount until after the 75ms fade-out ends
+            const timer = setTimeout(() => setRender(false), 90);
             return () => clearTimeout(timer);
         }
     }, [isActive]);
@@ -24,8 +24,8 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
     return (
         <div 
             id={id} 
-            className={`${className} w-full transition-all duration-100 ease-in-out ${
-                isActive ? 'opacity-100 relative' : 'opacity-0 absolute inset-0 pointer-events-none'
+            className={`${className} w-full transition-opacity duration-75 ease-in-out ${
+                isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             style={{
                 display: render ? 'block' : 'none',
@@ -37,15 +37,10 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
         </div>
     );
 }, (prev, next) => {
-    // Custom comparison for performance
-    // Only re-render if isActive changes or if it IS active and children props might have changed.
-    
-    // If transitioning between active/inactive states, MUST re-render.
+    // Only re-render if isActive changes
     if (prev.isActive !== next.isActive) return false;
-    
-    // If inactive, no need to re-render even if children changed (it's hidden).
+    // If inactive, skip re-renders entirely
     if (!next.isActive) return true;
-    
-    // If active, use default shallow compare (return false to re-render)
+    // If active, allow re-renders
     return false;
 });

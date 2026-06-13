@@ -113,7 +113,8 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
                 dailyLimits: safeDailyLimits,
                 displayName: data.display_name,
                 photoURL: data.photo_url,
-                uid: data.id
+                uid: data.id,
+                avatarId: data.avatar_id || (normalized as any)?.avatarId || undefined
             } as UserData;
 
             // Only update if data changed
