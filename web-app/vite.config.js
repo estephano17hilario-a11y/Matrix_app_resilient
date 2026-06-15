@@ -42,10 +42,6 @@ export default defineConfig({
     // Increase inline limit for small assets (saves HTTP requests)
     assetsInlineLimit: 8192,
     rollupOptions: {
-      treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-      },
       output: {
         // Compact attribute names
         compact: true,
