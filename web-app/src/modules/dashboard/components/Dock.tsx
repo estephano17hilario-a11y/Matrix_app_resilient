@@ -437,64 +437,72 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  className={containerClass}
  style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
- <div 
- className="absolute inset-0 rounded-[inherit] z-10 pointer-events-none backdrop-blur-xl"
- style={{ backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)' }}
- >
- <div className="relative w-full h-full pointer-events-auto">
- <motion.div 
- initial={false}
- animate={{
- opacity: isOpen ? 1 : 0,
- y: isOpen ? 0 : 15,
- pointerEvents: isOpen ? 'auto' : 'none',
- scale: isOpen ? 1 : 0.98
- }}
- transition={isOpen 
- ? { ...liquidSpring, delay: 0.08 }
- : { duration: 0.05, ease: "easeOut" }
- }
- className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
- >
+  <motion.div 
+  initial={false}
+  animate={{ 
+  borderRadius: isOpen ? 32 : 36
+  }}
+  transition={liquidSpring}
+  className="absolute inset-0 z-10 pointer-events-none backdrop-blur-xl"
+  style={{ 
+    backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)',
+    willChange: 'border-radius'
+  }}
+  >
+  <div className="relative w-full h-full pointer-events-auto">
+  <motion.div 
+  initial={false}
+  animate={{
+  opacity: isOpen ? 1 : 0,
+  y: isOpen ? 0 : 15,
+  pointerEvents: isOpen ? 'auto' : 'none',
+  scale: isOpen ? 1 : 0.98
+  }}
+  transition={isOpen 
+  ? { ...liquidSpring, delay: 0.08 }
+  : { duration: 0.05, ease: "easeOut" }
+  }
+  className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
+  >
+  
+  <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+  <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
+  </button>
+  {expandedItems.map((id, index) => {
+  const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
+  return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
+  })} 
+  </motion.div>
+  <div className={`pointer-events-auto absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20`}>
+  
+  <div className="col-span-2 flex items-center justify-around h-full">
+  {leftItems.map(id => renderLegacyDockButton(id))}
+  </div>
  
- <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
- <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
- </button>
- {expandedItems.map((id, index) => {
- const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
- return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
- })} 
- </motion.div>
- <div className={`pointer-events-auto absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20`}>
+  {/* BOTÓN "+" CENTRAL ANIMADO INTEGRADO EN LEGACY UI */} 
+  <div className="col-span-1 flex items-center justify-center h-full -mt-1 z-30">
+  <button 
+  data-tour="dock-main-btn"
+  onClick={() => onToggle(!isOpen)} 
+  className={` 
+  relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] 
+  flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
+  ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
+  `} 
+  > 
+  {isOpen 
+  ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
+  : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
+  } 
+  </button> 
+  </div>
  
- <div className="col-span-2 flex items-center justify-around h-full">
- {leftItems.map(id => renderLegacyDockButton(id))}
- </div>
-
- {/* BOTÓN "+" CENTRAL ANIMADO INTEGRADO EN LEGACY UI */} 
- <div className="col-span-1 flex items-center justify-center h-full -mt-1 z-30">
- <button 
- data-tour="dock-main-btn"
- onClick={() => onToggle(!isOpen)} 
- className={` 
- relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] 
- flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
- ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
- `} 
- > 
- {isOpen 
- ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
- : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
- } 
- </button> 
- </div>
-
- <div className="col-span-2 flex items-center justify-around h-full">
- {rightItems.map(id => renderLegacyDockButton(id))}
- </div>
- </div>
- </div>
- </div>
+  <div className="col-span-2 flex items-center justify-around h-full">
+  {rightItems.map(id => renderLegacyDockButton(id))}
+  </div>
+  </div>
+  </div>
+  </motion.div>
  </motion.div>
  </motion.div>
  </>

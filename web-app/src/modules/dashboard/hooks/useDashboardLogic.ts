@@ -753,6 +753,18 @@ export const useDashboardLogic = () => {
 
         PersistenceService.saveProfile(updatedProfile);
 
+        // Check if we actually need to sync to Supabase
+        const needsSync = 
+            !user.isSkeleton && (
+                player.xp !== user.stats?.xp ||
+                player.level !== user.stats?.level ||
+                player.gold !== user.stats?.gold ||
+                health !== user.stats?.hp ||
+                JSON.stringify(dailyLimits) !== JSON.stringify(user.dailyLimits || {})
+            );
+
+        if (!needsSync) return;
+
         // SYNC WITH SUPABASE DEBOUNCED
         const timer = setTimeout(async () => {
             try {
@@ -1569,7 +1581,7 @@ export const useDashboardLogic = () => {
         const currentTTL = (hasSynced && !bypassTTL) ? COLLECTION_SYNC_TTL : 0;
 
         // 🚀 PERFORMANCE: Delay the initial sync on cold boot to let the UI breathe
-        const performSync = () => {
+        const performSync = async () => {
             // Process any pending offline actions before fetching to ensure updates are pushed
             OfflineSyncService.processQueue();
 
@@ -1593,195 +1605,175 @@ export const useDashboardLogic = () => {
                 });
             }
 
-            if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
-                projectService.getUserProjects(uid).then(projects => {
-                    if (!projects) return;
+            try {
+                const { supabase } = await import('../../../services/supabase');
+                const { data: rows, error: fetchError } = await supabase
+                    .from('user_collections')
+                    .select('id, collection_name, data')
+                    .eq('user_id', uid)
+                    .eq('deleted', false);
+
+                if (fetchError) throw fetchError;
+
+                const allRows = rows || [];
+
+                // Helper to extract and deduplicate a collection
+                const extractCollection = <T extends { id: string }>(collectionName: string): T[] => {
+                    const map = new Map<string, T>();
+                    allRows.forEach(row => {
+                        if (row.collection_name !== collectionName) return;
+                        const item = row.data as T;
+                        if (!item || !item.id) return;
+                        const expectedId = `${uid}_${collectionName}_${item.id}`;
+                        if (!map.has(item.id) || row.id === expectedId) {
+                            map.set(item.id, item);
+                        }
+                    });
+                    return Array.from(map.values());
+                };
+
+                // 1. Projects
+                if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {
+                    const projects = extractCollection<Project>('projects');
                     const resolvedProjects = OfflineSyncService.applyPendingActionsToCollection(uid, 'projects', projects);
                     const cached = PersistenceService.getCollection<Project>(uid, 'projects');
+                    let shouldSetProjects = true;
                     if (resolvedProjects.length === 0 && cached && cached.length > 0) {
                         cached.forEach(p => persistenceService.projects.save(uid, p));
-                        return;
+                        shouldSetProjects = false;
                     }
-                    let merged: Project[] = [];
-                    let canSave = false;
-                    setProjects(prev => {
-                        merged = mergeProjects(prev, resolvedProjects);
-                        if (merged.length < prev.length) {
-                            canSave = false;
-                            return prev;
+                    if (shouldSetProjects) {
+                        let merged: Project[] = [];
+                        let canSave = false;
+                        setProjects(prev => {
+                            merged = mergeProjects(prev, resolvedProjects);
+                            if (merged.length < prev.length) {
+                                canSave = false;
+                                return prev;
+                            }
+                            canSave = true;
+                            return merged;
+                        });
+                        if (canSave) {
+                            saveProjectsCache(uid, merged);
                         }
-                        canSave = true;
-                        return merged;
-                    });
-                    if (canSave) {
-                        saveProjectsCache(uid, merged);
                     }
                     projectsHydratedRef.current = true;
-                });
-            }
+                }
 
-            if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
-                persistenceService.quests.getAll(uid).then(quests => {
-                    if (!quests) return;
-                    const resolvedQuests = OfflineSyncService.applyPendingActionsToCollection(uid, 'quests', quests);
-                    // Supabase is the source of truth. If it returns an empty array,
-                    // the user has no quests (respect deletions). Do NOT re-upload from cache.
+                // 2. Quests
+                if (!questsLoaded || PersistenceService.shouldSyncCollection(uid, 'quests', currentTTL)) {
+                    const questsData = extractCollection<Quest>('quests');
+                    const resolvedQuests = OfflineSyncService.applyPendingActionsToCollection(uid, 'quests', questsData);
                     setQuests(resolvedQuests);
                     PersistenceService.saveCollection(uid, 'quests', resolvedQuests);
                     questsHydratedRef.current = true;
-                });
-            }
+                }
 
-            if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', currentTTL)) {
-                persistenceService.habits.getAll(uid).then(h => {
-                    if (!h) return;
-                    
-                    const resolvedHabits = OfflineSyncService.applyPendingActionsToCollection(uid, 'habits', h);
+                // 3. Habits
+                if (!habitsLoaded || PersistenceService.shouldSyncCollection(uid, 'habits', currentTTL)) {
+                    const habitsData = extractCollection<Habit>('habits');
+                    const resolvedHabits = OfflineSyncService.applyPendingActionsToCollection(uid, 'habits', habitsData);
                     const cached = PersistenceService.getCollection<Habit>(uid, 'habits');
+                    let shouldSetHabits = true;
                     if (resolvedHabits.length === 0 && cached && cached.length > 0) {
                         cached.forEach(habit => persistenceService.habits.save(uid, habit));
-                        return;
+                        shouldSetHabits = false;
                     }
-
-                    // 🛡️ SANITIZATION: Fix Legacy Habits without createdAt
-                    const now = Date.now();
-                    let hasFixes = false;
-                    const sanitizedHabits = resolvedHabits.map(habit => {
-                        if (!habit.createdAt) {
-                            hasFixes = true;
-                            // Infer creation date:
-                            // 1. First history entry (if exists)
-                            // 2. NOW (if no history) -> This fixes the "New Habit breaks Yesterday Stats" bug
-                            let inferredTime = now;
-                            if (habit.history && habit.history.length > 0) {
-                                 const dates = habit.history.map(d => new Date(d).getTime());
-                                 const minDate = Math.min(...dates);
-                                 if (!isNaN(minDate)) inferredTime = minDate;
+                    if (shouldSetHabits) {
+                        const now = Date.now();
+                        let hasFixes = false;
+                        const sanitizedHabits = resolvedHabits.map(habit => {
+                            if (!habit.createdAt) {
+                                hasFixes = true;
+                                let inferredTime = now;
+                                if (habit.history && habit.history.length > 0) {
+                                    const dates = habit.history.map(d => new Date(d).getTime());
+                                    const minDate = Math.min(...dates);
+                                    if (!isNaN(minDate)) inferredTime = minDate;
+                                }
+                                persistenceService.habits.update(uid, habit.id, { createdAt: inferredTime });
+                                return { ...habit, createdAt: inferredTime };
                             }
-                            
-                            // Update in Firestore immediately to persist the fix
-                            persistenceService.habits.update(uid, habit.id, { createdAt: inferredTime });
-                            
-                            return { ...habit, createdAt: inferredTime };
+                            return habit;
+                        });
+                        if (hasFixes) {
+                            PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
                         }
-                        return habit;
-                    });
-
-                    if (hasFixes) {
-                        // Force a cache refresh if we fixed anything
+                        setHabits(sanitizedHabits);
+                        setAreHabitsLoaded(true);
                         PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
                     }
+                }
 
-                    setHabits(sanitizedHabits);
-                    setAreHabitsLoaded(true);
-                    PersistenceService.saveCollection(uid, 'habits', sanitizedHabits);
-                });
-            }
-
-            if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
-                persistenceService.badHabits.getAll(uid).then(items => {
-                    if (!items) return;
-                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'badHabits', items);
+                // 4. Bad Habits
+                if (!badHabitsLoaded || PersistenceService.shouldSyncCollection(uid, 'badHabits', currentTTL)) {
+                    const badHabitsData = extractCollection<BadHabit>('badHabits');
+                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'badHabits', badHabitsData);
                     const cached = PersistenceService.getCollection<BadHabit>(uid, 'badHabits');
+                    let shouldSetBadHabits = true;
                     if (resolvedItems.length === 0 && cached && cached.length > 0) {
                         cached.forEach(bh => persistenceService.badHabits.save(uid, bh));
-                        return;
+                        shouldSetBadHabits = false;
                     }
-                    setBadHabits(resolvedItems);
-                    PersistenceService.saveCollection(uid, 'badHabits', resolvedItems);
+                    if (shouldSetBadHabits) {
+                        setBadHabits(resolvedItems);
+                        PersistenceService.saveCollection(uid, 'badHabits', resolvedItems);
+                    }
                     badHabitsHydratedRef.current = true;
-                });
-            }
+                }
 
-            if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
-                persistenceService.smartProjects.getAll(uid).then(items => {
-                    if (!items) return;
-                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'smartProjects', items);
+                // 5. Smart Projects
+                if (!smartProjectsLoaded || PersistenceService.shouldSyncCollection(uid, 'smartProjects', currentTTL)) {
+                    const smartProjectsData = extractCollection<SmartProject>('smartProjects');
+                    const resolvedItems = OfflineSyncService.applyPendingActionsToCollection(uid, 'smartProjects', smartProjectsData);
                     const cached = PersistenceService.getCollection<SmartProject>(uid, 'smartProjects');
+                    let shouldSetSmartProjects = true;
                     if (resolvedItems.length === 0 && cached && cached.length > 0) {
                         cached.forEach(sp => persistenceService.smartProjects.save(uid, sp));
-                        return;
+                        shouldSetSmartProjects = false;
                     }
-                    setSmartProjects(resolvedItems);
-                    PersistenceService.saveCollection(uid, 'smartProjects', resolvedItems);
+                    if (shouldSetSmartProjects) {
+                        setSmartProjects(resolvedItems);
+                        PersistenceService.saveCollection(uid, 'smartProjects', resolvedItems);
+                    }
                     smartProjectsHydratedRef.current = true;
-                });
-            }
+                }
 
-            if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
-                persistenceService.attributes.getAll(uid).then(async (fetchedAttrs) => {
-                    if (!fetchedAttrs) return;
-                    
+                // 6. Attributes
+                if (!attributesLoaded || PersistenceService.shouldSyncCollection(uid, 'attributes', currentTTL)) {
+                    const attributesData = extractCollection<Attribute>('attributes');
                     const cached = PersistenceService.getCollection<Attribute>(uid, 'attributes');
-                    if (fetchedAttrs.length === 0 && cached && cached.length > 0) {
+                    if (attributesData.length === 0 && cached && cached.length > 0) {
                         cached.forEach(a => persistenceService.attributes.save(uid, a));
-                        return;
-                    }
-                    
-                    // 🛡️ SPLIT BRAIN FIX: Fetch Firebase attributes as fallback/merge
-                    try {
-                        const fbAttrs = await persistenceService.attributes.getAll(uid) || [];
-                        
-                        // Merge Firebase and Supabase attributes (Supabase takes precedence for metadata, 
-                        // but Firebase takes precedence for XP/Level if it's higher)
-                        const mergedMap = new Map<string, Attribute>();
-                        fbAttrs.forEach((a: Attribute) => mergedMap.set(a.id, a));
-                        fetchedAttrs.forEach(a => {
-                            const existing = mergedMap.get(a.id);
-                            if (!existing) {
-                                mergedMap.set(a.id, a);
-                            } else {
-                                // Supabase has it, Firebase has it.
-                                // Keep Supabase metadata, but take the highest XP/Level
-                                const fbTotalXp = existing.xp + (existing.level * 1000);
-                                const supaTotalXp = a.xp + (a.level * 1000);
-                                
-                                if (fbTotalXp > supaTotalXp) {
-                                    mergedMap.set(a.id, { ...a, xp: existing.xp, level: existing.level, maxXp: existing.maxXp });
-                                } else {
-                                    mergedMap.set(a.id, a);
-                                }
-                            }
-                        });
-                        
-                        const merged = Array.from(mergedMap.values());
-                        hydrateAttributes(merged);
-                        const attrsForCache = merged.map(({ icon, ...rest }) => rest);
-                        PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
-                        
-                        // Auto-migrate to Supabase to heal the split brain permanently
-                        fbAttrs.forEach((fbAttr: Attribute) => {
-                            const supaAttr = fetchedAttrs.find(sa => sa.id === fbAttr.id);
-                            if (!supaAttr || (fbAttr.xp + (fbAttr.level * 1000)) > (supaAttr.xp + (supaAttr.level * 1000))) {
-                                persistenceService.attributes.save(uid, fbAttr);
-                            }
-                        });
-                    } catch (e: any) {
-                        console.error("Failed to fetch Firebase attributes fallback", e);
-                        hydrateAttributes(fetchedAttrs);
-                        const attrsForCache = fetchedAttrs.map(({ icon, ...rest }) => rest);
+                    } else {
+                        hydrateAttributes(attributesData);
+                        const attrsForCache = attributesData.map(({ icon, ...rest }: any) => rest);
                         PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
                     }
-                });
-            }
+                    attributesLoaded = true;
+                }
 
-            // Sync dailyFeed from Supabase
-            if (PersistenceService.shouldSyncCollection(uid, 'dailyFeed', currentTTL)) {
-                persistenceService.dailyFeed.getAll(uid).then(feed => {
-                    if (!feed) return;
+                // 7. Daily Feed
+                if (PersistenceService.shouldSyncCollection(uid, 'dailyFeed', currentTTL)) {
+                    const feed = extractCollection<any>('dailyFeed');
                     PersistenceService.saveCollection(uid, 'dailyFeed', feed);
                     setYesterdayUpdateTrigger(prev => prev + 1);
-                });
+                }
+
+                hasSyncedCollectionsRef.current = true;
+            } catch (err) {
+                console.error("Error performing bulk sync:", err);
             }
-            
-            hasSyncedCollectionsRef.current = true;
         };
 
+        const hasCache = projectsLoaded || questsLoaded || habitsLoaded || badHabitsLoaded || smartProjectsLoaded || attributesLoaded;
         if (hasSynced) {
             performSync();
         } else {
-            // First load: delay network sync by 2.5s so the UI can finish mounting and animating
-            setTimeout(performSync, 2500);
+            // First load: delay network sync by 2.5s only if we have cached data.
+            // If cache is empty, sync immediately!
+            setTimeout(performSync, hasCache ? 2500 : 0);
         }
     }, [user?.id, syncTrigger]);
 

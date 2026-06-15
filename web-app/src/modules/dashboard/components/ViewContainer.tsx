@@ -18,8 +18,8 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
         if (isActive) {
             setRender(true);
         } else {
-            // Delay unmount until after the 100ms fade-out ends
-            const timer = setTimeout(() => setRender(false), 120);
+            // Delay unmount until after the 80ms fade-out ends
+            const timer = setTimeout(() => setRender(false), 90);
             return () => clearTimeout(timer);
         }
     }, [isActive]);
@@ -33,8 +33,8 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
                 opacity: isActive ? 1 : 0,
                 // Faster fade-out than fade-in for snappy feel
                 transition: isActive
-                    ? 'opacity 150ms ease-out'
-                    : 'opacity 100ms ease-in',
+                    ? 'opacity 100ms ease-out'
+                    : 'opacity 80ms ease-in',
                 // GPU-accelerated compositing — NO transform (avoids vector distortion)
                 willChange: 'opacity',
                 pointerEvents: isActive ? 'auto' : 'none',

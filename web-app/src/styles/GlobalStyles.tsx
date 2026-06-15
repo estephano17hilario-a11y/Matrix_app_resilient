@@ -27,7 +27,7 @@ export const GlobalStyles = React.memo(() => (
 
     .glass-panel {
       background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.25)), rgba(17, 17, 17, 0.7); 
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 20px 50px -12px rgba(79, 70, 229, 0.15);
       transform: translateZ(0);
       will-change: transform;
