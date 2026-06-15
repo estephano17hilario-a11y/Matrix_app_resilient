@@ -60,6 +60,34 @@ export const loginRevenueCat = async (supabaseUserId: string): Promise<boolean> 
 };
 
 /**
+ * Helper to robustly check if the customer has any active entitlement or subscription.
+ */
+const checkEntitlementRobust = (info: any): boolean => {
+  if (!info || !info.entitlements) return false;
+  
+  // 1. Direct entitlement ID check ('lux_pro')
+  const hasEntitlement = typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
+  if (hasEntitlement) return true;
+
+  // 2. Case-insensitive / substring match on active entitlements
+  const activeKeys = Object.keys(info.entitlements.active || {});
+  const hasProKey = activeKeys.some((key: string) => 
+    key.toLowerCase().includes('pro') || 
+    key.toLowerCase().includes('lux') ||
+    key.toLowerCase().includes('default')
+  );
+  if (hasProKey) return true;
+
+  // 3. Fallback: If there are ANY active entitlements
+  if (activeKeys.length > 0) return true;
+
+  // 4. Fallback: If there are any active subscription product IDs
+  if (info.activeSubscriptions && info.activeSubscriptions.length > 0) return true;
+
+  return false;
+};
+
+/**
  * Checks if the current user has the active 'Lux Pro' entitlement.
  */
 export const checkProEntitlement = async (): Promise<boolean> => {
@@ -67,8 +95,7 @@ export const checkProEntitlement = async (): Promise<boolean> => {
   
   try {
     const { customerInfo } = await Purchases.getCustomerInfo();
-    // Check if the specific entitlement is active
-    return typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== "undefined";
+    return checkEntitlementRobust(customerInfo);
   } catch (error) {
     console.error("Error fetching customer info from RevenueCat:", error);
     throw error;
@@ -122,7 +149,7 @@ export const restorePurchases = async (): Promise<boolean> => {
   
   try {
     const { customerInfo } = await Purchases.restorePurchases();
-    return typeof customerInfo.entitlements.active[ENTITLEMENT_ID] !== "undefined";
+    return checkEntitlementRobust(customerInfo);
   } catch (error) {
     console.error("Error restoring purchases:", error);
     return false;

@@ -78,7 +78,7 @@ serve(async (req: Request) => {
     // 5. Update Supabase Database
     const { error } = await supabase
       .from('users') // perfiles/users table
-      .update({ es_pro, plan })
+      .update({ es_pro, plan, planExpiryDate: plan === 'PRO' ? null : undefined })
       .eq('id', app_user_id); // Since app_user_id is exactly the Supabase UUID
 
     if (error) {

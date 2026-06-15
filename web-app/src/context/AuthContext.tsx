@@ -404,7 +404,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           const { error } = await supabase
             .from('users')
-            .update({ plan: nextPlan, es_pro: nextEsPro })
+            .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
             .eq('id', profile.id);
             
           if (error) {

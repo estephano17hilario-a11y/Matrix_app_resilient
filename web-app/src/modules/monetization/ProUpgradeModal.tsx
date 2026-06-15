@@ -97,7 +97,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
        // Force DB update manually to ensure instant activation on client without waiting for webhook
        await supabase.from('users').update({
          plan: 'PRO',
-         es_pro: true
+         es_pro: true,
+         planExpiryDate: null
        }).eq('id', user.id);
        
        updateProfileLocally({ plan: 'PRO', es_pro: true });
@@ -329,7 +330,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
           if (isProNow && user?.id) {
             await supabase.from('users').update({
               plan: 'PRO',
-              es_pro: true
+              es_pro: true,
+              planExpiryDate: null // Clear any expiration date from other payment methods
             }).eq('id', user.id);
             updateProfileLocally({ plan: 'PRO', es_pro: true });
             toast.success('¡Suscripción restaurada con éxito!');
