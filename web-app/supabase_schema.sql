@@ -22,7 +22,8 @@ CREATE TABLE public.users (
     last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     -- JSONB for flexible schemaless stats, highly optimized for reading
     stats JSONB DEFAULT '{"level": 1, "xp": 0}'::jsonb,
-    onboarding JSONB DEFAULT '{"completedAt": 0}'::jsonb
+    onboarding JSONB DEFAULT '{"completedAt": 0}'::jsonb,
+    "planExpiryDate" BIGINT
 );
 
 -- Table: public.projects (User goals, tasks, etc)
@@ -142,4 +143,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER tr_user_plan_uppercase
   BEFORE INSERT OR UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_user_plan_uppercase();
+
+-- Trigger function to reset plan expiry and align es_pro when plan is upgraded or downgraded
+CREATE OR REPLACE FUNCTION public.handle_user_plan_expiry_reset()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- If the plan is being upgraded to PRO or ELITE from FREE (or if it's a new PRO/ELITE user),
+  -- reset planExpiryDate to NULL to prevent accidental client-side reversion.
+  IF (NEW.plan = 'PRO' OR NEW.plan = 'ELITE') AND (OLD.plan IS NULL OR OLD.plan = 'FREE') THEN
+    NEW."planExpiryDate" := NULL;
+    NEW.es_pro := TRUE;
+  END IF;
+  
+  -- If the plan is set to FREE, ensure es_pro is FALSE
+  IF NEW.plan = 'FREE' THEN
+    NEW.es_pro := FALSE;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER tr_user_plan_expiry_reset
+  BEFORE INSERT OR UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_user_plan_expiry_reset();
 
