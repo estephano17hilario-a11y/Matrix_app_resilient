@@ -93,23 +93,48 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
    try {
      const isProNow = await comprarPaquete(rcPackage);
      
-     if (isProNow && user?.id) {
-       // Force DB update manually to ensure instant activation on client without waiting for webhook
-       await supabase.from('users').update({
-         plan: 'PRO',
-         es_pro: true,
-         planExpiryDate: null
-       }).eq('id', user.id);
-       
-       updateProfileLocally({ plan: 'PRO', es_pro: true });
-       toast.dismiss(toastId);
-       setIsCelebrating(true);
-       
-       // Restart app after celebration
-       setTimeout(() => {
-         window.location.reload();
-       }, 4500);
-     } else {
+      if (isProNow && user?.id) {
+        // Force DB update manually to ensure instant activation on client without waiting for webhook
+        let updateSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            console.log(`[Supabase Update] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
+            const { error } = await supabase.from('users').update({
+              plan: 'PRO',
+              es_pro: true,
+              planExpiryDate: null
+            }).eq('id', user.id);
+            
+            if (error) throw error;
+            updateSuccess = true;
+            break;
+          } catch (err) {
+            console.error(`[Supabase Update] Failed at attempt ${attempt}:`, err);
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+        }
+
+        if (updateSuccess) {
+          updateProfileLocally({ plan: 'PRO', es_pro: true });
+          toast.dismiss(toastId);
+          setIsCelebrating(true);
+          
+          // Restart app after celebration
+          setTimeout(() => {
+            window.location.reload();
+          }, 4500);
+        } else {
+          toast.error('Compra exitosa, pero hubo un problema al sincronizar con el servidor. Tu plan se actualizará automáticamente.', { id: toastId, duration: 6000 });
+          // Fallback optimistic update
+          updateProfileLocally({ plan: 'PRO', es_pro: true });
+          setIsCelebrating(true);
+          setTimeout(() => {
+            window.location.reload();
+          }, 4500);
+        }
+      } else {
        toast.dismiss(toastId);
      }
    } catch (error: any) {
@@ -328,13 +353,32 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
         try {
           const isProNow = await restaurarCompras();
           if (isProNow && user?.id) {
-            await supabase.from('users').update({
-              plan: 'PRO',
-              es_pro: true,
-              planExpiryDate: null // Clear any expiration date from other payment methods
-            }).eq('id', user.id);
-            updateProfileLocally({ plan: 'PRO', es_pro: true });
-            toast.success('¡Suscripción restaurada con éxito!');
+            let updateSuccess = false;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                console.log(`[Supabase Restore] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
+                const { error } = await supabase.from('users').update({
+                  plan: 'PRO',
+                  es_pro: true,
+                  planExpiryDate: null
+                }).eq('id', user.id);
+                if (error) throw error;
+                updateSuccess = true;
+                break;
+              } catch (err) {
+                console.error(`[Supabase Restore] Failed at attempt ${attempt}:`, err);
+                if (attempt < 3) {
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+              }
+            }
+            if (updateSuccess) {
+              updateProfileLocally({ plan: 'PRO', es_pro: true });
+              toast.success('¡Suscripción restaurada con éxito!');
+            } else {
+              toast.error('Compra restaurada en la tienda, pero hubo un problema al sincronizar con el servidor. Tu cuenta se sincronizará automáticamente.');
+              updateProfileLocally({ plan: 'PRO', es_pro: true });
+            }
           } else {
             toast.error('No se encontró ninguna compra para restaurar.');
           }

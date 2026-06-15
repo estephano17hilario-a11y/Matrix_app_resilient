@@ -617,15 +617,18 @@ export const useDashboardLogic = () => {
                 // SOLUTION: Only update Local fields if the Server field differs from LAST KNOWN Server field.
                 // i.e. "Server has moved forward".
                 
-                let cleanXp = serverStats.xp || 0;
-                let cleanLevel = serverStats.level || 1;
-                const baseForLevel = calculateXpForLevel(cleanLevel);
-                if (cleanXp < baseForLevel) {
-                    cleanXp = baseForLevel + cleanXp;
-                }
+                if (serverStats.xp === undefined || serverStats.level === undefined) return;
+
+                let cleanXp = serverStats.xp;
+                let cleanLevel = serverStats.level;
                 const correctLevel = calculateLevelFromXp(cleanXp);
+                
+                // If the level from XP is higher than the server level, trust the XP-calculated level.
+                // If it is lower, clamp the XP to the minimum required for the server level to maintain consistency.
                 if (correctLevel > cleanLevel) {
                     cleanLevel = correctLevel;
+                } else if (correctLevel < cleanLevel) {
+                    cleanXp = calculateXpForLevel(cleanLevel);
                 }
 
                 setPlayer(prev => {
@@ -642,13 +645,24 @@ export const useDashboardLogic = () => {
                         // Save corrected stats back to DB if they changed
                         if (cleanXp !== serverStats.xp || cleanLevel !== serverStats.level) {
                             console.log(`🩹 Auto-correcting player stats: XP ${serverStats.xp} -> ${cleanXp}, Level ${serverStats.level} -> ${cleanLevel}`);
-                            TransactionService.awardExperience(user.id, cleanXp - serverStats.xp, 0, cleanLevel).catch(console.error);
+                            
+                            const updatedStats = {
+                                ...serverStats,
+                                xp: cleanXp,
+                                level: cleanLevel,
+                                nextXp: calculateNextLevelXp(cleanLevel)
+                            };
+
+                            supabase.from('users')
+                                .update({ stats: updatedStats })
+                                .eq('id', user.id)
+                                .then(({ error }) => {
+                                    if (error) console.error("❌ Failed to save corrected stats to Supabase:", error);
+                                    else console.log("✅ Corrected stats saved successfully to Supabase:", updatedStats);
+                                });
+
                             updateProfileLocally({
-                                stats: {
-                                    ...serverStats,
-                                    xp: cleanXp,
-                                    level: cleanLevel
-                                }
+                                stats: updatedStats
                             });
                         }
                     }

@@ -152,9 +152,30 @@ export const useRevenueCat = () => {
 
       console.log("Starting purchase process for package:", pkg);
       const result = await Purchases.purchasePackage({ aPackage: pkg });
-      const active = checkPremiumStatus(result.customerInfo);
+      let active = checkPremiumStatus(result.customerInfo);
+      let info = result.customerInfo;
+
+      if (!active) {
+        console.log("Purchase succeeded but entitlement not active yet. Retrying CustomerInfo check...");
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          try {
+            console.log(`Checking CustomerInfo (attempt ${i + 1}/3)...`);
+            const refreshed = await Purchases.getCustomerInfo();
+            active = checkPremiumStatus(refreshed.customerInfo);
+            info = refreshed.customerInfo;
+            if (active) {
+              console.log("Entitlement activated successfully during retry check.");
+              break;
+            }
+          } catch (err) {
+            console.warn("Error refreshing customer info during retry:", err);
+          }
+        }
+      }
+
       setIsPremium(active);
-      setCustomerInfo(result.customerInfo);
+      setCustomerInfo(info);
       return active;
     } catch (e: any) {
       if (e.userCancelled || e.code === 'USER_CANCELLED' || e.code === 1 || e.code === '1') {
@@ -173,9 +194,30 @@ export const useRevenueCat = () => {
     setIsLoading(true);
     try {
       const result = await Purchases.restorePurchases();
-      const active = checkPremiumStatus(result.customerInfo);
+      let active = checkPremiumStatus(result.customerInfo);
+      let info = result.customerInfo;
+
+      if (!active) {
+        console.log("Restore succeeded but entitlement not active yet. Retrying CustomerInfo check...");
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          try {
+            console.log(`Checking CustomerInfo (attempt ${i + 1}/3)...`);
+            const refreshed = await Purchases.getCustomerInfo();
+            active = checkPremiumStatus(refreshed.customerInfo);
+            info = refreshed.customerInfo;
+            if (active) {
+              console.log("Entitlement activated successfully during retry check.");
+              break;
+            }
+          } catch (err) {
+            console.warn("Error refreshing customer info during retry:", err);
+          }
+        }
+      }
+
       setIsPremium(active);
-      setCustomerInfo(result.customerInfo);
+      setCustomerInfo(info);
       return active;
     } catch (e: any) {
       console.error("Error al restaurar compras:", e);

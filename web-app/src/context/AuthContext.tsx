@@ -402,16 +402,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const nextPlan = 'PRO';
           const nextEsPro = true;
           
-          const { error } = await supabase
-            .from('users')
-            .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
-            .eq('id', profile.id);
-            
-          if (error) {
-            console.error("[RevenueCat Sync] Error updating Supabase user:", error);
-          } else {
+          let updateSuccess = false;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              console.log(`[RevenueCat Sync DB Update] Attempting (attempt ${attempt}/3)...`);
+              const { error } = await supabase
+                .from('users')
+                .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
+                .eq('id', profile.id);
+                
+              if (error) throw error;
+              updateSuccess = true;
+              break;
+            } catch (err) {
+              console.error(`[RevenueCat Sync DB Update] Failed at attempt ${attempt}:`, err);
+              if (attempt < 3) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            }
+          }
+          
+          if (updateSuccess) {
             updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro });
             console.log(`[RevenueCat Sync] Upgraded successfully to ${nextPlan}.`);
+          } else {
+            console.error("[RevenueCat Sync] Failed to update Supabase to PRO after 3 attempts.");
           }
         } else if (!active && dbIsPro) {
           console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (relying on DB/Webhook/MercadoPago source of truth).");
