@@ -91,15 +91,7 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
                 }
             }
 
-            // AUDIT: Verificación estricta de Expiración de Plan Delux
-            if (data.plan === 'PRO' && data.planExpiryDate) {
-                if (Date.now() > data.planExpiryDate) {
-                    console.warn("🛡️ AUDIT: Plan Delux Expirado. Revirtiendo a FREE.");
-                    data.plan = 'FREE';
-                    // Optimistic update
-                    supabase.from('users').update({ plan: 'FREE', planExpiryDate: null }).eq('id', userId).then(({error}) => { if (error) console.error(error); });
-                }
-            }
+
 
             // ⚡ OVERRIDE: Global PRO
             if (ENABLE_GLOBAL_PRO) {
