@@ -385,7 +385,7 @@ export const QuestModal = React.memo(({
                                          <div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
                                          <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-md border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                              {(attributes || []).map((attr) => {
-                                                 const Icon = attr.icon;
+                                                 const Icon = attr.icon || Hexagon;
                                                  return (
                                                      <button key={attr.id} onClick={(e) => { e.stopPropagation(); if (attr.id !== attrId) { setAttrId(attr.id); setSubAttrId(''); } setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                                          <Icon size={16} style={{ color: attr.color }} />

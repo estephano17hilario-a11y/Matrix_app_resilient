@@ -5030,7 +5030,9 @@ export const useDashboardLogic = () => {
         }
 
         if (user?.id) {
-            persistenceService.quests.save(user.id, quest);
+            persistenceService.quests.save(user.id, quest).catch(err => {
+                console.error("Failed to save quest asynchronously:", err);
+            });
         }
         setActiveModal(null);
     }, [user, quests]);
@@ -5344,7 +5346,9 @@ export const useDashboardLogic = () => {
                 };
                 
                 // Save habit state first to be safe, though toggleHabitCompletion will update it
-                persistenceService.habits.save(user.id, finalData as Habit);
+                persistenceService.habits.save(user.id, finalData as Habit).catch(err => {
+                    console.error("Failed to save habit asynchronously:", err);
+                });
 
                 const isNewDay = dailyLimits.date !== today;
                 let newXp = player.xp + rewardXp;
@@ -5425,7 +5429,9 @@ export const useDashboardLogic = () => {
             }
         } else if (user?.id) {
             // Save partial or checklist progress immediately to prevent data loss on page reload
-            persistenceService.habits.save(user.id, next);
+            persistenceService.habits.save(user.id, next).catch(err => {
+                console.error("Failed to save partial habit asynchronously:", err);
+            });
         }
 
         if (!isTargetToday && targetDate) {

@@ -365,7 +365,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
                                                             {(attributes || []).map((attr) => {
-                                                                const Icon = attr.icon;
+                                                                const Icon = attr.icon || Target;
                                                                 const isSelected = attrId === attr.id;
                                                                 return (
                                                                     <button 
