@@ -921,7 +921,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  
  {journalViewMode === 'CALENDAR' ? (
  <>
- <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(t('common.weekdays.initials', { returnObjects: true }) as string[]).map((d: string, i: number) => <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>)}</div>
+ <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(() => {
+    const rawInitials = t('common.weekdays.initials', { returnObjects: true });
+    const weekdayInitials = Array.isArray(rawInitials) ? rawInitials : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    return weekdayInitials.map((d: string, i: number) => (
+      <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>
+    ));
+  })()}</div>
  <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-200">
  {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
  {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {

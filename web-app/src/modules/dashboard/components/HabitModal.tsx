@@ -14,7 +14,7 @@ import { DurationPicker } from './DurationPicker';
 import { TimePicker } from '../../../components/ui/TimePicker';
 import { usePermissions } from '../../../hooks/usePermissions';
 
-export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }, onSwitchToBadHabit?: () => void }) => {
+export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes?: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }, onSwitchToBadHabit?: () => void }) => {
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
@@ -185,9 +185,12 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
         : null;
     const SelectedIcon = CustomIcon || selectedAttr?.icon || Star;
     const TraitIcon = selectedAttr?.icon || Star;
-    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : 'Trait';
+    const activeLabel = selectedAttr && selectedAttr.label
+        ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '')
+        : 'Trait';
 
-    const weekDaysRaw = t('common.weekdays.initials', { returnObjects: true }) as string[];
+    const weekDaysRawResult = t('common.weekdays.initials', { returnObjects: true });
+    const weekDaysRaw = Array.isArray(weekDaysRawResult) ? weekDaysRawResult : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
     const weekStart = getWeekStartDay();
     const weekDaysList = useMemo(() => {
         return weekStart === 1 
@@ -422,7 +425,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                         {attrId ? (
                                                     <>
                                                         <TraitIcon size={16} style={{ color: selectedAttr?.color || '#3b82f6' }} />
-                                                        <span className="text-xs font-bold text-white">{selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : ''}</span>
+                                                        <span className="text-xs font-bold text-white">{selectedAttr && selectedAttr.label ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '') : ''}</span>
                                                     </>
                                                 ) : (
                                                     <>
@@ -473,7 +476,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes, projects = 
                                                                             "text-xs font-bold",
                                                                             isSelected ? "text-white" : "text-slate-400"
                                                                         )}>
-                                                                        {t(attr.label, attr.label.replace('traits.', ''))}
+                                                                        {t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}
                                                                         </span>
                                                                     </button>
                                                                 )

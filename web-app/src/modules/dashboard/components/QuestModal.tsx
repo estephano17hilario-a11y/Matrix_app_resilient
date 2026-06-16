@@ -15,7 +15,7 @@ import { DateSelectionModal } from './DateSelectionModal';
 export const QuestModal = React.memo(({ 
     isOpen, 
     onClose, 
-    attributes, 
+    attributes = [], 
     projects = [],
     smartProjects = [],
     onConfirm,
@@ -27,7 +27,7 @@ export const QuestModal = React.memo(({
 }: { 
     isOpen: boolean, 
     onClose: () => void, 
-    attributes: Attribute[], 
+    attributes?: Attribute[], 
     projects?: Project[],
     smartProjects?: SmartProject[],
     onConfirm: (data: Partial<Quest>) => Promise<void> | void,
@@ -139,10 +139,12 @@ export const QuestModal = React.memo(({
         }
     }, [isOpen, lockedAttributeId, lockedDate, initialValues]);
 
-    const selectedAttr = attributes.find((a) => a.id === attrId);
+    const selectedAttr = attributes?.find((a) => a.id === attrId);
     const activeColor = selectedAttr ? selectedAttr.color : '#333333';
     const SelectedIcon = selectedAttr?.icon || Star;
-    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : t('modals.project.traitDefault', 'Trait');
+    const activeLabel = selectedAttr && selectedAttr.label 
+        ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '') 
+        : t('modals.project.traitDefault', 'Trait');
     
     const selectedProject = projects.find(p => p.id === projectId);
     const selectedSmartProject = smartProjects.find(p => p.id === (lockedSmartProjectId || initialValues?.smartProjectId));
@@ -382,12 +384,12 @@ export const QuestModal = React.memo(({
                                      <>
                                          <div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
                                          <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-md border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                                             {attributes.map((attr) => {
+                                             {(attributes || []).map((attr) => {
                                                  const Icon = attr.icon;
                                                  return (
                                                      <button key={attr.id} onClick={(e) => { e.stopPropagation(); if (attr.id !== attrId) { setAttrId(attr.id); setSubAttrId(''); } setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                                                          <Icon size={16} style={{ color: attr.color }} />
-                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{t(attr.label, attr.label.replace('traits.', ''))}</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}</span>
                                                      </button>
                                                  )
                                              })}

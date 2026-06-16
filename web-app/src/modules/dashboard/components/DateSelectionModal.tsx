@@ -150,7 +150,8 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
         const endDate = endOfWeek(monthEnd);
         const days = eachDayOfInterval({ start: startDate, end: endDate });
 
-        const weekDaysRaw = t('common.weekdays.initials', { returnObjects: true }) as string[];
+        const weekDaysRawResult = t('common.weekdays.initials', { returnObjects: true });
+        const weekDaysRaw = Array.isArray(weekDaysRawResult) ? weekDaysRawResult : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
         const weekStart = getWeekStartDay();
         const weekDays = weekStart === 1 ? [...weekDaysRaw.slice(1), weekDaysRaw[0]] : weekDaysRaw;
 

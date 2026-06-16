@@ -66,7 +66,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    attributes,
+    attributes = [],
     isFirstIdentify,
     onSwitchToHabit,
     initialData
@@ -113,7 +113,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     const [intelligentStreak, setIntelligentStreak] = useState(initialData?.intelligentStreak || false);
     const [showIntelligentInfo, setShowIntelligentInfo] = useState(false);
 
-    const selectedAttr = React.useMemo(() => attributes.find(a => a.id === attribute), [attributes, attribute]);
+    const selectedAttr = React.useMemo(() => (attributes || []).find(a => a.id === attribute), [attributes, attribute]);
 
     const getMinutesFromIndex = (index: number) => {
         if (index <= 7) return (index + 1) * 15;
@@ -487,7 +487,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                     <span className={`text-[12px] sm:text-sm font-medium ${
                                                                         isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/70'
                                                                     }`}>
-                                                                        {t(attr.label, attr.label.replace('traits.', ''))}
+                                                                        {t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}
                                                                     </span>
                                                                 </div>
                                                             </motion.button>
@@ -849,7 +849,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
                                                     <span className="text-[12px] text-white/50">{t('badHabits.attribute', 'Attribute')}</span>
                                                     <span className="text-[12px] text-white/80 font-medium">
-                                                        {attributes.find(a => a.id === attribute)?.label.replace('traits.', '') || 'General'}
+                                                        {(attributes || []).find(a => a.id === attribute)?.label?.replace('traits.', '') || 'General'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -910,7 +910,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
                                                     <span className="text-[12px] text-white/50">{t('badHabits.attribute', 'Attribute')}</span>
                                                     <span className="text-[12px] text-white/80 font-medium">
-                                                        {attributes.find(a => a.id === attribute)?.label.replace('traits.', '') || 'General'}
+                                                        {(attributes || []).find(a => a.id === attribute)?.label?.replace('traits.', '') || 'General'}
                                                     </span>
                                                 </div>
                                             </div>

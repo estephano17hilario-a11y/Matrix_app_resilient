@@ -13,7 +13,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import { TimePicker } from '../../../components/ui/TimePicker';
 import { ColorPicker } from './ColorPicker';
 
-export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
+export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes?: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
@@ -109,11 +109,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         }
     }, [isOpen, initialData]);
 
-    const selectedAttr = attributes.find((a) => a.id === attrId);
+    const selectedAttr = attributes?.find((a) => a.id === attrId);
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const hasColorSource = !!attrId || !!customColor;
     const SelectedIcon = selectedAttr?.icon || Briefcase;
-    const activeLabel = selectedAttr ? t(selectedAttr.label, selectedAttr.label.replace('traits.', '')) : t('modals.project.traitDefault', 'Trait');
+    const activeLabel = selectedAttr && selectedAttr.label 
+        ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '') 
+        : t('modals.project.traitDefault', 'Trait');
 
     const calculatedDailyGoal = useMemo(() => {
         // Normalize to hours for calculations
@@ -205,7 +207,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
         }
     };
 
-    const DAYS_RAW = t('modals.project.daysInitials', { returnObjects: true }) as string[];
+    const daysRawResult = t('modals.project.daysInitials', { returnObjects: true });
+    const DAYS_RAW = Array.isArray(daysRawResult) ? daysRawResult : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
     const weekStart = getWeekStartDay();
     const DAYS = useMemo(() => {
         return weekStart === 1 
@@ -386,7 +389,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes, smartProj
                                                             "text-xs font-bold",
                                                             isSelected ? "text-white" : "text-slate-400"
                                                         )}>
-                                                            {t(attr.label, attr.label.replace('traits.', ''))}
+                                                            {t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}
                                                         </span>
                                                                     </button>
                                                                 )

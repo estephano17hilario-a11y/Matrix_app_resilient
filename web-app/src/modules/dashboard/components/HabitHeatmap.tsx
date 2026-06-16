@@ -40,7 +40,8 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
     };
 
     const currentLocale = t('locale') === 'es' ? es : undefined;
-    const weekdaysInitials = t('weekdays.initials', { returnObjects: true, defaultValue: ['L', 'M', 'X', 'J', 'V', 'S', 'D'] }) as string[];
+    const weekdaysInitialsResult = t('weekdays.initials', { returnObjects: true, defaultValue: ['L', 'M', 'X', 'J', 'V', 'S', 'D'] });
+    const weekdaysInitials = Array.isArray(weekdaysInitialsResult) ? weekdaysInitialsResult : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
     // Generate the grid for the current timeframe
     const { days, monthsMap, dateRangeLabel, startDate, endDate } = useMemo(() => {
