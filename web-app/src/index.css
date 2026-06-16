@@ -364,33 +364,24 @@
     animation: none !important;
   }
 
-  /* RESTORE DOCK BLUR SPECIFICALLY FOR AESTHETICS AND SEPARATING FROM BACKGROUND */
+  /* DISABLE DOCK BLUR ON ANDROID TO PREVENT LIBGLESV2_ADRENO GPU CRASHES */
   .android-webview [data-tour="dock"],
   .android-webview [data-tour="dock"] .backdrop-blur-sm,
-  .android-webview [data-tour="dock"] .aura-container {
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
-  }
   .android-webview [data-tour="dock"] .backdrop-blur-md,
   .android-webview [data-tour="dock"] .backdrop-blur-xl,
-  .android-webview [data-tour="dock"] .backdrop-blur {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+  .android-webview [data-tour="dock"] .backdrop-blur,
+  .android-webview [data-tour="dock"] [class*="backdrop-blur"],
+  .android-webview [data-tour="dock"] .aura-container,
+  .android-webview [data-tour="dock"] .aura-container::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
-  @media (max-width: 768px) {
-    .android-webview [data-tour="dock"],
-    .android-webview [data-tour="dock"] .backdrop-blur-sm,
-    .android-webview [data-tour="dock"] .aura-container {
-      backdrop-filter: blur(2px) !important;
-      -webkit-backdrop-filter: blur(2px) !important;
-    }
-    .android-webview [data-tour="dock"] .backdrop-blur-md,
-    .android-webview [data-tour="dock"] .backdrop-blur-xl,
-    .android-webview [data-tour="dock"] .backdrop-blur {
-      backdrop-filter: blur(4px) !important;
-      -webkit-backdrop-filter: blur(4px) !important;
-    }
+  /* INCREASE OPACITY OF THE INNER DOCK CONTAINER TO KEEP READABILITY AND PREMIUM FEEL WITHOUT BLUR */
+  .android-webview [data-tour="dock"] .pointer-events-none.relative,
+  .android-webview [data-tour="dock"] .pointer-events-none.relative.bg-\[\#0a0a0a\]\/30,
+  .android-webview [data-tour="dock"] [class*="bg-black/30"] {
+    background-color: rgba(10, 10, 10, 0.96) !important;
   }
 
 
