@@ -177,7 +177,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         }
     }, [title, attributes, initialData]);
 
-    const selectedAttr = attributes.find((a) => a.id === attrId);
+    const selectedAttr = (attributes || []).find((a) => a.id === attrId);
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const hasColorSource = !!attrId || !!customColor;
     const CustomIcon = customIconName && (LucideIcons as any)[customIconName] 
@@ -448,7 +448,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
-                                                            {attributes.map((attr) => {
+                                                            {(attributes || []).map((attr) => {
                                                                 const Icon = attr.icon;
                                                                 const isSelected = attrId === attr.id;
                                                                 return (

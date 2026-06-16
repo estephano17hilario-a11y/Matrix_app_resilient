@@ -70,7 +70,7 @@ export const QuestModal = React.memo(({
     React.useEffect(() => {
         if (!title || initialValues?.attribute || lockedAttributeId) return;
         
-        for (const attr of attributes) {
+        for (const attr of (attributes || [])) {
             if (attr.subTraits) {
                 for (const sub of attr.subTraits) {
                     const subWords = sub.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -286,7 +286,7 @@ export const QuestModal = React.memo(({
                                                 </div>
                                             )}
                                             {smartProjects?.map(p => {
-                                                const attr = attributes.find(a => a.id === p.traitId);
+                                                const attr = (attributes || []).find(a => a.id === p.traitId);
                                                 return (
                                                     <button 
                                                         key={p.id} 
@@ -318,7 +318,7 @@ export const QuestModal = React.memo(({
                                                 </div>
                                             )}
                                             {projects.map(p => {
-                                                const attr = attributes.find(a => a.id === p.attribute);
+                                                const attr = (attributes || []).find(a => a.id === p.attribute);
                                                 return (
                                                     <button 
                                                         key={p.id} 

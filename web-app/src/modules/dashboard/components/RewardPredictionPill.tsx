@@ -38,7 +38,7 @@ export const RewardPredictionPill = React.memo(({
             +{prediction.traitXp}
           </span>
           <span className="text-xs font-medium uppercase text-white/60">
-             {attributeLabel.substring(0, 3)}
+             {typeof attributeLabel === 'string' ? attributeLabel.substring(0, 3) : ''}
           </span>
         </div>
       </div>
