@@ -30,11 +30,10 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
             style={{
                 display: render ? 'block' : 'none',
                 opacity: isActive ? 1 : 0,
-                transform: isActive ? 'translate3d(0, 0, 0)' : 'translate3d(0, 8px, 0)',
                 transition: isActive 
-                    ? 'opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1)' 
-                    : 'opacity 100ms cubic-bezier(0.16, 1, 0.3, 1), transform 100ms cubic-bezier(0.16, 1, 0.3, 1)',
-                willChange: 'opacity, transform',
+                    ? 'opacity 120ms ease-out' 
+                    : 'opacity 80ms ease-out',
+                willChange: 'opacity',
                 pointerEvents: isActive ? 'auto' : 'none',
                 zIndex: variant === 'minimal' ? 20 : 10,
             }}
