@@ -112,49 +112,53 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  };
 
  const renderDockButton = (id: DockItemId) => {
- const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);
- if (!item) return null;
- const Icon = item.icon;
- const isActive = currentView === id;
+  const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);
+  if (!item) return null;
+  const Icon = item.icon;
+  const isActive = currentView === id;
 
- return (
- <button
- key={id}
- onClick={() => handleSmartNav(id)}
- className="group relative z-10 flex flex-col items-center gap-1 min-w-[40px] w-full"
- >
- <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
- {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm `} />}
- <Icon size={22} className={isActive ? item.color : ''} strokeWidth={isActive ? 2.5 : 2} />
- </div>
- <span className={`text-[9px] font-bold tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
- {getIndicator(id) && (
- <span className={`pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{getIndicator(id)}</span>
- )}
- </button>
- );
- };
+  return (
+  <button
+  key={id}
+  onClick={() => handleSmartNav(id)}
+  className="group relative z-10 flex flex-col items-center gap-0.5 min-w-[40px] w-full"
+  >
+  <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
+  {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm `} />}
+  <Icon size={22} className={isActive ? item.color : ''} strokeWidth={isActive ? 2.5 : 2} />
+  </div>
+  <span className={`text-[9px] font-bold tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
+  {getIndicator(id) ? (
+  <span className={`text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{getIndicator(id)}</span>
+  ) : (
+  <span className="text-[8px] font-mono tracking-widest opacity-0 select-none pointer-events-none">1/2</span>
+  )}
+  </button>
+  );
+  };
 
- const renderLegacyDockButton = (id: DockItemId) => {
- const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);
- if (!item) return null;
- const Icon = item.icon;
- const isActive = currentView === id;
- const indicator = getIndicator(id);
+  const renderLegacyDockButton = (id: DockItemId) => {
+  const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);
+  if (!item) return null;
+  const Icon = item.icon;
+  const isActive = currentView === id;
+  const indicator = getIndicator(id);
 
- return (
- <button 
- key={id}
- onClick={() => handleSmartNav(id)} 
- className={`group relative flex flex-col items-center gap-1 transition-colors duration-300 pb-2 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
- >
- <Icon size={24} className={`transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
- {indicator && (
- <span className={`pointer-events-none absolute -bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{indicator}</span>
- )}
- </button>
- );
- };
+  return (
+  <button 
+  key={id}
+  onClick={() => handleSmartNav(id)} 
+  className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 pb-1 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
+  >
+  <Icon size={24} className={`transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+  {indicator ? (
+  <span className={`text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{indicator}</span>
+  ) : (
+  <span className="text-[8px] font-mono tracking-widest opacity-0 select-none pointer-events-none">1/2</span>
+  )}
+  </button>
+  );
+  };
 
  const Backdrop = () => (
       <AnimatePresence>

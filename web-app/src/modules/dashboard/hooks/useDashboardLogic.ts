@@ -171,7 +171,7 @@ export const useDashboardLogic = () => {
                 avatarShape: authProfile.avatarShape || luxUser.avatarShape,
                 habitSectionControl: authProfile.habitSectionControl || luxUser.habitSectionControl,
                 defaultHabitView: authProfile.defaultHabitView || luxUser.defaultHabitView,
-                allowDockSectionSwitch: authProfile.allowDockSectionSwitch || luxUser.allowDockSectionSwitch,
+                allowDockSectionSwitch: authProfile.allowDockSectionSwitch ?? luxUser.allowDockSectionSwitch ?? true,
                 weekStartDay: authProfile.weekStartDay !== undefined ? authProfile.weekStartDay : luxUser.weekStartDay,
                 archivedTraits: authProfile.archivedTraits || (luxUser.preferences as any)?.archivedTraits || {},
                 // Prefer Lux for Game Stats (updated via Game Loop), merging streak fields from local cache/profile
@@ -375,7 +375,7 @@ export const useDashboardLogic = () => {
     const prefAvatarShape = user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE';
     const prefHabitSectionControl = user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE';
     const prefDefaultHabitView = user?.preferences?.defaultHabitView || user?.defaultHabitView || 'DEFAULT';
-    const prefAllowDockSectionSwitch = user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? false;
+    const prefAllowDockSectionSwitch = user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? true;
     const prefDockConfigStr = JSON.stringify(user?.preferences?.dockConfig || user?.dockConfig || DEFAULT_DOCK_CONFIG);
     const prefWeekStartDay = user?.preferences?.weekStartDay ?? user?.weekStartDay ?? 1;
     const prefDefaultChartMode = user?.preferences?.defaultChartMode || user?.defaultChartMode || 'RADAR';
@@ -2357,7 +2357,7 @@ export const useDashboardLogic = () => {
                             }
 
                             // Award TP for exceeding target
-                            const exceedAmount = targetType === 'neutral' ? balance : balance - 1;
+                            const exceedAmount = balance > 0 ? balance : 0;
                             if (exceedAmount > 0) {
                                 const getImpactLevel = (bh: any): number => {
                                     const match = bh.negativeImpact?.match(/\d+/);
@@ -4455,7 +4455,7 @@ export const useDashboardLogic = () => {
                     newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                     setAttributes(newAttributes);
                     
-                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, subTraits: updatedSubTraits };
+                    traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, subTraits: updatedSubTraits, gained: rewardTraitXp };
                  }
             }
 
@@ -4475,7 +4475,7 @@ export const useDashboardLogic = () => {
                 };
                 setDailyLimits(newLimits);
                 
-                if (rewardXp > 0 || rewardGold > 0) {
+                if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
                     // Trigger reward UI
                      triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level }, traitUpdate);
                 }
@@ -4774,7 +4774,7 @@ export const useDashboardLogic = () => {
                 newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                 attributesRef.current = newAttributes;
                 setAttributes(newAttributes);
-                traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+                traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: rewardTraitXp };
             }
         }
 
@@ -4790,7 +4790,7 @@ export const useDashboardLogic = () => {
             setDailyLimits(newLimits);
             
             // Trigger UI Feedback
-            if (rewardXp > 0 || rewardGold > 0) {
+            if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
                 triggerReward(`Habit: ${habit.title}`, rewardXp, rewardGold, { xp: newXp, gold: newGold, level: newLevel }, { level: currentPlayer.level }, traitUpdate);
             }
         } else {
@@ -5579,7 +5579,7 @@ export const useDashboardLogic = () => {
                         newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
                         setAttributes(newAttributes);
                         traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
-                        rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level };
+                        rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: rewardTraitXp };
                     }
                 }
 
@@ -5604,7 +5604,7 @@ export const useDashboardLogic = () => {
                     }
                 }
 
-                if (rewardXp > 0 || rewardGold > 0) {
+                if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
                     triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: player.level }, rewardTraitUpdate);
                 }
 

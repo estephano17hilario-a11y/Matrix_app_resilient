@@ -75,11 +75,9 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
 
     const potentialEndOfDayTp = React.useMemo(() => {
         const balance = habit.dynamicBalance ?? 0;
-        const targetType = habit.dynamicTargetType || 'neutral';
-        const isSuccess = targetType === 'neutral' ? balance >= 0 : balance > 0;
-        const exceedAmount = targetType === 'neutral' ? balance : balance - 1;
+        const exceedAmount = balance > 0 ? balance : 0;
         const delta = getDifficultyDelta(habit);
-        return isSuccess && exceedAmount > 0 ? exceedAmount * delta : 0;
+        return exceedAmount * delta;
     }, [habit]);
 
     const targetIndex = STREAK_TARGETS.indexOf(currentTarget);

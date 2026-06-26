@@ -39,7 +39,15 @@ export const RewardOverlay: React.FC = () => {
       const reward = queue[0];
       setCurrentReward(reward);
       setIsAnimating(true);
-      setStep('XP');
+      if (reward.xpGained !== 0) {
+        setStep('XP');
+      } else if (reward.traitId && reward.traitXpGained !== 0) {
+        setStep('TRAIT');
+      } else if (reward.goldGained !== 0) {
+        setStep('GOLD');
+      } else {
+        setStep('XP');
+      }
     }
   }, [queue, currentReward, setIsAnimating]);
 

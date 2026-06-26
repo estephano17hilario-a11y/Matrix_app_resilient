@@ -383,8 +383,10 @@
   .android-webview [data-tour="dock"] [class*="bg-black/30"],
   .android-webview [data-tour="dock"] .backdrop-blur-xl,
   .android-webview [data-tour="dock"] .glass-panel {
-    background-color: rgba(15, 15, 22, 0.75) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background-color: rgba(10, 10, 12, 0.4) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
   }
 
 
