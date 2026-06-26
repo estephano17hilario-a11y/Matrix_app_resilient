@@ -152,8 +152,8 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     </div>
 
                     {habit.isDynamic && !isRelapsed ? (
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
+                        <div className="space-y-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                                 <div className="flex items-center gap-1.5">
                                     <Target size={12} className="text-cyan-400" />
                                     <span className="text-[11px] font-semibold text-cyan-300/80">
@@ -163,48 +163,6 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 <div className="text-[10px] text-white/35 font-medium">
                                     {habit.streak} día{habit.streak !== 1 ? 's' : ''} de racha
                                 </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 py-0.5">
-                                <motion.button
-                                    whileHover={{ scale: 1.15 }}
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (onUpdateDynamicBalance) {
-                                            onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) - 1);
-                                        }
-                                    }}
-                                    className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
-                                    title="Desliz (-1)"
-                                >
-                                    <LucideIcons.Minus size={20} />
-                                </motion.button>
-
-                                <div className={`px-4 py-1.5 rounded-xl text-sm font-black tracking-wider border transition-all duration-300 min-w-[62px] text-center shadow-inner ${
-                                    (habit.dynamicBalance ?? 0) < 0
-                                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]'
-                                        : (habit.dynamicBalance ?? 0) === 0
-                                            ? 'bg-[#0d0d0f]/60 border-white/[0.08] text-slate-300'
-                                            : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse'
-                                }`}>
-                                    {(habit.dynamicBalance ?? 0) > 0 ? `+${habit.dynamicBalance}` : habit.dynamicBalance ?? 0}
-                                </div>
-
-                                <motion.button
-                                    whileHover={{ scale: 1.15 }}
-                                    whileTap={{ scale: 0.85 }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (onUpdateDynamicBalance) {
-                                            onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) + 1);
-                                        }
-                                    }}
-                                    className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                                    title="Victoria Moral (+1)"
-                                >
-                                    <LucideIcons.Plus size={20} />
-                                </motion.button>
                             </div>
                         </div>
                     ) : isIntelligent && !isRelapsed ? (
@@ -307,7 +265,50 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 z-10">
+                <div className="flex items-center gap-2.5 z-10 flex-shrink-0">
+                    {habit.isDynamic && !isRelapsed && (
+                        <div className="flex items-center gap-2 mr-1">
+                            <motion.button
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.85 }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onUpdateDynamicBalance) {
+                                        onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) - 1);
+                                    }
+                                }}
+                                className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
+                                title="Desliz (-1)"
+                            >
+                                <LucideIcons.Minus size={24} />
+                            </motion.button>
+
+                            <div className={`px-4 py-2.5 rounded-2xl text-base font-black tracking-wider border transition-all duration-300 min-w-[58px] text-center shadow-inner ${
+                                (habit.dynamicBalance ?? 0) < 0
+                                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]'
+                                    : (habit.dynamicBalance ?? 0) === 0
+                                        ? 'bg-[#0d0d0f]/60 border-white/[0.08] text-slate-300'
+                                        : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse'
+                            }`}>
+                                {(habit.dynamicBalance ?? 0) > 0 ? `+${habit.dynamicBalance}` : habit.dynamicBalance ?? 0}
+                            </div>
+
+                            <motion.button
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.85 }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onUpdateDynamicBalance) {
+                                        onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) + 1);
+                                    }
+                                }}
+                                className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                title="Victoria Moral (+1)"
+                            >
+                                <LucideIcons.Plus size={24} />
+                            </motion.button>
+                        </div>
+                    )}
                     {!isRelapsed && !habit.isDynamic && (
                         <button
                             onClick={(e) => {

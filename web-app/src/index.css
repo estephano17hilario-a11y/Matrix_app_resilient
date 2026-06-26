@@ -380,7 +380,9 @@
   /* INCREASE OPACITY OF THE INNER DOCK CONTAINER TO KEEP READABILITY AND PREMIUM FEEL WITHOUT BLUR */
   .android-webview [data-tour="dock"] .pointer-events-none.relative,
   .android-webview [data-tour="dock"] .pointer-events-none.relative.bg-\[\#0a0a0a\]\/30,
-  .android-webview [data-tour="dock"] [class*="bg-black/30"] {
+  .android-webview [data-tour="dock"] [class*="bg-black/30"],
+  .android-webview [data-tour="dock"] .backdrop-blur-xl,
+  .android-webview [data-tour="dock"] .glass-panel {
     background-color: rgba(15, 15, 22, 0.75) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
