@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info, ChevronDown, Hexagon } from 'lucide-react';
+import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info, ChevronDown, Hexagon, Scale, Target } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Attribute, BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -72,6 +72,14 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     initialData
 }) => {
     const { t } = useTranslation();
+    useEffect(() => {
+        console.log("🟢 [BadHabitWizard LifeCycle] BadHabitWizard mounted!");
+        return () => {
+            console.log("🔴 [BadHabitWizard LifeCycle] BadHabitWizard UNMOUNTED!");
+        };
+    }, []);
+
+    console.log(`🌀 [BadHabitWizard LifeCycle] BadHabitWizard rendering (isOpen: ${isOpen})`);
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0);
 
@@ -111,7 +119,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     ]);
     const [listDraft, setListDraft] = useState('');
     const [intelligentStreak, setIntelligentStreak] = useState(initialData?.intelligentStreak || false);
-    const [showIntelligentInfo, setShowIntelligentInfo] = useState(false);
+    const [isDynamic, setIsDynamic] = useState(initialData?.isDynamic || false);
+    const [dynamicTargetType, setDynamicTargetType] = useState<'neutral' | 'positive'>(initialData?.dynamicTargetType || 'neutral');
 
     const selectedAttr = React.useMemo(() => (attributes || []).find(a => a.id === attribute), [attributes, attribute]);
 
@@ -136,6 +145,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 setSubAttribute(initialData.subAttribute || '');
                 setReason(initialData.reason || '');
                 setIntelligentStreak(initialData.intelligentStreak || false);
+                setIsDynamic(initialData.isDynamic || false);
+                setDynamicTargetType(initialData.dynamicTargetType || 'neutral');
                 if (initialData.negativeImpact) {
                     const match = initialData.negativeImpact.match(/\d+/);
                     if (match) setImpactLevel(parseInt(match[0], 10));
@@ -158,6 +169,8 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                 setImpactLevel(3);
                 setTimeIndex(4);
                 setIntelligentStreak(false);
+                setIsDynamic(false);
+                setDynamicTargetType('neutral');
                 setIconName('Skull');
                 setCustomColor('#f43f5e');
             }
@@ -175,7 +188,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
     // Reset subAttribute only when attribute is manually changed, not on mount/populate
 
     const handleNext = () => {
-        if (step < (intelligentStreak ? 4 : 3)) {
+        if (step < ((intelligentStreak || isDynamic) ? 4 : 3)) {
             setDirection(1);
             setStep(s => s + 1);
         } else {
@@ -203,7 +216,10 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
             reason,
             negativeImpact: `Nivel de Impacto: ${impactLevel}/5`,
             timeConsumed: minutes,
-            intelligentStreak,
+            intelligentStreak: !isDynamic && intelligentStreak,
+            isDynamic,
+            dynamicTargetType: isDynamic ? dynamicTargetType : undefined,
+            dynamicBalance: initialData ? (isDynamic ? (initialData.dynamicBalance ?? 0) : undefined) : 0,
             iconName,
             customColor,
             currentTarget: initialData ? (intelligentStreak ? (initialData.currentTarget || 1) : undefined) : (intelligentStreak ? 1 : undefined),
@@ -245,7 +261,25 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         return true;
     };
 
-    const getStepCount = () => intelligentStreak ? 4 : 3;
+    const getStepCount = () => (intelligentStreak || isDynamic) ? 4 : 3;
+
+    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
+    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
+    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
+    const backdropTouchStartedRef = React.useRef(false);
+
+    const handleBackdropTouchStart = () => {
+        backdropTouchStartedRef.current = true;
+    };
+
+    const handleBackdropClick = () => {
+        if (!backdropTouchStartedRef.current) {
+            console.log("Ignoring ghost backdrop click");
+            return;
+        }
+        backdropTouchStartedRef.current = false;
+        handleClose();
+    };
 
     if (typeof document === 'undefined') return null;
 
@@ -256,11 +290,13 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-sans"
+                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4 sm:p-6 font-sans"
                 >
                     <div
                         className="absolute inset-0 bg-[#030303]/80"
-                        onClick={handleClose}
+                        onTouchStart={handleBackdropTouchStart}
+                        onMouseDown={handleBackdropTouchStart}
+                        onClick={handleBackdropClick}
                     />
 
                     <motion.div
@@ -618,85 +654,148 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3 pt-2">
+                                            <div className="space-y-4 pt-2">
                                                 <div className="flex items-center justify-between ml-1">
                                                     <label className="text-[12px] sm:text-sm font-medium text-white/60 flex items-center gap-1.5">
                                                         <Brain size={13} className="text-violet-400" />
-                                                        {t('badHabits.wizard.aiMode', 'Modo Inteligencia Artificial')}
+                                                        {t('badHabits.wizard.streakSystemType', 'Sistema de Racha')}
                                                     </label>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    {/* Mode 1: Normal */}
                                                     <motion.button
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        onClick={() => setShowIntelligentInfo(!showIntelligentInfo)}
-                                                        className="text-violet-400/70 hover:text-violet-300 transition-colors p-1"
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={() => {
+                                                            setIntelligentStreak(false);
+                                                            setIsDynamic(false);
+                                                        }}
+                                                        type="button"
+                                                        className={`w-full p-3.5 rounded-2xl border transition-all duration-200 text-left ${
+                                                            !intelligentStreak && !isDynamic
+                                                                ? 'bg-rose-500/10 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.05)]'
+                                                                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
+                                                        }`}
                                                     >
-                                                        <Info size={14} />
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2 rounded-xl ${!intelligentStreak && !isDynamic ? 'bg-rose-500/20 text-rose-400' : 'bg-white/[0.05] text-white/40'}`}>
+                                                                <Flame size={16} />
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-[12px] font-semibold ${!intelligentStreak && !isDynamic ? 'text-rose-200' : 'text-white/80'}`}>
+                                                                    {t('badHabits.wizard.modeNormal', 'Racha Normal')}
+                                                                </div>
+                                                                <div className="text-[10px] text-white/40 mt-0.5">
+                                                                    {t('badHabits.wizard.modeNormalDesc', 'Racha tradicional. Un error reinicia la racha y aplica penalización.')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </motion.button>
+
+                                                    {/* Mode 2: Intelligent */}
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={() => {
+                                                            setIntelligentStreak(true);
+                                                            setIsDynamic(false);
+                                                        }}
+                                                        type="button"
+                                                        className={`w-full p-3.5 rounded-2xl border transition-all duration-200 text-left ${
+                                                            intelligentStreak
+                                                                ? 'bg-violet-500/10 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'
+                                                                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2 rounded-xl ${intelligentStreak ? 'bg-violet-500/20 text-violet-400' : 'bg-white/[0.05] text-white/40'}`}>
+                                                                <Sparkles size={16} />
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-[12px] font-semibold ${intelligentStreak ? 'text-violet-200' : 'text-white/80'}`}>
+                                                                    {t('badHabits.wizard.modeIntelligent', 'Racha Inteligente (IA)')}
+                                                                </div>
+                                                                <div className="text-[10px] text-white/40 mt-0.5">
+                                                                    {t('badHabits.wizard.modeIntelligentDesc', 'Algoritmo de progreso gradual. Perdona caídas ocasionales.')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </motion.button>
+
+                                                    {/* Mode 3: Dynamic Quantity */}
+                                                    <motion.button
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={() => {
+                                                            setIntelligentStreak(false);
+                                                            setIsDynamic(true);
+                                                        }}
+                                                        type="button"
+                                                        className={`w-full p-3.5 rounded-2xl border transition-all duration-200 text-left ${
+                                                            isDynamic
+                                                                ? 'bg-cyan-500/10 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                                                                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2 rounded-xl ${isDynamic ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/[0.05] text-white/40'}`}>
+                                                                <Scale size={16} />
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-[12px] font-semibold ${isDynamic ? 'text-cyan-200' : 'text-white/80'}`}>
+                                                                    {t('badHabits.wizard.modeDynamic', 'Cantidad Dinámica')}
+                                                                </div>
+                                                                <div className="text-[10px] text-white/40 mt-0.5">
+                                                                    {t('badHabits.wizard.modeDynamicDesc', 'Balance de aciertos y deslices. Meta neutra o positiva al finalizar el día.')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </motion.button>
                                                 </div>
 
                                                 <AnimatePresence>
-                                                    {showIntelligentInfo && (
+                                                    {isDynamic && (
                                                         <motion.div
-                                                            initial={{ opacity: 0, scale: 0.95 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            exit={{ opacity: 0, scale: 0.95 }}
-                                                            transition={{ duration: 0.15, ease: "easeInOut" }}
-                                                            className="overflow-hidden"
+                                                            initial={{ opacity: 0, height: 0, y: -10 }}
+                                                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                            exit={{ opacity: 0, height: 0, y: -10 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="space-y-3 pt-2 overflow-hidden"
                                                         >
-                                                            <div className="p-4 rounded-xl bg-gradient-to-br from-violet-900/30 to-indigo-900/30 border border-violet-500/20 mb-3 relative overflow-hidden group">
-                                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                                                                <h4 className="text-[13px] font-bold text-violet-200 mb-2 flex items-center gap-2">
-                                                                    <Sparkles size={14} className="text-violet-400 animate-pulse" />
-                                                                    {t('badHabits.wizard.whatIsIntelligentStreak', '¿Qué es la Racha Inteligente?')}
-                                                                </h4>
-                                                                <p className="text-[11px] text-violet-100/70 leading-relaxed mb-2">
-                                                                    {t('badHabits.wizard.intelligentStreakDesc1', 'Es un sistema revolucionario que entiende que somos humanos. En lugar de castigarte brutalmente por un error y volver a cero (lo cual destruye la motivación), utiliza un ')}<span className="font-semibold text-violet-300">{t('badHabits.wizard.intelligentStreakDesc2', 'algoritmo de progreso escalonado')}</span>.
-                                                                </p>
-                                                                <ul className="text-[11px] text-violet-100/60 space-y-1.5 list-disc pl-4 mb-2">
-                                                                    <li><strong className="text-violet-200">{t('badHabits.wizard.gradualGoals', 'Metas Graduales:')}</strong> {t('badHabits.wizard.gradualGoalsDesc', 'Empiezas con 1 día, luego 3, 7, 14, 30...')}</li>
-                                                                    <li><strong className="text-emerald-300">{t('badHabits.wizard.opportunityDays', 'Días de Oportunidad:')}</strong> {t('badHabits.wizard.opportunityDaysDesc', 'Al cumplir una meta, ganas un día donde puedes cometer el vicio SIN perder tu racha.')}</li>
-                                                                    <li><strong className="text-rose-300">{t('badHabits.wizard.softFall', 'Caída Suave:')}</strong> {t('badHabits.wizard.softFallDesc', 'Si fallas, no vuelves a cero. Solo retrocedes a la meta anterior.')}</li>
-                                                                </ul>
-                                                                <p className="text-[11px] text-violet-300/80 font-medium italic mt-2 border-t border-violet-500/20 pt-2">
-                                                                    {t('badHabits.wizard.intelligentStreakQuote', '"Perfecto para vicios difíciles de dejar de golpe, creando un camino realista hacia la libertad."')}
-                                                                </p>
+                                                            <label className="text-[12px] sm:text-sm font-medium text-cyan-400 ml-1 flex items-center gap-1.5">
+                                                                <Target size={13} />
+                                                                {t('badHabits.wizard.dynamicTargetLabel', 'Meta del Balance al Final de Día')}
+                                                            </label>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <motion.button
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={() => setDynamicTargetType('neutral')}
+                                                                    type="button"
+                                                                    className={`p-3 rounded-xl border text-center transition-all duration-200 ${
+                                                                        dynamicTargetType === 'neutral'
+                                                                            ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 font-bold'
+                                                                            : 'bg-white/[0.02] border-white/[0.05] text-white/50 hover:bg-white/[0.04]'
+                                                                    }`}
+                                                                >
+                                                                    <div className="text-[12px]">{t('badHabits.wizard.dynamicTargetNeutral', 'Neutro (>= 0)')}</div>
+                                                                    <div className="text-[9px] text-white/35 mt-1 font-normal">{t('badHabits.wizard.dynamicTargetNeutralDesc', 'Evita recaer')}</div>
+                                                                </motion.button>
+
+                                                                <motion.button
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={() => setDynamicTargetType('positive')}
+                                                                    type="button"
+                                                                    className={`p-3 rounded-xl border text-center transition-all duration-200 ${
+                                                                        dynamicTargetType === 'positive'
+                                                                            ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 font-bold'
+                                                                            : 'bg-white/[0.02] border-white/[0.05] text-white/50 hover:bg-white/[0.04]'
+                                                                    }`}
+                                                                >
+                                                                    <div className="text-[12px]">{t('badHabits.wizard.dynamicTargetPositive', 'Positivo (> 0)')}</div>
+                                                                    <div className="text-[9px] text-white/35 mt-1 font-normal">{t('badHabits.wizard.dynamicTargetPositiveDesc', 'Más aciertos que caídas')}</div>
+                                                                </motion.button>
                                                             </div>
                                                         </motion.div>
                                                     )}
                                                 </AnimatePresence>
-
-                                                <motion.button
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => setIntelligentStreak(!intelligentStreak)}
-                                                    className={`w-full p-4 rounded-2xl border transition-all duration-200 text-left ${
-                                                        intelligentStreak
-                                                            ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)]'
-                                                            : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`p-2.5 rounded-xl ${intelligentStreak ? 'bg-violet-500/20 text-violet-400' : 'bg-white/[0.05] text-white/40'}`}>
-                                                                <Sparkles size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <div className={`text-[13px] font-semibold ${intelligentStreak ? 'text-violet-200' : 'text-white/80'}`}>
-                                                                    {t('badHabits.wizard.intelligentStreak', 'Racha Inteligente')}
-                                                                </div>
-                                                                <div className="text-[11px] text-white/40 mt-0.5">
-                                                                    {t('badHabits.wizard.gradualProcessNoPenalty', 'Proceso gradual sin penalización')}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className={`w-11 h-6 rounded-full p-0.5 transition-all duration-200 ${intelligentStreak ? 'bg-violet-500' : 'bg-white/10'}`}>
-                                                            <motion.div
-                                                                animate={{ x: intelligentStreak ? 20 : 0 }}
-                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                                                                className="w-5 h-5 rounded-full bg-white shadow-md"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </motion.button>
                                             </div>
                                         </motion.div>
                                     )}
@@ -796,7 +895,85 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                         </motion.div>
                                     )}
 
-                                    {step === 3 && !intelligentStreak && (
+                                    {step === 3 && isDynamic && (
+                                        <motion.div
+                                            key="step3-dynamic"
+                                            custom={direction}
+                                            variants={slideVariants}
+                                            initial="enter"
+                                            animate="center"
+                                            exit="exit"
+                                            transition={springConfig}
+                                            ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
+                                            className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24"
+                                        >
+                                            <div className="bg-gradient-to-br from-cyan-950/20 to-teal-950/20 border border-cyan-500/15 rounded-2xl p-5 mb-5">
+                                                <div className="flex items-center gap-2.5 mb-4">
+                                                    <div className="p-2 bg-cyan-500/15 rounded-xl">
+                                                        <Scale size={18} className="text-cyan-400" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-[15px] font-bold text-cyan-200">{t('badHabits.dynamicSystem', 'Sistema de Balance Dinámico')}</h3>
+                                                        <p className="text-[11px] text-cyan-300/50">{t('badHabits.dynamicSystemDesc', 'Gestiona deslices y victorias morales de manera dinámica')}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3 mb-5">
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-rose-500/15 rounded-lg mt-0.5">
+                                                            <LucideIcons.MinusCircle size={14} className="text-rose-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-rose-200 mb-1">{t('badHabits.wizard.dynamicSubtract', 'Restar (-1)')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {t('badHabits.wizard.dynamicSubtractDesc', 'Resta 1 cuando cometes un desliz del vicio. El balance baja.')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-emerald-500/15 rounded-lg mt-0.5">
+                                                            <LucideIcons.PlusCircle size={14} className="text-emerald-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-emerald-200 mb-1">{t('badHabits.wizard.dynamicAdd', 'Sumar (+1)')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {t('badHabits.wizard.dynamicAddDesc', 'Suma 1 cuando resistes un impulso o vences una tentación. El balance sube.')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-cyan-500/15 rounded-lg mt-0.5">
+                                                            <Target size={14} className="text-cyan-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-cyan-200 mb-1">{t('badHabits.wizard.dynamicResolution', 'Resolución Diaria')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {dynamicTargetType === 'neutral'
+                                                                    ? t('badHabits.wizard.dynamicResolutionNeutral', 'Debes terminar el día con balance >= 0 para mantener la racha.')
+                                                                    : t('badHabits.wizard.dynamicResolutionPositive', 'Debes terminar el día con balance > 0 (mínimo +1) para mantener la racha.')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="p-1.5 bg-amber-500/15 rounded-lg mt-0.5">
+                                                            <Sparkles size={14} className="text-amber-400" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[12px] font-semibold text-amber-200 mb-1">{t('badHabits.wizard.dynamicBonus', 'Puntos de Talento Extra (TP)')}</div>
+                                                            <div className="text-[11px] text-white/50 leading-relaxed">
+                                                                {t('badHabits.wizard.dynamicBonusDesc', '¡Si superas tu objetivo, recibirás 15 TP por cada punto excedente para el rasgo asignado!')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {step === 3 && !intelligentStreak && !isDynamic && (
                                         <motion.div
                                             key="step3-normal"
                                             custom={direction}
@@ -874,13 +1051,15 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             ref={(el: HTMLDivElement | null) => { if (el) el.scrollTop = 0; }}
                                             className="absolute inset-x-5 sm:inset-x-8 top-0 bottom-0 overflow-y-auto custom-scrollbar pr-2 pb-24 flex flex-col"
                                         >
-                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
+                                            <div className={`border rounded-2xl p-6 mb-6 text-center transition-colors duration-200 ${isDynamic ? 'bg-gradient-to-br from-cyan-900/40 via-indigo-900/20 to-teal-900/30 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.15)]' : intelligentStreak ? 'bg-gradient-to-br from-violet-900/40 via-indigo-900/20 to-fuchsia-900/30 border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-gradient-to-br from-rose-950/20 to-violet-950/15 border-white/5'}`}>
                                                 <div 
-                                                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-200 ${intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}
+                                                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center transition-colors duration-200 ${isDynamic ? 'bg-gradient-to-br from-cyan-500/30 to-teal-500/30 border-cyan-500/40 shadow-[0_0_8px_rgba(6,182,212,0.3)]' : intelligentStreak ? 'bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border-violet-500/40 shadow-[0_0_8px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-rose-500/20 to-violet-500/20 border-white/10'}`}
                                                     style={{ color: customColor }}
                                                 >
                                                     {SelectedIconComponent ? (
                                                         <SelectedIconComponent size={28} />
+                                                    ) : isDynamic ? (
+                                                        <Scale size={28} className="text-cyan-300" />
                                                     ) : intelligentStreak ? (
                                                         <Sparkles size={28} className="text-violet-300" />
                                                     ) : (
@@ -894,6 +1073,14 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                     <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full">
                                                         <Sparkles size={14} className="text-violet-400" />
                                                         <span className="text-[11px] font-semibold text-violet-300">{t('badHabits.intelligentStreakActivated', 'Intelligent Streak Activated')}</span>
+                                                    </div>
+                                                )}
+                                                {isDynamic && (
+                                                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full">
+                                                        <Scale size={14} className="text-cyan-400" />
+                                                        <span className="text-[11px] font-semibold text-cyan-300">
+                                                            {t('badHabits.dynamicQuantityActivated', 'Cantidad Dinámica Activada')} ({dynamicTargetType === 'neutral' ? 'Meta >= 0' : 'Meta > 0'})
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>

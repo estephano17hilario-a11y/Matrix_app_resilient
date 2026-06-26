@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor'; 
 import { Capacitor } from '@capacitor/core'; 
 import { App } from '@capacitor/app';
+import { initRevenueCat } from '../services/revenueCatService';
 
 const ENTITLEMENT_ID = 'lux_pro';
 const OFFERING_ID = 'default';
@@ -46,6 +47,7 @@ export const useRevenueCat = () => {
     }
 
     try {
+      await initRevenueCat();
       const info = await Purchases.getCustomerInfo();
       setCustomerInfo(info.customerInfo);
       setIsPremium(checkPremiumStatus(info.customerInfo));

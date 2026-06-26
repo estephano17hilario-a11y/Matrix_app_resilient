@@ -12,7 +12,7 @@ import { calculateAttributeMaxXp } from '../../utils/leveling';
 import { TraitSelectionStep } from './components/wizard/TraitSelectionStep';
 import { DateSelectionStep } from './components/wizard/DateSelectionStep';
 import { RecursiveFillingStep } from './components/wizard/RecursiveFillingStep';
-import { FREE_LIMITS } from '../../config/limits';
+import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '../../config/limits';
 import { StrategyTutorial } from './components/StrategyTutorial';
 
 interface SmartTaskWizardProps {
@@ -38,7 +38,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
     : TRAITS_LIST.map(t => ({ ...t, level: 1, xp: 0, maxXp: calculateAttributeMaxXp(1) }));
   
   // Check Limit
-  const isLimitReached = !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_STRATEGIES;
+  const isLimitReached = !ENABLE_GLOBAL_PRO && !isPro && activeSmartTasksCount >= FREE_LIMITS.ACTIVE_STRATEGIES;
   
   const { 
     currentStep, 
@@ -95,13 +95,23 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       }
   };
 
+  useEffect(() => {
+    console.log("🟢 [SmartTaskWizard LifeCycle] SmartTaskWizard mounted!");
+    return () => {
+      console.log("🔴 [SmartTaskWizard LifeCycle] SmartTaskWizard UNMOUNTED!");
+    };
+  }, []);
+
+  console.log(`🌀 [SmartTaskWizard LifeCycle] SmartTaskWizard rendering (isLimitReached: ${isLimitReached}, isPro: ${isPro}, activeSmartTasksCount: ${activeSmartTasksCount})`);
+
   // Limit Reached Screen
   useEffect(() => {
     if (isLimitReached) {
+      console.log(`⚠️ [SmartTaskWizard] Limit reached! Auto-closing. (isPro: ${isPro}, activeSmartTasksCount: ${activeSmartTasksCount})`);
       if (onOpenPro) onOpenPro();
       onCancel();
     }
-  }, [isLimitReached, onOpenPro, onCancel]);
+  }, [isLimitReached, onOpenPro, onCancel, isPro, activeSmartTasksCount]);
 
   if (isLimitReached) {
       return null;

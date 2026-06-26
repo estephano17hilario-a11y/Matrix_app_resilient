@@ -151,6 +151,9 @@ export interface BadHabit {
   };
   createdAt: number;
   intelligentStreak?: boolean;
+  isDynamic?: boolean;
+  dynamicTargetType?: 'neutral' | 'positive';
+  dynamicBalance?: number;
   currentTarget?: number;
   reachedDays?: number;
   lastCheckedDate?: string;

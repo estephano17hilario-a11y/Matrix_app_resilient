@@ -33,6 +33,7 @@ interface HabitVisualViewProps {
     onEditHabit?: (habit: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) => void;
     onUpdateHabit?: (habitId: string, data: Partial<Habit>, targetDate?: Date) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
+    onUpdateBadHabitBalance?: (habit: BadHabit, newBalance: number) => void;
     onShowActions?: (habit: Habit) => void;
     onShowBadHabitActions?: (habit: BadHabit) => void;
     isActive?: boolean;
@@ -56,6 +57,7 @@ interface BadHabitWrapperProps {
     onShowBadHabitActions?: (habit: BadHabit) => void;
     onOpenDetail?: (habit: BadHabit) => void;
     onRelapseBadHabit: (habit: BadHabit) => void;
+    onUpdateBadHabitBalance?: (habit: BadHabit, newBalance: number) => void;
     onReorderRequest?: () => void;
 }
 
@@ -66,6 +68,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
     onShowBadHabitActions,
     onOpenDetail,
     onRelapseBadHabit,
+    onUpdateBadHabitBalance,
     onReorderRequest
 }) => {
     const badHabitLongPress = useLongPress(() => {
@@ -98,6 +101,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
                     attribute={attributeMap.get(habit.attribute)}
                     onRelapse={onRelapseBadHabit}
                     onShowActions={onShowBadHabitActions}
+                    onUpdateDynamicBalance={onUpdateBadHabitBalance}
                 />
             </div>
         </div>
@@ -114,6 +118,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     onEditHabit,
     onUpdateHabit,
     onRelapseBadHabit,
+    onUpdateBadHabitBalance,
     onShowActions,
     onShowBadHabitActions,
     isActive = true,
@@ -940,6 +945,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     onShowBadHabitActions={onShowBadHabitActions}
                                     onOpenDetail={setSelectedDetailBadHabit}
                                     onRelapseBadHabit={onRelapseBadHabit}
+                                    onUpdateBadHabitBalance={onUpdateBadHabitBalance}
                                     onReorderRequest={handleBadHabitReorderRequest}
                                 />
                             ))}

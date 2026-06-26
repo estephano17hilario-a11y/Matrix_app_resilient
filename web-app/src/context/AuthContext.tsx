@@ -1,13 +1,14 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { supabase, configStatus } from '../services/supabase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { PersistenceService } from '../services/persistence';
 import { User } from '@supabase/supabase-js';
-import { initRevenueCat } from '../services/revenueCatService';
+import { initRevenueCat, checkProEntitlement } from '../services/revenueCatService';
 import { toast } from 'react-hot-toast';
 import { OfflineSyncService } from '../services/offlineSync';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { ENABLE_GLOBAL_PRO } from '../config/limits';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -37,13 +38,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isInitializing, setIsInitializing] = useState(() => !PersistenceService.getProfile());
   const [error, setError] = useState<string | null>(null);
 
+  // 🔒 STABILITY GUARD: Once a real profile is loaded, never revert to skeleton.
+  // This prevents Supabase token refreshes or RevenueCat sync callbacks from
+  // temporarily setting isSkeleton=true on an already-authenticated user,
+  // which would unmount Dashboard and destroy all UI state (activeModal, etc.).
+  const hasRealProfileRef = useRef(false);
+  if (profile && !profile.isSkeleton) {
+    hasRealProfileRef.current = true;
+  }
+
+  // 🔒 FIX: Use a ref to hold latest profile so updateProfileLocally never changes reference.
+  // Previously, [profile] as dependency caused this callback to be recreated on every render,
+  // which in turn caused the subscription sync useEffect to re-run in an infinite loop.
+  const profileRef = useRef<UserProfile | null>(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
   const updateProfileLocally = useCallback((updates: Partial<UserProfile>) => {
-    if (!profile) return;
-    const newProfile = { ...profile, ...updates };
+    const currentProfile = profileRef.current;
+    if (!currentProfile) return;
+    const newProfile = { ...currentProfile, ...updates };
     setProfile(newProfile);
     PersistenceService.saveProfile(newProfile);
     console.log("⚡ MATRIX: Profile updated locally (Optimistic)");
-  }, [profile]);
+  }, []); // Stable: no external dependencies, reads from ref
 
   const logout = useCallback(async () => {
     try {
@@ -147,16 +166,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              // Only use cache immediately if it indicates onboarding is completed
              // This prevents the "flash" of onboarding if the cache is stale or incomplete
              setProfile(cached);
+             if (!hasRealProfileRef.current) hasRealProfileRef.current = true;
              setIsLoading(false); // ⚡ MATRIX: Instant Boot when cached!
-        } else {
+        } else if (!hasRealProfileRef.current) {
+            // Only set skeleton if we haven't already loaded a real profile.
+            // If we already have a real profile (mid-session re-auth), skip the skeleton
+            // to prevent Dashboard from unmounting and destroying modal state.
             // Optimistic Skeleton while we fetch
-             setProfile({
+            setProfile({
                  id: currentUser.id,
                  uid: currentUser.id,
                  email: currentUser.email || null,
                  displayName: currentUser.user_metadata?.display_name || currentUser.user_metadata?.full_name || "",
                  photoURL: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null,
-                 plan: 'FREE',
+                 plan: ENABLE_GLOBAL_PRO ? 'PRO' : 'FREE',
+                 es_pro: ENABLE_GLOBAL_PRO ? true : false,
                  archetype: 'NEO',
                  stats: DEFAULT_USER_STATS,
                  theme: 'MATRIX',
@@ -226,7 +250,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         archivedTraits: userData.preferences?.archivedTraits || {},
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',
-                        plan: userData.plan || 'FREE',
+                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : (userData.plan || 'FREE'),
+                        es_pro: ENABLE_GLOBAL_PRO ? true : (userData.es_pro || false),
                         theme: userData.theme || 'MATRIX',
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                         lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
@@ -381,65 +406,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Sync RevenueCat subscription status with Supabase and local profile
+  // 🔒 FIX: Sync RevenueCat subscription status ONCE per user session load.
+  // BEFORE: This effect depended on [profile?.id, profile?.plan, updateProfileLocally].
+  //   - When the sync detected a mismatch and called updateProfileLocally({ plan: 'PRO' }),
+  //     profile.plan changed → the effect re-ran → infinite loop.
+  //   - For real Google Play subscribers, this caused a cascade of re-renders that
+  //     destroyed the QuestModal animation and froze the UI.
+  // AFTER: The effect only depends on [profile?.id]. It runs once when the user loads.
+  //   - A hasSyncedRef guard prevents it from running again if the profile re-renders.
+  //   - The appStateChange listener correctly re-syncs on foreground, but reads profile
+  //     from profileRef (always current) instead of a stale closure.
+  const hasSyncedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!profile || !profile.id) return;
+    const profileId = profile?.id;
+    if (!profileId) return;
+
+    // Guard: only run the initial sync once per user session, not on every plan change.
+    const alreadySynced = hasSyncedRef.current === profileId;
 
     let appStateListener: any = null;
 
     const performSubscriptionSync = async () => {
       if (!Capacitor.isNativePlatform()) return;
+      // Always read from ref so we get the latest plan without stale closures
+      const currentProfile = profileRef.current;
+      if (!currentProfile?.id) return;
       try {
-        const { checkProEntitlement } = await import('../services/revenueCatService');
         const active = await checkProEntitlement();
-        const dbIsPro = profile.plan === 'PRO';
+        
+        // 🔒 FIX: Mark as successfully synced ONLY after a successful SDK check (no configuration/network throw)
+        hasSyncedRef.current = profileId;
+
+        const dbIsPro = currentProfile.plan === 'PRO';
         
         // Only perform upgrades from the client side.
         // Downgrades are handled securely via backend webhooks (RevenueCat/MercadoPago)
         // to prevent client-side synchronization errors from reverting developer-assigned or manually set PRO statuses.
-        if (active && !dbIsPro) {
-          console.log(`[RevenueCat Sync] Mismatch. RevenueCat isPremium: ${active}, Supabase is PRO: ${dbIsPro}. Upgrading to PRO...`);
+        if (active) {
           const nextPlan = 'PRO';
           const nextEsPro = true;
-          
-          let updateSuccess = false;
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              console.log(`[RevenueCat Sync DB Update] Attempting (attempt ${attempt}/3)...`);
-              const { error } = await supabase
-                .from('users')
-                .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
-                .eq('id', profile.id);
-                
-              if (error) throw error;
-              updateSuccess = true;
-              break;
-            } catch (err) {
-              console.error(`[RevenueCat Sync DB Update] Failed at attempt ${attempt}:`, err);
-              if (attempt < 3) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-              }
-            }
-          }
-          
-          if (updateSuccess) {
+
+          // 1. Instantly upgrade local profile state to PRO to unlock features
+          if (currentProfile.plan !== nextPlan || currentProfile.es_pro !== nextEsPro) {
+            console.log(`[RevenueCat Sync] User is premium in RevenueCat. Optimistically updating local profile to PRO.`);
             updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro });
-            console.log(`[RevenueCat Sync] Upgraded successfully to ${nextPlan}.`);
-          } else {
-            console.error("[RevenueCat Sync] Failed to update Supabase to PRO after 3 attempts.");
           }
-        } else if (!active && dbIsPro) {
+
+          // 2. Perform DB update in the background (fire-and-forget) to keep client synchronized with server
+          if (!dbIsPro) {
+            console.log(`[RevenueCat Sync] Upgrading Supabase DB to PRO in the background...`);
+            (async () => {
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  console.log(`[RevenueCat Sync DB Update] Attempting (attempt ${attempt}/3)...`);
+                  const { error } = await supabase
+                    .from('users')
+                    .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
+                    .eq('id', currentProfile.id);
+                    
+                  if (error) throw error;
+                  console.log(`[RevenueCat Sync] Supabase DB successfully updated to PRO.`);
+                  break;
+                } catch (err) {
+                  console.error(`[RevenueCat Sync DB Update] Failed at attempt ${attempt}:`, err);
+                  if (attempt < 3) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                  }
+                }
+              }
+            })();
+          }
+        } else if (dbIsPro) {
           console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (relying on DB/Webhook/MercadoPago source of truth).");
         }
       } catch (e) {
         // 🔐 CRITICAL: If RevenueCat throws ANY error (network, config, etc.),
         // we NEVER downgrade the user. We keep their current plan as-is.
+        // We do NOT set hasSyncedRef.current, allowing it to retry later.
         console.warn("[RevenueCat Sync] Check failed — keeping current plan intact. Error:", e);
       }
     };
 
-    // Run on startup / profile load
-    performSubscriptionSync();
+    // Run initial sync only once per user (not on every plan change)
+    if (!alreadySynced) {
+      performSubscriptionSync();
+    }
 
     // Listen to foreground app state transitions
     if (Capacitor.isNativePlatform()) {
@@ -456,7 +508,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         appStateListener.then((listener: any) => listener.remove());
       }
     };
-  }, [profile?.id, profile?.plan, updateProfileLocally]);
+  // 🔒 KEY FIX: Removed profile?.plan and updateProfileLocally from deps.
+  // This means the effect only runs when the user ID changes (login/logout),
+  // NOT on every plan update, breaking the infinite loop.
+  }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = useMemo(() => ({
     user,

@@ -16,6 +16,21 @@ interface ValidationModalProps {
 }
 
 export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes, valTempValue, setValTempValue, setValidationHabit, onValidate }: ValidationModalProps) => {
+    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
+    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
+    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
+    const backdropTouchStartedRef = React.useRef(false);
+
+    const handleBackdropTouchStart = () => {
+        backdropTouchStartedRef.current = true;
+    };
+
+    const handleBackdropClick = () => {
+        if (!backdropTouchStartedRef.current) return;
+        backdropTouchStartedRef.current = false;
+        onClose();
+    };
+
     if (typeof document === 'undefined') return null;
 
     const attribute = useMemo(() => habit ? attributes.find(a => a.id === habit.attribute) : undefined, [attributes, habit]);
@@ -35,7 +50,9 @@ export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes,
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 className="absolute inset-0 bg-black/90"
-                onClick={onClose} 
+                onTouchStart={handleBackdropTouchStart}
+                onMouseDown={handleBackdropTouchStart}
+                onClick={handleBackdropClick} 
             />
             <motion.div 
                 initial={{ opacity: 0, scale: 0.96, y: 16 }}

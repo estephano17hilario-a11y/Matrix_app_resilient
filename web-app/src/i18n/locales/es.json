@@ -1541,7 +1541,11 @@
     "strategy": "Estrategia",
     "feed": "Feed",
     "fame": "Fama",
-    "store": "Tienda"
+    "store": "Tienda",
+    "note": "Nota"
+  },
+  "common": {
+    "estimatedDuration": "Duración Estimada"
   },
   "habits": {
     "objectiveMet": "Objetivo Cumplido",

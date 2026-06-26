@@ -312,7 +312,14 @@ export default function Dashboard() {
  };
  }, []);
 
- const dashboardLogic = useDashboardLogic();
+  const dashboardLogic = useDashboardLogic();
+  useEffect(() => {
+    console.log("🟢 [Dashboard LifeCycle] Dashboard mounted!");
+    return () => {
+      console.log("🔴 [Dashboard LifeCycle] Dashboard UNMOUNTED!");
+    };
+  }, []);
+  console.log(`🌀 [Dashboard LifeCycle] Dashboard rendering (activeModal: "${dashboardLogic.activeModal}")`);
  const {
  user,
  lastAchievement,
@@ -379,6 +386,7 @@ export default function Dashboard() {
  const handleDeleteHabit = useCallback((id: string) => logicRef.current.handleDeleteHabit(id), []);
  const handleHabitUpdate = useCallback((id: string, data: Partial<Habit>, targetDate?: Date) => logicRef.current.handleHabitUpdate(id, data, targetDate), []);
  const handleBadHabitRelapse = useCallback((habit: BadHabit, method: 'GOLD' | 'HP') => logicRef.current.handleBadHabitRelapse(habit, method), []);
+ const handleUpdateBadHabitBalance = useCallback((habit: BadHabit, newBalance: number) => logicRef.current.handleUpdateBadHabitBalance(habit, newBalance), []);
  const handleReorderHabits = useCallback((h: Habit[]) => logicRef.current.handleReorderHabits(h), []);
  const handleReorderBadHabits = useCallback((h: BadHabit[]) => logicRef.current.handleReorderBadHabits(h), []);
  const handleHabitConfirm = useCallback((data: Partial<Habit>) => logicRef.current.handleHabitConfirm(data), []);
@@ -589,11 +597,12 @@ export default function Dashboard() {
 
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 
- // FIX: Lift Focus State to Dashboard
- const handleOpenModal = useCallback((modal: string) => {
- setModalInitialContext(null);
- setActiveModal(modal as any);
- }, []);
+  // FIX: Lift Focus State to Dashboard
+  const handleOpenModal = useCallback((modal: string) => {
+    console.log(`🌀 [Dashboard UI] handleOpenModal called for modal: "${modal}"`);
+    setModalInitialContext(null);
+    setActiveModal(modal as any);
+  }, [setActiveModal]);
 
  const handleExitFocusSession = useCallback(() => {
  setFocusTargetProjectId(null);
@@ -813,43 +822,63 @@ export default function Dashboard() {
  setActiveModal('BAD_HABIT');
  }, []);
 
- const handleAddQuest = useCallback(() => {
- setEditingQuest(null);
- setSmartTaskProps(null);
- setActiveModal('QUEST');
- }, []);
+  const handleAddQuest = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setEditingQuest(null);
+    setSmartTaskProps(null);
+    setActiveModal('QUEST');
+  }, []);
 
- const handleAddHabit = useCallback(() => {
- setEditingHabit(null);
- setActiveModal('HABIT');
- }, []);
+  const handleAddHabit = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setEditingHabit(null);
+    setActiveModal('HABIT');
+  }, []);
 
- const handleAddBadHabit = useCallback(() => {
- setEditingBadHabit(null);
- setActiveModal('BAD_HABIT');
- }, []);
+  const handleAddBadHabit = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setEditingBadHabit(null);
+    setActiveModal('BAD_HABIT');
+  }, []);
 
- const handleRelapseBadHabitRequest = useCallback((habit: BadHabit) => {
- setRelapsingHabit(habit);
- setActiveModal('RELAPSE');
- }, []);
+  const handleRelapseBadHabitRequest = useCallback((habit: BadHabit) => {
+    setRelapsingHabit(habit);
+    setActiveModal('RELAPSE');
+  }, []);
 
- const handleOpenStreakView = useCallback(() => {
- setCurrentView('STREAK');
- }, [setCurrentView]);
+  const handleOpenStreakView = useCallback(() => {
+    setCurrentView('STREAK');
+  }, [setCurrentView]);
 
- const handleOpenProjectModal = useCallback((project?: Project | null) => {
- setModalInitialContext(project || null);
- setActiveModal('PROJECT');
- }, []);
+  const handleOpenProjectModal = useCallback((project?: Project | null, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setModalInitialContext(project || null);
+    setActiveModal('PROJECT');
+  }, []);
 
- const handleAutoStartConsumed = useCallback(() => {
- setFocusAutoStartProjectId(null);
- }, []);
+  const handleAutoStartConsumed = useCallback(() => {
+    setFocusAutoStartProjectId(null);
+  }, []);
 
- const handleOpenPro = useCallback(() => {
- setIsProModalOpen(true);
- }, []);
+  const handleOpenPro = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setIsProModalOpen(true);
+  }, []);
 
  const handleInteractionStart = useCallback(() => {
  setIsNoteTaking(true);
@@ -873,12 +902,13 @@ export default function Dashboard() {
  window.dispatchEvent(new CustomEvent('project-created'));
  }, [handleProjectConfirm]);
 
- const handleQuestModalClose = useCallback(() => {
- setActiveModal(null);
- setEditingQuest(null);
- setSmartTaskProps(null);
- window.dispatchEvent(new CustomEvent('quest-created'));
- }, []);
+  const handleQuestModalClose = useCallback(() => {
+    console.log("🌀 [Dashboard UI] handleQuestModalClose called. Resetting active modal to null.");
+    setActiveModal(null);
+    setEditingQuest(null);
+    setSmartTaskProps(null);
+    window.dispatchEvent(new CustomEvent('quest-created'));
+  }, [setActiveModal]);
 
  const handleQuestSave = useCallback((quest: Partial<Quest>) => {
  handleQuestConfirm(quest);
@@ -1097,165 +1127,174 @@ export default function Dashboard() {
  }, [user?.stats?.streak, user?.stats?.lastStreakDate, isStreakActiveToday]);
 
  // --- HARDWARE BACK BUTTON HANDLER ---
+ const backButtonStateRef = useRef<any>({});
  useEffect(() => {
- const handleBackButton = async () => {
- // 1. Modals & Overlays (Highest Priority)
- if (isProgressOpen) {
- setIsProgressOpen(false);
- return;
- }
- if (activeModal) {
- setActiveModal(null);
- return;
- }
- if (validationHabit) {
- setValidationHabit(null);
- return;
- }
- if (relapsingHabit) {
- setRelapsingHabit(null);
- return;
- }
- if (isWizardOpen) {
- setIsWizardOpen(false);
- return;
- }
- if (habitActionsHabit) {
- setHabitActionsHabit(null);
- return;
- }
- if (confirmationModal.isOpen) {
- setConfirmationModal(prev => ({ ...prev, isOpen: false }));
- return;
- }
- if (editingQuest) {
- setEditingQuest(null);
- return;
- }
- if (editingHabit) {
- setEditingHabit(null);
- return;
- }
- if (isProModalOpen) {
- setIsProModalOpen(false);
- return;
- }
- if (isSettingsOpen) {
- setIsSettingsOpen(false);
- return;
- }
- if (isProjectDetailOpen) {
- setIsProjectDetailOpen(false);
- return;
- }
+   backButtonStateRef.current = {
+     isProgressOpen,
+     activeModal,
+     validationHabit,
+     relapsingHabit,
+     isWizardOpen,
+     habitActionsHabit,
+     confirmationModal,
+     editingQuest,
+     editingHabit,
+     isProModalOpen,
+     isSettingsOpen,
+     isProjectDetailOpen,
+     isNoteTaking,
+     isNotesStatsOpen,
+     isDockOpen,
+     isFullScreenFocus,
+     forceFocusOpen,
+     isPomodoroActive,
+     viewHistory,
+     currentView,
+     setIsProgressOpen,
+     setActiveModal,
+     setValidationHabit,
+     setRelapsingHabit,
+     setIsWizardOpen,
+     setHabitActionsHabit,
+     setConfirmationModal,
+     setEditingQuest,
+     setEditingHabit,
+     setIsProModalOpen,
+     setIsSettingsOpen,
+     setIsProjectDetailOpen,
+     setIsNotesStatsOpen,
+     setIsDockOpen,
+     setIsFullScreenFocus,
+     handleExitFocusSession,
+     setViewHistory,
+     setCurrentView
+   };
+ });
 
- // 2. Side Panels / Dock
- if (isNoteTaking) {
- window.dispatchEvent(new Event('close-note-editor'));
- return;
- }
- if (isNotesStatsOpen) {
- setIsNotesStatsOpen(false);
- return;
- }
- if (isDockOpen) {
- setIsDockOpen(false);
- return;
- }
+ useEffect(() => {
+   const handleBackButton = async () => {
+     const state = backButtonStateRef.current;
+     // 1. Modals & Overlays (Highest Priority)
+     if (state.isProgressOpen) {
+       state.setIsProgressOpen(false);
+       return;
+     }
+     if (state.activeModal) {
+       state.setActiveModal(null);
+       return;
+     }
+     if (state.validationHabit) {
+       state.setValidationHabit(null);
+       return;
+     }
+     if (state.relapsingHabit) {
+       state.setRelapsingHabit(null);
+       return;
+     }
+     if (state.isWizardOpen) {
+       state.setIsWizardOpen(false);
+       return;
+     }
+     if (state.habitActionsHabit) {
+       state.setHabitActionsHabit(null);
+       return;
+     }
+     if (state.confirmationModal.isOpen) {
+       state.setConfirmationModal((prev: any) => ({ ...prev, isOpen: false }));
+       return;
+     }
+     if (state.editingQuest) {
+       state.setEditingQuest(null);
+       return;
+     }
+     if (state.editingHabit) {
+       state.setEditingHabit(null);
+       return;
+     }
+     if (state.isProModalOpen) {
+       state.setIsProModalOpen(false);
+       return;
+     }
+     if (state.isSettingsOpen) {
+       state.setIsSettingsOpen(false);
+       return;
+     }
+     if (state.isProjectDetailOpen) {
+       state.setIsProjectDetailOpen(false);
+       return;
+     }
 
- if (isFullScreenFocus) {
- setIsFullScreenFocus(false);
- return;
- }
- if (forceFocusOpen) {
- handleExitFocusSession();
- return;
- }
+     // 2. Side Panels / Dock
+     if (state.isNoteTaking) {
+       window.dispatchEvent(new Event('close-note-editor'));
+       return;
+     }
+     if (state.isNotesStatsOpen) {
+       state.setIsNotesStatsOpen(false);
+       return;
+     }
+     if (state.isDockOpen) {
+       state.setIsDockOpen(false);
+       return;
+     }
 
- // If Pomodoro is active, the local ActiveSessionView handles back navigation
- // We still add a safety net here in case the local listener fails
- if (isPomodoroActive) {
- return; // Let the local backButton listener in ActiveSessionView handle it
- }
+     if (state.isFullScreenFocus) {
+       state.setIsFullScreenFocus(false);
+       return;
+     }
+     if (state.forceFocusOpen) {
+       state.handleExitFocusSession();
+       return;
+     }
 
- // 4. Navigation (Smart History)
- if (viewHistory.length > 1) {
- // If we have history, pop the current view and go to the previous one
- const newHistory = [...viewHistory];
- newHistory.pop(); // Remove current view
- const previousView = newHistory[newHistory.length - 1];
+     // If Pomodoro is active, the local ActiveSessionView handles back navigation
+     // We still add a safety net here in case the local listener fails
+     if (state.isPomodoroActive) {
+       return; // Let the local backButton listener in ActiveSessionView handle it
+     }
 
- // Set flag so we don't re-add this back navigation to history
- isBackNavigating.current = true;
- 
- // Update History State immediately for sync
- setViewHistory(newHistory);
- 
- // Navigate
- setCurrentView(previousView);
- return;
- }
+     // 4. Navigation (Smart History)
+     if (state.viewHistory.length > 1) {
+       // If we have history, pop the current view and go to the previous one
+       const newHistory = [...state.viewHistory];
+       newHistory.pop(); // Remove current view
+       const previousView = newHistory[newHistory.length - 1];
 
- // Fallback: If history is empty/corrupted but we are not at home, go home
- if (currentView !== 'TASKS') {
- setCurrentView('TASKS');
- return;
- }
+       // Set flag so we don't re-add this back navigation to history
+       isBackNavigating.current = true;
+       
+       // Update History State immediately for sync
+       state.setViewHistory(newHistory);
+       
+       // Navigate
+       state.setCurrentView(previousView);
+       return;
+     }
 
- // 5. Exit App
- App.exitApp();
- };
+     // Fallback: If history is empty/corrupted but we are not at home, go home
+     if (state.currentView !== 'TASKS') {
+       state.setCurrentView('TASKS');
+       return;
+     }
 
- const setupListener = async () => {
- try {
- return await App.addListener('backButton', handleBackButton);
- } catch (e) {
- console.warn('Back button listener failed', e);
- }
- };
+     // 5. Exit App
+     App.exitApp();
+   };
 
- const listenerPromise = setupListener();
+   const setupListener = async () => {
+     try {
+       return await App.addListener('backButton', handleBackButton);
+     } catch (e) {
+       console.warn('Back button listener failed', e);
+     }
+   };
 
- return () => {
- listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
- };
- }, [
- isProgressOpen,
- activeModal, 
- validationHabit, 
- relapsingHabit, 
- isWizardOpen, 
- habitActionsHabit, 
- confirmationModal.isOpen,
- editingQuest, 
- editingHabit, 
- isProModalOpen,
- isSettingsOpen,
- isProjectDetailOpen,
- isNotesStatsOpen, 
- isDockOpen, 
- isFullScreenFocus, 
- forceFocusOpen,
- isNoteTaking,
- currentView,
- isPomodoroActive,
- handleExitFocusSession,
- setCurrentView,
- setActiveModal,
- setValidationHabit,
- setRelapsingHabit,
- setIsWizardOpen,
- setHabitActionsHabit,
- setConfirmationModal,
- setEditingQuest,
- setEditingHabit,
- setIsProModalOpen,
- setIsSettingsOpen,
- setIsProjectDetailOpen,
- setIsNotesStatsOpen,
- setIsDockOpen,
- setIsFullScreenFocus
- ]);
+   const listenerPromise = setupListener();
+
+   return () => {
+     listenerPromise.then(handle => handle && handle.remove()).catch(() => {});
+   };
+ }, []);
 
  return (
  <div className="fixed inset-0 w-full h-full text-slate-200 selection:bg-cyan-500/30 overflow-hidden">
@@ -1579,6 +1618,7 @@ export default function Dashboard() {
  onShowActions={handleShowHabitActions}
  onShowBadHabitActions={handleShowBadHabitActions}
  onRelapseBadHabit={handleRelapseBadHabitRequest}
+ onUpdateBadHabitBalance={handleUpdateBadHabitBalance}
  currentSection={habitViewMode}
  isActive={currentView === 'HABITS'}
  onOpenStreak={handleOpenStreakView}
@@ -1782,6 +1822,7 @@ export default function Dashboard() {
   <HabitModal 
     isOpen={activeModal === 'HABIT'} 
     onClose={() => { 
+      console.log("🌀 [Dashboard UI] HabitModal onClose callback fired. Resetting active modal to null.");
       setActiveModal(null); 
       setEditingHabit(null); 
       setModalInitialContext(null); 
@@ -1797,31 +1838,43 @@ export default function Dashboard() {
 
   <ProjectModal 
     isOpen={activeModal === 'PROJECT'} 
-    onClose={() => { setActiveModal(null); setModalInitialContext(null); window.dispatchEvent(new CustomEvent('project-created')); }} 
+    onClose={() => { 
+      console.log("🌀 [Dashboard UI] ProjectModal onClose callback fired. Resetting active modal to null.");
+      setActiveModal(null); 
+      setModalInitialContext(null); 
+      window.dispatchEvent(new CustomEvent('project-created')); 
+    }} 
     attributes={attributes} 
     smartProjects={smartProjects} 
     onConfirm={handleProjectConfirmAndReset} 
     onDelete={handleDeleteProjectRequest}
-    initialData={modalInitialContext || undefined}
   />
 
   <BadHabitWizard 
-    isOpen={activeModal === 'BAD_HABIT'}
-    onClose={() => { 
-      setActiveModal(null); 
-      setEditingBadHabit(null); 
-      window.dispatchEvent(new CustomEvent('bad-habit-created'));
-    }}
-    onConfirm={handleBadHabitConfirm}
-    attributes={attributes}
-    isFirstIdentify={badHabits.length === 0}
-    onSwitchToHabit={() => setActiveModal('HABIT')}
-    initialData={editingBadHabit || undefined}
-  />
+     isOpen={activeModal === 'BAD_HABIT'}
+     onClose={() => { 
+       console.log("🌀 [Dashboard UI] BadHabitWizard onClose callback fired. Resetting active modal to null.");
+       setActiveModal(null); 
+       setEditingBadHabit(null); 
+       window.dispatchEvent(new CustomEvent('bad-habit-created'));
+     }}
+     onConfirm={handleBadHabitConfirm}
+     attributes={attributes}
+     isFirstIdentify={badHabits.length === 0}
+     onSwitchToHabit={() => {
+       console.log("🌀 [Dashboard UI] BadHabitWizard switching to HABIT.");
+       setActiveModal('HABIT');
+     }}
+     initialData={editingBadHabit || undefined}
+   />
 
   <RelapseModal 
     isOpen={activeModal === 'RELAPSE' && !!relapsingHabit}
-    onClose={() => { setActiveModal(null); setRelapsingHabit(null); }}
+    onClose={() => { 
+      console.log("🌀 [Dashboard UI] RelapseModal onClose callback fired. Resetting active modal to null.");
+      setActiveModal(null); 
+      setRelapsingHabit(null); 
+    }}
     habit={relapsingHabit}
     onConfirm={(method) => {
       if (relapsingHabit) {

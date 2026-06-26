@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute, SubTrait } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
@@ -7,6 +7,7 @@ import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 // import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface ActiveSessionViewProps {
@@ -238,6 +239,28 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   }
   };
 
+  const runFocusFlyingIcons = useCallback(() => {
+    const startRect = {
+      left: window.innerWidth / 2 - 24,
+      top: window.innerHeight / 2 - 24,
+      width: 48,
+      height: 48,
+      x: window.innerWidth / 2 - 24,
+      y: window.innerHeight / 2 - 24,
+      bottom: window.innerHeight / 2 + 24,
+      right: window.innerWidth / 2 + 24,
+      toJSON: () => {}
+    } as DOMRect;
+
+    triggerFlyingIcon(startRect, "gold-counter-pill", <Coins size={24} className="text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,1)]" />, 0);
+    triggerFlyingIcon(startRect, "xp-bar-container", <Zap size={24} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,1)]" />, 0.15);
+    if (attribute && attribute.icon) {
+      const TraitIcon = attribute.icon;
+      const tColor = project.color || attribute.color || '#3b82f6';
+      triggerFlyingIcon(startRect, "xp-bar-container", <TraitIcon size={24} style={{ color: tColor }} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />, 0.3);
+    }
+  }, [attribute, project.color]);
+
  const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false) => {
  const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
  if (safeDuration < 5) return;
@@ -270,9 +293,10 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  if (hasSubTraits) {
    setPendingSessionData({ duration: safeDuration, mode });
  } else {
+   runFocusFlyingIcons();
    onCompleteSession(safeDuration, mode, undefined);
  }
- }, [onCompleteSession, playAlarm, project.title, hasSubTraits]);
+ }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons]);
 
  // Helper to get emoji for attribute
  const getTraitEmoji = (id: string) => {
@@ -393,6 +417,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     if (isActive) {
       const elapsed = getElapsedSeconds(mode);
       if (elapsed >= 5) {
+        runFocusFlyingIcons();
         onCompleteSession(elapsed, mode, undefined);
       }
       stopSession();
@@ -715,6 +740,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
        attribute={attribute}
        themeColor={themeColor}
        onConfirm={(subTraitId) => {
+         runFocusFlyingIcons();
          onCompleteSession(pendingSessionData.duration, pendingSessionData.mode, subTraitId);
          setPendingSessionData(null);
        }}

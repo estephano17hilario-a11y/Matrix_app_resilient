@@ -26,9 +26,11 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const isOpen = localIsOpen;
 
  const onToggle = React.useCallback((open: boolean) => {
+   console.log(`➕ [Dock UI] onToggle called. Changing Dock state to: ${open}`);
    setLocalIsOpen(open);
    if (propOnToggle) {
      requestAnimationFrame(() => {
+       console.log(`➕ [Dock UI] Propagating Dock state (${open}) to parent`);
        propOnToggle(open);
      });
    }
@@ -36,12 +38,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
  React.useEffect(() => {
    if (propIsOpen !== undefined) {
+     console.log(`➕ [Dock UI] propIsOpen updated: ${propIsOpen}. Updating localIsOpen.`);
      setLocalIsOpen(propIsOpen);
    }
  }, [propIsOpen]);
 
  React.useEffect(() => {
    if (isHidden) {
+     console.log(`➕ [Dock UI] Dock isHidden is true. Auto-closing Dock.`);
      setLocalIsOpen(false);
      if (propOnToggle) {
        propOnToggle(false);
@@ -56,7 +60,17 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  onToggle(false);
  };
 
- const handleModal = (m: string) => { onOpenModal(m); onToggle(false); };
+ const handleModal = (m: string, e?: React.MouseEvent) => {
+    console.log(`➕ [Dock UI] handleModal called for: "${m}"`);
+    if (e) {
+      console.log(`➕ [Dock UI] Stopping propagation and preventing default for click event.`);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log(`➕ [Dock UI] Invoking onOpenModal("${m}") and closing Dock.`);
+    onOpenModal(m);
+    onToggle(false);
+  };
 
  const isLiquid = dashboardStyle === 'LIQUID';
  const isGlass = dashboardStyle === 'GLASS';
@@ -143,24 +157,27 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  };
 
  const Backdrop = () => (
-     <AnimatePresence>
-       {isOpen && (
-         <motion.div
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           exit={{ opacity: 0 }}
-           transition={{ duration: 0.2 }}
-           className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
-           onClick={() => onToggle(false)}
-         />
-       )}
-     </AnimatePresence>
-   );
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
+            onClick={() => {
+              console.log("➕ [Dock UI] Backdrop clicked. Closing Dock.");
+              onToggle(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    );
  
- const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: () => void, isFullWidth?: boolean) => (
+ const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: (e?: React.MouseEvent) => void, isFullWidth?: boolean) => (
  <button 
  key={id}
- onClick={action}
+ onClick={(e) => action(e)}
  className={`relative z-10 h-24 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex flex-col items-center justify-center gap-2 group ${isFullWidth ? 'w-full' : ''}`}
  >
  <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center ${color} border ${border} group-hover:scale-110 transition-transform`}>
@@ -174,13 +191,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const item = DOCK_ITEMS.find(i => i.id === id);
  if (!item) return null;
  
- let action = () => handleView(id);
- let label = item.label;
- if (id === 'HABITS') { action = () => handleModal('HABIT'); label = 'Habit'; }
- else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = 'Focus'; }
- else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
- else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
- else if (id === 'FEED') { label = 'Feed'; }
+  let action = (e?: React.MouseEvent) => handleView(id);
+  let label = item.label;
+  if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = 'Habit'; }
+  else if (id === 'FOCUS') { action = (e) => handleModal('PROJECT', e); label = 'Focus'; }
+  else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
+  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
+  else if (id === 'FEED') { label = 'Feed'; }
 
  return renderExpandedMenuButton(id, label, item.icon, item.color, item.bgColor, item.borderColor, action, isFullWidth);
  };
@@ -190,18 +207,18 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  if (!item) return null;
  const Icon = item.icon;
  
- let action = () => handleView(id);
- let label = item.label;
- if (id === 'HABITS') { action = () => handleModal('HABIT'); label = t('dock.habit'); }
- else if (id === 'FOCUS') { action = () => handleModal('PROJECT'); label = t('dock.focus'); }
- else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
- else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
- else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
+  let action = (e?: React.MouseEvent) => handleView(id);
+  let label = item.label;
+  if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = t('dock.habit'); }
+  else if (id === 'FOCUS') { action = (e) => handleModal('PROJECT', e); label = t('dock.focus'); }
+  else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
+  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
+  else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
 
  return (
  <button 
  key={id}
- onClick={action} 
+ onClick={(e) => action(e)} 
  className={`h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm ${isLastOdd ? 'col-span-2' : ''}`}
  >
  <div className={`w-8 h-8 rounded-full ${item.bgColor} border ${item.borderColor} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.05)]`}>
@@ -253,7 +270,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  transition={{ type: "spring", stiffness: 80, damping: 20, mass: 1, delay: isOpen ? 0.05 : 0 }}
  className="absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2"
  >
- <button onClick={() => handleModal('QUEST')} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
+ <button onClick={(e) => handleModal('QUEST', e)} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center text-orange-400 border border-orange-500/20 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(249,115,22,0.2)]">
  <Crosshair size={20} />
@@ -343,7 +360,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  transition-all duration-300 ease-out transform-gpu
  ${isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'} 
  `}> 
- <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
+ <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
  <Crosshair size={18} />
@@ -465,7 +482,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
   >
   
-  <button onClick={() => { handleModal('QUEST'); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
   <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
   </button>
   {expandedItems.map((id, index) => {

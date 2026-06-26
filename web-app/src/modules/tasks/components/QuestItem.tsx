@@ -117,7 +117,11 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
       style={{ 
         // VisionOS "Hyper-Glass" Base
         background: 'rgba(20, 20, 25, 0.7)', // Slightly darker for better contrast and less blur need
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: isSmart
+            ? quest.completed
+                ? '1.5px solid rgba(16, 185, 129, 0.45)' // Emerald green
+                : '1.5px solid rgba(244, 63, 94, 0.5)'   // Rose red
+            : '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: expanded 
             ? `0 0 0 1px ${themeColor}40, 0 20px 40px -10px rgba(0,0,0,0.5)` // Active state glow
             : `inset 0 1px 0 0 rgba(255,255,255,0.05), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)` // Idle state

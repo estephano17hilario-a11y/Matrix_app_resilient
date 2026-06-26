@@ -81,8 +81,15 @@ const CountdownBanner = () => {
 };
 
 export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClose }) => {
- const { t } = useTranslation();
- const [mounted, setMounted] = useState(false);
+  const { t } = useTranslation();
+  useEffect(() => {
+    console.log("🟢 [ProUpgradeModal LifeCycle] ProUpgradeModal mounted!");
+    return () => {
+      console.log("🔴 [ProUpgradeModal LifeCycle] ProUpgradeModal UNMOUNTED!");
+    };
+  }, []);
+  console.log(`🌀 [ProUpgradeModal LifeCycle] ProUpgradeModal rendering (isOpen: ${isOpen})`);
+  const [mounted, setMounted] = useState(false);
  const [isCelebrating, setIsCelebrating] = useState(false);
  const isNative = Capacitor.isNativePlatform();
  const { weeklyPackage, monthlyPackage, isPremium, comprarPaquete, restaurarCompras } = useRevenueCat();
@@ -202,11 +209,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  }
  }, [isOpen]);
 
- useEffect(() => {
- if (isPremium && !isCelebrating) {
- onClose();
- }
- }, [isPremium, onClose, isCelebrating]);
+  // removed auto-close to prevent sync issues and allow managing active subscription
 
  if (!mounted && !isOpen) return null;
 
@@ -274,147 +277,176 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  >
  {t('pro.elevateDesc', "Eleva tu existencia a un nivel cósmico. Sin límites, sin restricciones, solo rendimiento puro.")}
  </motion.p>
-
  <div className="w-full flex flex-col items-center justify-center mb-12 md:mb-0 mt-2">
- {isNative ? (
-  <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
-    {/* Weekly Package Button */}
-    <motion.button
+  {isNative ? (
+    isPremium ? (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center gap-5 bg-[#100820]/80 border border-purple-500/30 p-8 rounded-3xl w-full max-w-sm mx-auto shadow-lg shadow-purple-500/10 relative z-10"
+      >
+        <div className="relative w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-[inset_0_0_15px_rgba(168,85,247,0.2)]">
+          <div className="absolute inset-0 bg-purple-500/10 rounded-full animate-pulse" />
+          <Crown size={32} className="text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-white font-black text-lg tracking-wider uppercase mb-1.5">
+            {t('pro.activeTitle', 'Lux Pro Activo')}
+          </h3>
+          <p className="text-white/60 text-xs leading-relaxed font-medium">
+            {t('pro.activeDesc', 'Tu membresía Premium está activa a través de Google Play Store. ¡Todos los límites y restricciones han sido eliminados!')}
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            const { showCustomerCenter } = await import('../../services/revenueCatService');
+            await showCustomerCenter();
+          }}
+          className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-full shadow-lg shadow-purple-500/25 transition-all duration-200 cursor-pointer active:scale-95"
+        >
+          {t('pro.manageSubscription', 'Administrar Suscripción')}
+        </button>
+      </motion.div>
+    ) : (
+      <div className="flex flex-col gap-4 w-full max-w-sm mx-auto">
+        {/* Weekly Package Button */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => handlePurchase(weeklyPackage || 'weekly')}
+          className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+        >
+          <motion.div 
+            className="absolute inset-0 z-0 opacity-90"
+            animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+            transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+            style={{
+              backgroundColor: '#050010',
+              backgroundImage: `
+                radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+                radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+                radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)
+              `,
+              backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+            }}
+          />
+          <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+            <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+              {t('pro.activateWeekly', "Plan Semanal")}
+            </span>
+            <span className="text-white/70 text-xs font-bold mt-1">
+              {weeklyPackage ? weeklyPackage.product.priceString : "S/. 7.90"} / {t('pro.week', 'Semana')}
+            </span>
+          </div>
+        </motion.button>
+
+        {/* Monthly Package Button */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => handlePurchase(monthlyPackage || 'monthly')}
+          className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+        >
+          <motion.div 
+            className="absolute inset-0 z-0 opacity-90"
+            animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+            transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
+            style={{
+              backgroundColor: '#050010',
+              backgroundImage: `
+                radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
+                radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
+                radial-gradient(circle at 50% 50%, rgba(168,85,247,0.4) 0%, rgba(99,102,241,0.2) 50%, transparent 100%)
+              `,
+              backgroundSize: '200px 200px, 200px 200px, 200% 200%'
+            }}
+          />
+          <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
+            <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
+              {t('pro.activateMonthly', "Plan Mensual")}
+            </span>
+            <span className="text-white/70 text-xs font-bold mt-1">
+              {monthlyPackage ? monthlyPackage.product.priceString : "S/. 19.90"} / {t('pro.month', 'Mes')}
+            </span>
+          </div>
+        </motion.button>
+
+        {/* Restore Purchases Button */}
+        <button
+          onClick={async () => {
+            const toastId = toast.loading('Restaurando compras...');
+            try {
+              const isProNow = await restaurarCompras();
+              if (isProNow && user?.id) {
+                let updateSuccess = false;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                  try {
+                    console.log(`[Supabase Restore] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
+                    const { error } = await supabase.from('users').update({
+                      plan: 'PRO',
+                      es_pro: true,
+                      planExpiryDate: null
+                    }).eq('id', user.id);
+                    if (error) throw error;
+                    updateSuccess = true;
+                    break;
+                  } catch (err) {
+                    console.error(`[Supabase Restore] Failed at attempt ${attempt}:`, err);
+                    if (attempt < 3) {
+                      await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                  }
+                }
+                if (updateSuccess) {
+                  updateProfileLocally({ plan: 'PRO', es_pro: true });
+                  toast.success('¡Suscripción restaurada con éxito!');
+                } else {
+                  toast.error('Compra restaurada en la tienda, pero hubo un problema al sincronizar con el servidor. Tu cuenta se sincronizará automáticamente.');
+                  updateProfileLocally({ plan: 'PRO', es_pro: true });
+                }
+              } else {
+                toast.error('No se encontró ninguna compra para restaurar.');
+              }
+            } catch (error) {
+              toast.error('Error al restaurar las compras.');
+            } finally {
+              toast.dismiss(toastId);
+            }
+          }}
+          className="text-xs text-white/40 hover:text-white/80 transition-colors mt-2 block mx-auto underline cursor-pointer"
+        >
+          Restaurar Compras
+        </button>
+      </div>
+    )
+  ) : (
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => handlePurchase(weeklyPackage || 'weekly')}
-      className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
+      className="flex flex-col items-center gap-4 bg-[#100820]/80 border border-purple-500/30 p-6 rounded-2xl max-w-md mx-auto shadow-lg shadow-purple-500/10"
     >
-      <motion.div 
-        className="absolute inset-0 z-0 opacity-90"
-        animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-        transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
-        style={{
-          backgroundColor: '#050010',
-          backgroundImage: `
-            radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
-            radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
-            radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)
-          `,
-          backgroundSize: '200px 200px, 200px 200px, 200% 200%'
-        }}
-      />
-      <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
-        <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
-          {t('pro.activateWeekly', "Plan Semanal")}
-        </span>
-        <span className="text-white/70 text-xs font-bold mt-1">
-          {weeklyPackage ? weeklyPackage.product.priceString : "S/. 7.90"} / {t('pro.week', 'Semana')}
-        </span>
-      </div>
-    </motion.button>
-
-    {/* Monthly Package Button */}
-    <motion.button
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.45 }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => handlePurchase(monthlyPackage || 'monthly')}
-      className="relative w-full overflow-hidden rounded-full group shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all duration-200 border border-purple-500/50 bg-[#0a0014]"
-    >
-      <motion.div 
-        className="absolute inset-0 z-0 opacity-90"
-        animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-        transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse', ease: "linear" }}
-        style={{
-          backgroundColor: '#050010',
-          backgroundImage: `
-            radial-gradient(1px 1px at 15% 15%, white 100%, transparent), 
-            radial-gradient(1.5px 1.5px at 35% 45%, rgba(255,255,255,0.8) 100%, transparent), 
-            radial-gradient(circle at 50% 50%, rgba(168,85,247,0.4) 0%, rgba(99,102,241,0.2) 50%, transparent 100%)
-          `,
-          backgroundSize: '200px 200px, 200px 200px, 200% 200%'
-        }}
-      />
-      <div className="relative z-10 px-8 py-3.5 flex flex-col items-center justify-center">
-        <span className="font-black text-base uppercase tracking-[0.2em] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] whitespace-nowrap">
-          {t('pro.activateMonthly', "Plan Mensual")}
-        </span>
-        <span className="text-white/70 text-xs font-bold mt-1">
-          {monthlyPackage ? monthlyPackage.product.priceString : "S/. 19.90"} / {t('pro.month', 'Mes')}
-        </span>
-      </div>
-    </motion.button>
-
-    {/* Restore Purchases Button */}
-    <button
-      onClick={async () => {
-        const toastId = toast.loading('Restaurando compras...');
-        try {
-          const isProNow = await restaurarCompras();
-          if (isProNow && user?.id) {
-            let updateSuccess = false;
-            for (let attempt = 1; attempt <= 3; attempt++) {
-              try {
-                console.log(`[Supabase Restore] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
-                const { error } = await supabase.from('users').update({
-                  plan: 'PRO',
-                  es_pro: true,
-                  planExpiryDate: null
-                }).eq('id', user.id);
-                if (error) throw error;
-                updateSuccess = true;
-                break;
-              } catch (err) {
-                console.error(`[Supabase Restore] Failed at attempt ${attempt}:`, err);
-                if (attempt < 3) {
-                  await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-              }
-            }
-            if (updateSuccess) {
-              updateProfileLocally({ plan: 'PRO', es_pro: true });
-              toast.success('¡Suscripción restaurada con éxito!');
-            } else {
-              toast.error('Compra restaurada en la tienda, pero hubo un problema al sincronizar con el servidor. Tu cuenta se sincronizará automáticamente.');
-              updateProfileLocally({ plan: 'PRO', es_pro: true });
-            }
-          } else {
-            toast.error('No se encontró ninguna compra para restaurar.');
-          }
-        } catch (error) {
-          toast.error('Error al restaurar las compras.');
-        } finally {
-          toast.dismiss(toastId);
-        }
-      }}
-      className="text-xs text-white/40 hover:text-white/80 transition-colors mt-2 block mx-auto underline cursor-pointer"
-    >
-      Restaurar Compras
-    </button>
+      <Smartphone size={32} className="text-purple-400 mb-2" />
+      <p className="text-white text-base md:text-lg font-medium text-center">
+        Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.
+      </p>
+      <a 
+        href="https://play.google.com/store/apps/details?id=com.luxresilient.app" 
+        target="_blank" 
+        rel="noreferrer"
+        className="mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200"
+      >
+        Descargar en Google Play
+      </a>
+    </motion.div>
+  )}
   </div>
- ) : (
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.4 }}
- className="flex flex-col items-center gap-4 bg-[#100820]/80 border border-purple-500/30 p-6 rounded-2xl max-w-md mx-auto shadow-lg shadow-purple-500/10"
- >
- <Smartphone size={32} className="text-purple-400 mb-2" />
- <p className="text-white text-base md:text-lg font-medium text-center">
- Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.
- </p>
- <a 
- href="https://play.google.com/store/apps/details?id=com.luxresilient.app" 
- target="_blank" 
- rel="noreferrer"
- className="mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200"
- >
- Descargar en Google Play
- </a>
- </motion.div>
- )}
- </div>
  </div>
 
  {/* Right Side: Features Grid */}

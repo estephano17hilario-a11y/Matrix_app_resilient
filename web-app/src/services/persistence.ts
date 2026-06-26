@@ -265,6 +265,19 @@ export const PersistenceService = {
       if (!profile) return;
       if (!profile.uid) return;
       const key = buildProfileKey(profile.uid);
+
+      // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
+      const primaryRaw = safeStorage.getItem(key);
+      if (primaryRaw) {
+        try {
+          const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<UserProfile | UserData>;
+          if (envelope && stableStringify(envelope.data) === stableStringify(profile)) {
+            // Profile is identical, skip write to save native resources and prevent loops
+            return;
+          }
+        } catch {}
+      }
+
       persistWithBackup(key, profile.uid, profile);
       safeStorage.setItem(key + '_TS', Date.now().toString());
     } catch (e) {
@@ -358,6 +371,19 @@ export const PersistenceService = {
   saveCollection: <T>(userId: string, collectionName: string, items: T[]) => {
     try {
       const key = buildCollectionKey(userId, collectionName);
+
+      // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
+      const primaryRaw = safeStorage.getItem(key);
+      if (primaryRaw) {
+        try {
+          const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
+          if (envelope && stableStringify(envelope.data) === stableStringify(items || [])) {
+            // Collection is identical, skip write to save native resources and prevent loops
+            return;
+          }
+        } catch {}
+      }
+
       persistWithBackup(key, userId, items || []);
       safeStorage.setItem(key + '_TS', Date.now().toString());
     } catch (e) {
@@ -368,6 +394,19 @@ export const PersistenceService = {
     try {
       if (!items || items.length === 0) return;
       const key = buildCollectionSafeKey(userId, collectionName);
+
+      // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
+      const primaryRaw = safeStorage.getItem(key);
+      if (primaryRaw) {
+        try {
+          const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
+          if (envelope && stableStringify(envelope.data) === stableStringify(items)) {
+            // Collection is identical, skip write to save native resources and prevent loops
+            return;
+          }
+        } catch {}
+      }
+
       persistWithBackup(key, userId, items);
       safeStorage.setItem(key + '_TS', Date.now().toString());
     } catch (e) {

@@ -16,13 +16,21 @@ import { usePermissions } from '../../../hooks/usePermissions';
 
 export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes?: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }, onSwitchToBadHabit?: () => void }) => {
     const { t } = useTranslation();
+    useEffect(() => {
+        console.log("🟢 [HabitModal LifeCycle] HabitModal mounted!");
+        return () => {
+            console.log("🔴 [HabitModal LifeCycle] HabitModal UNMOUNTED!");
+        };
+    }, []);
+
+    console.log(`🌀 [HabitModal LifeCycle] HabitModal rendering (isOpen: ${isOpen})`);
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
     
     // Block 1: Identity
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
-    const [attrId, setAttrId] = useState('');
+    const [attrId, setAttrId] = useState('DISCIPLINA');
     const [customColor, setCustomColor] = useState<string | undefined>(undefined);
     const [customIconName, setCustomIconName] = useState<string | null>(null);
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
@@ -127,7 +135,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                 // Reset
                 setTitle('');
                 setDesc('');
-                setAttrId('');
+                setAttrId('DISCIPLINA');
                 setSmartProjectId('');
                 setProjectId('');
                 setEstimatedTime(0);
@@ -180,11 +188,27 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
     const selectedAttr = (attributes || []).find((a) => a.id === attrId);
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const hasColorSource = !!attrId || !!customColor;
-    const CustomIcon = customIconName && (LucideIcons as any)[customIconName] 
-        ? (LucideIcons as any)[customIconName] 
-        : null;
-    const SelectedIcon = CustomIcon || selectedAttr?.icon || Star;
-    const TraitIcon = selectedAttr?.icon || Star;
+    const TraitIcon = useMemo(() => {
+        if (!selectedAttr) return Star;
+        const iconName = selectedAttr.iconName;
+        if (iconName && (LucideIcons as any)[iconName]) {
+            return (LucideIcons as any)[iconName];
+        }
+        const icon = selectedAttr.icon;
+        if (icon) {
+            if (typeof icon === 'function') return icon;
+            if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+        }
+        return Star;
+    }, [selectedAttr]);
+
+    const SelectedIcon = useMemo(() => {
+        if (customIconName && (LucideIcons as any)[customIconName]) {
+            return (LucideIcons as any)[customIconName];
+        }
+        return TraitIcon;
+    }, [customIconName, TraitIcon]);
+
     const activeLabel = selectedAttr && selectedAttr.label
         ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '')
         : 'Trait';
@@ -210,7 +234,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
     }, [estimatedTime, impact, initialData?.streak]);
 
     // Validation Logic
-    const isBlock1Valid = title.trim() !== '' && desc.trim() !== '' && attrId !== '';
+    const isBlock1Valid = title.trim() !== '' && attrId !== '';
     const isBlock2Valid = (() => {
         if (freq === 'WEEKLY') {
             if (weeklyType === 'SPECIFIC_DAYS' && weekDays.length === 0) return false;
@@ -236,7 +260,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         if (logic === 'CHECKLIST' && subtasks.length === 0 && !newSubtask.trim()) return false;
         return true;
     })();
-    const isBlock3Valid = estimatedTime > 0 && reminder !== '';
+    const isBlock3Valid = true;
 
     const canSubmit = isBlock1Valid && isBlock2Valid && isBlock3Valid;
 
@@ -259,6 +283,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
     };
 
     const handleConfirm = async () => {
+        console.log(`🌀 [HabitModal API] handleConfirm clicked. title: "${title}", isSubmitting: ${isSubmitting}`);
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
@@ -299,11 +324,35 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         }
     };
 
+    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
+    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
+    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
+    const backdropTouchStartedRef = React.useRef(false);
+
+    const handleBackdropTouchStart = () => {
+        console.log("🌀 [HabitModal UI] Backdrop touch/mousedown started.");
+        backdropTouchStartedRef.current = true;
+    };
+
     const handleClose = () => {
+        console.log("🌀 [HabitModal UI] handleClose invoked. Calling onClose().");
         onClose();
     };
 
-    if (typeof document === 'undefined') return null;
+    const handleBackdropClick = () => {
+        console.log(`🌀 [HabitModal UI] Backdrop click event fired. touchStarted: ${backdropTouchStartedRef.current}`);
+        if (!backdropTouchStartedRef.current) {
+            console.log("🌀 [HabitModal UI] Ignoring ghost backdrop click.");
+            return;
+        }
+        backdropTouchStartedRef.current = false;
+        if (!isSubmitting) {
+            console.log("🌀 [HabitModal UI] Backdrop click valid. Invoking handleClose().");
+            handleClose();
+        }
+    };
+
+    if (typeof document === 'undefined' || !document.body) return null;
 
     return createPortal(
         <AnimatePresence>
@@ -312,9 +361,14 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? handleClose : undefined} />
+                    <div 
+                        className="absolute inset-0 bg-black/60" 
+                        onTouchStart={handleBackdropTouchStart}
+                        onMouseDown={handleBackdropTouchStart}
+                        onClick={handleBackdropClick} 
+                    />
                     <motion.div 
                         initial={{ scale: 0.95, y: 10, opacity: 0 }}
                         animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -448,8 +502,20 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
-                                                            {(attributes || []).map((attr) => {
-                                                                const Icon = attr.icon || Star;
+                                                            {Array.isArray(attributes) && attributes.map((attr) => {
+                                                                if (!attr) return null;
+                                                                const Icon = (() => {
+                                                                    const iconName = attr.iconName;
+                                                                    if (iconName && (LucideIcons as any)[iconName]) {
+                                                                        return (LucideIcons as any)[iconName];
+                                                                    }
+                                                                    const icon = attr.icon;
+                                                                    if (icon) {
+                                                                        if (typeof icon === 'function') return icon;
+                                                                        if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+                                                                    }
+                                                                    return Star;
+                                                                })();
                                                                 const isSelected = attrId === attr.id;
                                                                 return (
                                                                     <button 
@@ -476,7 +542,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                             "text-xs font-bold",
                                                                             isSelected ? "text-white" : "text-slate-400"
                                                                         )}>
-                                                                        {t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}
+                                                                        {attr.label ? t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '') : ''}
                                                                         </span>
                                                                     </button>
                                                                 )

@@ -9,6 +9,7 @@ import { ChecklistModal } from './ChecklistModal';
 import { LiquidProgressCircle } from './LiquidProgressCircle';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { useTranslation } from 'react-i18next';
+import { triggerFlyingIcon } from './FlyingIcon';
 
 interface HabitItemProps {
   habit: Habit;
@@ -529,6 +530,18 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                         } else if (habit.type === 'CHECKLIST' && onUpdate) {
                             setIsChecklistModalOpen(true);
                         } else {
+                            if (!isCompletedToday) {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                if (rewards.gold > 0) {
+                                    triggerFlyingIcon(rect, "gold-counter-pill", <LucideIcons.Coins size={24} className="text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,1)]" />, 0);
+                                }
+                                if (rewards.xp > 0) {
+                                    triggerFlyingIcon(rect, "xp-bar-container", <LucideIcons.Zap size={24} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,1)]" />, 0.15);
+                                }
+                                if (rewards.traitXp > 0 && attribute && Icon) {
+                                    triggerFlyingIcon(rect, "xp-bar-container", <Icon size={24} style={{ color: baseColor }} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />, 0.3);
+                                }
+                            }
                             onComplete(e, habit, currentDate);
                         }
                     }}

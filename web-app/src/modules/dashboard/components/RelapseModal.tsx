@@ -30,6 +30,22 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
     userGold
 }) => {
     const { t } = useTranslation();
+    
+    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
+    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
+    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
+    const backdropTouchStartedRef = React.useRef(false);
+
+    const handleBackdropTouchStart = () => {
+        backdropTouchStartedRef.current = true;
+    };
+
+    const handleBackdropClick = () => {
+        if (!backdropTouchStartedRef.current) return;
+        backdropTouchStartedRef.current = false;
+        onClose();
+    };
+
     if (typeof document === 'undefined') return null;
 
     const isIntelligent = habit?.intelligentStreak || false;
@@ -54,7 +70,9 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 bg-[#020204]/90"
-                onClick={onClose}
+                onTouchStart={handleBackdropTouchStart}
+                onMouseDown={handleBackdropTouchStart}
+                onClick={handleBackdropClick}
             />
 
             <motion.div

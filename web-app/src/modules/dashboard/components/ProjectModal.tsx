@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -15,13 +16,21 @@ import { ColorPicker } from './ColorPicker';
 
 export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smartProjects, onConfirm, onDelete, initialData }: { isOpen: boolean, onClose: () => void, attributes?: Attribute[], smartProjects?: SmartProject[], onConfirm: (data: Partial<Project>) => Promise<void> | void, onDelete?: (projectId: string) => void, initialData?: Partial<Project> }) => {
     const { t } = useTranslation();
+    useEffect(() => {
+        console.log("🟢 [ProjectModal LifeCycle] ProjectModal mounted!");
+        return () => {
+            console.log("🔴 [ProjectModal LifeCycle] ProjectModal UNMOUNTED!");
+        };
+    }, []);
+
+    console.log(`🌀 [ProjectModal LifeCycle] ProjectModal rendering (isOpen: ${isOpen})`);
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [expandedBlock, setExpandedBlock] = useState<1 | 2 | 3>(1);
 
     // Block 1: Identity
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
-    const [attrId, setAttrId] = useState('');
+    const [attrId, setAttrId] = useState('DISCIPLINA');
     const [customColor, setCustomColor] = useState<string | undefined>(undefined);
     const [smartProjectId, setSmartProjectId] = useState('');
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
@@ -93,7 +102,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
             } else {
                 setTitle('');
                 setDesc('');
-                setAttrId('');
+                setAttrId('DISCIPLINA');
                 setCustomColor(undefined);
                 setSmartProjectId('');
                 setGoalTarget(1);
@@ -112,7 +121,19 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     const selectedAttr = attributes?.find((a) => a.id === attrId);
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const hasColorSource = !!attrId || !!customColor;
-    const SelectedIcon = selectedAttr?.icon || Briefcase;
+    const SelectedIcon = useMemo(() => {
+        if (!selectedAttr) return Briefcase;
+        const iconName = selectedAttr.iconName;
+        if (iconName && (LucideIcons as any)[iconName]) {
+            return (LucideIcons as any)[iconName];
+        }
+        const icon = selectedAttr.icon;
+        if (icon) {
+            if (typeof icon === 'function') return icon;
+            if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+        }
+        return Briefcase;
+    }, [selectedAttr]);
     const activeLabel = selectedAttr && selectedAttr.label 
         ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '') 
         : t('modals.project.traitDefault', 'Trait');
@@ -171,6 +192,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     };
 
     const handleConfirm = async () => {
+        console.log(`🌀 [ProjectModal API] handleConfirm clicked. title: "${title}", isSubmitting: ${isSubmitting}`);
         if (isSubmitting) return;
         setIsSubmitting(true);
         
@@ -228,7 +250,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         }
         return false;
     })();
-    const isBlock3Valid = typeof pomoDuration === 'number' && pomoDuration > 0 && reminder !== '';
+    const isBlock3Valid = typeof pomoDuration === 'number' && pomoDuration > 0;
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;
@@ -236,7 +258,30 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         setExpandedBlock(block);
     };
 
-    if (typeof document === 'undefined') return null;
+    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
+    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
+    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
+    const backdropTouchStartedRef = React.useRef(false);
+
+    const handleBackdropTouchStart = () => {
+        console.log("🌀 [ProjectModal UI] Backdrop touch/mousedown started.");
+        backdropTouchStartedRef.current = true;
+    };
+
+    const handleBackdropClick = () => {
+        console.log(`🌀 [ProjectModal UI] Backdrop click event fired. touchStarted: ${backdropTouchStartedRef.current}`);
+        if (!backdropTouchStartedRef.current) {
+            console.log("🌀 [ProjectModal UI] Ignoring ghost backdrop click.");
+            return;
+        }
+        backdropTouchStartedRef.current = false;
+        if (!isSubmitting) {
+            console.log("🌀 [ProjectModal UI] Backdrop click valid. Invoking onClose().");
+            onClose();
+        }
+    };
+
+    if (typeof document === 'undefined' || !document.body) return null;
 
     return createPortal(
         <AnimatePresence>
@@ -245,9 +290,14 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/60" onClick={!isSubmitting ? onClose : undefined} />
+                    <div 
+                        className="absolute inset-0 bg-black/60" 
+                        onTouchStart={handleBackdropTouchStart}
+                        onMouseDown={handleBackdropTouchStart}
+                        onClick={handleBackdropClick} 
+                    />
                     <motion.div 
                         initial={{ scale: 0.95, y: 10, opacity: 0 }}
                         animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -364,8 +414,20 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                         className="overflow-hidden"
                                                     >
                                                         <div className="grid grid-cols-2 gap-2 p-2 bg-[#1c1c1e]/50 rounded-xl border border-white/10">
-                                                            {(attributes || []).map((attr) => {
-                                                                const Icon = attr.icon || Target;
+                                                            {Array.isArray(attributes) && attributes.map((attr) => {
+                                                                if (!attr) return null;
+                                                                const Icon = (() => {
+                                                                    const iconName = attr.iconName;
+                                                                    if (iconName && (LucideIcons as any)[iconName]) {
+                                                                        return (LucideIcons as any)[iconName];
+                                                                    }
+                                                                    const icon = attr.icon;
+                                                                    if (icon) {
+                                                                        if (typeof icon === 'function') return icon;
+                                                                        if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+                                                                    }
+                                                                    return Target;
+                                                                })();
                                                                 const isSelected = attrId === attr.id;
                                                                 return (
                                                                     <button 
@@ -389,7 +451,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                             "text-xs font-bold",
                                                             isSelected ? "text-white" : "text-slate-400"
                                                         )}>
-                                                            {t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '')}
+                                                            {attr.label ? t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '') : ''}
                                                         </span>
                                                                     </button>
                                                                 )

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -30,7 +30,20 @@ const AppRoutes = () => {
   const canEnterLux = !!user || !!profile;
   useNotificationSystem(canEnterLux);
 
-
+  // 🔒 CRITICAL FIX: Once Dashboard is unlocked, NEVER unmount it.
+  // The previous logic (`shouldShowLoading = isLoading || profile.isSkeleton`)
+  // was unmounting Dashboard every time AuthContext refreshed the profile
+  // (e.g., after RevenueCat sync, Supabase re-fetch, or token refresh).
+  // When Dashboard unmounts, ALL local state (activeModal, editingQuest, etc.)
+  // is destroyed — this caused modals to appear for 1ms then vanish.
+  //
+  // Solution: use a ref that latches to `true` the first time a real,
+  // non-skeleton profile is available and never goes back to false.
+  const dashboardUnlockedRef = useRef(false);
+  if (profile && !profile.isSkeleton && !isLoading) {
+    dashboardUnlockedRef.current = true;
+  }
+  const dashboardUnlocked = dashboardUnlockedRef.current;
 
   // 🚀 PERFORMANCE: Hide Splash Screen ASAP (0 Delay)
   // BUT ONLY AFTER isInitializing IS FALSE
@@ -50,14 +63,7 @@ const AppRoutes = () => {
 
   // Determine what to show in the content layer
   const renderContent = () => {
-    // 🚀 FIX: Prevent "flash" of Onboarding by showing LoadingScreen if we are still checking Auth state
-    // or if we only have a skeleton profile (real profile is still fetching).
-    const shouldShowLoading = isLoading || (profile && profile.isSkeleton);
-
-    if (shouldShowLoading) {
-      return <LoadingScreen />;
-    }
-
+    // Not logged in at all
     if (!canEnterLux) {
       return (
         <Suspense fallback={<LoadingScreen />}>
@@ -66,12 +72,20 @@ const AppRoutes = () => {
       );
     }
 
+    // Onboarding: only show if we KNOW the profile is real and onboarding is incomplete
     if (profile && !profile.isSkeleton && !profile.onboarding?.completedAt) {
       return (
         <Suspense fallback={<LoadingScreen />}>
           <OnboardingFlow />
         </Suspense>
       );
+    }
+
+    // Show LoadingScreen ONLY on the very first load (before dashboardUnlocked latches).
+    // Once dashboardUnlocked=true, we ALWAYS render the Dashboard tree — never a LoadingScreen.
+    // This prevents Dashboard unmounts from destroying modal state mid-interaction.
+    if (!dashboardUnlocked) {
+      return <LoadingScreen />;
     }
 
     return (

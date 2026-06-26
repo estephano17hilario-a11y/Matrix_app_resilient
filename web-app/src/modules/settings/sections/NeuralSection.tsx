@@ -248,10 +248,22 @@ export const NeuralSection = () => {
     setEditingSubId(null);
     setNewSubName('');
     setNewSubIcon('Hexagon');
+    const resolvedIcon = (() => {
+      const iconName = attr.iconName;
+      if (iconName && (LucideIcons as any)[iconName]) {
+        return (LucideIcons as any)[iconName];
+      }
+      const icon = attr.icon;
+      if (icon) {
+        if (typeof icon === 'function') return icon;
+        if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+      }
+      return Hexagon;
+    })();
     setEditForm({
       label: String(t(attr.label, attr.label.replace('traits.', ''))),
       color: attr.color,
-      icon: attr.icon || Hexagon,
+      icon: resolvedIcon,
       iconName: attr.iconName || 'Hexagon'
     });
   };
@@ -348,7 +360,21 @@ export const NeuralSection = () => {
                     className="w-12 h-12 rounded-2xl border-2 shadow-md flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${editForm.color}20`, borderColor: `${editForm.color}50`, color: editForm.color }}
                   >
-                    {editForm.icon && <editForm.icon size={20} />}
+                    {(() => {
+                      const FormIcon = (() => {
+                        const iconName = editForm.iconName;
+                        if (iconName && (LucideIcons as any)[iconName]) {
+                          return (LucideIcons as any)[iconName];
+                        }
+                        const icon = editForm.icon;
+                        if (icon) {
+                          if (typeof icon === 'function') return icon;
+                          if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+                        }
+                        return Hexagon;
+                      })();
+                      return <FormIcon size={20} />;
+                    })()}
                   </div>
                   <input
                     autoFocus
@@ -411,7 +437,21 @@ export const NeuralSection = () => {
                         className="w-12 h-12 rounded-2xl border-2 shadow-md flex items-center justify-center shrink-0"
                         style={{ backgroundColor: `${editForm.color}20`, borderColor: `${editForm.color}50`, color: editForm.color }}
                       >
-                        {attr.icon ? <attr.icon size={20} /> : <Hexagon size={20} />}
+                        {(() => {
+                          const AttrIcon = (() => {
+                            const iconName = attr.iconName;
+                            if (iconName && (LucideIcons as any)[iconName]) {
+                              return (LucideIcons as any)[iconName];
+                            }
+                            const icon = attr.icon;
+                            if (icon) {
+                              if (typeof icon === 'function') return icon;
+                              if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+                            }
+                            return Hexagon;
+                          })();
+                          return <AttrIcon size={20} />;
+                        })()}
                       </div>
                       <input
                         autoFocus
@@ -762,7 +802,21 @@ export const NeuralSection = () => {
                         className="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform duration-200"
                         style={{ backgroundColor: `${attr.color}15`, color: attr.color, borderColor: `${attr.color}30` }}
                       >
-                        {attr.icon ? <attr.icon size={20} /> : <Hexagon size={20} />}
+                        {(() => {
+                          const AttrIcon = (() => {
+                            const iconName = attr.iconName;
+                            if (iconName && (LucideIcons as any)[iconName]) {
+                              return (LucideIcons as any)[iconName];
+                            }
+                            const icon = attr.icon;
+                            if (icon) {
+                              if (typeof icon === 'function') return icon;
+                              if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
+                            }
+                            return Hexagon;
+                          })();
+                          return <AttrIcon size={20} />;
+                        })()}
                       </div>
                       <div>
                         <div className="text-base font-bold text-white tracking-tight">{t(attr.label, attr.label.replace('traits.', ''))}</div>

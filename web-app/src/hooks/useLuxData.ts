@@ -24,10 +24,15 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
     // Only use cache if it matches the requested user (Security)
     if (cached && cached.uid === userId) {
         console.log("💾 LUX: Instant Boot from Memory Core.");
-        return { 
+        const resolved = { 
             ...cached, 
             stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } 
         } as UserData;
+        if (ENABLE_GLOBAL_PRO) {
+            resolved.plan = 'PRO';
+            resolved.es_pro = true;
+        }
+        return resolved;
     }
     return null;
   });
@@ -53,7 +58,12 @@ export const useLuxData = (userId: string | null | undefined): LuxDataHook => {
     if (user?.id !== userId) {
         const cached = PersistenceService.getProfile(userId);
         if (cached && cached.uid === userId) {
-             setUser({ ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData);
+             const resolved = { ...cached, stats: { ...DEFAULT_USER_STATS, ...(cached.stats || {}) } } as UserData;
+             if (ENABLE_GLOBAL_PRO) {
+                 resolved.plan = 'PRO';
+                 resolved.es_pro = true;
+             }
+             setUser(resolved);
              setLoading(false); // Optimistic load
         } else {
              setLoading(true);

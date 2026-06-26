@@ -9,10 +9,10 @@ import {
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
 } from '@/types';
-import { DailyLimits } from '@/types/User';
+import { DailyLimits, UserPlan, UserProfile } from '@/types/User';
 import { TRAITS_LIST } from '../constants';
 import { GAMIFICATION_CONFIG } from '@/config/gamification';
-import { FREE_LIMITS } from '@/config/limits';
+import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '@/config/limits';
 import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
 import { PersistenceService } from '@/services/persistence';
@@ -148,13 +148,15 @@ export const useDashboardLogic = () => {
         
         // If UIDs match, merge carefully
         if (luxUser.id === authProfile.uid || luxUser.id === authProfile.id) {
+            const planVal = (ENABLE_GLOBAL_PRO ? 'PRO' : (authProfile.plan || luxUser.plan || 'FREE')) as UserPlan;
+            const esProVal = ENABLE_GLOBAL_PRO ? true : (authProfile.es_pro ?? luxUser.es_pro ?? false);
             return {
                 ...luxUser,
                 // 🔐 PLAN PERSISTENCE: ALWAYS prefer authProfile for plan/es_pro.
                 // luxUser (LuxContext) does NOT fetch plan from Supabase, so it defaults to undefined.
                 // authProfile is the source of truth for subscription status.
-                plan: authProfile.plan || luxUser.plan || 'FREE',
-                es_pro: authProfile.es_pro ?? luxUser.es_pro ?? false,
+                plan: planVal,
+                es_pro: esProVal,
                 // Prefer Auth Profile for Identity fields ONLY if valid, otherwise trust Lux (which has realtime sync)
                 avatarId: authProfile.avatarId || luxUser.avatarId,
                 displayName: luxUser.displayName || authProfile.displayName,
@@ -180,7 +182,9 @@ export const useDashboardLogic = () => {
                 }
             };
         }
-        return luxUser;
+        
+        // Fallback when UIDs don't match, still respect global override for development/safety
+        return ENABLE_GLOBAL_PRO ? { ...luxUser, plan: 'PRO', es_pro: true } : luxUser;
     }, [luxUser, authProfile]);
 
 
@@ -366,38 +370,45 @@ export const useDashboardLogic = () => {
 
     // Sticky HUD updater removed
 
+    const prefDashboardStyle = user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER';
+    const prefAvatarShape = user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE';
+    const prefHabitSectionControl = user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE';
+    const prefDefaultHabitView = user?.preferences?.defaultHabitView || user?.defaultHabitView || 'DEFAULT';
+    const prefAllowDockSectionSwitch = user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? false;
+    const prefDockConfigStr = JSON.stringify(user?.preferences?.dockConfig || user?.dockConfig || DEFAULT_DOCK_CONFIG);
+    const prefWeekStartDay = user?.preferences?.weekStartDay ?? user?.weekStartDay ?? 1;
+    const prefDefaultChartMode = user?.preferences?.defaultChartMode || user?.defaultChartMode || 'RADAR';
+    const prefShowProfile = user?.preferences?.showProfile ?? user?.showProfile ?? true;
+
     useEffect(() => {
-        // Remove hardcoded BORDER enforcement to allow AURA and others
-        if (user?.preferences?.dashboardStyle || user?.dashboardStyle) {
-            setDashboardStyle(user.preferences?.dashboardStyle || user.dashboardStyle || 'BORDER');
-        }
+        setDashboardStyle(prefDashboardStyle);
+        setAvatarShape(prefAvatarShape);
+        setHabitSectionControl(prefHabitSectionControl);
+        setDefaultHabitView(prefDefaultHabitView);
+        setAllowDockSectionSwitch(prefAllowDockSectionSwitch);
+        setWeekStartDay(prefWeekStartDay);
+        _setDefaultChartMode(prefDefaultChartMode);
+        _setShowProfile(prefShowProfile);
         
-        if (user?.preferences?.avatarShape || user?.avatarShape) {
-            setAvatarShape(user.preferences?.avatarShape || user.avatarShape || 'CIRCLE');
-        }
-        if (user?.preferences?.habitSectionControl || user?.habitSectionControl) {
-            setHabitSectionControl(user.preferences?.habitSectionControl || user.habitSectionControl || 'VISIBLE');
-        }
-        if (user?.preferences?.defaultHabitView || user?.defaultHabitView) {
-            setDefaultHabitView(user.preferences?.defaultHabitView || user.defaultHabitView || 'DEFAULT');
-        }
-        if (user?.preferences?.allowDockSectionSwitch !== undefined || user?.allowDockSectionSwitch !== undefined) {
-            setAllowDockSectionSwitch(user.preferences?.allowDockSectionSwitch ?? user.allowDockSectionSwitch ?? false);
-        }
-        if (user?.preferences?.dockConfig || user?.dockConfig) {
-            setDockConfig(user.preferences?.dockConfig || user.dockConfig || DEFAULT_DOCK_CONFIG);
-        }
-        if (user?.preferences?.weekStartDay !== undefined || user?.weekStartDay !== undefined) {
-            setWeekStartDay(user.preferences?.weekStartDay ?? user.weekStartDay ?? 1);
-        }
-        if (user?.preferences?.defaultChartMode || user?.defaultChartMode) {
-            _setDefaultChartMode(user.preferences?.defaultChartMode || user.defaultChartMode || 'RADAR');
-        }
-        if (user?.preferences?.showProfile !== undefined || user?.showProfile !== undefined) {
-            _setShowProfile(user.preferences?.showProfile ?? user.showProfile ?? true);
-        }
-        // Sticky HUD sync removed
-    }, [user?.dashboardStyle, user?.avatarShape, user?.habitSectionControl, user?.defaultHabitView, user?.allowDockSectionSwitch, user?.dockConfig, user?.weekStartDay, user?.preferences, user?.defaultChartMode, user?.showProfile]);
+        const parsedDockConfig = JSON.parse(prefDockConfigStr);
+        setDockConfig(prev => {
+            const hasChanged = 
+                JSON.stringify(prev?.enabledItems) !== JSON.stringify(parsedDockConfig.enabledItems) ||
+                JSON.stringify(prev?.order) !== JSON.stringify(parsedDockConfig.order) ||
+                JSON.stringify(prev?.expandedItems) !== JSON.stringify(parsedDockConfig.expandedItems);
+            return hasChanged ? parsedDockConfig : prev;
+        });
+    }, [
+        prefDashboardStyle,
+        prefAvatarShape,
+        prefHabitSectionControl,
+        prefDefaultHabitView,
+        prefAllowDockSectionSwitch,
+        prefDockConfigStr,
+        prefWeekStartDay,
+        prefDefaultChartMode,
+        prefShowProfile
+    ]);
 
     const [player, setPlayer] = useState({ level: 1, xp: 0, nextXp: calculateNextLevelXp(1), gold: 0 });
     const playerRef = useRef(player);
@@ -1372,13 +1383,11 @@ export const useDashboardLogic = () => {
             });
             setAttributes(enriched);
             
-            // Save healed attributes back to cache and local database
+            // Save healed attributes back to cache
             if (currentUserId) {
                 const attrsForCache = enriched.map(({ icon, ...rest }) => rest);
                 PersistenceService.saveCollection(currentUserId, 'attributes', attrsForCache);
-                enriched.forEach(a => {
-                    persistenceService.attributes.save(currentUserId, a).catch(console.error);
-                });
+                // Unmodified attributes are already in the DB, and healed attributes are already saved individually above.
             }
         } else {
             setAttributes([]);
@@ -1454,7 +1463,7 @@ export const useDashboardLogic = () => {
                         } 
                     };
                     
-                    const newAchievements = await checkAchievements(hybridUser, attributes);
+                    const newAchievements = await checkAchievements(hybridUser as UserProfile, attributes);
                     if (newAchievements.length > 0) {
                         // Si hay muchos logros de golpe, probablemente sea una sincronización 
                         // de cuenta antigua en un nuevo dispositivo. Los guardamos pero no spameamos.
@@ -1768,13 +1777,19 @@ export const useDashboardLogic = () => {
         };
 
         const hasCache = projectsLoaded || questsLoaded || habitsLoaded || badHabitsLoaded || smartProjectsLoaded || attributesLoaded;
+        let timeoutId: any = null;
         if (hasSynced) {
             performSync();
         } else {
             // First load: delay network sync by 2.5s only if we have cached data.
             // If cache is empty, sync immediately!
-            setTimeout(performSync, hasCache ? 2500 : 0);
+            timeoutId = setTimeout(performSync, hasCache ? 2500 : 0);
         }
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
     }, [user?.id, syncTrigger]);
 
     useEffect(() => {
@@ -2291,6 +2306,125 @@ export const useDashboardLogic = () => {
                     return newItem;
                 }
 
+                if (habit.isDynamic) {
+                    const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                    const todayDate = parseLocalDate(todayStr);
+                    const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays > 0) {
+                        const balance = habit.dynamicBalance ?? 0;
+                        const targetType = habit.dynamicTargetType || 'neutral';
+                        const isSuccess = targetType === 'neutral' ? balance >= 0 : balance > 0;
+                        
+                        let updatedStreak = habit.streak || 0;
+                        let relapsed = false;
+                        let updatedHistory = [...(habit.history || [])];
+
+                        if (isSuccess) {
+                            updatedStreak += 1;
+
+                            // RESILIENCIA Trigger: restart dynamic bad habit streak after a relapse
+                            if (updatedStreak === 1 && (habit.streak || 0) === 0 && habit.history && habit.history.length > 0) {
+                                const resReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
+                                updateAttributeXp('RESILIENCIA', resReward);
+                                disciplineRewards.push({
+                                    habitId: habit.id,
+                                    habitTitle: habit.title,
+                                    traitId: 'RESILIENCIA',
+                                    bonusTp: resReward
+                                });
+                            }
+
+                            // Award TP for exceeding target
+                            const exceedAmount = targetType === 'neutral' ? balance : balance - 1;
+                            if (exceedAmount > 0) {
+                                const bonusTp = exceedAmount * 15;
+                                disciplineRewards.push({
+                                    habitId: habit.id,
+                                    habitTitle: habit.title,
+                                    traitId: habit.attribute,
+                                    bonusTp
+                                });
+                            }
+                        } else {
+                            updatedStreak = 0;
+                            relapsed = true;
+                            updatedHistory.push(lastChecked.toISOString().split('T')[0]);
+
+                            const penalty = habit.penalties || { hp: 15, xp: 30, gold: 60 };
+                            
+                            // Health/Integrity deduction (copied from handleBadHabitRelapse)
+                            setHealth(prevHealth => {
+                                const newHealth = Math.max(0, prevHealth - penalty.hp);
+                                if (user?.id) {
+                                    const cached = PersistenceService.getProfile(user.id);
+                                    if (cached) {
+                                        PersistenceService.saveProfile({
+                                            ...cached,
+                                            stats: { ...cached.stats, hp: newHealth }
+                                        });
+                                    }
+                                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true);
+                                }
+                                
+                                // System failure handling if hp <= 0
+                                if (newHealth <= 0 && user?.id) {
+                                    addNotification({
+                                        type: 'SYSTEM',
+                                        label: 'SYSTEM FAILURE',
+                                        fromLevel: 'Critical',
+                                        toLevel: 'Terminal',
+                                        icon: Skull,
+                                        color: '#ef4444'
+                                    });
+
+                                    TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
+                                        if (!result) return;
+                                        const { newLevel, newXp } = result;
+                                        setPlayer(prev => ({
+                                            ...prev,
+                                            level: newLevel,
+                                            xp: newXp,
+                                            nextXp: calculateNextLevelXp(newLevel)
+                                        }));
+                                        setHealth(100);
+                                        
+                                        setAttributes(prev => prev.map(attr => {
+                                            const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
+                                            return {
+                                                ...attr,
+                                                level: newAttrLevel,
+                                                xp: newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0,
+                                                maxXp: calculateAttributeMaxXp(newAttrLevel)
+                                            };
+                                        }));
+                                    });
+                                }
+                                return newHealth;
+                            });
+
+                            addPlayerReward({
+                                xp: -penalty.xp,
+                                gold: 0
+                            });
+                            updateAttributeXp(habit.attribute, -penalty.xp, habit.subAttribute);
+                        }
+
+                        if (diffDays > 1) {
+                            updatedStreak += (diffDays - 1);
+                        }
+
+                        newItem.streak = updatedStreak;
+                        newItem.relapsedToday = relapsed;
+                        newItem.dynamicBalance = 0; // Reset balance for the next day
+                        newItem.history = updatedHistory;
+                        newItem.lastCheckedDate = todayStr;
+                        hasChanges = true;
+                    }
+                    return newItem;
+                }
+
                 if (!habit.intelligentStreak) {
                     // Logic for normal bad habit streaks
                     const lastChecked = parseLocalDate(habit.lastCheckedDate);
@@ -2388,7 +2522,15 @@ export const useDashboardLogic = () => {
                 PersistenceService.saveCollection(user.id, 'badHabits', updatedBadHabits);
 
                 for (const habit of updatedBadHabits) {
-                    if (habit.intelligentStreak) {
+                    if (habit.isDynamic) {
+                        await persistenceService.badHabits.update(user.id, habit.id, {
+                            streak: habit.streak,
+                            relapsedToday: habit.relapsedToday,
+                            dynamicBalance: habit.dynamicBalance,
+                            history: habit.history,
+                            lastCheckedDate: habit.lastCheckedDate
+                        });
+                    } else if (habit.intelligentStreak) {
                         await persistenceService.badHabits.update(user.id, habit.id, {
                             reachedDays: habit.reachedDays,
                             currentTarget: habit.currentTarget,
@@ -2437,7 +2579,20 @@ export const useDashboardLogic = () => {
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [particles, setParticles] = useState<Particle[]>([]);
-    const [activeModal, setActiveModal] = useState<string | null>(null);
+    const [activeModal, _setActiveModal] = useState<string | null>(null);
+    const activeModalRef = useRef<string | null>(null);
+    useEffect(() => {
+        activeModalRef.current = activeModal;
+        console.log(`[activeModal LifeCycle] activeModal state updated to: "${activeModal}"`);
+    }, [activeModal]);
+
+    const setActiveModal = useCallback((val: string | null) => {
+        const prev = activeModalRef.current;
+        console.log(`[activeModal Trace] setActiveModal called with: "${val}" (previous: "${prev}")`);
+        const stack = new Error('[activeModal Stack Trace]').stack;
+        console.log(stack);
+        _setActiveModal(val);
+    }, []);
     const [validationHabit, setValidationHabit] = useState<Habit | null>(null);
     const [valTempValue, setValTempValue] = useState('');
 
@@ -6048,6 +6203,23 @@ export const useDashboardLogic = () => {
 
     }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, player.level, attributes]);
 
+    const handleUpdateBadHabitBalance = useCallback(async (habit: BadHabit, newBalance: number) => {
+        if (!user?.id) return;
+
+        const updatedHabit = {
+            ...habit,
+            dynamicBalance: newBalance
+        };
+
+        setBadHabits(prev => {
+            const newBadHabits = prev.map(h => h.id === habit.id ? updatedHabit : h);
+            PersistenceService.saveCollection(user.id, 'badHabits', newBadHabits);
+            return newBadHabits;
+        });
+
+        await persistenceService.badHabits.save(user.id, updatedHabit);
+    }, [user?.id]);
+
     const handleDeleteBadHabit = useCallback(async (id: string) => {
         if (!user?.id) return;
         
@@ -6233,6 +6405,7 @@ export const useDashboardLogic = () => {
         badHabits,
         handleBadHabitConfirm,
         handleBadHabitRelapse,
+        handleUpdateBadHabitBalance,
         handleDeleteBadHabit,
         vividMode,
         setVividMode,

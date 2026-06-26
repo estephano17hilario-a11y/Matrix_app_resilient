@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
-import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical } from 'lucide-react';
+import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
 import { BadHabit, Attribute } from '../../../types';
 
 const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
@@ -12,6 +12,7 @@ interface BadHabitItemProps {
     attribute?: Attribute;
     onRelapse: (habit: BadHabit) => void;
     onShowActions?: (habit: BadHabit) => void;
+    onUpdateDynamicBalance?: (habit: BadHabit, newBalance: number) => void;
 }
 
 export const BadHabitItem: React.FC<BadHabitItemProps> = ({
@@ -19,7 +20,8 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     attributes,
     attribute,
     onRelapse,
-    onShowActions
+    onShowActions,
+    onUpdateDynamicBalance
 }) => {
     const isRelapsed = habit.relapsedToday;
     const resolvedAttributes = React.useMemo(() => {
@@ -44,20 +46,40 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
     const progress = isIntelligent ? Math.min((reachedDays / currentTarget) * 100, 100) : Math.min(habit.streak, 100);
 
+    // Compute dynamic border and background styles based on status
+    let isBadHabitGood = false;
+    if (habit.isDynamic) {
+        const balance = habit.dynamicBalance ?? 0;
+        if (habit.dynamicTargetType === 'positive') {
+            isBadHabitGood = balance > 0;
+        } else {
+            // neutral
+            isBadHabitGood = balance >= 0;
+        }
+    } else {
+        isBadHabitGood = !isRelapsed;
+    }
+
+    const dynamicBorderColor = isBadHabitGood 
+        ? 'rgba(16, 185, 129, 0.45)' // green (emerald-500/45)
+        : 'rgba(244, 63, 94, 0.5)';  // red (rose-500/50)
+
+    const dynamicBgColor = isBadHabitGood
+        ? 'rgba(16, 185, 129, 0.05)'  // subtle green
+        : 'rgba(244, 63, 94, 0.08)';   // subtle red
+
     const wrapperStyle = {
-        backgroundColor: isRelapsed ? undefined : `${color}08`,
-        borderColor: isRelapsed ? undefined : `${color}25`,
+        backgroundColor: dynamicBgColor,
+        borderColor: dynamicBorderColor,
         contentVisibility: 'auto' as const,
         containIntrinsicSize: '140px'
     };
 
     const wrapperProps = {
         className: `group relative border rounded-[1.5rem] p-1 transition-all duration-200 overflow-hidden ${
-            isRelapsed
-                ? 'bg-rose-950/40 border-rose-500/20 opacity-80'
-                : isIntelligent
-                    ? 'bg-gradient-to-br from-violet-900/20 via-indigo-900/10 to-fuchsia-900/10 border-violet-500/20 hover:border-violet-500/40'
-                    : 'bg-[#0b0b0d]/80 hover:bg-[#15151a]/80 border-white/5'
+            isBadHabitGood
+                ? 'shadow-[0_0_15px_rgba(16,185,129,0.03)]'
+                : 'shadow-[0_0_15px_rgba(244,63,94,0.05)]'
         }`,
         style: wrapperStyle
     };
@@ -79,9 +101,11 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     className={`w-13 h-13 rounded-2xl flex items-center justify-center border transition-transform flex-shrink-0 ${
                         isRelapsed
                             ? 'bg-rose-500/10 border-rose-500/20'
-                            : isIntelligent
-                                ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-400/30'
-                                : ''
+                            : habit.isDynamic
+                                ? 'bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border-cyan-400/30'
+                                : isIntelligent
+                                    ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-400/30'
+                                    : ''
                     }`}
                 >
                     {isRelapsed ? (
@@ -92,7 +116,12 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                             {isIntelligent && (
                                 <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
                             )}
+                            {habit.isDynamic && (
+                                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                            )}
                         </div>
+                    ) : habit.isDynamic ? (
+                        <Scale size={22} className="text-cyan-400 animate-pulse" />
                     ) : isIntelligent ? (
                         <div className="relative">
                             <Sparkles size={22} className="text-violet-400" />
@@ -105,7 +134,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                        <h4 className={`font-bold text-[14px] tracking-tight truncate ${isRelapsed ? 'text-rose-400 line-through' : isIntelligent ? 'text-violet-200' : 'text-white'}`}>
+                        <h4 className={`font-bold text-[14px] tracking-tight truncate ${isRelapsed ? 'text-rose-400 line-through' : habit.isDynamic ? 'text-cyan-200' : isIntelligent ? 'text-violet-200' : 'text-white'}`}>
                             {habit.title}
                         </h4>
                         {isIntelligent && !isRelapsed && (
@@ -114,9 +143,71 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 <span className="text-[8px] font-bold text-violet-200 uppercase tracking-wider">AI</span>
                             </div>
                         )}
+                        {habit.isDynamic && !isRelapsed && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/20 border border-cyan-400/30 rounded-full">
+                                <Scale size={9} className="text-cyan-300 animate-pulse" />
+                                <span className="text-[8px] font-bold text-cyan-200 uppercase tracking-wider">DINÁMICO</span>
+                            </div>
+                        )}
                     </div>
 
-                    {isIntelligent && !isRelapsed ? (
+                    {habit.isDynamic && !isRelapsed ? (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <Target size={12} className="text-cyan-400" />
+                                    <span className="text-[11px] font-semibold text-cyan-300/80">
+                                        Meta: {habit.dynamicTargetType === 'neutral' ? '>= 0' : '> 0'}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] text-white/35 font-medium">
+                                    {habit.streak} día{habit.streak !== 1 ? 's' : ''} de racha
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 py-0.5">
+                                <motion.button
+                                    whileHover={{ scale: 1.15 }}
+                                    whileTap={{ scale: 0.85 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onUpdateDynamicBalance) {
+                                            onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) - 1);
+                                        }
+                                    }}
+                                    className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
+                                    title="Desliz (-1)"
+                                >
+                                    <LucideIcons.Minus size={20} />
+                                </motion.button>
+
+                                <div className={`px-4 py-1.5 rounded-xl text-sm font-black tracking-wider border transition-all duration-300 min-w-[62px] text-center shadow-inner ${
+                                    (habit.dynamicBalance ?? 0) < 0
+                                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]'
+                                        : (habit.dynamicBalance ?? 0) === 0
+                                            ? 'bg-[#0d0d0f]/60 border-white/[0.08] text-slate-300'
+                                            : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse'
+                                }`}>
+                                    {(habit.dynamicBalance ?? 0) > 0 ? `+${habit.dynamicBalance}` : habit.dynamicBalance ?? 0}
+                                </div>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.15 }}
+                                    whileTap={{ scale: 0.85 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onUpdateDynamicBalance) {
+                                            onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) + 1);
+                                        }
+                                    }}
+                                    className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                    title="Victoria Moral (+1)"
+                                >
+                                    <LucideIcons.Plus size={20} />
+                                </motion.button>
+                            </div>
+                        </div>
+                    ) : isIntelligent && !isRelapsed ? (
                         <div className="space-y-2">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5">
@@ -217,7 +308,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 z-10">
-                    {!isRelapsed && (
+                    {!isRelapsed && !habit.isDynamic && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();

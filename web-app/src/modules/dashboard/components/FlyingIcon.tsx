@@ -23,10 +23,10 @@ const FlyingIconComponent: React.FC<FlyingIconProps> = ({ startRect, targetId, i
                 y: rect.top + rect.height / 2
             });
         } else {
-             // Fallback: fly up
+             // Fallback: fly up to top center
             setTargetPos({
-                x: startRect.left + startRect.width / 2,
-                y: startRect.top - 100
+                x: window.innerWidth / 2,
+                y: 50
             });
         }
     }, 10);
@@ -35,31 +35,39 @@ const FlyingIconComponent: React.FC<FlyingIconProps> = ({ startRect, targetId, i
 
   if (!targetPos) return null;
 
+  const startLeft = startRect.left + startRect.width / 2 - 12;
+  const startTop = startRect.top + startRect.height / 2 - 12;
+  const targetLeft = targetPos.x - 12;
+  const targetTop = targetPos.y - 12;
+  
+  // Create a beautiful upward arching path
+  const peakTop = Math.min(startTop, targetTop) - 120;
+
   return (
     <motion.div
       initial={{ 
         position: 'fixed',
-        left: startRect.left + startRect.width / 2 - 12,
-        top: startRect.top + startRect.height / 2 - 12,
+        left: startLeft,
+        top: startTop,
         opacity: 0,
-        scale: 0.5,
+        scale: 0.4,
         zIndex: 9999,
         pointerEvents: 'none'
       }}
       animate={{ 
         opacity: [0, 1, 1, 0],
-        scale: [0.5, 1.2, 0.4],
-        left: targetPos.x, 
-        top: targetPos.y,
+        scale: [0.4, 1.3, 1.0, 0.2],
+        left: [startLeft, startLeft + (targetLeft - startLeft) * 0.25, startLeft + (targetLeft - startLeft) * 0.75, targetLeft],
+        top: [startTop, peakTop, targetTop - (targetTop - peakTop) * 0.15, targetTop],
       }}
       transition={{ 
-        duration: 0.15, 
-        ease: "easeInOut",
+        duration: 0.85, 
+        ease: "easeOut",
         delay: delay,
         times: [0, 0.2, 0.8, 1]
       }}
       onAnimationComplete={onComplete}
-      className="flex items-center justify-center"
+      className="flex items-center justify-center pointer-events-none"
     >
       {icon}
     </motion.div>
@@ -72,7 +80,6 @@ export const triggerFlyingIcon = (startRect: DOMRect, targetId: string, icon: Re
     const root = createRoot(container);
 
     const cleanup = () => {
-        // Delay unmount slightly to ensure animation is fully done visually
         setTimeout(() => {
             root.unmount();
             container.remove();
