@@ -2359,7 +2359,16 @@ export const useDashboardLogic = () => {
                             // Award TP for exceeding target
                             const exceedAmount = targetType === 'neutral' ? balance : balance - 1;
                             if (exceedAmount > 0) {
-                                const bonusTp = exceedAmount * 15;
+                                const getImpactLevel = (bh: any): number => {
+                                    const match = bh.negativeImpact?.match(/\d+/);
+                                    return match ? parseInt(match[0], 10) : 3;
+                                };
+                                const getDifficultyDelta = (bh: any): number => {
+                                    const level = getImpactLevel(bh);
+                                    const deltas = [2, 3, 4, 5, 6];
+                                    return deltas[level - 1] ?? 4;
+                                };
+                                const bonusTp = exceedAmount * getDifficultyDelta(habit);
                                 disciplineRewards.push({
                                     habitId: habit.id,
                                     habitTitle: habit.title,
@@ -6257,80 +6266,64 @@ export const useDashboardLogic = () => {
         if (diff !== 0) {
             const isPositive = diff > 0;
             
-            // Calculate difficulty delta
+            // Calculate difficulty delta: [2, 3, 4, 5, 6]
             const getImpactLevel = (bh: BadHabit): number => {
                 const match = bh.negativeImpact?.match(/\d+/);
                 return match ? parseInt(match[0], 10) : 3;
             };
             const getDifficultyDelta = (bh: BadHabit): number => {
                 const level = getImpactLevel(bh);
-                const deltas = [4, 6, 8, 10, 12];
-                return deltas[level - 1] ?? 8;
+                const deltas = [2, 3, 4, 5, 6];
+                return deltas[level - 1] ?? 4;
             };
             
             const baseTp = getDifficultyDelta(habit);
             
-            // Read/update daily limits
-            const todayStr = toLocalISOString(new Date());
-            const tpKey = `dynamic_habits_daily_tp_${user.id}_${todayStr}`;
-            let dailyTp = { positive: 0, negative: 0 };
-            try {
-                const cached = localStorage.getItem(tpKey);
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    dailyTp = {
-                        positive: typeof parsed.positive === 'number' ? parsed.positive : 0,
-                        negative: typeof parsed.negative === 'number' ? parsed.negative : 0
-                    };
-                }
-            } catch (e) {
-                console.error("Error reading daily TP:", e);
+            // Clamped change calculation to limit rewards in the [-50, 50] range
+            const getClampedBalance = (bal: number) => Math.max(-50, Math.min(50, bal));
+            const oldClamped = getClampedBalance(oldBalance);
+            const newClamped = getClampedBalance(newBalance);
+            const clampedDiff = newClamped - oldClamped; // +1, -1, or 0
+            
+            const actualTp = clampedDiff * baseTp; // +baseTp, -baseTp, or 0
+            const isLimitReached = clampedDiff === 0;
+
+            if (actualTp !== 0) {
+                // Award or subtract TP
+                updateAttributeXp(habit.attribute, actualTp, habit.subAttribute);
             }
-            
-            let actualTp = 0;
-            let isLimitReached = false;
-            
-            if (isPositive) {
-                const remaining = Math.max(0, 50 - dailyTp.positive);
-                actualTp = Math.min(baseTp, remaining);
-                if (actualTp > 0) {
-                    dailyTp.positive += actualTp;
-                    updateAttributeXp(habit.attribute, actualTp, habit.subAttribute);
-                } else {
-                    isLimitReached = true;
-                }
-            } else {
-                const remaining = Math.max(0, 50 - dailyTp.negative);
-                actualTp = Math.min(baseTp, remaining);
-                if (actualTp > 0) {
-                    dailyTp.negative += actualTp;
-                    updateAttributeXp(habit.attribute, -actualTp, habit.subAttribute);
-                } else {
-                    isLimitReached = true;
-                }
-            }
-            
-            // Save daily limits
-            try {
-                localStorage.setItem(tpKey, JSON.stringify(dailyTp));
-            } catch (e) {
-                console.error("Error saving daily TP:", e);
-            }
-            
-            // Clean up trait label (remove "traits." prefix and make uppercase)
-            const rawLabel = habit.attribute || 'TP';
-            const traitLabel = rawLabel.replace('traits.', '').toUpperCase();
+
+            // Resolve the Spanish display name of the attribute
+            const getTraitDisplayName = (rawId: string): string => {
+                if (!rawId) return 'TP';
+                const cleanId = rawId.replace('traits.', '').toUpperCase();
+                const dict: Record<string, string> = {
+                    'RESILIENCIA': 'Resiliencia',
+                    'DISCIPLINA': 'Disciplina',
+                    'FZA_VOLUNTAD': 'Fuerza de Voluntad',
+                    'VOLUNTAD': 'Fuerza de Voluntad',
+                    'FUERZA_VOLUNTAD': 'Fuerza de Voluntad',
+                    'FUERZA_DE_VOLUNTAD': 'Fuerza de Voluntad',
+                    'ENERGIA': 'Energía',
+                    'INTELIGENCIA': 'Inteligencia',
+                    'SALUD': 'Salud',
+                    'SALUD_FISICA': 'Salud Física',
+                    'ENFOQUE': 'Enfoque',
+                    'PRODUCTIVIDAD': 'Productividad'
+                };
+                return dict[cleanId] || cleanId;
+            };
+            const traitDisplayName = getTraitDisplayName(habit.attribute);
             
             // Show toast message
             let toastMessage = "";
-            if (isPositive) {
-                toastMessage = isLimitReached 
-                    ? `+1 Balance (Límite TP ${traitLabel} alcanzado)` 
-                    : `+1 Balance (+${actualTp} TP a ${traitLabel})`;
+            const balancePrefix = isPositive ? `+1 Balance` : `-1 Balance`;
+            if (isLimitReached) {
+                toastMessage = `${balancePrefix} (Límite TP ${traitDisplayName} alcanzado)`;
             } else {
-                toastMessage = isLimitReached 
-                    ? `-1 Balance (Límite TP ${traitLabel} alcanzado)` 
-                    : `-1 Balance (-${actualTp} TP a ${traitLabel})`;
+                toastMessage = isPositive 
+                    ? `${balancePrefix} (+${actualTp} TP a ${traitDisplayName})`
+                    : `${balancePrefix} (-${Math.abs(actualTp)} TP a ${traitDisplayName})`;
             }
             
             toast(toastMessage, {
@@ -6340,22 +6333,6 @@ export const useDashboardLogic = () => {
                 style: {
                     background: isLimitReached ? 'rgba(30, 30, 36, 0.95)' : (isPositive ? 'rgba(16, 185, 129, 0.95)' : 'rgba(244, 63, 94, 0.95)'),
                     color: isLimitReached ? '#ffc107' : '#fff',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    borderRadius: '16px',
-                    boxShadow: '0 0 20px rgba(0, 0, 0, 0.4)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }
-            });
-        } else {
-            const isPositiveLimit = newBalance === 50;
-            toast(isPositiveLimit ? `Balance en el límite máximo (+50)` : `Balance en el límite mínimo (-50)`, {
-                id: `balance-${habit.id}`,
-                duration: 800,
-                icon: '🔒',
-                style: {
-                    background: 'rgba(30, 30, 36, 0.95)',
-                    color: '#ffc107',
                     fontWeight: 'bold',
                     fontSize: '14px',
                     borderRadius: '16px',

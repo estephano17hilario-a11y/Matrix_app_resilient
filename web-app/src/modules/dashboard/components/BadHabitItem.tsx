@@ -13,8 +13,8 @@ const getImpactLevel = (bh: BadHabit): number => {
 
 const getDifficultyDelta = (bh: BadHabit): number => {
     const level = getImpactLevel(bh);
-    const deltas = [4, 6, 8, 10, 12];
-    return deltas[level - 1] ?? 8;
+    const deltas = [2, 3, 4, 5, 6];
+    return deltas[level - 1] ?? 4;
 };
 
 interface BadHabitItemProps {
@@ -52,6 +52,35 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     const currentTarget = habit.currentTarget || 3;
     const reachedDays = habit.reachedDays || 0;
     const subTrait = resolvedAttributes[0]?.subTraits?.find(st => st.id === habit.subAttribute);
+
+    const traitName = React.useMemo(() => {
+        const rawId = habit.attribute || 'TP';
+        const cleanId = rawId.replace('traits.', '').toUpperCase();
+        const dict: Record<string, string> = {
+            'RESILIENCIA': 'Resiliencia',
+            'DISCIPLINA': 'Disciplina',
+            'FZA_VOLUNTAD': 'Fuerza de Voluntad',
+            'VOLUNTAD': 'Fuerza de Voluntad',
+            'FUERZA_VOLUNTAD': 'Fuerza de Voluntad',
+            'FUERZA_DE_VOLUNTAD': 'Fuerza de Voluntad',
+            'ENERGIA': 'Energía',
+            'INTELIGENCIA': 'Inteligencia',
+            'SALUD': 'Salud',
+            'SALUD_FISICA': 'Salud Física',
+            'ENFOQUE': 'Enfoque',
+            'PRODUCTIVIDAD': 'Productividad'
+        };
+        return dict[cleanId] || cleanId;
+    }, [habit.attribute]);
+
+    const potentialEndOfDayTp = React.useMemo(() => {
+        const balance = habit.dynamicBalance ?? 0;
+        const targetType = habit.dynamicTargetType || 'neutral';
+        const isSuccess = targetType === 'neutral' ? balance >= 0 : balance > 0;
+        const exceedAmount = targetType === 'neutral' ? balance : balance - 1;
+        const delta = getDifficultyDelta(habit);
+        return isSuccess && exceedAmount > 0 ? exceedAmount * delta : 0;
+    }, [habit]);
 
     const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
     const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
@@ -175,6 +204,12 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     {habit.streak} día{habit.streak !== 1 ? 's' : ''} de racha
                                 </div>
                             </div>
+                            <div className="text-[10px] text-cyan-300/80 font-semibold flex items-center gap-1 mt-0.5">
+                                <span className="opacity-60">Al final del día:</span>
+                                <span className={potentialEndOfDayTp > 0 ? "text-emerald-400 font-extrabold" : "text-white/30"}>
+                                    +{potentialEndOfDayTp} TP ({traitName})
+                                </span>
+                            </div>
                         </div>
                     ) : isIntelligent && !isRelapsed ? (
                         <div className="space-y-2">
@@ -286,7 +321,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
                                         const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = Math.max(-50, current - 1);
+                                        const newBalance = current - 1;
                                         onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
@@ -313,7 +348,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
                                         const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = Math.min(50, current + 1);
+                                        const newBalance = current + 1;
                                         onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
