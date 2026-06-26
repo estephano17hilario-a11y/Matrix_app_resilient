@@ -6,6 +6,17 @@ import { BadHabit, Attribute } from '../../../types';
 
 const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
+const getImpactLevel = (bh: BadHabit): number => {
+    const match = bh.negativeImpact?.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 3;
+};
+
+const getDifficultyDelta = (bh: BadHabit): number => {
+    const level = getImpactLevel(bh);
+    const deltas = [4, 6, 8, 10, 12];
+    return deltas[level - 1] ?? 8;
+};
+
 interface BadHabitItemProps {
     habit: BadHabit;
     attributes?: Attribute[];
@@ -274,11 +285,14 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
-                                        onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) - 1);
+                                        const delta = getDifficultyDelta(habit);
+                                        const current = habit.dynamicBalance ?? 0;
+                                        const newBalance = Math.max(-50, current - delta);
+                                        onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
                                 className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
-                                title="Desliz (-1)"
+                                title="Desliz"
                             >
                                 <LucideIcons.Minus size={24} />
                             </motion.button>
@@ -299,11 +313,14 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
-                                        onUpdateDynamicBalance(habit, (habit.dynamicBalance ?? 0) + 1);
+                                        const delta = getDifficultyDelta(habit);
+                                        const current = habit.dynamicBalance ?? 0;
+                                        const newBalance = Math.min(50, current + delta);
+                                        onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
                                 className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                                title="Victoria Moral (+1)"
+                                title="Victoria Moral"
                             >
                                 <LucideIcons.Plus size={24} />
                             </motion.button>

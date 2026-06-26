@@ -625,11 +625,11 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <AnimatePresence mode="wait">
   <motion.div
   key={`detail-${activeItem.id}`}
-  initial={{ y: '100vh', opacity: 0 }}
-  animate={{ y: 0, opacity: 1 }}
-  exit={{ y: '100vh', opacity: 0 }}
-  transition={{ type: "tween", ease: [0.25, 1, 0.5, 1], duration: 0.3 }}
-  style={{ willChange: 'transform, opacity', transform: 'translate3d(0,0,0)', backfaceVisibility: 'hidden' }}
+  initial={{ y: '100%' }}
+  animate={{ y: 0 }}
+  exit={{ y: '100%' }}
+  transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.28 }}
+  style={{ willChange: 'transform', transform: 'translate3d(0,0,0)', backfaceVisibility: 'hidden' }}
   className="fixed inset-0 z-[9999] bg-[#000000] text-white flex flex-col overflow-hidden"
   >
  <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -734,71 +734,55 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </div>
 
  <motion.div 
- initial={{ opacity: 0, y: -20 }}
- animate={{ 
- opacity: 1, 
- y: 0,
- paddingBottom: isScrolled ? 4 : 16 
- }}
- transition={{ delay: 0.2 }}
- className="relative z-50 px-4 sm:px-6 pt-0 -mt-1"
- >
- <motion.div 
- className="flex flex-col items-center mx-auto transition-all duration-200 origin-top border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50 w-full max-w-[360px]"
- animate={{
- borderRadius: isScrolled ? 28 : 32,
- padding: isScrolled ? "10px 12px" : "14px 16px",
- gap: isScrolled ? 4 : 12
- }}
- style={{ 
- background: `linear-gradient(180deg, rgba(20,20,22,0.7) 0%, rgba(10,10,12,0.8) 100%)`,
- boxShadow: `0 8px 32px ${themeColor}20, 0 0 0 1px rgba(255,255,255,0.08) inset` 
- }}
- >
- <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
- <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
- <div 
- className="absolute -top-[40%] -left-[20%] w-[140%] h-[100%] rounded-[100%] pointer-events-none"
- style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, willChange: 'opacity' }} 
- />
- </div>
+  initial={{ opacity: 0, y: -20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2 }}
+  className="relative z-50 px-4 sm:px-6 pt-0 -mt-1"
+  >
+  <div 
+  className={cn(
+  "flex flex-col items-center mx-auto transition-all duration-200 ease-out origin-top border border-white/[0.1] shadow-[0_15px_30px_rgba(0,0,0,0.6)] relative z-50 w-full max-w-[360px]",
+  isScrolled ? "rounded-[28px] p-2.5 gap-1" : "rounded-[32px] p-4 gap-3"
+  )}
+  style={{ 
+  background: `linear-gradient(180deg, rgba(20,20,22,0.7) 0%, rgba(10,10,12,0.8) 100%)`,
+  boxShadow: `0 8px 32px ${themeColor}20, 0 0 0 1px rgba(255,255,255,0.08) inset` 
+  }}
+  >
+  <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
+  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
+  <div 
+  className="absolute -top-[40%] -left-[20%] w-[140%] h-[100%] rounded-[100%] pointer-events-none"
+  style={{ background: `radial-gradient(ellipse at center, ${themeColor}25 0%, transparent 60%)`, willChange: 'opacity' }} 
+  />
+  </div>
 
- <div className="flex items-center gap-1.5 relative z-10">
- <AnimatePresence>
- {pinnedRanges.map((range, index) => {
- const isActive = timeRange === range;
- const label = ALL_RANGES.find((r: { value: TimeRange, label: string }) => r.value === range)?.label || range;
- const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);
- 
- return (
- <motion.button
- key={`pinned-tab-${index}`}
- layout
- onClick={() => handleTabClick(range)}
- className={cn(
- "px-4 py-2 rounded-full text-[11px] font-black transition-all relative flex items-center gap-1.5",
- isActive 
- ? "text-black z-10" 
- : "text-white/40 hover:text-white/80 hover:bg-white/[0.03]"
- )}
- >
- <span className="relative z-10 tracking-tight">{label}</span>
- {isLocked && <Lock size={10} className="relative z-10 text-yellow-500/80" />}
- {isActive && (
- <motion.div
- layoutId={`habitDetailActiveTab-${activeItem.id}`}
- className="absolute inset-0 bg-white shadow-[0_4px_12px_rgba(255,255,255,0.3)]"
- style={{ borderRadius: 999 }}
- initial={false}
- transition={{ type: "spring", stiffness: 400, damping: 25 }}
- />
- )}
- </motion.button>
- );
- })}
- </AnimatePresence>
+  <div className="flex items-center gap-1.5 relative z-10">
+  <div className="flex items-center gap-1">
+  {pinnedRanges.map((range, index) => {
+  const isActive = timeRange === range;
+  const label = ALL_RANGES.find((r: { value: TimeRange, label: string }) => r.value === range)?.label || range;
+  const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);
+  
+  return (
+  <button
+  key={`pinned-tab-${index}`}
+  onClick={() => handleTabClick(range)}
+  className={cn(
+  "px-4 py-2 rounded-full text-[11px] font-black transition-all duration-150 relative flex items-center gap-1.5",
+  isActive 
+  ? "text-black bg-white shadow-[0_4px_12px_rgba(255,255,255,0.3)] z-10" 
+  : "text-white/40 hover:text-white/80 hover:bg-white/[0.03]"
+  )}
+  >
+  <span className="relative z-10 tracking-tight">{label}</span>
+  {isLocked && <Lock size={10} className="relative z-10 text-yellow-500/80" />}
+  </button>
+  );
+  })}
+  </div>
 
- <div className="w-[1px] h-4 bg-white/[0.08] mx-1" />
+  <div className="w-[1px] h-4 bg-white/[0.08] mx-1" />
 
  <div className="relative">
  <button
@@ -949,7 +933,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
       ))}
     </div>
   )}
- </motion.div>
+  </div>
  </motion.div>
 
  <div 

@@ -247,15 +247,15 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         className="fixed inset-0 bg-[#000]/90 z-[9999]"
                     />
 
-                    {/* Modal */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                        transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none p-4 will-change-[opacity,transform]"
-                    >
-                        <div className="bg-[#111111] border border-white/10 rounded-[32px] w-full max-w-sm p-6 shadow-md pointer-events-auto relative overflow-hidden">
+                    {/* Modal Container */}
+                    <div className="fixed inset-0 flex items-end justify-center z-[10000] pointer-events-none p-0 md:p-4">
+                        <motion.div
+                            initial={{ y: '100%' }}
+                            animate={{ y: 0 }}
+                            exit={{ y: '100%' }}
+                            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                            className="bg-[#111111] border-t md:border border-white/10 rounded-t-[28px] md:rounded-[32px] w-full max-w-sm p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] pointer-events-auto relative overflow-hidden will-change-transform"
+                        >
                             {/* Glass Effect */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 
@@ -275,8 +275,8 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={onClose}
-                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                                     onClick={onClose}
+                                     className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
                                 >
                                     <X size={16} />
                                 </button>
@@ -288,8 +288,8 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                 {mode === 'MONTH' && renderMonthView()}
                                 {(mode === 'WEEK' || mode === 'DAY') && renderCalendarView()}
                             </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
+                    </div>
                 </>
             )}
         </AnimatePresence>,

@@ -25,6 +25,7 @@ import { supabase } from '@/services/supabase';
 import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
+import { toast } from 'react-hot-toast';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
@@ -6237,6 +6238,9 @@ export const useDashboardLogic = () => {
     const handleUpdateBadHabitBalance = useCallback(async (habit: BadHabit, newBalance: number) => {
         if (!user?.id) return;
 
+        const oldBalance = habit.dynamicBalance ?? 0;
+        const diff = newBalance - oldBalance;
+
         const updatedHabit = {
             ...habit,
             dynamicBalance: newBalance
@@ -6249,6 +6253,40 @@ export const useDashboardLogic = () => {
         });
 
         await persistenceService.badHabits.save(user.id, updatedHabit);
+
+        if (diff !== 0) {
+            const isPositive = diff > 0;
+            toast(isPositive ? `+${diff} Balance` : `${diff} Balance`, {
+                id: `balance-${habit.id}`,
+                duration: 1000,
+                icon: isPositive ? '✨' : '⚠️',
+                style: {
+                    background: isPositive ? 'rgba(16, 185, 129, 0.95)' : 'rgba(244, 63, 94, 0.95)',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    fontSize: '15px',
+                    borderRadius: '16px',
+                    boxShadow: isPositive ? '0 0 20px rgba(16, 185, 129, 0.4)' : '0 0 20px rgba(244, 63, 94, 0.4)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }
+            });
+        } else {
+            const isPositiveLimit = newBalance === 50;
+            toast(isPositiveLimit ? `Balance en el límite máximo (+50)` : `Balance en el límite mínimo (-50)`, {
+                id: `balance-${habit.id}`,
+                duration: 1000,
+                icon: '🔒',
+                style: {
+                    background: 'rgba(30, 30, 36, 0.95)',
+                    color: '#ffc107',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    borderRadius: '16px',
+                    boxShadow: '0 0 20px rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }
+            });
+        }
     }, [user?.id]);
 
     const handleDeleteBadHabit = useCallback(async (id: string) => {
