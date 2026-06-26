@@ -1756,8 +1756,27 @@ export const useDashboardLogic = () => {
                     if (attributesData.length === 0 && cached && cached.length > 0) {
                         cached.forEach(a => persistenceService.attributes.save(uid, a));
                     } else {
-                        hydrateAttributes(attributesData);
-                        const attrsForCache = attributesData.map(({ icon, ...rest }: any) => rest);
+                        // Merge local and remote: keep the one with higher level & xp
+                        const merged = [...attributesData];
+                        if (cached && cached.length > 0) {
+                            cached.forEach(localAttr => {
+                                const remoteIdx = merged.findIndex(r => r.id === localAttr.id);
+                                if (remoteIdx === -1) {
+                                    merged.push(localAttr);
+                                    persistenceService.attributes.save(uid, localAttr).catch(console.error);
+                                } else {
+                                    const remoteAttr = merged[remoteIdx];
+                                    const localProgress = (localAttr.level || 1) * 1000000 + (localAttr.xp || 0);
+                                    const remoteProgress = (remoteAttr.level || 1) * 1000000 + (remoteAttr.xp || 0);
+                                    if (localProgress > remoteProgress) {
+                                        merged[remoteIdx] = localAttr;
+                                        persistenceService.attributes.save(uid, localAttr).catch(console.error);
+                                    }
+                                }
+                            });
+                        }
+                        hydrateAttributes(merged);
+                        const attrsForCache = merged.map(({ icon, ...rest }: any) => rest);
                         PersistenceService.saveCollection(uid, 'attributes', attrsForCache);
                     }
                     attributesLoaded = true;
@@ -2689,15 +2708,27 @@ export const useDashboardLogic = () => {
                 
                 try {
                     const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
-                    
+                    const updatedStats = {
+                        ...(user.stats || {}),
+                        streak: newStreak,
+                        lastStreakDate: today
+                    };
+
                     // Update locally immediately!
                     updateProfileLocally({
-                        stats: {
-                            ...(user.stats || {}),
-                            streak: newStreak,
-                            lastStreakDate: today
-                        }
+                        stats: updatedStats
                     });
+
+                    // Persist to server immediately
+                    (async () => {
+                        try {
+                            const { supabase } = await import('../../../services/supabase');
+                            await supabase.from('users').update({ stats: updatedStats }).eq('id', user.id);
+                            console.log("[STREAK] Successfully persisted streak activation to Supabase.");
+                        } catch (err) {
+                            console.error("[STREAK] Failed to persist streak activation:", err);
+                        }
+                    })();
 
                     // DISCIPLINA Trigger: Award Discipline XP based on streak length
                     const disciplineReward = Math.round(20 + (newStreak - 1) * 3.33333);

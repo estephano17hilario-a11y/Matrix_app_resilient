@@ -34,7 +34,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(() => PersistenceService.getProfile());
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !PersistenceService.getProfile());
   const [isInitializing, setIsInitializing] = useState(() => !PersistenceService.getProfile());
   const [error, setError] = useState<string | null>(null);
 
