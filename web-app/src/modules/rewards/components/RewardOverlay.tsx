@@ -18,8 +18,14 @@ export const RewardOverlay: React.FC = () => {
   const { queue, dismissReward, setIsAnimating } = useReward();
   const [currentReward, setCurrentReward] = useState<any>(null);
   const [step, setStep] = useState<'IDLE' | 'XP' | 'TRAIT' | 'GOLD'>('IDLE');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const traitLabel: string | null = typeof currentReward?.traitName === 'string' ? currentReward.traitName : null;
-  const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
+  const notificationRoot = mounted && typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
   
   // Ref for the card to calculate coin start position
   const cardRef = useRef<HTMLDivElement>(null);
@@ -58,18 +64,25 @@ export const RewardOverlay: React.FC = () => {
     let isCancelled = false;
 
     const runSequence = async () => {
-        if (step === 'XP') {
-            await runXpAnimation();
-            if (!isCancelled) advanceFromXp();
-        } else if (step === 'TRAIT') {
-            // Simple delay for Trait for now, or similar animation if needed
-            // For traits we often don't have the full history, so we stick to simple animation
-            // unless we want to replicate the logic.
-            await wait(STEP_DURATION); 
-            if (!isCancelled) advanceFromTrait();
-        } else if (step === 'GOLD') {
-            await wait(STEP_DURATION);
-            if (!isCancelled) finish();
+        try {
+            if (step === 'XP') {
+                await runXpAnimation();
+                if (!isCancelled) advanceFromXp();
+            } else if (step === 'TRAIT') {
+                // Simple delay for Trait for now, or similar animation if needed
+                // For traits we often don't have the full history, so we stick to simple animation
+                // unless we want to replicate the logic.
+                await wait(STEP_DURATION); 
+                if (!isCancelled) advanceFromTrait();
+            } else if (step === 'GOLD') {
+                await wait(STEP_DURATION);
+                if (!isCancelled) finish();
+            }
+        } catch (error) {
+            console.error("❌ [RewardOverlay] Error running reward animation sequence:", error);
+            if (!isCancelled) {
+                finish();
+            }
         }
     };
 
@@ -278,6 +291,8 @@ export const RewardOverlay: React.FC = () => {
       </motion.div>
     );
   };
+
+  if (!mounted) return null;
 
   return createPortal(
     <AnimatePresence mode="sync">

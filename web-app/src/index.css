@@ -364,26 +364,25 @@
     animation: none !important;
   }
 
-  /* DISABLE DOCK BLUR ON ANDROID TO PREVENT LIBGLESV2_ADRENO GPU CRASHES - ALLOW LIGHT BLUR & TRANSLUCENCY FOR PREMIUM LOOK */
-  .android-webview [data-tour="dock"],
-  .android-webview [data-tour="dock"] .backdrop-blur-sm,
-  .android-webview [data-tour="dock"] .backdrop-blur-md,
-  .android-webview [data-tour="dock"] .backdrop-blur-xl,
-  .android-webview [data-tour="dock"] .backdrop-blur,
-  .android-webview [data-tour="dock"] [class*="backdrop-blur"],
-  .android-webview [data-tour="dock"] .aura-container,
-  .android-webview [data-tour="dock"] .aura-container::after {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+  /* UNIVERSAL TRANSPARENT DOCK STYLE WITH PREMIUM BLUR */
+  [data-tour="dock"] .backdrop-blur-sm,
+  [data-tour="dock"] .backdrop-blur-md,
+  [data-tour="dock"] .backdrop-blur-xl,
+  [data-tour="dock"] .backdrop-blur,
+  [data-tour="dock"] [class*="backdrop-blur"],
+  [data-tour="dock"] .aura-container,
+  [data-tour="dock"] .aura-container::after {
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
   }
 
   /* INCREASE OPACITY OF THE INNER DOCK CONTAINER TO KEEP READABILITY AND PREMIUM FEEL WITHOUT BLUR */
-  .android-webview [data-tour="dock"] .pointer-events-none.relative,
-  .android-webview [data-tour="dock"] .pointer-events-none.relative.bg-\[\#0a0a0a\]\/30,
-  .android-webview [data-tour="dock"] [class*="bg-black/30"],
-  .android-webview [data-tour="dock"] .backdrop-blur-xl,
-  .android-webview [data-tour="dock"] .glass-panel {
-    background-color: rgba(10, 10, 12, 0.4) !important;
+  [data-tour="dock"] .pointer-events-none.relative,
+  [data-tour="dock"] .pointer-events-none.relative.bg-\[\#0a0a0a\]\/30,
+  [data-tour="dock"] [class*="bg-black/30"],
+  [data-tour="dock"] .backdrop-blur-xl,
+  [data-tour="dock"] .glass-panel {
+    background-color: rgba(10, 10, 12, 0.45) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;

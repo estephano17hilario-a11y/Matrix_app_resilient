@@ -453,24 +453,33 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  borderRadius: isOpen ? 32 : 36,
  width: '85vw',
  maxWidth: 320
- }}
+}}
  transition={liquidSpring}
  className={containerClass}
  style={{ overflow: 'visible', willChange: 'height, border-radius' }}
  >
-  <motion.div 
-  initial={false}
-  animate={{ 
-  borderRadius: isOpen ? 32 : 36
-  }}
-  transition={liquidSpring}
-  className="absolute inset-0 z-10 pointer-events-none backdrop-blur-xl"
-  style={{ 
-    backgroundColor: isOpen ? 'rgba(0,0,0,0.1)' : 'rgba(15,15,15,0.1)',
-    willChange: 'border-radius'
-  }}
-  >
-  <div className="relative w-full h-full pointer-events-auto">
+   <motion.div 
+   initial={false}
+   animate={{ 
+   borderRadius: isOpen ? 32 : 36
+   }}
+   transition={liquidSpring}
+   className="absolute inset-0 z-10 pointer-events-none overflow-hidden"
+   style={{ 
+     borderRadius: isOpen ? 32 : 36,
+     willChange: 'border-radius'
+   }}
+   >
+     <div 
+       className="absolute inset-0 backdrop-blur-xl !border-0"
+       style={{ 
+         backgroundColor: isOpen ? 'rgba(10, 10, 12, 0.45)' : 'rgba(10, 10, 12, 0.45)',
+         borderRadius: isOpen ? 32 : 36,
+         transform: 'translateZ(0)',
+         backfaceVisibility: 'hidden'
+       }}
+     />
+     <div className="relative w-full h-full pointer-events-auto">
   <motion.div 
   initial={false}
   animate={{
