@@ -6256,17 +6256,94 @@ export const useDashboardLogic = () => {
 
         if (diff !== 0) {
             const isPositive = diff > 0;
-            toast(isPositive ? `+${diff} Balance` : `${diff} Balance`, {
+            
+            // Calculate difficulty delta
+            const getImpactLevel = (bh: BadHabit): number => {
+                const match = bh.negativeImpact?.match(/\d+/);
+                return match ? parseInt(match[0], 10) : 3;
+            };
+            const getDifficultyDelta = (bh: BadHabit): number => {
+                const level = getImpactLevel(bh);
+                const deltas = [4, 6, 8, 10, 12];
+                return deltas[level - 1] ?? 8;
+            };
+            
+            const baseTp = getDifficultyDelta(habit);
+            
+            // Read/update daily limits
+            const todayStr = toLocalISOString(new Date());
+            const tpKey = `dynamic_habits_daily_tp_${user.id}_${todayStr}`;
+            let dailyTp = { positive: 0, negative: 0 };
+            try {
+                const cached = localStorage.getItem(tpKey);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    dailyTp = {
+                        positive: typeof parsed.positive === 'number' ? parsed.positive : 0,
+                        negative: typeof parsed.negative === 'number' ? parsed.negative : 0
+                    };
+                }
+            } catch (e) {
+                console.error("Error reading daily TP:", e);
+            }
+            
+            let actualTp = 0;
+            let isLimitReached = false;
+            
+            if (isPositive) {
+                const remaining = Math.max(0, 50 - dailyTp.positive);
+                actualTp = Math.min(baseTp, remaining);
+                if (actualTp > 0) {
+                    dailyTp.positive += actualTp;
+                    updateAttributeXp(habit.attribute, actualTp, habit.subAttribute);
+                } else {
+                    isLimitReached = true;
+                }
+            } else {
+                const remaining = Math.max(0, 50 - dailyTp.negative);
+                actualTp = Math.min(baseTp, remaining);
+                if (actualTp > 0) {
+                    dailyTp.negative += actualTp;
+                    updateAttributeXp(habit.attribute, -actualTp, habit.subAttribute);
+                } else {
+                    isLimitReached = true;
+                }
+            }
+            
+            // Save daily limits
+            try {
+                localStorage.setItem(tpKey, JSON.stringify(dailyTp));
+            } catch (e) {
+                console.error("Error saving daily TP:", e);
+            }
+            
+            // Clean up trait label (remove "traits." prefix and make uppercase)
+            const rawLabel = habit.attribute || 'TP';
+            const traitLabel = rawLabel.replace('traits.', '').toUpperCase();
+            
+            // Show toast message
+            let toastMessage = "";
+            if (isPositive) {
+                toastMessage = isLimitReached 
+                    ? `+1 Balance (Límite TP ${traitLabel} alcanzado)` 
+                    : `+1 Balance (+${actualTp} TP a ${traitLabel})`;
+            } else {
+                toastMessage = isLimitReached 
+                    ? `-1 Balance (Límite TP ${traitLabel} alcanzado)` 
+                    : `-1 Balance (-${actualTp} TP a ${traitLabel})`;
+            }
+            
+            toast(toastMessage, {
                 id: `balance-${habit.id}`,
-                duration: 1000,
-                icon: isPositive ? '✨' : '⚠️',
+                duration: 700, // Snap transition (700ms)
+                icon: isPositive ? (isLimitReached ? '🔒' : '✨') : (isLimitReached ? '🔒' : '⚠️'),
                 style: {
-                    background: isPositive ? 'rgba(16, 185, 129, 0.95)' : 'rgba(244, 63, 94, 0.95)',
-                    color: '#fff',
+                    background: isLimitReached ? 'rgba(30, 30, 36, 0.95)' : (isPositive ? 'rgba(16, 185, 129, 0.95)' : 'rgba(244, 63, 94, 0.95)'),
+                    color: isLimitReached ? '#ffc107' : '#fff',
                     fontWeight: 'bold',
-                    fontSize: '15px',
+                    fontSize: '14px',
                     borderRadius: '16px',
-                    boxShadow: isPositive ? '0 0 20px rgba(16, 185, 129, 0.4)' : '0 0 20px rgba(244, 63, 94, 0.4)',
+                    boxShadow: '0 0 20px rgba(0, 0, 0, 0.4)',
                     border: '1px solid rgba(255,255,255,0.1)'
                 }
             });
@@ -6274,7 +6351,7 @@ export const useDashboardLogic = () => {
             const isPositiveLimit = newBalance === 50;
             toast(isPositiveLimit ? `Balance en el límite máximo (+50)` : `Balance en el límite mínimo (-50)`, {
                 id: `balance-${habit.id}`,
-                duration: 1000,
+                duration: 800,
                 icon: '🔒',
                 style: {
                     background: 'rgba(30, 30, 36, 0.95)',
@@ -6287,7 +6364,7 @@ export const useDashboardLogic = () => {
                 }
             });
         }
-    }, [user?.id]);
+    }, [user?.id, updateAttributeXp]);
 
     const handleDeleteBadHabit = useCallback(async (id: string) => {
         if (!user?.id) return;

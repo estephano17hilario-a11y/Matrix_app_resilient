@@ -285,9 +285,8 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
-                                        const delta = getDifficultyDelta(habit);
                                         const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = Math.max(-50, current - delta);
+                                        const newBalance = Math.max(-50, current - 1);
                                         onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
@@ -313,9 +312,8 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (onUpdateDynamicBalance) {
-                                        const delta = getDifficultyDelta(habit);
                                         const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = Math.min(50, current + delta);
+                                        const newBalance = Math.min(50, current + 1);
                                         onUpdateDynamicBalance(habit, newBalance);
                                     }
                                 }}
