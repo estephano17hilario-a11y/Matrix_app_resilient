@@ -376,16 +376,14 @@
     -webkit-backdrop-filter: blur(20px) !important;
   }
 
-  /* INCREASE OPACITY OF THE INNER DOCK CONTAINER TO KEEP READABILITY AND PREMIUM FEEL WITHOUT BLUR */
+  /* DOCK BACKGROUND: 7% black with fake-glass (no backdrop-filter dependency) */
   [data-tour="dock"] .pointer-events-none.relative,
   [data-tour="dock"] .pointer-events-none.relative.bg-\[\#0a0a0a\]\/30,
   [data-tour="dock"] [class*="bg-black/30"],
   [data-tour="dock"] .backdrop-blur-xl,
   [data-tour="dock"] .glass-panel {
-    background-color: rgba(10, 10, 12, 0.45) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background-color: rgba(0, 0, 0, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
   }
 
 

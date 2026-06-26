@@ -259,10 +259,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  stiffness: 300, 
  damping: 28
  }}
- className="pointer-events-none relative bg-[#0a0a0a]/30 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden"
- style={{ willChange: 'transform, height' }}
- >
- <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-40 z-0" />
+  className="pointer-events-none relative border border-white/[0.10] shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] overflow-hidden"
+  style={{ willChange: 'transform, height', backgroundColor: 'rgba(0,0,0,0.07)' }}
+  >
+  {/* Fake-glass: top highlight line */}
+  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
+  {/* Fake-glass: subtle sheen overlay */}
+  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
 
  <motion.div 
  initial={false}
@@ -348,15 +351,19 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       height: isOpen ? dynamicHeight : 70,
       borderRadius: isOpen ? 32 : 34
     }}
- transition={{ type: "spring", stiffness: 300, damping: 30 }}
- style={{ willChange: 'transform, height' }}
- className={` 
- pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
- backdrop-blur-xl 
- ${isOpen ? 'aura-active' : ''} 
- `}
- > 
- <div className="relative w-full h-full z-10"> 
+  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+  style={{ willChange: 'transform, height', backgroundColor: 'rgba(0,0,0,0.07)' }}
+  className={` 
+  pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
+  border border-white/[0.10] overflow-hidden
+  ${isOpen ? 'aura-active' : ''} 
+  `}
+  > 
+  {/* Fake-glass: top highlight line */}
+  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
+  {/* Fake-glass: sheen overlay */}
+  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
+  <div className="relative w-full h-full z-10"> 
  
  {/* ELEMENTOS INTERNOS (Aparecen al expandir) */} 
  <div className={` 
@@ -428,7 +435,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const baseClass = "pointer-events-none relative box-border mx-auto";
  
  const styleClass = isLiquid
- ? "bg-black/30 border !border-black/30 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]"
+ ? "border border-white/[0.10] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.4)]"
  : "glass-panel !shadow-none rgb-border-container rgb-border-active !bg-none";
 
  const containerClass = `${baseClass} ${styleClass}`;
@@ -470,16 +477,21 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
      willChange: 'border-radius'
    }}
    >
-     <div 
-       className="absolute inset-0 backdrop-blur-xl !border-0"
-       style={{ 
-         backgroundColor: isOpen ? 'rgba(10, 10, 12, 0.45)' : 'rgba(10, 10, 12, 0.45)',
-         borderRadius: isOpen ? 32 : 36,
-         transform: 'translateZ(0)',
-         backfaceVisibility: 'hidden'
-       }}
-     />
-     <div className="relative w-full h-full pointer-events-auto">
+      {/* Fake-glass base — 7% black, no backdrop-filter dependency */}
+      <div 
+        className="absolute inset-0 !border-0"
+        style={{ 
+          backgroundColor: 'rgba(0, 0, 0, 0.07)',
+          borderRadius: isOpen ? 32 : 36,
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden'
+        }}
+      />
+      {/* Fake-glass: top highlight line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" style={{ borderRadius: isOpen ? 32 : 36 }} />
+      {/* Fake-glass: sheen overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" style={{ borderRadius: isOpen ? 32 : 36 }} />
+      <div className="relative w-full h-full pointer-events-auto">
   <motion.div 
   initial={false}
   animate={{
