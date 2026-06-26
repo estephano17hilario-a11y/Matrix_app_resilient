@@ -12,32 +12,12 @@ interface ViewContainerProps {
 // Pure CSS opacity transition - NO spring, NO scale, NO bounce, NO vector distortion.
 // GPU composited via will-change:opacity. Targeting 60fps on mobile.
 export const ViewContainer = React.memo(({ isActive, children, className = "", id, variant = 'default' }: ViewContainerProps) => {
-    const [render, setRender] = React.useState(isActive);
-
-    React.useEffect(() => {
-        if (isActive) {
-            setRender(true);
-        } else {
-            // Delay unmount until after the 80ms fade-out ends
-            const timer = setTimeout(() => setRender(false), 90);
-            return () => clearTimeout(timer);
-        }
-    }, [isActive]);
-
     return (
         <div 
             id={id} 
             className={`${className} w-full`}
             style={{
-                display: render ? 'block' : 'none',
-                opacity: isActive ? 1 : 0,
-                // Faster fade-out than fade-in for snappy feel
-                transition: isActive
-                    ? 'opacity 100ms ease-out'
-                    : 'opacity 80ms ease-in',
-                // GPU-accelerated compositing — NO transform (avoids vector distortion)
-                willChange: 'opacity',
-                pointerEvents: isActive ? 'auto' : 'none',
+                display: isActive ? 'block' : 'none',
                 zIndex: variant === 'minimal' ? 20 : 10,
             }}
         >

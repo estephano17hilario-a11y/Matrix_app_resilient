@@ -53,7 +53,7 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
               props.onBlur?.(e);
             }}
             className={cn(
-              "w-full bg-[#0a0a0f] border rounded-xl px-4 py-3.5 text-white placeholder:text-white/20 outline-none transition-all duration-150",
+              "w-full bg-[#0a0a0f] border rounded-xl px-4 py-3.5 text-white placeholder:text-white/20 outline-none transition-all duration-150 text-left",
               Icon ? "pl-11" : "pl-4",
               (isPasswordType || isValid) ? "pr-11" : "pr-4",
               
@@ -70,18 +70,18 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
           />
           
           {/* Right Actions (Password Toggle or Validation Check) */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                 {isPasswordType ? (
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-white/40 hover:text-white transition-colors cursor-pointer pointer-events-auto"
+                    className="text-white/45 hover:text-white transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5 active:bg-white/10"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 ) : isValid && showValidation ? (
-                   <div className="text-green-400">
+                   <div className="text-green-400 mr-2">
                       <CheckCircle2 size={18} />
                    </div>
                 ) : null}
