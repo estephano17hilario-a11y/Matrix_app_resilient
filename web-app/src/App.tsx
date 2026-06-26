@@ -8,11 +8,12 @@ import { supabase } from '@/services/supabase';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+
+import { RewardProvider } from '@/modules/rewards/context/RewardContext';
+import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { NotesProvider } from '@/modules/notes/context/NotesContext';
-import { RewardProvider } from '@/modules/rewards/context/RewardContext';
-import { RewardOverlay } from '@/modules/rewards/components/RewardOverlay';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
@@ -92,12 +93,9 @@ const AppRoutes = () => {
       <div className="w-full h-full">
         <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
-            <RewardProvider>
-              <NotesProvider>
-                <Dashboard />
-                <RewardOverlay />
-              </NotesProvider>
-            </RewardProvider>
+            <NotesProvider>
+              <Dashboard />
+            </NotesProvider>
           </EconomyProvider>
         </LuxProvider>
       </div>
@@ -105,21 +103,29 @@ const AppRoutes = () => {
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#020204]">
+    <RewardProvider>
+      <div className="relative w-full h-full overflow-hidden bg-[#020204]">
+        {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
+        <div className="fixed inset-0 z-0">
+          <AuroraBackground />
+        </div>
+
+        {/* 2. LAYER 1: APP CONTENT */}
+        <div className="relative z-10 w-full h-full">
+          {renderContent()}
+        </div>
+      </div>
+
+      {/* RewardOverlay: rendered OUTSIDE any stacking context so position:fixed
+          with z-99999 is truly at the top of the paint order. */}
+      {dashboardUnlocked && <RewardOverlay />}
+
+      {/* Portal target for AchievementToast — fixed, outside overflow-hidden so it's never clipped */}
       <div
         id="notification-stack-root"
         className="fixed top-4 left-0 right-0 z-[10000] flex flex-col items-center gap-2 pointer-events-none px-4"
       />
-      {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
-      <div className="fixed inset-0 z-0">
-        <AuroraBackground />
-      </div>
-
-      {/* 2. LAYER 1: APP CONTENT */}
-      <div className="relative z-10 w-full h-full">
-        {renderContent()}
-      </div>
-    </div>
+    </RewardProvider>
   );
 };
 

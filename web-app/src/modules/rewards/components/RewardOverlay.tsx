@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion, animate } from 'framer-motion';
 import { Zap, Star, Coins, ArrowRight } from 'lucide-react';
 import { useReward } from '../context/RewardContext';
@@ -7,39 +6,27 @@ import { useTranslation } from 'react-i18next';
 import { calculateNextLevelXp, calculateXpForLevel } from '../../../utils/leveling';
 
 // --- Constants ---
-const STEP_DURATION = 1500; 
-
-const Counter = ({ value }: { value: number }) => {
-    return <span>{Math.floor(value)}</span>;
-};
+const STEP_DURATION = 1500;
 
 export const RewardOverlay: React.FC = () => {
   const { t } = useTranslation();
   const { queue, dismissReward, setIsAnimating } = useReward();
   const [currentReward, setCurrentReward] = useState<any>(null);
   const [step, setStep] = useState<'IDLE' | 'XP' | 'TRAIT' | 'GOLD'>('IDLE');
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const traitLabel: string | null = typeof currentReward?.traitName === 'string' ? currentReward.traitName : null;
-  const notificationRoot = mounted && typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
-  
-  // Ref for the card to calculate coin start position
-  const cardRef = useRef<HTMLDivElement>(null);
+  const traitLabel: string | null =
+    typeof currentReward?.traitName === 'string' ? currentReward.traitName : null;
 
   // Visual State for animations
   const [visualState, setVisualState] = useState({
-      level: 0,
-      currentXp: 0,
-      maxXp: 100,
-      percent: 0,
-      isLevelUpAnimating: false,
-      label: "Experience"
+    level: 0,
+    currentXp: 0,
+    maxXp: 100,
+    percent: 0,
+    isLevelUpAnimating: false,
   });
 
+  // ── Pick next reward from queue ──────────────────────────────────────────
   useEffect(() => {
     if (queue.length > 0 && !currentReward) {
       const reward = queue[0];
@@ -57,375 +44,312 @@ export const RewardOverlay: React.FC = () => {
     }
   }, [queue, currentReward, setIsAnimating]);
 
-  // --- SEQUENCE CONTROLLER ---
+  // ── Sequence controller ──────────────────────────────────────────────────
   useEffect(() => {
     if (!currentReward) return;
+    let cancelled = false;
 
-    let isCancelled = false;
-
-    const runSequence = async () => {
-        try {
-            if (step === 'XP') {
-                await runXpAnimation();
-                if (!isCancelled) advanceFromXp();
-            } else if (step === 'TRAIT') {
-                // Simple delay for Trait for now, or similar animation if needed
-                // For traits we often don't have the full history, so we stick to simple animation
-                // unless we want to replicate the logic.
-                await wait(STEP_DURATION); 
-                if (!isCancelled) advanceFromTrait();
-            } else if (step === 'GOLD') {
-                await wait(STEP_DURATION);
-                if (!isCancelled) finish();
-            }
-        } catch (error) {
-            console.error("❌ [RewardOverlay] Error running reward animation sequence:", error);
-            if (!isCancelled) {
-                finish();
-            }
+    const run = async () => {
+      try {
+        if (step === 'XP') {
+          await runXpAnimation();
+          if (!cancelled) advanceFromXp();
+        } else if (step === 'TRAIT') {
+          await wait(STEP_DURATION);
+          if (!cancelled) advanceFromTrait();
+        } else if (step === 'GOLD') {
+          await wait(STEP_DURATION);
+          if (!cancelled) finish();
         }
+      } catch {
+        if (!cancelled) finish();
+      }
     };
 
-    runSequence();
-
-    return () => { isCancelled = true; };
+    run();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, currentReward]);
 
-
-  // --- ANIMATION LOGIC ---
-
-  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
   const runXpAnimation = async () => {
-      const startLevel = currentReward.initialLevel || currentReward.level;
-      const endLevel = currentReward.level;
-      const isNegative = currentReward.xpGained < 0;
+    const startLevel = currentReward.initialLevel ?? currentReward.level;
+    const endLevel   = currentReward.level;
+    const isNeg      = currentReward.xpGained < 0;
 
-      // If negative, skip the complex bar animation and just show the current state
-      if (isNegative) {
-          const levelBaseXp = calculateXpForLevel(endLevel);
-          const nextLevelTotal = calculateNextLevelXp(endLevel);
-          const levelMax = nextLevelTotal - levelBaseXp;
-          const currentRelXp = currentReward.currentXp; // Should already be correct in payload
-          
-          setVisualState({
-              level: endLevel,
-              currentXp: currentRelXp,
-              maxXp: levelMax,
-              percent: (currentRelXp / levelMax) * 100,
-              isLevelUpAnimating: false,
-              label: "XP LOST"
-          });
-          
-          await wait(1500); // Show for a bit
-          return;
+    if (isNeg) {
+      const base    = calculateXpForLevel(endLevel);
+      const nextTot = calculateNextLevelXp(endLevel);
+      const max     = nextTot - base;
+      setVisualState({ level: endLevel, currentXp: currentReward.currentXp, maxXp: max, percent: (currentReward.currentXp / max) * 100, isLevelUpAnimating: false });
+      await wait(1500);
+      return;
+    }
+
+    let lvl = startLevel;
+    let relXp =
+      currentReward.initialXp !== undefined
+        ? currentReward.initialXp
+        : startLevel === endLevel
+          ? Math.max(0, currentReward.currentXp - currentReward.xpGained)
+          : 0;
+
+    while (lvl <= endLevel) {
+      const isLast  = lvl === endLevel;
+      const base    = calculateXpForLevel(lvl);
+      const nextTot = calculateNextLevelXp(lvl);
+      const max     = nextTot - base;
+      const target  = isLast ? currentReward.currentXp : max;
+
+      setVisualState({ level: lvl, currentXp: relXp, maxXp: max, percent: (relXp / max) * 100, isLevelUpAnimating: false });
+      await wait(300);
+
+      await animate(relXp, target, {
+        duration: 1,
+        ease: 'circOut',
+        onUpdate: v =>
+          setVisualState(p => ({ ...p, currentXp: v, percent: (v / max) * 100 })),
+      });
+
+      if (!isLast) {
+        setVisualState(p => ({ ...p, isLevelUpAnimating: true }));
+        await wait(800);
+        lvl++;
+        relXp = 0;
+      } else {
+        break;
       }
-      
-      // Calculate initial XP (fallback if not provided)
-      let currentLvl = startLevel;
-      
-      // Determine starting XP relative to the level
-      // If we are at startLevel, we use initialXp. 
-      // Fallback: If no initialXp, we assume it was (current - gained), but clamped 0.
-      let currentRelXp = currentReward.initialXp !== undefined 
-          ? currentReward.initialXp 
-          : (startLevel === endLevel ? Math.max(0, currentReward.currentXp - currentReward.xpGained) : 0);
+    }
 
-      // Loop through levels
-      while (currentLvl <= endLevel) {
-          const isLastLevel = currentLvl === endLevel;
-          const levelBaseXp = calculateXpForLevel(currentLvl);
-          const nextLevelTotal = calculateNextLevelXp(currentLvl);
-          const levelMax = nextLevelTotal - levelBaseXp;
-          
-          // Target for this level
-          // If last level, target is actual currentXp.
-          // If intermediate level, target is levelMax (full bar).
-          const targetRelXp = isLastLevel ? currentReward.currentXp : levelMax;
-
-          // Update Visual State Initial
-          setVisualState({
-              level: currentLvl,
-              currentXp: currentRelXp,
-              maxXp: levelMax,
-              percent: (currentRelXp / levelMax) * 100,
-              isLevelUpAnimating: false,
-              label: "Experience"
-          });
-
-          await wait(300); // Pause before filling
-
-          // Animate Fill
-          await animate(currentRelXp, targetRelXp, {
-              duration: 1, // 1 second fill
-              ease: "circOut",
-              onUpdate: (val) => {
-                  setVisualState(prev => ({
-                      ...prev,
-                      currentXp: val,
-                      percent: (val / levelMax) * 100
-                  }));
-              }
-          });
-
-          // Level Up Effect
-          if (!isLastLevel) {
-              setVisualState(prev => ({ ...prev, isLevelUpAnimating: true }));
-              await wait(800); // Celebrate
-              
-              // Prepare for next loop
-              currentLvl++;
-              currentRelXp = 0; 
-          } else {
-              // Finished
-              break;
-          }
-      }
-      
-      await wait(500); // Pause at end
+    await wait(500);
   };
 
   const advanceFromXp = () => {
-    // If negative XP, we might still want to show gold change if any
-    if (currentReward.traitId && currentReward.traitXpGained !== 0) {
-        setStep('TRAIT');
-    } else if (currentReward.goldGained !== 0) { // Changed > 0 to !== 0 to handle gold loss
-        setStep('GOLD');
-    } else {
-        finish();
-    }
+    if (currentReward.traitId && currentReward.traitXpGained !== 0) setStep('TRAIT');
+    else if (currentReward.goldGained !== 0) setStep('GOLD');
+    else finish();
   };
 
   const advanceFromTrait = () => {
-    if (currentReward.goldGained !== 0) {
-      setStep('GOLD');
-    } else {
-      finish();
-    }
+    if (currentReward.goldGained !== 0) setStep('GOLD');
+    else finish();
   };
 
   const finish = () => {
-      setStep('IDLE');
-      setTimeout(() => {
-        dismissReward(currentReward.id);
-        setCurrentReward(null);
-        setIsAnimating(false);
-      }, 300);
+    setStep('IDLE');
+    setTimeout(() => {
+      dismissReward(currentReward.id);
+      setCurrentReward(null);
+      setIsAnimating(false);
+    }, 300);
   };
 
-  // Calculate Gold Target
-  useEffect(() => {
-    // Logic removed because goldTarget is not used
-  }, [step]);
+  // ── Render ───────────────────────────────────────────────────────────────
+  // Rendered INLINE (no portal) with position:fixed at very high z-index.
+  // This guarantees the card is ALWAYS visible regardless of parent overflow.
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 16,
+        left: 0,
+        right: 0,
+        zIndex: 99999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <AnimatePresence mode="sync">
+        {currentReward && step !== 'IDLE' && (
+          <motion.div
+            key="reward-toast"
+            initial={{ opacity: 0, scale: 0.88, y: -24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: -10 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.9 }}
+            style={{ pointerEvents: 'auto', width: 320 }}
+          >
+            {/* Card */}
+            <div
+              style={{
+                position: 'relative',
+                borderRadius: 24,
+                overflow: 'hidden',
+                backgroundColor: 'rgba(6, 6, 12, 0.96)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                boxShadow: '0 24px 48px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)',
+              }}
+            >
+              {/* Accent gradient top */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  background:
+                    step === 'XP'
+                      ? 'linear-gradient(90deg, #6366f1, #a855f7)'
+                      : step === 'TRAIT'
+                        ? 'linear-gradient(90deg, #22d3ee, #3b82f6)'
+                        : 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                  opacity: 0.8,
+                }}
+              />
 
-
-  // --- RENDER HELPERS ---
-
-  const renderProgressBar = (
-      current: number, 
-      max: number, 
-      label: string, 
-      color: string, 
-      icon: React.ReactNode, 
-      isLevelUp: boolean,
-      prevValue?: number
-  ) => {
-    const percent = Math.min(100, Math.max(0, (current / max) * 100));
-    
-    // If prevValue provided, we animate from it (Simple Mode for Traits)
-    // If not provided, we assume external control (XP Mode) or start from 0
-    const initialPercent = prevValue !== undefined 
-        ? Math.min(100, Math.max(0, (prevValue / max) * 100))
-        : 0;
-
-    // Transition duration: fast if external control (no prevValue), slow if internal animation (prevValue)
-    const duration = prevValue !== undefined ? 1.0 : 0.1;
-
-    return (
-      <motion.div 
-        className="flex flex-col gap-1.5 w-full"
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <div className={`p-1 rounded bg-gradient-to-br ${color} shadow-sm flex items-center justify-center`}>
-                    {icon}
-                </div>
-                <div className="flex flex-col leading-none">
-                    <h3 className="text-[10px] font-bold text-white/90 tracking-wider uppercase">{label}</h3>
-                    {isLevelUp && (
-                        <motion.span 
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="text-[9px] font-black text-yellow-400 animate-pulse mt-0.5"
-                        >
-                            LEVEL UP!
-                        </motion.span>
-                    )}
-                </div>
-            </div>
-            <div className="text-right leading-none">
-                <div className="text-[10px] font-mono font-bold text-white">
-                    <Counter value={current} /> <span className="text-white/40">/ {Math.floor(max)}</span>
-                </div>
-            </div>
-        </div>
-
-        {/* Bar */}
-        <div className="relative w-full h-1 bg-gray-800 rounded-full overflow-hidden border border-white/5">
-            <motion.div 
-                className={`absolute top-0 left-0 h-full ${color.replace('from-', 'bg-').replace('to-', '')} opacity-20`}
-                
-                animate={{ width: "100%" }} 
-            />
-            <motion.div 
-                className={`absolute top-0 left-0 h-full bg-gradient-to-r ${color}`}
-                initial={{ width: `${initialPercent}%` }}
-                animate={{ width: `${percent}%` }}
-                transition={{ duration: duration, ease: "circOut" }}
-            />
-        </div>
-      </motion.div>
-    );
-  };
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <AnimatePresence mode="sync">
-      {currentReward && (
-        <motion.div
-          layout
-          key="reward-toast"
-          ref={cardRef}
-          initial={{ opacity: 0, scale: 0.9, y: -20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-          transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8 }}
-          className="w-80 pointer-events-auto"
-        >
-          <div className="relative group overflow-hidden rounded-[24px] will-change-transform">
-            {/* Apple-style Glass Background - Optimized for zero delay/flicker */}
-            <div className="absolute inset-0 bg-[#020204]/90 border border-white/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)]" />
-            
-            {/* Subtle light sweep instead of noise for performance */}
-            <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:animate-[sweep_1.5s_ease-in-out_infinite]" />
-
-            <div className="relative p-5">
+              <div style={{ padding: 20 }}>
                 <AnimatePresence mode="wait">
-                {step === 'XP' && (
+
+                  {/* ── XP STEP ─────────────────────────────────────────── */}
+                  {step === 'XP' && currentReward && (
                     <motion.div
-                    key="xp"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="flex flex-col gap-3"
+                      key="xp-step"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
                     >
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-white/40 tracking-[0.15em] uppercase font-mono">
-                                {currentReward.xpGained < 0 ? "XP LOST" : "Experience"}
-                            </span>
-                            <span className={`text-xs font-black font-mono tracking-tight ${currentReward.xpGained < 0 ? 'text-red-400' : 'text-indigo-400'}`}>
-                                {currentReward.xpGained > 0 ? '+' : ''}{currentReward.xpGained} XP
-                            </span>
-                        </div>
-                        
-                        {/* Custom Visual State Render for XP */}
-                        {renderProgressBar(
-                            visualState.currentXp,
-                            visualState.maxXp,
-                            currentReward.xpGained < 0 ? "Regression" : "Experience",
-                            currentReward.xpGained < 0 ? "from-red-500 to-orange-500" : "from-indigo-500 to-purple-500",
-                            <Zap size={11} className="text-white" />,
-                            visualState.isLevelUpAnimating || currentReward.isLevelUp
-                        )}
-                        
-                        {/* Level Indicator - Minimalist Apple Style */}
-                        <div className="flex justify-between items-center min-h-[1.5rem] mt-1">
-                             {!visualState.isLevelUpAnimating ? (
-                                 <div className="flex items-baseline gap-1.5">
-                                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest font-mono">Level</span>
-                                     <span className="text-xl font-bold text-white tracking-tight">{visualState.level}</span>
-                                 </div>
-                             ) : (
-                                 <motion.div 
-                                    layout
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="flex items-center gap-3 w-full"
-                                 >
-                                     <div className="flex items-center gap-2 text-white/90">
-                                         <span className="text-lg font-bold">{visualState.level}</span>
-                                         <ArrowRight size={14} className="text-white/40" />
-                                         <span className="text-2xl font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]">{visualState.level + 1}</span>
-                                     </div>
-                                     <span className="ml-auto text-[9px] font-black text-yellow-500/90 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 tracking-[0.2em] font-mono">LEVEL UP</span>
-                                 </motion.div>
-                             )}
-                        </div>
+                      {/* Row: label + delta */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                          {currentReward.source}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 900, fontFamily: 'monospace', color: currentReward.xpGained < 0 ? '#f87171' : '#a5b4fc' }}>
+                          {currentReward.xpGained > 0 ? '+' : ''}{currentReward.xpGained} XP
+                        </span>
+                      </div>
 
-                    </motion.div>
-                )}
-
-                {step === 'TRAIT' && (
-                    <motion.div
-                    key="trait"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col gap-3"
-                    >
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-white/40 tracking-[0.15em] uppercase font-mono">Growth</span>
-                            <span className="text-xs font-black text-cyan-400 font-mono tracking-tight">+{currentReward.traitXpGained} XP</span>
-                        </div>
-
-                        {renderProgressBar(
-                            currentReward.traitCurrentXp,
-                            currentReward.traitMaxXp,
-                            traitLabel ? t(traitLabel, traitLabel) : t('modals.project.traitDefault', 'Trait'),
-                            "from-cyan-400 to-blue-500",
-                            <Star size={11} className="text-white" />,
-                            currentReward.isTraitLevelUp,
-                            currentReward.isTraitLevelUp ? 0 : Math.max(0, currentReward.traitCurrentXp - (currentReward.traitXpGained || 0))
-                        )}
-                    </motion.div>
-                )}
-
-                {step === 'GOLD' && (
-                    <motion.div
-                    key="gold"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center justify-center py-2 relative w-full"
-                    >
-                        <div className="flex items-center gap-4 relative bg-white/5 rounded-2xl p-3 px-5 border border-white/10">
-                            <div className={`relative flex items-center justify-center p-2 rounded-full shadow-lg ${currentReward.goldGained < 0 ? 'bg-gradient-to-br from-gray-500 to-slate-600 shadow-gray-500/10' : 'bg-gradient-to-br from-amber-300 to-yellow-500 shadow-yellow-500/10'}`}>
-                                <Coins size={18} className="text-white drop-shadow-sm" />
+                      {/* XP bar */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ padding: 4, borderRadius: 6, background: currentReward.xpGained < 0 ? 'linear-gradient(135deg,#ef4444,#f97316)' : 'linear-gradient(135deg,#6366f1,#a855f7)', display: 'flex' }}>
+                              <Zap size={11} color="white" />
                             </div>
-                            
-                            <div className="flex flex-col leading-none items-start gap-0.5">
-                                <span className={`text-xl font-black tracking-tight font-mono ${currentReward.goldGained < 0 ? 'text-red-300' : 'text-white'}`}>
-                                    {currentReward.goldGained > 0 ? '+' : ''}{currentReward.goldGained}
-                                </span>
-                                <span className="text-[10px] font-black text-white/30 tracking-[0.2em] uppercase font-mono">Coins</span>
-                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              {currentReward.xpGained < 0 ? 'Regression' : 'Experience'}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                            {Math.floor(visualState.currentXp)} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {Math.floor(visualState.maxXp)}</span>
+                          </span>
                         </div>
+                        <div style={{ width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                          <motion.div
+                            style={{ height: '100%', background: currentReward.xpGained < 0 ? 'linear-gradient(90deg,#ef4444,#f97316)' : 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius: 99 }}
+                            animate={{ width: `${Math.min(100, Math.max(0, (visualState.currentXp / visualState.maxXp) * 100))}%` }}
+                            transition={{ duration: 0.08 }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Level row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28 }}>
+                        {!visualState.isLevelUpAnimating ? (
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>Level</span>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: 'white', lineHeight: 1 }}>{visualState.level}</span>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{visualState.level}</span>
+                              <ArrowRight size={14} color="rgba(255,255,255,0.3)" />
+                              <span style={{ fontSize: 26, fontWeight: 800, color: '#facc15', textShadow: '0 0 16px rgba(250,204,21,0.5)' }}>{visualState.level + 1}</span>
+                            </div>
+                            <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 900, color: '#eab308', backgroundColor: 'rgba(234,179,8,0.12)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(234,179,8,0.25)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>
+                              LEVEL UP
+                            </span>
+                          </motion.div>
+                        )}
+                      </div>
                     </motion.div>
-                )}
+                  )}
+
+                  {/* ── TRAIT STEP ───────────────────────────────────────── */}
+                  {step === 'TRAIT' && currentReward && (
+                    <motion.div
+                      key="trait-step"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                          {traitLabel ? t(traitLabel, traitLabel) : 'Trait'}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 900, fontFamily: 'monospace', color: '#22d3ee' }}>
+                          +{currentReward.traitXpGained} TP
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ padding: 4, borderRadius: 6, background: 'linear-gradient(135deg,#22d3ee,#3b82f6)', display: 'flex' }}>
+                              <Star size={11} color="white" />
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              {traitLabel ? t(traitLabel, traitLabel) : 'Growth'}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                            {Math.floor(currentReward.traitCurrentXp || 0)} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {Math.floor(currentReward.traitMaxXp || 100)}</span>
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                          <motion.div
+                            style={{ height: '100%', background: 'linear-gradient(90deg,#22d3ee,#3b82f6)', borderRadius: 99 }}
+                            initial={{ width: `${Math.max(0, Math.min(100, (((currentReward.traitCurrentXp || 0) - (currentReward.traitXpGained || 0)) / (currentReward.traitMaxXp || 100)) * 100))}%` }}
+                            animate={{ width: `${Math.min(100, ((currentReward.traitCurrentXp || 0) / (currentReward.traitMaxXp || 100)) * 100)}%` }}
+                            transition={{ duration: 1, ease: 'circOut' }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ── GOLD STEP ────────────────────────────────────────── */}
+                  {step === 'GOLD' && currentReward && (
+                    <motion.div
+                      key="gold-step"
+                      initial={{ opacity: 0, scale: 0.92 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      transition={{ duration: 0.2 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 18, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: '12px 24px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: '50%', background: currentReward.goldGained < 0 ? 'linear-gradient(135deg,#6b7280,#475569)' : 'linear-gradient(135deg,#fcd34d,#d97706)', boxShadow: currentReward.goldGained >= 0 ? '0 0 20px rgba(251,191,36,0.35)' : 'none' }}>
+                          <Coins size={20} color="white" />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace', letterSpacing: '-0.02em', color: currentReward.goldGained < 0 ? '#fca5a5' : 'white' }}>
+                            {currentReward.goldGained > 0 ? '+' : ''}{currentReward.goldGained}
+                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'monospace' }}>Coins</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                 </AnimatePresence>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    notificationRoot || document.body
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
