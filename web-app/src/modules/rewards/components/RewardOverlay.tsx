@@ -12,10 +12,12 @@ export const RewardOverlay: React.FC = () => {
   const { t } = useTranslation();
   const { queue, dismissReward, setIsAnimating } = useReward();
   const [currentReward, setCurrentReward] = useState<any>(null);
-  const [step, setStep] = useState<'IDLE' | 'XP' | 'TRAIT' | 'GOLD'>('IDLE');
+  const [step, setStep] = useState<'IDLE' | 'XP' | 'TRAIT' | 'SUBTRAIT' | 'GOLD'>('IDLE');
 
   const traitLabel: string | null =
     typeof currentReward?.traitName === 'string' ? currentReward.traitName : null;
+  const subTraitLabel: string | null =
+    typeof currentReward?.subTraitName === 'string' ? currentReward.subTraitName : null;
 
   // Visual State for animations
   const [visualState, setVisualState] = useState({
@@ -36,6 +38,8 @@ export const RewardOverlay: React.FC = () => {
         setStep('XP');
       } else if (reward.traitId && reward.traitXpGained !== 0) {
         setStep('TRAIT');
+      } else if (reward.subTraitId && reward.subTraitXpGained !== 0) {
+        setStep('SUBTRAIT');
       } else if (reward.goldGained !== 0) {
         setStep('GOLD');
       } else {
@@ -57,6 +61,9 @@ export const RewardOverlay: React.FC = () => {
         } else if (step === 'TRAIT') {
           await wait(STEP_DURATION);
           if (!cancelled) advanceFromTrait();
+        } else if (step === 'SUBTRAIT') {
+          await wait(STEP_DURATION);
+          if (!cancelled) advanceFromSubTrait();
         } else if (step === 'GOLD') {
           await wait(STEP_DURATION);
           if (!cancelled) finish();
@@ -128,11 +135,18 @@ export const RewardOverlay: React.FC = () => {
 
   const advanceFromXp = () => {
     if (currentReward.traitId && currentReward.traitXpGained !== 0) setStep('TRAIT');
+    else if (currentReward.subTraitId && currentReward.subTraitXpGained !== 0) setStep('SUBTRAIT');
     else if (currentReward.goldGained !== 0) setStep('GOLD');
     else finish();
   };
 
   const advanceFromTrait = () => {
+    if (currentReward.subTraitId && currentReward.subTraitXpGained !== 0) setStep('SUBTRAIT');
+    else if (currentReward.goldGained !== 0) setStep('GOLD');
+    else finish();
+  };
+
+  const advanceFromSubTrait = () => {
     if (currentReward.goldGained !== 0) setStep('GOLD');
     else finish();
   };
@@ -197,7 +211,9 @@ export const RewardOverlay: React.FC = () => {
                       ? 'linear-gradient(90deg, #6366f1, #a855f7)'
                       : step === 'TRAIT'
                         ? 'linear-gradient(90deg, #22d3ee, #3b82f6)'
-                        : 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                        : step === 'SUBTRAIT'
+                          ? 'linear-gradient(90deg, #10b981, #06b6d4)'
+                          : 'linear-gradient(90deg, #fbbf24, #f59e0b)',
                   opacity: 0.8,
                 }}
               />
@@ -313,6 +329,50 @@ export const RewardOverlay: React.FC = () => {
                             style={{ height: '100%', background: 'linear-gradient(90deg,#22d3ee,#3b82f6)', borderRadius: 99 }}
                             initial={{ width: `${Math.max(0, Math.min(100, (((currentReward.traitCurrentXp || 0) - (currentReward.traitXpGained || 0)) / (currentReward.traitMaxXp || 100)) * 100))}%` }}
                             animate={{ width: `${Math.min(100, ((currentReward.traitCurrentXp || 0) / (currentReward.traitMaxXp || 100)) * 100)}%` }}
+                            transition={{ duration: 1, ease: 'circOut' }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ── SUB-TRAIT STEP ────────────────────────────────────── */}
+                  {step === 'SUBTRAIT' && currentReward && (
+                    <motion.div
+                      key="subtrait-step"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                          {subTraitLabel ? t(subTraitLabel, subTraitLabel) : 'Sub-Trait'}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 900, fontFamily: 'monospace', color: '#10b981' }}>
+                          +{currentReward.subTraitXpGained} TP
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ padding: 4, borderRadius: 6, background: 'linear-gradient(135deg,#10b981,#06b6d4)', display: 'flex' }}>
+                              <Star size={11} color="white" />
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              {subTraitLabel ? t(subTraitLabel, subTraitLabel) : 'Sub Growth'}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>
+                            {Math.floor(currentReward.subTraitCurrentXp || 0)} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {Math.floor(currentReward.subTraitMaxXp || 100)}</span>
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                          <motion.div
+                            style={{ height: '100%', background: 'linear-gradient(90deg,#10b981,#06b6d4)', borderRadius: 99 }}
+                            initial={{ width: `${Math.max(0, Math.min(100, (((currentReward.subTraitCurrentXp || 0) - (currentReward.subTraitXpGained || 0)) / (currentReward.subTraitMaxXp || 100)) * 100))}%` }}
+                            animate={{ width: `${Math.min(100, ((currentReward.subTraitCurrentXp || 0) / (currentReward.subTraitMaxXp || 100)) * 100)}%` }}
                             transition={{ duration: 1, ease: 'circOut' }}
                           />
                         </div>

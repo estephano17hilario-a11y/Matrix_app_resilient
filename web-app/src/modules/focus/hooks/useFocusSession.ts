@@ -274,7 +274,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                 isActive,
                 isPaused,
                 timeLeft, 
-                totalDuration,
+                totalDuration: mode === 'STOPWATCH' ? 0 : totalDuration,
                 startTime,
                 targetTime,
                 lastUpdated: now

@@ -23,6 +23,16 @@ export interface RewardPayload {
   traitLevel?: number;
   isTraitLevelUp?: boolean;
   
+  // Sub-Trait (Optional)
+  subTraitId?: string;
+  subTraitName?: string;
+  subTraitIcon?: string;
+  subTraitXpGained?: number;
+  subTraitCurrentXp?: number;
+  subTraitMaxXp?: number;
+  subTraitLevel?: number;
+  isSubTraitLevelUp?: boolean;
+  
   // Gold
   goldGained: number;
   currentGold: number;

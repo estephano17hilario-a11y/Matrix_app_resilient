@@ -106,7 +106,8 @@ export const useDashboardLogic = () => {
         goldGained: number, 
         newPlayerStats: { xp: number, level: number, gold: number }, 
         oldPlayerStats: { level: number },
-        traitUpdate?: { id: string, name: string, xp: number, maxXp: number, level: number, oldLevel: number, gained?: number }
+        traitUpdate?: { id: string, name: string, xp: number, maxXp: number, level: number, oldLevel: number, gained?: number },
+        subTraitUpdate?: { id: string, name: string, xp: number, maxXp: number, level: number, oldLevel: number, gained?: number }
     ) => {
         const currentLevelBaseXp = calculateXpForLevel(newPlayerStats.level);
         const nextLevelTotalXp = calculateNextLevelXp(newPlayerStats.level);
@@ -136,6 +137,15 @@ export const useDashboardLogic = () => {
                 traitMaxXp: traitUpdate.maxXp,
                 traitLevel: traitUpdate.level,
                 isTraitLevelUp: traitUpdate.level > traitUpdate.oldLevel
+            } : {}),
+            ...(subTraitUpdate ? {
+                subTraitId: subTraitUpdate.id,
+                subTraitName: subTraitUpdate.name,
+                subTraitXpGained: subTraitUpdate.gained !== undefined ? subTraitUpdate.gained : xpGained,
+                subTraitCurrentXp: subTraitUpdate.xp,
+                subTraitMaxXp: subTraitUpdate.maxXp,
+                subTraitLevel: subTraitUpdate.level,
+                isSubTraitLevelUp: subTraitUpdate.level > subTraitUpdate.oldLevel
             } : {})
         });
     }, [addReward]);
@@ -1269,6 +1279,182 @@ export const useDashboardLogic = () => {
 
         processDailyReset();
     }, [user ? user.id : null, areHabitsLoaded, isDailyCheckDone, dailyLimits.date]);
+
+    // ── AUTOMATIC GLOBAL DAILY FEED SAVER & HISTORICAL BACKFILL ──────────────────
+    useEffect(() => {
+        if (!user?.id || luxLoading) return;
+
+        const autoSaveDailyFeed = () => {
+            try {
+                const today = toLocalISOString(new Date());
+                const currentFeed = PersistenceService.getCollection<any>(user.id, 'dailyFeed') || [];
+
+                const safeQuests = quests || [];
+                const safeHabits = habits || [];
+                const safeProjects = projects || [];
+                const safeLimits = dailyLimits || {};
+
+                const todayCompletedTasks = safeQuests.filter(q => {
+                    if (!q.completed || !q.completedAt) return false;
+                    try { return toLocalISOString(new Date(q.completedAt)) === today; } catch (e) { return false; }
+                });
+                const tasksCompleted = todayCompletedTasks.length;
+                const tasksTotal = safeQuests.filter(q => !q.completed).length + tasksCompleted;
+
+                let focusSessions = 0;
+                let focusSecondsFromSessions = 0;
+                const projectTimeMap = new Map<string, { name: string; minutes: number; color?: string }>();
+                safeProjects.forEach(p => {
+                    if (p.sessions) {
+                        const todaySessions = p.sessions.filter(s => {
+                            if (!s.date) return false;
+                            try { return toLocalISOString(new Date(s.date)) === today; } catch (e) { return false; }
+                        });
+                        if (todaySessions.length > 0) {
+                            focusSessions += todaySessions.length;
+                            const totalMin = Math.round(todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 60);
+                            focusSecondsFromSessions += todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+                            if (totalMin > 0) projectTimeMap.set(p.id, { name: p.title, minutes: totalMin, color: p.color });
+                        }
+                    }
+                });
+                const topProjects = Array.from(projectTimeMap.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 5);
+                const focusMinutes = Math.round(Math.max(Number(safeLimits.focusSeconds || 0), focusSecondsFromSessions) / 60);
+
+                const todayCompletedHabits = safeHabits.filter(h => !h.archived && h.completedToday);
+                const habitsCompleted = todayCompletedHabits.length;
+                const habitsTotal = safeHabits.filter(h => !h.archived).length;
+
+                let subHabitsCompleted = 0;
+                let subHabitsTotal = 0;
+                const dayOfWeek = new Date().getDay();
+                safeHabits.forEach(h => {
+                    if (h.archived) return;
+                    if (h.type === 'CHECKLIST' && h.checklist) {
+                        const isActive = isHabitActive(h, new Date());
+                        if (isActive) {
+                            const activeChecklist = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek));
+                            subHabitsTotal += activeChecklist.length;
+                            subHabitsCompleted += activeChecklist.filter(item => item.completed).length;
+                        }
+                    }
+                });
+
+                const xpEarned = Number(safeLimits.totalXp || 0) || (Number(safeLimits.taskXp || 0) + Number(safeLimits.focusXp || 0) + Number(safeLimits.habitXp || 0));
+                const goldEarned = Number(safeLimits.totalGold || 0) || (Number(safeLimits.taskGold || 0) + Number(safeLimits.focusGold || 0) + Number(safeLimits.habitGold || 0));
+                const tpEarned = Number(safeLimits.totalTraitPoints || 0) || (Number(safeLimits.taskTraitPoints || 0) + Number(safeLimits.focusTraitPoints || 0) + Number(safeLimits.habitTraitPoints || 0));
+
+                const completedTaskTitles = todayCompletedTasks.map(t => t.title).slice(0, 5);
+                const completedHabitTitles = safeHabits.filter(h => !h.archived && h.completedToday).map(h => h.title).slice(0, 5);
+                const score = calculateLiveProductivityScore(safeQuests, safeHabits, safeProjects, safeLimits);
+
+                const todayFeedEntry = {
+                    id: `feed_${today}`,
+                    date: today,
+                    tasksCompleted,
+                    tasksTotal,
+                    focusMinutes,
+                    focusSessions,
+                    habitsCompleted,
+                    habitsTotal,
+                    subHabitsCompleted,
+                    subHabitsTotal,
+                    xpEarned,
+                    goldEarned,
+                    tpEarned,
+                    streak: player?.streak || 0,
+                    topProjects,
+                    completedTaskTitles,
+                    completedHabitTitles,
+                    createdAt: Date.now(),
+                    score
+                };
+
+                let updatedFeed = [todayFeedEntry, ...currentFeed.filter((e: any) => e.date !== today)];
+
+                // BACKFILL MISSING HISTORICAL DAYS (up to 14 days back)
+                let feedModified = false;
+                const now = new Date();
+                for (let i = 1; i <= 14; i++) {
+                    const pastDate = new Date(now);
+                    pastDate.setDate(pastDate.getDate() - i);
+                    const dateStr = toLocalISOString(pastDate);
+
+                    if (!updatedFeed.some((e: any) => e.date === dateStr)) {
+                        const dayQuests = safeQuests.filter(q => q.completed && q.completedAt && toLocalISOString(new Date(q.completedAt)) === dateStr);
+                        const dayHabits = safeHabits.filter(h => {
+                            if (h.archived) return false;
+                            const history = h.history || [];
+                            return history.some(d => d.startsWith(dateStr));
+                        });
+
+                        let dayFocusSec = 0;
+                        let dayFocusCount = 0;
+                        const dayProjectMap = new Map<string, { name: string; minutes: number; color?: string }>();
+                        safeProjects.forEach(p => {
+                            if (p.sessions) {
+                                const dSessions = p.sessions.filter(s => s.date && toLocalISOString(new Date(s.date)) === dateStr);
+                                if (dSessions.length > 0) {
+                                    dayFocusCount += dSessions.length;
+                                    const mins = Math.round(dSessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 60);
+                                    dayFocusSec += dSessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+                                    if (mins > 0) dayProjectMap.set(p.id, { name: p.title, minutes: mins, color: p.color });
+                                }
+                            }
+                        });
+
+                        const dayTopProjects = Array.from(dayProjectMap.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 5);
+                        const dayScore = calculateLiveProductivityScore(safeQuests, safeHabits, safeProjects, safeLimits, pastDate);
+
+                        const backfilledEntry = {
+                            id: `feed_${dateStr}`,
+                            date: dateStr,
+                            tasksCompleted: dayQuests.length,
+                            tasksTotal: safeQuests.filter(q => !q.completed).length + dayQuests.length,
+                            focusMinutes: Math.round(dayFocusSec / 60),
+                            focusSessions: dayFocusCount,
+                            habitsCompleted: dayHabits.length,
+                            habitsTotal: safeHabits.filter(h => isHabitActive(h, pastDate)).length,
+                            subHabitsCompleted: 0,
+                            subHabitsTotal: 0,
+                            xpEarned: 0,
+                            goldEarned: 0,
+                            tpEarned: 0,
+                            streak: player?.streak || 0,
+                            topProjects: dayTopProjects,
+                            completedTaskTitles: dayQuests.map(q => q.title).slice(0, 5),
+                            completedHabitTitles: dayHabits.map(h => h.title).slice(0, 5),
+                            createdAt: pastDate.getTime(),
+                            score: dayScore
+                        };
+
+                        updatedFeed.push(backfilledEntry);
+                        feedModified = true;
+                    }
+                }
+
+                updatedFeed = updatedFeed.sort((a, b) => b.date.localeCompare(a.date));
+                PersistenceService.saveCollection(user.id, 'dailyFeed', updatedFeed);
+
+                OfflineSyncService.addAction({
+                    type: 'SAVE',
+                    collectionName: 'dailyFeed',
+                    userId: user.id,
+                    itemId: `feed_${today}`,
+                    data: todayFeedEntry
+                });
+
+                try {
+                    window.dispatchEvent(new CustomEvent('matrix:feed-updated', { detail: { date: today } }));
+                } catch (e) { /* ignore */ }
+            } catch (e) {
+                console.warn('[GlobalDailyFeed] Error auto-saving daily feed:', e);
+            }
+        };
+
+        const timer = setTimeout(autoSaveDailyFeed, 2000);
+        return () => clearTimeout(timer);
+    }, [user?.id, luxLoading, quests, habits, projects, dailyLimits, player?.streak]);
 
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const attributesRef = useRef(attributes);
@@ -3425,6 +3611,7 @@ export const useDashboardLogic = () => {
                         }
                     }
                     let newSubTraits = attr.subTraits;
+                    let rewardSubTraitUpdate: any = undefined;
                     if (subTraitId && attr.subTraits) {
                         newSubTraits = attr.subTraits.map(st => {
                             if (st.id !== subTraitId) return st;
@@ -3438,6 +3625,7 @@ export const useDashboardLogic = () => {
                                     newStMaxXp = Math.round(newStMaxXp * 1.3);
                                 }
                             }
+                            rewardSubTraitUpdate = { id: st.id, name: st.name, xp: newStXp, maxXp: newStMaxXp, level: newStLevel, oldLevel: st.level, gained: totalTP };
                             return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
                         });
                     }
@@ -3453,7 +3641,7 @@ export const useDashboardLogic = () => {
                     ));
                     traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, subTraits: newSubTraits };
                     const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
-                    triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
+                    triggerReward('Focus Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate, rewardSubTraitUpdate);
                 }
             }
 
@@ -3629,6 +3817,7 @@ export const useDashboardLogic = () => {
                         }
                     }
                     let newSubTraits = attr.subTraits;
+                    let rewardSubTraitUpdate: any = undefined;
                     if (subTraitId && attr.subTraits) {
                         newSubTraits = attr.subTraits.map(st => {
                             if (st.id !== subTraitId) return st;
@@ -3642,6 +3831,7 @@ export const useDashboardLogic = () => {
                                     newStMaxXp = Math.round(newStMaxXp * 1.3);
                                 }
                             }
+                            rewardSubTraitUpdate = { id: st.id, name: st.name, xp: newStXp, maxXp: newStMaxXp, level: newStLevel, oldLevel: st.level, gained: totalTP };
                             return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
                         });
                     }
@@ -3657,7 +3847,7 @@ export const useDashboardLogic = () => {
                     ));
                     traitUpdate = { id: attr.id, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, subTraits: newSubTraits };
                     const rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: totalTP };
-                    triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate);
+                    triggerReward('Manual Session', totalXp, totalGold, newPlayerStats, { level: player.level }, rewardTraitUpdate, rewardSubTraitUpdate);
                 }
             }
 
@@ -4411,6 +4601,7 @@ export const useDashboardLogic = () => {
                         newAttrXp = Math.max(0, newAttrXp);
                     }
                     
+                    let subTraitUpdate: any = undefined;
                     let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
                     if (quest.subAttribute && updatedSubTraits.length > 0) {
                         const subIndex = updatedSubTraits.findIndex(st => st.id === quest.subAttribute);
@@ -4448,6 +4639,7 @@ export const useDashboardLogic = () => {
                                 if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
                             }
                             updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
+                            subTraitUpdate = { id: sub.id, name: sub.name, xp: newSubXp, maxXp: newSubMaxXp, level: newSubLevel, oldLevel: sub.level, gained: rewardTraitXp };
                         }
                     }
                     
@@ -4477,7 +4669,7 @@ export const useDashboardLogic = () => {
                 
                 if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
                     // Trigger reward UI
-                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level }, traitUpdate);
+                     triggerReward(`Quest: ${quest.title}`, rewardXp, rewardGold, { xp: player.xp + rewardXp, gold: player.gold + rewardGold, level: calculateLevelFromXp(player.xp + rewardXp) }, { level: player.level }, traitUpdate, subTraitUpdate);
                 }
             } else {
                  const today = toLocalISOString(new Date());
@@ -4751,6 +4943,7 @@ export const useDashboardLogic = () => {
 
         // Apply Attribute Stats
         let traitUpdate: any = undefined;
+        let subTraitUpdate: any = undefined;
         if (rewardTraitXp !== 0 && habit.attribute) {
             const currentAttrs = attributesRef.current;
             const attrIndex = currentAttrs.findIndex(a => a.id === habit.attribute);
@@ -4770,11 +4963,39 @@ export const useDashboardLogic = () => {
                     newAttrXp = Math.max(0, newAttrXp);
                 }
 
+                let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                if (habit.subAttribute && updatedSubTraits.length > 0) {
+                    const subIndex = updatedSubTraits.findIndex(st => st.id === habit.subAttribute);
+                    if (subIndex !== -1) {
+                        const sub = updatedSubTraits[subIndex];
+                        let newSubXp = sub.xp + rewardTraitXp;
+                        let newSubLevel = sub.level;
+                        let newSubMaxXp = sub.maxXp;
+
+                        if (rewardTraitXp > 0) {
+                            while (newSubXp >= newSubMaxXp) {
+                                newSubXp -= newSubMaxXp;
+                                newSubLevel += 1;
+                                newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                            }
+                        } else {
+                            while (newSubXp < 0 && newSubLevel > 1) {
+                                newSubLevel -= 1;
+                                newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                newSubXp += newSubMaxXp;
+                            }
+                            if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                        }
+                        updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
+                        subTraitUpdate = { id: sub.id, name: sub.name, xp: newSubXp, maxXp: newSubMaxXp, level: newSubLevel, oldLevel: sub.level, gained: rewardTraitXp };
+                    }
+                }
+
                 const newAttributes = [...currentAttrs];
-                newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                 attributesRef.current = newAttributes;
                 setAttributes(newAttributes);
-                traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: rewardTraitXp };
+                traitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, subTraits: updatedSubTraits, gained: rewardTraitXp };
             }
         }
 
@@ -4791,7 +5012,7 @@ export const useDashboardLogic = () => {
             
             // Trigger UI Feedback
             if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
-                triggerReward(`Habit: ${habit.title}`, rewardXp, rewardGold, { xp: newXp, gold: newGold, level: newLevel }, { level: currentPlayer.level }, traitUpdate);
+                triggerReward(`Habit: ${habit.title}`, rewardXp, rewardGold, { xp: newXp, gold: newGold, level: newLevel }, { level: currentPlayer.level }, traitUpdate, subTraitUpdate);
             }
         } else {
             const newLimits = { 
@@ -5555,8 +5776,9 @@ export const useDashboardLogic = () => {
                 // Optimistic UI updates
                 setPlayer(prev => ({ ...prev, xp: newXp, gold: Math.max(0, prev.gold + rewardGold), level: newLevel, nextXp: newNextXp }));
                 
-                let traitUpdate: { id: string, xp: number, level: number, maxXp: number } | undefined = undefined;
+                let traitUpdate: { id: string, xp: number, level: number, maxXp: number, subTraits?: any[] } | undefined = undefined;
                 let rewardTraitUpdate: any = undefined;
+                let rewardSubTraitUpdate: any = undefined;
                 if (rewardTraitXp !== 0 && currentHabit.attribute) {
                     const attrIndex = attributes.findIndex(a => a.id === currentHabit.attribute);
                     if (attrIndex !== -1) {
@@ -5575,10 +5797,38 @@ export const useDashboardLogic = () => {
                             newAttrXp = Math.max(0, newAttrXp);
                         }
 
+                        let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                        if (currentHabit.subAttribute && updatedSubTraits.length > 0) {
+                            const subIndex = updatedSubTraits.findIndex(st => st.id === currentHabit.subAttribute);
+                            if (subIndex !== -1) {
+                                const sub = updatedSubTraits[subIndex];
+                                let newSubXp = sub.xp + rewardTraitXp;
+                                let newSubLevel = sub.level;
+                                let newSubMaxXp = sub.maxXp;
+
+                                if (rewardTraitXp > 0) {
+                                    while (newSubXp >= newSubMaxXp) {
+                                        newSubXp -= newSubMaxXp;
+                                        newSubLevel += 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                    }
+                                } else {
+                                    while (newSubXp < 0 && newSubLevel > 1) {
+                                        newSubLevel -= 1;
+                                        newSubMaxXp = calculateSubTraitMaxXp(newSubLevel);
+                                        newSubXp += newSubMaxXp;
+                                    }
+                                    if (newSubLevel === 1 && newSubXp < 0) newSubXp = 0;
+                                }
+                                updatedSubTraits[subIndex] = { ...sub, xp: newSubXp, level: newSubLevel, maxXp: newSubMaxXp };
+                                rewardSubTraitUpdate = { id: sub.id, name: sub.name, xp: newSubXp, maxXp: newSubMaxXp, level: newSubLevel, oldLevel: sub.level, gained: rewardTraitXp };
+                            }
+                        }
+
                         const newAttributes = [...attributes];
-                        newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                        newAttributes[attrIndex] = { ...attr, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                         setAttributes(newAttributes);
-                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp };
+                        traitUpdate = { id: attr.id, xp: newAttrXp, level: newAttrLevel, maxXp: newAttrMaxXp, subTraits: updatedSubTraits };
                         rewardTraitUpdate = { id: attr.id, name: attr.label, xp: newAttrXp, maxXp: newAttrMaxXp, level: newAttrLevel, oldLevel: attr.level, gained: rewardTraitXp };
                     }
                 }
@@ -5605,7 +5855,7 @@ export const useDashboardLogic = () => {
                 }
 
                 if (rewardXp > 0 || rewardGold > 0 || rewardTraitXp > 0) {
-                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: player.level }, rewardTraitUpdate);
+                    triggerReward(`Habit: ${currentHabit.title}`, rewardXp, rewardGold, { xp: newXp, gold: player.gold + rewardGold, level: newLevel }, { level: player.level }, rewardTraitUpdate, rewardSubTraitUpdate);
                 }
 
                 TransactionService.toggleHabitCompletion(

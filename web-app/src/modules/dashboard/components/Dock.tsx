@@ -259,8 +259,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  stiffness: 300, 
  damping: 28
  }}
-  className="pointer-events-none relative border border-white/[0.10] shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] overflow-hidden"
-  style={{ willChange: 'transform, height', backgroundColor: 'rgba(0,0,0,0.07)' }}
+  className="pointer-events-none relative border border-white/[0.10] shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] overflow-hidden backdrop-blur-xl bg-black/50"
+  style={{ willChange: 'transform, height', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
   >
   {/* Fake-glass: top highlight line */}
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
@@ -355,7 +355,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   style={{ willChange: 'transform, height', backgroundColor: 'rgba(0,0,0,0.07)' }}
   className={` 
   pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
-  border border-white/[0.10] overflow-hidden
+  border border-white/[0.10] overflow-hidden backdrop-blur-xl bg-black/50
   ${isOpen ? 'aura-active' : ''} 
   `}
   > 
@@ -477,11 +477,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
      willChange: 'border-radius'
    }}
    >
-      {/* Fake-glass base — 7% black, no backdrop-filter dependency */}
+      {/* Frosted glass base */}
       <div 
-        className="absolute inset-0 !border-0"
+        className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50"
         style={{ 
-          backgroundColor: 'rgba(0, 0, 0, 0.07)',
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           borderRadius: isOpen ? 32 : 36,
           transform: 'translateZ(0)',
           backfaceVisibility: 'hidden'

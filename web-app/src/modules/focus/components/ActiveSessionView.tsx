@@ -404,13 +404,13 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
  };
 
- const getElapsedSeconds = useCallback((currentMode: 'POMO' | 'STOPWATCH') => {
- if (currentMode === 'POMO') {
- const elapsed = totalDuration - timeLeft;
- return Math.max(0, Math.min(totalDuration, elapsed));
- }
- return Math.max(0, timeLeft);
- }, [timeLeft, totalDuration]);
+  const getElapsedSeconds = useCallback((currentMode: 'POMO' | 'STOPWATCH') => {
+    if (currentMode === 'STOPWATCH') {
+      return Math.max(0, timeLeft);
+    }
+    const elapsed = totalDuration - timeLeft;
+    return Math.max(0, Math.min(totalDuration, elapsed));
+  }, [timeLeft, totalDuration]);
 
   const handleConfirmExit = () => {
     setShowFocusProtectionModal(false);
