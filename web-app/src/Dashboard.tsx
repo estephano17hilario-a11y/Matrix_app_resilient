@@ -1473,7 +1473,7 @@ export default function Dashboard() {
  {/* ⚡ TASK SECTION SWITCHER */}
  {habitSectionControl === 'VISIBLE' && (
   <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
-  <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
+  <div className="flex p-1 bg-white/5 backdrop-blur-xl selector-blur rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
   <button
   onClick={() => setTaskViewMode('LIST')}
   className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
@@ -1583,7 +1583,7 @@ export default function Dashboard() {
  {/* SECTION SWITCHER (RESTORED) */}
  {habitSectionControl === 'VISIBLE' && (
  <div className="flex justify-center pt-2 pb-1 z-10 relative">
- <div className="flex p-1 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 shadow-sm">
+ <div className="flex p-1 bg-white/5 backdrop-blur-xl selector-blur rounded-full border border-white/10 shadow-sm">
  <button
  onClick={() => setHabitViewMode('PROTOCOLS')}
  className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}

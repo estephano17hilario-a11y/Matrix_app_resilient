@@ -1372,6 +1372,8 @@ export const useDashboardLogic = () => {
 
                 let updatedFeed = [todayFeedEntry, ...currentFeed.filter((e: any) => e.date !== today)];
 
+                // Backfill will now add to OfflineSyncService inside the loop below
+                
                 // BACKFILL MISSING HISTORICAL DAYS (up to 14 days back)
                 let feedModified = false;
                 const now = new Date();
@@ -1430,6 +1432,14 @@ export const useDashboardLogic = () => {
 
                         updatedFeed.push(backfilledEntry);
                         feedModified = true;
+                        
+                        OfflineSyncService.addAction({
+                            type: 'SAVE',
+                            collectionName: 'dailyFeed',
+                            userId: user.id,
+                            itemId: `feed_${dateStr}`,
+                            data: backfilledEntry
+                        });
                     }
                 }
 
@@ -3435,21 +3445,19 @@ export const useDashboardLogic = () => {
             if (proj.uiFrequency === 'WEEKLY' || proj.uiFrequency === 'MONTHLY') {
                 // If it's weekly/monthly, it might have a dynamic target. We'll stick to goalTarget (which is saved as daily equivalent) 
                 // for simplicity and consistency with the predicted rewards shown in modal.
-            }
-            
-            const goalSeconds = dailyGoalMinutes * 60;
+                    const goalSeconds = dailyGoalMinutes * 60;
             
             // Trigger bonus only if we crossed the line just now
             if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
                 goalMetNow = true;
                 const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1, 0, 'PROJECT');
                 
-                // PER USER REQUEST: "se de su recompensa (la que sale al terminar de crear su proyect)"
-                // We give the FULL predicted amount as the completion bonus, 
-                // instead of subtracting the base time part.
-                bonusXp = Math.max(0, prediction.xp);
-                bonusGold = Math.max(0, prediction.coins);
-                bonusTP = Math.max(0, prediction.traitXp);
+                // The user complained about getting double rewards. We subtract the base time reward
+                // that they already earned during this session, so the total earned today exactly
+                // matches the prediction.
+                bonusXp = Math.max(0, prediction.xp - finalXp);
+                bonusGold = Math.max(0, prediction.coins - finalGold);
+                bonusTP = Math.max(0, prediction.traitXp - finalTP);
                 
                 console.log(`🎉 [DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
             }
