@@ -1848,6 +1848,7 @@ export default function Dashboard() {
     smartProjects={smartProjects} 
     onConfirm={handleProjectConfirmAndReset} 
     onDelete={handleDeleteProjectRequest}
+    initialData={modalInitialContext || undefined}
   />
 
   <BadHabitWizard 

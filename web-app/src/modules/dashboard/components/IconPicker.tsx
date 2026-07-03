@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 interface IconPickerProps {
     selectedIcon: string | null;
     onSelectIcon: (iconName: string | null) => void;
-    selectedColor: string | undefined;
-    onSelectColor: (color: string | undefined) => void;
+    selectedColor?: string | undefined;
+    onSelectColor?: (color: string | undefined) => void;
     onToggle?: (isOpen: boolean) => void;
 }
 
@@ -34,6 +34,13 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
     const [activeTab, setActiveTab] = useState<'icons' | 'colors'>('icons');
+    
+    // Force to icons tab if color selection is not available
+    useEffect(() => {
+        if (!onSelectColor) {
+            setActiveTab('icons');
+        }
+    }, [onSelectColor]);
     const [activeCategory, setActiveCategory] = useState('All');
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [showScrollIndicator, setShowScrollIndicator] = useState(true);
@@ -107,9 +114,9 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
         <div className="space-y-2">
             <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold text-white/30 uppercase pl-1">{t('habits.customizationOptional', 'Customization (Optional)')}</span>
-                {selectedIcon && (
+                 {selectedIcon && (
                     <button 
-                        onClick={() => { onSelectIcon(null); onSelectColor(undefined); }}
+                        onClick={() => { onSelectIcon(null); onSelectColor?.(undefined); }}
                         className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
                     >
                         Limpiar
@@ -166,27 +173,29 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                     >
                         <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-md space-y-4 mt-2">
                             
-                            {/* Tabs */}
-                            <div className="flex p-1 bg-black/40 rounded-xl">
-                                <button 
-                                    onClick={() => setActiveTab('icons')}
-                                    className={cn(
-                                        "flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all",
-                                        activeTab === 'icons' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                                    )}
-                                >
-                                    {t('habits.picker.icons', 'ICONS')}
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('colors')}
-                                    className={cn(
-                                        "flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all",
-                                        activeTab === 'colors' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
-                                    )}
-                                >
-                                    {t('habits.picker.colors', 'COLORS')}
-                                </button>
-                            </div>
+                            {/* Tabs - Only show if onSelectColor is provided */}
+                            {onSelectColor && (
+                                <div className="flex p-1 bg-black/40 rounded-xl">
+                                    <button 
+                                        onClick={() => setActiveTab('icons')}
+                                        className={cn(
+                                            "flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                                            activeTab === 'icons' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
+                                        )}
+                                    >
+                                        {t('habits.picker.icons', 'ICONS')}
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('colors')}
+                                        className={cn(
+                                            "flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                                            activeTab === 'colors' ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
+                                        )}
+                                    >
+                                        {t('habits.picker.colors', 'COLORS')}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Content */}
                             <div className="h-[400px] flex flex-col relative">
@@ -338,7 +347,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                                                     {colors.map(color => (
                                                         <button
                                                             key={color}
-                                                            onClick={() => onSelectColor(color)}
+                                                            onClick={() => onSelectColor?.(color)}
                                                             className={cn(
                                                                 "w-full aspect-square rounded-full transition-all hover:scale-110",
                                                                 selectedColor === color ? "ring-2 ring-white scale-110 z-10" : "opacity-70 hover:opacity-100"

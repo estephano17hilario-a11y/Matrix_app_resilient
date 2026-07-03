@@ -10,6 +10,7 @@ import { TraitRadarChart } from './components/TraitRadarChart';
 import { TRAITS_LIST } from './constants';
 import { Attribute } from '@/types';
 import { calculateSubTraitMaxXp } from '@/utils/leveling';
+import { IconPicker } from './components/IconPicker';
 
 interface PlayerHUDProps {
  attributes?: Attribute[];
@@ -335,21 +336,14 @@ const TraitBar = ({
              </div>
             </div>
 
-            <div className="grid grid-cols-6 gap-1">
-             {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => (
-              <button
-                key={icon}
-                onClick={() => setEditSubIcon(icon)}
-                className={cn(
-                  "h-6 rounded-md flex items-center justify-center transition-all border",
-                  editSubIcon === icon 
-                    ? "bg-white/10 border-white/20 text-white" 
-                    : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
-                )}
-              >
-                {renderLucideIcon(icon, 12)}
-              </button>
-             ))}
+            <div className="space-y-1 relative z-20" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.subTraitIcon', 'Icon:')}</span>
+              <IconPicker 
+                selectedIcon={editSubIcon}
+                onSelectIcon={(iconName) => {
+                  if (iconName) setEditSubIcon(iconName);
+                }}
+              />
             </div>
            </div>
           );
@@ -470,25 +464,14 @@ const TraitBar = ({
           </div>
          )}
 
-         <div className="space-y-1">
+         <div className="space-y-1 relative z-20" onClick={(e) => e.stopPropagation()}>
           <span className="text-[8px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.icon', 'Icon:')}</span>
-          <div className="grid grid-cols-6 gap-1">
-           {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => (
-             <button
-               key={icon}
-               type="button"
-               onClick={() => setNewSubIcon(icon)}
-               className={cn(
-                 "h-6 rounded-md flex items-center justify-center transition-all border",
-                 newSubIcon === icon 
-                   ? "bg-white/10 border-white/20 text-white" 
-                   : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
-               )}
-             >
-               {renderLucideIcon(icon, 12)}
-             </button>
-           ))}
-          </div>
+          <IconPicker 
+            selectedIcon={newSubIcon}
+            onSelectIcon={(iconName) => {
+              if (iconName) setNewSubIcon(iconName);
+            }}
+          />
          </div>
         </form>
        ) : (

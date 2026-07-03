@@ -588,46 +588,14 @@ export const NeuralSection = () => {
                           )}
 
                           {/* Optional Icon Picker */}
-                          <div className="space-y-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setShowIconGrid(!showIconGrid);
+                          <div className="space-y-2 relative z-20" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.subTraitIcon', 'Icon:')}</span>
+                            <IconPicker 
+                              selectedIcon={newSubIcon}
+                              onSelectIcon={(iconName) => {
+                                if (iconName) setNewSubIcon(iconName);
                               }}
-                              className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
-                            >
-                              <span>{t('settings.subTraitIcon', 'Icon: {{name}}', { name: newSubIcon })}</span>
-                              <span className="text-[8px] text-white/35">{t('settings.clickToChange', '(click to change)')}</span>
-                            </button>
-                            
-                            {showIconGrid && (
-                              <div className="grid grid-cols-6 gap-1 p-1 bg-black/35 rounded-lg border border-white/5 animate-fadeIn">
-                                {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => {
-                                  const IconComp = (LucideIcons as any)[icon] || Hexagon;
-                                  return (
-                                    <button
-                                      key={icon}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setNewSubIcon(icon);
-                                        setShowIconGrid(false);
-                                      }}
-                                      className={`h-7 rounded-md flex items-center justify-center transition-all border ${
-                                        newSubIcon === icon 
-                                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" 
-                                          : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
-                                      }`}
-                                    >
-                                      <IconComp size={14} />
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            />
                           </div>
                         </div>
                       )}
@@ -683,46 +651,14 @@ export const NeuralSection = () => {
                                   </div>
 
                                   {/* Optional Edit Icon Picker */}
-                                  <div className="space-y-2">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setShowEditIconGrid(!showEditIconGrid);
+                                  <div className="space-y-2 relative z-20" onClick={(e) => e.stopPropagation()}>
+                                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider block">{t('settings.subTraitIcon', 'Icon:')}</span>
+                                    <IconPicker 
+                                      selectedIcon={editSubIcon}
+                                      onSelectIcon={(iconName) => {
+                                        if (iconName) setEditSubIcon(iconName);
                                       }}
-                                      className="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-colors flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-md border border-white/5"
-                                    >
-                                      <span>{t('settings.subTraitIcon', 'Icon: {{name}}', { name: editSubIcon })}</span>
-                                      <span className="text-[8px] text-white/35">{t('settings.clickToChange', '(click to change)')}</span>
-                                    </button>
-                                    
-                                    {showEditIconGrid && (
-                                      <div className="grid grid-cols-6 gap-1 p-1 bg-black/35 rounded-lg border border-white/5 animate-fadeIn">
-                                        {['Target', 'Dumbbell', 'Brain', 'Heart', 'Code', 'BookOpen', 'Languages', 'Palette', 'Music', 'TrendingUp', 'Compass', 'Flame'].map(icon => {
-                                          const IconComp = (LucideIcons as any)[icon] || Hexagon;
-                                          return (
-                                            <button
-                                              key={icon}
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setEditSubIcon(icon);
-                                                setShowEditIconGrid(false);
-                                              }}
-                                              className={`h-7 rounded-md flex items-center justify-center transition-all border ${
-                                                editSubIcon === icon 
-                                                  ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400" 
-                                                  : "bg-transparent border-transparent text-white/30 hover:bg-white/5 hover:text-white/60"
-                                              }`}
-                                            >
-                                              <IconComp size={14} />
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
+                                    />
                                   </div>
                                 </div>
                               );
