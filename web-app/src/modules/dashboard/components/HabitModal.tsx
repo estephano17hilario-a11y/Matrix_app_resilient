@@ -260,7 +260,9 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         if (logic === 'CHECKLIST' && subtasks.length === 0 && !newSubtask.trim()) return false;
         return true;
     })();
-    const isBlock3Valid = true;
+    // When editing an existing habit, alarm is optional (may predate requirement)
+    // When creating a new habit, alarm is required
+    const isBlock3Valid = !!initialData?.id ? true : reminder !== ''; 
 
     const canSubmit = isBlock1Valid && isBlock2Valid && isBlock3Valid;
 

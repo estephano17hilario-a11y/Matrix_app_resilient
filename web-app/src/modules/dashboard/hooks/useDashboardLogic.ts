@@ -44,6 +44,22 @@ const ICONS_MAP: Record<string, any> = {
   Hexagon, Target, Dumbbell, Brain, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Zap, Feather, Rocket, Star, Heart, Flame, Leaf
 };
 
+// Static map from default trait ID to iconName string — avoids relying on .name which breaks in prod
+const TRAIT_ID_TO_ICON: Record<string, string> = {
+  DISCIPLINA: 'Target',
+  FISICO: 'Dumbbell',
+  MENTAL: 'Brain',
+  SOCIAL: 'Users',
+  ESPIRITU: 'Ghost',
+  FINANZAS: 'Wallet',
+  CREATIVIDAD: 'Palette',
+  ORDEN: 'Anchor',
+  LIDERAZGO: 'Crown',
+  RESILIENCIA: 'Shield',
+  VITALIDAD: 'Zap',
+  ESTILO: 'Feather',
+};
+
 const recalculateHabitStreak = (history: string[]): number => {
     if (!history || history.length === 0) return 0;
     const uniqueDates = Array.from(new Set(history.map(d => getHistoryDateKey(d)))).sort();
@@ -2190,7 +2206,7 @@ export const useDashboardLogic = () => {
             maxXp: archived?.maxXp || calculateAttributeMaxXp(archived?.level || 1),
             color: def.color,
             icon: def.icon,
-            iconName: archived?.iconName || def.icon?.name || 'Hexagon'
+            iconName: archived?.iconName || TRAIT_ID_TO_ICON[def.id] || def.icon?.displayName || def.icon?.name || 'Hexagon'
         };
 
         // Optimistic update
@@ -3462,6 +3478,7 @@ export const useDashboardLogic = () => {
                 
                 console.log(`🎉 [DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
             }
+        }
 
         const totalXp = finalXp + bonusXp;
         const totalGold = finalGold + bonusGold;
@@ -5573,8 +5590,7 @@ export const useDashboardLogic = () => {
                 console.warn("Failed to sync notifications for new habit:", e);
             }
         }
-        
-        setActiveModal(null);
+        // NOTE: Do NOT call setActiveModal(null) here — the modal handles closing itself via onClose()
     }, [user, habits]);
 
     const handleHabitUpdate = useCallback(async (habitId: string, data: Partial<Habit>, targetDate?: Date) => {
@@ -6050,7 +6066,7 @@ export const useDashboardLogic = () => {
             addNotification({ type: 'SYSTEM', label: 'SAVE ERROR', fromLevel: 'Retry', toLevel: 'Failed', icon: AlertTriangle, color: '#ef4444' });
         });
 
-        setActiveModal(null);
+        // NOTE: Do NOT call setActiveModal(null) here — the modal handles closing itself via onClose()
     }, [user, projects, saveProjectsCache, addNotification]);
 
     const handleDeleteProject = useCallback(async (projectId: string) => {

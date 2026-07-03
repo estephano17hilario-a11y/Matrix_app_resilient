@@ -148,9 +148,9 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   <button 
   key={id}
   onClick={() => handleSmartNav(id)} 
-  className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 pb-1 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
+  className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
   >
-  <Icon size={24} className={`transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+  <Icon size={22} className={`transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
   {indicator ? (
   <span className={`text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{indicator}</span>
   ) : (
@@ -396,26 +396,21 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  </div> 
  
  {/* BOTÓN "+" CENTRAL ANIMADO */} 
- <div className="col-span-1 flex items-center justify-center h-full -mt-1 z-30"> 
- <motion.button 
+ <div className="col-span-1 flex items-center justify-center h-full z-20"> 
+ <button 
  data-tour="dock-main-btn"
  onClick={() => onToggle(!isOpen)}
- animate={{
- width: isOpen ? 64 : 56,
- height: isOpen ? 48 : 56,
- y: isOpen ? 2 : 0
- }}
- transition={{ type: "spring", stiffness: 300, damping: 30 }}
  className={` 
- relative flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu
- ${isOpen ? 'bg-white/10 !shadow-none !border-white/5' : 'active:scale-90 hover:scale-105'} 
+ relative transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] 
+ flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu
+ ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
  `} 
  > 
  {isOpen 
  ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
  : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
  } 
- </motion.button> 
+ </button> 
  </div> 
 
  <div className="col-span-2 flex items-center justify-around h-full pl-1 sm:pl-2"> 
@@ -524,12 +519,12 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   </div>
  
   {/* BOTÓN "+" CENTRAL ANIMADO INTEGRADO EN LEGACY UI */} 
-  <div className="col-span-1 flex items-center justify-center h-full -mt-1 z-30">
+  <div className="col-span-1 flex items-center justify-center h-full z-30">
   <button 
   data-tour="dock-main-btn"
   onClick={() => onToggle(!isOpen)} 
   className={` 
-  relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] 
+  relative transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] 
   flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
   ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
   `} 

@@ -221,10 +221,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                 workingDays: goalFreq === 'DAILY' ? undefined : workingDays,
                 smartProjectId: smartProjectId || undefined
             });
-            // The modal will close automatically from parent if successful
+            onClose();
         } catch (error) {
             console.error("Failed to create project:", error);
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -250,7 +249,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         }
         return false;
     })();
-    const isBlock3Valid = typeof pomoDuration === 'number' && pomoDuration > 0;
+    // When editing an existing project, alarm is optional; when creating, it is required
+    const isBlock3Valid = typeof pomoDuration === 'number' && pomoDuration > 0 && (!!initialData?.id ? true : reminder !== '');
 
     const handleBlockChange = (block: 1 | 2 | 3) => {
         if (expandedBlock === 1 && !isBlock1Valid) return;

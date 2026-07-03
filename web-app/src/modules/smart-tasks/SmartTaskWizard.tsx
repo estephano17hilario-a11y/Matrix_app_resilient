@@ -58,6 +58,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   const [tempObjective, setTempObjective] = useState('');
   const [tempTraitId, setTempTraitId] = useState<string | null>(null);
   const [presetDates, setPresetDates] = useState<{start: Date, end: Date} | null>(null);
+  const [hasCompleted, setHasCompleted] = useState(false);
 
   // Get active color based on trait
   const activeColor = (tempTraitId ? traits.find(t => t.id === tempTraitId)?.color : undefined) || '#6366f1';
@@ -122,13 +123,14 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       // If we are not starting and we have gone past the hierarchy
       // Or if generateProject returns a valid project and we are at a point where we should finish
       // FIXED: We iterate up to length - 1 because the last level (DAY) is the leaf and doesn't generate children
-      if (!isStarting && timeframeHierarchy.length > 0 && currentStep >= timeframeHierarchy.length - 1) {
+      if (!isStarting && timeframeHierarchy.length > 0 && currentStep >= timeframeHierarchy.length - 1 && !hasCompleted) {
+          setHasCompleted(true);
           const project = generateProject();
           if (project) {
               onComplete(project);
           }
       }
-  }, [currentStep, timeframeHierarchy, isStarting, generateProject, onComplete]);
+  }, [currentStep, timeframeHierarchy, isStarting, generateProject, onComplete, hasCompleted]);
 
   if (typeof document === 'undefined') return null;
 
