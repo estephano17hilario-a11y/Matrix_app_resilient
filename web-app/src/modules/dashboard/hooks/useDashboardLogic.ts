@@ -3441,27 +3441,27 @@ export const useDashboardLogic = () => {
             
             // To ensure we use the dynamic target if available, but fallback to goalTarget
             let dailyGoalMinutes = proj.goalTarget;
-            // A simple approximation of the dynamic target without importing:
-            if (proj.uiFrequency === 'WEEKLY' || proj.uiFrequency === 'MONTHLY') {
-                // If it's weekly/monthly, it might have a dynamic target. We'll stick to goalTarget (which is saved as daily equivalent) 
-                // for simplicity and consistency with the predicted rewards shown in modal.
-                    const goalSeconds = dailyGoalMinutes * 60;
+            // The goal seconds are fixed for today's equivalent.
+            const goalSeconds = dailyGoalMinutes * 60;
             
             // Trigger bonus only if we crossed the line just now
             if (previousDurationSeconds < goalSeconds && newDurationSeconds >= goalSeconds) {
                 goalMetNow = true;
                 const prediction = calculateTaskRewards(proj.goalTarget, proj.impact || 1, 0, 'PROJECT');
                 
+                const previousXp = sessionsToday.reduce((acc, s) => acc + (s.xpEarned || 0), 0);
+                const previousGold = sessionsToday.reduce((acc, s) => acc + (s.goldEarned || 0), 0);
+                const previousTP = sessionsToday.reduce((acc, s) => acc + (s.traitPointsEarned || 0), 0);
+
                 // The user complained about getting double rewards. We subtract the base time reward
-                // that they already earned during this session, so the total earned today exactly
+                // that they already earned today from all sessions, so the total earned today exactly
                 // matches the prediction.
-                bonusXp = Math.max(0, prediction.xp - finalXp);
-                bonusGold = Math.max(0, prediction.coins - finalGold);
-                bonusTP = Math.max(0, prediction.traitXp - finalTP);
+                bonusXp = Math.max(0, prediction.xp - (previousXp + finalXp));
+                bonusGold = Math.max(0, prediction.coins - (previousGold + finalGold));
+                bonusTP = Math.max(0, prediction.traitXp - (previousTP + finalTP));
                 
                 console.log(`🎉 [DAILY GOAL MET] Awarding Completion Bonus: +${bonusXp} XP / +${bonusGold} G / +${bonusTP} TP`);
             }
-        }
 
         const totalXp = finalXp + bonusXp;
         const totalGold = finalGold + bonusGold;

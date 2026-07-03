@@ -244,11 +244,11 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-[#000]/90 z-[9999]"
+                        className="fixed inset-0 bg-[#000]/90 z-[999998]"
                     />
 
                     {/* Modal Container */}
-                    <div className="fixed inset-0 flex items-end justify-center z-[10000] pointer-events-none p-0 md:p-4">
+                    <div className="fixed inset-0 flex items-end justify-center z-[999999] pointer-events-none p-0 md:p-4">
                         <motion.div
                             initial={{ y: '100%' }}
                             animate={{ y: 0 }}
