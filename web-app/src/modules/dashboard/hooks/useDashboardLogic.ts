@@ -2815,7 +2815,7 @@ export const useDashboardLogic = () => {
         // Actually, if we update habits, 'habits' changes, effect runs again.
         // But if 'hasChanges' is false, it won't loop.
         // To be safe, let's use a flag or rely on the stability.
-    }, [habits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger]); // Only run when count changes, user changes, or app becomes visible
+    }, [habits.length, badHabits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger]); // Only run when count changes, user changes, or app becomes visible
 
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);

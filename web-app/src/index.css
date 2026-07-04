@@ -372,8 +372,8 @@
   [data-tour="dock"] [class*="backdrop-blur"],
   [data-tour="dock"] .aura-container,
   [data-tour="dock"] .aura-container::after {
-    backdrop-filter: blur(13.7px) !important;
-    -webkit-backdrop-filter: blur(13.7px) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
   }
 
   /* DOCK BACKGROUND: 7% black with fake-glass (no backdrop-filter dependency) */
@@ -809,7 +809,7 @@ button:active, [role="button"]:active, .clickable:active {
   z-index: -2;
   inset: -2px;
   border-radius: inherit;
-  padding: 3px;
+  padding: 4px; /* The mask needs padding to create the ring */
   background: conic-gradient(
     from var(--angle),
     #06b6d4, /* Cyan */
@@ -819,8 +819,19 @@ button:active, [role="button"]:active, .clickable:active {
     #06b6d4  /* Loop back to Cyan */
   );
   animation: border-rotate 6s linear infinite;
+
+  /* The Mask Logic: Show ONLY the border area */
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
   filter: blur(8px);
-  opacity: 0.5;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 

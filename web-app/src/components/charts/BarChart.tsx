@@ -96,11 +96,11 @@ export const BarChart = React.memo(({
                     {yTicks.map((val) => (
                         <div
                             key={val}
-                            className="absolute left-10 right-0 h-px bg-white/[0.05]"
+                            className="absolute left-6 right-0 h-px bg-white/[0.05]"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
                             <span className={cn(
-                                "absolute -left-10 w-10 text-right pr-1.5 text-[9px] text-slate-300 font-mono",
+                                "absolute -left-6 w-6 text-right pr-1.5 text-[9px] text-slate-300 font-mono",
                                 val === maxValue ? "top-0" : (val === 0 ? "bottom-0" : "top-1/2 -translate-y-1/2")
                             )}>
                                 {yTickFormatter ? yTickFormatter(val) : val}
@@ -155,7 +155,7 @@ export const BarChart = React.memo(({
                 document.body
             )}
 
-            <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-10' : ''}`}>
+            <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 

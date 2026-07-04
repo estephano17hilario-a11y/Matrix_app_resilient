@@ -716,7 +716,7 @@ export const FocusStats = React.memo(({
                     yTickFormatter={formatMinutes}
                     xTickInterval={xTickInterval}
                     barSpacing={barSpacing}
-                    paddingTop="top-4"
+                    paddingTop="top-2"
                     tooltipValueFormatter={formatMinutes}
                     tooltipLabelFormatter={(label) => t(label)}
                 />
