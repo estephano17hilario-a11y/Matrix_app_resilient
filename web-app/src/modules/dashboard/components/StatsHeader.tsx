@@ -32,8 +32,8 @@ interface StatsHeaderProps {
 
 export const StatsHeader = React.memo(({ 
   level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold, isHabitsCompleted, isHidden, showProfile, 
-  isSyncing, onShowStore, onShowPro, onShowSettings, onShowSettingsWithTab, displayName, email, isPro, avatarId, avatarShape, dailyLimits, productivityScore, onNavigate 
-}: StatsHeaderProps) => {
+  isSyncing, onShowStore, onShowPro, onShowSettings, onShowSettingsWithTab, displayName, email, isPro, avatarId, avatarShape, dailyLimits, productivityScore, onNavigate, questsTotalToday 
+}: StatsHeaderProps & { questsTotalToday?: number }) => {
   const isCompact = !showProfile;
   const shouldShowAvatar = showProfile;
 
@@ -75,6 +75,7 @@ export const StatsHeader = React.memo(({
                       productivityScore={productivityScore}
                       onShowPro={onShowPro}
                       onShowSettingsWithTab={onShowSettingsWithTab}
+                      questsTotalToday={questsTotalToday}
                       onNavigate={(view) => {
                           if (view === 'SETTINGS' && onShowSettings) {
                               onShowSettings();

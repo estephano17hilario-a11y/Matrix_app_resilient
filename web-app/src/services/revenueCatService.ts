@@ -7,7 +7,6 @@ const RC_API_KEY_IOS = "goog_RyxihFYkPbaoMKdkUyJOVYivfCj";
 const ENTITLEMENT_ID = "lux_pro";
 
 let initPromise: Promise<void> | null = null;
-let isConfigured = false;
 
 /**
  * Initializes the RevenueCat SDK and links it to the Supabase user.
@@ -39,7 +38,7 @@ export const initRevenueCat = async (supabaseUserId?: string): Promise<void> => 
         });
         
         console.log("RevenueCat configured successfully.");
-        isConfigured = true;
+        
         
         // If we provided a supabaseUserId, ensure we log in with it
         if (supabaseUserId) {

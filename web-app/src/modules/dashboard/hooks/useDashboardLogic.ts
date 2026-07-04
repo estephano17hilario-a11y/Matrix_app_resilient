@@ -1378,7 +1378,7 @@ export const useDashboardLogic = () => {
                     xpEarned,
                     goldEarned,
                     tpEarned,
-                    streak: player?.streak || 0,
+                    streak: user?.stats?.streak || 0,
                     topProjects,
                     completedTaskTitles,
                     completedHabitTitles,
@@ -1391,7 +1391,7 @@ export const useDashboardLogic = () => {
                 // Backfill will now add to OfflineSyncService inside the loop below
                 
                 // BACKFILL MISSING HISTORICAL DAYS (up to 14 days back)
-                let feedModified = false;
+
                 const now = new Date();
                 for (let i = 1; i <= 14; i++) {
                     const pastDate = new Date(now);
@@ -1438,7 +1438,7 @@ export const useDashboardLogic = () => {
                             xpEarned: 0,
                             goldEarned: 0,
                             tpEarned: 0,
-                            streak: player?.streak || 0,
+                            streak: user?.stats?.streak || 0,
                             topProjects: dayTopProjects,
                             completedTaskTitles: dayQuests.map(q => q.title).slice(0, 5),
                             completedHabitTitles: dayHabits.map(h => h.title).slice(0, 5),
@@ -1447,7 +1447,7 @@ export const useDashboardLogic = () => {
                         };
 
                         updatedFeed.push(backfilledEntry);
-                        feedModified = true;
+
                         
                         OfflineSyncService.addAction({
                             type: 'SAVE',
@@ -1480,7 +1480,7 @@ export const useDashboardLogic = () => {
 
         const timer = setTimeout(autoSaveDailyFeed, 2000);
         return () => clearTimeout(timer);
-    }, [user?.id, luxLoading, quests, habits, projects, dailyLimits, player?.streak]);
+    }, [user?.id, luxLoading, quests, habits, projects, dailyLimits, user?.stats?.streak]);
 
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const attributesRef = useRef(attributes);
@@ -2918,12 +2918,35 @@ export const useDashboardLogic = () => {
             if (isActivatingStreak.current) return;
 
             const { 
-                tasksCompleted = 0, 
                 habitsCompleted = 0, 
                 focusSeconds = 0 
             } = dailyLimits;
 
-            if (tasksCompleted >= 2 && habitsCompleted >= 1 && focusSeconds >= 3600) {
+            const safeQuests = quests || [];
+            const todayCompletedTasks = safeQuests.filter(q => {
+                if (!q.completed || !q.completedAt) return false;
+                try {
+                    return toLocalISOString(new Date(q.completedAt)) === today;
+                } catch (e) {
+                    return false;
+                }
+            });
+            const todayCompleted = todayCompletedTasks.length;
+            const todayUncompleted = safeQuests.filter(q => {
+                if (q.completed) return false;
+                if (!q.deadline) return true; // Treat tasks without deadline as active/pending today
+                try {
+                    const deadlineStr = q.deadline.split('T')[0];
+                    return deadlineStr <= today;
+                } catch (e) {
+                    return false;
+                }
+            }).length;
+            const todayTotal = todayCompleted + todayUncompleted;
+
+            const isTasksRequirementMet = todayTotal === 0 ? true : (todayCompleted >= todayTotal);
+
+            if (isTasksRequirementMet && habitsCompleted >= 1 && focusSeconds >= 3600) {
                 console.log("🔥 STREAK ACTIVATED!");
                 hapticService.streakActivated();
                 isActivatingStreak.current = true;
@@ -2987,7 +3010,7 @@ export const useDashboardLogic = () => {
         };
 
         checkStreak();
-    }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification]);
+    }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification, quests]);
 
     // Enforce streak reset if it's broken (even if daily reset date has already updated)
     useEffect(() => {
@@ -4608,6 +4631,7 @@ export const useDashboardLogic = () => {
             }
 
             let traitUpdate: any = undefined;
+            let subTraitUpdate: any = undefined;
             if (rewardTraitXp !== 0 && quest.attribute) {
                  const attrIndex = attributes.findIndex(a => a.id === quest.attribute);
                  if (attrIndex !== -1) {
@@ -4626,7 +4650,7 @@ export const useDashboardLogic = () => {
                         newAttrXp = Math.max(0, newAttrXp);
                     }
                     
-                    let subTraitUpdate: any = undefined;
+
                     let updatedSubTraits = attr.subTraits ? [...attr.subTraits] : [];
                     if (quest.subAttribute && updatedSubTraits.length > 0) {
                         const subIndex = updatedSubTraits.findIndex(st => st.id === quest.subAttribute);

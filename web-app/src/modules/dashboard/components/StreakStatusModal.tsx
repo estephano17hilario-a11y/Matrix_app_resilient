@@ -16,19 +16,24 @@ interface StreakStatusModalProps {
     streak?: number;
     lastStreakDate?: string;
     onNavigate?: (view: string) => void;
+    questsTotalToday?: number;
 }
 
-export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, onClose, dailyLimits, streak = 0, lastStreakDate, onNavigate }) => {
-    const { t } = useTranslation();
+export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, onClose, dailyLimits, streak = 0, lastStreakDate, onNavigate, questsTotalToday }) => {
+    const { t, i18n } = useTranslation();
+    const isSpanish = i18n.language?.startsWith('es');
+    const tasksTarget = questsTotalToday !== undefined ? questsTotalToday : 2;
 
     // 1. Define Requirements
     const REQUIREMENTS = [
         {
             id: 'tasks',
-            label: t('streak.req.tasks', 'Complete 2 Tasks'),
+            label: tasksTarget === 0 
+                ? (isSpanish ? 'Sin tareas hoy' : 'No tasks today')
+                : (isSpanish ? `Completar tareas (${dailyLimits.tasksCompleted || 0}/${tasksTarget})` : `Complete tasks (${dailyLimits.tasksCompleted || 0}/${tasksTarget})`),
             icon: Target,
             current: dailyLimits.tasksCompleted || 0,
-            target: 2,
+            target: tasksTarget,
             unit: '',
             view: 'TASKS',
             color: 'text-blue-400',

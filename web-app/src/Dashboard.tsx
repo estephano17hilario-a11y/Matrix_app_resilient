@@ -1077,26 +1077,64 @@ export default function Dashboard() {
  }
  }, [currentView, taskViewMode]);
 
- // Calculate if all daily requirements are met (Streak Logic)
- const isStreakActiveToday = useMemo(() => {
- // ROBUSTNESS UPDATE: Visual state must reflect REALITY, not just DB state.
- // Even if DB says "today is done", if the user unchecked a habit, 
- // the UI must show it as pending.
- 
- if (!dailyLimits) return false;
+  // Calculate total quests active/due for today
+  const questsTotalToday = useMemo(() => {
+    const todayStr = toLocalISOString(new Date());
+    const safeQuests = quests || [];
+    const todayCompleted = safeQuests.filter(q => {
+      if (!q.completed || !q.completedAt) return false;
+      try {
+        return toLocalISOString(new Date(q.completedAt)) === todayStr;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+      const todayUncompleted = safeQuests.filter(q => {
+        if (q.completed) return false;
+        if (!q.deadline) return true; // Treat tasks without deadline as active/pending today
+        try {
+          const deadlineStr = q.deadline.split('T')[0];
+        return deadlineStr <= todayStr;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+    return todayCompleted + todayUncompleted;
+  }, [quests]);
 
- const {
- tasksCompleted = 0,
- habitsCompleted = 0,
- focusSeconds = 0
- } = dailyLimits;
+  // Calculate if all daily requirements are met (Streak Logic)
+  const isStreakActiveToday = useMemo(() => {
+    // ROBUSTNESS UPDATE: Visual state must reflect REALITY, not just DB state.
+    // Even if DB says "today is done", if the user unchecked a habit, 
+    // the UI must show it as pending.
+    if (!dailyLimits) return false;
 
- return (
- tasksCompleted >= 2 &&
- habitsCompleted >= 1 &&
- focusSeconds >= 3600
- );
- }, [dailyLimits]);
+    const {
+      habitsCompleted = 0,
+      focusSeconds = 0
+    } = dailyLimits;
+
+    const todayStr = toLocalISOString(new Date());
+    const safeQuests = quests || [];
+    
+    const todayCompletedTasks = safeQuests.filter(q => {
+      if (!q.completed || !q.completedAt) return false;
+      try {
+        return toLocalISOString(new Date(q.completedAt)) === todayStr;
+      } catch (e) {
+        return false;
+      }
+    });
+    const todayCompleted = todayCompletedTasks.length;
+
+    const isTasksRequirementMet = questsTotalToday === 0 ? true : (todayCompleted >= questsTotalToday);
+
+    return (
+      isTasksRequirementMet &&
+      habitsCompleted >= 1 &&
+      focusSeconds >= 3600
+    );
+  }, [dailyLimits, quests, questsTotalToday]);
 
  const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false); // State to track detail view
 
@@ -1431,6 +1469,7 @@ export default function Dashboard() {
  dailyLimits={dailyLimits}
  productivityScore={liveScore}
  onNavigate={handleDockViewChange}
+ questsTotalToday={questsTotalToday}
  />
  </div>
  </div>

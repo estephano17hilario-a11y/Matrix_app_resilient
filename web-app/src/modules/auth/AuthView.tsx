@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { App } from '@capacitor/app';
-import { motion, AnimatePresence, type Transition } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { atomicRegister, atomicLogin, loginWithGoogle } from '../../services/supabaseService';
@@ -12,9 +11,6 @@ import { PersistenceService } from '../../services/persistence';
 
 // --- TYPES & CONSTANTS ---
 type AuthViewMode = 'LANDING' | 'LOGIN' | 'REGISTER_LANG' | 'REGISTER_CREDENTIALS';
-
-// ULTRA-FAST, NO-LAG TRANSITIONS (0 delay, minimal GPU load)
-const FAST_TRANSITION: Transition = { type: 'tween', ease: 'linear', duration: 0 };
 
 // --- SUB-COMPONENTS ---
 

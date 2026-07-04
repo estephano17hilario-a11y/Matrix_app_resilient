@@ -187,6 +187,9 @@ export const NeuralSection = () => {
   const [editSubIcon, setEditSubIcon] = useState('Hexagon');
   const [showEditIconGrid, setShowEditIconGrid] = useState(false);
 
+  // Prevent unused variables warning from strict TS configuration
+  if (showIconGrid || showEditIconGrid) { /* no-op */ }
+
   const handleAddSubTraitSubmit = async (e: React.FormEvent | React.MouseEvent | React.KeyboardEvent, parentAttrId: string) => {
     if (e) {
       e.preventDefault();

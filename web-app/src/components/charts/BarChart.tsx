@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '../../utils/cn';
 
 export const BarChart = React.memo(({ 
     datasets, 
@@ -91,14 +92,17 @@ export const BarChart = React.memo(({
              )}
 
             {showGrid && yTicks && (
-                <div className={`absolute inset-x-0 ${paddingTop} bottom-5 pointer-events-none`}>
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-6 pointer-events-none`}>
                     {yTicks.map((val) => (
                         <div
                             key={val}
                             className="absolute left-10 right-0 h-px bg-white/[0.05]"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
-                            <span className="absolute -top-1.5 -left-10 w-10 text-right pr-1.5 text-[9px] text-slate-300 font-mono">
+                            <span className={cn(
+                                "absolute -left-10 w-10 text-right pr-1.5 text-[9px] text-slate-300 font-mono",
+                                val === maxValue ? "top-0" : (val === 0 ? "bottom-0" : "top-1/2 -translate-y-1/2")
+                            )}>
                                 {yTickFormatter ? yTickFormatter(val) : val}
                             </span>
                         </div>
@@ -159,7 +163,7 @@ export const BarChart = React.memo(({
                         className="flex-1 h-full relative group z-10 cursor-pointer min-w-0"
                     >
                         {/* Bars Container */}
-                        <div className={`absolute ${paddingTop} bottom-5 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>
+                        <div className={`absolute ${paddingTop} bottom-6 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>
                             <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : (labels.length > 20 ? 'gap-0.5' : 'gap-1.5')}`}>
                                 {datasets.map((ds, idx) => {
                                     const val = ds.data[i];

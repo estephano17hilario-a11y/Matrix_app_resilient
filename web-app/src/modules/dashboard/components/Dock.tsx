@@ -195,7 +195,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const item = DOCK_ITEMS.find(i => i.id === id);
  if (!item) return null;
  
-  let action = (e?: React.MouseEvent) => handleView(id);
+  let action = (_e?: React.MouseEvent) => handleView(id);
   let label = item.label;
   if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = 'Habit'; }
   else if (id === 'FOCUS') { action = (e) => handleModal('PROJECT', e); label = 'Focus'; }
@@ -211,7 +211,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  if (!item) return null;
  const Icon = item.icon;
  
-  let action = (e?: React.MouseEvent) => handleView(id);
+  let action = (_e?: React.MouseEvent) => handleView(id);
   let label = item.label;
   if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = t('dock.habit'); }
   else if (id === 'FOCUS') { action = (e) => handleModal('PROJECT', e); label = t('dock.focus'); }

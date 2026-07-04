@@ -35,20 +35,20 @@
   /* CLAMP HEAVY BLURS FOR STABILITY - OPTIMIZED FOR AESTHETICS AND PERFORMANCE */
   /* Prevent "Black Screen" and flickering on devices by capping the maximum blur radius to 16px (Rule of Gold) */
   .backdrop-blur-sm {
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
+    backdrop-filter: blur(3.3px) !important;
+    -webkit-backdrop-filter: blur(3.3px) !important;
   }
   .backdrop-blur-md {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(6.6px) !important;
+    -webkit-backdrop-filter: blur(6.6px) !important;
   }
   .backdrop-blur-lg {
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
   }
   .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: blur(13.3px) !important;
+    -webkit-backdrop-filter: blur(13.3px) !important;
   }
 
   /* OPTIMIZE ANIMATIONS GLOBALLY TO AVOID LAYOUT THRASHING AND FIX BLACK PARPADEO */
@@ -66,20 +66,20 @@
   @media (max-width: 768px) {
       /* Optimize blurs on mobile - Cap max blur radius to 8px for performance */
       .backdrop-blur-sm {
-        backdrop-filter: blur(2px) !important;
-        -webkit-backdrop-filter: blur(2px) !important;
+        backdrop-filter: blur(1.6px) !important;
+        -webkit-backdrop-filter: blur(1.6px) !important;
       }
       .backdrop-blur-md {
-        backdrop-filter: blur(4px) !important;
-        -webkit-backdrop-filter: blur(4px) !important;
+        backdrop-filter: blur(3.3px) !important;
+        -webkit-backdrop-filter: blur(3.3px) !important;
       }
       .backdrop-blur-lg {
-        backdrop-filter: blur(6px) !important;
-        -webkit-backdrop-filter: blur(6px) !important;
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
       }
       .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl, .backdrop-blur {
-        backdrop-filter: blur(8px) !important;
-        -webkit-backdrop-filter: blur(8px) !important;
+        backdrop-filter: blur(6.6px) !important;
+        -webkit-backdrop-filter: blur(6.6px) !important;
       }
       
       /* Exception for critical UI feedback */
@@ -372,8 +372,8 @@
   [data-tour="dock"] [class*="backdrop-blur"],
   [data-tour="dock"] .aura-container,
   [data-tour="dock"] .aura-container::after {
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(13.7px) !important;
+    -webkit-backdrop-filter: blur(13.7px) !important;
   }
 
   /* DOCK BACKGROUND: 7% black with fake-glass (no backdrop-filter dependency) */
@@ -529,7 +529,7 @@
       #06b6d4
     );
     /* Disabled continuous animation to prevent massive GPU rasterization overhead and lag */
-    /* animation: border-rotate 4s linear infinite; */
+    animation: border-rotate 6s linear infinite;
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
@@ -783,7 +783,7 @@ button:active, [role="button"]:active, .clickable:active {
     #06b6d4  /* Loop back to Cyan */
   );
   /* Disabled continuous animation to prevent massive GPU rasterization overhead and lag */
-  /* animation: border-rotate 4s linear infinite; */
+  animation: border-rotate 6s linear infinite;
   
   /* The Mask Logic: Show ONLY the border area */
   -webkit-mask: 
@@ -800,11 +800,28 @@ button:active, [role="button"]:active, .clickable:active {
 }
 
 /* 
- * LAYER 2: The Subtle Halo - DISABLED BY USER REQUEST
- * The user wants a clean border only, no background glow.
+ * LAYER 2: The Subtle Halo - RESTORED
+ * Soft RGB border glow.
  */
 .rgb-border-container::after {
-  content: none;
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(
+    from var(--angle),
+    #06b6d4, /* Cyan */
+    #3b82f6, /* Blue */
+    #8b5cf6, /* Purple */
+    #ec4899, /* Pink */
+    #06b6d4  /* Loop back to Cyan */
+  );
+  animation: border-rotate 6s linear infinite;
+  filter: blur(8px);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
 }
 
 /* Active State */
@@ -813,7 +830,7 @@ button:active, [role="button"]:active, .clickable:active {
 }
 
 .rgb-border-active::after {
-  opacity: 0;
+  opacity: 0.8;
 }
 
 /* When active, we want the panel background to be slightly more opaque to block inner bleed */
