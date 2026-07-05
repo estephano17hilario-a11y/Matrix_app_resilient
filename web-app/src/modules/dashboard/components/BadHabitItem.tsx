@@ -193,7 +193,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 </div>
                             )}
                         </div>
-
+                        {habit.isDynamic && !isRelapsed ? (
                             <div className="space-y-1">
                                 <div className="flex flex-row items-center gap-2 sm:gap-3">
                                     <div className="flex items-center gap-1.5">

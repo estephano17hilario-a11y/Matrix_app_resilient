@@ -332,7 +332,7 @@ export const RewardOverlay: React.FC = () => {
                             transition={{ duration: 1, ease: 'circOut' }}
                           />
                         </div>
-
+                      </div>
                       
                       {/* Trait Level row */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28, marginTop: 4 }}>
@@ -401,7 +401,7 @@ export const RewardOverlay: React.FC = () => {
                             transition={{ duration: 1, ease: 'circOut' }}
                           />
                         </div>
-
+                      </div>
 
                       {/* SubTrait Level row */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28, marginTop: 4 }}>
