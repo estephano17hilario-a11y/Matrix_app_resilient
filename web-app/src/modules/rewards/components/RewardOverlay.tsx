@@ -266,8 +266,8 @@ export const RewardOverlay: React.FC = () => {
                       </div>
 
                       {/* Level row */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28 }}>
-                        {!visualState.isLevelUpAnimating ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28, marginTop: 4 }}>
+                        {!(visualState.isLevelUpAnimating || (currentReward.isLevelUp && visualState.level === currentReward.level)) ? (
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                             <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>Level</span>
                             <span style={{ fontSize: 22, fontWeight: 700, color: 'white', lineHeight: 1 }}>{visualState.level}</span>
@@ -279,9 +279,9 @@ export const RewardOverlay: React.FC = () => {
                             style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{visualState.level}</span>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{visualState.isLevelUpAnimating ? visualState.level : currentReward.initialLevel ?? (visualState.level - 1)}</span>
                               <ArrowRight size={14} color="rgba(255,255,255,0.3)" />
-                              <span style={{ fontSize: 26, fontWeight: 800, color: '#facc15', textShadow: '0 0 16px rgba(250,204,21,0.5)' }}>{visualState.level + 1}</span>
+                              <span style={{ fontSize: 26, fontWeight: 800, color: '#facc15', textShadow: '0 0 16px rgba(250,204,21,0.5)' }}>{visualState.isLevelUpAnimating ? visualState.level + 1 : visualState.level}</span>
                             </div>
                             <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 900, color: '#eab308', backgroundColor: 'rgba(234,179,8,0.12)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(234,179,8,0.25)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>
                               LEVEL UP
@@ -332,6 +332,31 @@ export const RewardOverlay: React.FC = () => {
                             transition={{ duration: 1, ease: 'circOut' }}
                           />
                         </div>
+
+                      
+                      {/* Trait Level row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28, marginTop: 4 }}>
+                        {!currentReward.isTraitLevelUp ? (
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>Level</span>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: 'white', lineHeight: 1 }}>{currentReward.traitLevel ?? 1}</span>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{(currentReward.traitLevel ?? 2) - 1}</span>
+                              <ArrowRight size={14} color="rgba(255,255,255,0.3)" />
+                              <span style={{ fontSize: 26, fontWeight: 800, color: '#22d3ee', textShadow: '0 0 16px rgba(34,211,238,0.5)' }}>{currentReward.traitLevel ?? 2}</span>
+                            </div>
+                            <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 900, color: '#0891b2', backgroundColor: 'rgba(8,145,178,0.12)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(8,145,178,0.25)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>
+                              LEVEL UP
+                            </span>
+                          </motion.div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -376,6 +401,31 @@ export const RewardOverlay: React.FC = () => {
                             transition={{ duration: 1, ease: 'circOut' }}
                           />
                         </div>
+
+
+                      {/* SubTrait Level row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 28, marginTop: 4 }}>
+                        {!currentReward.isSubTraitLevelUp ? (
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>Level</span>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: 'white', lineHeight: 1 }}>{currentReward.subTraitLevel ?? 1}</span>
+                          </div>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{(currentReward.subTraitLevel ?? 2) - 1}</span>
+                              <ArrowRight size={14} color="rgba(255,255,255,0.3)" />
+                              <span style={{ fontSize: 26, fontWeight: 800, color: '#10b981', textShadow: '0 0 16px rgba(16,185,129,0.5)' }}>{currentReward.subTraitLevel ?? 2}</span>
+                            </div>
+                            <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 900, color: '#059669', backgroundColor: 'rgba(5,150,105,0.12)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(5,150,105,0.25)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>
+                              LEVEL UP
+                            </span>
+                          </motion.div>
+                        )}
                       </div>
                     </motion.div>
                   )}
