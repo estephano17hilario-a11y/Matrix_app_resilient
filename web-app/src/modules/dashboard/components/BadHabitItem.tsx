@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
-import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BadHabit, Attribute } from '../../../types';
 
