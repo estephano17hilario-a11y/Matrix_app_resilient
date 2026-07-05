@@ -133,21 +133,13 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                 className={cn(
                                     "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 border transition-all shrink-0 font-black",
                                     displayPercentage >= 100 
-                                        ? "bg-amber-500/10 border-amber-500/20 animate-pulse" 
-                                        : "bg-white/5 border-white/10"
+                                        ? "bg-orange-500/10 border-orange-500/30 animate-pulse text-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" 
+                                        : "bg-white/5 border-white/10 text-white/40"
                                 )}
-                                style={displayPercentage >= 100 ? {
-                                    color: themeColor,
-                                    backgroundColor: `${themeColor}15`,
-                                    borderColor: `${themeColor}30`,
-                                    boxShadow: `0 0 8px ${themeColor}40`
-                                } : {
-                                    color: 'rgba(255, 255, 255, 0.4)'
-                                }}
                             >
                                 <Flame size={10} className={cn(
                                     "transition-colors",
-                                    displayPercentage >= 100 ? "fill-current" : "fill-transparent"
+                                    displayPercentage >= 100 ? "fill-orange-500 text-orange-500" : "fill-transparent text-white/40"
                                 )} /> 
                                 {project.streak}
                             </span>

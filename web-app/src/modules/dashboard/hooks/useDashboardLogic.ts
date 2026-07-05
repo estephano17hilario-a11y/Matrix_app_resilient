@@ -2403,6 +2403,7 @@ export const useDashboardLogic = () => {
                 lastKnownDateRef.current = currentDate;
                 setDailyResetTrigger(prev => prev + 1);
                 setSyncTrigger(prev => prev + 1);
+                setIsDailyCheckDone(false);
             }
         }, 30000); // Check every 30 seconds for reliability
         return () => clearInterval(interval);
@@ -2657,7 +2658,7 @@ export const useDashboardLogic = () => {
                         }
 
                         newItem.streak = updatedStreak;
-                        newItem.relapsedToday = relapsed;
+                        newItem.relapsedToday = false;
                         newItem.dynamicBalance = 0; // Reset balance for the next day
                         newItem.history = updatedHistory;
                         newItem.lastCheckedDate = todayStr;
