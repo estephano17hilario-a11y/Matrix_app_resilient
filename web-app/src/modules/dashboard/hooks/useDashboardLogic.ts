@@ -2540,7 +2540,7 @@ export const useDashboardLogic = () => {
                 }
 
                 if (habit.isDynamic) {
-                    const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                    const lastChecked = parseLocalDate(habit.lastCheckedDate.split('T')[0]);
                     const todayDate = parseLocalDate(todayStr);
                     const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
                     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
@@ -2611,7 +2611,7 @@ export const useDashboardLogic = () => {
                                 }
                                 
                                 // System failure handling if hp <= 0
-                                if (newHealth <= 0 && user?.id) {
+                                if (newHealth <= 0 && prevHealth > 0 && user?.id) {
                                     addNotification({
                                         type: 'SYSTEM',
                                         label: 'SYSTEM FAILURE',
@@ -2669,7 +2669,7 @@ export const useDashboardLogic = () => {
 
                 if (!habit.intelligentStreak) {
                     // Logic for normal bad habit streaks
-                    const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                    const lastChecked = parseLocalDate(habit.lastCheckedDate.split('T')[0]);
                     const todayDate = parseLocalDate(todayStr);
                     const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
                     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
@@ -2698,7 +2698,7 @@ export const useDashboardLogic = () => {
                 }
 
                 // Logic for intelligent bad habit streaks (Simulated day-by-day progression)
-                const lastChecked = parseLocalDate(habit.lastCheckedDate);
+                const lastChecked = parseLocalDate(habit.lastCheckedDate.split('T')[0]);
                 const todayDate = parseLocalDate(todayStr);
                 const diffTime = Math.abs(todayDate.getTime() - lastChecked.getTime());
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
