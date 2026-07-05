@@ -2944,9 +2944,9 @@ export const useDashboardLogic = () => {
             }).length;
             const todayTotal = todayCompleted + todayUncompleted;
 
-            const isTasksRequirementMet = todayTotal === 0 ? true : (todayCompleted >= todayTotal);
+            const isTasksRequirementMet = todayTotal === 0 ? true : (todayCompleted >= 1);
 
-            if (isTasksRequirementMet && habitsCompleted >= 1 && focusSeconds >= 3600) {
+            if (isTasksRequirementMet && habitsCompleted >= 1 && focusSeconds >= 1800) {
                 console.log("🔥 STREAK ACTIVATED!");
                 hapticService.streakActivated();
                 isActivatingStreak.current = true;

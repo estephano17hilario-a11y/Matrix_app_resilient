@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
+import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BadHabit, Attribute } from '../../../types';
 
 const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
@@ -34,6 +36,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     onShowActions,
     onUpdateDynamicBalance
 }) => {
+    const { t } = useTranslation();
     const isRelapsed = habit.relapsedToday;
     const resolvedAttributes = React.useMemo(() => {
         if (!habit.attribute) return attribute ? [attribute] : [];
@@ -130,11 +133,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                     <div className="absolute bottom-[-50%] right-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(232,121,249,0.05)_0%,_transparent_60%)]" />
                 </div>
             )}
-            <div className={`relative flex z-10 p-3 ${
-                habit.isDynamic && !isRelapsed 
-                    ? 'flex-col md:flex-row md:items-center gap-3 md:gap-4' 
-                    : 'flex-row items-center gap-4'
-            }`}>
+            <div className={`relative flex z-10 p-3 flex-row items-center gap-2 sm:gap-4`}>
                 {/* Left part: Icon and text container */}
                 <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
                     <div
@@ -195,9 +194,8 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                             )}
                         </div>
 
-                        {habit.isDynamic && !isRelapsed ? (
                             <div className="space-y-1">
-                                <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                                <div className="flex flex-row items-center gap-2 sm:gap-3">
                                     <div className="flex items-center gap-1.5">
                                         <Target size={12} className="text-cyan-400" />
                                         <span className="text-[11px] font-semibold text-cyan-300/80">
@@ -205,13 +203,13 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                         </span>
                                     </div>
                                     <div className="text-[10px] text-white/35 font-medium">
-                                        {habit.streak} día{habit.streak !== 1 ? 's' : ''} de racha
+                                        {habit.streak} {habit.streak !== 1 ? t('habits.days', 'días') : t('habits.day', 'día')} {t('habits.ofStreak', 'de racha')}
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-cyan-300/80 font-semibold flex items-center gap-1 mt-0.5">
-                                    <span className="opacity-60">Al final del día:</span>
+                                    <span className="opacity-60 hidden sm:inline">{t('badHabits.endOfDay', 'Al final del día:')}</span>
                                     <span className={potentialEndOfDayTp > 0 ? "text-emerald-400 font-extrabold" : "text-white/30"}>
-                                        +{potentialEndOfDayTp} TP ({traitName})
+                                        +{potentialEndOfDayTp} TP <span className="hidden sm:inline">({traitName})</span>
                                     </span>
                                 </div>
                             </div>
@@ -221,7 +219,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     <div className="flex items-center gap-1.5">
                                         <Target size={12} className="text-violet-400" />
                                         <span className="text-[11px] font-bold text-violet-300">
-                                            {currentTarget} días
+                                            {currentTarget} {t('habits.days', 'días')}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-1.5">
@@ -288,7 +286,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     <div
                                         className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
                                     >
-                                        HABIT
+                                        {t('habits.habit', 'HÁBITO').toUpperCase()}
                                     </div>
                                 )}
                                 <div
@@ -305,10 +303,10 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     }`}
                                 >
                                     {isOpportunityDay
-                                        ? '¡DÍA DE OPORTUNIDAD!'
+                                        ? t('badHabits.opportunityDay', '¡DÍA DE OPORTUNIDAD!').toUpperCase()
                                         : isRelapsed
-                                            ? 'RELAPSED'
-                                            : `${habit.streak} DAY STREAK`}
+                                            ? t('badHabits.relapsed', 'RELAPSED')
+                                            : `${habit.streak} ${t('habits.dayStreak', 'DAY STREAK')}`}
                                 </div>
                             </div>
                         )}
@@ -316,9 +314,9 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                 </div>
 
                 {/* Right part: Action buttons */}
-                <div className={`flex items-center gap-2.5 z-10 flex-shrink-0 ${
+                <div className={`flex items-center gap-1.5 sm:gap-2.5 z-10 flex-shrink-0 ${
                     habit.isDynamic && !isRelapsed 
-                        ? 'w-full justify-between md:w-auto md:justify-end border-t border-white/5 pt-2 md:border-t-0 md:pt-0' 
+                        ? 'w-auto justify-end' 
                         : ''
                 }`}>
                     {habit.isDynamic && !isRelapsed && (
@@ -335,7 +333,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     }
                                 }}
                                 className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
-                                title="Desliz"
+                                title={t('badHabits.slip', 'Desliz')}
                             >
                                 <LucideIcons.Minus size={24} />
                             </motion.button>
@@ -362,7 +360,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     }
                                 }}
                                 className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                                title="Victoria Moral"
+                                title={t('badHabits.moralVictory', 'Victoria Moral')}
                             >
                                 <LucideIcons.Plus size={24} />
                             </motion.button>
@@ -379,7 +377,7 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                     ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/40 text-violet-300 hover:from-violet-500 hover:to-fuchsia-500 hover:text-white hover:shadow-[0_0_20px_rgba(217,70,239,0.4)]'
                                     : 'bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white hover:shadow-rose-500/30'
                             }`}
-                            title={isIntelligent ? "Usar día de oportunidad (no rompe racha)" : "Cortar racha (Relapso)"}
+                            title={isIntelligent ? t('badHabits.useOpportunityDay', "Usar día de oportunidad (no rompe racha)") : t('badHabits.cutStreak', "Cortar racha (Relapso)")}
                         >
                             <Scissors size={18} className="group-hover/cut:rotate-90 transition-transform duration-200" />
                         </button>

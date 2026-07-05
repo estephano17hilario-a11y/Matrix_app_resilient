@@ -16,7 +16,7 @@ import { BlueprintSelector } from './components/BlueprintSelector';
 import { SaveBlueprintModal } from './components/SaveBlueprintModal';
 import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
-import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate } from '../../utils/dateUtils';
+import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate, getWeekStartDay } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
@@ -922,12 +922,18 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {journalViewMode === 'CALENDAR' ? (
  <>
  <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(() => {
-    const rawInitials = t('common.weekdays.initials', { returnObjects: true });
-    const weekdayInitials = Array.isArray(rawInitials) ? rawInitials : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-    return weekdayInitials.map((d: string, i: number) => (
-      <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>
-    ));
-  })()}</div>
+      const rawInitials = t('common.weekdays.initials', { returnObjects: true });
+      let weekdayInitials = Array.isArray(rawInitials) ? rawInitials : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+      
+      const weekStartDay = getWeekStartDay();
+      if (weekStartDay === 1) {
+          weekdayInitials = [...weekdayInitials.slice(1), weekdayInitials[0]];
+      }
+
+      return weekdayInitials.map((d: string, i: number) => (
+        <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>
+      ));
+    })()}</div>
  <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-200">
  {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
  {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {

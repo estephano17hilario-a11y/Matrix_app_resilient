@@ -662,7 +662,7 @@ export const QuestModal = React.memo(({
                                                     <Repeat size={14} className={recurrenceType !== 'NONE' ? "text-cyan-400" : "text-white/30"} />
                                                     <span className={`text-[10px] font-bold uppercase ${recurrenceType !== 'NONE' ? "text-white" : "text-white/50"}`}>
                                                         {recurrenceType === 'NONE' ? t('tasks.recurrence.none', 'No Repeat') :
-                                                         recurrenceType === 'INTERVAL' ? t('tasks.recurrence.interval', 'Interval') :
+                                                         recurrenceType === 'INTERVAL' ? t('tasks.recurrence.interval', 'Interval') + ' (opcional)' :
                                                          recurrenceType === 'WEEKLY' ? t('tasks.recurrence.weekly', 'Weekly') :
                                                          t('tasks.recurrence.monthly', 'Monthly')}
                                                     </span>

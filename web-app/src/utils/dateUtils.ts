@@ -230,7 +230,13 @@ export const getDaysInMonth = (date: Date): { days: number, firstDay: number } =
     const year = date.getFullYear();
     const month = date.getMonth();
     const days = new Date(year, month + 1, 0).getDate();
-    const firstDay = new Date(year, month, 1).getDay();
+    let firstDay = new Date(year, month, 1).getDay();
+    
+    const weekStartDay = getWeekStartDay();
+    if (weekStartDay === 1) {
+        firstDay = firstDay === 0 ? 6 : firstDay - 1;
+    }
+    
     return { days, firstDay };
 };
 

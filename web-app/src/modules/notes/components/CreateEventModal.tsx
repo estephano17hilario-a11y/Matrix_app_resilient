@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Gift, Heart, Star, Type, Bell, Check, Repeat, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { SpecialEvent } from './types';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { TimePicker } from '../../../components/ui/TimePicker';
+import { parseLocalDate } from '../../../utils/dateUtils';
 
 interface CreateEventModalProps {
  isOpen: boolean;
@@ -87,7 +88,7 @@ export const CreateEventModal = ({ isOpen, onClose, onSave, onDelete, initialEve
  const getRecurrenceLabel = () => {
   if (!date) return '';
   try {
-  const dateObj = parseISO(date);
+  const dateObj = parseLocalDate(date);
   const isEs = i18n.language === 'es';
   if (recurrence === 'ANNUAL') {
     const formattedDate = format(dateObj, isEs ? "d 'de' MMMM" : "MMMM do", { locale: isEs ? es : undefined });

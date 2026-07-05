@@ -846,13 +846,10 @@ button:active, [role="button"]:active, .clickable:active {
 
 /* When active, we want the panel background to be slightly more opaque to block inner bleed */
 .rgb-border-active.glass-panel {
-  /* 
-   * UPDATED BY USER REQUEST: HOLLOW MODE (TOTAL TRANSPARENCY)
-   * No background. No blur. Just the border.
-   */
-  background-color: transparent !important; 
-  border-color: rgba(255, 255, 255, 0.25) !important; /* Premium visible inner rim */
-  box-shadow: none !important; /* Removed shadow to feel truly hollow */
+    background-color: rgba(10, 10, 15, 0.45) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Utility to force hardware acceleration */

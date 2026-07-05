@@ -299,7 +299,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                         {/* XP Reward */}
                         <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
                             <Zap size={12} />
-                            <span className="text-xs font-bold">+{Math.floor(xp)} XP</span>
+                            <span className="text-xs font-bold">+{Math.floor(xp)} {t('common.xp', 'XP')}</span>
                         </div>
 
                         {/* Attribute Points Reward (New) */}
@@ -321,7 +321,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                         {coins > 0 && (
                             <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
                                 <Coins size={12} />
-                                <span className="text-xs font-bold">+{coins} Gold</span>
+                                <span className="text-xs font-bold">+{coins} {t('common.gold', 'Gold')}</span>
                             </div>
                         )}
                      </div>
@@ -343,7 +343,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                         className="flex items-center gap-2 px-3 py-1.5 mb-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-500/20 transition-colors"
                     >
                         <Target size={12} />
-                        Focus Mode
+                        {t('tasks.focusMode', 'Focus Mode')}
                     </button>
                 )}
 

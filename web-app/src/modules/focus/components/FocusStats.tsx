@@ -68,7 +68,7 @@ export const FocusStats = React.memo(({
     const [filterMode, setFilterMode] = useState<'GLOBAL' | string>('GLOBAL'); // 'GLOBAL' or project/attribute ID
     const [activeDropdown, setActiveDropdown] = useState<'TRAITS' | 'PROJECTS' | 'GLOBAL_OPTIONS' | 'RANGES' | null>(null);
     
-    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'ATTRIBUTE'));
+    const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'TOTAL'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     
     // Sync defaultChartViews based on active viewMode
