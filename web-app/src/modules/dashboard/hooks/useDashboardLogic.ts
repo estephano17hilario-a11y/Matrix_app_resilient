@@ -517,6 +517,15 @@ export const useDashboardLogic = () => {
     const [isDailyCheckDone, setIsDailyCheckDone] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
 
+    const habitsRef = useRef(habits);
+    const projectsRef = useRef(projects);
+    const questsRef = useRef(quests);
+    useEffect(() => {
+        habitsRef.current = habits;
+        projectsRef.current = projects;
+        questsRef.current = quests;
+    }, [habits, projects, quests]);
+
     const STREAK_TARGETS = [3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
     const [smartProjects, setSmartProjects] = useState<SmartProject[]>([]);
     const deletedProjectIdsRef = useRef<Set<string>>(new Set());
@@ -926,7 +935,8 @@ export const useDashboardLogic = () => {
                 console.log(`[DAILY RESET] Processing transition from ${lastDate} to ${today}`);
                 
                 // 1. Calculate Penalty based on CURRENT habits (previous day's state)
-                const canProcessHabits = areHabitsLoaded && habits.length > 0;
+                const currentHabits = habitsRef.current;
+                const canProcessHabits = areHabitsLoaded && currentHabits.length > 0;
                 
 
 
@@ -986,9 +996,9 @@ export const useDashboardLogic = () => {
                 }
 
                 // 4. Reset Habits and Individual Streaks
-                let resetHabits = habits;
+                let resetHabits = currentHabits;
                 if (canProcessHabits) {
-                    resetHabits = habits.map(h => {
+                    resetHabits = currentHabits.map(h => {
                         let needsReset = false;
                         
                         // Backup state to lastDate first
@@ -1025,7 +1035,7 @@ export const useDashboardLogic = () => {
                     
                     resetHabits.forEach(h => {
                         // Check if the original habit differs from the updated one
-                        const original = habits.find(orig => orig.id === h.id);
+                        const original = currentHabits.find(orig => orig.id === h.id);
                         if (original && original !== h) {
                              const updates: any = {
                                  // 🛡️ FIX: Always stamp lastUpdatedDate=today so individual
@@ -1043,7 +1053,7 @@ export const useDashboardLogic = () => {
                     });
                     // Ensure in-memory habits also have lastUpdatedDate updated
                     resetHabits = resetHabits.map(h => {
-                        const original = habits.find(orig => orig.id === h.id);
+                        const original = currentHabits.find(orig => orig.id === h.id);
                         return (original && original !== h) ? { ...h, lastUpdatedDate: today } : h;
                     });
 
@@ -1063,7 +1073,7 @@ export const useDashboardLogic = () => {
                         checkDateObj.setDate(checkDateObj.getDate() + i);
                         const checkDateStr = toLocalISOString(checkDateObj);
                         
-                        habits.forEach(h => {
+                        currentHabits.forEach(h => {
                             if (h.archived) return;
                             const isActive = isHabitActive(h, checkDateObj);
                             if (isActive) {
@@ -1105,7 +1115,8 @@ export const useDashboardLogic = () => {
                 
 
                 // Reset Project Streaks if goal was not met yesterday
-                const resetProjects = projects.map(p => {
+                const currentProjects = projectsRef.current;
+                const resetProjects = currentProjects.map(p => {
                     if (p.goalTarget > 0 && p.streak && p.streak > 0) {
                         const lastCompletion = p.lastStreakDate || '';
                         if (lastCompletion < yesterdayStr && !isFrozen) {
@@ -1122,12 +1133,12 @@ export const useDashboardLogic = () => {
                     setHabits(resetHabits);
                     PersistenceService.saveCollection(user.id, 'habits', resetHabits);
                 }
-                const projectsChanged = resetProjects.some((p, idx) => p.streak !== (projects[idx]?.streak ?? 0));
+                const projectsChanged = resetProjects.some((p, idx) => p.streak !== (currentProjects[idx]?.streak ?? 0));
                 if (projectsChanged) {
                     setProjects(resetProjects);
                     PersistenceService.saveCollection(user.id, 'projects', resetProjects);
                     resetProjects.forEach(p => {
-                        const original = projects.find(orig => orig.id === p.id);
+                        const original = currentProjects.find(orig => orig.id === p.id);
                         if (original && original.streak !== p.streak) {
                             projectService.saveProject(user.id, p).catch(console.error);
                         }
@@ -1142,7 +1153,7 @@ export const useDashboardLogic = () => {
                     // Compute sub-habits from yesterday's state (before reset)
                     let subHabitsCompleted = 0;
                     let subHabitsTotal = 0;
-                    habits.forEach(h => {
+                    currentHabits.forEach(h => {
                         if (h.archived) return;
                         if (h.type === 'CHECKLIST' && h.checklist) {
                             const isActive = isHabitActive(h, yesterdayDate);
@@ -1158,7 +1169,7 @@ export const useDashboardLogic = () => {
                     let focusSecondsOnDay = 0;
                     const topProjects: { name: string; minutes: number; color?: string }[] = [];
                     const projectMap = new Map<string, { name: string; minutes: number; color?: string }>();
-                    projects.forEach(p => {
+                    currentProjects.forEach(p => {
                         if (p.sessions) {
                             const daySessions = p.sessions.filter(s => {
                                 if (!s.date) return false;
@@ -1178,7 +1189,8 @@ export const useDashboardLogic = () => {
                     topProjects.push(...Array.from(projectMap.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 5));
 
                     // Tasks Completed on lastDate
-                    const tasksCompletedOnDay = quests.filter(q => {
+                    const currentQuests = questsRef.current;
+                    const tasksCompletedOnDay = currentQuests.filter(q => {
                         if (!q.completed || !q.completedAt) return false;
                         try {
                             return toLocalISOString(new Date(q.completedAt)) === lastDate;
@@ -1188,7 +1200,7 @@ export const useDashboardLogic = () => {
                     }).length;
 
                     // Habits Completed on lastDate
-                    const habitsCompletedOnDay = habits.filter(h => {
+                    const habitsCompletedOnDay = currentHabits.filter(h => {
                         if (h.archived) return false;
                         const history = h.history || [];
                         return history.some(d => {
@@ -1200,17 +1212,17 @@ export const useDashboardLogic = () => {
                         });
                     }).length;
 
-                    const yesterdayScore = calculateLiveProductivityScore(quests, habits, projects, dailyLimits, yesterdayDate);
+                    const yesterdayScore = calculateLiveProductivityScore(currentQuests, currentHabits, currentProjects, dailyLimits, yesterdayDate);
 
                     const feedEntry = {
                         id: `feed_${lastDate}`,
                         date: lastDate,
                         tasksCompleted: tasksCompletedOnDay,
-                        tasksTotal: quests.filter(q => !q.completed).length + tasksCompletedOnDay,
+                        tasksTotal: currentQuests.filter(q => !q.completed).length + tasksCompletedOnDay,
                         focusMinutes: Math.round(Math.max(Number(dailyLimits.focusSeconds || 0), focusSecondsOnDay) / 60),
                         focusSessions: topProjects.length,
                         habitsCompleted: habitsCompletedOnDay,
-                        habitsTotal: habits.filter(h => isHabitActive(h, yesterdayDate)).length,
+                        habitsTotal: currentHabits.filter(h => isHabitActive(h, yesterdayDate)).length,
                         subHabitsCompleted,
                         subHabitsTotal,
                         xpEarned: Number(dailyLimits.totalXp || 0) || (Number(dailyLimits.taskXp || 0) + Number(dailyLimits.focusXp || 0) + Number(dailyLimits.habitXp || 0)),
@@ -1218,7 +1230,7 @@ export const useDashboardLogic = () => {
                         tpEarned: Number(dailyLimits.totalTraitPoints || 0) || (Number(dailyLimits.taskTraitPoints || 0) + Number(dailyLimits.focusTraitPoints || 0) + Number(dailyLimits.habitTraitPoints || 0)),
                         streak: user.stats?.streak || 0,
                         topProjects,
-                        completedTaskTitles: quests.filter(q => {
+                        completedTaskTitles: currentQuests.filter(q => {
                             if (!q.completed || !q.completedAt) return false;
                             try {
                                 return toLocalISOString(new Date(q.completedAt)) === lastDate;
@@ -1226,7 +1238,7 @@ export const useDashboardLogic = () => {
                                 return false;
                             }
                         }).map(q => q.title).slice(0, 5),
-                        completedHabitTitles: habits.filter(h => {
+                        completedHabitTitles: currentHabits.filter(h => {
                             if (h.archived || !h.completedToday) return false;
                             return true;
                         }).map(h => h.title).slice(0, 5),
@@ -2810,13 +2822,7 @@ export const useDashboardLogic = () => {
         };
 
         checkBadHabitsDaily();
-        // We only want to run this when habits are first loaded or user changes (login)
-        // Adding habits to dependency array might cause loops if we update habits inside.
-        // So we need a ref or strict dependency management.
-        // Actually, if we update habits, 'habits' changes, effect runs again.
-        // But if 'hasChanges' is false, it won't loop.
-        // To be safe, let's use a flag or rely on the stability.
-    }, [habits.length, badHabits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger]); // Only run when count changes, user changes, or app becomes visible
+    }, [habits.length, badHabits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger, dailyLimits.date]); // Include dailyLimits.date to re-eval when global reset finishes
 
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
