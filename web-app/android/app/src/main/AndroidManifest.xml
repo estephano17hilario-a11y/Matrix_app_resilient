@@ -90,6 +90,29 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Widget Receiver -->
+        <receiver
+            android:name=".widget.HabitWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_habits_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.COMPLETE_HABIT" />
+                <action android:name="com.luxresilient.app.TOGGLE_SUBTASK" />
+                <action android:name="com.luxresilient.app.INCREMENT_QUANTITY" />
+                <action android:name="com.luxresilient.app.REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_widget_info" />
+        </receiver>
+
+        <!-- Widget ListView RemoteViews Service -->
+        <service
+            android:name=".widget.HabitWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
         <!-- Google Play Services version -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
 

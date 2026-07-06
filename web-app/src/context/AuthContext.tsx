@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import { OfflineSyncService } from '../services/offlineSync';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import WidgetAuthBridge from '../plugins/WidgetBridgePlugin';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
 
 const DEFAULT_ONBOARDING = {
@@ -148,6 +149,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           sessionStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
           localStorage.removeItem('MATRIX_INTENTIONAL_LOGOUT');
           
+          if (Capacitor.isNativePlatform()) {
+            WidgetAuthBridge.clearSession().catch(e => console.error("Widget session clear error", e));
+          }
+          
           setIsLoading(false);
           return;
         }
@@ -156,6 +161,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("🔐 MATRIX: User logged in:", currentUser.id);
         setUser(currentUser);
         setError(null);
+        
+        if (Capacitor.isNativePlatform() && session) {
+          WidgetAuthBridge.shareSession({
+            userId: currentUser.id,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token || undefined
+          }).catch(e => console.error("Widget session sharing error", e));
+        }
         
         // Initialize RevenueCat for native platforms
         initRevenueCat(currentUser.id).catch(console.error);
