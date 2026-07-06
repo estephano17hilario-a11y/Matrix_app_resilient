@@ -233,21 +233,18 @@ class HabitWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    /**
-     * Refresh all widget instances
-     */
     private fun refreshAllWidgets(context: Context) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val widgetComponent = ComponentName(context, HabitWidgetProvider::class.java)
         val widgetIds = appWidgetManager.getAppWidgetIds(widgetComponent)
 
-        // Notify data changed for ListView
-        appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_list)
-
-        // Also trigger a full update
+        // Trigger a full update to ensure correct layout (list vs login) is bound
         for (widgetId in widgetIds) {
             updateWidget(context, appWidgetManager, widgetId)
         }
+
+        // Notify data changed for ListView to force data refresh
+        appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_list)
     }
 
     override fun onEnabled(context: Context) {

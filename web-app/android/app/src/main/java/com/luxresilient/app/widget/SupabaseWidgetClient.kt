@@ -30,13 +30,46 @@ class SupabaseWidgetClient(private val context: Context) {
 
     private val gson = Gson()
 
-    /**
-     * Get credentials from EncryptedSharedPreferences
-     */
     private fun getCredentials(): Pair<String?, String?> {
         val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
-        val userId = prefs.getString("user_id", null)
-        val accessToken = prefs.getString("access_token", null)
+        var userId = prefs.getString("user_id", null)
+        var accessToken = prefs.getString("access_token", null)
+
+        // FALLBACK: Read directly from CapacitorStorage (Capacitor Preferences)
+        if (userId == null || accessToken == null) {
+            try {
+                val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+                val sessionJson = capPrefs.getString("sb-aysntbpxjejxumpqvlbz-auth-token", null)
+                if (!sessionJson.isNullOrEmpty()) {
+                    Log.d(TAG, "Found Supabase session in CapacitorStorage!")
+                    val root = JsonParser.parseString(sessionJson).asJsonObject
+                    val access = root.get("access_token")?.asString
+                    val refresh = root.get("refresh_token")?.asString
+                    val userObj = root.getAsJsonObject("user")
+                    val uid = userObj?.get("id")?.asString
+
+                    if (!access.isNullOrEmpty() && !uid.isNullOrEmpty()) {
+                        userId = uid
+                        accessToken = access
+                        
+                        // Save back to our local cache for fast access
+                        prefs.edit()
+                            .putString("user_id", uid)
+                            .putString("access_token", access)
+                            .putString("refresh_token", refresh ?: "")
+                            .putLong("last_sync", System.currentTimeMillis())
+                            .apply()
+                        
+                        Log.d(TAG, "Successfully restored session from CapacitorStorage: $uid")
+                    }
+                } else {
+                    Log.d(TAG, "No Supabase session found in CapacitorStorage")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading from CapacitorStorage: ${e.message}", e)
+            }
+        }
+
         return Pair(userId, accessToken)
     }
 
