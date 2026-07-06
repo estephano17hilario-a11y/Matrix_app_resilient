@@ -111,7 +111,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
            window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
 
-        await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user && Capacitor.isNativePlatform()) {
+          WidgetAuthBridge.shareSession({
+            userId: session.user.id,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token || undefined
+          }).catch(e => console.error("Widget session sharing error from checkInitialSession", e));
+        }
       } catch (e) {
         console.error("Error verificando sesión de Supabase:", e);
       } finally {

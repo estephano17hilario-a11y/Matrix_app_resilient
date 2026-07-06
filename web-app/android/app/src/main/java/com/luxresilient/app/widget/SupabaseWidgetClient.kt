@@ -44,7 +44,7 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch all habits for the authenticated user
      */
     fun fetchHabits(): List<HabitData> {
-        val (userId, accessToken) = getCredentials()
+        var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) {
             Log.w(TAG, "No credentials available")
             return emptyList()
@@ -54,9 +54,17 @@ class SupabaseWidgetClient(private val context: Context) {
             val encodedUserId = URLEncoder.encode(userId, "UTF-8")
             val url = "$SUPABASE_URL$REST_PATH/user_collections?user_id=eq.$encodedUserId&collection_name=eq.habits&deleted=eq.false&select=id,data"
             
-            val response = makeGetRequest(url, accessToken)
+            var response = makeGetRequest(url, accessToken)
             if (response == null) {
-                Log.w(TAG, "No response from Supabase")
+                Log.w(TAG, "GET habits failed. Attempting token refresh...")
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    response = makeGetRequest(url, newAccessToken)
+                }
+            }
+
+            if (response == null) {
+                Log.w(TAG, "No response from Supabase after token refresh")
                 return emptyList()
             }
 
@@ -92,14 +100,23 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch all attributes for the user (to get custom colors)
      */
     fun fetchAttributes(): Map<String, AttributeData> {
-        val (userId, accessToken) = getCredentials()
+        var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyMap()
 
         return try {
             val encodedUserId = URLEncoder.encode(userId, "UTF-8")
             val url = "$SUPABASE_URL$REST_PATH/user_collections?user_id=eq.$encodedUserId&collection_name=eq.attributes&deleted=eq.false&select=data"
             
-            val response = makeGetRequest(url, accessToken) ?: return emptyMap()
+            var response = makeGetRequest(url, accessToken)
+            if (response == null) {
+                Log.w(TAG, "GET attributes failed. Attempting token refresh...")
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    response = makeGetRequest(url, newAccessToken)
+                }
+            }
+
+            if (response == null) return emptyMap()
 
             val jsonArray = JsonParser.parseString(response).asJsonArray
             val attrs = mutableMapOf<String, AttributeData>()
@@ -233,7 +250,15 @@ class SupabaseWidgetClient(private val context: Context) {
         )
         val jsonBody = gson.toJson(payload)
 
-        return makePatchRequest(url, jsonBody, accessToken)
+        var success = makePatchRequest(url, jsonBody, accessToken)
+        if (!success) {
+            Log.w(TAG, "PATCH habit failed. Attempting token refresh...")
+            val newAccessToken = refreshAccessToken()
+            if (newAccessToken != null) {
+                success = makePatchRequest(url, jsonBody, newAccessToken)
+            }
+        }
+        return success
     }
 
     /**
@@ -356,6 +381,78 @@ class SupabaseWidgetClient(private val context: Context) {
     private fun getDateKey(date: Date): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         return sdf.format(date)
+    }
+
+    /**
+     * Attempts to refresh the access token using the stored refresh token.
+     * Returns the new access token if successful, or null otherwise.
+     */
+    @Synchronized
+    private fun refreshAccessToken(): String? {
+        val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
+        val refreshToken = prefs.getString("refresh_token", null)
+        if (refreshToken.isNullOrEmpty()) {
+            Log.w(TAG, "No refresh token available to refresh session")
+            return null
+        }
+
+        Log.d(TAG, "Refreshing access token...")
+        var connection: HttpURLConnection? = null
+        return try {
+            val url = URL("$SUPABASE_URL/auth/v1/token?grant_type=refresh_token")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("apikey", SUPABASE_ANON_KEY)
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            val payload = mapOf("refresh_token" to refreshToken)
+            val writer = OutputStreamWriter(connection.outputStream)
+            writer.write(gson.toJson(payload))
+            writer.flush()
+            writer.close()
+
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                val response = reader.readText()
+                reader.close()
+
+                val responseObj = JsonParser.parseString(response).asJsonObject
+                val newAccessToken = responseObj.get("access_token")?.asString
+                val newRefreshToken = responseObj.get("refresh_token")?.asString
+                val userObj = responseObj.getAsJsonObject("user")
+                val userId = userObj?.get("id")?.asString
+
+                if (!newAccessToken.isNullOrEmpty() && !userId.isNullOrEmpty()) {
+                    prefs.edit()
+                        .putString("user_id", userId)
+                        .putString("access_token", newAccessToken)
+                        .putString("refresh_token", newRefreshToken ?: refreshToken)
+                        .putLong("last_sync", System.currentTimeMillis())
+                        .apply()
+                    Log.d(TAG, "Token refreshed successfully")
+                    newAccessToken
+                } else {
+                    null
+                }
+            } else {
+                Log.e(TAG, "Token refresh failed with code $responseCode")
+                try {
+                    val errReader = BufferedReader(InputStreamReader(connection.errorStream))
+                    Log.e(TAG, "Token refresh error body: ${errReader.readText()}")
+                    errReader.close()
+                } catch (_: Exception) {}
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error refreshing token: ${e.message}", e)
+            null
+        } finally {
+            connection?.disconnect()
+        }
     }
 
     /**

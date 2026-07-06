@@ -9,6 +9,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import com.luxresilient.app.R
 
 /**
  * Capacitor Plugin Bridge: Shares Supabase session from WebView to native widget.
@@ -107,7 +108,7 @@ class WidgetAuthBridge : Plugin() {
             val widgetComponent = ComponentName(context, HabitWidgetProvider::class.java)
             val widgetIds = appWidgetManager.getAppWidgetIds(widgetComponent)
             if (widgetIds.isNotEmpty()) {
-                appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, android.R.id.list)
+                appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_list)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error refreshing widgets: ${e.message}")
