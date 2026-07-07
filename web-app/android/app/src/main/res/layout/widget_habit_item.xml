@@ -12,7 +12,7 @@
     android:focusable="true">
 
     <!-- Color Overlay (tinted background - set programmatically) -->
-    <View
+    <FrameLayout
         android:id="@+id/habit_color_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

@@ -79,6 +79,9 @@ class HabitWidgetFactory(
             val baseColor = getHabitColor(habit)
             val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
 
+            // Set overlay background color dynamically
+            views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
+
             // --- TITLE ---
             views.setTextViewText(R.id.habit_title, habit.title ?: "Sin título")
             
