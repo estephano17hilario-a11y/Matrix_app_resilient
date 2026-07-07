@@ -212,9 +212,15 @@ class HabitWidgetFactory(
 
                 // Sort chronologically
                 items.sortBy { parseTimeToMinutes(it.time) }
-                displayItems = items
+                val hideCompleted = configPrefs.getBoolean("hide_completed", false)
+                if (hideCompleted) {
+                    displayItems = items.filter { !it.isCompleted }
+                } else {
+                    displayItems = items
+                }
             } else {
                 // Default view (list habits in order)
+                val hideCompleted = configPrefs.getBoolean("hide_completed", false)
                 for (habit in habits) {
                     val baseColor = getHabitColor(habit)
                     val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
@@ -233,7 +239,11 @@ class HabitWidgetFactory(
                         rawHabit = habit
                     ))
                 }
-                displayItems = items
+                if (hideCompleted) {
+                    displayItems = items.filter { !it.isCompleted }
+                } else {
+                    displayItems = items
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading data: ${e.message}", e)
@@ -262,7 +272,7 @@ class HabitWidgetFactory(
             val opacity = configPrefs.getInt("card_opacity", 90)
             val cardSize = configPrefs.getString("card_size", "medium") ?: "medium"
             val checklistMode = configPrefs.getString("checklist_mode", "direct")
-            val cardColumns = configPrefs.getInt("card_columns", 1)
+            val cardColumns = if (chronologicalSort) configPrefs.getInt("chrono_columns", 1) else configPrefs.getInt("card_columns", 1)
             val cardSpacing = configPrefs.getString("card_spacing", "medio") ?: "medio"
             val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"
             val borderStyle = configPrefs.getString("border_style", "both") ?: "both"
@@ -817,6 +827,23 @@ class HabitWidgetFactory(
                     0f, height.toFloat(),
                     0f, 0f,
                     colors, null,
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+        } else if (gradientStyle == "center_radial") {
+            val glowPaint = Paint().apply {
+                this.isAntiAlias = true
+                val colors = intArrayOf(
+                    Color.argb((alphaInt * 0.35).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                    Color.argb((alphaInt * 0.10).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                    Color.TRANSPARENT
+                )
+                val stops = floatArrayOf(0f, 0.5f, 1f)
+                this.shader = RadialGradient(
+                    width * 0.5f, height * 0.5f, // center
+                    maxOf(width, height) * 0.7f, // radius
+                    colors, stops,
                     Shader.TileMode.CLAMP
                 )
             }

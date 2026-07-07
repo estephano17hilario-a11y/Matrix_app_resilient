@@ -26,8 +26,8 @@ public class MainActivity extends BridgeActivity {
 
     private void sendWidgetRefreshBroadcast() {
         try {
-            android.content.Intent intent = new android.content.Intent("com.luxresilient.app.widget.ACTION_REFRESH");
-            intent.setPackage(getPackageName());
+            android.content.Intent intent = new android.content.Intent("com.luxresilient.app.REFRESH_WIDGET");
+            intent.setComponent(new android.content.ComponentName(this, com.luxresilient.app.widget.HabitWidgetProvider.class));
             sendBroadcast(intent);
         } catch (Exception e) {
             e.printStackTrace();

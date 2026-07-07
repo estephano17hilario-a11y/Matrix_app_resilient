@@ -30,6 +30,8 @@ class HabitWidgetProvider : AppWidgetProvider() {
         const val ACTION_REFRESH = "com.luxresilient.app.REFRESH_WIDGET"
         const val ACTION_OPEN_DIALOG = "com.luxresilient.app.OPEN_DIALOG"
         const val ACTION_OPEN_APP_SHORTCUT = "com.luxresilient.app.OPEN_APP_SHORTCUT"
+        const val ACTION_TOGGLE_CHRONOLOGICAL = "com.luxresilient.app.TOGGLE_CHRONOLOGICAL"
+        const val ACTION_TOGGLE_FILTER = "com.luxresilient.app.TOGGLE_FILTER"
         const val EXTRA_HABIT_ID = "habit_id"
         const val EXTRA_SUBTASK_ID = "subtask_id"
     }
@@ -51,7 +53,7 @@ class HabitWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_REFRESH -> {
                 Log.d(TAG, "Refresh requested")
-                refreshAllWidgets(context)
+                refreshAllWidgets(context, true)
             }
             ACTION_COMPLETE_HABIT -> {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
@@ -86,6 +88,19 @@ class HabitWidgetProvider : AppWidgetProvider() {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     context.startActivity(launchIntent)
                 }
+            ACTION_TOGGLE_CHRONOLOGICAL -> {
+                Log.d(TAG, "Toggle chronological mode")
+                val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                val current = prefs.getBoolean("chronological_sort", false)
+                prefs.edit().putBoolean("chronological_sort", !current).apply()
+                refreshAllWidgets(context, true)
+            }
+            ACTION_TOGGLE_FILTER -> {
+                Log.d(TAG, "Toggle filter mode")
+                val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                val current = prefs.getBoolean("hide_completed", false)
+                prefs.edit().putBoolean("hide_completed", !current).apply()
+                refreshAllWidgets(context, true)
             }
         }
     }
@@ -120,7 +135,8 @@ class HabitWidgetProvider : AppWidgetProvider() {
 
         // Read preferences for column distribution and background opacity
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-        val columns = prefs.getInt("card_columns", 1)
+        val isChrono = prefs.getBoolean("chronological_sort", false)
+        val columns = if (isChrono) prefs.getInt("chrono_columns", 1) else prefs.getInt("card_columns", 1)
         val bgOpacity = prefs.getInt("widget_background_opacity", 85)
 
         // Build the main widget view (different layout for grid vs list to prevent cached overlaps)
@@ -163,6 +179,44 @@ class HabitWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_settings_btn, configPending)
+
+        // Setup filter toggle button
+        val hideCompleted = prefs.getBoolean("hide_completed", false)
+        if (hideCompleted) {
+            views.setTextViewText(R.id.widget_filter_icon, "🫣")
+        } else {
+            views.setTextViewText(R.id.widget_filter_icon, "👁️")
+        }
+        val filterIntent = Intent(context, HabitWidgetProvider::class.java).apply {
+            action = ACTION_TOGGLE_FILTER
+        }
+        val filterPending = PendingIntent.getBroadcast(
+            context, 3, filterIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_filter_btn, filterPending)
+
+        // Setup chronological toggle button
+        val allowChronoSwitch = prefs.getBoolean("allow_chronological_switch", false)
+        if (allowChronoSwitch) {
+            views.setViewVisibility(R.id.widget_chrono_btn, View.VISIBLE)
+            val isChrono = prefs.getBoolean("chronological_sort", false)
+            if (isChrono) {
+                views.setTextViewText(R.id.widget_chrono_icon, "⏱️")
+            } else {
+                views.setTextViewText(R.id.widget_chrono_icon, "📋")
+            }
+            val chronoIntent = Intent(context, HabitWidgetProvider::class.java).apply {
+                action = ACTION_TOGGLE_CHRONOLOGICAL
+            }
+            val chronoPending = PendingIntent.getBroadcast(
+                context, 4, chronoIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_chrono_btn, chronoPending)
+        } else {
+            views.setViewVisibility(R.id.widget_chrono_btn, View.GONE)
+        }
 
         // Open app when clicking on header
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -312,14 +366,15 @@ class HabitWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun refreshAllWidgets(context: Context) {
+    private fun refreshAllWidgets(context: Context, updateLayout: Boolean = false) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val widgetComponent = ComponentName(context, HabitWidgetProvider::class.java)
         val widgetIds = appWidgetManager.getAppWidgetIds(widgetComponent)
 
-        // Trigger a full update to ensure correct layout (list vs login) is bound
-        for (widgetId in widgetIds) {
-            updateWidget(context, appWidgetManager, widgetId)
+        if (updateLayout) {
+            for (widgetId in widgetIds) {
+                updateWidget(context, appWidgetManager, widgetId)
+            }
         }
 
         // Notify data changed for ListView and GridView to force data refresh

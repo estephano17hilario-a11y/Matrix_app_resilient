@@ -86,6 +86,49 @@
                     android:textColor="#B3FFFFFF"
                     android:textSize="14sp" />
 
+            <!-- Eye Filter Button -->
+            <FrameLayout
+                android:id="@+id/widget_filter_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_toStartOf="@id/widget_settings_btn"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/widget_refresh_bg"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/widget_filter_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="👁️"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="14sp" />
+            </FrameLayout>
+
+            <!-- Chronological Toggle Button -->
+            <FrameLayout
+                android:id="@+id/widget_chrono_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_toStartOf="@id/widget_filter_btn"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/widget_refresh_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/widget_chrono_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="⏱️"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="14sp" />
             </FrameLayout>
 
         </RelativeLayout>
@@ -101,6 +144,7 @@
             android:horizontalSpacing="4dp"
             android:scrollbars="none"
             android:fadingEdge="none"
+            android:nestedScrollingEnabled="true"
             android:clipToPadding="false"
             android:paddingBottom="4dp" />
 
@@ -122,6 +166,7 @@
             android:id="@+id/widget_habit_list"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:nestedScrollingEnabled="true"
             android:visibility="gone" />
 
     </LinearLayout>

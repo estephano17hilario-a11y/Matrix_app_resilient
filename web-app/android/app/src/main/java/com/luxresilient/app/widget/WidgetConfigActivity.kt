@@ -27,10 +27,11 @@ class WidgetConfigActivity : Activity() {
     
     private lateinit var switchSound: Switch
     private lateinit var switchIcons: Switch
-    private lateinit var switchChronological: Switch
+    private lateinit var switchAllowChrono: Switch
     
     private lateinit var radioGroupSize: RadioGroup
     private lateinit var radioGroupColumns: RadioGroup
+    private lateinit var radioGroupChronoColumns: RadioGroup
     private lateinit var radioGroupSpacing: RadioGroup
     private lateinit var radioGroupGradient: RadioGroup
     private lateinit var radioGroupBorder: RadioGroup
@@ -59,10 +60,11 @@ class WidgetConfigActivity : Activity() {
         
         switchSound = findViewById(R.id.config_sound_switch)
         switchIcons = findViewById(R.id.config_icons_switch)
-        switchChronological = findViewById(R.id.config_chronological_switch)
+        switchAllowChrono = findViewById(R.id.config_allow_chrono_switch)
         
         radioGroupSize = findViewById(R.id.config_size_group)
         radioGroupColumns = findViewById(R.id.config_columns_group)
+        radioGroupChronoColumns = findViewById(R.id.config_chrono_columns_group)
         radioGroupSpacing = findViewById(R.id.config_spacing_group)
         radioGroupGradient = findViewById(R.id.config_gradient_group)
         radioGroupBorder = findViewById(R.id.config_border_group)
@@ -74,6 +76,7 @@ class WidgetConfigActivity : Activity() {
         // Setup custom look for radio buttons inside horizontal containers
         setupHorizontalRadioButtonsUI(radioGroupSize)
         setupHorizontalRadioButtonsUI(radioGroupColumns)
+        setupHorizontalRadioButtonsUI(radioGroupChronoColumns)
         setupHorizontalRadioButtonsUI(radioGroupSpacing)
 
         // Load saved preferences
@@ -155,7 +158,7 @@ class WidgetConfigActivity : Activity() {
         
         switchSound.isChecked = prefs.getBoolean("sound_effects", true)
         switchIcons.isChecked = prefs.getBoolean("show_icons", true)
-        switchChronological.isChecked = prefs.getBoolean("chronological_sort", false)
+        switchAllowChrono.isChecked = prefs.getBoolean("allow_chronological_switch", true)
         
         val sizeId = when (prefs.getString("card_size", "medium")) {
             "super_thin" -> R.id.config_size_super_thin
@@ -173,6 +176,13 @@ class WidgetConfigActivity : Activity() {
         radioGroupColumns.check(colsId)
         findViewById<RadioButton>(colsId)?.performClick()
 
+        val chronoColsId = when (prefs.getInt("chrono_columns", 1)) {
+            2 -> R.id.config_chrono_cols_2
+            else -> R.id.config_chrono_cols_1
+        }
+        radioGroupChronoColumns.check(chronoColsId)
+        findViewById<RadioButton>(chronoColsId)?.performClick()
+
         val spacingId = when (prefs.getString("card_spacing", "medio")) {
             "poco" -> R.id.config_spacing_poco
             "grande" -> R.id.config_spacing_grande
@@ -184,6 +194,7 @@ class WidgetConfigActivity : Activity() {
         val gradientId = when (prefs.getString("gradient_style", "radial")) {
             "none" -> R.id.config_grad_none
             "vertical" -> R.id.config_grad_vertical
+            "center_radial" -> R.id.config_grad_center_radial
             else -> R.id.config_grad_radial
         }
         radioGroupGradient.check(gradientId)
@@ -218,6 +229,11 @@ class WidgetConfigActivity : Activity() {
             else -> 1
         }
 
+        val chronoColsVal = when (radioGroupChronoColumns.checkedRadioButtonId) {
+            R.id.config_chrono_cols_2 -> 2
+            else -> 1
+        }
+
         val spacingVal = when (radioGroupSpacing.checkedRadioButtonId) {
             R.id.config_spacing_poco -> "poco"
             R.id.config_spacing_grande -> "grande"
@@ -227,6 +243,7 @@ class WidgetConfigActivity : Activity() {
         val gradientVal = when (radioGroupGradient.checkedRadioButtonId) {
             R.id.config_grad_none -> "none"
             R.id.config_grad_vertical -> "vertical"
+            R.id.config_grad_center_radial -> "center_radial"
             else -> "radial"
         }
 
@@ -247,9 +264,10 @@ class WidgetConfigActivity : Activity() {
             .putInt("widget_background_opacity", seekWidgetBgOpacity.progress)
             .putBoolean("sound_effects", switchSound.isChecked)
             .putBoolean("show_icons", switchIcons.isChecked)
-            .putBoolean("chronological_sort", switchChronological.isChecked)
+            .putBoolean("allow_chronological_switch", switchAllowChrono.isChecked)
             .putString("card_size", sizeVal)
             .putInt("card_columns", colsVal)
+            .putInt("chrono_columns", chronoColsVal)
             .putString("card_spacing", spacingVal)
             .putString("gradient_style", gradientVal)
             .putString("border_style", borderVal)

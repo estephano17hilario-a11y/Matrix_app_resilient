@@ -163,6 +163,53 @@
 
             </RadioGroup>
 
+            <!-- Chrono Card Layout Mode -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DISTRIBUCIÓN EN MODO CRONOLÓGICO"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_chrono_columns_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="2dp">
+
+                <RadioButton
+                    android:id="@+id/config_chrono_cols_1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="1 Columna (Lista)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/config_chrono_cols_2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="2 Columnas (Cuadrícula)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+            </RadioGroup>
+
             <!-- Card Spacing Setting -->
             <TextView
                 android:layout_width="wrap_content"
@@ -346,6 +393,15 @@
                     android:textSize="12sp"
                     android:padding="6dp" />
 
+                <RadioButton
+                    android:id="@+id/config_grad_center_radial"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Resplandor Central (Desde el medio hacia afuera)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp" />
+
             </RadioGroup>
 
             <!-- Border Style Option -->
@@ -491,7 +547,7 @@
                     android:id="@+id/chrono_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Orden Cronológico"
+                    android:text="Botón de Modo Cronológico"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -500,17 +556,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_below="@id/chrono_title"
-                    android:text="Muestra las tareas/hábitos por hora, estilo app"
+                    android:text="Muestra el botón en el widget para alternar vistas"
                     android:textColor="#80FFFFFF"
                     android:textSize="11sp" />
 
                 <Switch
-                    android:id="@+id/config_chronological_switch"
+                    android:id="@+id/config_allow_chrono_switch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:checked="false" />
+                    android:checked="true" />
 
             </RelativeLayout>
 
