@@ -85,6 +85,7 @@
                     android:text="⚙️"
                     android:textColor="#B3FFFFFF"
                     android:textSize="14sp" />
+            </FrameLayout>
 
             <!-- Eye Filter Button -->
             <FrameLayout
@@ -144,7 +145,6 @@
             android:horizontalSpacing="4dp"
             android:scrollbars="none"
             android:fadingEdge="none"
-            android:nestedScrollingEnabled="true"
             android:clipToPadding="false"
             android:paddingBottom="4dp" />
 
@@ -166,7 +166,6 @@
             android:id="@+id/widget_habit_list"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:nestedScrollingEnabled="true"
             android:visibility="gone" />
 
     </LinearLayout>
