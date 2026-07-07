@@ -31,45 +31,40 @@ class SupabaseWidgetClient(private val context: Context) {
     private val gson = Gson()
 
     private fun getCredentials(): Pair<String?, String?> {
-        val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
-        var userId = prefs.getString("user_id", null)
-        var accessToken = prefs.getString("access_token", null)
+        // ALWAYS check CapacitorStorage first as it is the Single Source of Truth
+        try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val sessionJson = capPrefs.getString("sb-aysntbpxjejxumpqvlbz-auth-token", null)
+            if (!sessionJson.isNullOrEmpty()) {
+                val root = JsonParser.parseString(sessionJson).asJsonObject
+                val access = root.get("access_token")?.asString
+                val refresh = root.get("refresh_token")?.asString
+                val userObj = root.getAsJsonObject("user")
+                val uid = userObj?.get("id")?.asString
 
-        // FALLBACK: Read directly from CapacitorStorage (Capacitor Preferences)
-        if (userId == null || accessToken == null) {
-            try {
-                val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-                val sessionJson = capPrefs.getString("sb-aysntbpxjejxumpqvlbz-auth-token", null)
-                if (!sessionJson.isNullOrEmpty()) {
-                    Log.d(TAG, "Found Supabase session in CapacitorStorage!")
-                    val root = JsonParser.parseString(sessionJson).asJsonObject
-                    val access = root.get("access_token")?.asString
-                    val refresh = root.get("refresh_token")?.asString
-                    val userObj = root.getAsJsonObject("user")
-                    val uid = userObj?.get("id")?.asString
-
-                    if (!access.isNullOrEmpty() && !uid.isNullOrEmpty()) {
-                        userId = uid
-                        accessToken = access
-                        
-                        // Save back to our local cache for fast access
-                        prefs.edit()
-                            .putString("user_id", uid)
-                            .putString("access_token", access)
-                            .putString("refresh_token", refresh ?: "")
-                            .putLong("last_sync", System.currentTimeMillis())
-                            .apply()
-                        
-                        Log.d(TAG, "Successfully restored session from CapacitorStorage: $uid")
-                    }
-                } else {
-                    Log.d(TAG, "No Supabase session found in CapacitorStorage")
+                if (!access.isNullOrEmpty() && !uid.isNullOrEmpty()) {
+                    // Sync it back to lux_widget_auth for fallback
+                    val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("user_id", uid)
+                        .putString("access_token", access)
+                        .putString("refresh_token", refresh ?: "")
+                        .putLong("last_sync", System.currentTimeMillis())
+                        .apply()
+                    
+                    Log.d(TAG, "getCredentials: Using fresh session from CapacitorStorage for user $uid")
+                    return Pair(uid, access)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error reading from CapacitorStorage: ${e.message}", e)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "getCredentials: Error reading from CapacitorStorage: ${e.message}", e)
         }
 
+        // Fallback to lux_widget_auth only if CapacitorStorage is empty/invalid
+        val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
+        val userId = prefs.getString("user_id", null)
+        val accessToken = prefs.getString("access_token", null)
+        Log.d(TAG, "getCredentials: Falling back to cached lux_widget_auth. userId=$userId, hasToken=${!accessToken.isNullOrEmpty()}")
         return Pair(userId, accessToken)
     }
 
