@@ -113,6 +113,6 @@ object TraitIcons {
         "ESTILO" to "#d946ef"
     )
 
-    fun getEmoji(traitId: String): String = TRAIT_EMOJI_MAP[traitId] ?: "⭐"
-    fun getColor(traitId: String): String = TRAIT_COLOR_MAP[traitId] ?: "#6366f1"
+    fun getEmoji(traitId: String?): String = TRAIT_EMOJI_MAP[traitId] ?: "⭐"
+    fun getColor(traitId: String?): String = TRAIT_COLOR_MAP[traitId] ?: "#6366f1"
 }

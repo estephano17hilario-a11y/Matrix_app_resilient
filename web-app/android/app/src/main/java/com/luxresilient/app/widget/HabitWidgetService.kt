@@ -67,143 +67,154 @@ class HabitWidgetFactory(
     override fun getCount(): Int = habits.size
 
     override fun getViewAt(position: Int): RemoteViews {
-        if (position >= habits.size) {
-            return RemoteViews(context.packageName, R.layout.widget_habit_item)
-        }
-
-        val habit = habits[position]
-        val views = RemoteViews(context.packageName, R.layout.widget_habit_item)
-
-        // Get color from custom color, attribute, or trait default
-        val baseColor = getHabitColor(habit)
-        val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
-
-        // --- TITLE ---
-        views.setTextViewText(R.id.habit_title, habit.title)
-        
-        // Apply completed state (dimmed text)
-        if (habit.completedToday) {
-            views.setTextColor(R.id.habit_title, Color.parseColor("#99FFFFFF"))
-        } else {
-            views.setTextColor(R.id.habit_title, Color.WHITE)
-        }
-
-        // --- TRAIT ICON ---
-        val traitEmoji = if (habit.iconName != null) {
-            getIconEmoji(habit.iconName)
-        } else {
-            TraitIcons.getEmoji(habit.attribute)
-        }
-        views.setTextViewText(R.id.habit_icon, traitEmoji)
-
-        // --- STREAK BADGE ---
-        if (habit.streak > 0) {
-            views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
-            views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
-            if (habit.completedToday) {
-                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
-            } else {
-                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
+        try {
+            if (position >= habits.size) {
+                return RemoteViews(context.packageName, R.layout.widget_habit_item)
             }
-        } else {
-            views.setViewVisibility(R.id.habit_streak_container, View.GONE)
-        }
 
-        // --- PROGRESS TEXT ---
-        val progressText = getProgressText(habit)
-        views.setTextViewText(R.id.habit_progress, progressText)
-        views.setTextColor(R.id.habit_progress, parsedColor)
+            val habit = habits[position]
+            val views = RemoteViews(context.packageName, R.layout.widget_habit_item)
 
-        // --- COMPLETE BUTTON ---
-        if (habit.completedToday) {
-            views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_complete)
-            views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
-            views.setTextViewText(R.id.habit_check_icon, "✓")
-        } else {
-            views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_circle)
+            // Get color from custom color, attribute, or trait default
+            val baseColor = getHabitColor(habit)
+            val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
+
+            // --- TITLE ---
+            views.setTextViewText(R.id.habit_title, habit.title ?: "Sin título")
             
-            // For partial progress (QUANTITY/CHECKLIST), show percentage text
-            val percentage = getPercentage(habit)
-            if (percentage > 0 && percentage < 100) {
-                views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
-                views.setTextViewText(R.id.habit_check_icon, "${percentage}%")
-                views.setTextColor(R.id.habit_check_icon, parsedColor)
+            // Apply completed state (dimmed text)
+            if (habit.completedToday) {
+                views.setTextColor(R.id.habit_title, Color.parseColor("#99FFFFFF"))
             } else {
-                views.setViewVisibility(R.id.habit_check_icon, View.GONE)
-            }
-        }
-
-        // --- SUBTASKS (for CHECKLIST type) ---
-        if (habit.type == "CHECKLIST" && habit.checklist != null && habit.checklist.isNotEmpty()) {
-            views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
-            views.removeAllViews(R.id.habit_subtasks_container)
-
-            val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
-            val visibleItems = habit.checklist.filter { item ->
-                item.days == null || item.days.isEmpty() || item.days.contains(todayDay)
+                views.setTextColor(R.id.habit_title, Color.WHITE)
             }
 
-            for (subtask in visibleItems) {
-                val subtaskView = RemoteViews(context.packageName, R.layout.widget_habit_subtask)
-                subtaskView.setTextViewText(R.id.subtask_text, subtask.text)
+            // --- TRAIT ICON ---
+            val traitEmoji = if (habit.iconName != null) {
+                getIconEmoji(habit.iconName)
+            } else {
+                TraitIcons.getEmoji(habit.attribute)
+            }
+            views.setTextViewText(R.id.habit_icon, traitEmoji)
 
-                if (subtask.completed) {
-                    subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_checked)
-                    subtaskView.setViewVisibility(R.id.subtask_check_icon, View.VISIBLE)
-                    subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#4DFFFFFF"))
+            // --- STREAK BADGE ---
+            if (habit.streak > 0) {
+                views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
+                views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
+                if (habit.completedToday) {
+                    views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
                 } else {
-                    subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_unchecked)
-                    subtaskView.setViewVisibility(R.id.subtask_check_icon, View.GONE)
-                    subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#CCFFFFFF"))
+                    views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
                 }
+            } else {
+                views.setViewVisibility(R.id.habit_streak_container, View.GONE)
+            }
 
-                // Subtask time
-                if (!subtask.reminderTime.isNullOrEmpty()) {
-                    subtaskView.setViewVisibility(R.id.subtask_time, View.VISIBLE)
-                    subtaskView.setTextViewText(R.id.subtask_time, subtask.reminderTime)
+            // --- PROGRESS TEXT ---
+            val progressText = getProgressText(habit)
+            views.setTextViewText(R.id.habit_progress, progressText)
+            views.setTextColor(R.id.habit_progress, parsedColor)
+
+            // --- COMPLETE BUTTON ---
+            if (habit.completedToday) {
+                views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_complete)
+                views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
+                views.setTextViewText(R.id.habit_check_icon, "✓")
+            } else {
+                views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_circle)
+                
+                // For partial progress (QUANTITY/CHECKLIST), show percentage text
+                val percentage = getPercentage(habit)
+                if (percentage > 0 && percentage < 100) {
+                    views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
+                    views.setTextViewText(R.id.habit_check_icon, "${percentage}%")
+                    views.setTextColor(R.id.habit_check_icon, parsedColor)
                 } else {
-                    subtaskView.setViewVisibility(R.id.subtask_time, View.GONE)
-                }
-
-                // Setup click intent for toggling subtask
-                val toggleIntent = Intent().apply {
-                    action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
-                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
-                    putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, subtask.id)
-                }
-                subtaskView.setOnClickFillInIntent(R.id.subtask_text, toggleIntent)
-
-                views.addView(R.id.habit_subtasks_container, subtaskView)
-            }
-        } else {
-            views.setViewVisibility(R.id.habit_subtasks_container, View.GONE)
-        }
-
-        // --- FILL INTENT (for complete button via list click) ---
-        val fillIntent = Intent().apply {
-            when (habit.type) {
-                "CHECKLIST" -> {
-                    action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
-                }
-                "QUANTITY" -> {
-                    action = HabitWidgetProvider.ACTION_INCREMENT_QUANTITY
-                }
-                else -> {
-                    action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                    views.setViewVisibility(R.id.habit_check_icon, View.GONE)
                 }
             }
-            putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
-        }
-        views.setOnClickFillInIntent(R.id.habit_complete_btn, fillIntent)
 
-        // Open app when clicking on the habit text area
-        val openAppFill = Intent().apply {
-            action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
-            putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
-        }
-        views.setOnClickFillInIntent(R.id.habit_text_container, openAppFill)
+            // --- SUBTASKS (for CHECKLIST type) ---
+            if (habit.type == "CHECKLIST" && habit.checklist != null && habit.checklist.isNotEmpty()) {
+                views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
+                views.removeAllViews(R.id.habit_subtasks_container)
 
-        return views
+                val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
+                val visibleItems = habit.checklist.filter { item ->
+                    item.days == null || item.days.isEmpty() || item.days.contains(todayDay)
+                }
+
+                for (subtask in visibleItems) {
+                    val subtaskView = RemoteViews(context.packageName, R.layout.widget_habit_subtask)
+                    subtaskView.setTextViewText(R.id.subtask_text, subtask.text ?: "Subtarea")
+
+                    if (subtask.completed) {
+                        subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_checked)
+                        subtaskView.setViewVisibility(R.id.subtask_check_icon, View.VISIBLE)
+                        subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#4DFFFFFF"))
+                    } else {
+                        subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_unchecked)
+                        subtaskView.setViewVisibility(R.id.subtask_check_icon, View.GONE)
+                        subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#CCFFFFFF"))
+                    }
+
+                    // Subtask time
+                    if (!subtask.reminderTime.isNullOrEmpty()) {
+                        subtaskView.setViewVisibility(R.id.subtask_time, View.VISIBLE)
+                        subtaskView.setTextViewText(R.id.subtask_time, subtask.reminderTime)
+                    } else {
+                        subtaskView.setViewVisibility(R.id.subtask_time, View.GONE)
+                    }
+
+                    // Setup click intent for toggling subtask
+                    val toggleIntent = Intent().apply {
+                        action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
+                        putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
+                        putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, subtask.id)
+                    }
+                    subtaskView.setOnClickFillInIntent(R.id.subtask_text, toggleIntent)
+
+                    views.addView(R.id.habit_subtasks_container, subtaskView)
+                }
+            } else {
+                views.setViewVisibility(R.id.habit_subtasks_container, View.GONE)
+            }
+
+            // --- FILL INTENT (for complete button via list click) ---
+            val fillIntent = Intent().apply {
+                when (habit.type) {
+                    "CHECKLIST" -> {
+                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                    }
+                    "QUANTITY" -> {
+                        action = HabitWidgetProvider.ACTION_INCREMENT_QUANTITY
+                    }
+                    else -> {
+                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                    }
+                }
+                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
+            }
+            views.setOnClickFillInIntent(R.id.habit_complete_btn, fillIntent)
+
+            // Open app when clicking on the habit text area
+            val openAppFill = Intent().apply {
+                action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
+            }
+            views.setOnClickFillInIntent(R.id.habit_text_container, openAppFill)
+
+            return views
+        } catch (e: Exception) {
+            Log.e(TAG, "Error rendering view at position $position: ${e.message}", e)
+            
+            // Return a safe fallback view instead of crashing
+            val fallback = RemoteViews(context.packageName, R.layout.widget_habit_item)
+            fallback.setTextViewText(R.id.habit_title, "Error al cargar item")
+            fallback.setTextViewText(R.id.habit_progress, "Reintentar")
+            fallback.setTextColor(R.id.habit_progress, Color.RED)
+            return fallback
+        }
     }
 
     override fun getLoadingView(): RemoteViews {
@@ -299,7 +310,8 @@ class HabitWidgetFactory(
         if (habit.type == "QUANTITY") {
             val target = habit.targetValue ?: 1
             val current = habit.currentValue ?: 0
-            return minOf(100, maxOf(0, (current * 100) / target))
+            val divisor = if (target == 0) 1 else target
+            return minOf(100, maxOf(0, (current * 100) / divisor))
         }
         if (habit.type == "CHECKLIST" && habit.checklist != null) {
             val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
