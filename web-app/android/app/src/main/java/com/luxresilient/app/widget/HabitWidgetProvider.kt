@@ -28,6 +28,8 @@ class HabitWidgetProvider : AppWidgetProvider() {
         const val ACTION_TOGGLE_SUBTASK = "com.luxresilient.app.TOGGLE_SUBTASK"
         const val ACTION_INCREMENT_QUANTITY = "com.luxresilient.app.INCREMENT_QUANTITY"
         const val ACTION_REFRESH = "com.luxresilient.app.REFRESH_WIDGET"
+        const val ACTION_OPEN_DIALOG = "com.luxresilient.app.OPEN_DIALOG"
+        const val ACTION_OPEN_APP_SHORTCUT = "com.luxresilient.app.OPEN_APP_SHORTCUT"
         const val EXTRA_HABIT_ID = "habit_id"
         const val EXTRA_SUBTASK_ID = "subtask_id"
     }
@@ -66,6 +68,24 @@ class HabitWidgetProvider : AppWidgetProvider() {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
                 Log.d(TAG, "Increment quantity: $habitId")
                 handleIncrementQuantity(context, habitId)
+            }
+            ACTION_OPEN_DIALOG -> {
+                val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
+                Log.d(TAG, "Open dialog for habit: $habitId")
+                val dialogIntent = Intent(context, WidgetActionActivity::class.java).apply {
+                    putExtra(WidgetActionActivity.EXTRA_HABIT_ID, habitId)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+                context.startActivity(dialogIntent)
+            }
+            ACTION_OPEN_APP_SHORTCUT -> {
+                Log.d(TAG, "Open app shortcut to habits")
+                val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                if (launchIntent != null) {
+                    launchIntent.data = Uri.parse("luxapp://habits")
+                    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    context.startActivity(launchIntent)
+                }
             }
         }
     }
@@ -109,15 +129,15 @@ class HabitWidgetProvider : AppWidgetProvider() {
         views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
         views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
 
-        // Setup refresh button
-        val refreshIntent = Intent(context, HabitWidgetProvider::class.java).apply {
-            action = ACTION_REFRESH
+        // Setup settings button (opens custom config activity)
+        val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
         }
-        val refreshPending = PendingIntent.getBroadcast(
-            context, 0, refreshIntent,
+        val configPending = PendingIntent.getActivity(
+            context, widgetId, configIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPending)
+        views.setOnClickPendingIntent(R.id.widget_settings_btn, configPending)
 
         // Setup click template for list items (complete habit action)
         val completeTemplate = Intent(context, HabitWidgetProvider::class.java).apply {
@@ -153,11 +173,21 @@ class HabitWidgetProvider : AppWidgetProvider() {
                 val habit = habits.find { it.id == habitId }
 
                 if (habit != null) {
+                    val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                    val soundEnabled = configPrefs.getBoolean("sound_effects", true)
+
                     when (habit.type) {
                         "SIMPLE", "BOOLEAN" -> {
                             val success = client.completeHabit(habit)
                             if (success) {
                                 Log.d(TAG, "Habit completed successfully: $habitId")
+                                if (soundEnabled) {
+                                    if (!habit.completedToday) {
+                                        WidgetSoundPlayer.playCompleteSound()
+                                    } else {
+                                        WidgetSoundPlayer.playTickSound()
+                                    }
+                                }
                                 refreshAllWidgets(context)
                             }
                         }
@@ -166,6 +196,15 @@ class HabitWidgetProvider : AppWidgetProvider() {
                             val success = client.incrementQuantity(habit, amount)
                             if (success) {
                                 Log.d(TAG, "Quantity incremented: $habitId +$amount")
+                                if (soundEnabled) {
+                                    val currentVal = habit.currentValue ?: 0
+                                    val targetVal = habit.targetValue ?: 1
+                                    if (currentVal + amount >= targetVal) {
+                                        WidgetSoundPlayer.playCompleteSound()
+                                    } else {
+                                        WidgetSoundPlayer.playTickSound()
+                                    }
+                                }
                                 refreshAllWidgets(context)
                             }
                         }
@@ -200,6 +239,19 @@ class HabitWidgetProvider : AppWidgetProvider() {
                     val success = client.toggleSubtask(habit, subtaskId)
                     if (success) {
                         Log.d(TAG, "Subtask toggled: $habitId / $subtaskId")
+                        
+                        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                        if (configPrefs.getBoolean("sound_effects", true)) {
+                            // Check if toggling this subtask completes the entire habit
+                            val updatedHabits = client.fetchHabits()
+                            val updatedHabit = updatedHabits.find { it.id == habitId }
+                            if (updatedHabit != null && !habit.completedToday && updatedHabit.completedToday) {
+                                WidgetSoundPlayer.playCompleteSound()
+                            } else {
+                                WidgetSoundPlayer.playTickSound()
+                            }
+                        }
+                        
                         refreshAllWidgets(context)
                     }
                 }
@@ -224,6 +276,18 @@ class HabitWidgetProvider : AppWidgetProvider() {
                     val success = client.incrementQuantity(habit, amount)
                     if (success) {
                         Log.d(TAG, "Quantity incremented: $habitId +$amount")
+                        
+                        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                        if (configPrefs.getBoolean("sound_effects", true)) {
+                            val currentVal = habit.currentValue ?: 0
+                            val targetVal = habit.targetValue ?: 1
+                            if (currentVal + amount >= targetVal) {
+                                WidgetSoundPlayer.playCompleteSound()
+                            } else {
+                                WidgetSoundPlayer.playTickSound()
+                            }
+                        }
+                        
                         refreshAllWidgets(context)
                     }
                 }

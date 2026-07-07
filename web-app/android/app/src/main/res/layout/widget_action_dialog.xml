@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#A6000000"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Translucent Dialog Container -->
+    <LinearLayout
+        android:id="@+id/dialog_card"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:background="@drawable/widget_habit_item_bg"
+        android:padding="20dp"
+        android:elevation="8dp">
+
+        <!-- Title & Attribute -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/dialog_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎯"
+                android:textSize="20sp"
+                android:layout_marginEnd="8dp"
+                android:layout_centerVertical="true" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/dialog_icon"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/dialog_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nombre del Hábito"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/dialog_attribute"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Disciplina"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp"
+                    android:layout_marginTop="1dp" />
+
+            </LinearLayout>
+
+        </RelativeLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1AFFFFFF"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Quantity Controls Container (Visibility toggled dynamically) -->
+        <LinearLayout
+            android:id="@+id/container_quantity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ajustar Cantidad"
+                android:textColor="#80FFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <!-- Decrement Button -->
+                <Button
+                    android:id="@+id/btn_qty_minus"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="-"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:backgroundTint="#26FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+
+                <!-- Current Quantity -->
+                <TextView
+                    android:id="@+id/txt_qty_current"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#6366f1"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <!-- Increment Button -->
+                <Button
+                    android:id="@+id/btn_qty_plus"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="+"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:backgroundTint="#26FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txt_qty_target"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Meta: 5"
+                android:textColor="#4DFFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
+
+        <!-- Checklist Container (Visibility toggled dynamically) -->
+        <LinearLayout
+            android:id="@+id/container_checklist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Subtareas"
+                android:textColor="#80FFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Dynamic Subtasks Container -->
+            <LinearLayout
+                android:id="@+id/subtasks_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
+
+        <!-- Footer Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/dialog_close_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cerrar y Actualizar"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#6366f1"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

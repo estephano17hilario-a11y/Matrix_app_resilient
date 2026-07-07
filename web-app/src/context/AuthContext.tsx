@@ -350,8 +350,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    let appStateListener: any = null;
+    if (Capacitor.isNativePlatform()) {
+      appStateListener = App.addListener('appStateChange', async (state) => {
+        console.log("⚡ MATRIX: App state changed to:", state.isActive ? "Foreground" : "Background");
+        try {
+          await WidgetAuthBridge.refreshWidgets();
+        } catch (e) {
+          console.error("Widget refresh error on app state change:", e);
+        }
+      });
+    }
+
     return () => {
         subscription.unsubscribe();
+        if (appStateListener) {
+          appStateListener.then((h: any) => h.remove());
+        }
     };
   }, []);
 

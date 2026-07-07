@@ -90,6 +90,18 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Widget Settings/Configuration Activity -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:exported="true" />
+
+        <!-- Widget Translucent Action/Dialog Activity -->
+        <activity
+            android:name=".widget.WidgetActionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="true" />
+
         <!-- Widget Receiver -->
         <receiver
             android:name=".widget.HabitWidgetProvider"

@@ -5,6 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.RadialGradient
+import android.graphics.Shader
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -75,11 +81,51 @@ class HabitWidgetFactory(
             val habit = habits[position]
             val views = RemoteViews(context.packageName, R.layout.widget_habit_item)
 
+            // Read customization preferences
+            val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+            val opacity = configPrefs.getInt("card_opacity", 90)
+            val cardGlow = configPrefs.getBoolean("card_glow", true)
+            val cardSize = configPrefs.getString("card_size", "medium")
+            val checklistMode = configPrefs.getString("checklist_mode", "direct")
+
             // Get color from custom color, attribute, or trait default
             val baseColor = getHabitColor(habit)
             val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
 
-            // Set overlay background color dynamically
+            // 1. Dynamic Glow / Gradient Background
+            if (cardGlow) {
+                views.setViewVisibility(R.id.habit_glow_background, View.VISIBLE)
+                val density = context.resources.displayMetrics.density
+                val widthPx = (320 * density).toInt()
+                val heightPx = when (cardSize) {
+                    "thin" -> (46 * density).toInt()
+                    "large" -> (84 * density).toInt()
+                    else -> (64 * density).toInt()
+                }
+                val glowBitmap = createGlowBackground(widthPx, heightPx, parsedColor, opacity)
+                views.setImageViewBitmap(R.id.habit_glow_background, glowBitmap)
+            } else {
+                views.setViewVisibility(R.id.habit_glow_background, View.GONE)
+            }
+
+            // 2. Custom Size Padding
+            val density = context.resources.displayMetrics.density
+            val verticalPadding = when (cardSize) {
+                "thin" -> (4 * density).toInt()
+                "large" -> (16 * density).toInt()
+                else -> (10 * density).toInt()
+            }
+            views.setViewPadding(
+                R.id.habit_item_root, 
+                (16 * density).toInt(), 
+                verticalPadding, 
+                (12 * density).toInt(), 
+                verticalPadding
+            )
+
+            // 3. Custom Opacity
+            val alphaFloat = (opacity / 100f) * 0.12f
+            views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
             views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
 
             // --- TITLE ---
@@ -138,7 +184,7 @@ class HabitWidgetFactory(
             }
 
             // --- SUBTASKS (for CHECKLIST type) ---
-            if (habit.type == "CHECKLIST" && habit.checklist != null && habit.checklist.isNotEmpty()) {
+            if (habit.type == "CHECKLIST" && checklistMode == "direct" && habit.checklist != null && habit.checklist.isNotEmpty()) {
                 views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
                 views.removeAllViews(R.id.habit_subtasks_container)
 
@@ -183,29 +229,32 @@ class HabitWidgetFactory(
                 views.setViewVisibility(R.id.habit_subtasks_container, View.GONE)
             }
 
-            // --- FILL INTENT (for complete button via list click) ---
+            // --- CLICK HANDLING & INTENTS ---
+            // If checklist is in dialog mode OR habit is quantity type, clicking completes opens dialog!
+            val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
+
             val fillIntent = Intent().apply {
-                when (habit.type) {
-                    "CHECKLIST" -> {
-                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
-                    }
-                    "QUANTITY" -> {
-                        action = HabitWidgetProvider.ACTION_INCREMENT_QUANTITY
-                    }
-                    else -> {
-                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
-                    }
+                if (useDialog) {
+                    // Open translucent popup dialog activity
+                    action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+                } else {
+                    action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
                 }
                 putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
             }
             views.setOnClickFillInIntent(R.id.habit_complete_btn, fillIntent)
 
-            // Open app when clicking on the habit text area
-            val openAppFill = Intent().apply {
-                action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+            // Open app shortcut or open dialog when clicking card body
+            val cardFillIntent = Intent().apply {
+                if (useDialog) {
+                    action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+                } else {
+                    // Open main app at habits section shortcut
+                    action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
+                }
                 putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
             }
-            views.setOnClickFillInIntent(R.id.habit_text_container, openAppFill)
+            views.setOnClickFillInIntent(R.id.habit_text_container, cardFillIntent)
 
             return views
         } catch (e: Exception) {
@@ -335,103 +384,187 @@ class HabitWidgetFactory(
     private fun getIconEmoji(iconName: String): String {
         return when (iconName) {
             // Fitness & Health
-            "Dumbbell" -> "💪"
-            "Heart" -> "❤️"
-            "HeartPulse" -> "💓"
-            "Activity" -> "📈"
-            "Bike" -> "🚴"
-            "Footprints" -> "👣"
+            "Dumbbell", "dumbbell" -> "💪"
+            "Heart", "heart" -> "❤️"
+            "HeartPulse", "heart-pulse" -> "💓"
+            "Activity", "activity" -> "📈"
+            "Bike", "bike" -> "🚴"
+            "Footprints", "footprints" -> "👣"
+            "Scale", "scale" -> "⚖️"
+            "Running", "run", "Run", "running" -> "🏃"
+            "Walk", "walk", "🚶" -> "🚶"
+            "Swim", "swim" -> "🏊"
+            "Meditation", "yoga", "Yoga", "meditation" -> "🧘"
             
             // Mind & Learning
-            "Brain" -> "🧠"
-            "BookOpen" -> "📖"
-            "Book" -> "📚"
-            "GraduationCap" -> "🎓"
-            "Lightbulb" -> "💡"
-            "Puzzle" -> "🧩"
+            "Brain", "brain" -> "🧠"
+            "BookOpen", "book-open" -> "📖"
+            "Book", "book", "BookMarked", "book-marked" -> "📚"
+            "GraduationCap", "graduation-cap" -> "🎓"
+            "Lightbulb", "lightbulb" -> "💡"
+            "Puzzle", "puzzle" -> "🧩"
+            "Languages", "languages" -> "🌐"
+            "Notebook", "notebook" -> "📓"
+            "FileText", "file-text" -> "📄"
+            "Calculator", "calculator" -> "🧮"
+            "Search", "search" -> "🔍"
             
-            // Productivity
-            "Target" -> "🎯"
-            "CheckCircle" -> "✅"
-            "Clock" -> "⏰"
-            "Timer" -> "⏱️"
-            "Calendar" -> "📅"
-            "ListTodo" -> "📝"
+            // Productivity & Organization
+            "Target", "target" -> "🎯"
+            "CheckCircle", "check-circle", "Check", "check" -> "✅"
+            "Clock", "clock", "Clock3" -> "⏰"
+            "Timer", "timer" -> "⏱️"
+            "Calendar", "calendar", "CalendarRange" -> "📅"
+            "ListTodo", "list-todo", "List", "list" -> "📝"
+            "Hourglass", "hourglass" -> "⏳"
+            "Pin", "pin" -> "📌"
+            "Grid", "grid" -> "🏁"
+            "Minimize2", "minimize-2" -> "🔍"
+            "Settings", "settings" -> "⚙️"
             
-            // Social
-            "Users" -> "👥"
-            "MessageCircle" -> "💬"
-            "Phone" -> "📱"
-            "Mail" -> "📧"
+            // Social & Communication
+            "Users", "users" -> "👥"
+            "MessageCircle", "message-circle", "MessageSquare", "message-square" -> "💬"
+            "Phone", "phone" -> "📱"
+            "Mail", "mail", "MailOpen", "mail-open" -> "📧"
+            "HeartHandshake", "heart-handshake" -> "🤝"
+            "Share2", "share-2" -> "📤"
+            "ThumbsUp", "thumbs-up" -> "👍"
+            "ThumbsDown", "thumbs-down" -> "👎"
             
-            // Creative
-            "Palette" -> "🎨"
-            "Music" -> "🎵"
-            "Camera" -> "📸"
-            "Pen" -> "✏️"
-            "Pencil" -> "✏️"
+            // Creative & Leisure
+            "Palette", "palette" -> "🎨"
+            "Music", "music" -> "🎵"
+            "Camera", "camera" -> "📸"
+            "Video", "video" -> "📹"
+            "Pen", "pencil", "Pencil", "brush", "Brush" -> "✏️"
+            "Gamepad", "gamepad" -> "🎮"
+            "Tv", "tv", "Monitor", "monitor" -> "📺"
+            "Headphones", "headphones" -> "🎧"
+            "Mic", "mic" -> "🎤"
+            "Brush", "brush" -> "🖌️"
+            "Scissors", "scissors" -> "✂️"
             
-            // Spiritual
-            "Ghost" -> "👻"
-            "Sparkles" -> "✨"
-            "Sun" -> "☀️"
-            "Moon" -> "🌙"
-            "Leaf" -> "🍃"
-            
-            // Finance
-            "Wallet" -> "💰"
-            "Coins" -> "🪙"
-            "DollarSign" -> "💵"
-            "TrendingUp" -> "📈"
-            
-            // Misc
-            "Coffee" -> "☕"
-            "Droplets" -> "💧"
-            "Flame" -> "🔥"
-            "Star" -> "⭐"
-            "Zap" -> "⚡"
-            "Shield" -> "🛡️"
-            "Crown" -> "👑"
-            "Anchor" -> "⚓"
-            "Feather" -> "🪶"
-            "Rocket" -> "🚀"
-            "Apple" -> "🍎"
-            "Salad" -> "🥗"
-            "Pill" -> "💊"
-            "Bed" -> "🛏️"
-            "Bath" -> "🛁"
-            "Smile" -> "😊"
-            "Eye" -> "👁️"
-            "Hand" -> "✋"
-            "Home" -> "🏠"
-            "Dog" -> "🐕"
-            "Cat" -> "🐱"
-            "Code" -> "💻"
-            "Terminal" -> "💻"
-            "Gamepad" -> "🎮"
-            "Trophy" -> "🏆"
-            "Medal" -> "🏅"
-            "Headphones" -> "🎧"
-            "Mic" -> "🎤"
-            "Brush" -> "🖌️"
-            "Scissors" -> "✂️"
-            "Wrench" -> "🔧"
-            "Key" -> "🔑"
-            "Lock" -> "🔒"
-            "Bell" -> "🔔"
-            "Flag" -> "🚩"
-            "Map" -> "🗺️"
-            "Compass" -> "🧭"
+            // Spiritual & Nature
+            "Ghost", "ghost" -> "👻"
+            "Sparkles", "sparkles", "Sparkle", "sparkle" -> "✨"
+            "Sun", "sun" -> "☀️"
+            "Moon", "moon" -> "🌙"
+            "Leaf", "leaf" -> "🍃"
+            "Compass", "compass" -> "🧭"
+            "Globe", "globe" -> "🌍"
+            "Cloud", "cloud" -> "☁️"
+            "CloudLightning", "cloud-lightning" -> "⚡"
+            "CloudRain", "cloud-rain" -> "🌧️"
+            "Snowflake", "snowflake", "CloudSnow", "cloud-snow" -> "❄️"
+            "Wind", "wind" -> "💨"
+            "Flower", "flower", "Flower2", "flower2" -> "🌸"
+            "Rainbow" -> "🌈"
             "Mountain" -> "⛰️"
             "TreePine" -> "🌲"
-            "Flower" -> "🌸"
-            "Rainbow" -> "🌈"
-            "CloudRain" -> "🌧️"
-            "Snowflake" -> "❄️"
-            "Wind" -> "💨"
-            "Hexagon" -> "⬡"
+            
+            // Finance & Business
+            "Wallet", "wallet" -> "💰"
+            "Coins", "coins" -> "🪙"
+            "DollarSign", "dollar-sign" -> "💵"
+            "TrendingUp", "trending-up" -> "📈"
+            "PiggyBank", "piggy-bank" -> "🐷"
+            "Briefcase", "briefcase" -> "💼"
+            "CreditCard", "credit-card" -> "💳"
+            
+            // Food & Drink
+            "Coffee", "coffee" -> "☕"
+            "Droplets", "droplets", "Water", "water" -> "💧"
+            "Apple", "apple" -> "🍎"
+            "Salad", "salad" -> "🥗"
+            "Utensils", "utensils" -> "🍴"
+            "GlassWater", "glass-water" -> "🥛"
+            "Beer", "beer" -> "🍺"
+            "Wine", "wine" -> "🍷"
+            
+            // Home & Everyday
+            "Home", "home" -> "🏠"
+            "Bed", "bed", "BedDouble", "bed-double" -> "🛏️"
+            "Bath", "bath" -> "🛁"
+            "Dog", "dog" -> "🐕"
+            "Cat", "cat" -> "🐱"
+            "Pill", "pill" -> "💊"
+            "Smile", "smile" -> "😊"
+            "Eye", "eye" -> "👁️"
+            "Hand", "hand" -> "✋"
+            "Key", "key", "KeyRound", "key-round" -> "🔑"
+            "Lock", "lock", "LockOpen", "lock-open" -> "🔒"
+            "Bell", "bell" -> "🔔"
+            "Flag", "flag" -> "🚩"
+            "Trash", "trash", "Trash2", "trash-2" -> "🗑️"
+            "Gift", "gift" -> "🎁"
+            "Cigarette", "cigarette", "Smoking", "smoking" -> "🚬"
+            
+            // Technology
+            "Code", "code", "Terminal", "terminal" -> "💻"
+            "Laptop", "laptop" -> "💻"
+            "Smartphone", "smartphone" -> "📱"
+            
+            // Achievement & Awards
+            "Trophy", "trophy" -> "🏆"
+            "Medal", "medal", "Award", "award" -> "🏅"
+            "Crown", "crown" -> "👑"
+            
+            // Tools & Action
+            "Flame", "flame" -> "🔥"
+            "Zap", "zap" -> "⚡"
+            "Shield", "shield", "ShieldCheck", "shield-check" -> "🛡️"
+            "Anchor", "anchor" -> "⚓"
+            "Feather", "feather" -> "🪶"
+            "Rocket", "rocket" -> "🚀"
+            "Wrench", "wrench", "Hammer", "hammer", "Tool", "tool" -> "🔧"
+            "Hexagon", "hexagon" -> "⬡"
             
             else -> "⭐"
         }
+    }
+
+    private fun createGlowBackground(width: Int, height: Int, color: Int, opacity: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        // Background: dark gray (#050505) with user's opacity
+        val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
+        val bgPaint = Paint().apply {
+            this.color = Color.parseColor("#050505")
+            this.alpha = alphaInt
+            this.isAntiAlias = true
+        }
+        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        canvas.drawRoundRect(rect, 24f, 24f, bgPaint)
+        
+        // Radial glow in the center-left (near the icon)
+        val glowPaint = Paint().apply {
+            this.isAntiAlias = true
+            val colors = intArrayOf(
+                Color.argb((alphaInt * 0.25).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                Color.argb((alphaInt * 0.08).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                Color.TRANSPARENT
+            )
+            val stops = floatArrayOf(0f, 0.4f, 1f)
+            this.shader = RadialGradient(
+                width * 0.15f, height * 0.5f, // center-left
+                height * 0.9f, // radius
+                colors, stops,
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+
+        // Draw a glowing border
+        val borderPaint = Paint().apply {
+            this.isAntiAlias = true
+            this.style = Paint.Style.STROKE
+            this.strokeWidth = 2.5f
+            this.color = Color.argb((alphaInt * 0.2).toInt(), Color.red(color), Color.green(color), Color.blue(color))
+        }
+        canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
+
+        return bitmap
     }
 }

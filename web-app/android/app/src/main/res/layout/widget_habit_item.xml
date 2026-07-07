@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/habit_item_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/widget_habit_item_bg"
@@ -10,6 +11,14 @@
     android:layout_marginBottom="6dp"
     android:clickable="true"
     android:focusable="true">
+
+    <!-- Dynamic Glow/Gradient Background rendered dynamically in code -->
+    <ImageView
+        android:id="@+id/habit_glow_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
 
     <!-- Color Overlay (tinted background - set programmatically) -->
     <FrameLayout

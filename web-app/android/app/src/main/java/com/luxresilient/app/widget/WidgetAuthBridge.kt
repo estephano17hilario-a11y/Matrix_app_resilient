@@ -93,6 +93,18 @@ class WidgetAuthBridge : Plugin() {
         }
     }
 
+    override fun handleOnResume() {
+        super.handleOnResume()
+        Log.d(TAG, "Capacitor activity resumed - refreshing widgets")
+        refreshWidgets(context)
+    }
+
+    override fun handleOnPause() {
+        super.handleOnPause()
+        Log.d(TAG, "Capacitor activity paused - refreshing widgets")
+        refreshWidgets(context)
+    }
+
     /**
      * Send broadcast to refresh all habit widgets
      */
