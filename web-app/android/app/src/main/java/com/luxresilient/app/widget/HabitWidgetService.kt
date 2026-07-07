@@ -191,11 +191,14 @@ class HabitWidgetFactory(
             }
             views.setTextViewText(R.id.habit_icon, traitEmoji)
 
-            // Adjust icon layout for super thin
-            if (cardSize == "super_thin") {
-                views.setViewVisibility(R.id.habit_icon_container, View.GONE)
-            } else {
+            // Toggle icon visibility based on settings switch
+            val showIcons = configPrefs.getBoolean("show_icons", true)
+            if (showIcons) {
                 views.setViewVisibility(R.id.habit_icon_container, View.VISIBLE)
+                views.setViewVisibility(R.id.habit_icon, View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.habit_icon_container, View.GONE)
+                views.setViewVisibility(R.id.habit_icon, View.GONE)
             }
 
             // --- STREAK BADGE ---

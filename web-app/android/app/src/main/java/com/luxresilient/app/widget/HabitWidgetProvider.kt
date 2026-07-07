@@ -118,12 +118,13 @@ class HabitWidgetProvider : AppWidgetProvider() {
             return
         }
 
-        // Build the main widget view
-        val views = RemoteViews(context.packageName, R.layout.widget_habit_list)
-
         // Read preferences for column distribution
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val columns = prefs.getInt("card_columns", 1)
+
+        // Build the main widget view (different layout for grid vs list to prevent cached overlaps)
+        val layoutId = if (columns == 2) R.layout.widget_habit_list_grid else R.layout.widget_habit_list
+        val views = RemoteViews(context.packageName, layoutId)
 
         // Setup RemoteViewsService
         val serviceIntent = Intent(context, HabitWidgetService::class.java).apply {
@@ -139,22 +140,10 @@ class HabitWidgetProvider : AppWidgetProvider() {
         )
 
         if (columns == 2) {
-            views.setViewVisibility(R.id.widget_habit_list, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_habit_grid, android.view.View.VISIBLE)
-            // Unbind list to avoid caching overlaps
-            val emptyIntent = Intent(context, HabitWidgetService::class.java)
-            views.setRemoteAdapter(R.id.widget_habit_list, emptyIntent)
-            
             views.setRemoteAdapter(R.id.widget_habit_grid, serviceIntent)
             views.setEmptyView(R.id.widget_habit_grid, R.id.widget_empty_text)
             views.setPendingIntentTemplate(R.id.widget_habit_grid, completePending)
         } else {
-            views.setViewVisibility(R.id.widget_habit_list, android.view.View.VISIBLE)
-            views.setViewVisibility(R.id.widget_habit_grid, android.view.View.GONE)
-            // Unbind grid to avoid caching overlaps
-            val emptyIntent = Intent(context, HabitWidgetService::class.java)
-            views.setRemoteAdapter(R.id.widget_habit_grid, emptyIntent)
-            
             views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
             views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
             views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)

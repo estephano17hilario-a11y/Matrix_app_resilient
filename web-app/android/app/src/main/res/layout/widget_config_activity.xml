@@ -410,6 +410,39 @@
 
             </RadioGroup>
 
+            <!-- Show Icons Switch -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/icons_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mostrar Íconos"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/icons_title"
+                    android:text="Muestra o oculta los emojis de los hábitos"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp" />
+
+                <Switch
+                    android:id="@+id/config_icons_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="true" />
+
+            </RelativeLayout>
+
             <!-- Sound Effects Switch -->
             <RelativeLayout
                 android:layout_width="match_parent"

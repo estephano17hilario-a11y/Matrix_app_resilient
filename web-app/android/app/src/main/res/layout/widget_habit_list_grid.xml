@@ -79,14 +79,15 @@
 
     </RelativeLayout>
 
-    <!-- Habit List (always visible here) -->
-    <ListView
-        android:id="@+id/widget_habit_list"
+    <!-- Habit Grid (for two columns mode - always visible here) -->
+    <GridView
+        android:id="@+id/widget_habit_grid"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="@null"
-        android:dividerHeight="0dp"
+        android:numColumns="2"
+        android:verticalSpacing="4dp"
+        android:horizontalSpacing="4dp"
         android:scrollbars="none"
         android:fadingEdge="none"
         android:clipToPadding="false"
@@ -105,9 +106,9 @@
         android:fontFamily="sans-serif-medium"
         android:visibility="gone" />
 
-    <!-- Unused GridView definition to maintain ID layout mapping safety in Android -->
-    <GridView
-        android:id="@+id/widget_habit_grid"
+    <!-- Unused ListView definition to maintain ID layout mapping safety in Android -->
+    <ListView
+        android:id="@+id/widget_habit_list"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone" />

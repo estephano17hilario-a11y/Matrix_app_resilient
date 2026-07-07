@@ -22,6 +22,7 @@ class WidgetConfigActivity : Activity() {
     private lateinit var seekOpacity: SeekBar
     private lateinit var txtOpacityVal: TextView
     private lateinit var switchSound: Switch
+    private lateinit var switchIcons: Switch
     
     private lateinit var radioGroupSize: RadioGroup
     private lateinit var radioGroupColumns: RadioGroup
@@ -48,6 +49,7 @@ class WidgetConfigActivity : Activity() {
         seekOpacity = findViewById(R.id.config_opacity_seekbar)
         txtOpacityVal = findViewById(R.id.config_opacity_value)
         switchSound = findViewById(R.id.config_sound_switch)
+        switchIcons = findViewById(R.id.config_icons_switch)
         
         radioGroupSize = findViewById(R.id.config_size_group)
         radioGroupColumns = findViewById(R.id.config_columns_group)
@@ -129,6 +131,7 @@ class WidgetConfigActivity : Activity() {
         txtOpacityVal.text = "$opacity%"
         
         switchSound.isChecked = prefs.getBoolean("sound_effects", true)
+        switchIcons.isChecked = prefs.getBoolean("show_icons", true)
         
         val sizeId = when (prefs.getString("card_size", "medium")) {
             "super_thin" -> R.id.config_size_super_thin
@@ -218,6 +221,7 @@ class WidgetConfigActivity : Activity() {
         prefs.edit()
             .putInt("card_opacity", seekOpacity.progress)
             .putBoolean("sound_effects", switchSound.isChecked)
+            .putBoolean("show_icons", switchIcons.isChecked)
             .putString("card_size", sizeVal)
             .putInt("card_columns", colsVal)
             .putString("card_spacing", spacingVal)
