@@ -118,13 +118,18 @@ class HabitWidgetProvider : AppWidgetProvider() {
             return
         }
 
-        // Read preferences for column distribution
+        // Read preferences for column distribution and background opacity
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val columns = prefs.getInt("card_columns", 1)
+        val bgOpacity = prefs.getInt("widget_background_opacity", 85)
 
         // Build the main widget view (different layout for grid vs list to prevent cached overlaps)
         val layoutId = if (columns == 2) R.layout.widget_habit_list_grid else R.layout.widget_habit_list
         val views = RemoteViews(context.packageName, layoutId)
+
+        // Apply Overall Widget Background Opacity
+        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
+        views.setInt(R.id.widget_background_image, "setImageAlpha", bgAlphaInt)
 
         // Setup RemoteViewsService
         val serviceIntent = Intent(context, HabitWidgetService::class.java).apply {

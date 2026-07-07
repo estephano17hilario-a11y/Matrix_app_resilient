@@ -44,8 +44,27 @@ class HabitWidgetFactory(
         private const val TAG = "HabitWidgetFactory"
     }
 
+    // Data class for representing flattened chronological items
+    data class ChronologicalWidgetEntry(
+        val uniqueId: String,
+        val habitId: String,
+        val type: String,           // "HABIT" or "SUBTASK"
+        val text: String,
+        val subText: String?,
+        val time: String,
+        val isCompleted: Boolean,
+        val color: Int,
+        val iconName: String?,
+        val attribute: String?,
+        val percentage: Int,
+        val rawHabit: HabitData,
+        val subtaskId: String? = null
+    )
+
     private var habits: List<HabitData> = emptyList()
     private var attributes: Map<String, AttributeData> = emptyMap()
+    private var displayItems: List<ChronologicalWidgetEntry> = emptyList()
+    
     private val widgetId = intent.getIntExtra(
         AppWidgetManager.EXTRA_APPWIDGET_ID,
         AppWidgetManager.INVALID_APPWIDGET_ID
@@ -55,6 +74,23 @@ class HabitWidgetFactory(
         Log.d(TAG, "Factory created for widget $widgetId")
     }
 
+    private fun parseTimeToMinutes(timeStr: String?): Int {
+        if (timeStr == null || !timeStr.contains(":")) return 24 * 60
+        return try {
+            val parts = timeStr.split(":")
+            val hours = parts[0].toIntOrNull() ?: 0
+            val minutes = parts[1].toIntOrNull() ?: 0
+            hours * 60 + minutes
+        } catch (_: Exception) {
+            24 * 60
+        }
+    }
+
+    private fun isLastDayOfMonth(): Boolean {
+        val cal = Calendar.getInstance()
+        return cal.get(Calendar.DAY_OF_MONTH) == cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+    }
+
     override fun onDataSetChanged() {
         Log.d(TAG, "Data set changed - refreshing habits")
         try {
@@ -62,6 +98,143 @@ class HabitWidgetFactory(
             habits = client.fetchHabits()
             attributes = client.fetchAttributes()
             Log.d(TAG, "Loaded ${habits.size} habits, ${attributes.size} attributes")
+
+            val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+            val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
+
+            val items = ArrayList<ChronologicalWidgetEntry>()
+            val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
+
+            if (chronologicalSort) {
+                // Replicate TS HabitVisualView.tsx chronologicalItems logic
+                for (habit in habits) {
+                    val isDue = habit.frequency == "DAILY" || 
+                        (habit.frequency == "WEEKLY" && (
+                            habit.weeklyType == "FLEXIBLE_COUNT" || 
+                            habit.frequencyDays == null || 
+                            habit.frequencyDays.isEmpty() || 
+                            habit.frequencyDays.contains(todayDay)
+                        )) ||
+                        (habit.frequency == "MONTHLY" && (
+                            habit.monthlyType == "FLEXIBLE_COUNT" || 
+                            habit.frequencyDays?.contains(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) == true || 
+                            (habit.monthlyLastDay == true && isLastDayOfMonth())
+                        ))
+
+                    if (!isDue) continue // Skip items not active today
+
+                    val baseColor = getHabitColor(habit)
+                    val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
+                    
+                    if (habit.type == "CHECKLIST" && habit.checklist != null && habit.checklist.isNotEmpty()) {
+                        // Split checklist into individual subtask entries
+                        for (sub in habit.checklist) {
+                            val isSubtaskActiveToday = sub.days == null || sub.days.isEmpty() || sub.days.contains(todayDay)
+                            if (isSubtaskActiveToday) {
+                                val subColor = try { Color.parseColor(sub.color ?: baseColor) } catch (_: Exception) { parsedColor }
+                                items.add(ChronologicalWidgetEntry(
+                                    uniqueId = "${habit.id}-sub-${sub.id}",
+                                    habitId = habit.id ?: "",
+                                    type = "SUBTASK",
+                                    text = sub.text ?: "Subtarea",
+                                    subText = "Subtarea",
+                                    time = sub.reminderTime ?: habit.reminderTime ?: "23:59",
+                                    isCompleted = sub.completed == true,
+                                    color = subColor,
+                                    iconName = habit.iconName,
+                                    attribute = habit.attribute,
+                                    percentage = 0,
+                                    rawHabit = habit,
+                                    subtaskId = sub.id
+                                ))
+                            }
+                        }
+                    } else if (habit.type == "QUANTITY" && habit.isDivided == true && habit.dividedTimes != null && habit.dividedTimes.isNotEmpty()) {
+                        // Split divided quantity into individual times
+                        val sortedTimes = habit.dividedTimes.sortedBy { it.time ?: "23:59" }
+                        var accumulated = 0
+                        for ((index, t) in sortedTimes.withIndex()) {
+                            val targetAmount = accumulated + (t.amount ?: 1)
+                            val isCompleted = (habit.currentValue ?: 0) >= targetAmount || habit.completedToday
+                            val labelText = "${t.amount ?: 1} ${habit.unit ?: ""}".trim()
+                            items.add(ChronologicalWidgetEntry(
+                                uniqueId = "${habit.id}-time-$index",
+                                habitId = habit.id ?: "",
+                                type = "HABIT",
+                                text = habit.title ?: "Sin título",
+                                subText = labelText,
+                                time = t.time ?: "23:59",
+                                isCompleted = isCompleted,
+                                color = parsedColor,
+                                iconName = habit.iconName,
+                                attribute = habit.attribute,
+                                percentage = 0,
+                                rawHabit = habit
+                            ))
+                            accumulated += t.amount ?: 1
+                        }
+                    } else {
+                        // Standard habit
+                        var displayTime = habit.reminderTime ?: "23:59"
+                        var displaySubText: String? = null
+                        
+                        if (habit.type == "QUANTITY" && habit.isDivided == true) {
+                            val amount = habit.dividedQuantity ?: 1
+                            displaySubText = "$amount ${habit.unit ?: ""}".trim()
+                            
+                            if (!habit.nextInstanceTime.isNullOrEmpty()) {
+                                try {
+                                    val date = java.time.format.DateTimeFormatter.ISO_DATE_TIME.parse(habit.nextInstanceTime)
+                                    val ldt = java.time.LocalDateTime.from(date)
+                                    val hours = ldt.hour.toString().padStart(2, '0')
+                                    val minutes = ldt.minute.toString().padStart(2, '0')
+                                    displayTime = "$hours:$minutes"
+                                } catch (_: Exception) {}
+                            }
+                        }
+
+                        items.add(ChronologicalWidgetEntry(
+                            uniqueId = habit.id ?: "",
+                            habitId = habit.id ?: "",
+                            type = "HABIT",
+                            text = habit.title ?: "Sin título",
+                            subText = displaySubText,
+                            time = displayTime,
+                            isCompleted = habit.completedToday,
+                            color = parsedColor,
+                            iconName = habit.iconName,
+                            attribute = habit.attribute,
+                            percentage = getPercentage(habit),
+                            rawHabit = habit
+                        ))
+                    }
+                }
+
+                // Sort chronologically
+                items.sortBy { parseTimeToMinutes(it.time) }
+                displayItems = items
+            } else {
+                // Default view (list habits in order)
+                for (habit in habits) {
+                    val baseColor = getHabitColor(habit)
+                    val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
+                    items.add(ChronologicalWidgetEntry(
+                        uniqueId = habit.id ?: "",
+                        habitId = habit.id ?: "",
+                        type = "HABIT",
+                        text = habit.title ?: "Sin título",
+                        subText = getProgressText(habit),
+                        time = habit.reminderTime ?: "23:59",
+                        isCompleted = habit.completedToday,
+                        color = parsedColor,
+                        iconName = habit.iconName,
+                        attribute = habit.attribute,
+                        percentage = getPercentage(habit),
+                        rawHabit = habit
+                    ))
+                }
+                displayItems = items
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading data: ${e.message}", e)
         }
@@ -70,17 +243,19 @@ class HabitWidgetFactory(
     override fun onDestroy() {
         habits = emptyList()
         attributes = emptyMap()
+        displayItems = emptyList()
     }
 
-    override fun getCount(): Int = habits.size
+    override fun getCount(): Int = displayItems.size
 
     override fun getViewAt(position: Int): RemoteViews {
         try {
-            if (position >= habits.size) {
+            if (position >= displayItems.size) {
                 return RemoteViews(context.packageName, R.layout.widget_habit_item)
             }
 
-            val habit = habits[position]
+            val item = displayItems[position]
+            val habit = item.rawHabit
 
             // Read customization preferences
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
@@ -91,6 +266,7 @@ class HabitWidgetFactory(
             val cardSpacing = configPrefs.getString("card_spacing", "medio") ?: "medio"
             val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"
             val borderStyle = configPrefs.getString("border_style", "both") ?: "both"
+            val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
 
             // Choose layout file dynamically based on sizing and column configuration
             val layoutId = if (cardColumns == 2) {
@@ -102,9 +278,7 @@ class HabitWidgetFactory(
             }
             val views = RemoteViews(context.packageName, layoutId)
 
-            // Get color from custom color, attribute, or trait default
-            val baseColor = getHabitColor(habit)
-            val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
+            val parsedColor = item.color
 
             // 1. Set Card Spacing (Bottom Margin Simulation via Root Wrapper padding)
             val density = context.resources.displayMetrics.density
@@ -165,7 +339,7 @@ class HabitWidgetFactory(
             }
 
             // --- TITLE ---
-            views.setTextViewText(R.id.habit_title, habit.title ?: "Sin título")
+            views.setTextViewText(R.id.habit_title, item.text)
             
             // Adjust title text size for super_thin or columns
             if (cardSize == "super_thin" || cardColumns == 2) {
@@ -177,17 +351,19 @@ class HabitWidgetFactory(
             }
 
             // Apply completed state (dimmed text)
-            if (habit.completedToday) {
+            if (item.isCompleted) {
                 views.setTextColor(R.id.habit_title, Color.parseColor("#99FFFFFF"))
             } else {
                 views.setTextColor(R.id.habit_title, Color.WHITE)
             }
 
             // --- TRAIT ICON ---
-            val traitEmoji = if (habit.iconName != null) {
-                getIconEmoji(habit.iconName)
+            val traitEmoji = if (item.iconName != null) {
+                getIconEmoji(item.iconName)
+            } else if (item.attribute != null) {
+                TraitIcons.getEmoji(item.attribute)
             } else {
-                TraitIcons.getEmoji(habit.attribute)
+                "⭐"
             }
             views.setTextViewText(R.id.habit_icon, traitEmoji)
 
@@ -202,11 +378,11 @@ class HabitWidgetFactory(
             }
 
             // --- STREAK BADGE ---
-            // Hide streak badge for super thin or 2-columns to save space cleanly
-            if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2) {
+            // Hide streak badge for super thin, 2-columns or in chronological subtasks
+            if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2 && item.type != "SUBTASK") {
                 views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
                 views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
-                if (habit.completedToday) {
+                if (item.isCompleted) {
                     views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
                 } else {
                     views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
@@ -216,29 +392,44 @@ class HabitWidgetFactory(
             }
 
             // --- PROGRESS TEXT ---
-            val progressText = getProgressText(habit)
-            views.setTextViewText(R.id.habit_progress, progressText)
+            // In chronological view, display scheduled reminder time
+            val displayProgress = if (chronologicalSort) {
+                if (!item.subText.isNullOrEmpty() && item.subText != "Subtarea") {
+                    "${item.subText} • ${item.time}"
+                } else {
+                    item.time
+                }
+            } else {
+                item.subText ?: "0/1"
+            }
+            views.setTextViewText(R.id.habit_progress, displayProgress)
             views.setTextColor(R.id.habit_progress, parsedColor)
 
             // --- COMPLETE BUTTON (PROGRESS CIRCLE image) ---
-            val percentage = getPercentage(habit)
+            val percentage = if (item.type == "SUBTASK") {
+                if (item.isCompleted) 100 else 0
+            } else {
+                item.percentage
+            }
             val borderCircleEnabled = (borderStyle == "circle" || borderStyle == "both")
-            val circleBitmap = createCircleButton(context, parsedColor, habit.completedToday, percentage, borderCircleEnabled)
+            val circleBitmap = createCircleButton(context, parsedColor, item.isCompleted, percentage, borderCircleEnabled)
             views.setImageViewBitmap(R.id.habit_complete_image, circleBitmap)
             views.setViewVisibility(R.id.habit_check_icon, View.GONE) // Hidden because checkmark is inside bitmap
 
             // --- SUBTASKS (for CHECKLIST type) ---
-            val showSubtasks = habit.type == "CHECKLIST" && checklistMode == "direct" && 
-                               habit.checklist != null && habit.checklist.isNotEmpty() && 
-                               cardSize != "super_thin" && cardColumns != 2
+            // In chronological sort, subtasks are individual cards, so hide checklist container!
+            val showSubtasks = !chronologicalSort && habit.type == "CHECKLIST" && 
+                               checklistMode == "direct" && habit.checklist != null && 
+                               habit.checklist!!.isNotEmpty() && cardSize != "super_thin" && 
+                               cardColumns != 2
 
             if (showSubtasks) {
                 views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
                 views.removeAllViews(R.id.habit_subtasks_container)
 
                 val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
-                val visibleItems = habit.checklist!!.filter { item ->
-                    item.days == null || item.days.isEmpty() || item.days.contains(todayDay)
+                val visibleItems = habit.checklist!!.filter { subItem ->
+                    subItem.days == null || subItem.days.isEmpty() || subItem.days.contains(todayDay)
                 }
 
                 for (subtask in visibleItems) {
@@ -278,27 +469,33 @@ class HabitWidgetFactory(
             }
 
             // --- CLICK HANDLING & INTENTS ---
-            // If checklist is in dialog mode OR habit is quantity type, clicking completes opens dialog!
-            val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
-
             val fillIntent = Intent().apply {
-                if (useDialog) {
-                    action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+                if (item.type == "SUBTASK") {
+                    // Click subtask complete button toggles subtask directly
+                    action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
+                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+                    putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, item.subtaskId)
                 } else {
-                    action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                    val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
+                    if (useDialog) {
+                        action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+                    } else {
+                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                    }
+                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
                 }
-                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
             }
             views.setOnClickFillInIntent(R.id.habit_complete_btn, fillIntent)
 
             // Open app shortcut or open dialog when clicking card body
             val cardFillIntent = Intent().apply {
-                if (useDialog) {
+                val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
+                if (useDialog && item.type != "SUBTASK") {
                     action = HabitWidgetProvider.ACTION_OPEN_DIALOG
                 } else {
                     action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
                 }
-                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
+                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
             }
             views.setOnClickFillInIntent(R.id.habit_text_container, cardFillIntent)
 

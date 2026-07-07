@@ -49,7 +49,9 @@ data class HabitData(
     val order: Int? = null,
     val rewardedGold: Int? = null,
     val rewardedXp: Int? = null,
-    val lastUpdatedDate: String? = null
+    val lastUpdatedDate: String? = null,
+    val monthlyLastDay: Boolean? = false,
+    val nextInstanceTime: String? = null
 )
 
 data class DividedTime(
