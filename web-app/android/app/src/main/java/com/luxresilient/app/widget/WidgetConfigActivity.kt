@@ -21,9 +21,12 @@ class WidgetConfigActivity : Activity() {
 
     private lateinit var seekOpacity: SeekBar
     private lateinit var txtOpacityVal: TextView
-    private lateinit var switchGlow: Switch
     private lateinit var switchSound: Switch
+    
     private lateinit var radioGroupSize: RadioGroup
+    private lateinit var radioGroupColumns: RadioGroup
+    private lateinit var radioGroupGradient: RadioGroup
+    private lateinit var radioGroupBorder: RadioGroup
     private lateinit var radioGroupChecklist: RadioGroup
     
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
@@ -43,16 +46,20 @@ class WidgetConfigActivity : Activity() {
         // Initialize UI Elements
         seekOpacity = findViewById(R.id.config_opacity_seekbar)
         txtOpacityVal = findViewById(R.id.config_opacity_value)
-        switchGlow = findViewById(R.id.config_glow_switch)
         switchSound = findViewById(R.id.config_sound_switch)
+        
         radioGroupSize = findViewById(R.id.config_size_group)
+        radioGroupColumns = findViewById(R.id.config_columns_group)
+        radioGroupGradient = findViewById(R.id.config_gradient_group)
+        radioGroupBorder = findViewById(R.id.config_border_group)
         radioGroupChecklist = findViewById(R.id.config_checklist_group)
 
         val btnCancel = findViewById<Button>(R.id.config_cancel_btn)
         val btnSave = findViewById<Button>(R.id.config_save_btn)
 
-        // Setup custom look for radio buttons inside the horizontal container
-        setupRadioButtonsUI()
+        // Setup custom look for radio buttons inside horizontal containers
+        setupHorizontalRadioButtonsUI(radioGroupSize)
+        setupHorizontalRadioButtonsUI(radioGroupColumns)
 
         // Load saved preferences
         loadPreferences()
@@ -94,11 +101,10 @@ class WidgetConfigActivity : Activity() {
         }
     }
 
-    private fun setupRadioButtonsUI() {
-        // Simple helper to draw background selection on horizontal size buttons
-        radioGroupSize.setOnCheckedChangeListener { group, checkedId ->
-            for (i in 0 until group.childCount) {
-                val child = group.getChildAt(i)
+    private fun setupHorizontalRadioButtonsUI(group: RadioGroup) {
+        group.setOnCheckedChangeListener { grp, checkedId ->
+            for (i in 0 until grp.childCount) {
+                val child = grp.getChildAt(i)
                 if (child is RadioButton) {
                     if (child.id == checkedId) {
                         child.setBackgroundResource(R.drawable.widget_refresh_bg)
@@ -119,17 +125,38 @@ class WidgetConfigActivity : Activity() {
         seekOpacity.progress = opacity
         txtOpacityVal.text = "$opacity%"
         
-        switchGlow.isChecked = prefs.getBoolean("card_glow", true)
         switchSound.isChecked = prefs.getBoolean("sound_effects", true)
         
         val sizeId = when (prefs.getString("card_size", "medium")) {
+            "super_thin" -> R.id.config_size_super_thin
             "thin" -> R.id.config_size_thin
             "large" -> R.id.config_size_large
             else -> R.id.config_size_medium
         }
         radioGroupSize.check(sizeId)
-        // Trigger initial checked style
         findViewById<RadioButton>(sizeId)?.performClick()
+
+        val colsId = when (prefs.getInt("card_columns", 1)) {
+            2 -> R.id.config_cols_2
+            else -> R.id.config_cols_1
+        }
+        radioGroupColumns.check(colsId)
+        findViewById<RadioButton>(colsId)?.performClick()
+
+        val gradientId = when (prefs.getString("gradient_style", "radial")) {
+            "none" -> R.id.config_grad_none
+            "vertical" -> R.id.config_grad_vertical
+            else -> R.id.config_grad_radial
+        }
+        radioGroupGradient.check(gradientId)
+
+        val borderId = when (prefs.getString("border_style", "both")) {
+            "none" -> R.id.config_border_none
+            "card" -> R.id.config_border_card
+            "circle" -> R.id.config_border_circle
+            else -> R.id.config_border_both
+        }
+        radioGroupBorder.check(borderId)
 
         val checklistId = when (prefs.getString("checklist_mode", "direct")) {
             "dialog" -> R.id.config_checklist_dialog
@@ -140,11 +167,32 @@ class WidgetConfigActivity : Activity() {
 
     private fun savePreferences() {
         val prefs = getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        
         val sizeVal = when (radioGroupSize.checkedRadioButtonId) {
+            R.id.config_size_super_thin -> "super_thin"
             R.id.config_size_thin -> "thin"
             R.id.config_size_large -> "large"
             else -> "medium"
         }
+        
+        val colsVal = when (radioGroupColumns.checkedRadioButtonId) {
+            R.id.config_cols_2 -> 2
+            else -> 1
+        }
+
+        val gradientVal = when (radioGroupGradient.checkedRadioButtonId) {
+            R.id.config_grad_none -> "none"
+            R.id.config_grad_vertical -> "vertical"
+            else -> "radial"
+        }
+
+        val borderVal = when (radioGroupBorder.checkedRadioButtonId) {
+            R.id.config_border_none -> "none"
+            R.id.config_border_card -> "card"
+            R.id.config_border_circle -> "circle"
+            else -> "both"
+        }
+
         val checklistVal = when (radioGroupChecklist.checkedRadioButtonId) {
             R.id.config_checklist_dialog -> "dialog"
             else -> "direct"
@@ -152,9 +200,11 @@ class WidgetConfigActivity : Activity() {
 
         prefs.edit()
             .putInt("card_opacity", seekOpacity.progress)
-            .putBoolean("card_glow", switchGlow.isChecked)
             .putBoolean("sound_effects", switchSound.isChecked)
             .putString("card_size", sizeVal)
+            .putInt("card_columns", colsVal)
+            .putString("gradient_style", gradientVal)
+            .putString("border_style", borderVal)
             .putString("checklist_mode", checklistVal)
             .apply()
     }

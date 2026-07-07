@@ -121,13 +121,36 @@ class HabitWidgetProvider : AppWidgetProvider() {
         // Build the main widget view
         val views = RemoteViews(context.packageName, R.layout.widget_habit_list)
 
-        // Setup RemoteViewsService for ListView
+        // Read preferences for column distribution
+        val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val columns = prefs.getInt("card_columns", 1)
+
+        // Setup RemoteViewsService
         val serviceIntent = Intent(context, HabitWidgetService::class.java).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
             data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
         }
-        views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
-        views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
+
+        // Setup click template for list/grid items - CRITICAL: Leave action null so fill-in intent actions merge correctly!
+        val completeTemplate = Intent(context, HabitWidgetProvider::class.java)
+        val completePending = PendingIntent.getBroadcast(
+            context, 1, completeTemplate,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        if (columns == 2) {
+            views.setViewVisibility(R.id.widget_habit_list, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_habit_grid, android.view.View.VISIBLE)
+            views.setRemoteAdapter(R.id.widget_habit_grid, serviceIntent)
+            views.setEmptyView(R.id.widget_habit_grid, R.id.widget_empty_text)
+            views.setPendingIntentTemplate(R.id.widget_habit_grid, completePending)
+        } else {
+            views.setViewVisibility(R.id.widget_habit_list, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.widget_habit_grid, android.view.View.GONE)
+            views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
+            views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
+            views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)
+        }
 
         // Setup settings button (opens custom config activity)
         val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
@@ -138,16 +161,6 @@ class HabitWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_settings_btn, configPending)
-
-        // Setup click template for list items (complete habit action)
-        val completeTemplate = Intent(context, HabitWidgetProvider::class.java).apply {
-            action = ACTION_COMPLETE_HABIT
-        }
-        val completePending = PendingIntent.getBroadcast(
-            context, 1, completeTemplate,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
-        views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)
 
         // Open app when clicking on header
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -307,8 +320,9 @@ class HabitWidgetProvider : AppWidgetProvider() {
             updateWidget(context, appWidgetManager, widgetId)
         }
 
-        // Notify data changed for ListView to force data refresh
+        // Notify data changed for ListView and GridView to force data refresh
         appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_list)
+        appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_grid)
     }
 
     override fun onEnabled(context: Context) {

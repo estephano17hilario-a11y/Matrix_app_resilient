@@ -93,13 +93,19 @@
         <!-- Widget Settings/Configuration Activity -->
         <activity
             android:name=".widget.WidgetConfigActivity"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
             android:exported="true" />
 
         <!-- Widget Translucent Action/Dialog Activity -->
         <activity
             android:name=".widget.WidgetActionActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
             android:exported="true" />
 
         <!-- Widget Receiver -->

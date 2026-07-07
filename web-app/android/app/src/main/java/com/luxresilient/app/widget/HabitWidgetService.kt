@@ -10,7 +10,9 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.RadialGradient
+import android.graphics.LinearGradient
 import android.graphics.Shader
+import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -84,53 +86,77 @@ class HabitWidgetFactory(
             // Read customization preferences
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
             val opacity = configPrefs.getInt("card_opacity", 90)
-            val cardGlow = configPrefs.getBoolean("card_glow", true)
             val cardSize = configPrefs.getString("card_size", "medium")
             val checklistMode = configPrefs.getString("checklist_mode", "direct")
+            val cardColumns = configPrefs.getInt("card_columns", 1)
+            val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"
+            val borderStyle = configPrefs.getString("border_style", "both") ?: "both"
 
             // Get color from custom color, attribute, or trait default
             val baseColor = getHabitColor(habit)
             val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
 
-            // 1. Dynamic Glow / Gradient Background
-            if (cardGlow) {
+            // 1. Set Card Opacity via Background ImageView
+            val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
+            views.setInt(R.id.habit_card_background, "setImageAlpha", alphaInt)
+
+            // 2. Dynamic Glow / Gradient Background
+            val hasGlow = (gradientStyle != "none") || (borderStyle == "card" || borderStyle == "both")
+            if (hasGlow) {
                 views.setViewVisibility(R.id.habit_glow_background, View.VISIBLE)
                 val density = context.resources.displayMetrics.density
-                val widthPx = (320 * density).toInt()
+                // Adjust width for list vs grid layout
+                val widthPx = if (cardColumns == 2) (155 * density).toInt() else (320 * density).toInt()
                 val heightPx = when (cardSize) {
+                    "super_thin" -> (36 * density).toInt()
                     "thin" -> (46 * density).toInt()
                     "large" -> (84 * density).toInt()
                     else -> (64 * density).toInt()
                 }
-                val glowBitmap = createGlowBackground(widthPx, heightPx, parsedColor, opacity)
+                val glowBitmap = createGlowBackground(widthPx, heightPx, parsedColor, opacity, gradientStyle, borderStyle)
                 views.setImageViewBitmap(R.id.habit_glow_background, glowBitmap)
             } else {
                 views.setViewVisibility(R.id.habit_glow_background, View.GONE)
             }
 
-            // 2. Custom Size Padding
+            // 3. Custom Size Padding
             val density = context.resources.displayMetrics.density
             val verticalPadding = when (cardSize) {
+                "super_thin" -> (2 * density).toInt()
                 "thin" -> (4 * density).toInt()
                 "large" -> (16 * density).toInt()
                 else -> (10 * density).toInt()
             }
+            // Slightly narrower padding for two columns
+            val sidePadding = if (cardColumns == 2) (8 * density).toInt() else (12 * density).toInt()
             views.setViewPadding(
                 R.id.habit_item_root, 
-                (16 * density).toInt(), 
+                sidePadding, 
                 verticalPadding, 
-                (12 * density).toInt(), 
+                sidePadding, 
                 verticalPadding
             )
 
-            // 3. Custom Opacity
-            val alphaFloat = (opacity / 100f) * 0.12f
-            views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
-            views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
+            // 4. Custom flat color overlay (fallback when gradient style is none)
+            if (gradientStyle == "none") {
+                views.setViewVisibility(R.id.habit_color_overlay, View.VISIBLE)
+                val alphaFloat = (opacity / 100f) * 0.09f
+                views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
+                views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
+            } else {
+                views.setViewVisibility(R.id.habit_color_overlay, View.GONE)
+            }
 
             // --- TITLE ---
             views.setTextViewText(R.id.habit_title, habit.title ?: "Sin título")
             
+            // Adjust title text size for super_thin or columns
+            if (cardSize == "super_thin" || cardColumns == 2) {
+                views.setFloat(R.id.habit_title, "setTextSize", 12f)
+            } else {
+                views.setFloat(R.id.habit_title, "setTextSize", 14f)
+            }
+
             // Apply completed state (dimmed text)
             if (habit.completedToday) {
                 views.setTextColor(R.id.habit_title, Color.parseColor("#99FFFFFF"))
@@ -146,8 +172,16 @@ class HabitWidgetFactory(
             }
             views.setTextViewText(R.id.habit_icon, traitEmoji)
 
+            // Adjust icon layout for super thin
+            if (cardSize == "super_thin") {
+                views.setViewVisibility(R.id.habit_icon_container, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.habit_icon_container, View.VISIBLE)
+            }
+
             // --- STREAK BADGE ---
-            if (habit.streak > 0) {
+            // Hide streak badge for super thin or 2-columns to save space cleanly
+            if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2) {
                 views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
                 views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
                 if (habit.completedToday) {
@@ -164,32 +198,24 @@ class HabitWidgetFactory(
             views.setTextViewText(R.id.habit_progress, progressText)
             views.setTextColor(R.id.habit_progress, parsedColor)
 
-            // --- COMPLETE BUTTON ---
-            if (habit.completedToday) {
-                views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_complete)
-                views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
-                views.setTextViewText(R.id.habit_check_icon, "✓")
-            } else {
-                views.setInt(R.id.habit_complete_btn, "setBackgroundResource", R.drawable.widget_progress_circle)
-                
-                // For partial progress (QUANTITY/CHECKLIST), show percentage text
-                val percentage = getPercentage(habit)
-                if (percentage > 0 && percentage < 100) {
-                    views.setViewVisibility(R.id.habit_check_icon, View.VISIBLE)
-                    views.setTextViewText(R.id.habit_check_icon, "${percentage}%")
-                    views.setTextColor(R.id.habit_check_icon, parsedColor)
-                } else {
-                    views.setViewVisibility(R.id.habit_check_icon, View.GONE)
-                }
-            }
+            // --- COMPLETE BUTTON (PROGRESS CIRCLE image) ---
+            val percentage = getPercentage(habit)
+            val borderCircleEnabled = (borderStyle == "circle" || borderStyle == "both")
+            val circleBitmap = createCircleButton(context, parsedColor, habit.completedToday, percentage, borderCircleEnabled)
+            views.setImageViewBitmap(R.id.habit_complete_image, circleBitmap)
+            views.setViewVisibility(R.id.habit_check_icon, View.GONE) // Hidden because checkmark is inside bitmap
 
             // --- SUBTASKS (for CHECKLIST type) ---
-            if (habit.type == "CHECKLIST" && checklistMode == "direct" && habit.checklist != null && habit.checklist.isNotEmpty()) {
+            val showSubtasks = habit.type == "CHECKLIST" && checklistMode == "direct" && 
+                               habit.checklist != null && habit.checklist.isNotEmpty() && 
+                               cardSize != "super_thin" && cardColumns != 2
+
+            if (showSubtasks) {
                 views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
                 views.removeAllViews(R.id.habit_subtasks_container)
 
                 val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
-                val visibleItems = habit.checklist.filter { item ->
+                val visibleItems = habit.checklist!!.filter { item ->
                     item.days == null || item.days.isEmpty() || item.days.contains(todayDay)
                 }
 
@@ -235,7 +261,6 @@ class HabitWidgetFactory(
 
             val fillIntent = Intent().apply {
                 if (useDialog) {
-                    // Open translucent popup dialog activity
                     action = HabitWidgetProvider.ACTION_OPEN_DIALOG
                 } else {
                     action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
@@ -249,7 +274,6 @@ class HabitWidgetFactory(
                 if (useDialog) {
                     action = HabitWidgetProvider.ACTION_OPEN_DIALOG
                 } else {
-                    // Open main app at habits section shortcut
                     action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
                 }
                 putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
@@ -262,9 +286,7 @@ class HabitWidgetFactory(
             
             // Return a safe fallback view instead of crashing
             val fallback = RemoteViews(context.packageName, R.layout.widget_habit_item)
-            fallback.setTextViewText(R.id.habit_title, "Error al cargar item")
-            fallback.setTextViewText(R.id.habit_progress, "Reintentar")
-            fallback.setTextColor(R.id.habit_progress, Color.RED)
+            fallback.setTextViewText(R.id.habit_title, "Error al cargar")
             return fallback
         }
     }
@@ -524,7 +546,14 @@ class HabitWidgetFactory(
         }
     }
 
-    private fun createGlowBackground(width: Int, height: Int, color: Int, opacity: Int): Bitmap {
+    private fun createGlowBackground(
+        width: Int, 
+        height: Int, 
+        color: Int, 
+        opacity: Int, 
+        gradientStyle: String, 
+        borderStyle: String
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         
@@ -538,32 +567,138 @@ class HabitWidgetFactory(
         val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
         canvas.drawRoundRect(rect, 24f, 24f, bgPaint)
         
-        // Radial glow in the center-left (near the icon)
-        val glowPaint = Paint().apply {
-            this.isAntiAlias = true
-            val colors = intArrayOf(
-                Color.argb((alphaInt * 0.25).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
-                Color.argb((alphaInt * 0.08).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
-                Color.TRANSPARENT
-            )
-            val stops = floatArrayOf(0f, 0.4f, 1f)
-            this.shader = RadialGradient(
-                width * 0.15f, height * 0.5f, // center-left
-                height * 0.9f, // radius
-                colors, stops,
-                Shader.TileMode.CLAMP
-            )
+        // Apply Gradient Style
+        if (gradientStyle == "radial") {
+            // Radial glow in the center-left (near the icon)
+            val glowPaint = Paint().apply {
+                this.isAntiAlias = true
+                val colors = intArrayOf(
+                    Color.argb((alphaInt * 0.25).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                    Color.argb((alphaInt * 0.08).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                    Color.TRANSPARENT
+                )
+                val stops = floatArrayOf(0f, 0.4f, 1f)
+                this.shader = RadialGradient(
+                    width * 0.15f, height * 0.5f,
+                    height * 0.9f,
+                    colors, stops,
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+        } else if (gradientStyle == "vertical") {
+            // Full vertical gradient from bottom to top
+            val glowPaint = Paint().apply {
+                this.isAntiAlias = true
+                val colors = intArrayOf(
+                    Color.argb((alphaInt * 0.25).toInt(), Color.red(color), Color.green(color), Color.blue(color)),
+                    Color.TRANSPARENT
+                )
+                this.shader = LinearGradient(
+                    0f, height.toFloat(),
+                    0f, 0f,
+                    colors, null,
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
         }
-        canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
 
-        // Draw a glowing border
-        val borderPaint = Paint().apply {
-            this.isAntiAlias = true
-            this.style = Paint.Style.STROKE
-            this.strokeWidth = 2.5f
-            this.color = Color.argb((alphaInt * 0.2).toInt(), Color.red(color), Color.green(color), Color.blue(color))
+        // Draw card border if enabled
+        val drawBorder = (borderStyle == "card" || borderStyle == "both")
+        if (drawBorder) {
+            val borderPaint = Paint().apply {
+                this.isAntiAlias = true
+                this.style = Paint.Style.STROKE
+                this.strokeWidth = 2.5f
+                this.color = Color.argb((alphaInt * 0.35).toInt(), Color.red(color), Color.green(color), Color.blue(color))
+            }
+            canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
         }
-        canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
+
+        return bitmap
+    }
+
+    private fun createCircleButton(
+        context: Context,
+        color: Int,
+        completed: Boolean,
+        percentage: Int,
+        borderCircleEnabled: Boolean
+    ): Bitmap {
+        val density = context.resources.displayMetrics.density
+        val sizePx = (44 * density).toInt()
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        val paint = Paint().apply {
+            this.isAntiAlias = true
+        }
+
+        val center = sizePx / 2f
+        val radius = sizePx / 2f - (2 * density) // padding
+
+        if (completed) {
+            // Completed: Solid filled circle of habit's theme color
+            paint.style = Paint.Style.FILL
+            paint.color = color
+            canvas.drawCircle(center, center, radius, paint)
+
+            // Draw border if enabled
+            if (borderCircleEnabled) {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 2 * density
+                paint.color = Color.WHITE
+                canvas.drawCircle(center, center, radius, paint)
+            }
+
+            // Draw a black checkmark inside
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 3 * density
+            paint.color = Color.BLACK
+            paint.strokeCap = Paint.Cap.ROUND
+            
+            // Checkmark coordinates
+            val startX = center - (6 * density)
+            val startY = center
+            val midX = center - (2 * density)
+            val midY = center + (4 * density)
+            val endX = center + (6 * density)
+            val endY = center - (4 * density)
+
+            canvas.drawLine(startX, startY, midX, midY, paint)
+            canvas.drawLine(midX, midY, endX, endY, paint)
+        } else {
+            // Incomplete
+            // Subtle gray background inside the circle
+            paint.style = Paint.Style.FILL
+            paint.color = Color.parseColor("#12FFFFFF")
+            canvas.drawCircle(center, center, radius, paint)
+
+            // Draw outer border stroke
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 2 * density
+            paint.color = if (borderCircleEnabled) color else Color.parseColor("#4DFFFFFF")
+            canvas.drawCircle(center, center, radius, paint)
+
+            // Draw progress arc around border if partial progress
+            if (percentage > 0 && percentage < 100) {
+                paint.color = color
+                val rectF = RectF(center - radius, center - radius, center + radius, center + radius)
+                canvas.drawArc(rectF, -90f, (percentage * 3.6f), false, paint)
+
+                // Draw percentage text inside
+                val textPaint = Paint().apply {
+                    this.color = color
+                    this.textSize = 10 * density
+                    this.textAlign = Paint.Align.CENTER
+                    this.isAntiAlias = true
+                    this.typeface = Typeface.DEFAULT_BOLD
+                }
+                val textY = center - ((textPaint.descent() + textPaint.ascent()) / 2)
+                canvas.drawText("$percentage%", center, textY, textPaint)
+            }
+        }
 
         return bitmap
     }

@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#020204"
-    android:padding="20dp">
+    android:background="#0A0A0E"
+    android:padding="16dp"
+    android:elevation="8dp">
 
     <!-- Header -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:id="@+id/config_title"
@@ -18,7 +19,7 @@
             android:layout_height="wrap_content"
             android:text="Ajustes de Widget"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-medium" />
 
@@ -28,42 +29,53 @@
             android:layout_below="@id/config_title"
             android:text="Personaliza la apariencia y el comportamiento"
             android:textColor="#80FFFFFF"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp" />
+            android:textSize="11sp"
+            android:layout_marginTop="1dp" />
 
     </RelativeLayout>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:scrollbars="none">
+        android:layout_height="380dp"
+        android:scrollbars="none"
+        android:layout_marginBottom="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Card Layout Settings -->
+            <!-- Card Size Setting -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="TAMAÑO DE TARJETA"
                 android:textColor="#6366f1"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="6dp" />
 
             <RadioGroup
                 android:id="@+id/config_size_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 android:background="#0DFFFFFF"
-                android:padding="4dp"
-                android:gravity="center">
+                android:padding="2dp">
+
+                <RadioButton
+                    android:id="@+id/config_size_super_thin"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="S.Delgado"
+                    android:textColor="#E0E0E0"
+                    android:textSize="10sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
 
                 <RadioButton
                     android:id="@+id/config_size_thin"
@@ -72,10 +84,10 @@
                     android:layout_weight="1"
                     android:text="Delgado"
                     android:textColor="#E0E0E0"
+                    android:textSize="10sp"
                     android:button="@null"
                     android:gravity="center"
-                    android:padding="10dp"
-                    android:background="@android:color/transparent" />
+                    android:padding="8dp" />
 
                 <RadioButton
                     android:id="@+id/config_size_medium"
@@ -84,10 +96,10 @@
                     android:layout_weight="1"
                     android:text="Mediano"
                     android:textColor="#E0E0E0"
+                    android:textSize="10sp"
                     android:button="@null"
                     android:gravity="center"
-                    android:padding="10dp"
-                    android:background="@android:color/transparent"
+                    android:padding="8dp"
                     android:checked="true" />
 
                 <RadioButton
@@ -97,30 +109,77 @@
                     android:layout_weight="1"
                     android:text="Grande"
                     android:textColor="#E0E0E0"
+                    android:textSize="10sp"
                     android:button="@null"
                     android:gravity="center"
-                    android:padding="10dp"
-                    android:background="@android:color/transparent" />
+                    android:padding="8dp" />
 
             </RadioGroup>
 
-            <!-- Card Opacity -->
+            <!-- Card Layout Mode -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DISTRIBUCIÓN DE HÁBITOS"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_columns_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="2dp">
+
+                <RadioButton
+                    android:id="@+id/config_cols_1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="1 Columna (Lista)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/config_cols_2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="2 Columnas (Cuadrícula)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+            </RadioGroup>
+
+            <!-- Background Opacity -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="OPACIDAD DEL FONDO"
                 android:textColor="#6366f1"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="4dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="16dp">
 
                 <SeekBar
                     android:id="@+id/config_opacity_seekbar"
@@ -136,45 +195,120 @@
                     android:layout_height="wrap_content"
                     android:text="90%"
                     android:textColor="#FFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginStart="8dp" />
 
             </LinearLayout>
 
-            <!-- Glow Effect Switch -->
-            <RelativeLayout
+            <!-- Gradient Style Option -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ESTILO DE DEGRADADO (TINTE)"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_gradient_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp">
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="6dp">
 
-                <TextView
-                    android:id="@+id/glow_title"
-                    android:layout_width="wrap_content"
+                <RadioButton
+                    android:id="@+id/config_grad_none"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Efecto de Resplandor (Glow)"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@id/glow_title"
-                    android:text="Agrega luces difuminadas con el color del hábito"
-                    android:textColor="#80FFFFFF"
+                    android:text="Ninguno (Color plano con opacidad)"
+                    android:textColor="#E0E0E0"
                     android:textSize="12sp"
-                    android:layout_marginTop="2dp" />
+                    android:padding="6dp" />
 
-                <Switch
-                    android:id="@+id/config_glow_switch"
-                    android:layout_width="wrap_content"
+                <RadioButton
+                    android:id="@+id/config_grad_radial"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
+                    android:text="Resplandor Radial (Centro / Izquierda)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp"
                     android:checked="true" />
 
-            </RelativeLayout>
+                <RadioButton
+                    android:id="@+id/config_grad_vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Degradado Completo (Abajo hacia arriba)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp" />
+
+            </RadioGroup>
+
+            <!-- Border Style Option -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BORDES DE COLOR DEL HÁBITO"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_border_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="6dp">
+
+                <RadioButton
+                    android:id="@+id/config_border_none"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ninguno"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_border_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Borde de la tarjeta del hábito"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_border_circle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Borde del círculo del completado"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_border_both"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ambos (Borde de tarjeta y de círculo)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp"
+                    android:padding="6dp"
+                    android:checked="true" />
+
+            </RadioGroup>
 
             <!-- Checklist View Option -->
             <TextView
@@ -182,19 +316,19 @@
                 android:layout_height="wrap_content"
                 android:text="MÉTODO PARA SUBTAREAS"
                 android:textColor="#6366f1"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="6dp" />
 
             <RadioGroup
                 android:id="@+id/config_checklist_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 android:background="#0DFFFFFF"
-                android:padding="8dp">
+                android:padding="6dp">
 
                 <RadioButton
                     android:id="@+id/config_checklist_direct"
@@ -202,16 +336,18 @@
                     android:layout_height="wrap_content"
                     android:text="Mostrar directamente en widget"
                     android:textColor="#E0E0E0"
-                    android:padding="10dp"
+                    android:textSize="12sp"
+                    android:padding="6dp"
                     android:checked="true" />
 
                 <RadioButton
                     android:id="@+id/config_checklist_dialog"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Abrir diálogo flotante intercativo"
+                    android:text="Abrir diálogo flotante interactivo"
                     android:textColor="#E0E0E0"
-                    android:padding="10dp" />
+                    android:textSize="12sp"
+                    android:padding="6dp" />
 
             </RadioGroup>
 
@@ -219,7 +355,7 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="12dp">
 
                 <TextView
                     android:id="@+id/sound_title"
@@ -227,17 +363,16 @@
                     android:layout_height="wrap_content"
                     android:text="Efectos de Sonido"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_below="@id/sound_title"
-                    android:text="Reproduce sonidos al interactuar con el widget"
+                    android:text="Sonidos al interactuar con el widget"
                     android:textColor="#80FFFFFF"
-                    android:textSize="12sp"
-                    android:layout_marginTop="2dp" />
+                    android:textSize="11sp" />
 
                 <Switch
                     android:id="@+id/config_sound_switch"
@@ -259,7 +394,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginTop="16dp">
+        android:layout_marginTop="8dp">
 
         <Button
             android:id="@+id/config_cancel_btn"
@@ -269,7 +404,8 @@
             android:text="Cancelar"
             android:textColor="#E0E0E0"
             android:backgroundTint="#26FFFFFF"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
+            android:textSize="13sp"
             android:textAllCaps="false" />
 
         <Button
@@ -277,10 +413,11 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1.2"
-            android:text="Guardar Cambios"
+            android:text="Guardar"
             android:textColor="#FFFFFF"
             android:backgroundTint="#6366f1"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
+            android:textSize="13sp"
             android:textAllCaps="false" />
 
     </LinearLayout>
