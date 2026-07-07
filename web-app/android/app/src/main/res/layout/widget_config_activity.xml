@@ -570,6 +570,72 @@
 
             </RelativeLayout>
 
+            <!-- Bad Habits Switch -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/bad_habit_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Botón de Malos Hábitos"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/bad_habit_title"
+                    android:text="Muestra el botón para alternar a Malos Hábitos"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp" />
+
+                <Switch
+                    android:id="@+id/config_allow_bad_habits_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="true" />
+
+            </RelativeLayout>
+
+            <!-- Time Format 12h Switch -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/time_format_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Formato de Hora (12h)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/time_format_title"
+                    android:text="Usa el formato AM/PM en vez de 24 horas"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="11sp" />
+
+                <Switch
+                    android:id="@+id/config_time_format_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="false" />
+
+            </RelativeLayout>
+
             <!-- Sound Effects Switch -->
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -603,7 +669,125 @@
 
             </RelativeLayout>
 
+            <!-- Default Task Timeframe Setting -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FILTRO DE TIEMPO POR DEFECTO PARA TAREAS"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_task_timeframe_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="8dp">
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_all"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Todas las tareas (Sin límite)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_day"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Diarias"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_week"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Semanales"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_month"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Mensuales"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_8weeks"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Próximas 8 semanas"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_3months"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Próximos 3 meses"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+                <RadioButton
+                    android:id="@+id/config_timeframe_year"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Anuales"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:padding="6dp" />
+
+            </RadioGroup>
+
+            <!-- Project Selection Section (Project Widget Only) -->
+            <LinearLayout
+                android:id="@+id/config_project_select_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SELECCIONAR PROYECTO"
+                    android:textColor="#6366f1"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="6dp" />
+
+                <RadioGroup
+                    android:id="@+id/config_project_select_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp"
+                    android:background="#0DFFFFFF"
+                    android:padding="8dp" />
+
+            </LinearLayout>
+
         </LinearLayout>
+
+
 
     </ScrollView>
 

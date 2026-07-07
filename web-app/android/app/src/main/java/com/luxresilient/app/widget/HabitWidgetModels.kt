@@ -118,3 +118,82 @@ object TraitIcons {
     fun getEmoji(traitId: String?): String = TRAIT_EMOJI_MAP[traitId] ?: "⭐"
     fun getColor(traitId: String?): String = TRAIT_COLOR_MAP[traitId] ?: "#6366f1"
 }
+
+data class BadHabitData(
+    val id: String,
+    val title: String,
+    val attribute: String,
+    val subAttribute: String? = null,
+    val streak: Int = 0,
+    val intelligentStreak: Boolean? = false,
+    val isDynamic: Boolean? = false,
+    val dynamicTargetType: String? = null,
+    val dynamicBalance: Int? = null,
+    val currentTarget: Int? = null,
+    val archived: Boolean? = false,
+    val order: Int? = null
+)
+
+data class TaskData(
+    val id: String,
+    val title: String,
+    val description: String? = null,
+    val completed: Boolean = false,
+    val difficulty: String = "C",
+    val xpReward: Double = 0.0,
+    val gold: Int? = 0,
+    val attribute: String? = null,
+    val subAttribute: String? = null,
+    val isSmartQuest: Boolean? = false,
+    val deadline: String? = null,
+    val archived: Boolean? = false,
+    val order: Int? = null,
+    val projectId: String? = null
+)
+
+data class ProjectData(
+    val id: String,
+    val title: String,
+    val description: String? = null,
+    val attribute: String? = null,
+    val color: String? = null,
+    val iconName: String? = null,
+    val goalTarget: Int = 0,
+    val goalFrequency: String? = null,
+    val uiFrequency: String? = null,
+    val uiTarget: Double? = null,
+    val uiUnit: String? = null,
+    val pomoDuration: Int = 25,
+    val breakDuration: Int = 5,
+    val totalTime: Int = 0,
+    val streak: Int = 0,
+    val sessions: List<SessionData>? = null
+)
+
+data class SessionData(
+    val id: String,
+    val type: String? = null,
+    val duration: Int = 0, // seconds
+    val date: String? = null
+)
+
+data class DailyFeedEntryData(
+    val id: String,
+    val date: String,
+    val tasksCompleted: Int = 0,
+    val tasksTotal: Int = 0,
+    val focusMinutes: Int = 0,
+    val focusSessions: Int = 0,
+    val habitsCompleted: Int = 0,
+    val habitsTotal: Int = 0,
+    val xpEarned: Int = 0,
+    val goldEarned: Int = 0,
+    val topProjects: List<TopProjectData>? = null
+)
+
+data class TopProjectData(
+    val name: String,
+    val minutes: Int,
+    val color: String? = null
+)
+

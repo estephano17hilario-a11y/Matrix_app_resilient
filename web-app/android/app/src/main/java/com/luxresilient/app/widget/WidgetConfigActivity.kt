@@ -6,13 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import com.luxresilient.app.R
+import kotlinx.coroutines.*
 
 /**
  * Native Activity for customizing the widgets' designs and mechanics.
@@ -28,6 +31,8 @@ class WidgetConfigActivity : Activity() {
     private lateinit var switchSound: Switch
     private lateinit var switchIcons: Switch
     private lateinit var switchAllowChrono: Switch
+    private lateinit var switchAllowBadHabits: Switch
+    private lateinit var switchTimeFormat12h: Switch
     
     private lateinit var radioGroupSize: RadioGroup
     private lateinit var radioGroupColumns: RadioGroup
@@ -36,6 +41,11 @@ class WidgetConfigActivity : Activity() {
     private lateinit var radioGroupGradient: RadioGroup
     private lateinit var radioGroupBorder: RadioGroup
     private lateinit var radioGroupChecklist: RadioGroup
+    private lateinit var radioGroupTaskTimeframe: RadioGroup
+    
+    private lateinit var projectSelectContainer: LinearLayout
+    private lateinit var radioGroupProjectSelect: RadioGroup
+    private var fetchedProjects: List<ProjectData> = emptyList()
     
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
@@ -61,6 +71,8 @@ class WidgetConfigActivity : Activity() {
         switchSound = findViewById(R.id.config_sound_switch)
         switchIcons = findViewById(R.id.config_icons_switch)
         switchAllowChrono = findViewById(R.id.config_allow_chrono_switch)
+        switchAllowBadHabits = findViewById(R.id.config_allow_bad_habits_switch)
+        switchTimeFormat12h = findViewById(R.id.config_time_format_switch)
         
         radioGroupSize = findViewById(R.id.config_size_group)
         radioGroupColumns = findViewById(R.id.config_columns_group)
@@ -69,6 +81,10 @@ class WidgetConfigActivity : Activity() {
         radioGroupGradient = findViewById(R.id.config_gradient_group)
         radioGroupBorder = findViewById(R.id.config_border_group)
         radioGroupChecklist = findViewById(R.id.config_checklist_group)
+        radioGroupTaskTimeframe = findViewById(R.id.config_task_timeframe_group)
+        
+        projectSelectContainer = findViewById(R.id.config_project_select_container)
+        radioGroupProjectSelect = findViewById(R.id.config_project_select_group)
 
         val btnCancel = findViewById<Button>(R.id.config_cancel_btn)
         val btnSave = findViewById<Button>(R.id.config_save_btn)
@@ -81,6 +97,20 @@ class WidgetConfigActivity : Activity() {
 
         // Load saved preferences
         loadPreferences()
+
+        // Toggle project selector visibility based on widget class
+        try {
+            val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)
+            val isProjectWidget = providerInfo?.provider?.className?.contains("ProjectWidgetProvider") == true
+            if (isProjectWidget) {
+                projectSelectContainer.visibility = View.VISIBLE
+                loadProjectsForSelection()
+            } else {
+                projectSelectContainer.visibility = View.GONE
+            }
+        } catch (e: Exception) {
+            projectSelectContainer.visibility = View.GONE
+        }
 
         // Seekbar opacity value change listener
         seekOpacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -109,11 +139,23 @@ class WidgetConfigActivity : Activity() {
         btnSave.setOnClickListener {
             savePreferences()
             
-            // Broadcast refresh
+            // Broadcast refresh for habits
             val refreshIntent = Intent(this, HabitWidgetProvider::class.java).apply {
                 action = HabitWidgetProvider.ACTION_REFRESH
             }
             sendBroadcast(refreshIntent)
+
+            // Broadcast refresh for tasks
+            val refreshTasksIntent = Intent(this, TaskWidgetProvider::class.java).apply {
+                action = TaskWidgetProvider.ACTION_REFRESH_TASKS
+            }
+            sendBroadcast(refreshTasksIntent)
+
+            // Broadcast refresh for projects
+            val refreshProjectIntent = Intent(this, ProjectWidgetProvider::class.java).apply {
+                action = ProjectWidgetProvider.ACTION_REFRESH_PROJECT
+            }
+            sendBroadcast(refreshProjectIntent)
 
             // Success result if called as a widget configuration activity
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
@@ -159,6 +201,8 @@ class WidgetConfigActivity : Activity() {
         switchSound.isChecked = prefs.getBoolean("sound_effects", true)
         switchIcons.isChecked = prefs.getBoolean("show_icons", true)
         switchAllowChrono.isChecked = prefs.getBoolean("allow_chronological_switch", true)
+        switchAllowBadHabits.isChecked = prefs.getBoolean("allow_bad_habits_switch", true)
+        switchTimeFormat12h.isChecked = prefs.getBoolean("time_format_12h", false)
         
         val sizeId = when (prefs.getString("card_size", "medium")) {
             "super_thin" -> R.id.config_size_super_thin
@@ -212,6 +256,57 @@ class WidgetConfigActivity : Activity() {
             else -> R.id.config_checklist_direct
         }
         radioGroupChecklist.check(checklistId)
+
+        val taskTimeframeId = when (prefs.getString("default_task_timeframe", "ALL")) {
+            "DAY" -> R.id.config_timeframe_day
+            "WEEK" -> R.id.config_timeframe_week
+            "MONTH" -> R.id.config_timeframe_month
+            "8_WEEKS" -> R.id.config_timeframe_8weeks
+            "3_MONTHS" -> R.id.config_timeframe_3months
+            "YEAR" -> R.id.config_timeframe_year
+            else -> R.id.config_timeframe_all
+        }
+        radioGroupTaskTimeframe.check(taskTimeframeId)
+    }
+
+    private fun loadProjectsForSelection() {
+        val client = SupabaseWidgetClient(this)
+        val prefs = getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val savedProjectId = prefs.getString("project_id_widget_$widgetId", null)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val list = client.fetchProjects()
+            fetchedProjects = list
+            withContext(Dispatchers.Main) {
+                radioGroupProjectSelect.removeAllViews()
+                
+                if (list.isEmpty()) {
+                    val noProjectsText = TextView(this@WidgetConfigActivity).apply {
+                        text = "No se encontraron proyectos activos."
+                        setTextColor(Color.parseColor("#80FFFFFF"))
+                        textSize = 12f
+                        setPadding(16, 16, 16, 16)
+                    }
+                    radioGroupProjectSelect.addView(noProjectsText)
+                    return@withContext
+                }
+
+                for (project in list) {
+                    val rb = RadioButton(this@WidgetConfigActivity).apply {
+                        id = View.generateViewId()
+                        text = project.title
+                        setTextColor(Color.WHITE)
+                        textSize = 12f
+                        setPadding(16, 16, 16, 16)
+                        tag = project.id
+                    }
+                    radioGroupProjectSelect.addView(rb)
+                    if (project.id == savedProjectId) {
+                        radioGroupProjectSelect.check(rb.id)
+                    }
+                }
+            }
+        }
     }
 
     private fun savePreferences() {
@@ -259,12 +354,24 @@ class WidgetConfigActivity : Activity() {
             else -> "direct"
         }
 
-        prefs.edit()
+        val defaultTaskTimeframeVal = when (radioGroupTaskTimeframe.checkedRadioButtonId) {
+            R.id.config_timeframe_day -> "DAY"
+            R.id.config_timeframe_week -> "WEEK"
+            R.id.config_timeframe_month -> "MONTH"
+            R.id.config_timeframe_8weeks -> "8_WEEKS"
+            R.id.config_timeframe_3months -> "3_MONTHS"
+            R.id.config_timeframe_year -> "YEAR"
+            else -> "ALL"
+        }
+
+        val editor = prefs.edit()
             .putInt("card_opacity", seekOpacity.progress)
             .putInt("widget_background_opacity", seekWidgetBgOpacity.progress)
             .putBoolean("sound_effects", switchSound.isChecked)
             .putBoolean("show_icons", switchIcons.isChecked)
             .putBoolean("allow_chronological_switch", switchAllowChrono.isChecked)
+            .putBoolean("allow_bad_habits_switch", switchAllowBadHabits.isChecked)
+            .putBoolean("time_format_12h", switchTimeFormat12h.isChecked)
             .putString("card_size", sizeVal)
             .putInt("card_columns", colsVal)
             .putInt("chrono_columns", chronoColsVal)
@@ -272,6 +379,21 @@ class WidgetConfigActivity : Activity() {
             .putString("gradient_style", gradientVal)
             .putString("border_style", borderVal)
             .putString("checklist_mode", checklistVal)
-            .apply()
+            .putString("default_task_timeframe", defaultTaskTimeframeVal)
+
+        if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            editor.putString("task_timeframe_widget_$widgetId", defaultTaskTimeframeVal)
+            
+            // Save project selection if project selector is visible
+            val checkedRbId = radioGroupProjectSelect.checkedRadioButtonId
+            if (checkedRbId != -1) {
+                val rb = radioGroupProjectSelect.findViewById<RadioButton>(checkedRbId)
+                val selectedProjId = rb?.tag as? String
+                if (!selectedProjId.isNullOrEmpty()) {
+                    editor.putString("project_id_widget_$widgetId", selectedProjId)
+                }
+            }
+        }
+        editor.apply()
     }
 }

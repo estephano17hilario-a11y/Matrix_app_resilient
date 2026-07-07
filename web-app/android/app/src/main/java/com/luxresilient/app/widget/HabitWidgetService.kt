@@ -100,10 +100,59 @@ class HabitWidgetFactory(
             Log.d(TAG, "Loaded ${habits.size} habits, ${attributes.size} attributes")
 
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+            val isBadHabits = configPrefs.getBoolean("bad_habits_mode", false)
             val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
 
             val items = ArrayList<ChronologicalWidgetEntry>()
             val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
+
+            if (isBadHabits) {
+                val badHabits = client.fetchBadHabits()
+                for (bh in badHabits) {
+                    val baseColor = attributes[bh.attribute]?.color ?: "#ef4444"
+                    val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#ef4444") }
+                    
+                    val progressText = if (bh.isDynamic == true) {
+                        "${bh.dynamicBalance ?: 0} / ${bh.currentTarget ?: 0}"
+                    } else {
+                        "Racha: ${bh.streak}"
+                    }
+                    
+                    val percentage = if (bh.isDynamic == true) {
+                        val target = bh.currentTarget ?: 1
+                        val bal = bh.dynamicBalance ?: 0
+                        if (target != 0) ((bal.toFloat() / target) * 100).toInt().coerceIn(0, 100) else 0
+                    } else {
+                        0
+                    }
+
+                    // Create dummy HabitData to reuse views
+                    val dummyHabit = HabitData(
+                        id = bh.id,
+                        title = bh.title,
+                        type = if (bh.isDynamic == true) "QUANTITY" else "SIMPLE",
+                        streak = bh.streak,
+                        attribute = bh.attribute
+                    )
+
+                    items.add(ChronologicalWidgetEntry(
+                        uniqueId = bh.id,
+                        habitId = bh.id,
+                        type = "HABIT",
+                        text = bh.title,
+                        subText = progressText,
+                        time = "23:59",
+                        isCompleted = false,
+                        color = parsedColor,
+                        iconName = null, // uses attribute
+                        attribute = bh.attribute,
+                        percentage = percentage,
+                        rawHabit = dummyHabit
+                    ))
+                }
+                displayItems = items
+                return
+            }
 
             if (chronologicalSort) {
                 // Replicate TS HabitVisualView.tsx chronologicalItems logic
@@ -256,268 +305,357 @@ class HabitWidgetFactory(
         displayItems = emptyList()
     }
 
-    override fun getCount(): Int = displayItems.size
+    override fun getCount(): Int {
+        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
+        val cardColumns = if (chronologicalSort) configPrefs.getInt("chrono_columns", 1) else configPrefs.getInt("card_columns", 1)
+        return if (cardColumns == 2) {
+            (displayItems.size + 1) / 2
+        } else {
+            displayItems.size
+        }
+    }
 
     override fun getViewAt(position: Int): RemoteViews {
         try {
-            if (position >= displayItems.size) {
-                return RemoteViews(context.packageName, R.layout.widget_habit_item)
-            }
-
-            val item = displayItems[position]
-            val habit = item.rawHabit
-
-            // Read customization preferences
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
             val opacity = configPrefs.getInt("card_opacity", 90)
             val cardSize = configPrefs.getString("card_size", "medium") ?: "medium"
-            val checklistMode = configPrefs.getString("checklist_mode", "direct")
+            val checklistMode = configPrefs.getString("checklist_mode", "direct") ?: "direct"
+            val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
             val cardColumns = if (chronologicalSort) configPrefs.getInt("chrono_columns", 1) else configPrefs.getInt("card_columns", 1)
             val cardSpacing = configPrefs.getString("card_spacing", "medio") ?: "medio"
             val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"
             val borderStyle = configPrefs.getString("border_style", "both") ?: "both"
-            val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
 
-            // Choose layout file dynamically based on sizing and column configuration
-            val layoutId = if (cardColumns == 2) {
-                R.layout.widget_habit_item_grid
-            } else if (cardSize == "thin" || cardSize == "super_thin") {
-                R.layout.widget_habit_item_thin
-            } else {
-                R.layout.widget_habit_item
-            }
-            val views = RemoteViews(context.packageName, layoutId)
+            if (cardColumns == 2) {
+                val leftIndex = position * 2
+                val rightIndex = position * 2 + 1
 
-            val parsedColor = item.color
-
-            // 1. Set Card Spacing (Bottom Margin Simulation via Root Wrapper padding)
-            val density = context.resources.displayMetrics.density
-            val spacingPx = when (cardSpacing) {
-                "poco" -> (1.5f * density).toInt()  // Almost touching!
-                "grande" -> (12 * density).toInt()
-                else -> (6 * density).toInt()      // Medio / default
-            }
-            views.setViewPadding(R.id.habit_item_root_wrapper, 0, 0, 0, spacingPx)
-
-            // 2. Set Card Opacity via Background ImageView
-            val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
-            views.setInt(R.id.habit_card_background, "setImageAlpha", alphaInt)
-
-            // 3. Dynamic Glow / Gradient Background
-            val hasGlow = (gradientStyle != "none") || (borderStyle == "card" || borderStyle == "both")
-            if (hasGlow) {
-                views.setViewVisibility(R.id.habit_glow_background, View.VISIBLE)
-                // Adjust width for list vs grid layout
-                val widthPx = if (cardColumns == 2) (155 * density).toInt() else (320 * density).toInt()
-                val heightPx = when (cardSize) {
-                    "super_thin" -> (36 * density).toInt()
-                    "thin" -> (46 * density).toInt()
-                    "large" -> (84 * density).toInt()
-                    else -> (64 * density).toInt()
+                if (leftIndex >= displayItems.size) {
+                    return RemoteViews(context.packageName, R.layout.widget_habit_item)
                 }
-                val glowBitmap = createGlowBackground(widthPx, heightPx, parsedColor, opacity, gradientStyle, borderStyle)
-                views.setImageViewBitmap(R.id.habit_glow_background, glowBitmap)
-            } else {
-                views.setViewVisibility(R.id.habit_glow_background, View.GONE)
-            }
 
-            // 4. Custom Size Padding inside Card
-            val verticalPadding = when (cardSize) {
-                "super_thin" -> (3 * density).toInt()
-                "thin" -> (5 * density).toInt()
-                "large" -> (16 * density).toInt()
-                else -> (10 * density).toInt()
-            }
-            // Slightly narrower padding for two columns
-            val sidePadding = if (cardColumns == 2) (6 * density).toInt() else (10 * density).toInt()
-            views.setViewPadding(
-                R.id.habit_item_root, 
-                sidePadding, 
-                verticalPadding, 
-                sidePadding, 
-                verticalPadding
-            )
-
-            // 5. Custom flat color overlay (fallback when gradient style is none)
-            if (gradientStyle == "none") {
-                views.setViewVisibility(R.id.habit_color_overlay, View.VISIBLE)
-                val alphaFloat = (opacity / 100f) * 0.09f
-                views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
-                views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
-            } else {
-                views.setViewVisibility(R.id.habit_color_overlay, View.GONE)
-            }
-
-            // --- TITLE ---
-            views.setTextViewText(R.id.habit_title, item.text)
-            
-            // Adjust title text size for super_thin or columns
-            if (cardSize == "super_thin" || cardColumns == 2) {
-                views.setFloat(R.id.habit_title, "setTextSize", 11.5f)
-            } else if (cardSize == "thin") {
-                views.setFloat(R.id.habit_title, "setTextSize", 13f)
-            } else {
-                views.setFloat(R.id.habit_title, "setTextSize", 15f)
-            }
-
-            // Apply completed state (dimmed text)
-            if (item.isCompleted) {
-                views.setTextColor(R.id.habit_title, Color.parseColor("#99FFFFFF"))
-            } else {
-                views.setTextColor(R.id.habit_title, Color.WHITE)
-            }
-
-            // --- TRAIT ICON ---
-            val traitEmoji = if (item.iconName != null) {
-                getIconEmoji(item.iconName)
-            } else if (item.attribute != null) {
-                TraitIcons.getEmoji(item.attribute)
-            } else {
-                "⭐"
-            }
-            views.setTextViewText(R.id.habit_icon, traitEmoji)
-
-            // Toggle icon visibility based on settings switch
-            val showIcons = configPrefs.getBoolean("show_icons", true)
-            if (showIcons) {
-                views.setViewVisibility(R.id.habit_icon_container, View.VISIBLE)
-                views.setViewVisibility(R.id.habit_icon, View.VISIBLE)
-            } else {
-                views.setViewVisibility(R.id.habit_icon_container, View.GONE)
-                views.setViewVisibility(R.id.habit_icon, View.GONE)
-            }
-
-            // --- STREAK BADGE ---
-            // Hide streak badge for super thin, 2-columns or in chronological subtasks
-            if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2 && item.type != "SUBTASK") {
-                views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
-                views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
-                if (item.isCompleted) {
-                    views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
+                // Instead of adding nested remote views which crashes on some launchers,
+                // we use a pre-assembled layout that contains both left and right items.
+                val layoutId = if (cardSize == "thin" || cardSize == "super_thin") {
+                    R.layout.widget_habit_item_thin_2col
+                } else if (checklistMode == "expand") {
+                    // Just in case they want expand in 2 cols (not recommended but fallback)
+                    R.layout.widget_habit_item_grid_2col
                 } else {
-                    views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
+                    R.layout.widget_habit_item_grid_2col
                 }
-            } else {
-                views.setViewVisibility(R.id.habit_streak_container, View.GONE)
-            }
 
-            // --- PROGRESS TEXT ---
-            // In chronological view, display scheduled reminder time
-            val displayProgress = if (chronologicalSort) {
-                if (!item.subText.isNullOrEmpty() && item.subText != "Subtarea") {
-                    "${item.subText} • ${item.time}"
+                val rowView = RemoteViews(context.packageName, layoutId)
+                
+                val leftItem = displayItems[leftIndex]
+                buildSingleHabitView(leftItem, opacity, cardSize, checklistMode, chronologicalSort, cardColumns, cardSpacing, gradientStyle, borderStyle, configPrefs, rowView, "left_")
+
+                if (rightIndex < displayItems.size) {
+                    val rightItem = displayItems[rightIndex]
+                    buildSingleHabitView(rightItem, opacity, cardSize, checklistMode, chronologicalSort, cardColumns, cardSpacing, gradientStyle, borderStyle, configPrefs, rowView, "right_")
+                    rowView.setViewVisibility(context.resources.getIdentifier("right_habit_item_root_wrapper", "id", context.packageName), View.VISIBLE)
                 } else {
-                    item.time
+                    // Hide right item completely if odd number of elements
+                    rowView.setViewVisibility(context.resources.getIdentifier("right_habit_item_root_wrapper", "id", context.packageName), View.INVISIBLE)
                 }
+
+                return rowView
             } else {
-                item.subText ?: "0/1"
-            }
-            views.setTextViewText(R.id.habit_progress, displayProgress)
-            views.setTextColor(R.id.habit_progress, parsedColor)
-
-            // --- COMPLETE BUTTON (PROGRESS CIRCLE image) ---
-            val percentage = if (item.type == "SUBTASK") {
-                if (item.isCompleted) 100 else 0
-            } else {
-                item.percentage
-            }
-            val borderCircleEnabled = (borderStyle == "circle" || borderStyle == "both")
-            val circleBitmap = createCircleButton(context, parsedColor, item.isCompleted, percentage, borderCircleEnabled)
-            views.setImageViewBitmap(R.id.habit_complete_image, circleBitmap)
-            views.setViewVisibility(R.id.habit_check_icon, View.GONE) // Hidden because checkmark is inside bitmap
-
-            // --- SUBTASKS (for CHECKLIST type) ---
-            // In chronological sort, subtasks are individual cards, so hide checklist container!
-            val showSubtasks = !chronologicalSort && habit.type == "CHECKLIST" && 
-                               checklistMode == "direct" && habit.checklist != null && 
-                               habit.checklist!!.isNotEmpty() && cardSize != "super_thin" && 
-                               cardColumns != 2
-
-            if (showSubtasks) {
-                views.setViewVisibility(R.id.habit_subtasks_container, View.VISIBLE)
-                views.removeAllViews(R.id.habit_subtasks_container)
-
-                val todayDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
-                val visibleItems = habit.checklist!!.filter { subItem ->
-                    subItem.days == null || subItem.days.isEmpty() || subItem.days.contains(todayDay)
+                if (position >= displayItems.size) {
+                    return RemoteViews(context.packageName, R.layout.widget_habit_item)
                 }
-
-                for (subtask in visibleItems) {
-                    val subtaskView = RemoteViews(context.packageName, R.layout.widget_habit_subtask)
-                    subtaskView.setTextViewText(R.id.subtask_text, subtask.text ?: "Subtarea")
-
-                    if (subtask.completed) {
-                        subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_checked)
-                        subtaskView.setViewVisibility(R.id.subtask_check_icon, View.VISIBLE)
-                        subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#4DFFFFFF"))
-                    } else {
-                        subtaskView.setInt(R.id.subtask_check_circle, "setBackgroundResource", R.drawable.widget_subtask_unchecked)
-                        subtaskView.setViewVisibility(R.id.subtask_check_icon, View.GONE)
-                        subtaskView.setTextColor(R.id.subtask_text, Color.parseColor("#CCFFFFFF"))
-                    }
-
-                    // Subtask time
-                    if (!subtask.reminderTime.isNullOrEmpty()) {
-                        subtaskView.setViewVisibility(R.id.subtask_time, View.VISIBLE)
-                        subtaskView.setTextViewText(R.id.subtask_time, subtask.reminderTime)
-                    } else {
-                        subtaskView.setViewVisibility(R.id.subtask_time, View.GONE)
-                    }
-
-                    // Setup click intent for toggling subtask
-                    val toggleIntent = Intent().apply {
-                        action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
-                        putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
-                        putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, subtask.id)
-                    }
-                    subtaskView.setOnClickFillInIntent(R.id.subtask_text, toggleIntent)
-
-                    views.addView(R.id.habit_subtasks_container, subtaskView)
-                }
-            } else {
-                views.setViewVisibility(R.id.habit_subtasks_container, View.GONE)
+                val item = displayItems[position]
+                return buildSingleHabitView(item, opacity, cardSize, checklistMode, chronologicalSort, cardColumns, cardSpacing, gradientStyle, borderStyle, configPrefs)
             }
-
-            // --- CLICK HANDLING & INTENTS ---
-            val fillIntent = Intent().apply {
-                if (item.type == "SUBTASK") {
-                    // Click subtask complete button toggles subtask directly
-                    action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
-                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
-                    putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, item.subtaskId)
-                } else {
-                    val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
-                    if (useDialog) {
-                        action = HabitWidgetProvider.ACTION_OPEN_DIALOG
-                    } else {
-                        action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
-                    }
-                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
-                }
-            }
-            views.setOnClickFillInIntent(R.id.habit_complete_btn, fillIntent)
-
-            // Open app shortcut or open dialog when clicking card body
-            val cardFillIntent = Intent().apply {
-                val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
-                if (useDialog && item.type != "SUBTASK") {
-                    action = HabitWidgetProvider.ACTION_OPEN_DIALOG
-                } else {
-                    action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
-                }
-                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
-            }
-            views.setOnClickFillInIntent(R.id.habit_text_container, cardFillIntent)
-
-            return views
         } catch (e: Exception) {
             Log.e(TAG, "Error rendering view at position $position: ${e.message}", e)
-            
-            // Return a safe fallback view instead of crashing
             val fallback = RemoteViews(context.packageName, R.layout.widget_habit_item)
             fallback.setTextViewText(R.id.habit_title, "Error al cargar")
             return fallback
         }
+    }
+
+    private fun buildSingleHabitView(
+        item: ChronologicalWidgetEntry,
+        opacity: Int,
+        cardSize: String,
+        checklistMode: String,
+        chronologicalSort: Boolean,
+        cardColumns: Int,
+        cardSpacing: String,
+        gradientStyle: String,
+        borderStyle: String,
+        configPrefs: android.content.SharedPreferences,
+        viewsIn: RemoteViews? = null,
+        prefix: String = ""
+    ): RemoteViews {
+        val habit = item.rawHabit
+        
+        // Choose layout file dynamically based on sizing and column configuration
+        val layoutId = if (cardColumns == 2) {
+            R.layout.widget_habit_item_grid
+        } else if (cardSize == "thin" || cardSize == "super_thin") {
+            R.layout.widget_habit_item_thin
+        } else {
+            R.layout.widget_habit_item
+        }
+        val views = viewsIn ?: RemoteViews(context.packageName, layoutId)
+
+        val parsedColor = item.color
+
+        // Helper to get prefixed ID
+        fun getId(name: String): Int {
+            return if (prefix.isEmpty()) {
+                context.resources.getIdentifier(name, "id", context.packageName)
+            } else {
+                context.resources.getIdentifier(prefix + name, "id", context.packageName)
+            }
+        }
+
+        // 1. Set Card Spacing (Bottom Margin Simulation via Root Wrapper padding)
+        val density = context.resources.displayMetrics.density
+        val spacingPx = when (cardSpacing) {
+            "poco" -> 0  // Pegados!
+            "grande" -> (12 * density).toInt()
+            else -> (6 * density).toInt()      // Medio / default
+        }
+        views.setViewPadding(getId("habit_item_root_wrapper"), 0, 0, 0, spacingPx)
+
+        // 2. Set Card Opacity via Background ImageView
+        val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
+        views.setInt(getId("habit_card_background"), "setImageAlpha", alphaInt)
+
+        // 3. Dynamic Glow / Gradient Background
+        val hasGlow = (gradientStyle != "none") || (borderStyle == "card" || borderStyle == "both")
+        if (hasGlow) {
+            views.setViewVisibility(getId("habit_glow_background"), View.VISIBLE)
+            // Adjust width for list vs grid layout
+            val widthPx = if (cardColumns == 2) (155 * density).toInt() else (320 * density).toInt()
+            val heightPx = when (cardSize) {
+                "super_thin" -> (36 * density).toInt()
+                "thin" -> (46 * density).toInt()
+                "large" -> (84 * density).toInt()
+                else -> (64 * density).toInt()
+            }
+            val glowBitmap = createGlowBackground(widthPx, heightPx, parsedColor, opacity, gradientStyle, borderStyle)
+            views.setImageViewBitmap(getId("habit_glow_background"), glowBitmap)
+        } else {
+            views.setViewVisibility(getId("habit_glow_background"), View.GONE)
+        }
+
+        // 4. Custom Size Padding inside Card
+        val verticalPadding = when (cardSize) {
+            "super_thin" -> (3 * density).toInt()
+            "thin" -> (5 * density).toInt()
+            "large" -> (16 * density).toInt()
+            else -> (10 * density).toInt()
+        }
+        // Slightly narrower padding for two columns
+        val sidePadding = if (cardColumns == 2) (6 * density).toInt() else (10 * density).toInt()
+        views.setViewPadding(
+            R.id.habit_item_root, 
+            sidePadding, 
+            verticalPadding, 
+            sidePadding, 
+            verticalPadding
+        )
+
+        // 5. Custom flat color overlay (fallback when gradient style is none)
+        if (gradientStyle == "none") {
+            views.setViewVisibility(R.id.habit_color_overlay, View.VISIBLE)
+            val alphaFloat = (opacity / 100f) * 0.09f
+            views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
+            views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
+        } else {
+            views.setViewVisibility(R.id.habit_color_overlay, View.GONE)
+        }
+
+        // --- TITLE ---
+        views.setTextViewText(getId("habit_title"), item.text)
+        
+        // Adjust title text size for super_thin or columns
+        if (cardSize == "super_thin" || cardColumns == 2) {
+            views.setFloat(getId("habit_title"), "setTextSize", 11.5f)
+        } else if (cardSize == "thin") {
+            views.setFloat(getId("habit_title"), "setTextSize", 13f)
+        } else {
+            views.setFloat(getId("habit_title"), "setTextSize", 15f)
+        }
+
+        // Apply completed state (dimmed text)
+        if (item.isCompleted) {
+            views.setTextColor(getId("habit_title"), Color.parseColor("#99FFFFFF"))
+        } else {
+            views.setTextColor(getId("habit_title"), Color.WHITE)
+        }
+
+        // --- TRAIT ICON ---
+        val traitEmoji = if (item.iconName != null) {
+            getIconEmoji(item.iconName)
+        } else if (item.attribute != null) {
+            TraitIcons.getEmoji(item.attribute)
+        } else {
+            "⭐"
+        }
+        views.setTextViewText(R.id.habit_icon, traitEmoji)
+
+        // Toggle icon visibility based on settings switch
+        val showIcons = configPrefs.getBoolean("show_icons", true)
+        if (showIcons) {
+            views.setViewVisibility(R.id.habit_icon_container, View.VISIBLE)
+            views.setViewVisibility(R.id.habit_icon, View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.habit_icon_container, View.GONE)
+            views.setViewVisibility(R.id.habit_icon, View.GONE)
+        }
+
+        // --- STREAK BADGE ---
+        // Hide streak badge for super thin, 2-columns or in chronological subtasks
+        if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2 && item.type != "SUBTASK") {
+            views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
+            views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
+            if (item.isCompleted) {
+                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
+            } else {
+                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
+            }
+        } else {
+            views.setViewVisibility(R.id.habit_streak_container, View.GONE)
+        }
+
+        // --- PROGRESS TEXT & FORMATTING ---
+        // Parse time if necessary
+        var formattedTime = item.time
+        val is12hFormat = configPrefs.getBoolean("time_format_12h", false)
+        if (is12hFormat && chronologicalSort && item.time != "23:59") {
+            try {
+                val sdf24 = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
+                val sdf12 = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US)
+                val date = sdf24.parse(item.time)
+                if (date != null) {
+                    formattedTime = sdf12.format(date).lowercase(java.util.Locale.US)
+                }
+            } catch (e: Exception) {}
+        }
+        
+        val displayProgress = if (chronologicalSort) {
+            if (!item.subText.isNullOrEmpty() && item.subText != "Subtarea") {
+                "${item.subText} • $formattedTime"
+            } else {
+                formattedTime
+            }
+        } else {
+            item.subText ?: "0/1"
+        }
+        views.setTextViewText(R.id.habit_progress, displayProgress)
+        views.setTextColor(R.id.habit_progress, parsedColor)
+
+        // --- COMPLETE BUTTON (PROGRESS CIRCLE image) ---
+        val percentage = if (item.type == "SUBTASK") {
+            if (item.isCompleted) 100 else 0
+        } else {
+            item.percentage
+        }
+        val borderCircleEnabled = (borderStyle == "circle" || borderStyle == "both")
+        val circleBitmap = createCircleButton(context, parsedColor, item.isCompleted, percentage, borderCircleEnabled)
+        views.setImageViewBitmap(R.id.habit_complete_image, circleBitmap)
+        views.setViewVisibility(getId("habit_check_icon"), View.GONE) // Hidden because checkmark is inside bitmap
+
+        // --- SUBTASKS (for CHECKLIST type) ---
+        // In chronological sort, subtasks are individual cards, so hide checklist container!
+        val showSubtasks = !chronologicalSort && habit.type == "CHECKLIST" && 
+                           checklistMode == "direct" && habit.checklist != null && 
+                           habit.checklist!!.isNotEmpty() && cardSize != "super_thin" && 
+                           cardColumns != 2
+
+        if (showSubtasks) {
+            views.setViewVisibility(getId("habit_subtasks_container"), View.VISIBLE)
+            views.removeAllViews(getId("habit_subtasks_container"))
+
+            val todayDay = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK) - 1
+            val visibleItems = habit.checklist!!.filter { subItem ->
+                subItem.days == null || subItem.days.isEmpty() || subItem.days.contains(todayDay)
+            }
+
+            for (subtask in visibleItems) {
+                val subtaskView = RemoteViews(context.packageName, R.layout.widget_habit_subtask)
+                subtaskView.setTextViewText(getId("subtask_text"), subtask.text ?: "Subtarea")
+
+                if (subtask.completed) {
+                    subtaskView.setInt(getId("subtask_check_circle"), "setBackgroundResource", R.drawable.widget_subtask_checked)
+                    subtaskView.setViewVisibility(getId("subtask_check_icon"), View.VISIBLE)
+                    subtaskView.setTextColor(getId("subtask_text"), Color.parseColor("#4DFFFFFF"))
+                } else {
+                    subtaskView.setInt(getId("subtask_check_circle"), "setBackgroundResource", R.drawable.widget_subtask_unchecked)
+                    subtaskView.setViewVisibility(getId("subtask_check_icon"), View.GONE)
+                    subtaskView.setTextColor(getId("subtask_text"), Color.parseColor("#CCFFFFFF"))
+                }
+
+                // Subtask time
+                if (!subtask.reminderTime.isNullOrEmpty()) {
+                    var subTimeFormatted = subtask.reminderTime
+                    if (is12hFormat) {
+                        try {
+                            val sdf24 = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
+                            val sdf12 = java.text.SimpleDateFormat("h:mm a", java.util.Locale.US)
+                            val date = sdf24.parse(subtask.reminderTime)
+                            if (date != null) subTimeFormatted = sdf12.format(date).lowercase(java.util.Locale.US)
+                        } catch (e: Exception) {}
+                    }
+                    subtaskView.setViewVisibility(getId("subtask_time"), View.VISIBLE)
+                    subtaskView.setTextViewText(getId("subtask_time"), subTimeFormatted)
+                } else {
+                    subtaskView.setViewVisibility(getId("subtask_time"), View.GONE)
+                }
+
+                // Setup click intent for toggling subtask
+                val toggleIntent = Intent().apply {
+                    action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
+                    putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, habit.id)
+                    putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, subtask.id)
+                }
+                subtaskView.setOnClickFillInIntent(getId("subtask_text"), toggleIntent)
+
+                views.addView(getId("habit_subtasks_container"), subtaskView)
+            }
+        } else {
+            views.setViewVisibility(getId("habit_subtasks_container"), View.GONE)
+        }
+
+        // --- CLICK HANDLING & INTENTS ---
+        val fillIntent = Intent().apply {
+            if (item.type == "SUBTASK") {
+                // Click subtask complete button toggles subtask directly
+                action = HabitWidgetProvider.ACTION_TOGGLE_SUBTASK
+                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+                putExtra(HabitWidgetProvider.EXTRA_SUBTASK_ID, item.subtaskId)
+            } else {
+                val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
+                if (useDialog) {
+                    action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+                } else {
+                    action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
+                }
+                putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+            }
+        }
+        views.setOnClickFillInIntent(getId("habit_complete_btn"), fillIntent)
+
+        // Open app shortcut or open dialog when clicking card body
+        val cardFillIntent = Intent().apply {
+            val useDialog = (habit.type == "CHECKLIST" && checklistMode == "dialog") || (habit.type == "QUANTITY")
+            if (useDialog && item.type != "SUBTASK") {
+                action = HabitWidgetProvider.ACTION_OPEN_DIALOG
+            } else {
+                action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
+            }
+            putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+        }
+        views.setOnClickFillInIntent(R.id.habit_text_container, cardFillIntent)
+
+        return views
     }
 
     override fun getLoadingView(): RemoteViews {

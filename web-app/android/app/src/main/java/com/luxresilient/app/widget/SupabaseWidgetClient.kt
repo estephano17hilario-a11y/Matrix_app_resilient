@@ -292,7 +292,7 @@ class SupabaseWidgetClient(private val context: Context) {
     /**
      * Fetch tasks (quests)
      */
-    fun fetchTasks(): List<TaskData> {
+    fun fetchTasks(includeCompleted: Boolean = false): List<TaskData> {
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyList()
 
@@ -319,7 +319,7 @@ class SupabaseWidgetClient(private val context: Context) {
                 if (data != null) {
                     try {
                         val task = gson.fromJson(data, TaskData::class.java)
-                        if (task.completed != true) {
+                        if (includeCompleted || task.completed != true) {
                             tasks.add(task)
                         }
                     } catch (e: Exception) {}
@@ -330,6 +330,7 @@ class SupabaseWidgetClient(private val context: Context) {
             emptyList()
         }
     }
+
 
     fun completeTask(taskId: String): Boolean {
         val (userId, accessToken) = getCredentials()
@@ -633,4 +634,91 @@ class SupabaseWidgetClient(private val context: Context) {
         val (userId, accessToken) = getCredentials()
         return userId != null && accessToken != null
     }
+
+    /**
+     * Fetch projects for the user
+     */
+    fun fetchProjects(): List<ProjectData> {
+        var (userId, accessToken) = getCredentials()
+        if (userId == null || accessToken == null) return emptyList()
+
+        return try {
+            val encodedUserId = URLEncoder.encode(userId, "UTF-8")
+            val url = "$SUPABASE_URL$REST_PATH/user_collections?user_id=eq.$encodedUserId&collection_name=eq.projects&deleted=eq.false&select=data"
+            
+            var response = makeGetRequest(url, accessToken)
+            if (response == null) {
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    response = makeGetRequest(url, newAccessToken)
+                }
+            }
+
+            if (response == null) return emptyList()
+
+            val jsonArray = JsonParser.parseString(response).asJsonArray
+            val projects = mutableListOf<ProjectData>()
+
+            for (element in jsonArray) {
+                val obj = element.asJsonObject
+                val data = obj.getAsJsonObject("data")
+                if (data != null) {
+                    try {
+                        val project = gson.fromJson(data, ProjectData::class.java)
+                        projects.add(project)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing project: ${e.message}")
+                    }
+                }
+            }
+            projects
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching projects: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Fetch daily feed entries for the user
+     */
+    fun fetchDailyFeed(): List<DailyFeedEntryData> {
+        var (userId, accessToken) = getCredentials()
+        if (userId == null || accessToken == null) return emptyList()
+
+        return try {
+            val encodedUserId = URLEncoder.encode(userId, "UTF-8")
+            val url = "$SUPABASE_URL$REST_PATH/user_collections?user_id=eq.$encodedUserId&collection_name=eq.dailyFeed&deleted=eq.false&select=data"
+            
+            var response = makeGetRequest(url, accessToken)
+            if (response == null) {
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    response = makeGetRequest(url, newAccessToken)
+                }
+            }
+
+            if (response == null) return emptyList()
+
+            val jsonArray = JsonParser.parseString(response).asJsonArray
+            val feeds = mutableListOf<DailyFeedEntryData>()
+
+            for (element in jsonArray) {
+                val obj = element.asJsonObject
+                val data = obj.getAsJsonObject("data")
+                if (data != null) {
+                    try {
+                        val feed = gson.fromJson(data, DailyFeedEntryData::class.java)
+                        feeds.add(feed)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing dailyFeed: ${e.message}")
+                    }
+                }
+            }
+            feeds
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching dailyFeed: ${e.message}", e)
+            emptyList()
+        }
+    }
 }
+

@@ -130,6 +130,58 @@
             android:name=".widget.HabitWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
+            
+        <!-- Task Widget Receiver -->
+        <receiver
+            android:name=".widget.TaskWidgetProvider"
+            android:exported="true"
+            android:label="Matrix Quests">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.COMPLETE_TASK" />
+                <action android:name="com.luxresilient.app.REFRESH_TASKS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/task_widget_info" />
+        </receiver>
+
+        <!-- Task Widget ListView Service -->
+        <service
+            android:name=".widget.TaskWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <!-- Focus Graph Widget Receiver -->
+        <receiver
+            android:name=".widget.FocusWidgetProvider"
+            android:exported="true"
+            android:label="Matrix Enfoque">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.CYCLE_FOCUS_TIMEFRAME" />
+                <action android:name="com.luxresilient.app.CYCLE_FOCUS_DIVISION" />
+                <action android:name="com.luxresilient.app.REFRESH_FOCUS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/focus_widget_info" />
+        </receiver>
+
+        <!-- Project Progress Widget Receiver -->
+        <receiver
+            android:name=".widget.ProjectWidgetProvider"
+            android:exported="true"
+            android:label="Matrix Progreso Proyecto">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_PROJECT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/project_widget_info" />
+        </receiver>
+
 
         <!-- Google Play Services version -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />

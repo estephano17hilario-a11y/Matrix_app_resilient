@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 import com.luxresilient.app.R
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ class HabitWidgetProvider : AppWidgetProvider() {
         const val ACTION_OPEN_APP_SHORTCUT = "com.luxresilient.app.OPEN_APP_SHORTCUT"
         const val ACTION_TOGGLE_CHRONOLOGICAL = "com.luxresilient.app.TOGGLE_CHRONOLOGICAL"
         const val ACTION_TOGGLE_FILTER = "com.luxresilient.app.TOGGLE_FILTER"
+        const val ACTION_TOGGLE_BAD_HABITS = "com.luxresilient.app.TOGGLE_BAD_HABITS"
         const val EXTRA_HABIT_ID = "habit_id"
         const val EXTRA_SUBTASK_ID = "subtask_id"
     }
@@ -88,6 +90,7 @@ class HabitWidgetProvider : AppWidgetProvider() {
                     launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     context.startActivity(launchIntent)
                 }
+            }
             ACTION_TOGGLE_CHRONOLOGICAL -> {
                 Log.d(TAG, "Toggle chronological mode")
                 val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
@@ -100,6 +103,15 @@ class HabitWidgetProvider : AppWidgetProvider() {
                 val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
                 val current = prefs.getBoolean("hide_completed", false)
                 prefs.edit().putBoolean("hide_completed", !current).apply()
+                refreshAllWidgets(context, true)
+            }
+            ACTION_TOGGLE_BAD_HABITS -> {
+                Log.d(TAG, "Toggle bad habits mode")
+                val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                val current = prefs.getBoolean("bad_habits_mode", false)
+                prefs.edit().putBoolean("bad_habits_mode", !current).apply()
+                // Disable chrono mode if we turn on bad habits to avoid conflict
+                if (!current) prefs.edit().putBoolean("chronological_sort", false).apply()
                 refreshAllWidgets(context, true)
             }
         }
@@ -136,16 +148,27 @@ class HabitWidgetProvider : AppWidgetProvider() {
         // Read preferences for column distribution and background opacity
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val isChrono = prefs.getBoolean("chronological_sort", false)
-        val columns = if (isChrono) prefs.getInt("chrono_columns", 1) else prefs.getInt("card_columns", 1)
+        val isBadHabits = prefs.getBoolean("bad_habits_mode", false)
         val bgOpacity = prefs.getInt("widget_background_opacity", 85)
 
-        // Build the main widget view (different layout for grid vs list to prevent cached overlaps)
-        val layoutId = if (columns == 2) R.layout.widget_habit_list_grid else R.layout.widget_habit_list
-        val views = RemoteViews(context.packageName, layoutId)
+        // Always use ListView, even for 2 columns (handled internally by Factory)
+        val views = RemoteViews(context.packageName, R.layout.widget_habit_list)
 
         // Apply Overall Widget Background Opacity
         val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
         views.setInt(R.id.widget_background_image, "setImageAlpha", bgAlphaInt)
+
+        // Setup Title and Icon
+        if (isBadHabits) {
+            views.setTextViewText(R.id.widget_title, "Malos Hábitos")
+            views.setTextViewText(R.id.widget_header_emoji, "🚫")
+        } else if (isChrono) {
+            views.setTextViewText(R.id.widget_title, "Protocolo Cronológico")
+            views.setTextViewText(R.id.widget_header_emoji, "⚡")
+        } else {
+            views.setTextViewText(R.id.widget_title, "Protocolos")
+            views.setTextViewText(R.id.widget_header_emoji, "📋")
+        }
 
         // Setup RemoteViewsService
         val serviceIntent = Intent(context, HabitWidgetService::class.java).apply {
@@ -153,22 +176,16 @@ class HabitWidgetProvider : AppWidgetProvider() {
             data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
         }
 
-        // Setup click template for list/grid items - CRITICAL: Leave action null so fill-in intent actions merge correctly!
+        // Setup click template for list items
         val completeTemplate = Intent(context, HabitWidgetProvider::class.java)
         val completePending = PendingIntent.getBroadcast(
             context, 1, completeTemplate,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
-        if (columns == 2) {
-            views.setRemoteAdapter(R.id.widget_habit_grid, serviceIntent)
-            views.setEmptyView(R.id.widget_habit_grid, R.id.widget_empty_text)
-            views.setPendingIntentTemplate(R.id.widget_habit_grid, completePending)
-        } else {
-            views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
-            views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
-            views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)
-        }
+        views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
+        views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
+        views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)
 
         // Setup settings button (opens custom config activity)
         val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
@@ -200,11 +217,10 @@ class HabitWidgetProvider : AppWidgetProvider() {
         val allowChronoSwitch = prefs.getBoolean("allow_chronological_switch", false)
         if (allowChronoSwitch) {
             views.setViewVisibility(R.id.widget_chrono_btn, View.VISIBLE)
-            val isChrono = prefs.getBoolean("chronological_sort", false)
             if (isChrono) {
-                views.setTextViewText(R.id.widget_chrono_icon, "⏱️")
+                views.setTextViewText(R.id.widget_chrono_icon, "⚡")
             } else {
-                views.setTextViewText(R.id.widget_chrono_icon, "📋")
+                views.setTextViewText(R.id.widget_chrono_icon, "⏱️")
             }
             val chronoIntent = Intent(context, HabitWidgetProvider::class.java).apply {
                 action = ACTION_TOGGLE_CHRONOLOGICAL
@@ -216,6 +232,27 @@ class HabitWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_chrono_btn, chronoPending)
         } else {
             views.setViewVisibility(R.id.widget_chrono_btn, View.GONE)
+        }
+
+        // Setup bad habits toggle button
+        val allowBadHabitsSwitch = prefs.getBoolean("allow_bad_habits_switch", true) // Default to true if not set
+        if (allowBadHabitsSwitch) {
+            views.setViewVisibility(R.id.widget_bad_habit_btn, View.VISIBLE)
+            if (isBadHabits) {
+                views.setTextViewText(R.id.widget_bad_habit_icon, "🚫")
+            } else {
+                views.setTextViewText(R.id.widget_bad_habit_icon, "🚬")
+            }
+            val badHabitsIntent = Intent(context, HabitWidgetProvider::class.java).apply {
+                action = ACTION_TOGGLE_BAD_HABITS
+            }
+            val badHabitsPending = PendingIntent.getBroadcast(
+                context, 5, badHabitsIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_bad_habit_btn, badHabitsPending)
+        } else {
+            views.setViewVisibility(R.id.widget_bad_habit_btn, View.GONE)
         }
 
         // Open app when clicking on header

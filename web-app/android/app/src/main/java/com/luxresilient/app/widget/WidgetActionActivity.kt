@@ -49,7 +49,9 @@ class WidgetActionActivity : Activity() {
     private lateinit var layoutSubtasksList: LinearLayout
 
     private var currentHabit: HabitData? = null
+    private var currentBadHabit: BadHabitData? = null
     private var habitId: String = ""
+    private var isBadHabit: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +63,7 @@ class WidgetActionActivity : Activity() {
 
         client = SupabaseWidgetClient(this)
         habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: ""
+        isBadHabit = intent.getBooleanExtra("is_bad_habit", false)
 
         if (habitId.isEmpty()) {
             Log.e(TAG, "No habit ID provided to WidgetActionActivity")
@@ -94,19 +97,57 @@ class WidgetActionActivity : Activity() {
 
     private fun loadHabitData() {
         CoroutineScope(Dispatchers.IO).launch {
-            val habits = client.fetchHabits()
-            val habit = habits.find { it.id == habitId }
-            
-            withContext(Dispatchers.Main) {
-                if (habit != null) {
-                    currentHabit = habit
-                    bindHabitViews(habit)
-                } else {
-                    Log.e(TAG, "Habit $habitId not found in loaded habits list")
-                    finish()
+            if (isBadHabit) {
+                val badHabits = client.fetchBadHabits()
+                val badHabit = badHabits.find { it.id == habitId }
+                withContext(Dispatchers.Main) {
+                    if (badHabit != null) {
+                        currentBadHabit = badHabit
+                        bindBadHabitViews(badHabit)
+                    } else {
+                        Log.e(TAG, "Bad Habit $habitId not found")
+                        finish()
+                    }
+                }
+            } else {
+                val habits = client.fetchHabits()
+                val habit = habits.find { it.id == habitId }
+                
+                withContext(Dispatchers.Main) {
+                    if (habit != null) {
+                        currentHabit = habit
+                        bindHabitViews(habit)
+                    } else {
+                        Log.e(TAG, "Habit $habitId not found in loaded habits list")
+                        finish()
+                    }
                 }
             }
         }
+    }
+
+    private fun bindBadHabitViews(habit: BadHabitData) {
+        txtTitle.text = habit.title ?: "Sin título"
+        txtAttr.text = "Mal Hábito"
+        
+        val baseColor = "#ef4444" // Default red for bad habits
+        val parsedColor = Color.parseColor(baseColor)
+        txtAttr.setTextColor(parsedColor)
+
+        val emoji = "🚫"
+        txtIcon.text = emoji
+
+        if (habit.dynamicBalance != null && habit.currentTarget != null) {
+            setupBadHabitQuantityUI(habit)
+        } else {
+            // Simple bad habit
+            toggleSimpleBadHabit(habit)
+        }
+    }
+    
+    private fun toggleSimpleBadHabit(habit: BadHabitData) {
+        // Not implemented for simple bad habits in this widget action yet
+        finish()
     }
 
     private fun bindHabitViews(habit: HabitData) {
@@ -186,6 +227,42 @@ class WidgetActionActivity : Activity() {
                 }
             }
             updateQuantityInDatabase(1)
+        }
+    }
+
+    private fun setupBadHabitQuantityUI(habit: BadHabitData) {
+        containerQty.visibility = View.VISIBLE
+        containerChecklist.visibility = View.GONE
+
+        var currentVal = habit.dynamicBalance ?: 0
+        val targetVal = habit.currentTarget ?: 1
+
+        txtQtyCurrent.text = currentVal.toString()
+        txtQtyTarget.text = "Meta: $targetVal"
+
+        btnQtyMinus.setOnClickListener {
+            currentVal--
+            txtQtyCurrent.text = currentVal.toString()
+            if (soundEnabled) WidgetSoundPlayer.playTickSound()
+            updateBadHabitQuantityInDatabase(-1)
+        }
+
+        btnQtyPlus.setOnClickListener {
+            currentVal++
+            txtQtyCurrent.text = currentVal.toString()
+            if (soundEnabled) WidgetSoundPlayer.playTickSound()
+            updateBadHabitQuantityInDatabase(1)
+        }
+    }
+
+    private fun updateBadHabitQuantityInDatabase(amount: Int) {
+        val habit = currentBadHabit ?: return
+        CoroutineScope(Dispatchers.IO).launch {
+            val success = client.incrementBadHabitQuantity(habit, amount)
+            if (success) {
+                val updatedHabits = client.fetchBadHabits()
+                currentBadHabit = updatedHabits.find { it.id == habitId }
+            }
         }
     }
 

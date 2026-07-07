@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Overall background image -->
+    <ImageView
+        android:id="@+id/project_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_background" />
+
+    <!-- Unconfigured State (Initially visible) -->
+    <LinearLayout
+        android:id="@+id/project_unconfigured_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btn_select_project"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Selecciona el proyecto"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:backgroundTint="#26FFFFFF"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+    <!-- Configured State -->
+    <RelativeLayout
+        android:id="@+id/project_configured_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp"
+        android:visibility="visible">
+
+        <!-- Custom Glow/Gradient Card Background -->
+        <ImageView
+            android:id="@+id/project_glow_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Left: Icon + Streak -->
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp">
+
+                <FrameLayout
+                    android:id="@+id/project_icon_container"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/widget_icon_container_bg">
+
+                    <TextView
+                        android:id="@+id/project_icon_emoji"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="📁"
+                        android:textSize="18sp" />
+
+                </FrameLayout>
+
+                <!-- Streak badge at the top-right of the icon -->
+                <TextView
+                    android:id="@+id/project_streak_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignTop="@id/project_icon_container"
+                    android:layout_alignEnd="@id/project_icon_container"
+                    android:layout_marginTop="-4dp"
+                    android:layout_marginEnd="-4dp"
+                    android:background="@drawable/widget_streak_badge_bg"
+                    android:textColor="#FF9800"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:text="🔥 3"
+                    android:visibility="visible" />
+
+            </RelativeLayout>
+
+            <!-- Middle: Progress details & Bar -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/project_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:text="Proyecto X" />
+
+                    <TextView
+                        android:id="@+id/project_time_fraction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:textColor="#A0A0A0"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:text="0h 00m / 1h 10m" />
+
+                </RelativeLayout>
+
+                <!-- Progress bar bar -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="4dp"
+                    android:background="#26FFFFFF">
+
+                    <ImageView
+                        android:id="@+id/project_progress_bar_fill"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitXY"
+                        android:background="#6366f1" />
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- Right: Play Button -->
+            <FrameLayout
+                android:id="@+id/project_play_btn"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_refresh_bg"
+                android:clickable="true">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="▶"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</FrameLayout>

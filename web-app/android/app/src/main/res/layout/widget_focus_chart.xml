@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/focus_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_background" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <!-- Header Row -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <TextView
+                android:id="@+id/focus_widget_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.05"
+                android:text="ENFOQUE"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+
+            <!-- Selector Controls (Right Side) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:orientation="horizontal">
+
+                <!-- Division Mode Button -->
+                <FrameLayout
+                    android:id="@+id/focus_widget_division_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:background="@drawable/widget_refresh_bg"
+                    android:clickable="true">
+                    <TextView
+                        android:id="@+id/focus_widget_division_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="SIN DIV"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="10sp" />
+                </FrameLayout>
+
+                <!-- Timeframe Cycle Button -->
+                <FrameLayout
+                    android:id="@+id/focus_widget_timeframe_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:background="@drawable/widget_refresh_bg"
+                    android:clickable="true">
+                    <TextView
+                        android:id="@+id/focus_widget_timeframe_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="SEM"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="10sp" />
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </RelativeLayout>
+
+        <!-- Dynamic Chart/Goal Image -->
+        <ImageView
+            android:id="@+id/focus_chart_image"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scaleType="fitXY" />
+
+    </LinearLayout>
+</FrameLayout>
