@@ -47,6 +47,10 @@ class WidgetConfigActivity : Activity() {
     private lateinit var radioGroupProjectSelect: RadioGroup
     private var fetchedProjects: List<ProjectData> = emptyList()
     
+    private lateinit var habitsSectionContainer1: LinearLayout
+    private lateinit var habitsSectionContainer2: LinearLayout
+    private lateinit var cardOpacityContainer: LinearLayout
+    
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +89,10 @@ class WidgetConfigActivity : Activity() {
         
         projectSelectContainer = findViewById(R.id.config_project_select_container)
         radioGroupProjectSelect = findViewById(R.id.config_project_select_group)
+        
+        habitsSectionContainer1 = findViewById(R.id.config_habits_section_container_1)
+        habitsSectionContainer2 = findViewById(R.id.config_habits_section_container_2)
+        cardOpacityContainer = findViewById(R.id.config_card_opacity_container)
 
         val btnCancel = findViewById<Button>(R.id.config_cancel_btn)
         val btnSave = findViewById<Button>(R.id.config_save_btn)
@@ -98,15 +106,38 @@ class WidgetConfigActivity : Activity() {
         // Load saved preferences
         loadPreferences()
 
-        // Toggle project selector visibility based on widget class
+        // Toggle sections visibility based on widget class (different UI for each widget)
         try {
             val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)
-            val isProjectWidget = providerInfo?.provider?.className?.contains("ProjectWidgetProvider") == true
+            val className = providerInfo?.provider?.className ?: ""
+            val isProjectWidget = className.contains("ProjectWidgetProvider")
+            val isFocusWidget = className.contains("FocusWidgetProvider")
+            
+            val txtConfigTitle = findViewById<TextView>(R.id.config_title)
+            if (isProjectWidget) {
+                txtConfigTitle.text = "Ajustes de Proyecto"
+            } else if (isFocusWidget) {
+                txtConfigTitle.text = "Ajustes de Enfoque"
+            } else {
+                txtConfigTitle.text = "Ajustes de Widget"
+            }
+
             if (isProjectWidget) {
                 projectSelectContainer.visibility = View.VISIBLE
                 loadProjectsForSelection()
+                habitsSectionContainer1.visibility = View.GONE
+                habitsSectionContainer2.visibility = View.GONE
+                cardOpacityContainer.visibility = View.GONE
+            } else if (isFocusWidget) {
+                projectSelectContainer.visibility = View.GONE
+                habitsSectionContainer1.visibility = View.GONE
+                habitsSectionContainer2.visibility = View.GONE
+                cardOpacityContainer.visibility = View.GONE
             } else {
                 projectSelectContainer.visibility = View.GONE
+                habitsSectionContainer1.visibility = View.VISIBLE
+                habitsSectionContainer2.visibility = View.VISIBLE
+                cardOpacityContainer.visibility = View.VISIBLE
             }
         } catch (e: Exception) {
             projectSelectContainer.visibility = View.GONE

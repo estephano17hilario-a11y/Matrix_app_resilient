@@ -30,6 +30,25 @@ class SupabaseWidgetClient(private val context: Context) {
 
     private val gson = Gson()
 
+    private fun <T> readFromLocalCache(collectionName: String, typeOfT: java.lang.reflect.Type): List<T>? {
+        try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val capKeys = capPrefs.all
+            val matchingKey = capKeys.keys.find { it.startsWith("MATRIX_CACHED_COLLECTION:") && it.endsWith(":$collectionName") }
+            if (matchingKey != null) {
+                val cachedJson = capPrefs.getString(matchingKey, null) ?: return null
+                val envelope = JsonParser.parseString(cachedJson).asJsonObject
+                val dataElement = envelope.get("data") ?: return null
+                if (dataElement.isJsonArray) {
+                    return gson.fromJson(dataElement, typeOfT)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading local cache for $collectionName: ${e.message}")
+        }
+        return null
+    }
+
     private fun getCredentials(): Pair<String?, String?> {
         // ALWAYS check CapacitorStorage first as it is the Single Source of Truth
         try {
@@ -72,6 +91,12 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch all habits for the authenticated user
      */
     fun fetchHabits(): List<HabitData> {
+        val cached = readFromLocalCache<HabitData>("habits", object : TypeToken<List<HabitData>>() {}.type)
+        if (cached != null && cached.isNotEmpty()) {
+            Log.d(TAG, "fetchHabits: Loaded ${cached.size} habits from local CapacitorStorage cache")
+            return filterTodayHabits(cached).sortedBy { it.order ?: Int.MAX_VALUE }
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) {
             Log.w(TAG, "No credentials available")
@@ -128,6 +153,16 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch all attributes for the user (to get custom colors)
      */
     fun fetchAttributes(): Map<String, AttributeData> {
+        val cached = readFromLocalCache<AttributeData>("attributes", object : TypeToken<List<AttributeData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchAttributes: Loaded ${cached.size} attributes from local CapacitorStorage cache")
+            val attributesMap = mutableMapOf<String, AttributeData>()
+            for (attr in cached) {
+                attributesMap[attr.id] = attr
+            }
+            return attributesMap
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyMap()
 
@@ -293,6 +328,12 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch tasks (quests)
      */
     fun fetchTasks(includeCompleted: Boolean = false): List<TaskData> {
+        val cached = readFromLocalCache<TaskData>("quests", object : TypeToken<List<TaskData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchTasks: Loaded ${cached.size} tasks from local CapacitorStorage cache (includeCompleted=$includeCompleted)")
+            return if (includeCompleted) cached else cached.filter { it.completed != true }
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyList()
 
@@ -365,6 +406,12 @@ class SupabaseWidgetClient(private val context: Context) {
     }
 
     fun fetchBadHabits(): List<BadHabitData> {
+        val cached = readFromLocalCache<BadHabitData>("badHabits", object : TypeToken<List<BadHabitData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchBadHabits: Loaded ${cached.size} badHabits from local CapacitorStorage cache")
+            return cached
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyList()
 
@@ -639,6 +686,12 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch projects for the user
      */
     fun fetchProjects(): List<ProjectData> {
+        val cached = readFromLocalCache<ProjectData>("projects", object : TypeToken<List<ProjectData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchProjects: Loaded ${cached.size} projects from local CapacitorStorage cache")
+            return cached
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyList()
 
@@ -682,6 +735,12 @@ class SupabaseWidgetClient(private val context: Context) {
      * Fetch daily feed entries for the user
      */
     fun fetchDailyFeed(): List<DailyFeedEntryData> {
+        val cached = readFromLocalCache<DailyFeedEntryData>("dailyFeed", object : TypeToken<List<DailyFeedEntryData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchDailyFeed: Loaded ${cached.size} dailyFeed entries from local CapacitorStorage cache")
+            return cached
+        }
+
         var (userId, accessToken) = getCredentials()
         if (userId == null || accessToken == null) return emptyList()
 

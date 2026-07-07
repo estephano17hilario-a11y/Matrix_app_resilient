@@ -11,7 +11,7 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_background" />
 
-    <!-- Unconfigured State (Initially visible) -->
+    <!-- Unconfigured State -->
     <LinearLayout
         android:id="@+id/project_unconfigured_layout"
         android:layout_width="match_parent"
@@ -39,7 +39,7 @@
         android:id="@+id/project_configured_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp"
+        android:padding="10dp"
         android:visibility="visible">
 
         <!-- Custom Glow/Gradient Card Background -->
@@ -47,8 +47,7 @@
             android:id="@+id/project_glow_background"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitXY"
-            android:visibility="visible" />
+            android:scaleType="fitXY" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -56,123 +55,105 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Left: Icon + Streak -->
-            <RelativeLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp">
+            <!-- Left: Play Button Frame -->
+            <FrameLayout
+                android:id="@+id/project_play_btn"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:focusable="true">
 
-                <FrameLayout
-                    android:id="@+id/project_icon_container"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/widget_icon_container_bg">
+                <ImageView
+                    android:id="@+id/project_play_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitXY" />
 
-                    <TextView
-                        android:id="@+id/project_icon_emoji"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:text="📁"
-                        android:textSize="18sp" />
+            </FrameLayout>
 
-                </FrameLayout>
-
-                <!-- Streak badge at the top-right of the icon -->
-                <TextView
-                    android:id="@+id/project_streak_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignTop="@id/project_icon_container"
-                    android:layout_alignEnd="@id/project_icon_container"
-                    android:layout_marginTop="-4dp"
-                    android:layout_marginEnd="-4dp"
-                    android:background="@drawable/widget_streak_badge_bg"
-                    android:textColor="#FF9800"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingTop="1dp"
-                    android:paddingBottom="1dp"
-                    android:text="🔥 3"
-                    android:visibility="visible" />
-
-            </RelativeLayout>
-
-            <!-- Middle: Progress details & Bar -->
+            <!-- Middle: Title, Details, Progress Bar -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <RelativeLayout
+                <!-- Title & Time Row -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="bottom">
 
                     <TextView
                         android:id="@+id/project_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="14sp"
                         android:textStyle="bold"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:text="Proyecto X" />
+                        android:text="Proyecto X"
+                        android:layout_marginEnd="6dp" />
 
                     <TextView
                         android:id="@+id/project_time_fraction"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
                         android:textColor="#A0A0A0"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
+                        android:textSize="11sp"
                         android:text="0h 00m / 1h 10m" />
 
-                </RelativeLayout>
+                </LinearLayout>
 
-                <!-- Progress bar bar -->
-                <FrameLayout
+                <!-- Progress Row -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="4dp"
-                    android:background="#26FFFFFF">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="5dp">
 
-                    <ImageView
-                        android:id="@+id/project_progress_bar_fill"
+                    <FrameLayout
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:scaleType="fitXY"
-                        android:background="#6366f1" />
+                        android:layout_height="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/widget_subtask_unchecked">
 
-                </FrameLayout>
+                        <ImageView
+                            android:id="@+id/project_progress_bar_fill"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitXY" />
+
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/project_percentage_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#A0A0A0"
+                        android:textSize="10sp"
+                        android:layout_marginStart="8dp"
+                        android:text="0%" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
-            <!-- Right: Play Button -->
-            <FrameLayout
-                android:id="@+id/project_play_btn"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+            <!-- Far Right: Chevron Icon -->
+            <TextView
+                android:id="@+id/project_chevron"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/widget_refresh_bg"
-                android:clickable="true">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="▶"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
+                android:textColor="#4DFFFFFF"
+                android:textSize="16sp"
+                android:text="›" />
 
         </LinearLayout>
 
     </RelativeLayout>
-
 </FrameLayout>

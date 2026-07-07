@@ -108,6 +108,16 @@
             android:excludeFromRecents="true"
             android:exported="true" />
 
+        <!-- Widget Translucent Selector Activity -->
+        <activity
+            android:name=".widget.WidgetSelectorActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:exported="true" />
+
+
         <!-- Widget Receiver -->
         <receiver
             android:name=".widget.HabitWidgetProvider"

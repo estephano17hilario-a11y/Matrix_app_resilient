@@ -595,6 +595,43 @@ export default function Dashboard() {
  }
  }, [focusAutoStartProjectId]);
 
+  // Handle deep links inside the app (e.g. from widgets)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const handleAppDeepLink = (event: any) => {
+      console.log('🔗 [Dashboard Deep Link] Received URL:', event.url);
+      if (event.url && event.url.includes('luxapp://focus-session')) {
+        try {
+          const urlObj = new URL(event.url);
+          const projectId = urlObj.searchParams.get('projectId');
+          console.log('🎯 [Dashboard Deep Link] Routing to FOCUS with projectId:', projectId);
+          
+          setCurrentView('FOCUS');
+          if (projectId) {
+            setFocusTargetProjectId(projectId);
+            setFocusAutoStartProjectId(projectId);
+          }
+        } catch (e) {
+          console.error('Failed to parse focus-session deep link URL:', e);
+        }
+      }
+    };
+
+    const setupListener = async () => {
+      const listener = await App.addListener('appUrlOpen', handleAppDeepLink);
+      return listener;
+    };
+
+    const listenerPromise = setupListener();
+
+    return () => {
+      listenerPromise.then(listener => {
+        if (listener) listener.remove();
+      }).catch(console.error);
+    };
+  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId]);
+
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 
   // FIX: Lift Focus State to Dashboard

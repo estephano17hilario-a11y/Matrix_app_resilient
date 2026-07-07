@@ -137,22 +137,24 @@ class FocusWidgetProvider : AppWidgetProvider() {
         }
         views.setTextViewText(R.id.focus_widget_division_text, divisionText)
 
-        // Setup PendingIntents for controls
-        val timeframeIntent = Intent(context, FocusWidgetProvider::class.java).apply {
-            action = ACTION_CYCLE_FOCUS_TIMEFRAME
+        // Setup PendingIntents for controls (translucent floating activity)
+        val timeframeIntent = Intent(context, WidgetSelectorActivity::class.java).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            putExtra("selector_type", "focus_timeframe")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val timeframePending = PendingIntent.getBroadcast(
+        val timeframePending = PendingIntent.getActivity(
             context, widgetId * 100 + 1, timeframeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
         views.setOnClickPendingIntent(R.id.focus_widget_timeframe_btn, timeframePending)
 
-        val divisionIntent = Intent(context, FocusWidgetProvider::class.java).apply {
-            action = ACTION_CYCLE_FOCUS_DIVISION
+        val divisionIntent = Intent(context, WidgetSelectorActivity::class.java).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            putExtra("selector_type", "focus_division")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val divisionPending = PendingIntent.getBroadcast(
+        val divisionPending = PendingIntent.getActivity(
             context, widgetId * 100 + 2, divisionIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
@@ -164,10 +166,14 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 val projects = client.fetchProjects()
                 val dailyFeed = client.fetchDailyFeed()
 
-                // High-resolution bitmap drawing
+                // Responsive high-resolution bitmap drawing
+                val options = appWidgetManager.getAppWidgetOptions(widgetId)
+                val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+
                 val density = context.resources.displayMetrics.density
-                val widthPx = (320 * density).toInt()
-                val heightPx = (160 * density).toInt()
+                val widthPx = ((if (minWidthDp > 0) minWidthDp else 320) * density).toInt().coerceAtLeast(300)
+                val heightPx = ((if (minHeightDp > 0) minHeightDp else 160) * density).toInt().coerceAtLeast(140)
 
                 val chartBitmap = FocusChartDrawer.drawChart(
                     context, widthPx, heightPx, timeframe, division, projects, dailyFeed

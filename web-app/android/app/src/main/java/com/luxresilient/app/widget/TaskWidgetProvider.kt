@@ -137,7 +137,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
 
         // Get and display Completed visibility state
         val hideCompleted = prefs.getBoolean("task_hide_completed_widget_$widgetId", true)
-        views.setInt(R.id.task_widget_completed_text, "setAlpha", if (hideCompleted) 120 else 255)
+        views.setFloat(R.id.task_widget_completed_text, "setAlpha", if (hideCompleted) 0.45f else 1.0f)
 
         // Set up the intent that starts the TaskWidgetService
         val intent = Intent(context, TaskWidgetService::class.java).apply {

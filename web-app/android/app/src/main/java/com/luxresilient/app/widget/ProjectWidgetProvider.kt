@@ -132,63 +132,62 @@ class ProjectWidgetProvider : AppWidgetProvider() {
 
                 val density = context.resources.displayMetrics.density
                 val baseColorHex = project.color ?: TraitIcons.getColor(project.attribute)
-                val parsedColor = try { Color.parseColor(baseColorHex) } catch (e: Exception) { Color.parseColor("#6366f1") }
+                val parsedColor = try { Color.parseColor(baseColorHex) } catch (e: Exception) { Color.parseColor("#EF4444") }
+
+                // Get dynamic widget options for sizing
+                val options = appWidgetManager.getAppWidgetOptions(widgetId)
+                val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+                val widgetWidth = ((if (minWidthDp > 0) minWidthDp else 300) * density).toInt().coerceAtLeast(280)
+                val widgetHeight = ((if (minHeightDp > 0) minHeightDp else 70) * density).toInt().coerceAtLeast(60)
 
                 withContext(Dispatchers.Main) {
                     // Background glow
-                    val glowBitmap = createGlowBackground(density, (300 * density).toInt(), (54 * density).toInt(), parsedColor)
+                    val glowBitmap = createGlowBackground(density, widgetWidth, widgetHeight, parsedColor)
                     views.setImageViewBitmap(R.id.project_glow_background, glowBitmap)
 
                     // Project title
                     views.setTextViewText(R.id.project_title, project.title)
                     views.setTextColor(R.id.project_title, parsedColor)
 
-                    // Project Icon/Emoji
-                    val emoji = getIconEmoji(project.iconName ?: "") ?: TraitIcons.getEmoji(project.attribute)
-                    views.setTextViewText(R.id.project_icon_emoji, emoji)
+                    // Format Time Fraction using Html to style actual and target times differently
+                    val actualHours = (todayMins / 60).toInt()
+                    val actualMins = (todayMins % 60).toInt()
+                    val targetHours = (targetMins / 60).toInt()
+                    val targetMinsVal = (targetMins % 60).toInt()
+                    
+                    val fractionHtml = "<font color='#FFFFFF'><b>%dh %02dm</b></font> <font color='#80FFFFFF'>/ %dh %02dm</font>".format(
+                        actualHours, actualMins, targetHours, targetMinsVal
+                    )
+                    views.setTextViewText(R.id.project_time_fraction, android.text.Html.fromHtml(fractionHtml, android.text.Html.FROM_HTML_MODE_LEGACY))
 
-                    // Streak Count
-                    if (project.streak > 0) {
-                        views.setViewVisibility(R.id.project_streak_badge, View.VISIBLE)
-                        views.setTextViewText(R.id.project_streak_badge, "🔥 ${project.streak}")
-                    } else {
-                        views.setViewVisibility(R.id.project_streak_badge, View.GONE)
-                    }
-
-                    // Progress Text (e.g. 0h 15m / 1h 00m)
-                    val actualStr = String.format("%dh %02dm", (todayMins / 60).toInt(), (todayMins % 60).toInt())
-                    val targetStr = String.format("%dh %02dm", (targetMins / 60).toInt(), (targetMins % 60).toInt())
-                    views.setTextViewText(R.id.project_time_fraction, "$actualStr / $targetStr")
-
-                    // Progress bar fill
-                    val fillWidth = (160 * density).toInt()
-                    val fillHeight = (6 * density).toInt()
-                    val barBitmap = createProgressBarBitmap(density, fillWidth, fillHeight, parsedColor, pct)
+                    // Progress bar fill (take ~60% of widget width)
+                    val barWidth = (widgetWidth * 0.62f).toInt()
+                    val barHeight = (6 * density).toInt()
+                    val barBitmap = createProgressBarBitmap(density, barWidth, barHeight, parsedColor, pct)
                     views.setImageViewBitmap(R.id.project_progress_bar_fill, barBitmap)
 
-                    // Click intent on Play Button
+                    // Percentage Text
+                    views.setTextViewText(R.id.project_percentage_text, "$pct%")
+
+                    // Custom drawn Play Button bitmap (colored circle/rounded rect with white play symbol)
+                    val playBtnSize = (44 * density).toInt()
+                    val playBitmap = createPlayButtonBitmap(density, playBtnSize, playBtnSize, parsedColor)
+                    views.setImageViewBitmap(R.id.project_play_image, playBitmap)
+
+                    // Click intent to open Focus Session in the app (on play button and entire card)
                     val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                         data = Uri.parse("luxapp://focus-session?projectId=${project.id}")
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
                     if (launchIntent != null) {
-                        val playPending = PendingIntent.getActivity(
-                            context, widgetId * 10 + 1, launchIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        val pendingIntent = PendingIntent.getActivity(
+                            context, widgetId * 10 + 2, launchIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                         )
-                        views.setOnClickPendingIntent(R.id.project_play_btn, playPending)
+                        views.setOnClickPendingIntent(R.id.project_play_btn, pendingIntent)
+                        views.setOnClickPendingIntent(R.id.project_configured_layout, pendingIntent)
                     }
-
-                    // Click intent on Card Body to configure
-                    val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
-                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    }
-                    val configPending = PendingIntent.getActivity(
-                        context, widgetId, configIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.project_icon_container, configPending)
 
                     appWidgetManager.updateAppWidget(widgetId, views)
                 }
@@ -198,16 +197,47 @@ class ProjectWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun createProgressBarBitmap(density: Float, width: Int, height: Int, color: Int, percentage: Int): Bitmap {
+    private fun createPlayButtonBitmap(density: Float, width: Int, height: Int, color: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        
+        // Draw rounded rectangle background (colored)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
             this.style = Paint.Style.FILL
         }
-        val fillWidth = width * (percentage / 100f)
-        val rect = RectF(0f, 0f, fillWidth, height.toFloat())
-        canvas.drawRoundRect(rect, 3 * density, 3 * density, paint)
+        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        canvas.drawRoundRect(rect, 10 * density, 10 * density, paint)
+        
+        // Draw white play triangle inside
+        paint.color = Color.WHITE
+        val path = Path().apply {
+            val centerX = width / 2f
+            val centerY = height / 2f
+            val size = 6 * density
+            
+            moveTo(centerX - size * 0.7f, centerY - size)
+            lineTo(centerX - size * 0.7f, centerY + size)
+            lineTo(centerX + size * 1.2f, centerY)
+            close()
+        }
+        canvas.drawPath(path, paint)
+        
+        return bitmap
+    }
+
+    private fun createProgressBarBitmap(density: Float, width: Int, height: Int, color: Int, percentage: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        if (percentage > 0) {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color
+                this.style = Paint.Style.FILL
+            }
+            val fillWidth = width * (percentage / 100f)
+            val rect = RectF(0f, 0f, fillWidth, height.toFloat())
+            canvas.drawRoundRect(rect, 3 * density, 3 * density, paint)
+        }
         return bitmap
     }
 
