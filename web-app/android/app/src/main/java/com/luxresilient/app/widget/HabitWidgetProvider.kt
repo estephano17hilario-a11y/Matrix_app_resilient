@@ -141,12 +141,20 @@ class HabitWidgetProvider : AppWidgetProvider() {
         if (columns == 2) {
             views.setViewVisibility(R.id.widget_habit_list, android.view.View.GONE)
             views.setViewVisibility(R.id.widget_habit_grid, android.view.View.VISIBLE)
+            // Unbind list to avoid caching overlaps
+            val emptyIntent = Intent(context, HabitWidgetService::class.java)
+            views.setRemoteAdapter(R.id.widget_habit_list, emptyIntent)
+            
             views.setRemoteAdapter(R.id.widget_habit_grid, serviceIntent)
             views.setEmptyView(R.id.widget_habit_grid, R.id.widget_empty_text)
             views.setPendingIntentTemplate(R.id.widget_habit_grid, completePending)
         } else {
             views.setViewVisibility(R.id.widget_habit_list, android.view.View.VISIBLE)
             views.setViewVisibility(R.id.widget_habit_grid, android.view.View.GONE)
+            // Unbind grid to avoid caching overlaps
+            val emptyIntent = Intent(context, HabitWidgetService::class.java)
+            views.setRemoteAdapter(R.id.widget_habit_grid, emptyIntent)
+            
             views.setRemoteAdapter(R.id.widget_habit_list, serviceIntent)
             views.setEmptyView(R.id.widget_habit_list, R.id.widget_empty_text)
             views.setPendingIntentTemplate(R.id.widget_habit_list, completePending)

@@ -81,30 +81,48 @@ class HabitWidgetFactory(
             }
 
             val habit = habits[position]
-            val views = RemoteViews(context.packageName, R.layout.widget_habit_item)
 
             // Read customization preferences
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
             val opacity = configPrefs.getInt("card_opacity", 90)
-            val cardSize = configPrefs.getString("card_size", "medium")
+            val cardSize = configPrefs.getString("card_size", "medium") ?: "medium"
             val checklistMode = configPrefs.getString("checklist_mode", "direct")
             val cardColumns = configPrefs.getInt("card_columns", 1)
+            val cardSpacing = configPrefs.getString("card_spacing", "medio") ?: "medio"
             val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"
             val borderStyle = configPrefs.getString("border_style", "both") ?: "both"
+
+            // Choose layout file dynamically based on sizing and column configuration
+            val layoutId = if (cardColumns == 2) {
+                R.layout.widget_habit_item_grid
+            } else if (cardSize == "thin" || cardSize == "super_thin") {
+                R.layout.widget_habit_item_thin
+            } else {
+                R.layout.widget_habit_item
+            }
+            val views = RemoteViews(context.packageName, layoutId)
 
             // Get color from custom color, attribute, or trait default
             val baseColor = getHabitColor(habit)
             val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#6366f1") }
 
-            // 1. Set Card Opacity via Background ImageView
+            // 1. Set Card Spacing (Bottom Margin Simulation via Root Wrapper padding)
+            val density = context.resources.displayMetrics.density
+            val spacingPx = when (cardSpacing) {
+                "poco" -> (1.5f * density).toInt()  // Almost touching!
+                "grande" -> (12 * density).toInt()
+                else -> (6 * density).toInt()      // Medio / default
+            }
+            views.setViewPadding(R.id.habit_item_root_wrapper, 0, 0, 0, spacingPx)
+
+            // 2. Set Card Opacity via Background ImageView
             val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
             views.setInt(R.id.habit_card_background, "setImageAlpha", alphaInt)
 
-            // 2. Dynamic Glow / Gradient Background
+            // 3. Dynamic Glow / Gradient Background
             val hasGlow = (gradientStyle != "none") || (borderStyle == "card" || borderStyle == "both")
             if (hasGlow) {
                 views.setViewVisibility(R.id.habit_glow_background, View.VISIBLE)
-                val density = context.resources.displayMetrics.density
                 // Adjust width for list vs grid layout
                 val widthPx = if (cardColumns == 2) (155 * density).toInt() else (320 * density).toInt()
                 val heightPx = when (cardSize) {
@@ -119,16 +137,15 @@ class HabitWidgetFactory(
                 views.setViewVisibility(R.id.habit_glow_background, View.GONE)
             }
 
-            // 3. Custom Size Padding
-            val density = context.resources.displayMetrics.density
+            // 4. Custom Size Padding inside Card
             val verticalPadding = when (cardSize) {
-                "super_thin" -> (2 * density).toInt()
-                "thin" -> (4 * density).toInt()
+                "super_thin" -> (3 * density).toInt()
+                "thin" -> (5 * density).toInt()
                 "large" -> (16 * density).toInt()
                 else -> (10 * density).toInt()
             }
             // Slightly narrower padding for two columns
-            val sidePadding = if (cardColumns == 2) (8 * density).toInt() else (12 * density).toInt()
+            val sidePadding = if (cardColumns == 2) (6 * density).toInt() else (10 * density).toInt()
             views.setViewPadding(
                 R.id.habit_item_root, 
                 sidePadding, 
@@ -137,7 +154,7 @@ class HabitWidgetFactory(
                 verticalPadding
             )
 
-            // 4. Custom flat color overlay (fallback when gradient style is none)
+            // 5. Custom flat color overlay (fallback when gradient style is none)
             if (gradientStyle == "none") {
                 views.setViewVisibility(R.id.habit_color_overlay, View.VISIBLE)
                 val alphaFloat = (opacity / 100f) * 0.09f
@@ -152,9 +169,11 @@ class HabitWidgetFactory(
             
             // Adjust title text size for super_thin or columns
             if (cardSize == "super_thin" || cardColumns == 2) {
-                views.setFloat(R.id.habit_title, "setTextSize", 12f)
+                views.setFloat(R.id.habit_title, "setTextSize", 11.5f)
+            } else if (cardSize == "thin") {
+                views.setFloat(R.id.habit_title, "setTextSize", 13f)
             } else {
-                views.setFloat(R.id.habit_title, "setTextSize", 14f)
+                views.setFloat(R.id.habit_title, "setTextSize", 15f)
             }
 
             // Apply completed state (dimmed text)
@@ -648,7 +667,10 @@ class HabitWidgetFactory(
             if (borderCircleEnabled) {
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = 2 * density
-                paint.color = Color.WHITE
+                val hsl = FloatArray(3)
+                androidx.core.graphics.ColorUtils.colorToHSL(color, hsl)
+                hsl[2] = (hsl[2] + 0.20f).coerceIn(0f, 1f) // Lighten by 20%
+                paint.color = androidx.core.graphics.ColorUtils.HSLToColor(hsl)
                 canvas.drawCircle(center, center, radius, paint)
             }
 

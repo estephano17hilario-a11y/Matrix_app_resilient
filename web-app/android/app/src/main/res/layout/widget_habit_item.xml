@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/habit_item_root"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/habit_item_root_wrapper"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="16dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp"
-    android:layout_marginBottom="6dp"
-    android:clickable="true"
-    android:focusable="true">
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/habit_item_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:clickable="true"
+        android:focusable="true">
 
     <!-- Card Background (to dynamically set opacity) -->
     <ImageView
@@ -185,4 +190,5 @@
 
     </LinearLayout>
 
-</RelativeLayout>
+    </RelativeLayout>
+</LinearLayout>

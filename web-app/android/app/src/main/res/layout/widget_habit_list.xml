@@ -4,8 +4,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
     android:paddingTop="6dp"
     android:paddingBottom="10dp">
 
@@ -99,8 +99,8 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:numColumns="2"
-        android:verticalSpacing="6dp"
-        android:horizontalSpacing="6dp"
+        android:verticalSpacing="4dp"
+        android:horizontalSpacing="4dp"
         android:scrollbars="none"
         android:fadingEdge="none"
         android:clipToPadding="false"

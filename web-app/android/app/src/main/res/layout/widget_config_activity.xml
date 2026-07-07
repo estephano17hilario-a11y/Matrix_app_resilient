@@ -163,6 +163,65 @@
 
             </RadioGroup>
 
+            <!-- Card Spacing Setting -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ESPACIO ENTRE TARJETAS"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_spacing_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="2dp">
+
+                <RadioButton
+                    android:id="@+id/config_spacing_poco"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Poco (Pegados)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+                <RadioButton
+                    android:id="@+id/config_spacing_medio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Medio"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/config_spacing_grande"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Grande"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+            </RadioGroup>
+
             <!-- Background Opacity -->
             <TextView
                 android:layout_width="wrap_content"

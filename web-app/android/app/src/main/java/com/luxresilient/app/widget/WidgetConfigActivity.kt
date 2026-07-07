@@ -25,6 +25,7 @@ class WidgetConfigActivity : Activity() {
     
     private lateinit var radioGroupSize: RadioGroup
     private lateinit var radioGroupColumns: RadioGroup
+    private lateinit var radioGroupSpacing: RadioGroup
     private lateinit var radioGroupGradient: RadioGroup
     private lateinit var radioGroupBorder: RadioGroup
     private lateinit var radioGroupChecklist: RadioGroup
@@ -50,6 +51,7 @@ class WidgetConfigActivity : Activity() {
         
         radioGroupSize = findViewById(R.id.config_size_group)
         radioGroupColumns = findViewById(R.id.config_columns_group)
+        radioGroupSpacing = findViewById(R.id.config_spacing_group)
         radioGroupGradient = findViewById(R.id.config_gradient_group)
         radioGroupBorder = findViewById(R.id.config_border_group)
         radioGroupChecklist = findViewById(R.id.config_checklist_group)
@@ -60,6 +62,7 @@ class WidgetConfigActivity : Activity() {
         // Setup custom look for radio buttons inside horizontal containers
         setupHorizontalRadioButtonsUI(radioGroupSize)
         setupHorizontalRadioButtonsUI(radioGroupColumns)
+        setupHorizontalRadioButtonsUI(radioGroupSpacing)
 
         // Load saved preferences
         loadPreferences()
@@ -143,6 +146,14 @@ class WidgetConfigActivity : Activity() {
         radioGroupColumns.check(colsId)
         findViewById<RadioButton>(colsId)?.performClick()
 
+        val spacingId = when (prefs.getString("card_spacing", "medio")) {
+            "poco" -> R.id.config_spacing_poco
+            "grande" -> R.id.config_spacing_grande
+            else -> R.id.config_spacing_medio
+        }
+        radioGroupSpacing.check(spacingId)
+        findViewById<RadioButton>(spacingId)?.performClick()
+
         val gradientId = when (prefs.getString("gradient_style", "radial")) {
             "none" -> R.id.config_grad_none
             "vertical" -> R.id.config_grad_vertical
@@ -180,6 +191,12 @@ class WidgetConfigActivity : Activity() {
             else -> 1
         }
 
+        val spacingVal = when (radioGroupSpacing.checkedRadioButtonId) {
+            R.id.config_spacing_poco -> "poco"
+            R.id.config_spacing_grande -> "grande"
+            else -> "medio"
+        }
+
         val gradientVal = when (radioGroupGradient.checkedRadioButtonId) {
             R.id.config_grad_none -> "none"
             R.id.config_grad_vertical -> "vertical"
@@ -203,6 +220,7 @@ class WidgetConfigActivity : Activity() {
             .putBoolean("sound_effects", switchSound.isChecked)
             .putString("card_size", sizeVal)
             .putInt("card_columns", colsVal)
+            .putString("card_spacing", spacingVal)
             .putString("gradient_style", gradientVal)
             .putString("border_style", borderVal)
             .putString("checklist_mode", checklistVal)
