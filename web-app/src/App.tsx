@@ -143,7 +143,21 @@ export default function App() {
   useEffect(() => {
     const handleDeepLink = async (event: any) => {
       console.log('🔗 [Deep Link App.tsx] Received URL:', event.url);
-      if (event.url && event.url.includes('com.luxresilient.app://auth/callback')) {
+      if (!event.url) return;
+
+      if (event.url.includes('luxapp://focus-session')) {
+        try {
+          const urlObj = new URL(event.url);
+          const projectId = urlObj.searchParams.get('projectId');
+          if (projectId) {
+            console.log('💾 [Deep Link App.tsx] Saving cold start project ID:', projectId);
+            localStorage.setItem('cold_start_focus_project_id', projectId);
+            window.dispatchEvent(new CustomEvent('cold_start_focus_trigger', { detail: { projectId } }));
+          }
+        } catch (e) {
+          console.error('Error parsing focus-session from App.tsx:', e);
+        }
+      } else if (event.url.includes('com.luxresilient.app://auth/callback')) {
         try {
           let access_token: string | null = null;
           let refresh_token: string | null = null;
@@ -187,6 +201,14 @@ export default function App() {
     const setupListener = async () => {
       try {
         const listener = await CapacitorApp.addListener('appUrlOpen', handleDeepLink);
+        
+        // Check for cold start launch URL
+        const launchUrlResult = await CapacitorApp.getLaunchUrl();
+        if (launchUrlResult && launchUrlResult.url) {
+          console.log('🚀 [App.tsx cold start] Found launch URL:', launchUrlResult.url);
+          handleDeepLink(launchUrlResult);
+        }
+        
         return listener;
       } catch (err) {
         console.error('Failed to setup App.tsx deep link listener:', err);

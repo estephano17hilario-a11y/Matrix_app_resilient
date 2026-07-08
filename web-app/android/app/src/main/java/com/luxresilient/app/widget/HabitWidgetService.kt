@@ -455,7 +455,7 @@ class HabitWidgetFactory(
         // Slightly narrower padding for two columns
         val sidePadding = if (cardColumns == 2) (6 * density).toInt() else (10 * density).toInt()
         views.setViewPadding(
-            getId("habit_item_root"), 
+            getId("habit_content_container"), 
             sidePadding, 
             verticalPadding, 
             sidePadding, 

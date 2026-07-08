@@ -49,9 +49,15 @@ object FocusChartDrawer {
         var dateLabelRange = ""
         var totalTargetMinutes = 0.0
 
-        // Sum goal targets of all active projects (goalTarget is in minutes)
-        val activeProjects = projects.filter { it.goalTarget > 0 }
-        val sumDailyTarget = activeProjects.sumOf { it.goalTarget }.toDouble()
+        // Sum goal targets of all active projects using dynamic daily targets
+        val sumDailyTarget = projects.sumOf { proj ->
+            val freq = proj.uiFrequency ?: proj.goalFrequency
+            if (freq == "WEEKLY" || freq == "MONTHLY") {
+                ProjectGoalCalculator.getDynamicDailyTarget(proj)
+            } else {
+                proj.goalTarget
+            }
+        }.toDouble()
 
         when (timeframe) {
             "DAY" -> {
@@ -449,10 +455,6 @@ object FocusChartDrawer {
         val color: String?
     )
     private fun normalizeDate(dateStr: String?): String {
-        if (dateStr.isNullOrEmpty()) return ""
-        if (dateStr.length >= 10 && dateStr[4] == '-' && dateStr[7] == '-') {
-            return dateStr.substring(0, 10)
-        }
-        return dateStr
+        return ProjectGoalCalculator.getLocalDateString(dateStr)
     }
 }

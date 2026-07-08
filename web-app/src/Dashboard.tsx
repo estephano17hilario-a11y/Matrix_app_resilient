@@ -611,6 +611,7 @@ export default function Dashboard() {
           if (projectId) {
             setFocusTargetProjectId(projectId);
             setFocusAutoStartProjectId(projectId);
+            setIsPomodoroActive(true); // <-- START FOCUS ACTIVE OVERLAY!
           }
         } catch (e) {
           console.error('Failed to parse focus-session deep link URL:', e);
@@ -630,7 +631,40 @@ export default function Dashboard() {
         if (listener) listener.remove();
       }).catch(console.error);
     };
-  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId]);
+  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive]);
+
+  // Handle cold start deep links and custom window triggers for focus session
+  useEffect(() => {
+    const checkAndStartFocus = (projectId: string) => {
+      console.log('🎯 [Dashboard Focus Start] Triggering session for project:', projectId);
+      setCurrentView('FOCUS');
+      setFocusTargetProjectId(projectId);
+      setFocusAutoStartProjectId(projectId);
+      setIsPomodoroActive(true);
+    };
+
+    // 1. Check immediately on mount (or when dashboard displays)
+    const savedProjectId = localStorage.getItem('cold_start_focus_project_id');
+    if (savedProjectId) {
+      localStorage.removeItem('cold_start_focus_project_id');
+      setTimeout(() => {
+        checkAndStartFocus(savedProjectId);
+      }, 600); // 600ms tick to ensure full mounting and loading state settlement
+    }
+
+    // 2. Listen for runtime custom events from App.tsx
+    const handleCustomTrigger = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.projectId) {
+        checkAndStartFocus(detail.projectId);
+      }
+    };
+
+    window.addEventListener('cold_start_focus_trigger', handleCustomTrigger);
+    return () => {
+      window.removeEventListener('cold_start_focus_trigger', handleCustomTrigger);
+    };
+  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive]);
 
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 

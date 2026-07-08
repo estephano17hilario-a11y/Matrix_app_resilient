@@ -19,10 +19,6 @@
         android:id="@+id/left_habit_item_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="8dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -48,6 +44,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:alpha="0.09" />
+
+        <RelativeLayout
+            android:id="@+id/left_habit_content_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true">
 
         <!-- Left: Trait Icon Container (Smaller for Thin) -->
         <FrameLayout
@@ -159,6 +161,8 @@
             android:layout_height="wrap_content"
             android:visibility="gone" />
 
+        </RelativeLayout>
+
     </RelativeLayout>
 </LinearLayout>
 
@@ -176,10 +180,6 @@
         android:id="@+id/right_habit_item_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="8dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -205,6 +205,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:alpha="0.09" />
+
+        <RelativeLayout
+            android:id="@+id/right_habit_content_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true">
 
         <!-- Left: Trait Icon Container (Smaller for Thin) -->
         <FrameLayout
@@ -315,6 +321,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:visibility="gone" />
+
+        </RelativeLayout>
 
     </RelativeLayout>
 </LinearLayout>

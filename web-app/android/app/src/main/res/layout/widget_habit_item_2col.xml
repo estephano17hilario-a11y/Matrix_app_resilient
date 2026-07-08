@@ -19,10 +19,6 @@
         android:id="@+id/left_habit_item_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="10dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -48,6 +44,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.09" />
+
+    <RelativeLayout
+        android:id="@+id/left_habit_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true">
 
     <!-- Left: Trait Icon Container -->
     <FrameLayout
@@ -201,6 +203,8 @@
     </LinearLayout>
 
     </RelativeLayout>
+
+    </RelativeLayout>
 </LinearLayout>
 
 
@@ -217,10 +221,6 @@
         android:id="@+id/right_habit_item_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="10dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -246,6 +246,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.09" />
+
+    <RelativeLayout
+        android:id="@+id/right_habit_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true">
 
     <!-- Left: Trait Icon Container -->
     <FrameLayout
@@ -397,6 +403,8 @@
         </FrameLayout>
 
     </LinearLayout>
+
+    </RelativeLayout>
 
     </RelativeLayout>
 </LinearLayout>

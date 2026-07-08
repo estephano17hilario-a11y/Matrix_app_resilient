@@ -132,13 +132,9 @@ class ProjectWidgetProvider : AppWidgetProvider() {
 
                 // Compute details
                 val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                val todayMins = project.sessions?.filter { normalizeDate(it.date) == todayStr }?.sumOf { it.duration / 60.0 } ?: 0.0
+                val todayMins = project.sessions?.filter { ProjectGoalCalculator.getLocalDateString(it.date) == todayStr }?.sumOf { it.duration / 60.0 } ?: 0.0
                 
-                val targetMins = if (project.uiTarget != null) {
-                    if (project.uiUnit == "MINUTES") project.uiTarget.toInt() else (project.uiTarget * 60).toInt()
-                } else {
-                    project.goalTarget
-                }
+                val targetMins = ProjectGoalCalculator.getDynamicDailyTarget(project)
 
                 val pct = if (targetMins > 0) minOf(100, ((todayMins / targetMins) * 100).toInt()) else 0
 
