@@ -423,7 +423,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
     }
 
     override fun getLoadingView(): RemoteViews? = null
-    override fun getViewTypeCount(): Int = 1
+    override fun getViewTypeCount(): Int = 10
     override fun getItemId(position: Int): Long = position.toLong()
     override fun hasStableIds(): Boolean = true
 }

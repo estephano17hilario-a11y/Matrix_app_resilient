@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import android.widget.RemoteViews
 import com.luxresilient.app.R
@@ -84,6 +85,17 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 }
             }
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.d(TAG, "onAppWidgetOptionsChanged called for widget $appWidgetId")
+        updateWidget(context, appWidgetManager, appWidgetId)
     }
 
     private fun updateWidget(

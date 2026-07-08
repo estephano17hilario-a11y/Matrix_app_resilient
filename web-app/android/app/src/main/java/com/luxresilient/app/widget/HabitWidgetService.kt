@@ -455,7 +455,7 @@ class HabitWidgetFactory(
         // Slightly narrower padding for two columns
         val sidePadding = if (cardColumns == 2) (6 * density).toInt() else (10 * density).toInt()
         views.setViewPadding(
-            R.id.habit_item_root, 
+            getId("habit_item_root"), 
             sidePadding, 
             verticalPadding, 
             sidePadding, 
@@ -464,12 +464,12 @@ class HabitWidgetFactory(
 
         // 5. Custom flat color overlay (fallback when gradient style is none)
         if (gradientStyle == "none") {
-            views.setViewVisibility(R.id.habit_color_overlay, View.VISIBLE)
+            views.setViewVisibility(getId("habit_color_overlay"), View.VISIBLE)
             val alphaFloat = (opacity / 100f) * 0.09f
-            views.setFloat(R.id.habit_color_overlay, "setAlpha", alphaFloat)
-            views.setInt(R.id.habit_color_overlay, "setBackgroundColor", parsedColor)
+            views.setFloat(getId("habit_color_overlay"), "setAlpha", alphaFloat)
+            views.setInt(getId("habit_color_overlay"), "setBackgroundColor", parsedColor)
         } else {
-            views.setViewVisibility(R.id.habit_color_overlay, View.GONE)
+            views.setViewVisibility(getId("habit_color_overlay"), View.GONE)
         }
 
         // --- TITLE ---
@@ -499,30 +499,30 @@ class HabitWidgetFactory(
         } else {
             "⭐"
         }
-        views.setTextViewText(R.id.habit_icon, traitEmoji)
+        views.setTextViewText(getId("habit_icon"), traitEmoji)
 
         // Toggle icon visibility based on settings switch
         val showIcons = configPrefs.getBoolean("show_icons", true)
         if (showIcons) {
-            views.setViewVisibility(R.id.habit_icon_container, View.VISIBLE)
-            views.setViewVisibility(R.id.habit_icon, View.VISIBLE)
+            views.setViewVisibility(getId("habit_icon_container"), View.VISIBLE)
+            views.setViewVisibility(getId("habit_icon"), View.VISIBLE)
         } else {
-            views.setViewVisibility(R.id.habit_icon_container, View.GONE)
-            views.setViewVisibility(R.id.habit_icon, View.GONE)
+            views.setViewVisibility(getId("habit_icon_container"), View.GONE)
+            views.setViewVisibility(getId("habit_icon"), View.GONE)
         }
 
         // --- STREAK BADGE ---
         // Hide streak badge for super thin, 2-columns or in chronological subtasks
         if (habit.streak > 0 && cardSize != "super_thin" && cardColumns != 2 && item.type != "SUBTASK") {
-            views.setViewVisibility(R.id.habit_streak_container, View.VISIBLE)
-            views.setTextViewText(R.id.habit_streak_count, habit.streak.toString())
+            views.setViewVisibility(getId("habit_streak_container"), View.VISIBLE)
+            views.setTextViewText(getId("habit_streak_count"), habit.streak.toString())
             if (item.isCompleted) {
-                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#fb923c"))
+                views.setTextColor(getId("habit_streak_count"), Color.parseColor("#fb923c"))
             } else {
-                views.setTextColor(R.id.habit_streak_count, Color.parseColor("#9ca3af"))
+                views.setTextColor(getId("habit_streak_count"), Color.parseColor("#9ca3af"))
             }
         } else {
-            views.setViewVisibility(R.id.habit_streak_container, View.GONE)
+            views.setViewVisibility(getId("habit_streak_container"), View.GONE)
         }
 
         // --- PROGRESS TEXT & FORMATTING ---
@@ -549,8 +549,8 @@ class HabitWidgetFactory(
         } else {
             item.subText ?: "0/1"
         }
-        views.setTextViewText(R.id.habit_progress, displayProgress)
-        views.setTextColor(R.id.habit_progress, parsedColor)
+        views.setTextViewText(getId("habit_progress"), displayProgress)
+        views.setTextColor(getId("habit_progress"), parsedColor)
 
         // --- COMPLETE BUTTON (PROGRESS CIRCLE image) ---
         val percentage = if (item.type == "SUBTASK") {
@@ -560,7 +560,7 @@ class HabitWidgetFactory(
         }
         val borderCircleEnabled = (borderStyle == "circle" || borderStyle == "both")
         val circleBitmap = createCircleButton(context, parsedColor, item.isCompleted, percentage, borderCircleEnabled)
-        views.setImageViewBitmap(R.id.habit_complete_image, circleBitmap)
+        views.setImageViewBitmap(getId("habit_complete_image"), circleBitmap)
         views.setViewVisibility(getId("habit_check_icon"), View.GONE) // Hidden because checkmark is inside bitmap
 
         // --- SUBTASKS (for CHECKLIST type) ---
@@ -653,7 +653,7 @@ class HabitWidgetFactory(
             }
             putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
         }
-        views.setOnClickFillInIntent(R.id.habit_text_container, cardFillIntent)
+        views.setOnClickFillInIntent(getId("habit_text_container"), cardFillIntent)
 
         return views
     }
@@ -662,7 +662,7 @@ class HabitWidgetFactory(
         return RemoteViews(context.packageName, R.layout.widget_habit_item)
     }
 
-    override fun getViewTypeCount(): Int = 1
+    override fun getViewTypeCount(): Int = 10
 
     override fun getItemId(position: Int): Long {
         return if (position < habits.size) habits[position].id.hashCode().toLong() else position.toLong()

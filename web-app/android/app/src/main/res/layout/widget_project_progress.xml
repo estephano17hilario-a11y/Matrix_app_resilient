@@ -120,7 +120,7 @@
                         android:layout_width="0dp"
                         android:layout_height="6dp"
                         android:layout_weight="1"
-                        android:background="@drawable/widget_subtask_unchecked">
+                        android:background="@android:color/transparent">
 
                         <ImageView
                             android:id="@+id/project_progress_bar_fill"

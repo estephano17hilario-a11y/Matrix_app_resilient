@@ -66,7 +66,8 @@ object FocusChartDrawer {
                 for (proj in projects) {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
-                        if (session.date == todayStr && !session.date.isNullOrEmpty()) {
+                        val sessionDateNormalized = normalizeDate(session.date)
+                        if (sessionDateNormalized == todayStr && sessionDateNormalized.isNotEmpty()) {
                             // Extract hour
                             // For simplicity, we split sessions equally, or if we don't have session hour, we distribute them!
                             // Since sessions array has no hour timestamp in types/index.ts (only date: "YYYY-MM-DD"),
@@ -104,7 +105,8 @@ object FocusChartDrawer {
                 for (proj in projects) {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
-                        val idx = datesOfWeek.indexOf(session.date)
+                        val sessionDateNormalized = normalizeDate(session.date)
+                        val idx = datesOfWeek.indexOf(sessionDateNormalized)
                         if (idx != -1) {
                             val mins = session.duration / 60f
                             if (mins > 0) {
@@ -140,7 +142,8 @@ object FocusChartDrawer {
                 for (proj in projects) {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
-                        val idx = datesOfMonth.indexOf(session.date)
+                        val sessionDateNormalized = normalizeDate(session.date)
+                        val idx = datesOfMonth.indexOf(sessionDateNormalized)
                         if (idx != -1) {
                             val bucketIdx = idx / 5
                             val mins = session.duration / 60f
@@ -185,7 +188,7 @@ object FocusChartDrawer {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
                         try {
-                            val sessionDate = sdf.parse(session.date) ?: continue
+                            val sessionDate = sdf.parse(normalizeDate(session.date)) ?: continue
                             val timeMs = sessionDate.time
                             for (w in 0 until 8) {
                                 if (timeMs >= weekStartDates[w] && timeMs <= weekEndDates[w]) {
@@ -225,7 +228,7 @@ object FocusChartDrawer {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
                         try {
-                            val sessionDate = sdf.parse(session.date) ?: continue
+                            val sessionDate = sdf.parse(normalizeDate(session.date)) ?: continue
                             val sCal = Calendar.getInstance().apply { time = sessionDate }
                             val sMonth = sCal.get(Calendar.MONTH)
                             val sYear = sCal.get(Calendar.YEAR)
@@ -258,7 +261,7 @@ object FocusChartDrawer {
                     val sessions = proj.sessions ?: continue
                     for (session in sessions) {
                         try {
-                            val sessionDate = sdf.parse(session.date) ?: continue
+                            val sessionDate = sdf.parse(normalizeDate(session.date)) ?: continue
                             val sCal = Calendar.getInstance().apply { time = sessionDate }
                             if (sCal.get(Calendar.YEAR) == currentYear) {
                                 val sMonth = sCal.get(Calendar.MONTH)
@@ -445,4 +448,11 @@ object FocusChartDrawer {
         val minutes: Float,
         val color: String?
     )
+    private fun normalizeDate(dateStr: String?): String {
+        if (dateStr.isNullOrEmpty()) return ""
+        if (dateStr.length >= 10 && dateStr[4] == '-' && dateStr[7] == '-') {
+            return dateStr.substring(0, 10)
+        }
+        return dateStr
+    }
 }

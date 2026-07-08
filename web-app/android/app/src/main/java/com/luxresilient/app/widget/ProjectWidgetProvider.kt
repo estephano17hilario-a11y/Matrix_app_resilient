@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.*
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
@@ -46,6 +47,17 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                 updateWidget(context, appWidgetManager, widgetId)
             }
         }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.d(TAG, "onAppWidgetOptionsChanged called for widget $appWidgetId")
+        updateWidget(context, appWidgetManager, appWidgetId)
     }
 
     private fun updateWidget(
@@ -120,7 +132,7 @@ class ProjectWidgetProvider : AppWidgetProvider() {
 
                 // Compute details
                 val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                val todayMins = project.sessions?.filter { it.date == todayStr }?.sumOf { it.duration / 60.0 } ?: 0.0
+                val todayMins = project.sessions?.filter { normalizeDate(it.date) == todayStr }?.sumOf { it.duration / 60.0 } ?: 0.0
                 
                 val targetMins = if (project.uiTarget != null) {
                     if (project.uiUnit == "MINUTES") project.uiTarget.toInt() else (project.uiTarget * 60).toInt()
@@ -162,7 +174,9 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                     views.setTextViewText(R.id.project_time_fraction, android.text.Html.fromHtml(fractionHtml, android.text.Html.FROM_HTML_MODE_LEGACY))
 
                     // Progress bar fill (take ~60% of widget width)
-                    val barWidth = (widgetWidth * 0.62f).toInt()
+                    val playBtnOffset = (44 + 10) * density
+                    val rightOffset = (16 + 8 + 20) * density
+                    val barWidth = (widgetWidth - playBtnOffset - rightOffset).toInt().coerceAtLeast(100)
                     val barHeight = (6 * density).toInt()
                     val barBitmap = createProgressBarBitmap(density, barWidth, barHeight, parsedColor, pct)
                     views.setImageViewBitmap(R.id.project_progress_bar_fill, barBitmap)
@@ -176,18 +190,17 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                     views.setImageViewBitmap(R.id.project_play_image, playBitmap)
 
                     // Click intent to open Focus Session in the app (on play button and entire card)
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                    val launchIntent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse("luxapp://focus-session?projectId=${project.id}")
+                        setPackage(context.packageName)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
-                    if (launchIntent != null) {
-                        val pendingIntent = PendingIntent.getActivity(
-                            context, widgetId * 10 + 2, launchIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                        )
-                        views.setOnClickPendingIntent(R.id.project_play_btn, pendingIntent)
-                        views.setOnClickPendingIntent(R.id.project_configured_layout, pendingIntent)
-                    }
+                    val pendingIntent = PendingIntent.getActivity(
+                        context, widgetId * 10 + 2, launchIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                    )
+                    views.setOnClickPendingIntent(R.id.project_play_btn, pendingIntent)
+                    views.setOnClickPendingIntent(R.id.project_configured_layout, pendingIntent)
 
                     appWidgetManager.updateAppWidget(widgetId, views)
                 }
@@ -229,14 +242,24 @@ class ProjectWidgetProvider : AppWidgetProvider() {
     private fun createProgressBarBitmap(density: Float, width: Int, height: Int, color: Int, percentage: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        
+        // 1. Draw semi-transparent background track
+        val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = Color.parseColor("#26FFFFFF") // 15% opacity white
+            this.style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(rect, 3 * density, 3 * density, trackPaint)
+        
+        // 2. Draw progress fill rounded rect
         if (percentage > 0) {
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 this.color = color
                 this.style = Paint.Style.FILL
             }
             val fillWidth = width * (percentage / 100f)
-            val rect = RectF(0f, 0f, fillWidth, height.toFloat())
-            canvas.drawRoundRect(rect, 3 * density, 3 * density, paint)
+            val fillRect = RectF(0f, 0f, fillWidth, height.toFloat())
+            canvas.drawRoundRect(fillRect, 3 * density, 3 * density, fillPaint)
         }
         return bitmap
     }
@@ -340,5 +363,13 @@ class ProjectWidgetProvider : AppWidgetProvider() {
             
             else -> null
         }
+    }
+
+    private fun normalizeDate(dateStr: String?): String {
+        if (dateStr.isNullOrEmpty()) return ""
+        if (dateStr.length >= 10 && dateStr[4] == '-' && dateStr[7] == '-') {
+            return dateStr.substring(0, 10)
+        }
+        return dateStr
     }
 }
