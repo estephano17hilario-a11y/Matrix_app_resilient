@@ -268,3 +268,26 @@ export const eachWeekOfInterval = (interval: { start: Date, end: Date }): Date[]
 export const eachDayOfInterval = (interval: { start: Date, end: Date }): Date[] => {
     return dateFnsEachDayOfInterval(interval);
 };
+
+export const getCompletedCountThisPeriod = (sub: any, intervalType: 'WEEKLY' | 'MONTHLY', targetDate?: Date): number => {
+    const now = targetDate || new Date();
+    const history = sub.history || [];
+    const skippedHistory = sub.skippedHistory || [];
+    const allEvents = [...history, ...skippedHistory];
+    
+    if (intervalType === 'WEEKLY') {
+        const start = startOfWeek(now);
+        start.setHours(0, 0, 0, 0);
+        const end = endOfWeek(now);
+        end.setHours(23, 59, 59, 999);
+        
+        return allEvents.filter(d => {
+            const date = new Date(d + 'T12:00:00'); // avoid timezone shifts
+            return date >= start && date <= end;
+        }).length;
+    } else {
+        // MONTHLY
+        const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        return allEvents.filter(d => d.startsWith(currentMonthPrefix)).length;
+    }
+};

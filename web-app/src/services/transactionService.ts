@@ -529,9 +529,8 @@ export const TransactionService = {
 
     halveStats: async (userId: string, currentAttributes: any[], currentLevel: number) => {
         try {
-            const newLevel = Math.max(1, Math.floor(currentLevel / 2));
-            const newXp = calculateXpForLevel(newLevel); 
-
+            console.log("🛡️ [TransactionService] halveStats called, but stats halving/penalties are DISABLED to ensure data persistence.");
+            
             const { data: userDoc, error: userError } = await supabase
                 .from('users')
                 .select('stats')
@@ -545,42 +544,16 @@ export const TransactionService = {
             }
 
             const stats = userDoc.stats || {};
-            stats.level = newLevel;
-            stats.xp = newXp;
-            stats.nextXp = calculateNextLevelXp(newLevel);
-            stats.hp = 100; // Reset HP
+            // Restore HP to 100, do NOT reduce level or XP
+            stats.hp = 100; 
 
             await supabase.from('users').update({ stats }).eq('id', userId);
 
-            // Halve all attributes
-            for (const attr of currentAttributes) {
-                const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
-                const newAttrXp = newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0;
-                const newMaxXp = calculateAttributeMaxXp(newAttrLevel);
-                
-                const updatedSubTraits = attr.subTraits?.map((st: any) => {
-                    const halvedLevel = Math.max(1, Math.floor(st.level / 2));
-                    const halvedMaxXp = calculateSubTraitMaxXp(halvedLevel);
-                    return {
-                        ...st,
-                        level: halvedLevel,
-                        xp: Math.max(0, Math.floor(st.xp / 2)),
-                        maxXp: halvedMaxXp
-                    };
-                });
-                
-                await persistenceService.attributes.save(userId, {
-                    ...attr,
-                    level: newAttrLevel,
-                    xp: newAttrXp,
-                    maxXp: newMaxXp,
-                    subTraits: updatedSubTraits
-                });
-            }
+            // We do NOT modify attributes or subtraits to preserve user progress
 
-            return { newLevel, newXp };
+            return { newLevel: currentLevel, newXp: stats.xp || 0 };
         } catch (e) {
-            console.error("❌ SUPABASE TRANSACTION FAILED (Halve Stats):", e);
+            console.error("❌ SUPABASE TRANSACTION FAILED (Restore HP):", e);
             throw e;
         }
     }

@@ -4,6 +4,7 @@ import { Zap, Star, Coins, ArrowRight } from 'lucide-react';
 import { useReward } from '../context/RewardContext';
 import { useTranslation } from 'react-i18next';
 import { calculateNextLevelXp, calculateXpForLevel } from '../../../utils/leveling';
+import { playLevelUpSound } from '../../../utils/soundEffects';
 
 // --- Constants ---
 const STEP_DURATION = 1500;
@@ -122,6 +123,7 @@ export const RewardOverlay: React.FC = () => {
 
       if (!isLast) {
         setVisualState(p => ({ ...p, isLevelUpAnimating: true }));
+        playLevelUpSound();
         await wait(800);
         lvl++;
         relXp = 0;

@@ -284,14 +284,15 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     if (typeof document === 'undefined' || !document.body) return null;
 
     return createPortal(
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4"
-                >
+        <div className={cn("fixed inset-0 z-[99999] flex items-center justify-center p-4", isOpen ? "pointer-events-auto" : "pointer-events-none")}>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
                     <div 
                         className="absolute inset-0 bg-black/60" 
                         onTouchStart={handleBackdropTouchStart}
@@ -904,7 +905,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
             </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>,
+        </AnimatePresence>
+        </div>,
         document.body
     );
 }, (prev, next) => {

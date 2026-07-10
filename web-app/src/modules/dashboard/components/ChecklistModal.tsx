@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Zap } from 'lucide-react';
+import { X, Check, Zap, ChevronsRight } from 'lucide-react';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { useTranslation } from 'react-i18next';
+import { toLocalISOString, getHistoryDateKey, getCompletedCountThisPeriod } from '../../../utils/dateUtils';
 
 interface ChecklistModalProps {
  habit: Habit;
@@ -31,38 +32,91 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  }
  }, [isOpen]);
 
- const today = (currentDate || new Date()).getDay();
- const visibleItems = React.useMemo(() => {
- return habit.checklist?.filter(item => !item.days || item.days.length === 0 || item.days.includes(today)) || [];
- }, [habit.checklist, today]);
+  const today = (currentDate || new Date()).getDay();
+  const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
 
- const rewards = React.useMemo(() => {
- if (habit.completedToday && typeof habit.rewardedXp === 'number') {
- return { xp: habit.rewardedXp };
- }
- const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak, 'HABIT');
- return { xp: prediction.xp };
- }, [habit.estimatedTime, habit.impact, habit.streak, habit.completedToday, habit.rewardedXp]);
+  const visibleItems = React.useMemo(() => {
+    return habit.checklist?.filter(item => {
+        if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+            const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+            if (isDoneToday) return true;
+            
+            const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
+            return doneCount < (item.intervalCount || 1);
+        }
+        return !item.days || item.days.length === 0 || item.days.includes(today);
+    }) || [];
+  }, [habit.checklist, today, currentDate, todayKey]);
 
- const handleChecklistToggle = (itemId: string, currentStatus: boolean) => {
- if (!onUpdate || !habit.checklist) return;
- 
- // Vibrate for physical feedback on mobile if supported
- if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
- window.navigator.vibrate(50);
- }
+  const rewards = React.useMemo(() => {
+  if (habit.completedToday && typeof habit.rewardedXp === 'number') {
+  return { xp: habit.rewardedXp };
+  }
+  const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak, 'HABIT');
+  return { xp: prediction.xp };
+  }, [habit.estimatedTime, habit.impact, habit.streak, habit.completedToday, habit.rewardedXp]);
 
- const newChecklist = habit.checklist.map(item => 
- item.id === itemId ? { ...item, completed: !currentStatus } : item
- );
- 
- onUpdate(habit.id, { checklist: newChecklist }, currentDate);
- };
+  const handleChecklistToggle = (itemId: string, currentStatus: boolean) => {
+    if (!onUpdate || !habit.checklist) return;
+    
+    // Vibrate for physical feedback on mobile if supported
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+    }
 
- // Calculate progress percentage
- const completedCount = visibleItems.filter(i => i.completed).length;
- const totalCount = visibleItems.length;
- const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    const newChecklist = habit.checklist.map(item => {
+        if (item.id === itemId) {
+            const skippedHistory = (item.skippedHistory || []).filter(d => d !== todayKey);
+            return { ...item, completed: !currentStatus, skippedHistory };
+        }
+        return item;
+    });
+    
+    onUpdate(habit.id, { checklist: newChecklist }, currentDate);
+  };
+
+  const handleChecklistSkip = (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onUpdate || !habit.checklist) return;
+    
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+    }
+
+    const newChecklist = habit.checklist.map(item => {
+        if (item.id === itemId) {
+            const skippedHistory = item.skippedHistory || [];
+            const isSkippedToday = skippedHistory.includes(todayKey);
+            const newSkippedHistory = isSkippedToday 
+                ? skippedHistory.filter(d => d !== todayKey) 
+                : [...skippedHistory, todayKey];
+            
+            let newHistory = item.history || [];
+            if (!isSkippedToday) {
+                newHistory = newHistory.filter(d => d !== todayKey);
+            }
+            return { 
+                ...item, 
+                skippedHistory: newSkippedHistory, 
+                completed: !isSkippedToday ? false : item.completed,
+                history: newHistory
+            };
+        }
+        return item;
+    });
+    
+    onUpdate(habit.id, { checklist: newChecklist }, currentDate);
+  };
+
+  // Calculate progress percentage
+  const completedCount = visibleItems.filter(item => {
+      if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+          return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+      }
+      return item.completed;
+  }).length;
+  const totalCount = visibleItems.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
  
  // Base color of the habit for the tint
  const habitColor = habit.customColor || '#6366f1'; // fallback to indigo if no color
@@ -133,58 +187,88 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
 
  {/* Elegant List - Enhanced Interactions */}
  <div className="p-4 space-y-1.5 overflow-y-auto no-scrollbar flex-1">
- {visibleItems.map((item, index) => {
- const itemColor = item.color || habitColor;
- 
- return (
- <React.Fragment key={item.id}>
- <motion.div 
- initial={{ opacity: 0, x: -10 }}
- animate={{ opacity: 1, x: 0 }}
- transition={{ delay: index * 0.05, duration: 0.15 }}
- className={cn(
- "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-200 cursor-pointer border border-transparent",
- item.completed 
- ? "bg-white/[0.02] border-white/[0.02]" 
- : "hover:bg-white/[0.05] hover:border-white/[0.05] active:scale-[0.98]"
- )}
- onClick={() => handleChecklistToggle(item.id, item.completed)}
- >
- <div 
- className={cn(
- "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0",
- item.completed 
- ? "border-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
- : "opacity-60 group-hover:opacity-100"
- )}
- style={{
- backgroundColor: item.completed ? itemColor : 'transparent',
- borderColor: item.completed ? 'transparent' : itemColor,
- }}
- >
- <AnimatePresence>
- {item.completed && (
- <motion.div
- initial={{ scale: 0, rotate: -45 }}
- animate={{ scale: 1, rotate: 0 }}
- exit={{ scale: 0, rotate: 45 }}
- transition={{ type: "spring", stiffness: 500, damping: 25 }}
- >
- <Check size={14} strokeWidth={4} className="text-white" />
- </motion.div>
- )}
- </AnimatePresence>
- </div>
- 
- <span className={cn(
- "text-[16px] transition-all duration-200 flex-1 leading-snug tracking-tight",
- item.completed 
- ? "text-white/20 line-through decoration-white/10 italic" 
- : "text-white/90 font-bold group-hover:translate-x-1"
- )}>
- {item.text}
- </span>
- </motion.div>
+  {visibleItems.map((item, index) => {
+  const itemColor = item.color || habitColor;
+  const isCompleted = item.completed || item.history?.includes(todayKey);
+  const isSkipped = item.skippedHistory?.includes(todayKey);
+  const isDoneOrSkipped = isCompleted || isSkipped;
+  
+  return (
+  <React.Fragment key={item.id}>
+  <motion.div 
+  initial={{ opacity: 0, x: -10 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: index * 0.05, duration: 0.15 }}
+  className={cn(
+  "group flex items-center gap-4 p-4 rounded-[20px] transition-all duration-200 cursor-pointer border border-transparent",
+  isDoneOrSkipped 
+  ? "bg-white/[0.02] border-white/[0.02]" 
+  : "hover:bg-white/[0.05] hover:border-white/[0.05] active:scale-[0.98]"
+  )}
+  onClick={() => handleChecklistToggle(item.id, isCompleted)}
+  >
+  <div 
+  className={cn(
+  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0",
+  isDoneOrSkipped 
+  ? "border-transparent shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+  : "opacity-60 group-hover:opacity-100"
+  )}
+  style={{
+  backgroundColor: isDoneOrSkipped ? (isSkipped ? '#d97706' : itemColor) : 'transparent',
+  borderColor: isDoneOrSkipped ? 'transparent' : itemColor,
+  }}
+  >
+  <AnimatePresence>
+  {isCompleted && (
+  <motion.div
+  initial={{ scale: 0, rotate: -45 }}
+  animate={{ scale: 1, rotate: 0 }}
+  exit={{ scale: 0, rotate: 45 }}
+  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+  >
+  <Check size={14} strokeWidth={4} className="text-white" />
+  </motion.div>
+  )}
+  {isSkipped && (
+  <motion.div
+  initial={{ scale: 0, rotate: -45 }}
+  animate={{ scale: 1, rotate: 0 }}
+  exit={{ scale: 0, rotate: 45 }}
+  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+  >
+  <ChevronsRight size={14} strokeWidth={4} className="text-white" />
+  </motion.div>
+  )}
+  </AnimatePresence>
+  </div>
+  
+  <span className={cn(
+  "text-[16px] transition-all duration-200 flex-1 leading-snug tracking-tight",
+  isDoneOrSkipped 
+  ? "text-white/20 line-through decoration-white/10 italic" 
+  : "text-white/90 font-bold group-hover:translate-x-1"
+  )}>
+  {item.text}
+  {item.intervalType && item.intervalType !== 'NONE' && (
+      <span className="text-xs text-cyan-400 font-mono ml-2 font-black">
+          ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+      </span>
+  )}
+  {isSkipped && (
+      <span className="text-xs text-amber-500 font-black ml-2 uppercase tracking-[0.1em]">(Saltado)</span>
+  )}
+  </span>
+
+  {item.allowSkip && !isDoneOrSkipped && (
+      <button
+          onClick={(e) => handleChecklistSkip(item.id, e)}
+          className="px-3 py-1.5 rounded-[12px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-black border border-amber-500/20 transition-all flex items-center gap-1"
+      >
+          Saltar
+      </button>
+  )}
+  </motion.div>
  {index < visibleItems.length - 1 && (
  <div className="h-[1px] w-[90%] mx-auto bg-gradient-to-r from-transparent via-white/[0.15] to-transparent" />
  )}

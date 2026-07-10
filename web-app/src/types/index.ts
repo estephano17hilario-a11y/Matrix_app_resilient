@@ -110,6 +110,10 @@ export interface Habit {
     days?: number[]; // Specific days this item should appear [0-6]
     reminderTime?: string; // Optional alarm/reminder time for this subtask
     history?: string[]; // Date keys when this subtask was completed
+    intervalType?: 'WEEKLY' | 'MONTHLY' | 'NONE';
+    intervalCount?: number;
+    allowSkip?: boolean;
+    skippedHistory?: string[]; // Date keys when this subtask was skipped
   }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions

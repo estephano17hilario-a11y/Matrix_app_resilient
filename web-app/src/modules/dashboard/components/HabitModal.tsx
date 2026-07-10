@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
-import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical } from 'lucide-react';
+import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical, Sliders } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -357,14 +357,15 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
     if (typeof document === 'undefined' || !document.body) return null;
 
     return createPortal(
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4"
-                >
+        <div className={cn("fixed inset-0 z-[99999] flex items-center justify-center p-4", isOpen ? "pointer-events-auto" : "pointer-events-none")}>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
                     <div 
                         className="absolute inset-0 bg-black/60" 
                         onTouchStart={handleBackdropTouchStart}
@@ -1100,28 +1101,115 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                             </div>
                                                                         )}
                                                                         {openMenu.type === 'DAYS' && (
-                                                                            <div className="flex justify-between p-2">
-                                                                                {weekDaysList.map(({ label, index }) => {
-                                                                                    const isSelected = task.days ? task.days.includes(index) : true;
-                                                                                    return (
-                                                                                        <button 
-                                                                                            key={index} 
-                                                                                            onClick={() => {
-                                                                                                const currentDays = task.days || [0,1,2,3,4,5,6];
-                                                                                                const newDays = currentDays.includes(index) 
-                                                                                                    ? currentDays.filter(d => d !== index)
-                                                                                                    : [...currentDays, index];
-                                                                                                setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, days: newDays.length === 7 ? undefined : newDays } : t));
-                                                                                            }} 
-                                                                                            className={cn(
-                                                                                                "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold transition-all border",
-                                                                                                isSelected ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
-                                                                                            )}
+                                                                            <div className="p-3 space-y-3">
+                                                                                {/* Weekdays row */}
+                                                                                <div className={cn("flex justify-between transition-opacity", (task.intervalType && task.intervalType !== 'NONE') ? "opacity-30 pointer-events-none" : "opacity-100")}>
+                                                                                    {weekDaysList.map(({ label, index }) => {
+                                                                                        const isSelected = task.days ? task.days.includes(index) : true;
+                                                                                        return (
+                                                                                            <button 
+                                                                                                key={index} 
+                                                                                                onClick={() => {
+                                                                                                    const currentDays = task.days || [0,1,2,3,4,5,6];
+                                                                                                    const newDays = currentDays.includes(index) 
+                                                                                                        ? currentDays.filter(d => d !== index)
+                                                                                                        : [...currentDays, index];
+                                                                                                    setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, days: newDays.length === 7 ? undefined : newDays } : t));
+                                                                                                }} 
+                                                                                                className={cn(
+                                                                                                    "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold transition-all border",
+                                                                                                    isSelected ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                                                )}
+                                                                                            >
+                                                                                                {label}
+                                                                                            </button>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+
+                                                                                {/* Intervals Section if active */}
+                                                                                {task.intervalType && task.intervalType !== 'NONE' && (
+                                                                                    <div className="space-y-3 p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-left">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-[10px] font-bold text-slate-400 uppercase">Intervalo:</span>
+                                                                                            <div className="flex gap-1">
+                                                                                                <button
+                                                                                                    onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, intervalType: 'WEEKLY', intervalCount: Math.min(t.intervalCount || 3, 6) } : t))}
+                                                                                                    className={cn("px-2 py-0.5 rounded text-[9px] font-bold border transition-all", task.intervalType === 'WEEKLY' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 border-transparent text-white/40")}
+                                                                                                >
+                                                                                                    Semanal
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, intervalType: 'MONTHLY', intervalCount: t.intervalCount || 10 } : t))}
+                                                                                                    className={cn("px-2 py-0.5 rounded text-[9px] font-bold border transition-all", task.intervalType === 'MONTHLY' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 border-transparent text-white/40")}
+                                                                                                >
+                                                                                                    Mensual
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                                                                                {task.intervalType === 'WEEKLY' ? 'Veces por semana:' : 'Veces al mes:'}
+                                                                                            </span>
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <button
+                                                                                                    onClick={() => {
+                                                                                                        const count = Math.max(1, (task.intervalCount || 1) - 1);
+                                                                                                        setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, intervalCount: count } : t));
+                                                                                                    }}
+                                                                                                    className="w-5 h-5 rounded bg-white/5 text-white/60 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
+                                                                                                >
+                                                                                                    -
+                                                                                                </button>
+                                                                                                <span className="text-xs font-bold text-white min-w-[12px] text-center">
+                                                                                                    {task.intervalCount || (task.intervalType === 'WEEKLY' ? 3 : 10)}
+                                                                                                </span>
+                                                                                                <button
+                                                                                                    onClick={() => {
+                                                                                                        const maxLimit = task.intervalType === 'WEEKLY' ? 6 : 31;
+                                                                                                        const count = Math.min(maxLimit, (task.intervalCount || 1) + 1);
+                                                                                                        setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, intervalCount: count } : t));
+                                                                                                    }}
+                                                                                                    className="w-5 h-5 rounded bg-white/5 text-white/60 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
+                                                                                                >
+                                                                                                    +
+                                                                                                </button>
+                                                                                                {task.intervalType === 'WEEKLY' && (
+                                                                                                    <span className="text-[8px] text-white/30 italic">(máx. 6)</span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Toggle Intervals Button at bottom */}
+                                                                                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                                                                    <button 
+                                                                                        onClick={() => {
+                                                                                            const isCurrentlyInterval = task.intervalType && task.intervalType !== 'NONE';
+                                                                                            setSubtasks(subtasks.map(t => t.id === task.id ? { 
+                                                                                                ...t, 
+                                                                                                intervalType: isCurrentlyInterval ? 'NONE' : 'WEEKLY',
+                                                                                                intervalCount: isCurrentlyInterval ? undefined : 3,
+                                                                                                days: isCurrentlyInterval ? undefined : undefined
+                                                                                            } : t));
+                                                                                        }}
+                                                                                        className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors uppercase tracking-wider"
+                                                                                    >
+                                                                                        <Sliders size={10} />
+                                                                                        {task.intervalType && task.intervalType !== 'NONE' ? "Días de la semana" : "Intervalos"}
+                                                                                    </button>
+
+                                                                                    {task.intervalType && task.intervalType !== 'NONE' && (
+                                                                                        <button
+                                                                                            onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, allowSkip: !t.allowSkip } : t))}
+                                                                                            className={cn("px-2 py-1 rounded text-[9px] font-bold border transition-all flex items-center gap-1", task.allowSkip ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse" : "bg-white/5 border-transparent text-white/40")}
                                                                                         >
-                                                                                            {label}
+                                                                                            Permitir salteo
                                                                                         </button>
-                                                                                    );
-                                                                                })}
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         )}
                                                                         {openMenu.type === 'TIME' && (
@@ -1395,7 +1483,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
             </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>,
+        </AnimatePresence>
+        </div>,
         document.body
     );
 }, (prev, next) => prev.isOpen === next.isOpen && prev.initialData === next.initialData);

@@ -968,10 +968,8 @@ export default function Dashboard() {
  }, []);
 
  const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
- handleProjectConfirm(data);
- setModalInitialContext(null);
- window.dispatchEvent(new CustomEvent('project-created'));
- }, [handleProjectConfirm]);
+  await handleProjectConfirm(data);
+  }, [handleProjectConfirm]);
 
   const handleQuestModalClose = useCallback(() => {
     console.log("🌀 [Dashboard UI] handleQuestModalClose called. Resetting active modal to null.");
@@ -1941,7 +1939,7 @@ export default function Dashboard() {
     attributes={attributes} 
     smartProjects={smartProjects}
     projects={projects}
-    onConfirm={(data) => { handleHabitConfirm(data); window.dispatchEvent(new CustomEvent('habit-created')); }}
+    onConfirm={handleHabitConfirm}
     initialData={editingHabit || modalInitialContext || undefined}
     onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
   />

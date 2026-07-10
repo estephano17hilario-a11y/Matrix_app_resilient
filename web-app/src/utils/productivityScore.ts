@@ -1,6 +1,6 @@
 import { Quest, Habit, Project } from '../types';
 import { DailyLimits } from '../types/User';
-import { toLocalISOString } from './dateUtils';
+import { toLocalISOString, getHistoryDateKey, getCompletedCountThisPeriod } from './dateUtils';
 
 const isLastDayOfMonth = (d: Date) => {
   const tomorrow = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
@@ -175,10 +175,25 @@ export function getDetailedScoreBreakdown(
       activeHabitsToday.forEach(h => {
         let itemVal = 0;
         if (h.type === 'CHECKLIST' && h.checklist && h.checklist.length > 0) {
-          const activeSubtasks = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek));
+          const todayKey = getHistoryDateKey(toLocalISOString(targetDate));
+          const activeSubtasks = h.checklist.filter(sub => {
+            if (sub.intervalType === 'WEEKLY' || sub.intervalType === 'MONTHLY') {
+              const isDoneToday = sub.history?.includes(todayKey) || sub.skippedHistory?.includes(todayKey);
+              if (isDoneToday) return true;
+              
+              const doneCount = getCompletedCountThisPeriod(sub, sub.intervalType, targetDate);
+              return doneCount < (sub.intervalCount || 1);
+            }
+            return !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek);
+          });
           const subTotal = activeSubtasks.length;
           if (subTotal > 0) {
-            const subCompleted = activeSubtasks.filter(item => item.completed).length;
+            const subCompleted = activeSubtasks.filter(item => {
+              if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+                return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+              }
+              return item.completed;
+            }).length;
             itemVal = subCompleted / subTotal;
             subHabitsScore += (itemVal / hTotal) * (habitWeight * 0.3);
           } else {
@@ -315,9 +330,24 @@ export function calculateLiveProductivityScore(
     if (h.type === 'CHECKLIST' && h.checklist) {
       const isActive = isHabitActive(h, date);
       if (isActive) {
-        const activeChecklist = h.checklist.filter(sub => !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek));
+        const todayKey = getHistoryDateKey(toLocalISOString(date));
+        const activeChecklist = h.checklist.filter(sub => {
+          if (sub.intervalType === 'WEEKLY' || sub.intervalType === 'MONTHLY') {
+            const isDoneToday = sub.history?.includes(todayKey) || sub.skippedHistory?.includes(todayKey);
+            if (isDoneToday) return true;
+            
+            const doneCount = getCompletedCountThisPeriod(sub, sub.intervalType, date);
+            return doneCount < (sub.intervalCount || 1);
+          }
+          return !sub.days || sub.days.length === 0 || sub.days.includes(dayOfWeek);
+        });
         subHabitsTotal += activeChecklist.length;
-        subHabitsCompleted += activeChecklist.filter(item => item.completed).length;
+        subHabitsCompleted += activeChecklist.filter(item => {
+          if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+            return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+          }
+          return item.completed;
+        }).length;
       }
     }
   });

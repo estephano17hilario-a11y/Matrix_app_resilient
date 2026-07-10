@@ -26,7 +26,7 @@ import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
 import { toast } from 'react-hot-toast';
-import { toLocalISOString, getHistoryDateKey, parseLocalDate } from '../../../utils/dateUtils';
+import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountThisPeriod } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
@@ -2635,24 +2635,7 @@ export const useDashboardLogic = () => {
 
                                     TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
                                         if (!result) return;
-                                        const { newLevel, newXp } = result;
-                                        setPlayer(prev => ({
-                                            ...prev,
-                                            level: newLevel,
-                                            xp: newXp,
-                                            nextXp: calculateNextLevelXp(newLevel)
-                                        }));
                                         setHealth(100);
-                                        
-                                        setAttributes(prev => prev.map(attr => {
-                                            const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
-                                            return {
-                                                ...attr,
-                                                level: newAttrLevel,
-                                                xp: newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0,
-                                                maxXp: calculateAttributeMaxXp(newAttrLevel)
-                                            };
-                                        }));
                                     });
                                 }
                                 return newHealth;
@@ -5512,6 +5495,10 @@ export const useDashboardLogic = () => {
 
     const handleDeleteQuest = useCallback(async (questId: string) => {
         if (!user) return;
+
+        const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar esta tarea?");
+        if (!confirmDelete) return;
+
         questsHydratedRef.current = true;
         setQuests(prev => {
             const newQuests = prev.filter(q => q.id !== questId);
@@ -5734,6 +5721,7 @@ export const useDashboardLogic = () => {
 
                 return {
                     ...oldItem,
+                    ...updatedItem,
                     completed: isTargetToday ? isCompletedInRequest : oldItem.completed,
                     history: itemHistory
                 };
@@ -5744,8 +5732,23 @@ export const useDashboardLogic = () => {
             const currentDay = targetDate ? targetDate.getDay() : new Date().getDay();
             
             // To evaluate if the whole checklist is complete for the targetDate:
-            const visibleItems = next.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(currentDay));
-            const isNowComplete = visibleItems.length > 0 && visibleItems.every(item => isTargetToday ? item.completed : item.history?.includes(todayKey));
+            const visibleItems = next.checklist.filter(item => {
+                if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+                    const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+                    if (isDoneToday) return true;
+                    
+                    const doneCount = getCompletedCountThisPeriod(item, item.intervalType, targetDate || new Date());
+                    return doneCount < (item.intervalCount || 1);
+                }
+                return !item.days || item.days.length === 0 || item.days.includes(currentDay);
+            });
+            
+            const isNowComplete = visibleItems.length > 0 && visibleItems.every(item => {
+                if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+                    return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+                }
+                return isTargetToday ? item.completed : item.history?.includes(todayKey);
+            });
             
             if (isNowComplete && !wasComplete) {
                 const nextHistory = [...(h.history || []), todayHistory];
@@ -6490,24 +6493,7 @@ export const useDashboardLogic = () => {
 
                 TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
                     if (!result) return;
-                    const { newLevel, newXp } = result;
-                    setPlayer(prev => ({
-                        ...prev,
-                        level: newLevel,
-                        xp: newXp,
-                        nextXp: calculateNextLevelXp(newLevel)
-                    }));
                     setHealth(100);
-                    
-                    setAttributes(prev => prev.map(attr => {
-                        const newAttrLevel = Math.max(1, Math.floor(attr.level / 2));
-                        return {
-                            ...attr,
-                            level: newAttrLevel,
-                            xp: newAttrLevel > 1 ? 20 * Math.pow(newAttrLevel, 2) : 0,
-                            maxXp: calculateAttributeMaxXp(newAttrLevel)
-                        };
-                    }));
                 });
 
             } else {

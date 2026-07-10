@@ -10,6 +10,7 @@ import { LiquidProgressCircle } from './LiquidProgressCircle';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
 import { useTranslation } from 'react-i18next';
 import { triggerFlyingIcon } from './FlyingIcon';
+import { toLocalISOString, getHistoryDateKey, getCompletedCountThisPeriod } from '../../../utils/dateUtils';
 
 interface HabitItemProps {
   habit: Habit;
@@ -77,9 +78,24 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
       return `${habit.currentValue || 0}/${habit.targetValue} ${habit.unit || ''}`;
     }
     if (habit.type === 'CHECKLIST') {
-      const visibleItems = habit.checklist?.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)) || [];
+      const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+      const visibleItems = habit.checklist?.filter(item => {
+        if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+          const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+          if (isDoneToday) return true;
+          
+          const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
+          return doneCount < (item.intervalCount || 1);
+        }
+        return !item.days || item.days.length === 0 || item.days.includes(today);
+      }) || [];
       const total = visibleItems.length;
-      const completed = visibleItems.filter(i => i.completed).length;
+      const completed = visibleItems.filter(item => {
+        if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+          return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+        }
+        return item.completed;
+      }).length;
       return `${completed}/${total}`;
     }
     return isCompletedToday ? '1/1' : '0/1';
@@ -100,9 +116,45 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const handleChecklistToggle = (itemId: string, currentStatus: boolean) => {
     if (!onUpdate || !habit.checklist || !isDue) return;
-    const newChecklist = habit.checklist.map(item => 
-        item.id === itemId ? { ...item, completed: !currentStatus } : item
-    );
+    
+    // If completing, we remove today's skip if any
+    const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+    const newChecklist = habit.checklist.map(item => {
+        if (item.id === itemId) {
+            const skippedHistory = (item.skippedHistory || []).filter(d => d !== todayKey);
+            return { ...item, completed: !currentStatus, skippedHistory };
+        }
+        return item;
+    });
+    
+    onUpdate(habit.id, { checklist: newChecklist }, currentDate);
+  };
+
+  const handleChecklistSkip = (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onUpdate || !habit.checklist || !isDue) return;
+    const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+    const newChecklist = habit.checklist.map(item => {
+        if (item.id === itemId) {
+            const skippedHistory = item.skippedHistory || [];
+            const isSkippedToday = skippedHistory.includes(todayKey);
+            const newSkippedHistory = isSkippedToday 
+                ? skippedHistory.filter(d => d !== todayKey) 
+                : [...skippedHistory, todayKey];
+            
+            let newHistory = item.history || [];
+            if (!isSkippedToday) {
+                newHistory = newHistory.filter(d => d !== todayKey);
+            }
+            return { 
+                ...item, 
+                skippedHistory: newSkippedHistory, 
+                completed: !isSkippedToday ? false : item.completed,
+                history: newHistory
+            };
+        }
+        return item;
+    });
     
     onUpdate(habit.id, { checklist: newChecklist }, currentDate);
   };
@@ -303,47 +355,81 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           {/* Inline Subtasks for Chronological View */}
           {viewPreference === 'CHRONOLOGICAL' && habit.type === 'CHECKLIST' && habit.checklist && (
               <div className="mt-3 space-y-1" onClick={e => e.stopPropagation()}>
-                  {habit.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)).map(item => (
-                      <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5" onClick={() => handleChecklistToggle(item.id, item.completed)}>
-                          <div
-                                  className={cn(
-                                      "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-                                      item.completed 
-                                          ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
-                                          : "bg-black/20 border-white/20 group-hover/item:border-white/40"
+                  {habit.checklist.filter(item => {
+                      if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+                          const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                          const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+                          if (isDoneToday) return true;
+                          
+                          const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
+                          return doneCount < (item.intervalCount || 1);
+                      }
+                      return !item.days || item.days.length === 0 || item.days.includes(today);
+                  }).map(item => {
+                      const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                      const isCompleted = item.completed || item.history?.includes(todayKey);
+                      const isSkipped = item.skippedHistory?.includes(todayKey);
+                      const isDoneOrSkipped = isCompleted || isSkipped;
+                      
+                      return (
+                          <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
+                              <div
+                                      className={cn(
+                                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                          isDoneOrSkipped 
+                                              ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
+                                              : "bg-black/20 border-white/20 group-hover/item:border-white/40"
+                                      )}
+                                      style={{
+                                          backgroundColor: isDoneOrSkipped ? (isSkipped ? '#d97706' : (item.color || (allChecklistCompleted ? '#10b981' : baseColor))) : undefined,
+                                          borderColor: isDoneOrSkipped ? 'transparent' : (item.color || baseColor)
+                                      }}
+                                  >
+                                  {isCompleted && <Check size={10} strokeWidth={3} />}
+                                  {isSkipped && <LucideIcons.ChevronsRight size={10} className="text-white" />}
+                              </div>
+                              <span className={cn(
+                                  "text-xs transition-colors truncate flex-1 font-medium",
+                                  isDoneOrSkipped ? "text-white/30 line-through" : "text-white/80"
+                              )}>
+                                  {item.text}
+                                  {item.intervalType && item.intervalType !== 'NONE' && (
+                                      <span className="text-[9px] text-cyan-400 font-mono ml-1.5 font-bold">
+                                          ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+                                      </span>
                                   )}
-                                  style={{
-                                      backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : baseColor)) : undefined,
-                                      borderColor: item.completed ? 'transparent' : (item.color || baseColor)
-                                  }}
-                              >
-                              {item.completed && <Check size={10} strokeWidth={3} />}
-                          </div>
-                          <span className={cn(
-                              "text-xs transition-colors truncate flex-1 font-medium",
-                              item.completed ? "text-white/30 line-through" : "text-white/80"
-                          )}>
-                              {item.text}
-                          </span>
-                          {item.reminderTime && (
-                              <span 
-                                  className={cn(
-                                      "text-[10px] font-bold tracking-wider flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity",
-                                      item.completed ? "text-white/20" : "text-orange-400"
+                                  {isSkipped && (
+                                      <span className="text-[9px] text-amber-500 font-bold ml-1.5 uppercase tracking-wider">(Saltado)</span>
                                   )}
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (onEdit) {
-                                          onEdit({ ...habit, _initialTab: 'checklist', _targetSubtaskId: item.id } as any);
-                                      }
-                                  }}
-                                  title="Cambiar alarma"
-                              >
-                                  <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
                               </span>
-                          )}
-                      </div>
-                  ))}
+                              {item.allowSkip && !isDoneOrSkipped && (
+                                  <button
+                                      onClick={(e) => handleChecklistSkip(item.id, e)}
+                                      className="px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] font-bold border border-amber-500/20 transition-all flex items-center gap-0.5"
+                                  >
+                                      Saltar
+                                  </button>
+                              )}
+                              {item.reminderTime && (
+                                  <span 
+                                      className={cn(
+                                          "text-[10px] font-bold tracking-wider flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity",
+                                          isDoneOrSkipped ? "text-white/20" : "text-orange-400"
+                                      )}
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (onEdit) {
+                                              onEdit({ ...habit, _initialTab: 'checklist', _targetSubtaskId: item.id } as any);
+                                          }
+                                      }}
+                                      title="Cambiar alarma"
+                                  >
+                                      <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                  </span>
+                              )}
+                          </div>
+                      );
+                  })}
               </div>
           )}
 
@@ -410,35 +496,69 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                     {habit.type === 'CHECKLIST' && habit.checklist && viewPreference !== 'CHRONOLOGICAL' && (
                         <div className="pt-2 border-t border-white/5 space-y-1">
                             <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Subtasks</span>
-                            {habit.checklist.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)).map(item => (
-                                <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, item.completed)}>
-                                    <div
-                                            className={cn(
-                                                "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                                                item.completed 
-                                                    ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
-                                                    : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                            {habit.checklist.filter(item => {
+                                if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
+                                    const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                                    const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+                                    if (isDoneToday) return true;
+                                    
+                                    const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
+                                    return doneCount < (item.intervalCount || 1);
+                                }
+                                return !item.days || item.days.length === 0 || item.days.includes(today);
+                            }).map(item => {
+                                const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                                const isCompleted = item.completed || item.history?.includes(todayKey);
+                                const isSkipped = item.skippedHistory?.includes(todayKey);
+                                const isDoneOrSkipped = isCompleted || isSkipped;
+                                
+                                return (
+                                    <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
+                                        <div
+                                                className={cn(
+                                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                                    isDoneOrSkipped 
+                                                        ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
+                                                        : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                                                )}
+                                                style={{
+                                                    backgroundColor: isDoneOrSkipped ? (isSkipped ? '#d97706' : (item.color || (allChecklistCompleted ? '#10b981' : baseColor))) : undefined,
+                                                    borderColor: isDoneOrSkipped ? 'transparent' : (item.color || baseColor)
+                                                }}
+                                            >
+                                            {isCompleted && <Check size={12} strokeWidth={3} />}
+                                            {isSkipped && <LucideIcons.ChevronsRight size={12} className="text-white" />}
+                                        </div>
+                                        <span className={cn(
+                                            "text-sm transition-colors truncate flex-1 font-medium",
+                                            isDoneOrSkipped ? "text-white/30 line-through" : "text-white/80"
+                                        )}>
+                                            {item.text}
+                                            {item.intervalType && item.intervalType !== 'NONE' && (
+                                                <span className="text-[10px] text-cyan-400 font-mono ml-2 font-bold">
+                                                    ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+                                                </span>
                                             )}
-                                            style={{
-                                                backgroundColor: item.completed ? (item.color || (allChecklistCompleted ? '#10b981' : baseColor)) : undefined,
-                                                borderColor: item.completed ? 'transparent' : (item.color || baseColor)
-                                            }}
-                                        >
-                                        {item.completed && <Check size={12} strokeWidth={3} />}
-                                    </div>
-                                    <span className={cn(
-                                        "text-sm transition-colors truncate flex-1 font-medium",
-                                        item.completed ? "text-white/30 line-through" : "text-white/80"
-                                    )}>
-                                        {item.text}
-                                    </span>
-                                    {item.reminderTime && (
-                                        <span className="text-[10px] text-white/30 font-medium tracking-wider flex items-center gap-1">
-                                            <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                            {isSkipped && (
+                                                <span className="text-[10px] text-amber-500 font-bold ml-2 uppercase tracking-wider">(Saltado)</span>
+                                            )}
                                         </span>
-                                    )}
-                                </div>
-                            ))}
+                                        {item.allowSkip && !isDoneOrSkipped && (
+                                            <button
+                                                onClick={(e) => handleChecklistSkip(item.id, e)}
+                                                className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/20 transition-all flex items-center gap-0.5"
+                                            >
+                                                Saltar
+                                            </button>
+                                        )}
+                                        {item.reminderTime && (
+                                            <span className="text-[10px] text-white/30 font-medium tracking-wider flex items-center gap-1">
+                                                <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 

@@ -215,3 +215,108 @@ export function playStellarSound() {
         console.warn("Stellar sound playback failed", e);
     }
 }
+
+// 5. Magnificent synchronized level-up chime and sweep
+export function playLevelUpSound() {
+    try {
+        const ctx = getAudioContext();
+        const t = ctx.currentTime;
+
+        // A. Low filter sweep rise (triumph build-up)
+        const sweepOsc = ctx.createOscillator();
+        const sweepGain = ctx.createGain();
+        const sweepFilter = ctx.createBiquadFilter();
+
+        sweepOsc.type = 'sawtooth';
+        sweepOsc.frequency.setValueAtTime(110, t); // A2
+        sweepOsc.frequency.exponentialRampToValueAtTime(440, t + 0.8); // Rise to A4
+
+        sweepFilter.type = 'lowpass';
+        sweepFilter.frequency.setValueAtTime(150, t);
+        sweepFilter.frequency.exponentialRampToValueAtTime(2000, t + 0.8);
+
+        sweepGain.gain.setValueAtTime(0, t);
+        sweepGain.gain.linearRampToValueAtTime(0.06, t + 0.3);
+        sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+
+        sweepOsc.connect(sweepFilter);
+        sweepFilter.connect(sweepGain);
+        sweepGain.connect(ctx.destination);
+
+        sweepOsc.start(t);
+        sweepOsc.stop(t + 0.9);
+
+        // B. Triumphant ascending arpeggio sweep (Pentatonic Major)
+        // C4, D4, E4, G4, A4, C5, D5, E5, G5, A5, C6
+        const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+        
+        notes.forEach((freq, index) => {
+            const delay = index * 0.07; // Fast roll
+            const dur = 1.8 - (index * 0.08); // Higher notes decay faster
+
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(freq, t + delay);
+            osc1.detune.setValueAtTime(-5, t + delay);
+
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(freq, t + delay);
+            osc2.detune.setValueAtTime(5, t + delay);
+
+            gain.gain.setValueAtTime(0, t + delay);
+            gain.gain.linearRampToValueAtTime(0.035, t + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+
+            // Pan notes left-to-right as they ascend
+            if (ctx.createStereoPanner) {
+                const panner = ctx.createStereoPanner();
+                const panVal = (index / (notes.length - 1)) * 1.6 - 0.8; // range -0.8 to 0.8
+                panner.pan.setValueAtTime(panVal, t + delay);
+                osc1.connect(panner);
+                osc2.connect(panner);
+                panner.connect(gain);
+            } else {
+                osc1.connect(gain);
+                osc2.connect(gain);
+            }
+
+            gain.connect(ctx.destination);
+
+            osc1.start(t + delay);
+            osc2.start(t + delay);
+            osc1.stop(t + delay + dur);
+            osc2.stop(t + delay + dur);
+        });
+
+        // C. Glass Bell peak impact strike at the end of arpeggio (delay ~ 0.77s)
+        const strikeDelay = 0.77;
+        const strikeOsc1 = ctx.createOscillator();
+        const strikeOsc2 = ctx.createOscillator();
+        const strikeGain = ctx.createGain();
+
+        strikeOsc1.type = 'sine';
+        strikeOsc1.frequency.setValueAtTime(1318.51, t + strikeDelay); // E6
+
+        strikeOsc2.type = 'sine';
+        strikeOsc2.frequency.setValueAtTime(1318.51 * 3.14, t + strikeDelay); // metallic chime inharmonic overtone
+
+        strikeGain.gain.setValueAtTime(0, t + strikeDelay);
+        strikeGain.gain.linearRampToValueAtTime(0.08, t + strikeDelay + 0.01);
+        strikeGain.gain.exponentialRampToValueAtTime(0.001, t + strikeDelay + 2.5); // long resonance decay
+
+        strikeOsc1.connect(strikeGain);
+        strikeOsc2.connect(strikeGain);
+        strikeGain.connect(ctx.destination);
+
+        strikeOsc1.start(t + strikeDelay);
+        strikeOsc2.start(t + strikeDelay);
+        strikeOsc1.stop(t + strikeDelay + 2.6);
+        strikeOsc2.stop(t + strikeDelay + 2.6);
+
+    } catch (e) {
+        console.warn("Level up sound playback failed", e);
+    }
+}

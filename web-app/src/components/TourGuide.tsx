@@ -174,38 +174,49 @@ const TourOverlay: React.FC<{
 
  // Seguir el elemento objetivo dinámicamente
  useEffect(() => {
- if (!step.target) {
- setRect(null);
- return;
- }
+   if (!step.target) {
+     setRect(null);
+     return;
+   }
 
- const updateRect = () => {
- const el = document.querySelector(step.target!);
- if (el) {
- const r = el.getBoundingClientRect();
- // Solo establecer el rect si el elemento es visible (tiene dimensiones)
- if (r.width > 0 && r.height > 0) {
- setRect(r);
- // Auto-scroll si no está visible
- if (r.top < 0 || r.bottom > window.innerHeight) {
- el.scrollIntoView({ behavior: 'smooth', block: 'center' });
- }
- } else {
- setRect(null); // Element exists but is hidden (e.g. inside closed dock)
- }
- } else {
- setRect(null);
- }
- setWindowSize({ w: window.innerWidth, h: window.innerHeight });
- };
+   const updateRect = () => {
+     const el = document.querySelector(step.target!);
+     if (el) {
+       const r = el.getBoundingClientRect();
+       // Solo establecer el rect si el elemento es visible (tiene dimensiones)
+       if (r.width > 0 && r.height > 0) {
+         setRect(r);
+       } else {
+         setRect(null); // Element exists but is hidden (e.g. inside closed dock)
+       }
+     } else {
+       setRect(null);
+     }
+     setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+   };
 
- updateRect();
- const interval = setInterval(updateRect, 100); // Track animations/scrolls continuously
- window.addEventListener('resize', updateRect);
- return () => {
- clearInterval(interval);
- window.removeEventListener('resize', updateRect);
- };
+   updateRect();
+   const interval = setInterval(updateRect, 100); // Track animations/scrolls continuously
+   window.addEventListener('resize', updateRect);
+   return () => {
+     clearInterval(interval);
+     window.removeEventListener('resize', updateRect);
+   };
+ }, [step.target]);
+
+ // Auto-scroll una sola vez al cambiar de objetivo para evitar bucles de renderizado infinitos
+ useEffect(() => {
+   if (!step.target) return;
+   const timer = setTimeout(() => {
+     const el = document.querySelector(step.target!);
+     if (el) {
+       const r = el.getBoundingClientRect();
+       if (r.top < 0 || r.bottom > window.innerHeight) {
+         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+       }
+     }
+   }, 300); // Esperar transiciones de UI
+   return () => clearTimeout(timer);
  }, [step.target]);
 
  const padding = step.highlightPadding || 8;
