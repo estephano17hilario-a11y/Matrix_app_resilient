@@ -151,8 +151,8 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  <Settings2 size={16} />
  </div>
  <div>
- <h2 className="text-lg font-bold text-white tracking-tight">Dock Configuration</h2>
- <p className="text-[10px] text-white/40 uppercase tracking-wider">Organize your navigation</p>
+ <h2 className="text-lg font-bold text-white tracking-tight">{t('dockConfig.title', 'Dock Configuration')}</h2>
+ <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('dockConfig.subtitle', 'Organize your navigation')}</p>
  </div>
  </div>
  <button 
@@ -171,7 +171,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  activeTab === 'organize' ? 'text-white bg-white/5 border-b-2 border-indigo-500' : 'text-white/40 hover:text-white/60'
  )}
  >
- Dock Bar
+ {t('dockConfig.dockBar', 'Dock Bar')}
  </button>
  <button
  onClick={() => setActiveTab('expanded')}
@@ -180,7 +180,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  activeTab === 'expanded' ? 'text-white bg-white/5 border-b-2 border-indigo-500' : 'text-white/40 hover:text-white/60'
  )}
  >
- Plus Menu
+ {t('dockConfig.plusMenu', 'Plus Menu')}
  </button>
  </div>
 
@@ -189,7 +189,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  <div className="space-y-4">
  <div className="space-y-2">
  <div className="flex items-center justify-between text-xs text-white/40 uppercase tracking-wider px-1">
- <span>Active Items (drag to reorder)</span>
+ <span>{t('dockConfig.activeItems', 'Active Items (drag to reorder)')}</span>
  <span className="text-indigo-400">4 / 4</span>
  </div>
  <Reorder.Group 
@@ -222,10 +222,10 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  <div className="flex-1">
  <span className="text-sm font-bold text-white">{item.label}</span>
  {item.isSystem && (
- <span className="ml-2 text-[8px] text-white/30 uppercase">(Required)</span>
+ <span className="ml-2 text-[8px] text-white/30 uppercase">{t('dockConfig.required', '(Required)')}</span>
  )}
  {isReplacing && (
- <span className="block text-[9px] text-indigo-300">Select an item below to replace</span>
+ <span className="block text-[9px] text-indigo-300">{t('dockConfig.selectToReplace', 'Select an item below to replace')}</span>
  )}
  </div>
  <div className={cn(
@@ -256,7 +256,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
 
  <div className="space-y-2 pt-2">
  <div className="flex items-center justify-between text-xs text-white/40 uppercase tracking-wider px-1">
- <span>Available Items to Replace</span>
+ <span>{t('dockConfig.availableReplace', 'Available Items to Replace')}</span>
  </div>
  <div className="grid grid-cols-2 gap-2">
  {DOCK_ITEMS.filter(item => !localConfig.order.slice(0, 4).includes(item.id)).map((item) => {
@@ -289,7 +289,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  onClick={resetToDefault}
  className="w-full py-2 text-xs text-white/40 hover:text-white/60 transition-colors underline"
  >
- Reset to default
+ {t('dockConfig.reset', 'Reset to default')}
  </button>
  </div>
  )}
@@ -302,7 +302,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  <div className="space-y-4">
  <div className="space-y-2">
  <div className="flex items-center justify-between text-xs text-white/40 uppercase tracking-wider px-1">
- <span>Plus Menu Items (drag to reorder)</span>
+ <span>{t('dockConfig.plusItems', 'Plus Menu Items (drag to reorder)')}</span>
  <span className="text-indigo-400">{currentExpandedItems.length}</span>
  </div>
  <Reorder.Group 
@@ -334,7 +334,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  <div className="flex-1">
  <span className="text-sm font-bold text-white">{id === 'ACHIEVEMENTS' ? 'LEGACY' : (id === 'FOCUS' ? 'FOCUS (PROJECT)' : (id === 'HABITS' ? 'HABIT' : item.label))}</span>
  {isMandatory && (
- <span className="ml-2 text-[8px] text-white/30 uppercase">(Required)</span>
+ <span className="ml-2 text-[8px] text-white/30 uppercase">{t('dockConfig.required', '(Required)')}</span>
  )}
  </div>
  {!isMandatory && (
@@ -356,7 +356,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
 
  <div className="space-y-2 pt-2">
  <div className="flex items-center justify-between text-xs text-white/40 uppercase tracking-wider px-1">
- <span>Available Items</span>
+ <span>{t('dockConfig.availableItems', 'Available Items')}</span>
  </div>
  <div className="grid grid-cols-2 gap-2">
  {availableExpandedItems.map((item) => {
@@ -381,7 +381,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  onClick={resetToDefault}
  className="w-full py-2 text-xs text-white/40 hover:text-white/60 transition-colors underline"
  >
- Reset to default
+ {t('dockConfig.reset', 'Reset to default')}
  </button>
  </div>
  );
@@ -396,7 +396,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
  >
  <Check size={16} />
- Save Configuration
+ {t('dockConfig.save', 'Save Configuration')}
  </button>
  </div>
  </motion.div>

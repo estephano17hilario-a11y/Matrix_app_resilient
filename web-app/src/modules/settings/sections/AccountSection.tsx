@@ -276,7 +276,7 @@ export const AccountSection = () => {
 
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-white tracking-wide">Cuentas Vinculadas</h3>
+          <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.linkedAccounts', 'Cuentas Vinculadas')}</h3>
           <div className="h-px flex-1 bg-gradient-to-r from-blue-500/20 to-transparent" />
         </div>
 
@@ -292,7 +292,7 @@ export const AccountSection = () => {
                 </svg>
               </div>
               <div>
-                <h4 className="text-white text-sm font-bold tracking-tight">Google</h4>
+                <h4 className="text-white text-sm font-bold tracking-tight">{t('settings.google', 'Google')}</h4>
                 <p className="text-white/40 text-xs font-medium mt-0.5">
                   {isLoadingIdentities 
                     ? 'Comprobando estado...' 
@@ -311,7 +311,7 @@ export const AccountSection = () => {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-all active:scale-95 border border-red-500/10 disabled:opacity-50"
                 >
                   <Unlink size={14} className="shrink-0" />
-                  <span>Desvincular</span>
+                  <span>{t('settings.unlink', 'Desvincular')}</span>
                 </button>
               ) : (
                 <button
@@ -331,7 +331,7 @@ export const AccountSection = () => {
           </div>
           {linkedIdentities.length <= 1 && !user?.user_metadata?.has_password && googleIdentity && (
             <p className="text-[10px] text-white/30 mt-3 pl-16">
-              Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google.
+              {t('settings.unlinkGoogleWarning', 'Necesitas al menos otro método de inicio de sesión (como Email) para desvincular Google.')}
             </p>
           )}
         </div>

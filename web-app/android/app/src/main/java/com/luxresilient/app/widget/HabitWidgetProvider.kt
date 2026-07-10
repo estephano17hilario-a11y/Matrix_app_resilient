@@ -59,8 +59,9 @@ class HabitWidgetProvider : AppWidgetProvider() {
             }
             ACTION_COMPLETE_HABIT -> {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
-                Log.d(TAG, "Complete habit: $habitId")
-                handleCompleteHabit(context, habitId)
+                val isBadHabit = intent.getBooleanExtra("is_bad_habit", false)
+                Log.d(TAG, "Complete habit: $habitId (isBadHabit=$isBadHabit)")
+                handleCompleteHabit(context, habitId, isBadHabit)
             }
             ACTION_TOGGLE_SUBTASK -> {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
@@ -75,9 +76,11 @@ class HabitWidgetProvider : AppWidgetProvider() {
             }
             ACTION_OPEN_DIALOG -> {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
-                Log.d(TAG, "Open dialog for habit: $habitId")
+                val isBadHabit = intent.getBooleanExtra("is_bad_habit", false)
+                Log.d(TAG, "Open dialog for habit: $habitId (isBadHabit=$isBadHabit)")
                 val dialogIntent = Intent(context, WidgetActionActivity::class.java).apply {
                     putExtra(WidgetActionActivity.EXTRA_HABIT_ID, habitId)
+                    putExtra("is_bad_habit", isBadHabit)
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
                 context.startActivity(dialogIntent)
@@ -163,7 +166,7 @@ class HabitWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_title, "Malos Hábitos")
             views.setTextViewText(R.id.widget_header_emoji, "🚫")
         } else if (isChrono) {
-            views.setTextViewText(R.id.widget_title, "Protocolo Cronológico")
+            views.setTextViewText(R.id.widget_title, "Cronológicos")
             views.setTextViewText(R.id.widget_header_emoji, "⚡")
         } else {
             views.setTextViewText(R.id.widget_title, "Protocolos")
@@ -271,17 +274,39 @@ class HabitWidgetProvider : AppWidgetProvider() {
     /**
      * Handle habit completion from widget click
      */
-    private fun handleCompleteHabit(context: Context, habitId: String) {
+    private fun handleCompleteHabit(context: Context, habitId: String, isBadHabit: Boolean = false) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = SupabaseWidgetClient(context)
+                val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+                val soundEnabled = configPrefs.getBoolean("sound_effects", true)
+
+                if (isBadHabit) {
+                    val badHabits = client.fetchBadHabits()
+                    val habit = badHabits.find { it.id == habitId }
+                    if (habit != null) {
+                        val success = client.toggleBadHabitRelapse(habit)
+                        if (success) {
+                            Log.d(TAG, "Bad habit relapse toggled successfully: $habitId")
+                            if (soundEnabled) {
+                                val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                                val wasRelapsed = habit.relapsedToday == true || habit.history?.contains(todayStr) == true
+                                if (!wasRelapsed) {
+                                    WidgetSoundPlayer.playCompleteSound()
+                                } else {
+                                    WidgetSoundPlayer.playTickSound()
+                                }
+                            }
+                            refreshAllWidgets(context)
+                        }
+                    }
+                    return@launch
+                }
+
                 val habits = client.fetchHabits()
                 val habit = habits.find { it.id == habitId }
 
                 if (habit != null) {
-                    val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-                    val soundEnabled = configPrefs.getBoolean("sound_effects", true)
-
                     when (habit.type) {
                         "SIMPLE", "BOOLEAN" -> {
                             val success = client.completeHabit(habit)

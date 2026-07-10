@@ -123,7 +123,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                   transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
                 >
-                  ¡GRACIAS!
+                  {t('monetization.thankYou', '¡GRACIAS!')}
                 </motion.h1>
               )}
             </AnimatePresence>
@@ -135,7 +135,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                   transition={{ delay: 0.2 }}
                   className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tighter"
                 >
-                  AHORA ERES <span className="text-transparent bg-clip-text bg-[length:200%_auto] animate-[gradient-x_3s_ease_infinite] bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_20px_rgba(217,70,239,0.8)]">DELUX</span>
+                  {t('monetization.nowYouAre', 'AHORA ERES')} <span className="text-transparent bg-clip-text bg-[length:200%_auto] animate-[gradient-x_3s_ease_infinite] bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_20px_rgba(217,70,239,0.8)]">{t('monetization.delux', 'DELUX')}</span>
                 </motion.h2>
               )}
             </AnimatePresence>
@@ -147,7 +147,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                   animate={{ opacity: 1, y: 0 }}
                   className="text-lg md:text-xl text-white/80 font-medium max-w-lg mx-auto leading-relaxed"
                 >
-                  Tu apoyo nos permite seguir creando la mejor herramienta del universo. Camina hacia el futuro, los límites han sido removidos.
+                  {t('monetization.deluxDesc', 'Tu apoyo nos permite seguir creando la mejor herramienta del universo. Camina hacia el futuro, los límites han sido removidos.')}
                 </motion.p>
               )}
             </AnimatePresence>
@@ -165,7 +165,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                 className="mt-8 px-12 py-4 rounded-full bg-white text-black font-bold text-lg shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] transition-all flex items-center gap-3"
               >
                 <Zap size={20} className="text-indigo-600" />
-                Iniciar Secuencia
+                {t('monetization.startSequence', 'Iniciar Secuencia')}
               </motion.button>
             )}
           </AnimatePresence>
@@ -180,7 +180,7 @@ export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen
                 className="mt-12 flex items-center gap-2 text-emerald-400/60 text-xs font-mono uppercase tracking-widest"
               >
                 <ShieldCheck size={14} />
-                <span>Auditoría de Transacción: Verificada</span>
+                <span>{t('monetization.auditVerified', 'Auditoría de Transacción: Verificada')}</span>
               </motion.div>
             )}
           </AnimatePresence>

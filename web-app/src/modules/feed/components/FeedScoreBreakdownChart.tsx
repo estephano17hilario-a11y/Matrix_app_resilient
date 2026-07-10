@@ -297,13 +297,13 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                                   <span className="text-white/40 font-bold uppercase tracking-wider">
                                     {s.key === 'subHabits' ? t('feed.subHab') : t(`feed.${s.key}`)}:
                                   </span>
-                                  <span className="font-black text-white ml-auto tabular-nums">{s.value.toFixed(1)}%</span>
+                                  <span className="font-black text-white ml-auto tabular-nums">{s.value.toFixed(0)}%</span>
                                 </div>
                               ))}
                               <div className="border-t border-white/[0.06] mt-1.5 pt-1 flex items-center justify-between text-[9px] font-black text-white">
-                                <span>Total:</span>
+                                <span>{t('common.totalColon', 'Total:')}</span>
                                 <span className="tabular-nums" style={{ color: day.total >= 75 ? '#22c55e' : day.total >= 50 ? '#6366f1' : '#f59e0b' }}>
-                                  {day.total.toFixed(1)}%
+                                  {day.total.toFixed(0)}%
                                 </span>
                               </div>
                             </div>
@@ -317,7 +317,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                                   <span className="text-white/40 font-bold uppercase tracking-wider">
                                     {seg.key === 'subHabits' ? t('feed.subHab') : t(`feed.${seg.key}`)}:
                                   </span>
-                                  <span className="font-black text-white tabular-nums">{seg.value.toFixed(1)} / {currentMax}</span>
+                                  <span className="font-black text-white tabular-nums">{seg.value.toFixed(0)} / {currentMax}</span>
                                 </div>
                               );
                             })()

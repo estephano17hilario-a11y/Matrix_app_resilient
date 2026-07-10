@@ -215,7 +215,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                     <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-red-500 drop-shadow-lg tracking-tighter">
                                                         {streak}
                                                     </span>
-                                                    <span className="text-lg font-bold text-orange-400">DÍAS</span>
+                                                    <span className="text-lg font-bold text-orange-400">{t('common.daysUpper', 'DÍAS')}</span>
                                                 </div>
                                                 <h2 className="text-sm font-bold text-white tracking-tight mt-1 drop-shadow-md uppercase">
                                                     {t('streak.secured', '¡Racha Asegurada!')}

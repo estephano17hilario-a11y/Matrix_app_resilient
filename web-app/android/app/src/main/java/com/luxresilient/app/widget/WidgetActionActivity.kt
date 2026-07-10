@@ -146,8 +146,22 @@ class WidgetActionActivity : Activity() {
     }
     
     private fun toggleSimpleBadHabit(habit: BadHabitData) {
-        // Not implemented for simple bad habits in this widget action yet
-        finish()
+        CoroutineScope(Dispatchers.IO).launch {
+            val success = client.toggleBadHabitRelapse(habit)
+            withContext(Dispatchers.Main) {
+                if (success && soundEnabled) {
+                    val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                    val wasRelapsed = habit.relapsedToday == true || habit.history?.contains(todayStr) == true
+                    if (!wasRelapsed) {
+                        WidgetSoundPlayer.playCompleteSound()
+                    } else {
+                        WidgetSoundPlayer.playTickSound()
+                    }
+                }
+                refreshWidgets()
+                finish()
+            }
+        }
     }
 
     private fun bindHabitViews(habit: HabitData) {

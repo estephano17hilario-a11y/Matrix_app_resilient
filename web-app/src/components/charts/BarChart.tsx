@@ -65,14 +65,18 @@ export const BarChart = React.memo(({
         return () => document.removeEventListener('click', handleClickOutside);
     }, [activeIndex]);
 
-    const handleBarClick = (i: number, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleBarHover = (i: number, e: React.MouseEvent) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const top = rect.top + window.scrollY - 10;
         const left = rect.left + window.scrollX + (rect.width / 2);
         
         setActiveIndex(i);
         setTooltipPos({ top, left });
+    };
+
+    const handleBarClick = (i: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleBarHover(i, e);
     };
     
     return (
@@ -123,29 +127,43 @@ export const BarChart = React.memo(({
                 >
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider w-full">{labels[activeIndex]}</span>
                     
-                    {/* Individual datasets */}
-                    {datasets.map((ds, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap w-full">
-                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
-                            <span className="text-white/70 text-[9px] font-bold mr-auto">
-                                {tooltipLabelFormatter ? tooltipLabelFormatter(ds.label || '') : ds.label}
-                            </span>
-                            <span className="text-white font-black tabular-nums text-xs">
-                                {tooltipValueFormatter ? tooltipValueFormatter(ds.data[activeIndex]) : ds.data[activeIndex]}
-                            </span>
-                        </div>
-                    ))}
-
-                    {/* Total row — shown when multiple datasets (stacked/trait/project modes) */}
-                    {datasets.length > 1 && (() => {
-                        const total = datasets.reduce((acc, ds) => acc + (ds.data[activeIndex] || 0), 0);
+                    {/* Active datasets only */}
+                    {(() => {
+                        const activeDs = datasets.filter(ds => (ds.data[activeIndex] || 0) > 0);
+                        if (activeDs.length === 0) {
+                            return (
+                                <div className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-0.5 py-0.5">
+                                    {tooltipValueFormatter ? tooltipValueFormatter(0) : '0h'}
+                                </div>
+                            );
+                        }
                         return (
-                            <div className="border-t border-white/[0.08] pt-1 mt-0.5 w-full flex items-center justify-between gap-3">
-                                <span className="text-[9px] font-black text-white/40 uppercase tracking-wider">Total</span>
-                                <span className="text-white font-black tabular-nums text-xs">
-                                    {tooltipValueFormatter ? tooltipValueFormatter(total) : total}
-                                </span>
-                            </div>
+                            <>
+                                {activeDs.map((ds, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap w-full">
+                                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
+                                        <span className="text-white/70 text-[9px] font-bold mr-auto">
+                                            {tooltipLabelFormatter ? tooltipLabelFormatter(ds.label || '') : ds.label}
+                                        </span>
+                                        <span className="text-white font-black tabular-nums text-xs">
+                                            {tooltipValueFormatter ? tooltipValueFormatter(ds.data[activeIndex]) : ds.data[activeIndex]}
+                                        </span>
+                                    </div>
+                                ))}
+
+                                {/* Total row — shown when multiple datasets are active */}
+                                {activeDs.length > 1 && (() => {
+                                    const total = activeDs.reduce((acc, ds) => acc + (ds.data[activeIndex] || 0), 0);
+                                    return (
+                                        <div className="border-t border-white/[0.08] pt-1 mt-0.5 w-full flex items-center justify-between gap-3">
+                                            <span className="text-[9px] font-black text-white/40 uppercase tracking-wider">Total</span>
+                                            <span className="text-white font-black tabular-nums text-xs">
+                                                {tooltipValueFormatter ? tooltipValueFormatter(total) : total}
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
+                            </>
                         );
                     })()}
 
@@ -159,6 +177,8 @@ export const BarChart = React.memo(({
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
+                        onMouseEnter={(e) => handleBarHover(i, e)}
+                        onMouseLeave={() => setActiveIndex(null)}
                         onClick={(e) => handleBarClick(i, e)}
                         className="flex-1 h-full relative group z-10 cursor-pointer min-w-0"
                     >

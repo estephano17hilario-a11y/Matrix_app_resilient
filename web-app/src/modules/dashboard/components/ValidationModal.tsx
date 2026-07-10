@@ -74,10 +74,10 @@ export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes,
                     {React.createElement(iconType, { size: 24, color: attributeColor })}
                 </div>
                 <h3 className="text-xl font-bold text-white mb-1 text-center">{habit.title}</h3>
-                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-6">Validate Progress</p>
+                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-6">{t('validation.title', 'Validate Progress')}</p>
                 {habit.type === 'QUANTITY' && (
                     <div className="w-full space-y-4">
-                        <div className="flex justify-between text-sm font-medium text-slate-400 px-2"><span>Current: <strong className="text-white">{habit.currentValue || 0}</strong></span><span>Target: <strong className="text-white">{habit.targetValue}</strong> {habit.unit}</span></div>
+                        <div className="flex justify-between text-sm font-medium text-slate-400 px-2"><span>{t('validation.current', 'Current:')} <strong className="text-white">{habit.currentValue || 0}</strong></span><span>{t('validation.target', 'Target:')} <strong className="text-white">{habit.targetValue}</strong> {habit.unit}</span></div>
                         
                         <div className="flex items-center justify-center gap-6 py-6">
                             <button 
@@ -121,7 +121,7 @@ export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes,
                 {habit.type === 'CHECKLIST' && (
                         <div className="w-full space-y-2 mb-4">{habit.checklist?.map(item => (<button key={item.id} onClick={() => { const updated = habit.checklist?.map(i => i.id === item.id ? { ...i, completed: !i.completed } : i); setValidationHabit(prev => prev ? { ...prev, checklist: updated } : null); }} className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${item.completed ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/5'}`}><div className={`w-5 h-5 rounded-full border flex items-center justify-center ${item.completed ? 'bg-green-500 border-green-500' : 'border-white/30'}`}>{item.completed && <Check size={12} className="text-black" strokeWidth={4} />}</div><span className={`text-sm font-medium ${item.completed ? 'text-green-400 line-through' : 'text-white'}`}>{item.text}</span></button>))}</div>
                 )}
-                <button onClick={onValidate} className="w-full mt-6 py-4 bg-white text-black font-black rounded-xl hover:scale-[1.02] active:scale-95 transition-[transform,background-color,color,border-color] shadow-md flex items-center justify-center gap-2">Update Progress <ArrowUp size={16} /></button>
+                <button onClick={onValidate} className="w-full mt-6 py-4 bg-white text-black font-black rounded-xl hover:scale-[1.02] active:scale-95 transition-[transform,background-color,color,border-color] shadow-md flex items-center justify-center gap-2">{t('validation.update', 'Update Progress')} <ArrowUp size={16} /></button>
             </motion.div>
                 </div>
             )}

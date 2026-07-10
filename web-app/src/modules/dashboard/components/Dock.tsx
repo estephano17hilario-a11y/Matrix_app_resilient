@@ -283,8 +283,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <Crosshair size={20} />
  </div>
  <div className="text-left">
- <span className="block text-white font-bold text-sm">New Mission</span>
- <span className="text-[10px] text-white/40 uppercase tracking-wider">Single Task</span>
+ <span className="block text-white font-bold text-sm">{t('dock.newMission', 'New Mission')}</span>
+ <span className="text-[10px] text-white/40 uppercase tracking-wider">{t('dock.singleTask', 'Single Task')}</span>
  </div>
  </div>
  <Plus size={18} className="text-white/20 group-hover:text-white transition-colors" />

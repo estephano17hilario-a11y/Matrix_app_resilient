@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -30,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-black text-white p-8 flex flex-col items-center justify-center font-mono">
-          <h1 className="text-3xl text-red-500 mb-4">SYSTEM FAILURE</h1>
+          <h1 className="text-3xl text-red-500 mb-4">{i18n.t('error.systemFailure', 'SYSTEM FAILURE')}</h1>
           <div className="bg-gray-900 p-6 rounded-lg max-w-2xl w-full overflow-auto border border-red-500/30">
             <h2 className="text-xl text-red-400 mb-2">{this.state.error?.toString()}</h2>
             <pre className="text-xs text-gray-400 whitespace-pre-wrap">
@@ -41,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => window.location.reload()}
             className="mt-8 px-6 py-3 bg-red-600 hover:bg-red-700 rounded text-white font-bold transition-colors"
           >
-            REBOOT SYSTEM
+            {i18n.t('error.rebootSystem', 'REBOOT SYSTEM')}
           </button>
         </div>
       );

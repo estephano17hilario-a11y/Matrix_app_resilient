@@ -73,7 +73,7 @@ export const BadHabitActionsModal: React.FC<BadHabitActionsModalProps> = ({
                             <Edit2 size={20} />
                         </div>
                         <div className="text-left">
-                            <div className="text-white font-semibold">Editar Vicio</div>
+                            <div className="text-white font-semibold">{t('habits.editVice', 'Editar Vicio')}</div>
                             <div className="text-white/40 text-xs">{t('common.modifyDetails')}</div>
                         </div>
                     </button>

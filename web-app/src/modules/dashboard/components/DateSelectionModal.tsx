@@ -270,7 +270,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                                             {mode === 'WEEK' ? t('dashboard.selectWeek') : mode === 'MONTH' ? t('dashboard.selectMonth') : mode === 'DAY' ? t('dashboard.selectDay') : t('dashboard.selectYear')}
                                         </h2>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            Viaja en el tiempo
+                                            {t('dateSelection.timeTravel', 'Viaja en el tiempo')}
                                         </p>
                                     </div>
                                 </div>

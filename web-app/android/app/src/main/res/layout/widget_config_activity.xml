@@ -694,6 +694,15 @@
 
             </RelativeLayout>
 
+            </LinearLayout>
+
+            <!-- Tasks Section Container -->
+            <LinearLayout
+                android:id="@+id/config_tasks_section_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <!-- Default Task Timeframe Setting -->
             <TextView
                 android:layout_width="wrap_content"

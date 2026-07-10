@@ -9,4 +9,6 @@
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_project_progress"
     android:resizeMode="horizontal"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:configure="com.luxresilient.app.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable" />

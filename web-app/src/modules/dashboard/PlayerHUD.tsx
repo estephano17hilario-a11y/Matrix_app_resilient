@@ -615,7 +615,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
    
    {orderedAttributes.length === 0 && (
     <div className="h-40 flex items-center justify-center text-white/20 text-xs">
-     No metrics available
+     {t('dashboard.noMetrics', 'No metrics available')}
     </div>
    )}
   </GlassPanel>

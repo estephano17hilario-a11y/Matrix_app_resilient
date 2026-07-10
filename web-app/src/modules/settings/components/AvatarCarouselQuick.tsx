@@ -119,7 +119,7 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
           {isSaving && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
               <span className="text-cyan-400 text-xs font-mono animate-pulse tracking-widest">
-                UPDATING...
+                {t('common.updating', 'UPDATING...')}
               </span>
             </div>
           )}
@@ -163,7 +163,7 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
             color: '#000'
           }}
         >
-          SELECT THIS AVATAR
+          {t('settings.selectThisAvatar', 'SELECT THIS AVATAR')}
         </button>
       )}
     </div>

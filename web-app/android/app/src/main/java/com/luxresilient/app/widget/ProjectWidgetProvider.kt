@@ -150,6 +150,32 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                 val widgetHeight = ((if (minHeightDp > 0) minHeightDp else 70) * density).toInt().coerceAtLeast(60)
 
                 withContext(Dispatchers.Main) {
+                    // Apply dynamic card spacing (padding)
+                    val cardSpacing = prefs.getString("card_spacing_widget_$widgetId", "medio") ?: "medio"
+                    val paddingDp = when (cardSpacing) {
+                        "poco" -> 4
+                        "grande" -> 16
+                        else -> 10
+                    }
+                    val paddingPx = (paddingDp * density).toInt()
+                    views.setViewPadding(R.id.project_configured_layout, paddingPx, paddingPx, paddingPx, paddingPx)
+
+                    // Apply layout optimizations if in 2x1 mode (minWidthDp < 200)
+                    val is2x1 = minWidthDp in 1..199
+                    if (is2x1) {
+                        views.setViewVisibility(R.id.project_play_btn, View.GONE)
+                        views.setViewVisibility(R.id.project_chevron, View.GONE)
+                        views.setFloat(R.id.project_title, "setTextSize", 11.5f)
+                        views.setFloat(R.id.project_time_fraction, "setTextSize", 9.5f)
+                        views.setFloat(R.id.project_percentage_text, "setTextSize", 9.5f)
+                    } else {
+                        views.setViewVisibility(R.id.project_play_btn, View.VISIBLE)
+                        views.setViewVisibility(R.id.project_chevron, View.VISIBLE)
+                        views.setFloat(R.id.project_title, "setTextSize", 14.0f)
+                        views.setFloat(R.id.project_time_fraction, "setTextSize", 11.0f)
+                        views.setFloat(R.id.project_percentage_text, "setTextSize", 10.0f)
+                    }
+
                     // Background glow
                     val glowBitmap = createGlowBackground(density, widgetWidth, widgetHeight, parsedColor)
                     views.setImageViewBitmap(R.id.project_glow_background, glowBitmap)
@@ -169,9 +195,9 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                     )
                     views.setTextViewText(R.id.project_time_fraction, android.text.Html.fromHtml(fractionHtml, android.text.Html.FROM_HTML_MODE_LEGACY))
 
-                    // Progress bar fill (take ~60% of widget width)
-                    val playBtnOffset = (44 + 10) * density
-                    val rightOffset = (16 + 8 + 20) * density
+                    // Progress bar fill (take full width in 2x1, or ~60% of widget width normally)
+                    val playBtnOffset = if (is2x1) 0f else (44 + 10) * density
+                    val rightOffset = if (is2x1) 12 * density else (16 + 8 + 20) * density
                     val barWidth = (widgetWidth - playBtnOffset - rightOffset).toInt().coerceAtLeast(100)
                     val barHeight = (6 * density).toInt()
                     val barBitmap = createProgressBarBitmap(density, barWidth, barHeight, parsedColor, pct)
@@ -181,9 +207,11 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                     views.setTextViewText(R.id.project_percentage_text, "$pct%")
 
                     // Custom drawn Play Button bitmap (colored circle/rounded rect with white play symbol)
-                    val playBtnSize = (44 * density).toInt()
-                    val playBitmap = createPlayButtonBitmap(density, playBtnSize, playBtnSize, parsedColor)
-                    views.setImageViewBitmap(R.id.project_play_image, playBitmap)
+                    if (!is2x1) {
+                        val playBtnSize = (44 * density).toInt()
+                        val playBitmap = createPlayButtonBitmap(density, playBtnSize, playBtnSize, parsedColor)
+                        views.setImageViewBitmap(R.id.project_play_image, playBitmap)
+                    }
 
                     // Click intent to open Focus Session in the app (on play button and entire card)
                     val launchIntent = Intent(Intent.ACTION_VIEW).apply {

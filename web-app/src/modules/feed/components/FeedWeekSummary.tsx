@@ -226,7 +226,7 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
                 <div className="flex items-baseline gap-1 mt-1.5 bg-black/15 p-1.5 rounded-lg border border-white/[0.02] w-fit">
                   <span className="text-xs font-black text-white">{consistencyAssistant.todayTargetScore.toFixed(0)}%</span>
                   <span className="text-[7.5px] text-white/30">
-                    ({consistencyAssistant.prevWeekTodayScore.toFixed(0)}% base + {consistencyAssistant.deficitShare.toFixed(1)}% comp.)
+                    ({consistencyAssistant.prevWeekTodayScore.toFixed(0)}% base + {consistencyAssistant.deficitShare.toFixed(0)}% comp.)
                   </span>
                 </div>
               </div>

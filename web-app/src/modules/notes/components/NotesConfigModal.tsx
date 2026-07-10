@@ -274,7 +274,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex gap-3">
                                         <AlertTriangle className="text-yellow-500 shrink-0" size={20} />
                                         <p className="text-xs text-yellow-200/80 leading-relaxed">
-                                            If you forget your PIN, these methods will be the <strong>only way</strong> to recover your data. Ensure at least one is enabled.
+                                            {t('notes.forgetPinDesc1', 'If you forget your PIN, these methods will be the')} <strong>{t('notes.onlyWay', 'only way')}</strong> {t('notes.forgetPinDesc2', 'to recover your data. Ensure at least one is enabled.')}
                                         </p>
                                     </div>
 
@@ -316,7 +316,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                             </div>
                                             {(config.security.recoveryMethod === 'PASSWORD' || config.security.recoveryMethod === 'BOTH') && (
                                                  <div className="text-xs text-green-400 flex items-center gap-2 mt-2 bg-green-500/10 p-2 rounded-lg">
-                                                     <Check size={12} /> Active by default
+                                                     <Check size={12} /> {t('notes.activeByDefault', 'Active by default')}
                                                  </div>
                                             )}
                                         </div>
@@ -356,14 +356,14 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                                 <div className="space-y-3 mt-4 animate-in fade-in slide-in-from-top-2">
                                                     <input 
                                                         type="text" 
-                                                        placeholder="Question (e.g. First pet's name?)"
+                                                        placeholder={t('notes.recoveryQuestion', "Question (e.g. First pet's name?)")}
                                                         value={config.security.recoveryQuestion || ''}
                                                         onChange={(e) => setConfig(p => ({...p, security: {...p.security, recoveryQuestion: e.target.value}}))}
                                                         className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500/50 transition-colors"
                                                     />
                                                     <input 
                                                         type="text" 
-                                                        placeholder="Answer"
+                                                        placeholder={t('notes.recoveryAnswer', 'Answer')}
                                                         value={config.security.recoveryAnswer || ''}
                                                         onChange={(e) => setConfig(p => ({...p, security: {...p.security, recoveryAnswer: e.target.value}}))}
                                                         className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-purple-500/50 transition-colors"
@@ -384,7 +384,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
                                 className="w-full py-4 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md"
                             >
                                 <Check size={18} />
-                                Save Configuration
+                                {t('dockConfig.save', 'Save Configuration')}
                             </button>
                         </div>
                     </motion.div>

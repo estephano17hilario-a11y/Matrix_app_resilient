@@ -115,7 +115,7 @@ export const SecurityGate = memo(({
                         
                         <div className="flex gap-1.5 items-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Secure</span>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{t('security.secure', 'Secure')}</span>
                         </div>
                     </div>
 
@@ -206,7 +206,7 @@ export const SecurityGate = memo(({
                                 onClick={onRecovery}
                                 className="mt-12 px-6 py-3 rounded-full bg-white/5 border border-white/5 text-[10px] font-black text-white/30 hover:text-white/80 hover:bg-white/10 transition-all uppercase tracking-[0.3em] active:scale-95"
                             >
-                                Forgot PIN?
+                                {t('security.forgotPin', 'Forgot PIN?')}
                             </motion.button>
                         )}
                     </div>

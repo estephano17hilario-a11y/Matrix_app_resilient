@@ -36,7 +36,7 @@ export const ColorPicker = ({ selectedColor, onSelectColor, onToggle }: ColorPic
                         onClick={() => { onSelectColor(undefined); setIsOpen(false); onToggle?.(false); }}
                         className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
                     >
-                        Limpiar
+                        {t('common.clear', 'Limpiar')}
                     </button>
                 )}
             </div>

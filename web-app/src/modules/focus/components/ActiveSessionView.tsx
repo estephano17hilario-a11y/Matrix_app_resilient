@@ -575,7 +575,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  mode === 'POMO' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/70"
  )}
  >
- FOCUS
+ {t('focus.focusUpper', 'FOCUS')}
  </button>
  <button 
  type="button"
@@ -591,7 +591,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  mode === 'STOPWATCH' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/70"
  )}
  >
- FLOW
+ {t('focus.flowUpper', 'FLOW')}
  </button>
  </motion.div>
  )}
@@ -655,7 +655,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  onKeyDown={handleTimeKeyDown}
  className="w-48 text-[5rem] font-mono font-bold text-white bg-transparent text-center outline-none border-b-2 border-white/20 leading-none tracking-tighter tabular-nums drop-shadow-md selection:bg-white/20"
  />
- <span className="absolute -right-8 bottom-4 text-sm font-bold text-white/40 uppercase tracking-widest">MIN</span>
+ <span className="absolute -right-8 bottom-4 text-sm font-bold text-white/40 uppercase tracking-widest">{t('common.minUpper', 'MIN')}</span>
  </div>
  ) : (
  <div 

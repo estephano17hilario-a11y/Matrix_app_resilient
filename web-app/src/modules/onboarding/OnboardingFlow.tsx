@@ -361,12 +361,12 @@ export function OnboardingFlow() {
                   <div className="w-full max-w-5xl mx-auto px-4 pb-24">
                       {(!TRAITS_LIST || TRAITS_LIST.length === 0) ? (
                           <div className="flex flex-col items-center justify-center py-20 gap-4">
-                              <p className="text-white/50">System Error: Traits module offline.</p>
+                              <p className="text-white/50">{t('onboarding.traitsOfflineError', 'System Error: Traits module offline.')}</p>
                               <button 
                                   onClick={() => window.location.reload()}
                                   className="px-6 py-2 bg-white/10 rounded-full text-white text-sm hover:bg-white/20 transition-all border border-white/10"
                               >
-                                  Reinitialize
+                                  {t('onboarding.reinitialize', 'Reinitialize')}
                               </button>
                           </div>
                       ) : (
@@ -470,7 +470,7 @@ export function OnboardingFlow() {
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/10 shadow-sm"
                       >
                         <ChevronDown size={16} className="text-white/80" />
-                        <span className="text-[10px] uppercase tracking-widest text-white/60 font-medium">Scroll</span>
+                        <span className="text-[10px] uppercase tracking-widest text-white/60 font-medium">{t('onboarding.scroll', 'Scroll')}</span>
                       </motion.div>
                     </motion.div>
                   )}
@@ -670,8 +670,8 @@ export function OnboardingFlow() {
                             </div>
                         </div>
                         
-                        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Initializing Matrix...</h2>
-                        <p className="text-white/50 text-sm tracking-widest uppercase">Synchronizing Neural Interface</p>
+                        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">{t('onboarding.initializingMatrix', 'Initializing Matrix...')}</h2>
+                        <p className="text-white/50 text-sm tracking-widest uppercase">{t('onboarding.syncNeuralInterface', 'Synchronizing Neural Interface')}</p>
                     </div>
                  </motion.div>
             )}

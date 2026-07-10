@@ -49,12 +49,14 @@ class WidgetConfigActivity : Activity() {
     
     private lateinit var habitsSectionContainer1: LinearLayout
     private lateinit var habitsSectionContainer2: LinearLayout
+    private lateinit var tasksSectionContainer: LinearLayout
     private lateinit var cardOpacityContainer: LinearLayout
     
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setResult(RESULT_CANCELED)
         setContentView(R.layout.widget_config_activity)
 
         // Parse Widget ID if called as configure activity
@@ -92,6 +94,7 @@ class WidgetConfigActivity : Activity() {
         
         habitsSectionContainer1 = findViewById(R.id.config_habits_section_container_1)
         habitsSectionContainer2 = findViewById(R.id.config_habits_section_container_2)
+        tasksSectionContainer = findViewById(R.id.config_tasks_section_container)
         cardOpacityContainer = findViewById(R.id.config_card_opacity_container)
 
         val btnCancel = findViewById<Button>(R.id.config_cancel_btn)
@@ -112,12 +115,18 @@ class WidgetConfigActivity : Activity() {
             val className = providerInfo?.provider?.className ?: ""
             val isProjectWidget = className.contains("ProjectWidgetProvider")
             val isFocusWidget = className.contains("FocusWidgetProvider")
+            val isTaskWidget = className.contains("TaskWidgetProvider")
+            val isHabitWidget = className.contains("HabitWidgetProvider")
             
             val txtConfigTitle = findViewById<TextView>(R.id.config_title)
             if (isProjectWidget) {
                 txtConfigTitle.text = "Ajustes de Proyecto"
             } else if (isFocusWidget) {
                 txtConfigTitle.text = "Ajustes de Enfoque"
+            } else if (isTaskWidget) {
+                txtConfigTitle.text = "Ajustes de Tareas"
+            } else if (isHabitWidget) {
+                txtConfigTitle.text = "Ajustes de Hábitos"
             } else {
                 txtConfigTitle.text = "Ajustes de Widget"
             }
@@ -127,20 +136,34 @@ class WidgetConfigActivity : Activity() {
                 loadProjectsForSelection()
                 habitsSectionContainer1.visibility = View.GONE
                 habitsSectionContainer2.visibility = View.GONE
+                tasksSectionContainer.visibility = View.GONE
                 cardOpacityContainer.visibility = View.GONE
             } else if (isFocusWidget) {
                 projectSelectContainer.visibility = View.GONE
                 habitsSectionContainer1.visibility = View.GONE
                 habitsSectionContainer2.visibility = View.GONE
+                tasksSectionContainer.visibility = View.GONE
                 cardOpacityContainer.visibility = View.GONE
+            } else if (isTaskWidget) {
+                projectSelectContainer.visibility = View.GONE
+                habitsSectionContainer1.visibility = View.GONE
+                habitsSectionContainer2.visibility = View.GONE
+                tasksSectionContainer.visibility = View.VISIBLE
+                cardOpacityContainer.visibility = View.VISIBLE
             } else {
+                // Default is Habit widget
                 projectSelectContainer.visibility = View.GONE
                 habitsSectionContainer1.visibility = View.VISIBLE
                 habitsSectionContainer2.visibility = View.VISIBLE
+                tasksSectionContainer.visibility = View.GONE
                 cardOpacityContainer.visibility = View.VISIBLE
             }
         } catch (e: Exception) {
             projectSelectContainer.visibility = View.GONE
+            habitsSectionContainer1.visibility = View.VISIBLE
+            habitsSectionContainer2.visibility = View.VISIBLE
+            tasksSectionContainer.visibility = View.GONE
+            cardOpacityContainer.visibility = View.VISIBLE
         }
 
         // Seekbar opacity value change listener

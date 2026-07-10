@@ -17,15 +17,15 @@ export const FocusLimits: React.FC<FocusLimitsProps> = ({ dailyLimits }) => {
       {/* Earned Stats (No Limits, just info) */}
       <div className="flex items-center gap-2">
         <div className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors flex-1">
-          <span className="text-[9px] font-bold text-fuchsia-400 uppercase mb-0.5 flex items-center gap-1"><Zap size={8} /> XP</span>
+          <span className="text-[9px] font-bold text-fuchsia-400 uppercase mb-0.5 flex items-center gap-1"><Zap size={8} /> {t('common.xp', 'XP')}</span>
           <span className="text-[11px] font-mono text-white/90 font-bold tabular-nums">{Math.floor(currentXP)}</span>
         </div>
         <div className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors flex-1">
-          <span className="text-[9px] font-bold text-cyan-400 uppercase mb-0.5 flex items-center gap-1"><Dna size={8} /> TP</span>
+          <span className="text-[9px] font-bold text-cyan-400 uppercase mb-0.5 flex items-center gap-1"><Dna size={8} /> {t('common.tp', 'TP')}</span>
           <span className="text-[11px] font-mono text-white/90 font-bold tabular-nums">{Math.floor(currentTP)}</span>
         </div>
         <div className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors flex-1">
-          <span className="text-[9px] font-bold text-amber-400 uppercase mb-0.5 flex items-center gap-1"><Coins size={8} /> Gold</span>
+          <span className="text-[9px] font-bold text-amber-400 uppercase mb-0.5 flex items-center gap-1"><Coins size={8} /> {t('common.gold', 'Gold')}</span>
           <span className="text-[11px] font-mono text-white/90 font-bold tabular-nums">{Math.floor(currentCoins)}</span>
         </div>
         <TourLightbulb tourId="focus" className="shrink-0" />

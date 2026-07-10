@@ -136,7 +136,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  className={cn("flex items-center justify-between transition-colors", className)}
  >
  <span className={!value ? "text-white/20" : ""}>{formatDisplay()}</span>
- {!value && <span className="text-[10px] font-bold text-white/20 ml-2">OFF</span>}
+ {!value && <span className="text-[10px] font-bold text-white/20 ml-2">{t('common.off', 'OFF')}</span>}
  </button>
 
  {typeof document !== 'undefined' && createPortal(
@@ -282,7 +282,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  className="absolute bottom-0 flex items-center gap-1.5 text-white/30 text-[10px] font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full border border-white/5"
  >
  <Keyboard size={10} />
- <span>Doble toque para escribir</span>
+ <span>{t('common.doubleTapWrite', 'Doble toque para escribir')}</span>
  </motion.div>
  )}
  </AnimatePresence>
@@ -296,7 +296,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  period === 'AM' ? "bg-amber-500/20 text-amber-400 shadow-sm" : "text-white/30 hover:text-white/50"
  )}
  >
- <Sun size={14} /> AM
+ <Sun size={14} /> {t('common.am', 'AM')}
  </button>
  <button
  onClick={() => setPeriod('PM')}
@@ -305,7 +305,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  period === 'PM' ? "bg-indigo-500/20 text-indigo-400 shadow-sm" : "text-white/30 hover:text-white/50"
  )}
  >
- <Moon size={14} /> PM
+ <Moon size={14} /> {t('common.pm', 'PM')}
  </button>
  </div>
  </div>
@@ -372,7 +372,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  onClick={handleSave}
  className="w-full py-4 rounded-xl bg-white text-black font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
  >
- Save Time
+ {t('common.saveTime', 'Save Time')}
  </button>
  
  {value && (
@@ -383,7 +383,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeho
  }}
  className="w-full py-3 mt-2 rounded-xl text-red-400 font-bold text-xs uppercase tracking-widest hover:bg-red-500/10 transition-colors"
  >
- Remove Alarm
+ {t('common.removeAlarm', 'Remove Alarm')}
  </button>
  )}
  </div>

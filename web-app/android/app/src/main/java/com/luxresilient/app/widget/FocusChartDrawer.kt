@@ -339,25 +339,31 @@ object FocusChartDrawer {
         val chartWidth = chartRight - chartLeft
 
         // Find max value for Y-axis scaling
-        var maxEntryMins = entries.maxOfOrNull { entry ->
+        val peakMins = entries.maxOfOrNull { entry ->
             entry.segments.sumOf { it.minutes.toDouble() }
-        }?.toFloat() ?: 120f
-        if (maxEntryMins < 60f) maxEntryMins = 60f // default min max of 1 hour
+        }?.toFloat() ?: 0f
+        val peakHrs = peakMins / 60f
 
-        // Y-axis grid lines (draw 3 lines: 0, 50%, 100%)
+        // Round up peak hours to the nearest multiple of 3 (minimum of 3 hours)
+        val peakHrsRoundedUp = Math.ceil(peakHrs.toDouble()).toInt()
+        val maxHrs = ((peakHrsRoundedUp + 2) / 3) * 3
+        val finalMaxHrs = maxOf(3, maxHrs)
+        val maxEntryMins = finalMaxHrs * 60f
+
+        // Y-axis grid lines (draw 4 lines: 0, 1/3, 2/3, 100%)
         val gridPaint = Paint().apply {
             color = Color.parseColor("#0DFFFFFF")
             strokeWidth = 1 * density
             style = Paint.Style.STROKE
         }
 
-        val stepHrs = (maxEntryMins / 60f / 2f)
-        for (i in 0..2) {
-            val y = chartBottom - (chartHeight * (i / 2f))
+        val stepHrs = finalMaxHrs / 3
+        for (i in 0..3) {
+            val y = chartBottom - (chartHeight * (i / 3f))
             canvas.drawLine(chartLeft, y, chartRight, y, gridPaint)
             
             // Draw Y-axis label
-            val labelText = String.format(Locale.US, "%.1fh", stepHrs * i)
+            val labelText = "${stepHrs * i}h"
             val labelWidth = textPaint.measureText(labelText)
             canvas.drawText(labelText, chartLeft - labelWidth - 4 * density, y + 3 * density, textPaint)
         }

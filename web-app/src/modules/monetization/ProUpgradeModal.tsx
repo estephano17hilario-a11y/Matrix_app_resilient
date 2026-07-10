@@ -421,7 +421,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
           }}
           className="text-xs text-white/40 hover:text-white/80 transition-colors mt-2 block mx-auto underline cursor-pointer"
         >
-          Restaurar Compras
+          {t('monetization.restorePurchases', 'Restaurar Compras')}
         </button>
       </div>
     )
@@ -434,7 +434,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
     >
       <Smartphone size={32} className="text-purple-400 mb-2" />
       <p className="text-white text-base md:text-lg font-medium text-center">
-        Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.
+        {t('monetization.unlockProInstruction', 'Para desbloquear Lux PRO, abre la aplicación en tu celular y dirígete a la sección Premium.')}
       </p>
       <a 
         href="https://play.google.com/store/apps/details?id=com.luxresilient.app" 
@@ -442,7 +442,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
         rel="noreferrer"
         className="mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all duration-200"
       >
-        Descargar en Google Play
+        {t('monetization.downloadGooglePlay', 'Descargar en Google Play')}
       </a>
     </motion.div>
   )}
@@ -568,7 +568,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  transition={{ delay: 0.5 }}
  className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-fuchsia-300 to-pink-300 text-center drop-shadow-[0_0_20px_rgba(216,180,254,0.5)] mb-4 tracking-tight uppercase"
  >
- ¡AHORA ERES LUX PRO!
+ {t('monetization.nowLuxPro', '¡AHORA ERES LUX PRO!')}
  </motion.h1>
 
  <motion.p
@@ -577,7 +577,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  transition={{ delay: 0.8 }}
  className="text-white/60 text-lg md:text-xl font-medium tracking-wide uppercase animate-pulse"
  >
- Reiniciando el sistema...
+ {t('monetization.rebooting', 'Reiniciando el sistema...')}
  </motion.p>
  </motion.div>
  </motion.div>

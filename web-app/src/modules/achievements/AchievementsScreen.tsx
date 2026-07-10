@@ -264,7 +264,7 @@ const AchievementsScreenComponent: React.FC = () => {
  : 'bg-black/40 text-white/50 border-white/10 hover:border-white/30 hover:text-white'}
  `}
  >
- ALL
+ {t('common.all', 'ALL')}
  </button>
  <div className="w-px h-6 bg-white/10 mx-1" />
  {traitKeys.map(trait => (

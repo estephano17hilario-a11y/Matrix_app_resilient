@@ -219,7 +219,7 @@ const PurchaseSuccessModal = ({
                                 transition={{ delay: 0.2 }}
                                 className="text-2xl font-black text-white tracking-tight mb-2"
                             >
-                                ¡COMPRA EXITOSA!
+                                {t('store.successPurchase', '¡COMPRA EXITOSA!')}
                             </motion.h3>
                             
                             <motion.p 
@@ -228,7 +228,7 @@ const PurchaseSuccessModal = ({
                                 transition={{ delay: 0.3 }}
                                 className="text-white/60 text-sm mb-8 leading-relaxed px-4"
                             >
-                                Has adquirido <span className="text-yellow-400 font-bold">{t(item.name)}</span>. El objeto ha sido enviado a tu inventario.
+                                {t('store.youAcquired', 'Has adquirido')} <span className="text-yellow-400 font-bold">{t(item.name)}</span>{t('store.itemSentToInventory', '. El objeto ha sido enviado a tu inventario.')}
                             </motion.p>
 
                             <motion.div 
@@ -241,13 +241,13 @@ const PurchaseSuccessModal = ({
                                     onClick={onGoToInventory}
                                     className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-[11px] uppercase tracking-[0.2em] hover:from-yellow-600 hover:to-amber-600 active:scale-[0.98] shadow-lg shadow-yellow-500/10"
                                 >
-                                    Ir al Inventario
+                                    {t('store.goToInventory', 'Ir al Inventario')}
                                 </button>
                                 <button 
                                     onClick={onClose}
                                     className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-[11px] uppercase tracking-[0.2em] transition-all border border-white/5"
                                 >
-                                    Seguir Comprando
+                                    {t('store.keepShopping', 'Seguir Comprando')}
                                 </button>
                             </motion.div>
                         </div>

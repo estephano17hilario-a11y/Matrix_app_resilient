@@ -109,7 +109,7 @@ export const ReorderModal = <T extends ReorderItemBase>({
  onClick={onClose}
  className="flex-1 py-3 rounded-xl bg-white/5 text-white/60 font-bold text-sm hover:bg-white/10 transition-colors"
  >
- Cancel
+ {t('common.cancel', 'Cancel')}
  </button>
  <button 
  onClick={handleSave}

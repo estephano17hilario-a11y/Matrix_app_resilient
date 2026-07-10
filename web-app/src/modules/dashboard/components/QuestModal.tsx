@@ -456,7 +456,7 @@ export const QuestModal = React.memo(({
                                         {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
                                             <div className="space-y-1 animate-in slide-in-from-top-1 fade-in">
                                                 <span className="text-[9px] font-black text-white/30 uppercase tracking-wider block px-1">
-                                                    Sub-Rasgo
+                                                    {t('habits.subTrait', 'Sub-Rasgo')}
                                                 </span>
                                                 <div className="relative">
                                                     <button
@@ -470,7 +470,7 @@ export const QuestModal = React.memo(({
                                                                     {selectedAttr.subTraits.find(st => st.id === subAttrId)?.name || subAttrId}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-white/20">Seleccionar Sub-Rasgo (Opcional)</span>
+                                                                <span className="text-white/20">{t('habits.selectSubTraitOptional', 'Seleccionar Sub-Rasgo (Opcional)')}</span>
                                                             )}
                                                         </div>
                                                         <ChevronDown size={14} className="text-white/30" />
@@ -485,7 +485,7 @@ export const QuestModal = React.memo(({
                                                                     onClick={() => { setSubAttrId(''); setSubAttrPickerOpen(false); }}
                                                                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
                                                                 >
-                                                                    Ninguno
+                                                                    {t('common.none', 'Ninguno')}
                                                                 </button>
                                                                 {selectedAttr.subTraits.map(st => (
                                                                     <button
@@ -595,7 +595,7 @@ export const QuestModal = React.memo(({
                                                         </button>
 
                                                         {smartProjects && smartProjects.length > 0 && (
-                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest">Strategic</div>
+                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest">{t('quests.strategic', 'Strategic')}</div>
                                                         )}
                                                         {Array.isArray(smartProjects) && smartProjects.map(p => {
                                                             if (!p) return null;
@@ -615,14 +615,14 @@ export const QuestModal = React.memo(({
                                                                     </div>
                                                                     <div className="flex flex-col overflow-hidden">
                                                                         <span className="text-xs font-bold text-white truncate w-full">{p.mainGoal}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Strategy</span>
+                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{t('quests.strategy', 'Strategy')}</span>
                                                                     </div>
                                                                 </button>
                                                             );
                                                         })}
 
                                                         {projects && projects.length > 0 && (
-                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest mt-2">Protocols</div>
+                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest mt-2">{t('quests.protocols', 'Protocols')}</div>
                                                         )}
                                                         {Array.isArray(projects) && projects.map(p => {
                                                             if (!p) return null;
@@ -783,8 +783,8 @@ export const QuestModal = React.memo(({
                                                                 <Target size={14} />
                                                             </div>
                                                             <div>
-                                                                <span className="text-xs font-bold text-white block">Mostrar en el Journaling</span>
-                                                                <span className="text-[10px] text-white/40">Agrega esta tarea al calendario de Journal</span>
+                                                                <span className="text-xs font-bold text-white block">{t('quests.showInJournaling', 'Mostrar en el Journaling')}</span>
+                                                                <span className="text-[10px] text-white/40">{t('quests.addToJournalCalendar', 'Agrega esta tarea al calendario de Journal')}</span>
                                                             </div>
                                                         </div>
                                                         <button
@@ -805,7 +805,7 @@ export const QuestModal = React.memo(({
                                                                 className="mt-3"
                                                             >
                                                                 <div className="pt-2 pb-1 space-y-2">
-                                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Color del Icono</span>
+                                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">{t('quests.iconColor', 'Color del Icono')}</span>
                                                                     <div className="flex flex-wrap gap-2">
                                                                         {['#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#eab308'].map(color => (
                                                                             <button
@@ -853,4 +853,7 @@ export const QuestModal = React.memo(({
         </AnimatePresence>,
         document.body
     );
+}, (prev, next) => {
+    if (!prev.isOpen && !next.isOpen) return true;
+    return false;
 });

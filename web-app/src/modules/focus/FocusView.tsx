@@ -106,7 +106,7 @@ export const FocusView = React.memo(({
     return (
         <div className="relative w-full font-sans flex flex-col p-4 pt-0">
             {/* Stats - Always Visible */}
-            <div className="relative z-10 mb-2 -mt-1">
+            <div className="relative z-10 mb-1.5 -mt-1.5">
                 <FocusStats 
                     projects={projects} 
                     attributes={attributes} 
@@ -171,7 +171,7 @@ export const FocusView = React.memo(({
                                 <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
                             </div>
                             <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
-                                Create New Project
+                                {t('focus.createNewProject', 'Create New Project')}
                             </span>
                         </div>
                     </div>

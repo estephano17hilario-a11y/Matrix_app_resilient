@@ -130,7 +130,7 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
     if (moodCount < 2) {
         return (
             <div className="w-full h-full flex items-center justify-center text-white/20 text-sm italic">
-                Add more entries to see your mood flow...
+                {t('notes.addMoreEntriesMoodFlow', 'Add more entries to see your mood flow...')}
             </div>
         );
     }

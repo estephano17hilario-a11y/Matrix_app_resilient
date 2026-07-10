@@ -173,7 +173,7 @@ export const AvatarCarousel: React.FC<AvatarCarouselProps> = ({ onSelect, initia
                 className="w-full sm:w-auto px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full font-bold text-black shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 text-xs sm:text-sm md:text-base whitespace-nowrap transition-transform duration-150 hover:scale-[1.05] active:scale-[0.95]"
                 style={{ backgroundColor: currentAvatar.themeColor || '#fff' }}
             >
-                <span>CONFIRM IDENTITY</span>
+                <span>{t('onboarding.confirmIdentity', 'CONFIRM IDENTITY')}</span>
                 <Check size={18} />
             </button>
 

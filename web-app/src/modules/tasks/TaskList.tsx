@@ -311,7 +311,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-1 text-[9px] font-bold text-cyan-300 uppercase tracking-wider">
  <Zap size={10} />
- XP
+ {t('common.xp', 'XP')}
  </div>
  <span className="text-[9px] font-mono text-white/60 tabular-nums">{Math.round(safeTaskXp)}/{maxTaskXp}</span>
  </div>
@@ -329,7 +329,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-1 text-[9px] font-bold text-fuchsia-300 uppercase tracking-wider">
  <Brain size={10} />
- TP
+ {t('common.tp', 'TP')}
  </div>
  <span className="text-[9px] font-mono text-white/60 tabular-nums">{Math.round(safeTaskTraitPoints)}/{maxTaskTraitPoints}</span>
  </div>
@@ -347,7 +347,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-1 text-[9px] font-bold text-amber-300 uppercase tracking-wider">
  <Coins size={10} />
- Coins
+ {t('common.coins', 'Coins')}
  </div>
  <span className="text-[9px] font-mono text-white/60 tabular-nums">{Math.round(safeTaskGold)}/{maxGoldLabel}</span>
  </div>

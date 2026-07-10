@@ -299,7 +299,7 @@ export const QuantityUpdateModal: React.FC<QuantityUpdateModalProps> = ({ habit,
  </span>
  
  <div className="flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] ">
- <span className="text-[10px] font-black text-white/20 tracking-[0.1em] uppercase">Objetivo</span>
+ <span className="text-[10px] font-black text-white/20 tracking-[0.1em] uppercase">{t('common.target', 'Objetivo')}</span>
  <span className="text-sm font-black text-white/80 tabular-nums">{target}</span>
  {habit.unit && (
  <span className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">{habit.unit}</span>

@@ -146,7 +146,7 @@ export const SystemSection = () => {
  )}
  >
  <span className="text-lg">🇺🇸</span>
- <span>English</span>
+ <span>{t('settings.english', 'English')}</span>
  </button>
  <button
  onClick={() => changeLanguage('es')}
@@ -158,7 +158,7 @@ export const SystemSection = () => {
  )}
  >
  <span className="text-lg">🇪🇸</span>
- <span>Español</span>
+ <span>{t('settings.spanish', 'Español')}</span>
  </button>
  </div>
  </div>
@@ -296,8 +296,8 @@ export const SystemSection = () => {
  <LayoutTemplate size={18} className="text-pink-400" />
  </div>
  <div>
- <div className="text-base font-bold text-white tracking-tight">Dashboard Layout</div>
- <div className="text-xs text-white/40 font-medium">Select dock style</div>
+ <div className="text-base font-bold text-white tracking-tight">{t('settings.dashboardLayout', 'Dashboard Layout')}</div>
+ <div className="text-xs text-white/40 font-medium">{t('settings.selectDockStyle', 'Select dock style')}</div>
  </div>
  </div>
 
@@ -311,7 +311,7 @@ export const SystemSection = () => {
  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
  )}
  >
- Legacy Dock
+ {t('settings.legacyDock', 'Legacy Dock')}
  </button>
  <button
  onClick={() => setDashboardStyle('AURA')}
@@ -322,7 +322,7 @@ export const SystemSection = () => {
  : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
  )}
  >
- Aura Dock
+ {t('settings.auraDock', 'Aura Dock')}
  </button>
  </div>
  </div>

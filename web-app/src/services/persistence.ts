@@ -221,6 +221,9 @@ const persistWithBackup = <T>(key: string, uid: string, data: T) => {
   safeStorage.setItem(key, JSON.stringify(envelope));
 };
 
+const collectionMemoryCache = new Map<string, any>();
+const pendingWriteTimers = new Map<string, any>();
+
 export const PersistenceService = {
   initialize: async () => {
     try {
@@ -340,6 +343,9 @@ export const PersistenceService = {
 
   clearProfile: () => {
     try {
+      collectionMemoryCache.clear();
+      pendingWriteTimers.forEach(timer => clearTimeout(timer));
+      pendingWriteTimers.clear();
       const sessionUid = sessionStorage.getItem(KEYS.SESSION_UID) || '';
       if (!sessionUid) return;
       const key = buildProfileKey(sessionUid);
@@ -371,21 +377,38 @@ export const PersistenceService = {
   saveCollection: <T>(userId: string, collectionName: string, items: T[]) => {
     try {
       const key = buildCollectionKey(userId, collectionName);
+      
+      // Update memory cache instantly for sync access
+      collectionMemoryCache.set(key, items || []);
 
-      // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
-      const primaryRaw = safeStorage.getItem(key);
-      if (primaryRaw) {
-        try {
-          const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
-          if (envelope && stableStringify(envelope.data) === stableStringify(items || [])) {
-            // Collection is identical, skip write to save native resources and prevent loops
-            return;
-          }
-        } catch {}
+      // Cancel any pending write
+      if (pendingWriteTimers.has(key)) {
+        clearTimeout(pendingWriteTimers.get(key));
       }
 
-      persistWithBackup(key, userId, items || []);
-      safeStorage.setItem(key + '_TS', Date.now().toString());
+      // Debounce the write to storage (100ms)
+      const timer = setTimeout(() => {
+        pendingWriteTimers.delete(key);
+        try {
+          // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
+          const primaryRaw = safeStorage.getItem(key);
+          if (primaryRaw) {
+            try {
+              const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
+              if (envelope && stableStringify(envelope.data) === stableStringify(items || [])) {
+                return;
+              }
+            } catch {}
+          }
+
+          persistWithBackup(key, userId, items || []);
+          safeStorage.setItem(key + '_TS', Date.now().toString());
+        } catch (e) {
+          console.error("💾 MATRIX MEMORY: Failed to write collection async.", e);
+        }
+      }, 100);
+
+      pendingWriteTimers.set(key, timer);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Failed to write collection.", e);
     }
@@ -395,20 +418,37 @@ export const PersistenceService = {
       if (!items || items.length === 0) return;
       const key = buildCollectionSafeKey(userId, collectionName);
 
-      // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
-      const primaryRaw = safeStorage.getItem(key);
-      if (primaryRaw) {
-        try {
-          const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
-          if (envelope && stableStringify(envelope.data) === stableStringify(items)) {
-            // Collection is identical, skip write to save native resources and prevent loops
-            return;
-          }
-        } catch {}
+      // Update memory cache instantly
+      collectionMemoryCache.set(key, items);
+
+      // Cancel any pending write
+      if (pendingWriteTimers.has(key)) {
+        clearTimeout(pendingWriteTimers.get(key));
       }
 
-      persistWithBackup(key, userId, items);
-      safeStorage.setItem(key + '_TS', Date.now().toString());
+      // Debounce the write
+      const timer = setTimeout(() => {
+        pendingWriteTimers.delete(key);
+        try {
+          // 🔒 STABILITY GUARD: Compare serialized payload before writing to avoid Capacitor bridge flood
+          const primaryRaw = safeStorage.getItem(key);
+          if (primaryRaw) {
+            try {
+              const envelope = JSON.parse(primaryRaw) as PersistedEnvelope<T[]>;
+              if (envelope && stableStringify(envelope.data) === stableStringify(items)) {
+                return;
+              }
+            } catch {}
+          }
+
+          persistWithBackup(key, userId, items);
+          safeStorage.setItem(key + '_TS', Date.now().toString());
+        } catch (e) {
+          console.error("💾 MATRIX MEMORY: Failed to write safe collection async.", e);
+        }
+      }, 100);
+
+      pendingWriteTimers.set(key, timer);
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Failed to write safe collection.", e);
     }
@@ -417,6 +457,9 @@ export const PersistenceService = {
   getCollection: <T>(userId: string, collectionName: string): T[] | null => {
     try {
       const key = buildCollectionKey(userId, collectionName);
+      if (collectionMemoryCache.has(key)) {
+        return collectionMemoryCache.get(key) as T[];
+      }
       
       // EMERGENCY RECOVERY: If main cache is an empty array but backup is populated, restore from backup!
       const mainStr = safeStorage.getItem(key);
@@ -438,13 +481,19 @@ export const PersistenceService = {
           } catch {}
       }
       
+      let finalData: T[] | null = null;
       if (mainData && Array.isArray(mainData) && mainData.length === 0 && backupData && Array.isArray(backupData) && backupData.length > 0) {
           console.warn(`🚨 MATRIX EMERGENCY RECOVERY: Restoring ${collectionName} from backup because main was wiped!`);
           safeStorage.setItem(key, backupStr!);
-          return backupData as T[];
+          finalData = backupData as T[];
+      } else {
+          finalData = readWithBackup<T[]>(key, userId);
       }
       
-      return readWithBackup<T[]>(key, userId);
+      if (finalData) {
+        collectionMemoryCache.set(key, finalData);
+      }
+      return finalData;
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Corrupted collection cache.", e);
       return null;
@@ -453,7 +502,14 @@ export const PersistenceService = {
   getCollectionSafe: <T>(userId: string, collectionName: string): T[] | null => {
     try {
       const key = buildCollectionSafeKey(userId, collectionName);
-      return readWithBackup<T[]>(key, userId);
+      if (collectionMemoryCache.has(key)) {
+        return collectionMemoryCache.get(key) as T[];
+      }
+      const finalData = readWithBackup<T[]>(key, userId);
+      if (finalData) {
+        collectionMemoryCache.set(key, finalData);
+      }
+      return finalData;
     } catch (e) {
       console.error("💾 MATRIX MEMORY: Corrupted safe collection cache.", e);
       return null;
@@ -462,6 +518,11 @@ export const PersistenceService = {
   clearCollectionSafe: (userId: string, collectionName: string) => {
     try {
       const key = buildCollectionSafeKey(userId, collectionName);
+      collectionMemoryCache.delete(key);
+      if (pendingWriteTimers.has(key)) {
+        clearTimeout(pendingWriteTimers.get(key));
+        pendingWriteTimers.delete(key);
+      }
       safeStorage.removeItem(key);
       safeStorage.removeItem(key + '_TS');
       safeStorage.removeItem(key + '_BACKUP');

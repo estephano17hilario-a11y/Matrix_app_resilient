@@ -137,7 +137,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
       <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1 flex-1">
              <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-bold text-white/40">
-                <span>Tactical Steps</span>
+                <span>{t('quests.tacticalSteps', 'Tactical Steps')}</span>
                 <span>{Math.round(progress)}%</span>
              </div>
             {/* Liquid Bar */}
@@ -223,7 +223,7 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
             )}
             disabled={!inputValue.trim()}
             >
-                <div className="text-[10px] font-bold uppercase px-1">ADD</div>
+                <div className="text-[10px] font-bold uppercase px-1">{t('common.addUpper', 'ADD')}</div>
             </button>
         </div>
       </div>

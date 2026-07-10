@@ -108,8 +108,9 @@ class HabitWidgetFactory(
 
             if (isBadHabits) {
                 val badHabits = client.fetchBadHabits()
+                val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
                 for (bh in badHabits) {
-                    val baseColor = attributes[bh.attribute]?.color ?: "#ef4444"
+                    val baseColor = bh.customColor ?: attributes[bh.attribute]?.color ?: "#ef4444"
                     val parsedColor = try { Color.parseColor(baseColor) } catch (_: Exception) { Color.parseColor("#ef4444") }
                     
                     val progressText = if (bh.isDynamic == true) {
@@ -125,6 +126,9 @@ class HabitWidgetFactory(
                     } else {
                         0
                     }
+
+                    // A bad habit is relapsed if marked as relapsedToday or present in history for today
+                    val isRelapsed = bh.relapsedToday == true || bh.history?.contains(todayStr) == true
 
                     // Create dummy HabitData to reuse views
                     val dummyHabit = HabitData(
@@ -142,7 +146,7 @@ class HabitWidgetFactory(
                         text = bh.title,
                         subText = progressText,
                         time = "23:59",
-                        isCompleted = false,
+                        isCompleted = isRelapsed,
                         color = parsedColor,
                         iconName = null, // uses attribute
                         attribute = bh.attribute,
@@ -392,6 +396,7 @@ class HabitWidgetFactory(
         prefix: String = ""
     ): RemoteViews {
         val habit = item.rawHabit
+        val isBadHabitMode = configPrefs.getBoolean("bad_habits_mode", false)
         
         // Choose layout file dynamically based on sizing and column configuration
         val layoutId = if (cardColumns == 2) {
@@ -639,6 +644,9 @@ class HabitWidgetFactory(
                     action = HabitWidgetProvider.ACTION_COMPLETE_HABIT
                 }
                 putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+                if (isBadHabitMode) {
+                    putExtra("is_bad_habit", true)
+                }
             }
         }
         views.setOnClickFillInIntent(getId("habit_complete_btn"), fillIntent)
@@ -652,6 +660,9 @@ class HabitWidgetFactory(
                 action = HabitWidgetProvider.ACTION_OPEN_APP_SHORTCUT
             }
             putExtra(HabitWidgetProvider.EXTRA_HABIT_ID, item.habitId)
+            if (isBadHabitMode) {
+                putExtra("is_bad_habit", true)
+            }
         }
         views.setOnClickFillInIntent(getId("habit_text_container"), cardFillIntent)
 

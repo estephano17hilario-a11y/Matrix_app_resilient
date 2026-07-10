@@ -153,7 +153,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
         onClick={onCancel}
         className="absolute top-6 right-6 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50 border border-white/5"
       >
-        <span className="sr-only">Close</span>
+        <span className="sr-only">{t('common.close', 'Close')}</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 

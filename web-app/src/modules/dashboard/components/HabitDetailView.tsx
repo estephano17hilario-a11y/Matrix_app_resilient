@@ -666,7 +666,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </h2>
  <div className="flex items-center justify-center gap-1.5 opacity-60">
  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor, boxShadow: `0 0 8px ${themeColor}` }} />
- <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/90">Análisis Detallado</span>
+ <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/90">{t('habits.detailedAnalysis', 'Análisis Detallado')}</span>
  </div>
  </div>
 
@@ -698,7 +698,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/5 flex items-center gap-3 transition-colors"
  >
  <Edit2 size={16} className="text-blue-400" />
- Editar
+ {t('common.edit', 'Editar')}
  </button>
  )}
  
@@ -880,7 +880,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </span>
  {!isScrolled && (
  <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.1em] mt-0.5">
- Período Seleccionado
+ {t('habits.selectedPeriod', 'Período Seleccionado')}
  </span>
  )}
  </motion.div>
@@ -987,7 +987,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </span>
  </div>
  <div className="text-right">
- <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-1">Progreso</span>
+ <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em] mb-1">{t('common.progress', 'Progreso')}</span>
  <div className="text-sm font-black text-white">{summaryPercentage}%</div>
  </div>
  </div>
@@ -1170,7 +1170,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <Lock size={10} className="text-yellow-400" />
  </span> as any
  }
- value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span> as any}
+ value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span> as any}
  onClick={() => onOpenPro && onOpenPro()}
  />
  <StatCard 
@@ -1180,7 +1180,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  <Lock size={10} className="text-yellow-400" />
  </span> as any
  }
- value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span> as any}
+ value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span> as any}
  onClick={() => onOpenPro && onOpenPro()}
  />
  </>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { ArrowUp, AlertTriangle, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
@@ -374,7 +375,7 @@ export default function Dashboard() {
  } = dashboardLogic;
 
   const liveScore = useMemo(() => {
-    return calculateLiveProductivityScore(quests, habits, projects, dailyLimits);
+    return Math.round(calculateLiveProductivityScore(quests, habits, projects, dailyLimits));
   }, [quests, habits, projects, dailyLimits]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
@@ -1674,7 +1675,7 @@ export default function Dashboard() {
  }}
  className={`px-8 py-3 ${archetypeTheme.bg} rounded-full font-bold text-white ${archetypeTheme.btnShadow} hover:scale-105 transition-transform`}
  >
- Initialize Protocol
+ {t('dashboard.initializeProtocol', 'Initialize Protocol')}
  </button>
  </div>
  )}
@@ -2080,8 +2081,8 @@ export default function Dashboard() {
           {/* Header */}
           <div className="relative z-10 pt-12 pb-4 px-6 flex items-center justify-between shrink-0">
             <div>
-              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Progreso</p>
-              <h1 className="text-2xl font-black text-white tracking-tight">Rasgos Transversales</h1>
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">{t('common.progress', 'Progreso')}</p>
+              <h1 className="text-2xl font-black text-white tracking-tight">{t('dashboard.crossTraits', 'Rasgos Transversales')}</h1>
             </div>
             <button
               onClick={() => setIsProgressOpen(false)}
@@ -2182,7 +2183,7 @@ export default function Dashboard() {
               onClick={() => setIsProgressOpen(false)}
               className="w-full py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-sm transition-all"
             >
-              Cerrar
+              {t('common.close', 'Cerrar')}
             </button>
           </div>
         </motion.div>

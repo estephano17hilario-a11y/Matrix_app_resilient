@@ -189,9 +189,9 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  <div>
  <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
  <Activity size={20} className="text-indigo-400" />
- <span>Insights</span>
+ <span>{t('notes.insights', 'Insights')}</span>
  </h2>
- <p className="text-xs font-medium text-white/40 uppercase tracking-wider mt-1">Neural Analytics v2.0</p>
+ <p className="text-xs font-medium text-white/40 uppercase tracking-wider mt-1">{t('notes.neuralAnalytics', 'Neural Analytics v2.0')}</p>
  </div>
 
  <div className="flex items-center gap-3 flex-wrap">
@@ -288,16 +288,16 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  {/* Bento Grid Stats */}
  <div className="grid grid-cols-2 gap-3">
  <StatCard icon={PenTool} label={t('notes.notes', 'Notes')} value={stats.totalNotes} color="#3b82f6" delay={0.1} />
- <StatCard icon={Brain} label={t('notes.entries', 'Entries')} value={isPro ? stats.totalJournal : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span>} color="#a855f7" delay={0.2} isLocked={!isPro} onUnlock={onOpenPro} />
+ <StatCard icon={Brain} label={t('notes.entries', 'Entries')} value={isPro ? stats.totalJournal : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span>} color="#a855f7" delay={0.2} isLocked={!isPro} onUnlock={onOpenPro} />
  <StatCard icon={Flame} label={t('notes.streak', 'Streak')} value={stats.streak} subValue={t('notes.currentDays', 'Current Days')} color="#f97316" delay={0.3} />
- <StatCard icon={Type} label={t('notes.words', 'Words')} value={isPro ? (stats.words / 1000).toFixed(1) + 'k' : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">DELUX</span>} subValue={isPro ? t('notes.totalWritten', 'Total Written') : undefined} color="#10b981" delay={0.4} isLocked={!isPro} onUnlock={onOpenPro} />
+ <StatCard icon={Type} label={t('notes.words', 'Words')} value={isPro ? (stats.words / 1000).toFixed(1) + 'k' : <span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span>} subValue={isPro ? t('notes.totalWritten', 'Total Written') : undefined} color="#10b981" delay={0.4} isLocked={!isPro} onUnlock={onOpenPro} />
  </div>
 
  {/* Simple Activity Chart */}
  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
  <div className="flex items-center gap-2 mb-4">
  <Activity size={14} className="text-blue-400" />
- <span className="text-xs font-bold text-white tracking-wide">ACTIVITY VOLUME</span>
+ <span className="text-xs font-bold text-white tracking-wide">{t('notes.activityVolume', 'ACTIVITY VOLUME')}</span>
  </div>
  <div className="h-[120px] w-full">
  <ResponsiveContainerAny width="100%" height="100%">
@@ -349,9 +349,9 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  <div className="absolute top-4 left-6 sm:left-8 z-20 pointer-events-none">
  <div className="flex items-center gap-3 mb-2">
  <TrendingUp size={24} className="text-pink-400" />
- <span className="text-2xl font-bold text-white tracking-tight">Emotional Flow</span>
+ <span className="text-2xl font-bold text-white tracking-tight">{t('notes.emotionalFlow', 'Emotional Flow')}</span>
  </div>
- <p className="text-sm text-white/50 font-medium max-w-[300px]">Visualizing your emotional journey through time.</p>
+ <p className="text-sm text-white/50 font-medium max-w-[300px]">{t('notes.visualizingEmotionalJourney', 'Visualizing your emotional journey through time.')}</p>
  </div>
 
  {/* The Chart Itself */}
@@ -364,15 +364,15 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  <div className="h-20 shrink-0 bg-[#121212] border-t border-white/5 flex items-center justify-center gap-6 sm:gap-8 flex-wrap px-4">
  <div className="flex items-center gap-2">
  <div className="w-3 h-3 rounded-full bg-emerald-500" />
- <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Radiant</span>
+ <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{t('notes.radiantMood', 'Radiant')}</span>
  </div>
  <div className="flex items-center gap-2">
  <div className="w-3 h-3 rounded-full bg-blue-500" />
- <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Good</span>
+ <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{t('notes.goodMood', 'Good')}</span>
  </div>
  <div className="flex items-center gap-2">
  <div className="w-3 h-3 rounded-full bg-red-500" />
- <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Drained</span>
+ <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{t('notes.drainedMood', 'Drained')}</span>
  </div>
  </div>
  </motion.div>

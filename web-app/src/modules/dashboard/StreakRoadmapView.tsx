@@ -424,7 +424,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     />
                     <div className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 border border-orange-500/40 shadow-lg">
                         <CheckCircle2 className="w-7 h-7 text-orange-400" />
-                        <span className="text-[8px] font-black text-orange-400/80 uppercase tracking-wider mt-0.5">OK</span>
+                        <span className="text-[8px] font-black text-orange-400/80 uppercase tracking-wider mt-0.5">{t('common.ok', 'OK')}</span>
                     </div>
                 </motion.div>
             );
@@ -526,13 +526,13 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                     className="relative flex items-center gap-3 p-3 bg-[#0a0805] border border-amber-500/30 rounded-2xl shadow-lg transition-transform duration-200 hover:scale-[1.02] z-20"
                 >
                     <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-[#1a1205] border border-amber-500/40 text-amber-300 font-black text-lg">
-                        <span className="text-[8px] uppercase tracking-widest opacity-70 mb-[-2px]">Día</span>
+                        <span className="text-[8px] uppercase tracking-widest opacity-70 mb-[-2px]">{t('common.day', 'Día')}</span>
                         {node.day}
                     </div>
 
                     <div className="flex flex-col min-w-[90px]">
                         <span className="text-[10px] font-black text-amber-400/70 uppercase tracking-[0.15em] mb-0.5">
-                            NUEVO NIVEL
+                            {t('dashboard.newLevel', 'NUEVO NIVEL')}
                         </span>
                         <div className="flex items-center gap-1.5">
                             <Flame className="w-4 h-4 text-amber-400" />

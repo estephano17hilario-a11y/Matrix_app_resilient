@@ -53,7 +53,17 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
     const [dividedTimes, setDividedTimes] = useState<{ time: string; amount: number; id: string }[]>([]);
     const [dividedQuantity, setDividedQuantity] = useState('1');
     const [dividedInterval, setDividedInterval] = useState('90');
-    const [subtasks, setSubtasks] = useState<{ id: string; text: string; completed: boolean; color?: string; days?: number[]; reminderTime?: string }[]>([]);
+    const [subtasks, setSubtasks] = useState<{ 
+        id: string; 
+        text: string; 
+        completed: boolean; 
+        color?: string; 
+        days?: number[]; 
+        reminderTime?: string;
+        intervalType?: 'WEEKLY' | 'MONTHLY' | 'NONE';
+        intervalCount?: number;
+        allowSkip?: boolean;
+    }[]>([]);
     const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS' | 'TIME'} | null>(null);
     const [newSubtask, setNewSubtask] = useState('');
     const [impact, setImpact] = useState(1);
@@ -560,7 +570,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                         {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
                                             <div className="space-y-1 animate-in slide-in-from-top-1 fade-in">
                                                 <span className="text-[9px] font-black text-white/30 uppercase tracking-wider block px-1">
-                                                    Sub-Rasgo
+                                                    {t('habits.subTrait', 'Sub-Rasgo')}
                                                 </span>
                                                 <div className="relative">
                                                     <button
@@ -576,7 +586,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                     </span>
                                                                 </>
                                                             ) : (
-                                                                <span className="text-white/20">Seleccionar Sub-Rasgo (Opcional)</span>
+                                                                <span className="text-white/20">{t('habits.selectSubTraitOptional', 'Seleccionar Sub-Rasgo (Opcional)')}</span>
                                                             )}
                                                         </div>
                                                         <ChevronDown size={14} className="text-white/30" />
@@ -591,7 +601,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                     onClick={() => { setSubAttrId(''); setSubAttrPickerOpen(false); }}
                                                                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
                                                                 >
-                                                                    Ninguno
+                                                                    {t('common.none', 'Ninguno')}
                                                                 </button>
                                                                 {selectedAttr.subTraits.map(st => (
                                                                     <button
@@ -876,7 +886,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                         onChange={(e) => setIsDivided(e.target.checked)}
                                                         className="w-4 h-4 rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
                                                     />
-                                                    <span className="text-xs font-bold text-white/70">Dividir meta en intervalos (Recordatorios automáticos)</span>
+                                                    <span className="text-xs font-bold text-white/70">{t('habits.divideMetaIntervals', 'Dividir meta en intervalos (Recordatorios automáticos)')}</span>
                                                 </label>
 
                                                 {isDivided && (
@@ -886,31 +896,31 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                 onClick={() => setDividedMode('INTERVAL')}
                                                                 className={cn("flex-1 text-xs font-bold py-1.5 rounded-lg transition-colors", dividedMode === 'INTERVAL' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70")}
                                                             >
-                                                                Intervalos
+                                                                {t('habits.intervals', 'Intervalos')}
                                                             </button>
                                                             <button
                                                                 onClick={() => setDividedMode('FIXED')}
                                                                 className={cn("flex-1 text-xs font-bold py-1.5 rounded-lg transition-colors", dividedMode === 'FIXED' ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70")}
                                                             >
-                                                                Horarios Fijos
+                                                                {t('habits.fixedSchedules', 'Horarios Fijos')}
                                                             </button>
                                                         </div>
 
                                                         {dividedMode === 'INTERVAL' ? (
                                                             <>
                                                                 <div className="bg-black/20 rounded-xl p-2 border border-white/5">
-                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">Cantidad por vez</span>
+                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">{t('habits.quantityPerTime', 'Cantidad por vez')}</span>
                                                                     <div className="flex items-center">
                                                                         <input type="number" placeholder="1" value={dividedQuantity} onChange={e => setDividedQuantity(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white outline-none px-1" />
                                                                         <span className="text-xs text-white/40">{unit}</span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-black/20 rounded-xl p-2 border border-white/5">
-                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">Frecuencia</span>
+                                                                    <span className="text-[9px] font-bold text-indigo-400 uppercase block mb-1 ml-1">{t('habits.frequency', 'Frecuencia')}</span>
                                                                     <div className="flex items-center">
-                                                                        <span className="text-xs text-white/40 mr-1">Cada</span>
+                                                                        <span className="text-xs text-white/40 mr-1">{t('common.every', 'Cada')}</span>
                                                                         <input type="number" placeholder="90" value={dividedInterval} onChange={e => setDividedInterval(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white outline-none px-1" />
-                                                                        <span className="text-xs text-white/40">min</span>
+                                                                        <span className="text-xs text-white/40">{t('common.min', 'min')}</span>
                                                                     </div>
                                                                 </div>
                                                             </>
@@ -919,7 +929,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                 <div className="flex justify-between items-center">
                                                                     <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Horarios Fijos ({dividedTimes.length})</span>
                                                                     <div className="px-2 py-1 rounded bg-black/40 border border-white/10 flex items-center gap-1.5">
-                                                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Total:</span>
+                                                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{t('common.totalColon', 'Total:')}</span>
                                                                         <span className={cn("text-xs font-black", dividedTimes.reduce((sum, t) => sum + t.amount, 0) > parseInt(target || '0') ? "text-red-400" : dividedTimes.reduce((sum, t) => sum + t.amount, 0) === parseInt(target || '0') ? "text-emerald-400" : "text-white")}>
                                                                             {dividedTimes.reduce((sum, t) => sum + t.amount, 0)} <span className="text-white/30">/</span> {target || 0}
                                                                         </span>
@@ -931,7 +941,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                         <div key={item.id} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl p-2 relative group">
                                                                             <div className="flex-1 flex items-center gap-3">
                                                                                 <div className="flex-1">
-                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">Hora</span>
+                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">{t('common.hour', 'Hora')}</span>
                                                                                     <TimePicker 
                                                                                         value={item.time}
                                                                                         onChange={(val) => {
@@ -943,7 +953,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                                 </div>
                                                                                 <div className="w-px h-8 bg-white/10" />
                                                                                 <div className="w-20">
-                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">Cant.</span>
+                                                                                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-wider block mb-1">{t('common.qty', 'Cant.')}</span>
                                                                                     <input 
                                                                                         type="number"
                                                                                         value={item.amount || ''}
@@ -982,7 +992,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                     className="w-full py-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-500/20 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
                                                                 >
                                                                     <Plus size={14} strokeWidth={3} />
-                                                                    Añadir Horario
+                                                                    {t('habits.addSchedule', 'Añadir Horario')}
                                                                 </button>
                                                                 
                                                                 <span className={cn("text-[10px] block text-center mt-2 font-medium", dividedTimes.reduce((sum, t) => sum + t.amount, 0) > parseInt(target || '0') ? "text-red-400" : "text-white/40")}>
@@ -1214,7 +1224,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                         )}
                                                                         {openMenu.type === 'TIME' && (
                                                                             <div className="flex items-center justify-between p-3">
-                                                                                <span className="text-[10px] font-bold text-slate-400 uppercase">Alarma Opcional</span>
+                                                                                <span className="text-[10px] font-bold text-slate-400 uppercase">{t('habits.optionalAlarm', 'Alarma Opcional')}</span>
                                                                                 <div className="relative">
                                                                                     <TimePicker 
                                                                                         value={task.reminderTime || ''}
@@ -1487,4 +1497,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         </div>,
         document.body
     );
-}, (prev, next) => prev.isOpen === next.isOpen && prev.initialData === next.initialData);
+}, (prev, next) => {
+    if (!prev.isOpen && !next.isOpen) return true;
+    return prev.isOpen === next.isOpen && prev.initialData === next.initialData;
+});

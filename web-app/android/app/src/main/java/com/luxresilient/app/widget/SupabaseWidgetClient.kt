@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -47,6 +48,30 @@ class SupabaseWidgetClient(private val context: Context) {
             Log.e(TAG, "Error reading local cache for $collectionName: ${e.message}")
         }
         return null
+    }
+
+    private fun <T> writeToLocalCache(collectionName: String, data: List<T>) {
+        try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val capKeys = capPrefs.all
+            val matchingKey = capKeys.keys.find { it.startsWith("MATRIX_CACHED_COLLECTION:") && it.endsWith(":$collectionName") }
+            if (matchingKey != null) {
+                val cachedJson = capPrefs.getString(matchingKey, null)
+                val newEnvelope = if (!cachedJson.isNullOrEmpty()) {
+                    val env = JsonParser.parseString(cachedJson).asJsonObject
+                    env.add("data", gson.toJsonTree(data))
+                    env
+                } else {
+                    val env = JsonObject()
+                    env.addProperty("lastSynced", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(java.util.Date()))
+                    env.add("data", gson.toJsonTree(data))
+                    env
+                }
+                capPrefs.edit().putString(matchingKey, gson.toJson(newEnvelope)).apply()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error writing local cache for $collectionName: ${e.message}")
+        }
     }
 
     private fun getCredentials(): Pair<String?, String?> {
@@ -476,6 +501,63 @@ class SupabaseWidgetClient(private val context: Context) {
             }
             success
         } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun toggleBadHabitRelapse(habit: BadHabitData): Boolean {
+        val (userId, accessToken) = getCredentials()
+        if (userId == null || accessToken == null) return false
+
+        return try {
+            val today = getDateKey(Date())
+            val newHistory = (habit.history ?: emptyList()).toMutableList()
+            val isRelapsed = habit.relapsedToday == true || newHistory.contains(today)
+            
+            if (isRelapsed) {
+                // Un-relapse
+                newHistory.remove(today)
+            } else {
+                // Relapse
+                if (!newHistory.contains(today)) {
+                    newHistory.add(today)
+                }
+            }
+
+            val updatedHabit = habit.copy(
+                relapsedToday = !isRelapsed,
+                history = newHistory,
+                streak = if (isRelapsed) 1 else 0
+            )
+
+            // Update local cache first
+            val cached = fetchBadHabits().toMutableList()
+            val idx = cached.indexOfFirst { it.id == habit.id }
+            if (idx != -1) {
+                cached[idx] = updatedHabit
+                writeToLocalCache("badHabits", cached)
+            }
+
+            val recordId = "${userId}_badHabits_${habit.id}"
+            val encodedId = URLEncoder.encode(recordId, "UTF-8")
+            val url = "$SUPABASE_URL$REST_PATH/user_collections?id=eq.$encodedId"
+            
+            val payload = mapOf(
+                "data" to updatedHabit,
+                "deleted" to false
+            )
+            val jsonBody = gson.toJson(payload)
+
+            var success = makePatchRequest(url, jsonBody, accessToken)
+            if (!success) {
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    success = makePatchRequest(url, jsonBody, newAccessToken)
+                }
+            }
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling bad habit relapse: ${e.message}", e)
             false
         }
     }

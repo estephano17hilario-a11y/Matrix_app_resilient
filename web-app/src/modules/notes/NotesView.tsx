@@ -212,11 +212,28 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }
  }, [subView, config.security.protectedAreas.notes, config.security.protectedAreas.journal]);
 
- // Events Hub
- const [showEventsHub, setShowEventsHub] = useState(false);
- const [specialEvents, setSpecialEvents] = useState<any[]>([]);
- const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
- const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
+  // Events Hub
+  const [showEventsHub, setShowEventsHub] = useState(false);
+  const [specialEvents, setSpecialEvents] = useState<any[]>([]);
+  const [selectedMemory, setSelectedMemory] = useState<any | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
+
+  // Calendar settings
+  const [calendarCellOpacity, setCalendarCellOpacity] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('MATRIX_CALENDAR_OPACITY') || '0.85');
+  });
+  const [calendarShowFuture, setCalendarShowFuture] = useState<boolean>(() => {
+    return localStorage.getItem('MATRIX_CALENDAR_SHOW_FUTURE') !== 'false';
+  });
+  const [showCalendarSettings, setShowCalendarSettings] = useState<boolean>(false);
+
+  useEffect(() => {
+    localStorage.setItem('MATRIX_CALENDAR_OPACITY', calendarCellOpacity.toString());
+  }, [calendarCellOpacity]);
+
+  useEffect(() => {
+    localStorage.setItem('MATRIX_CALENDAR_SHOW_FUTURE', calendarShowFuture.toString());
+  }, [calendarShowFuture]);
 
  // Load Special Events for Calendar Integration
  useEffect(() => {
@@ -894,30 +911,67 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 fade-in duration-200">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95 px-4">
- <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
- <Lock size={48} className="text-white/20" />
- </div>
- <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('notes.journal.locked', 'Journal Locked')}</span>
- <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.journal.unlock', 'Unlock Journal')}</button>
+<button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.journal.unlock', 'Unlock Journal')}</button>
  </div>
  ) : (
  <>
- <div className="flex justify-between items-end px-6 mb-6">
- <div>
- <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
- <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
- </div>
- <div className="flex items-center gap-2">
- <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
- <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.calendarView', 'Calendar View')}><Calendar size={14} /></button>
- <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.notebookView', 'Notebook View')}><AlignLeft size={14} /></button>
- </div>
- <div className="flex gap-2">
- <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
- <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
- </div>
- </div>
- </div>
+ <div className="flex justify-between items-end px-6 mb-6 relative">
+  <div>
+  <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
+  <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
+  </div>
+  <div className="flex items-center gap-2">
+  <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
+  <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.calendarView', 'Calendar View')}><Calendar size={14} /></button>
+  <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.notebookView', 'Notebook View')}><AlignLeft size={14} /></button>
+  </div>
+  <div className="flex gap-2">
+  <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
+  <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
+  {journalViewMode === 'CALENDAR' && (
+  <button onClick={() => setShowCalendarSettings(!showCalendarSettings)} className={`p-2.5 rounded-full border transition-colors ${showCalendarSettings ? 'bg-white text-black border-white' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`} title={t('notes.calendarSettings', 'Calendar Settings')}><Settings size={18} /></button>
+  )}
+  </div>
+  </div>
+
+  {/* Settings Panel */}
+  {showCalendarSettings && (
+    <div className="absolute right-6 top-16 bg-slate-900 border border-white/10 p-4 rounded-2xl shadow-xl z-50 w-64 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="flex justify-between items-center pb-2 border-b border-white/5">
+        <span className="text-xs font-bold text-white uppercase tracking-wider">{t('notes.calendarSettings', 'Calendar Settings')}</span>
+        <button onClick={() => setShowCalendarSettings(false)} className="text-white/40 hover:text-white/80 transition-colors"><X size={14} /></button>
+      </div>
+      
+      {/* Opacity slider */}
+      <div className="space-y-1.5">
+        <div className="flex justify-between items-center text-[10px] font-bold text-white/50 uppercase">
+          <span>{t('notes.cellOpacity', 'Cell Opacity')}</span>
+          <span>{Math.round(calendarCellOpacity * 100)}%</span>
+        </div>
+        <input 
+          type="range" 
+          min="0.1" 
+          max="1.0" 
+          step="0.05"
+          value={calendarCellOpacity}
+          onChange={(e) => setCalendarCellOpacity(parseFloat(e.target.value))}
+          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
+        />
+      </div>
+
+      {/* Future days toggle */}
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] font-bold text-white/50 uppercase">{t('notes.showFutureDays', 'Show Future Days')}</span>
+        <button 
+          onClick={() => setCalendarShowFuture(!calendarShowFuture)}
+          className={`w-8 h-4 rounded-full relative transition-colors duration-200 border border-white/10 ${calendarShowFuture ? 'bg-emerald-500' : 'bg-white/5'}`}
+        >
+          <span className={`block w-2.5 h-2.5 rounded-full bg-white absolute top-0.5 transition-transform duration-200 ${calendarShowFuture ? 'right-0.5' : 'left-0.5'}`} />
+        </button>
+      </div>
+    </div>
+  )}
+  </div>
  
  {journalViewMode === 'CALENDAR' ? (
  <>
@@ -937,72 +991,86 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-200">
  {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
  {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {
- // Fix: Check if mood exists to apply color to border/bg
- // User request: Border should NOT follow mood color.
- // User request: Use the ENTRY THEME color if it exists.
  const entryThemeId = entry?.theme || 'slate';
  const entryColor = themeColorMap.get(entryThemeId);
  const hasEntry = !!entry;
 
  const borderColor = hasEntry && entryColor ? entryColor : (isToday ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)');
- // Use entry color for background too if present, otherwise mood or default
  const bgColor = hasEntry && entryColor ? `${entryColor}10` : (mood ? `${mood.color}10` : (isToday ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)'));
  
+ // Future day and visibility handling
+ const isCellHidden = isFuture && !calendarShowFuture;
+ 
+ if (isCellHidden) {
+   return (
+     <div 
+       key={day} 
+       className="aspect-[4/5] rounded-[18px] opacity-0 pointer-events-none cursor-default"
+     />
+   );
+ }
+
+ // Calculate actual cell opacity based on configuration
+ const actualOpacity = isToday ? 1.0 : (isFuture ? 0.35 * calendarCellOpacity : calendarCellOpacity);
+
  return (
  <button 
  key={day} 
  onClick={() => {
- if (isFuture) {
- if (specialEvent) {
- setSelectedMemory(specialEvent);
- } else if (dayQuests && dayQuests.length > 0) {
- setSelectedQuest(dayQuests[0]);
- }
- } else {
- openJournal(date);
- }
+   openJournal(date);
  }} 
- disabled={isFuture && !specialEvent && (!dayQuests || dayQuests.length === 0)}
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ 
  borderColor: borderColor,
  backgroundColor: bgColor,
+ opacity: actualOpacity,
  boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
  }}
- className={`aspect-[4/5] rounded-[18px] flex flex-col items-center justify-between p-2 relative transition-transform group overflow-hidden border ${!isFuture || specialEvent || (dayQuests && dayQuests.length > 0) ? 'hover:bg-white/5 active:scale-90 cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+ className="aspect-[4/5] rounded-[18px] flex flex-col items-center justify-center relative transition-transform active:scale-95 group border hover:bg-white/5 cursor-pointer animate-in fade-in duration-200"
  >
- {/* Fix: Remove full overlay that might obscure text, use subtle gradient instead */}
- {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none" style={{ color: mood.color }} />}
+ {/* Mood color overlay */}
+ {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none animate-in fade-in" style={{ color: mood.color }} />}
  
- <div className="flex-1 flex flex-col items-center justify-center z-10 w-full relative gap-1">
- {specialEvent ? (
- <div 
- className="text-2xl hover:scale-110 transition-transform duration-200 drop-shadow-md"
- >
- {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
- </div>
- ) : null}
- {(!specialEvent && dayQuests && dayQuests.length > 0) ? (
- <div className="flex gap-1 flex-wrap justify-center">
- {dayQuests.map((q, i) => (
- <div key={q.id || i} className="hover:scale-110 transition-transform duration-200 drop-shadow-md" style={{ color: q.journalIconColor || '#3b82f6' }}>
- <ListTodo size={24} />
- </div>
- ))}
- </div>
- ) : null}
- {(!specialEvent && (!dayQuests || dayQuests.length === 0) && mood) ? (
- <span className="text-3xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md">{mood.icon}</span>
- ) : (!specialEvent && (!dayQuests || dayQuests.length === 0) && isFuture) ? (
- <Lock size={16} className="text-white/20" />
- ) : null}
- </div>
+ {/* Mood emoji centered */}
+ {mood ? (
+   <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
+     {mood.icon}
+   </span>
+ ) : isFuture ? (
+   <Lock size={14} className="text-white/20 z-10" />
+ ) : (
+   <span className="text-lg opacity-10 group-hover:opacity-30 transition-opacity z-10">📝</span>
+ )}
  
- {/* Date Number - Positioned to avoid overlap or with background */}
- <div className="w-full flex justify-end z-20 absolute bottom-1.5 right-2">
- <span className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-white/40 group-hover:text-white/80'} drop-shadow-sm`}>
- {day}
- </span>
+ {/* Special Event in top-left */}
+ {specialEvent && (
+   <div className="absolute top-1.5 left-2 text-[10px] sm:text-xs hover:scale-110 transition-transform duration-200 drop-shadow-md z-20">
+     {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+   </div>
+ )}
+
+ {/* Quest indicators in bottom-left */}
+ {dayQuests && dayQuests.length > 0 && (
+   <div className="absolute bottom-1.5 left-2 flex gap-0.5 items-center z-20">
+     {dayQuests.slice(0, 3).map((q, i) => (
+       <div 
+         key={q.id || i} 
+         className="w-1.5 h-1.5 rounded-full" 
+         style={{ backgroundColor: q.journalIconColor || '#3b82f6' }}
+         title={q.title}
+       />
+     ))}
+     {dayQuests.length > 3 && (
+       <span className="text-[7px] font-black text-white/50 leading-none ml-0.5">+</span>
+     )}
+   </div>
+ )}
+
+ {/* Date number in bottom-right */}
+ <div className="absolute bottom-1.5 right-2 z-20">
+   <span className={`text-[10px] sm:text-[11px] font-black tracking-tight ${isToday ? 'text-white' : 'text-white/30 group-hover:text-white/80'} drop-shadow-sm`}>
+     {day}
+   </span>
  </div>
  </button>
  );
@@ -1019,26 +1087,19 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent, dayQuests }) => {
  const entryThemeId = entry?.theme || 'slate';
  const entryColor = themeColorMap.get(entryThemeId) || '#fff';
+ 
+ // Future list view toggle
+ if (isFuture && !calendarShowFuture) return null;
+
  return (
  <div key={day} className="relative group">
  <button 
  onClick={() => {
- if (isFuture) {
- if (specialEvent) {
- setSelectedMemory(specialEvent);
- } else if (dayQuests && dayQuests.length > 0) {
- setSelectedQuest(dayQuests[0]);
- }
- } else {
- openJournal(date);
- }
+   openJournal(date);
  }}
- disabled={isFuture && !specialEvent && (!dayQuests || dayQuests.length === 0)}
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
- className={`w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2
- ${!isFuture || specialEvent || (dayQuests && dayQuests.length > 0) ? 'hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer' : 'opacity-30 cursor-not-allowed'}
- `}
+ className="w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2 hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer"
  >
  <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
  {specialEvent ? (

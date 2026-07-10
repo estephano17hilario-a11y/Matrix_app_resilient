@@ -250,7 +250,7 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                                     {canAffordGold ? (
                                         <div className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
                                             <ShieldCheck size={9} />
-                                            NO DMG
+                                            {t('relapse.noDmg', 'NO DMG')}
                                         </div>
                                     ) : (
                                         <div className="text-[9px] text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded-full inline-block">

@@ -54,7 +54,7 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  "
  >
  <div>
- <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Color Tag</span>
+ <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">{t('notes.colorTag', 'Color Tag')}</span>
  <div className="grid grid-cols-5 gap-2 justify-items-center">
  {NOTE_THEMES.map(t => (
  <button 
@@ -73,10 +73,10 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  </div>
  {projects && (
  <div>
- <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">Link Project</span>
+ <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2 block">{t('notes.linkProject', 'Link Project')}</span>
  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto no-scrollbar pr-1">
  <button onClick={() => { onSelectProject(undefined); setIsOpen(false); }} className={`text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-3 ${!activeProject ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
- <div className="w-2 h-2 rounded-full bg-slate-500" /> None
+ <div className="w-2 h-2 rounded-full bg-slate-500" /> {t('common.none', 'None')}
  </button>
  {projects.map((p) => (
  <button key={p.id} onClick={() => { onSelectProject(p.id); setIsOpen(false); }} className={`text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-3 ${activeProject === p.id ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>

@@ -342,20 +342,20 @@ export const FocusStats = React.memo(({
     const formatMinutes = (mins: number) => {
         if (mins <= 0) return '0h';
         const h = Math.floor(mins / 60);
-        const m = mins % 60;
+        const m = Math.round(mins % 60);
         if (m === 0) return `${h}h`;
         if (h === 0) return `${m}m`;
-        return `${h}h${m}m`;
+        return `${h}h ${m}m`;
     };
 
     return (
         <div data-tour="focus-header" className="relative transition-all duration-200 ease-in-out flex-shrink-0">
-            <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] p-4 flex flex-col gap-3 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
+            <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] py-3 px-4 flex flex-col gap-2 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
                  <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
                  
                 {/* NEW COMPACT HEADER: Time Range + Date Nav + Global */}
-                <div className="flex flex-col gap-2 z-50 relative">
+                <div className="flex flex-col gap-1.5 z-50 relative">
                     <div className="flex items-center justify-between gap-2">
                         {/* LEFT: Time Range Tabs (Reduced Size) */}
                         <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 shadow-md relative z-20 flex-shrink min-w-0">
@@ -516,7 +516,7 @@ export const FocusStats = React.memo(({
                                 <button
                                     onClick={onReorder}
                                     className="w-6 h-6 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all"
-                                    title="Reorganizar Proyectos"
+                                    title={t('focus.reorganizeProjects', 'Reorganizar Proyectos')}
                                 >
                                     <ArrowUpDown size={12} />
                                 </button>
@@ -706,7 +706,7 @@ export const FocusStats = React.memo(({
                 <BarChart 
                     datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: viewMode === 'TOTAL' ? avatarColor : activeFilterColor } : d)}
                     labels={stats.labels}
-                    height={220}
+                    height={250}
                     max={chartMax}
                     className="mt-0"
                     showBackground={false}

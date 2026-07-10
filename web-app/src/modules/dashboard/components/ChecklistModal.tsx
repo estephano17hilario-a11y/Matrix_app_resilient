@@ -292,7 +292,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  <div className="px-7 py-6 border-t border-white/[0.06] bg-black/20">
  <div className="flex justify-between items-end mb-3">
  <div className="flex flex-col">
- <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Estatus del Protocolo</span>
+ <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">{t('checklist.protocolStatus', 'Estatus del Protocolo')}</span>
  <span className="text-sm font-[1000] text-white">
  {progressPercent === 100 ? 'OBJETIVO LOGRADO' : `${Math.round(progressPercent)}% COMPLETADO`}
  </span>

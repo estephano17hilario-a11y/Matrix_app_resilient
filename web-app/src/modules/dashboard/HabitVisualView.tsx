@@ -521,10 +521,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 <div className="absolute top-0 bottom-0 left-0 w-[4px] bg-orange-500 animate-pulse" />
                                                 <div className="flex flex-col pl-3">
                                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                                                        Modo de Registro
+                                                        {t('habits.loggingMode', 'Modo de Registro')}
                                                     </span>
                                                     <span className="text-xs font-black tracking-wide transition-colors duration-200 mt-0.5 text-orange-400">
-                                                        Modificando: Ayer
+                                                        {t('habits.modifyingYesterday', 'Modificando: Ayer')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -544,7 +544,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                         setCurrentDate(yesterday);
                                                     }}
                                                     className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-[#111112] border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5"
-                                                    title="Ir al día anterior"
+                                                    title={t('habits.goToYesterday', 'Ir al día anterior')}
                                                 >
                                                     <LucideIcons.ChevronLeft size={16} />
                                                 </button>
@@ -623,7 +623,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 <button
                                                     onClick={() => setCurrentDate(new Date())}
                                                     className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse"
-                                                    title="Volver a hoy"
+                                                    title={t('habits.backToToday', 'Volver a hoy')}
                                                 >
                                                     <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
                                                 </button>
@@ -633,7 +633,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 <button
                                                     onClick={() => setIsReorderModalOpen(true)}
                                                     className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
-                                                    title="Organizar Orden"
+                                                    title={t('habits.organizeOrder', 'Organizar Orden')}
                                                 >
                                                     <ArrowUpDown size={16} />
                                                 </button>
@@ -757,7 +757,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                         onEditHabit(habitToEdit);
                                                     }
                                                 }}
-                                                title="Cambiar alarma"
+                                                title={t('common.changeAlarm', 'Cambiar alarma')}
                                             >
                                                 <LucideIcons.AlertCircle size={10} className={item.isCompleted ? "text-white/20" : "text-orange-400/80"} />
                                                 <span className={cn(
@@ -878,7 +878,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         onClick={onCreateHabit}
                                         className="px-6 py-2 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-indigo-500/30 transition-colors"
                                     >
-                                        Crear Protocolo
+                                        {t('habits.createProtocol', 'Crear Protocolo')}
                                     </button>
                                 </div>
                             )}
@@ -931,7 +931,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 cursor-pointer"
                                     >
                                         <ArrowUpDown size={12} />
-                                        <span>ORGANIZAR ORDEN</span>
+                                        <span>{t('habits.organizeOrderUpper', 'ORGANIZAR ORDEN')}</span>
                                     </button>
                                 </div>
                             )}
@@ -959,7 +959,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     </div>
                                     
                                     <div className="space-y-2 max-w-xs mx-auto">
-                                        <h3 className="text-xl font-bold text-white tracking-tight">Zona Despejada</h3>
+                                        <h3 className="text-xl font-bold text-white tracking-tight">{t('habits.clearZone', 'Zona Despejada')}</h3>
                                         <p className="text-sm text-white/40 leading-relaxed">
                                             {t('habits.emptyVices') || "No threats detected. Stay vigilant."}
                                         </p>
@@ -979,7 +979,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* EMPTY ARCHIVED STATE FOR VICES */}
                             {showArchived && archivedBadHabits.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 italic">
-                                    No hay vicios archivados
+                                    {t('habits.noArchivedVices', 'No hay vicios archivados')}
                                 </div>
                             )}
 

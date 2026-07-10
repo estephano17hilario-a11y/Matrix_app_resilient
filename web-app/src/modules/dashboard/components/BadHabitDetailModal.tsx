@@ -140,16 +140,16 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2">
  <div className="flex items-center gap-2 text-white/50">
  <Flame size={16} className="text-orange-400" />
- <span className="text-xs font-bold uppercase tracking-wider">Racha Actual</span>
+ <span className="text-xs font-bold uppercase tracking-wider">{t('habits.currentStreak', 'Racha Actual')}</span>
  </div>
- <div className="text-3xl font-black text-white">{stats.currentStreak} <span className="text-sm font-medium text-white/40">días</span></div>
+ <div className="text-3xl font-black text-white">{stats.currentStreak} <span className="text-sm font-medium text-white/40">{t('common.days', 'días')}</span></div>
  </div>
  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2">
  <div className="flex items-center gap-2 text-white/50">
  <TrendingUp size={16} className="text-emerald-400" />
- <span className="text-xs font-bold uppercase tracking-wider">Mejor Racha</span>
+ <span className="text-xs font-bold uppercase tracking-wider">{t('habits.bestStreak', 'Mejor Racha')}</span>
  </div>
- <div className="text-3xl font-black text-white">{stats.longestStreak} <span className="text-sm font-medium text-white/40">días</span></div>
+ <div className="text-3xl font-black text-white">{stats.longestStreak} <span className="text-sm font-medium text-white/40">{t('common.days', 'días')}</span></div>
  </div>
  </div>
 
@@ -160,7 +160,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  <Clock size={16} className="text-rose-400" />
  </div>
  <div>
- <div className="text-xs font-bold text-white/50 uppercase tracking-wider">Última Recaída</div>
+ <div className="text-xs font-bold text-white/50 uppercase tracking-wider">{t('habits.lastRelapse', 'Última Recaída')}</div>
  <div className="text-sm font-medium text-white">
  {stats.lastRelapse ? format(stats.lastRelapse, "d 'de' MMMM, yyyy", { locale: es }) : 'Nunca'}
  </div>
@@ -174,7 +174,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  <Calendar size={16} className="text-indigo-400" />
  </div>
  <div>
- <div className="text-xs font-bold text-white/50 uppercase tracking-wider">Fecha de Creación</div>
+ <div className="text-xs font-bold text-white/50 uppercase tracking-wider">{t('common.createdAt', 'Fecha de Creación')}</div>
  <div className="text-sm font-medium text-white">
  {format(stats.createdDate, "d 'de' MMMM, yyyy", { locale: es })}
  </div>

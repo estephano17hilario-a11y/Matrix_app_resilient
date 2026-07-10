@@ -141,7 +141,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                                     <span className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-red-600 drop-shadow-[0_4px_10px_rgba(249,115,22,0.5)] tracking-tighter">
                                         {streak}
                                     </span>
-                                    <span className="text-2xl font-bold text-orange-400">DÍAS</span>
+                                    <span className="text-2xl font-bold text-orange-400">{t('common.daysUpper', 'DÍAS')}</span>
                                 </div>
                                 <h2 className="text-xl font-bold text-white tracking-tight mt-2 drop-shadow-md uppercase">
                                     {t('streak.secured', '¡Racha Asegurada!')}

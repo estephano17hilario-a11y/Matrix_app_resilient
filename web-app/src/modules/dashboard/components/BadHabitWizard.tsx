@@ -63,7 +63,7 @@ const slideVariants = {
     })
 };
 
-export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
+export const BadHabitWizard = React.memo<BadHabitWizardProps>(({
     isOpen,
     onClose,
     onConfirm,
@@ -537,7 +537,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                 <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/10 flex items-start gap-2.5 mt-2 select-none">
                                                     <Info size={14} className="text-rose-400 shrink-0 mt-0.5" />
                                                     <span className="text-[11px] text-white/50 leading-normal">
-                                                        Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.
+                                                        {t('badHabits.wizard.penaltyDesc', 'Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -546,7 +546,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                             {selectedAttributes.length === 1 && selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
                                                 <div className="space-y-1.5 animate-in slide-in-from-top-1 fade-in">
                                                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block px-1">
-                                                        Sub-Rasgo (Opcional)
+                                                        {t('common.subTraitOptional', 'Sub-Rasgo (Opcional)')}
                                                     </span>
                                                     <div className="relative">
                                                         <button
@@ -560,7 +560,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                         {selectedAttr.subTraits.find(st => st.id === subAttribute)?.name || subAttribute}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-white/30">Vincular a un sub-rasgo (Opcional)</span>
+                                                                    <span className="text-white/30">{t('badHabits.wizard.linkSubTrait', 'Vincular a un sub-rasgo (Opcional)')}</span>
                                                                 )}
                                                             </div>
                                                             <ChevronDown size={14} className="text-white/30" />
@@ -575,7 +575,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
                                                                         onClick={() => { setSubAttribute(''); setSubAttrPickerOpen(false); }}
                                                                         className="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
                                                                     >
-                                                                        Ninguno
+                                                                        {t('common.none', 'Ninguno')}
                                                                     </button>
                                                                     {selectedAttr.subTraits.map(st => (
                                                                         <button
@@ -1146,4 +1146,7 @@ export const BadHabitWizard: React.FC<BadHabitWizardProps> = ({
         </div>,
         document.body
     );
-};
+}, (prev, next) => {
+    if (!prev.isOpen && !next.isOpen) return true;
+    return prev.isOpen === next.isOpen && prev.initialData === next.initialData && prev.isFirstIdentify === next.isFirstIdentify;
+});

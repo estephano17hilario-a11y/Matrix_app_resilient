@@ -119,7 +119,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                         onClick={() => { onSelectIcon(null); onSelectColor?.(undefined); }}
                         className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
                     >
-                        Limpiar
+                        {t('common.clear', 'Limpiar')}
                     </button>
                 )}
             </div>

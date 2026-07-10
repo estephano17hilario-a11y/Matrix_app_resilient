@@ -149,7 +149,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  )}
  >
  <Zap size={14} className="text-cyan-400" />
- Quick Focus
+ {t('focus.quickFocus', 'Quick Focus')}
  </button>
  <div className="h-px bg-white/5 my-1" />
  {projects.filter(p => !p.archived).map(project => {

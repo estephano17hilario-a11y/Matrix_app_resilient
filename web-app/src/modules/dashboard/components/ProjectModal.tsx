@@ -543,8 +543,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                         {/* Goal Input */}
                                         <div className="bg-black/20 rounded-xl p-2 space-y-2">
                                             <div className="flex justify-center gap-1 bg-black/20 p-1 rounded-lg w-fit mx-auto">
-                                                <button onClick={() => { setGoalUnit('HOURS'); if(goalTarget > 24 || goalTarget < 1) setGoalTarget(1); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'HOURS' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>HRS</button>
-                                                <button onClick={() => { setGoalUnit('MINUTES'); if(goalTarget < 15) setGoalTarget(30); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'MINUTES' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>MIN</button>
+                                                <button onClick={() => { setGoalUnit('HOURS'); if(goalTarget > 24 || goalTarget < 1) setGoalTarget(1); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'HOURS' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>{t('common.hoursShort', 'HRS')}</button>
+                                                <button onClick={() => { setGoalUnit('MINUTES'); if(goalTarget < 15) setGoalTarget(30); }} className={cn("text-[10px] font-bold px-3 py-1 rounded transition-colors", goalUnit === 'MINUTES' ? "bg-white text-black" : "text-slate-500 hover:text-white")}>{t('common.minUpper', 'MIN')}</button>
                                             </div>
 
                                             <div className="flex items-center justify-between px-2">
@@ -910,5 +910,6 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         document.body
     );
 }, (prev, next) => {
+    if (!prev.isOpen && !next.isOpen) return true;
     return prev.isOpen === next.isOpen && prev.initialData === next.initialData && prev.smartProjects === next.smartProjects; 
 });

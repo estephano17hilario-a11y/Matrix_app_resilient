@@ -24,7 +24,7 @@ export const RewardPredictionPill = React.memo(({
         <Sparkles size={14} className="text-white" />
         <div className="flex items-center gap-1">
           <span className="font-mono text-sm font-bold text-white">{prediction.xp}</span>
-          <span className="text-xs font-medium text-white/60">XP</span>
+          <span className="text-xs font-medium text-white/60">{t('common.xp', 'XP')}</span>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export const RewardPredictionPill = React.memo(({
         <Coins size={14} className="text-yellow-400" />
         <div className="flex items-center gap-1">
           <span className="font-mono text-sm font-bold text-yellow-400">{prediction.coins}</span>
-          <span className="text-xs font-medium text-white/60">Gold</span>
+          <span className="text-xs font-medium text-white/60">{t('common.gold', 'Gold')}</span>
         </div>
       </div>
       

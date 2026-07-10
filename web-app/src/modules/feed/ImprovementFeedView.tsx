@@ -252,7 +252,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
   }, [feedEntries, todayEntry.score]);
 
   // Overall productivity score (0-100)
-  const productivityScore = todayEntry.score ?? 0;
+  const productivityScore = Math.round(todayEntry.score ?? 0);
 
   const liveCardStyle = useMemo(() => {
     if (productivityScore >= 75) {
@@ -401,7 +401,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               <h1 className="text-2xl font-black text-white tracking-tight">
                 {feedViewMode === 'daily' ? (
                   <>
-                    <span className="text-white/60">Feed</span> {t('feed.titleDaily')}
+                    <span className="text-white/60">{t('feed.feed', 'Feed')}</span> {t('feed.titleDaily')}
                   </>
                 ) : (
                   `Feed ${t('feed.titleWeekly')}`
@@ -669,7 +669,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <p className="text-[11px] text-white/70 leading-normal">
                         {i18n.language === 'es' ? (
                           <>
-                            Tu score acumulado esta semana ha bajado en <strong className="text-amber-400">{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> respecto a la semana pasada. Para compensarlo de forma equilibrada en los <strong className="text-white">{consistencyAssistant.remainingDays} días</strong> restantes, hoy deberías alcanzar un score meta de:
+                            {t('feed.accumulatedScoreDown', 'Tu score acumulado esta semana ha bajado en')} <strong className="text-amber-400">{consistencyAssistant.accumulatedDeficit.toFixed(0)} pts</strong> respecto a la semana pasada. Para compensarlo de forma equilibrada en los <strong className="text-white">{consistencyAssistant.remainingDays} días</strong> {t('feed.remainingTargetScore', 'restantes, hoy deberías alcanzar un score meta de:')}
                           </>
                         ) : (
                           <>
@@ -681,7 +681,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <p className="text-[11px] text-white/70 leading-normal">
                         {i18n.language === 'es' ? (
                           <>
-                            ¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por <strong className="text-emerald-400">{Math.abs(consistencyAssistant.accumulatedDeficit).toFixed(0)} pts</strong>. Para mantener esta constancia, tu score meta recomendado de hoy es:
+                            {t('feed.doingGreatSupering', '¡Vas excelente! Estás superando tu rendimiento acumulado de la semana pasada por')} <strong className="text-emerald-400">{Math.abs(consistencyAssistant.accumulatedDeficit).toFixed(0)} pts</strong>. Para mantener esta constancia, tu score meta recomendado de hoy es:
                           </>
                         ) : (
                           <>
@@ -699,7 +699,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                           <span className="text-base font-black text-white">{consistencyAssistant.todayTargetScore.toFixed(0)}%</span>
                           {consistencyAssistant.hasDrop && (
                             <span className="text-[8px] text-white/40">
-                              ({consistencyAssistant.prevWeekTodayScore.toFixed(0)}% base + {consistencyAssistant.deficitShare.toFixed(1)}% comp.)
+                              ({consistencyAssistant.prevWeekTodayScore.toFixed(0)}% base + {consistencyAssistant.deficitShare.toFixed(0)}% comp.)
                             </span>
                           )}
                         </div>
@@ -719,7 +719,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         <span>
                           {i18n.language === 'es' ? (
                             <>
-                              Faltan <strong className="text-amber-400">{(consistencyAssistant.todayTargetScore - productivityScore).toFixed(0)}%</strong> para alcanzar la meta diaria
+                              {t('feed.missing', 'Faltan')} <strong className="text-amber-400">{(consistencyAssistant.todayTargetScore - productivityScore).toFixed(0)}%</strong> {t('feed.toReachDailyTarget', 'para alcanzar la meta diaria')}
                             </>
                           ) : (
                             <>
@@ -949,7 +949,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                 <p className="text-[11px] text-white/50">
                   {i18n.language === 'es' ? (
                     <>
-                      El <strong>Score de Productividad</strong> se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:
+                      {t('feed.el', 'El')} <strong>{t('feed.productivityScoreText', 'Score de Productividad')}</strong> {t('feed.recalibratesAutoBased', 'se recalibra automáticamente según la disponibilidad de tus tareas asignadas para el día de hoy:')}
                     </>
                   ) : (
                     <>
@@ -983,7 +983,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-emerald-400 font-bold">
-                          {habitsCount > 0 ? `${((hasTasksToday ? 40 : 45) / habitsCount).toFixed(1)}% ${t('feed.each')}` : '0%'}
+                          {habitsCount > 0 ? `${((hasTasksToday ? 40 : 45) / habitsCount).toFixed(0)}% ${t('feed.each')}` : '0%'}
                         </span>
                         <div className="text-white/30 text-[8px] uppercase tracking-wider">{t('feed.individualWeight')}</div>
                       </div>
@@ -1024,7 +1024,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         </div>
                         <div className="text-right">
                           <span className="font-mono text-orange-400 font-bold">
-                            {(20 / todayTasksTotal).toFixed(1)}% {i18n.language === 'es' ? 'c/u' : 'each'}
+                            {(20 / todayTasksTotal).toFixed(0)}% {i18n.language === 'es' ? 'c/u' : 'each'}
                           </span>
                           <div className="text-white/30 text-[8px] uppercase tracking-wider">
                             {i18n.language === 'es' ? 'Peso individual' : 'Individual weight'}
@@ -1063,8 +1063,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <div>
                         {i18n.language === 'es' ? (
                           <>
-                            <span className="font-bold text-white/70">Sub-hábitos (Hábitos tipo Lista):</span>
-                            <p className="text-[9px] mt-0.5 mb-2">Se dividen equitativamente entre las sub-tareas asignadas para hoy.</p>
+                            <span className="font-bold text-white/70">{t('feed.subhabitsListType', 'Sub-hábitos (Hábitos tipo Lista):')}</span>
+                            <p className="text-[9px] mt-0.5 mb-2">{t('feed.subtasksDividedEqually', 'Se dividen equitativamente entre las sub-tareas asignadas para hoy.')}</p>
                           </>
                         ) : (
                           <>
@@ -1082,9 +1082,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                             <div className="pl-4 text-[8px] text-white/40 font-mono space-y-0.5 border-l border-white/10 ml-1.5">
                               {i18n.language === 'es' ? (
                                 <>
-                                  <div>├── Sub-tarea 1 ➔ 33.3% del hábito</div>
-                                  <div>├── Sub-tarea 2 ➔ 33.3% del hábito</div>
-                                  <div>└── Sub-tarea 3 ➔ 33.3% del hábito</div>
+                                  <div>{t('feed.subtaskExample1', '├── Sub-tarea 1 ➔ 33.3% del hábito')}</div>
+                                  <div>{t('feed.subtaskExample2', '├── Sub-tarea 2 ➔ 33.3% del hábito')}</div>
+                                  <div>{t('feed.subtaskExample3', '└── Sub-tarea 3 ➔ 33.3% del hábito')}</div>
                                 </>
                               ) : (
                                 <>
@@ -1105,9 +1105,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                       <div className="pt-1.5">
                         {i18n.language === 'es' ? (
                           <>
-                            <span className="font-bold text-white/70">Hábitos Cuantitativos:</span>
+                            <span className="font-bold text-white/70">{t('feed.quantitativeHabits', 'Hábitos Cuantitativos:')}</span>
                             <p className="text-[9px] mt-0.5">
-                              Calculan su progreso fraccional como <code className="text-amber-400 font-mono bg-amber-500/5 px-1 py-0.5 rounded">progreso / meta</code> (máx 1.0), aportando proporcionalmente al valor del hábito.
+                              {t('feed.calculateFractionalProgressAs', 'Calculan su progreso fraccional como')} <code className="text-amber-400 font-mono bg-amber-500/5 px-1 py-0.5 rounded">{t('feed.progressOverTarget', 'progreso / meta')}</code> {t('feed.max10Contribution', '(máx 1.0), aportando proporcionalmente al valor del hábito.')}
                             </p>
                           </>
                         ) : (

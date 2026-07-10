@@ -112,7 +112,7 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
       <button 
         onClick={() => setIsOpen(true)}
         className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-        title="Blueprints"
+        title={t('notes.blueprints', 'Blueprints')}
       >
         <Ruler size={18} />
       </button>

@@ -335,7 +335,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                             onEdit({ ...habit, _initialTab: 'alarm' } as any);
                         }
                     }}
-                    title="Cambiar alarma"
+                    title={t('common.changeAlarm', 'Cambiar alarma')}
                 >
                     {timeDisplay}
                 </span>
@@ -422,7 +422,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                               onEdit({ ...habit, _initialTab: 'checklist', _targetSubtaskId: item.id } as any);
                                           }
                                       }}
-                                      title="Cambiar alarma"
+                                      title={t('common.changeAlarm', 'Cambiar alarma')}
                                   >
                                       <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
                                   </span>
@@ -459,7 +459,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                          <div className="bg-white/5 rounded-lg p-2 flex items-center gap-2">
                              {attribute?.icon && <attribute.icon size={14} style={{ color: attribute.color }} />}
                               <div className="flex flex-col">
-                                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Trait</span>
+                                  <span className="text-[9px] text-white/40 uppercase tracking-wider">{t('habits.trait', 'Trait')}</span>
                                   <span className="text-[11px] text-white font-medium">
                                       {attribute 
                                           ? `${t(attribute.label, attribute.label.replace('traits.', ''))}${subTrait ? ` › ${subTrait.name}` : ''}` 
@@ -495,7 +495,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                     {/* 4. Subtasks (If Checklist) */}
                     {habit.type === 'CHECKLIST' && habit.checklist && viewPreference !== 'CHRONOLOGICAL' && (
                         <div className="pt-2 border-t border-white/5 space-y-1">
-                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Subtasks</span>
+                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">{t('habits.subtasks', 'Subtasks')}</span>
                             {habit.checklist.filter(item => {
                                 if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
                                     const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
@@ -565,7 +565,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                     {/* 4.5. Fixed Times (If Quantity + Divided + Fixed) */}
                     {habit.type === 'QUANTITY' && habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && viewPreference !== 'CHRONOLOGICAL' && (
                         <div className="pt-2 border-t border-white/5 space-y-1">
-                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Horarios Programados</span>
+                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">{t('habits.scheduledSchedules', 'Horarios Programados')}</span>
                             {[...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time)).map((item, index) => {
                                 const times = [...habit.dividedTimes!].sort((a, b) => a.time.localeCompare(b.time));
                                 let accumulated = 0;

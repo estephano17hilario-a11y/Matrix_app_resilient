@@ -131,7 +131,10 @@ data class BadHabitData(
     val dynamicBalance: Int? = null,
     val currentTarget: Int? = null,
     val archived: Boolean? = false,
-    val order: Int? = null
+    val order: Int? = null,
+    val history: List<String>? = emptyList(),
+    val relapsedToday: Boolean? = false,
+    val customColor: String? = null
 )
 
 data class TaskData(

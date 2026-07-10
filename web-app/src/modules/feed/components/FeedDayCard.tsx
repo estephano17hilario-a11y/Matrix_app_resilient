@@ -55,7 +55,7 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
 
   // Compute a daily score
   const score = React.useMemo(() => {
-    return calculateFallbackProductivityScore(entry);
+    return Math.round(calculateFallbackProductivityScore(entry));
   }, [entry]);
 
   const defaultTitle = React.useMemo(() => {

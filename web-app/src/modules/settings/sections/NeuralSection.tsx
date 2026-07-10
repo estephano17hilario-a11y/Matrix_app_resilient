@@ -383,7 +383,7 @@ export const NeuralSection = () => {
                     autoFocus
                     value={editForm.label}
                     onChange={e => setEditForm(prev => ({ ...prev, label: e.target.value }))}
-                    placeholder="Trait Name"
+                    placeholder={t('settings.traitName', 'Trait Name')}
                     className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-cyan-500/50 transition-colors shadow-md w-full"
                   />
                   <div className="flex gap-2 shrink-0">
@@ -875,7 +875,7 @@ export const NeuralSection = () => {
           </span>
           {!isPro && (
             <span className="ml-2 text-[9px] font-black bg-amber-500 text-black px-1.5 py-0.5 rounded uppercase tracking-widest">
-              PRO
+              {t('common.pro', 'PRO')}
             </span>
           )}
         </button>
