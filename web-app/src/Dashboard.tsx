@@ -649,7 +649,7 @@ export default function Dashboard() {
     };
   }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive, setNoteViewMode]);
 
-  // Handle cold start deep links and custom window triggers for focus session
+  // Handle cold start deep links and custom window triggers for focus session and journaling
   useEffect(() => {
     const checkAndStartFocus = (projectId: string) => {
       console.log('🎯 [Dashboard Focus Start] Triggering session for project:', projectId);
@@ -657,6 +657,15 @@ export default function Dashboard() {
       setFocusTargetProjectId(projectId);
       setFocusAutoStartProjectId(projectId);
       setIsPomodoroActive(true);
+    };
+
+    const checkAndStartJournal = (dateStr: string) => {
+      console.log('📅 [Dashboard Journal Start] Routing to date:', dateStr);
+      setCurrentView('NOTES');
+      setNoteViewMode('JOURNAL');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('open_journal_date', { detail: { dateStr } }));
+      }, 200);
     };
 
     // 1. Check immediately on mount (or when dashboard displays)
@@ -672,27 +681,32 @@ export default function Dashboard() {
     if (savedJournalDate) {
       localStorage.removeItem('cold_start_journal_date');
       setTimeout(() => {
-        setCurrentView('NOTES');
-        setNoteViewMode('JOURNAL');
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('open_journal_date', { detail: { dateStr: savedJournalDate } }));
-        }, 100);
+        checkAndStartJournal(savedJournalDate);
       }, 600);
     }
 
     // 2. Listen for runtime custom events from App.tsx
-    const handleCustomTrigger = (e: Event) => {
+    const handleFocusTrigger = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail && detail.projectId) {
         checkAndStartFocus(detail.projectId);
       }
     };
 
-    window.addEventListener('cold_start_focus_trigger', handleCustomTrigger);
-    return () => {
-      window.removeEventListener('cold_start_focus_trigger', handleCustomTrigger);
+    const handleJournalTrigger = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.dateStr) {
+        checkAndStartJournal(detail.dateStr);
+      }
     };
-  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive]);
+
+    window.addEventListener('cold_start_focus_trigger', handleFocusTrigger);
+    window.addEventListener('cold_start_journal_trigger', handleJournalTrigger);
+    return () => {
+      window.removeEventListener('cold_start_focus_trigger', handleFocusTrigger);
+      window.removeEventListener('cold_start_journal_trigger', handleJournalTrigger);
+    };
+  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive, setNoteViewMode]);
 
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 

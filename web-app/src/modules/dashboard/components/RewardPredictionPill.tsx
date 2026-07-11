@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, Coins } from 'lucide-react';
 import { RewardPrediction } from '../../../utils/rewardCalculator';
+import { useTranslation } from 'react-i18next';
 
 interface RewardPredictionPillProps {
   prediction: RewardPrediction;
@@ -15,6 +16,7 @@ export const RewardPredictionPill = React.memo(({
   AttributeIcon,
   attributeLabel
 }: RewardPredictionPillProps) => {
+  const { t } = useTranslation();
   return (
     <div
       className="bg-black/40 border border-white/10 rounded-full px-4 py-2 flex items-center justify-between gap-4 shadow-lg w-full mb-4"
