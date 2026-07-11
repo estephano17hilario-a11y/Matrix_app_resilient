@@ -130,6 +130,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     }, [isOpen, initialData]);
 
     const selectedAttr = attributes?.find((a) => a.id === attrId);
+    const subTraits = selectedAttr?.subTraits || [];
     const activeColor = customColor || (selectedAttr ? selectedAttr.color : '#3b82f6');
     const hasColorSource = !!attrId || !!customColor;
     const SelectedIcon = useMemo(() => {

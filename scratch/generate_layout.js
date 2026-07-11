@@ -48,7 +48,7 @@ let xml = `<?xml version="1.0" encoding="utf-8"?>
                     android:id="@+id/widget_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Journal"
+                    android:text="Diario"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -58,7 +58,7 @@ let xml = `<?xml version="1.0" encoding="utf-8"?>
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Month 2026"
+                    android:text="Mes 2026"
                     android:textColor="#4DFFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -129,43 +129,45 @@ let xml = `<?xml version="1.0" encoding="utf-8"?>
         </RelativeLayout>
 
         <!-- Weekdays Row -->
-        <TableLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="*">
-            <TableRow android:layout_width="match_parent" android:layout_height="wrap_content">
+            android:orientation="horizontal">
 `;
 
 // Add weekday initials row
 const days = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 for (const day of days) {
-    xml += `                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="${day}"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />\n`;
+    xml += `            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="${day}"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />\n`;
 }
 
-xml += `            </TableRow>
-        </TableLayout>
+xml += `        </LinearLayout>
 
         <!-- Calendar Cells Grid -->
-        <TableLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:stretchColumns="*">
+            android:orientation="vertical">
 `;
 
 // Generate 6 rows, each with 7 columns = 42 cells total (indexed 1 to 42)
 for (let r = 0; r < 6; r++) {
-    xml += `            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">\n`;
+    xml += `            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">\n`;
     for (let c = 0; c < 7; c++) {
         const id = r * 7 + c + 1;
         xml += `                <LinearLayout
@@ -196,13 +198,13 @@ for (let r = 0; r < 6; r++) {
                         android:text="" />
                 </LinearLayout>\n`;
     }
-    xml += `            </TableRow>\n`;
+    xml += `            </LinearLayout>\n`;
 }
 
-xml += `        </TableLayout>
+xml += `        </LinearLayout>
     </LinearLayout>
 </FrameLayout>
 `;
 
-fs.writeFileSync(path.join(__dirname, '..', '..', 'Matrix_app_resilient', 'web-app', 'android', 'app', 'src', 'main', 'res', 'layout', 'widget_journal_calendar.xml'), xml);
-console.log("widget_journal_calendar.xml generated successfully!");
+fs.writeFileSync(path.join(__dirname, '..', 'web-app', 'android', 'app', 'src', 'main', 'res', 'layout', 'widget_journal_calendar.xml'), xml);
+console.log("widget_journal_calendar.xml regenerated successfully!");

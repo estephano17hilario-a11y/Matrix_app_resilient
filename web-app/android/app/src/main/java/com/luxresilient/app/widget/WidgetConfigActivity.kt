@@ -117,6 +117,7 @@ class WidgetConfigActivity : Activity() {
             val isFocusWidget = className.contains("FocusWidgetProvider")
             val isTaskWidget = className.contains("TaskWidgetProvider")
             val isHabitWidget = className.contains("HabitWidgetProvider")
+            val isJournalWidget = className.contains("JournalWidgetProvider")
             
             val txtConfigTitle = findViewById<TextView>(R.id.config_title)
             if (isProjectWidget) {
@@ -127,6 +128,8 @@ class WidgetConfigActivity : Activity() {
                 txtConfigTitle.text = "Ajustes de Tareas"
             } else if (isHabitWidget) {
                 txtConfigTitle.text = "Ajustes de Hábitos"
+            } else if (isJournalWidget) {
+                txtConfigTitle.text = "Ajustes de Diario"
             } else {
                 txtConfigTitle.text = "Ajustes de Widget"
             }
@@ -149,6 +152,12 @@ class WidgetConfigActivity : Activity() {
                 habitsSectionContainer1.visibility = View.GONE
                 habitsSectionContainer2.visibility = View.GONE
                 tasksSectionContainer.visibility = View.VISIBLE
+                cardOpacityContainer.visibility = View.VISIBLE
+            } else if (isJournalWidget) {
+                projectSelectContainer.visibility = View.GONE
+                habitsSectionContainer1.visibility = View.GONE
+                habitsSectionContainer2.visibility = View.GONE
+                tasksSectionContainer.visibility = View.GONE
                 cardOpacityContainer.visibility = View.VISIBLE
             } else {
                 // Default is Habit widget
@@ -210,6 +219,12 @@ class WidgetConfigActivity : Activity() {
                 action = ProjectWidgetProvider.ACTION_REFRESH_PROJECT
             }
             sendBroadcast(refreshProjectIntent)
+
+            // Broadcast refresh for journal
+            val refreshJournalIntent = Intent(this, JournalWidgetProvider::class.java).apply {
+                action = JournalWidgetProvider.ACTION_REFRESH_JOURNAL
+            }
+            sendBroadcast(refreshJournalIntent)
 
             // Success result if called as a widget configuration activity
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {

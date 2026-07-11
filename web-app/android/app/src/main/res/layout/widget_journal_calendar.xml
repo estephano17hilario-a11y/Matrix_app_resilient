@@ -45,7 +45,7 @@
                     android:id="@+id/widget_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Journal"
+                    android:text="Diario"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -55,7 +55,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Month 2026"
+                    android:text="Mes 2026"
                     android:textColor="#4DFFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -126,98 +126,100 @@
         </RelativeLayout>
 
         <!-- Weekdays Row -->
-        <TableLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="*">
-            <TableRow android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="D"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="L"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="M"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="M"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="J"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="V"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="S"
-                    android:textColor="#4DFFFFFF"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-            </TableRow>
-        </TableLayout>
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="D"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="L"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="M"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="M"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="J"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="V"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="S"
+                android:textColor="#4DFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp" />
+        </LinearLayout>
 
         <!-- Calendar Cells Grid -->
-        <TableLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:stretchColumns="*">
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            android:orientation="vertical">
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_1"
                     android:layout_width="0dp"
@@ -407,8 +409,12 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            </LinearLayout>
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_8"
                     android:layout_width="0dp"
@@ -598,8 +604,12 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            </LinearLayout>
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_15"
                     android:layout_width="0dp"
@@ -789,8 +799,12 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            </LinearLayout>
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_22"
                     android:layout_width="0dp"
@@ -980,8 +994,12 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            </LinearLayout>
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_29"
                     android:layout_width="0dp"
@@ -1171,8 +1189,12 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-            <TableRow android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            </LinearLayout>
+            <LinearLayout 
+                android:layout_width="match_parent" 
+                android:layout_height="0dp" 
+                android:layout_weight="1"
+                android:orientation="horizontal">
                 <LinearLayout
                     android:id="@+id/cell_36"
                     android:layout_width="0dp"
@@ -1362,7 +1384,7 @@
                         android:textSize="11sp"
                         android:text="" />
                 </LinearLayout>
-            </TableRow>
-        </TableLayout>
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>

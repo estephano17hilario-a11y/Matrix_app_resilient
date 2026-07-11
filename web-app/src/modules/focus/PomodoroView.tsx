@@ -4,6 +4,7 @@ import { ActiveSessionView } from './components/ActiveSessionView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useTranslation } from 'react-i18next';
 
 interface PomodoroViewProps {
  projects: Project[];
@@ -34,6 +35,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  onEditSession,
  initialProjectId
 }) => {
+ const { t } = useTranslation();
  // FORCE INITIAL STATE to use prop if available
  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => initialProjectId || null);
 
