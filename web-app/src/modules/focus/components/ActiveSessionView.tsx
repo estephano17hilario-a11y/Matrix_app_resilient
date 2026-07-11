@@ -24,6 +24,7 @@ interface ActiveSessionViewProps {
  onAutoStartConsumed?: () => void;
  customHeaderTitle?: React.ReactNode;
  onEditRoutine?: () => void;
+ activeTaskId?: string | null;
 }
 
 import { useAudioAlarm } from '../hooks/useAudioAlarm';
@@ -150,7 +151,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  autoStart,
  onAutoStartConsumed,
  customHeaderTitle,
- onEditRoutine
+ onEditRoutine,
+ activeTaskId: propActiveTaskId
 }) => {
  const { t, i18n } = useTranslation();
  const [showHistory, setShowHistory] = useState(false);
@@ -164,8 +166,27 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   const [currentAmbientTrack, setCurrentAmbientTrack] = useState<string>('none');
   const [ambientVolume, setAmbientVolume] = useState<number>(0.5);
 
-  const activeTaskId = useMemo(() => localStorage.getItem('matrix_active_focus_task_id'), []);
+  const activeTaskId = propActiveTaskId ?? localStorage.getItem('matrix_active_focus_task_id');
   const activeTask = useMemo(() => activeTaskId ? quests.find((q: Quest) => q.id === activeTaskId) : null, [activeTaskId, quests]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      const isScrollable = el.scrollHeight > el.clientHeight;
+      const reachedBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 8;
+      setShowScrollIndicator(isScrollable && !reachedBottom);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeCircleView === 'ROADMAP') {
+      const timer = setTimeout(checkScroll, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeCircleView, checkScroll, routineSteps, currentStepIdx]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const ambientGainNodeRef = useRef<GainNode | null>(null);
@@ -879,7 +900,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     const dynamicCardHeight = totalSteps <= 2 ? 'max-h-[195px]' : 'max-h-[175px]';
 
     return (
-      <div className="relative z-10 flex flex-col items-center pointer-events-auto w-full max-w-[260px] h-[240px] justify-center">
+      <div className="relative z-10 flex flex-col items-center pointer-events-auto w-full max-w-[285px] h-[240px] justify-center">
         {activeCircleView === 'ROADMAP' && routineSteps && routineSteps.length > 0 ? (
           <div className="w-full flex flex-col items-center select-none animate-fade-in relative z-30">
             {/* Header with Editar button on the side */}
@@ -894,65 +915,79 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                     e.stopPropagation();
                     onEditRoutine();
                   }}
-                  className="absolute right-1 text-[6.5px] font-bold text-cyan-400/80 bg-cyan-500/5 hover:bg-cyan-500/15 border border-cyan-500/10 hover:border-cyan-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider transition-all active:scale-95 flex items-center gap-0.5 shadow-sm"
+                  className="absolute right-1 w-5 h-5 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-md transition-all active:scale-95 shadow-sm text-[8px]"
+                  title={i18n.language === 'es' ? 'Editar' : 'Edit'}
                 >
-                  <span>✍️</span>
-                  <span>{i18n.language === 'es' ? 'Editar' : 'Edit'}</span>
+                  <span>✏️</span>
                 </button>
               )}
             </div>
 
-            {/* Roadmap Steps */}
-            <div className={cn("w-full flex flex-col items-center pt-0.5 pb-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}>
-              <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
-              <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
-              
-              <div className={cn("w-full flex flex-col px-3 relative z-10", dynamicGap)}>
-                {routineSteps.map((step, idx) => {
-                  const isCurrent = idx === currentStepIdx;
-                  const isFocus = step.type === 'FOCUS';
-                  const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
-                  
-                  const dynamicDotClass = totalSteps <= 2
-                    ? (isCurrent ? 'bg-white border-cyan-400 scale-[1.4] w-2.5 h-2.5 shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2.5 h-2.5' : 'bg-amber-500 border-amber-400 w-2.5 h-2.5')
-                    : (isCurrent ? 'bg-white border-cyan-400 scale-[1.3] w-2 h-2 shadow-[0_0_6px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2 h-2' : 'bg-amber-500 border-amber-400 w-2 h-2');
-                  
-                  const dynamicDotOffsetStyle = totalSteps <= 2
-                    ? (isFocus ? { left: '-5px' } : { right: '-5px' })
-                    : (isFocus ? { left: '-4px' } : { right: '-4px' });
+            {/* Roadmap Steps Container */}
+            <div className="relative w-full flex flex-col items-center">
+              <div 
+                ref={scrollRef}
+                onScroll={checkScroll}
+                className={cn("w-full flex flex-col items-center pt-0.5 pb-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}
+              >
+                <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
+                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
+                
+                <div className={cn("w-full flex flex-col px-3 relative z-10", dynamicGap)}>
+                  {routineSteps.map((step, idx) => {
+                    const isCurrent = idx === currentStepIdx;
+                    const isFocus = step.type === 'FOCUS';
+                    const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
+                    
+                    const dynamicDotClass = totalSteps <= 2
+                      ? (isCurrent ? 'bg-white border-cyan-400 scale-[1.4] w-2.5 h-2.5 shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2.5 h-2.5' : 'bg-amber-500 border-amber-400 w-2.5 h-2.5')
+                      : (isCurrent ? 'bg-white border-cyan-400 scale-[1.3] w-2 h-2 shadow-[0_0_6px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2 h-2' : 'bg-amber-500 border-amber-400 w-2 h-2');
+                    
+                    const dynamicDotOffsetStyle = totalSteps <= 2
+                      ? (isFocus ? { left: '-5px' } : { right: '-5px' })
+                      : (isFocus ? { left: '-4px' } : { right: '-4px' });
 
-                  return (
-                    <div
-                      key={step.id || idx}
-                      className={cn(
-                        "w-1/2 flex items-center relative",
-                        isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
-                      )}
-                    >
-                      <div 
-                        className={cn(
-                          "absolute rounded-full border top-1/2 -translate-y-1/2 z-20 transition-all",
-                          dynamicDotClass
-                        )}
-                        style={dynamicDotOffsetStyle}
-                      />
+                    return (
                       <div
+                        key={step.id || idx}
                         className={cn(
-                          "border font-bold max-w-full truncate transition-all",
-                          dynamicPaddingClass,
-                          isCurrent 
-                            ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 font-extrabold shadow-[0_0_8px_rgba(6,182,212,0.2)]" 
-                            : "bg-white/[0.01] border-white/5 text-slate-400"
+                          "w-1/2 flex items-center relative",
+                          isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
                         )}
                       >
-                        <div>{step.duration}m {isFocus ? (i18n.language === 'es' ? 'Enfoque' : 'Focus') : (i18n.language === 'es' ? 'Descanso' : 'Break')}</div>
-                        {isFocus && subTraitName && <div className="text-[5px] text-cyan-400/80 mt-0.5 truncate">🎯 {subTraitName}</div>}
+                        <div 
+                          className={cn(
+                            "absolute rounded-full border top-1/2 -translate-y-1/2 z-20 transition-all",
+                            dynamicDotClass
+                          )}
+                          style={dynamicDotOffsetStyle}
+                        />
+                        <div
+                          className={cn(
+                            "border font-bold max-w-full truncate transition-all",
+                            dynamicPaddingClass,
+                            isCurrent 
+                              ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 font-extrabold shadow-[0_0_8px_rgba(6,182,212,0.2)]" 
+                              : "bg-white/[0.01] border-white/5 text-slate-400"
+                          )}
+                        >
+                          <div>{step.duration}m {isFocus ? (i18n.language === 'es' ? 'Enfoque' : 'Focus') : (i18n.language === 'es' ? 'Descanso' : 'Break')}</div>
+                          {isFocus && subTraitName && <div className="text-[5px] text-cyan-400/80 mt-0.5 truncate">🎯 {subTraitName}</div>}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
               </div>
-              <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
+
+              {/* Floating scroll bottom-arrow indicator */}
+              {showScrollIndicator && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 text-cyan-400 font-black animate-bounce pointer-events-none text-[8px] bg-black/80 px-1.5 py-0.5 rounded-full border border-cyan-500/20 flex items-center gap-0.5 shadow-md">
+                  <span>{i18n.language === 'es' ? 'Sigue abajo' : 'Scroll down'}</span>
+                  <span>↓</span>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1008,7 +1043,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
   {/* Cambiar Vista toggle button placed in the chord of the circle */}
   {routineSteps && routineSteps.length > 0 && (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
       <button
         type="button"
         onClick={() => setActiveCircleView(prev => prev === 'TIMER' ? 'ROADMAP' : 'TIMER')}

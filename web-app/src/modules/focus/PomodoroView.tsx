@@ -550,6 +550,18 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  const { t } = useTranslation();
  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => initialProjectId || null);
  const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
+  const [isTaskSelectorOpen, setIsTaskSelectorOpen] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => localStorage.getItem('matrix_active_focus_task_id'));
+
+  const handleSelectTask = (taskId: string | null) => {
+    if (taskId) {
+      localStorage.setItem('matrix_active_focus_task_id', taskId);
+      setActiveTaskId(taskId);
+    } else {
+      localStorage.removeItem('matrix_active_focus_task_id');
+      setActiveTaskId(null);
+    }
+  };
 
  // EFFECT: Sync with prop if it changes later (optional but safe)
  React.useEffect(() => {
@@ -692,15 +704,79 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  </AnimatePresence>
  </>
  )}
-  {/* "Rutina" trigger link */}
-  {activeProject.id !== QUICK_FOCUS_PROJECT_ID && (
-    <button 
-      onClick={() => setIsRoutineModalOpen(true)}
-      className="mt-1 text-[9px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest bg-cyan-500/10 hover:bg-cyan-500/15 border border-cyan-500/20 px-2.5 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-sm"
-    >
-      <span>🔄 Rutina</span>
-    </button>
-  )}
+  {/* Bottom triggers: Rutina + Task Selector side by side */}
+  {activeProject.id !== QUICK_FOCUS_PROJECT_ID && (() => {
+    const activeTask = activeTaskId ? quests.find(q => q.id === activeTaskId) : null;
+    const projectTasks = quests.filter(q => q.projectId === activeProject.id && !q.completed && q.pomodoroTarget);
+    return (
+      <div className="mt-1 flex items-center gap-2 relative">
+        {/* Rutina button - shifted slightly left */}
+        <button
+          onClick={() => setIsRoutineModalOpen(true)}
+          className="text-[9px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest bg-cyan-500/10 hover:bg-cyan-500/15 border border-cyan-500/20 px-2.5 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-sm"
+        >
+          <span>🔄 Rutina</span>
+        </button>
+
+        {/* Task Selector button */}
+        {projectTasks.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setIsTaskSelectorOpen(!isTaskSelectorOpen)}
+              className={cn(
+                "text-[9px] font-black uppercase tracking-widest border px-2.5 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-sm",
+                activeTask
+                  ? "text-rose-400 bg-rose-500/10 hover:bg-rose-500/15 border-rose-500/20"
+                  : "text-slate-400 bg-white/5 hover:bg-white/10 border-white/10"
+              )}
+            >
+              <span>🍅</span>
+              <span className="max-w-[70px] truncate">
+                {activeTask ? `${activeTask.pomodoroCompleted || 0}/${activeTask.pomodoroTarget}` : 'Tarea'}
+              </span>
+              <ChevronDown size={10} className={cn("transition-transform", isTaskSelectorOpen ? "rotate-180" : "")} />
+            </button>
+
+            <AnimatePresence>
+              {isTaskSelectorOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  className="absolute bottom-full mb-2 right-0 w-56 max-h-48 overflow-y-auto bg-[#1a1a1a]/95 border border-white/10 rounded-xl shadow-xl p-1 flex flex-col gap-1 z-[200]"
+                >
+                  {/* Clear selection */}
+                  {activeTask && (
+                    <button
+                      onClick={() => { handleSelectTask(null); setIsTaskSelectorOpen(false); }}
+                      className="w-full px-3 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                    >
+                      <span>✕</span>
+                      <span>Sin tarea asignada</span>
+                    </button>
+                  )}
+                  {projectTasks.map(task => (
+                    <button
+                      key={task.id}
+                      onClick={() => { handleSelectTask(task.id); setIsTaskSelectorOpen(false); }}
+                      className={cn(
+                        "w-full px-3 py-1.5 rounded-lg text-left text-[10px] font-bold flex items-center gap-2 transition-all",
+                        activeTaskId === task.id ? "bg-rose-500/15 text-rose-300 border border-rose-500/20" : "text-zinc-300 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <span className="shrink-0">🍅</span>
+                      <span className="flex-1 truncate">{task.title}</span>
+                      <span className="text-[9px] font-mono text-rose-400 shrink-0">{task.pomodoroCompleted || 0}/{task.pomodoroTarget}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    );
+  })()}
   </div>
   </div>
   );
@@ -734,6 +810,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
   onEditSession={onEditSession}
   customHeaderTitle={customHeader}
   onEditRoutine={() => setIsRoutineModalOpen(true)}
+  activeTaskId={activeTaskId}
   />
  </div>
 

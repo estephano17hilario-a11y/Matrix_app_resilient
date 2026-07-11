@@ -211,24 +211,32 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
             
             {/* Pomodoro target circles indicator */}
             {quest.pomodoroTarget ? (
-              <div className="flex items-center gap-1 mb-1 animate-in fade-in duration-200">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 mb-1 animate-in fade-in duration-200">
+                <div className="flex items-center gap-0.5 flex-wrap max-w-[120px]">
                   {Array.from({ length: quest.pomodoroTarget }).map((_, idx) => {
                     const isCompleted = idx < (quest.pomodoroCompleted || 0);
                     return (
-                      <div 
+                      <svg
                         key={idx}
-                        className={cn(
-                          "w-2 h-2 rounded-full border shadow-sm transition-colors",
-                          isCompleted 
-                            ? "bg-rose-500 border-rose-400 shadow-rose-500/20" 
-                            : "bg-white/5 border-white/10"
-                        )}
-                      />
+                        width="10" height="11"
+                        viewBox="0 0 10 11"
+                        fill="none"
+                        className={cn("transition-all duration-300", isCompleted ? "drop-shadow-[0_0_3px_rgba(239,68,68,0.6)]" : "opacity-25")}
+                      >
+                        {/* Stem / leaf */}
+                        <path d="M5 2.5 C5 2.5 4.2 0.8 3 1 C3 1 4 2 5 2.5Z" fill={isCompleted ? "#4ade80" : "#6b7280"} />
+                        <path d="M5 2.5 C5 2.5 5.8 0.8 7 1 C7 1 6 2 5 2.5Z" fill={isCompleted ? "#22c55e" : "#4b5563"} />
+                        {/* Body */}
+                        <ellipse cx="5" cy="6.5" rx="4" ry="4" fill={isCompleted ? "#ef4444" : "#374151"} />
+                        {/* Shine */}
+                        <ellipse cx="3.5" cy="4.5" rx="1" ry="0.7" fill={isCompleted ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.05)"} transform="rotate(-20 3.5 4.5)" />
+                        {/* Vertical crease */}
+                        <path d="M5 3.5 Q4.5 6.5 5 9.5" stroke={isCompleted ? "#dc2626" : "#1f2937"} strokeWidth="0.5" strokeLinecap="round" />
+                      </svg>
                     );
                   })}
                 </div>
-                <span className="text-[9px] font-bold text-rose-400 font-mono ml-0.5">
+                <span className="text-[9px] font-bold text-rose-400 font-mono">
                   {quest.pomodoroCompleted || 0}/{quest.pomodoroTarget}
                 </span>
               </div>
