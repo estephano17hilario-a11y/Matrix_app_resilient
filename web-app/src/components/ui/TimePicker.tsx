@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sun, Moon, Clock, Keyboard } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface TimePickerProps {
  value: string; // Format: "HH:mm" in 24h format (e.g. "14:30")
@@ -13,6 +14,7 @@ interface TimePickerProps {
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, placeholder = '00:00', className, label }) => {
+ const { t } = useTranslation();
  const [isOpen, setIsOpen] = useState(false);
  
  // Local State for the picker
