@@ -218,10 +218,10 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                     return (
                       <svg
                         key={idx}
-                        width="10" height="11"
+                        width="14" height="15"
                         viewBox="0 0 10 11"
                         fill="none"
-                        className={cn("transition-all duration-300", isCompleted ? "drop-shadow-[0_0_3px_rgba(239,68,68,0.6)]" : "opacity-25")}
+                        className={cn("transition-all duration-300", isCompleted ? "drop-shadow-[0_0_4px_rgba(239,68,68,0.7)]" : "opacity-25")}
                       >
                         {/* Stem / leaf */}
                         <path d="M5 2.5 C5 2.5 4.2 0.8 3 1 C3 1 4 2 5 2.5Z" fill={isCompleted ? "#4ade80" : "#6b7280"} />

@@ -186,7 +186,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       const timer = setTimeout(checkScroll, 100);
       return () => clearTimeout(timer);
     }
-  }, [activeCircleView, checkScroll, routineSteps, currentStepIdx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCircleView, checkScroll]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const ambientGainNodeRef = useRef<GainNode | null>(null);
@@ -576,6 +577,12 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     currentStepIdx
   } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
+  // Re-check scroll indicator whenever routine steps change while in ROADMAP view
+  useEffect(() => {
+    if (activeCircleView === 'ROADMAP') {
+      setTimeout(checkScroll, 120);
+    }
+  }, [activeCircleView, routineSteps, currentStepIdx, checkScroll]);
 
  useEffect(() => {
  if (isEditingTime && inputRef.current) {
