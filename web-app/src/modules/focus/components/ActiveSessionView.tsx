@@ -154,7 +154,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 }) => {
  const { t, i18n } = useTranslation();
  const [showHistory, setShowHistory] = useState(false);
- const [showRoadmap, setShowRoadmap] = useState(true);
  const [activeCircleView, setActiveCircleView] = useState<'TIMER' | 'ROADMAP'>('TIMER');
  const [isEditingTime, setIsEditingTime] = useState(false);
  const [editTimeValue, setEditTimeValue] = useState('25');
@@ -480,6 +479,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   } else if (typeof isManualStopOrSubTrait === 'string') {
     finalSubTraitId = isManualStopOrSubTrait;
   }
+
+  const isCompletedNaturally = !isManualStop;
 
   if (!finalSubTraitId && sessionRecordedRef.current) return;
   if (!finalSubTraitId) sessionRecordedRef.current = true;
@@ -884,149 +885,146 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  style={{ transition: 'stroke-dashoffset 1s linear' }}
  />
 
-
  </svg>
 
- {/* Time Display */}
-  <div className="relative z-10 flex flex-col items-center pointer-events-auto w-full max-w-[260px] h-[240px] justify-center">
-    {activeCircleView === 'ROADMAP' && routineSteps && routineSteps.length > 0 ? (
-      <div className="w-full flex flex-col items-center select-none animate-fade-in relative z-30">
-        {/* Header with Editar button */}
-        <div className="w-full flex items-center justify-between px-3 pb-1 border-b border-white/10 mb-2 shrink-0">
-          <span className="text-[8px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1">
-            🗺️ {i18n.language === 'es' ? 'Ruta de Enfoque' : 'Focus Roadmap'}
-          </span>
-          {onEditRoutine && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditRoutine();
-              }}
-              className="text-[7px] font-black text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider transition-all active:scale-95 flex items-center gap-0.5"
-            >
-              <span>✍️</span>
-              <span>{i18n.language === 'es' ? 'Editar' : 'Edit'}</span>
-            </button>
-          )}
-        </div>
+  {/* Time Display */}
+  {(() => {
+    const totalSteps = routineSteps ? routineSteps.length : 0;
+    const dynamicGap = totalSteps <= 2 ? 'gap-8 py-2' : totalSteps === 3 ? 'gap-5 py-1' : 'gap-2.5';
+    const dynamicPaddingClass = totalSteps <= 2 ? 'p-1.5 text-[8.5px] rounded-xl' : 'p-1 text-[7px] rounded-lg';
+    const dynamicCardHeight = totalSteps <= 2 ? 'max-h-[175px]' : 'max-h-[160px]';
 
-        {/* Roadmap Steps */}
-        <div className="w-full flex flex-col items-center py-1 relative max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
-          <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
-          <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
-          
-          <div className="w-full flex flex-col gap-2.5 px-3 relative z-10">
-            {routineSteps.map((step, idx) => {
-              const isCurrent = idx === currentStepIdx;
-              const isFocus = step.type === 'FOCUS';
-              const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
-              return (
-                <div
-                  key={step.id || idx}
-                  className={cn(
-                    "w-1/2 flex items-center relative",
-                    isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
-                  )}
+    return (
+      <div className="relative z-10 flex flex-col items-center pointer-events-auto w-full max-w-[260px] h-[240px] justify-center">
+        {activeCircleView === 'ROADMAP' && routineSteps && routineSteps.length > 0 ? (
+          <div className="w-full flex flex-col items-center select-none animate-fade-in relative z-30">
+            {/* Header with Editar button */}
+            <div className="w-full flex flex-col items-center justify-center gap-1 pb-1.5 border-b border-white/10 mb-3 shrink-0 relative">
+              <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 justify-center text-center">
+                🗺️ {i18n.language === 'es' ? 'Ruta de Enfoque' : 'Focus Roadmap'}
+              </span>
+              {onEditRoutine && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditRoutine();
+                  }}
+                  className="text-[7px] font-black text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider transition-all active:scale-95 flex items-center gap-0.5"
                 >
-                  <div 
-                    className={cn(
-                      "absolute w-2 h-2 rounded-full border top-1/2 -translate-y-1/2 z-20 transition-all",
-                      isCurrent 
-                        ? "bg-white border-cyan-400 scale-[1.3] shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse" 
-                        : isFocus 
-                          ? "bg-cyan-500 border-cyan-400" 
-                          : "bg-amber-500 border-amber-400"
-                    )}
-                    style={isFocus ? { left: '-4px' } : { right: '-4px' }}
-                  />
-                  <div
-                    className={cn(
-                      "p-1 rounded-lg border text-[7px] font-bold max-w-full truncate transition-all",
-                      isCurrent 
-                        ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 font-extrabold" 
-                        : "bg-white/[0.01] border-white/5 text-slate-400"
-                    )}
-                  >
-                    <div>{step.duration}m {isFocus ? (i18n.language === 'es' ? 'Enfoque' : 'Focus') : (i18n.language === 'es' ? 'Descanso' : 'Break')}</div>
-                    {isFocus && subTraitName && <div className="text-[5px] text-cyan-400/80 mt-0.5 truncate">🎯 {subTraitName}</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
-        </div>
-      </div>
-    ) : (
-      <>
-        {routineSteps && routineSteps.length > 0 && (
-            <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest leading-none mb-2">
-                {routineSteps[currentStepIdx]?.type === 'FOCUS' ? '🎯 Enfoque' : '☕ Descanso'} ({currentStepIdx + 1}/{routineSteps.length})
-            </span>
-        )}
-        {isEditingTime ? (
-          <div className="flex items-center justify-center relative">
-            <input
-              ref={inputRef}
-              type="number"
-              value={editTimeValue}
-              onChange={(e) => setEditTimeValue(e.target.value)}
-              onBlur={handleTimeSubmit}
-              onKeyDown={handleTimeKeyDown}
-              className="w-48 text-[5rem] font-mono font-bold text-white bg-transparent text-center outline-none border-b-2 border-white/20 leading-none tracking-tighter tabular-nums drop-shadow-md selection:bg-white/20"
-            />
-            <span className="absolute -right-8 bottom-4 text-sm font-bold text-white/40 uppercase tracking-widest">{t('common.minUpper', 'MIN')}</span>
+                  <span>✍️</span>
+                  <span>{i18n.language === 'es' ? 'Editar' : 'Edit'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Roadmap Steps */}
+            <div className={cn("w-full flex flex-col items-center py-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}>
+              <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
+              <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
+              
+              <div className={cn("w-full flex flex-col px-3 relative z-10", dynamicGap)}>
+                {routineSteps.map((step, idx) => {
+                  const isCurrent = idx === currentStepIdx;
+                  const isFocus = step.type === 'FOCUS';
+                  const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
+                  
+                  const dynamicDotClass = totalSteps <= 2
+                    ? (isCurrent ? 'bg-white border-cyan-400 scale-[1.4] w-2.5 h-2.5 shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2.5 h-2.5' : 'bg-amber-500 border-amber-400 w-2.5 h-2.5')
+                    : (isCurrent ? 'bg-white border-cyan-400 scale-[1.3] w-2 h-2 shadow-[0_0_6px_rgba(6,182,212,0.6)] animate-pulse' : isFocus ? 'bg-cyan-500 border-cyan-400 w-2 h-2' : 'bg-amber-500 border-amber-400 w-2 h-2');
+                  
+                  const dynamicDotOffsetStyle = totalSteps <= 2
+                    ? (isFocus ? { left: '-5px' } : { right: '-5px' })
+                    : (isFocus ? { left: '-4px' } : { right: '-4px' });
+
+                  return (
+                    <div
+                      key={step.id || idx}
+                      className={cn(
+                        "w-1/2 flex items-center relative",
+                        isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
+                      )}
+                    >
+                      <div 
+                        className={cn(
+                          "absolute rounded-full border top-1/2 -translate-y-1/2 z-20 transition-all",
+                          dynamicDotClass
+                        )}
+                        style={dynamicDotOffsetStyle}
+                      />
+                      <div
+                        className={cn(
+                          "border font-bold max-w-full truncate transition-all",
+                          dynamicPaddingClass,
+                          isCurrent 
+                            ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 font-extrabold shadow-[0_0_8px_rgba(6,182,212,0.2)]" 
+                            : "bg-white/[0.01] border-white/5 text-slate-400"
+                        )}
+                      >
+                        <div>{step.duration}m {isFocus ? (i18n.language === 'es' ? 'Enfoque' : 'Focus') : (i18n.language === 'es' ? 'Descanso' : 'Break')}</div>
+                        {isFocus && subTraitName && <div className="text-[5px] text-cyan-400/80 mt-0.5 truncate">🎯 {subTraitName}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
+            </div>
           </div>
         ) : (
-          <div 
-            onClick={() => {
-              if (!isActive && mode === 'POMO') {
-                setEditTimeValue(Math.floor(timeLeft / 60).toString());
-                setIsEditingTime(true);
-              }
-            }}
-            className={cn(
-              "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all relative",
-              !isActive && mode === 'POMO' && "cursor-pointer hover:scale-110 hover:text-indigo-200"
+          <>
+            {routineSteps && routineSteps.length > 0 && (
+                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest leading-none mb-3">
+                    {routineSteps[currentStepIdx]?.type === 'FOCUS' ? '🍅 Pomodoro' : '☕ Descanso'} ({currentStepIdx + 1}/{routineSteps.length})
+                </span>
             )}
-          >
-            {formatTime(timeLeft)}
-          </div>
-        )}
-        <div className="mt-4 text-xs font-bold text-white/30 uppercase tracking-[0.3em] animate-pulse">
-           {isActive 
-             ? (isPaused 
-               ? (i18n.language === 'es' ? 'Pausado' : 'Paused') 
-               : (i18n.language === 'es' ? 'En marcha' : 'Running')) 
-             : (isEditingTime 
-               ? (i18n.language === 'es' ? 'Ajustar Duración' : 'Set Duration') 
-               : (i18n.language === 'es' ? 'Listo' : 'Ready'))}
-        </div>
-        
-        {/* Today's Forecasted / Completed Pomodoros tracker */}
-        <div className="mt-4 flex flex-col items-center gap-1 bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl backdrop-blur-md shadow-md animate-fade-in">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                🍅 {i18n.language === 'es' ? 'Pomodoros de Hoy' : 'Today\'s Pomodoros'}
-            </span>
-            <div className="flex items-baseline gap-0.5 text-white font-mono leading-none">
-                <span className="text-base font-black text-cyan-400">{actualCompleted}</span>
-                <span className="text-[10px] text-white/30">/</span>
-                <span className="text-xs font-bold text-white/60">{forecastTarget}</span>
+            {isEditingTime ? (
+              <div className="flex items-center justify-center relative">
+                <input
+                  ref={inputRef}
+                  type="number"
+                  value={editTimeValue}
+                  onChange={(e) => setEditTimeValue(e.target.value)}
+                  onBlur={handleTimeSubmit}
+                  onKeyDown={handleTimeKeyDown}
+                  className="w-48 text-[5rem] font-mono font-bold text-white bg-transparent text-center outline-none border-b-2 border-white/20 leading-none tracking-tighter tabular-nums drop-shadow-md selection:bg-white/20"
+                />
+                <span className="absolute -right-8 bottom-4 text-sm font-bold text-white/40 uppercase tracking-widest">{t('common.minUpper', 'MIN')}</span>
+              </div>
+            ) : (
+              <div 
+                onClick={() => {
+                  if (!isActive && mode === 'POMO') {
+                    setEditTimeValue(Math.floor(timeLeft / 60).toString());
+                    setIsEditingTime(true);
+                  }
+                }}
+                className={cn(
+                  "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all relative",
+                  !isActive && mode === 'POMO' && "cursor-pointer hover:scale-110 hover:text-indigo-200"
+                )}
+              >
+                {formatTime(timeLeft)}
+              </div>
+            )}
+            <div className="mt-4 text-xs font-bold text-white/30 uppercase tracking-[0.3em] animate-pulse">
+               {isActive 
+                 ? (isPaused 
+                   ? (i18n.language === 'es' ? 'Pausado' : 'Paused') 
+                   : (i18n.language === 'es' ? 'En marcha' : 'Running')) 
+                 : (isEditingTime 
+                   ? (i18n.language === 'es' ? 'Ajustar Duración' : 'Set Duration') 
+                   : (i18n.language === 'es' ? 'Listo' : 'Ready'))}
             </div>
-            {activeTask && (
-                <div className="text-[7px] font-bold text-rose-400 bg-rose-500/5 border border-rose-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wide mt-0.5">
-                    Tarea: {activeTask.pomodoroCompleted || 0} / {activeTask.pomodoroTarget || 0}
-                </div>
-            )}
-        </div>
-      </>
-    )}
-  </div>
+          </>
+        )}
+      </div>
+    );
+  })()}
 
   {/* Cambiar Vista toggle button placed in the chord of the circle */}
   {routineSteps && routineSteps.length > 0 && (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
       <button
         type="button"
         onClick={() => setActiveCircleView(prev => prev === 'TIMER' ? 'ROADMAP' : 'TIMER')}
