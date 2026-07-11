@@ -25,37 +25,53 @@ const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
 export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH', subTraitId?: string) => void, projectIcon?: string) => {
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
 
-    // Resolve active routine steps based on active settings (TEMP, WEEKDAY or DEFAULT)
+    // Resolve active routine steps based on active settings (TEMP -> WEEKDAY -> DEFAULT)
     const resolveActiveRoutineSteps = useCallback((proj: Project) => {
         if (proj.id === QUICK_FOCUS_PROJECT_ID) return [];
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
         const weekdayIndex = today.getDay(); // 0 is Sunday, 1 is Monday...
 
-        const rMode = localStorage.getItem(`matrix_project_routine_mode_${proj.id}`) || 'DEFAULT';
-        if (rMode === 'TEMP') {
-            const tempSaved = localStorage.getItem(`matrix_temp_routine_${proj.id}_${todayStr}`);
-            if (tempSaved) {
-                try {
-                    return JSON.parse(tempSaved);
-                } catch (e) {
-                    console.error("Failed to parse temp routine", e);
+        // Cleanup: Reset daily temporal routines that belong to previous days (past 24:00 hours)
+        try {
+            const tempPrefix = `matrix_temp_routine_${proj.id}_`;
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(tempPrefix) && !key.endsWith(todayStr)) {
+                    localStorage.removeItem(key);
                 }
+            }
+        } catch (e) {
+            console.error("Failed to clean up yesterday's temp routines", e);
+        }
+
+        // Priority 1: Temporary daily routine (Solo Hoy) - MAX PRIORITY
+        const tempSaved = localStorage.getItem(`matrix_temp_routine_${proj.id}_${todayStr}`);
+        if (tempSaved) {
+            try {
+                const parsed = JSON.parse(tempSaved);
+                if (parsed && parsed.length > 0) {
+                    return parsed;
+                }
+            } catch (e) {
+                console.error("Failed to parse temp routine", e);
             }
         }
 
-        if (rMode === 'WEEKDAY') {
-            const weekdaySaved = localStorage.getItem(`matrix_project_routine_${proj.id}_weekday_${weekdayIndex}`);
-            if (weekdaySaved) {
-                try {
-                    return JSON.parse(weekdaySaved);
-                } catch (e) {
-                    console.error("Failed to parse weekday routine", e);
+        // Priority 2: Weekday override routine (e.g. Saturday custom routine)
+        const weekdaySaved = localStorage.getItem(`matrix_project_routine_${proj.id}_weekday_${weekdayIndex}`);
+        if (weekdaySaved) {
+            try {
+                const parsed = JSON.parse(weekdaySaved);
+                if (parsed && parsed.length > 0) {
+                    return parsed;
                 }
+            } catch (e) {
+                console.error("Failed to parse weekday routine", e);
             }
         }
 
-        // Fallback to project default focusRoutine if today matches the active days
+        // Priority 3: Fallback default project routine if current day matches default active days
         if (proj.focusRoutineDays && proj.focusRoutineDays.includes(weekdayIndex)) {
             return proj.focusRoutine || [];
         }

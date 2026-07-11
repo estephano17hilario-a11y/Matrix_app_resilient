@@ -872,31 +872,31 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                                     {/* Indicator Dot on Timeline */}
                                                                                     <div 
                                                                                         className={cn(
-                                                                                            "absolute w-2.5 h-2.5 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-md transition-all",
-                                                                                            isFocus ? "-left-1.25" : "-right-1.25",
+                                                                                            "absolute w-3.5 h-3.5 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-md transition-all",
+                                                                                            isFocus ? "-left-1.75" : "-right-1.75",
                                                                                             isSelected 
-                                                                                                ? "bg-white border-cyan-400 scale-125" 
+                                                                                                ? "bg-white border-cyan-400 scale-150" 
                                                                                                 : isFocus 
                                                                                                     ? "bg-cyan-500 border-cyan-400" 
                                                                                                     : "bg-amber-500 border-amber-400"
                                                                                         )}
-                                                                                        style={isFocus ? { left: '-5px' } : { right: '-5px' }}
+                                                                                        style={isFocus ? { left: '-7px' } : { right: '-7px' }}
                                                                                     />
 
                                                                                     {/* Card body */}
                                                                                     <div 
                                                                                         className={cn(
-                                                                                            "p-2 rounded-xl border text-[9px] font-bold transition-all shadow-md max-w-full truncate relative",
+                                                                                            "p-2 rounded-xl border text-[9px] font-bold transition-all shadow-md max-w-full relative",
                                                                                             isSelected 
                                                                                                 ? "bg-white/10 border-white text-white scale-102" 
                                                                                                 : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
                                                                                         )}
                                                                                     >
-                                                                                        <div>
+                                                                                        <div className="truncate max-w-[90px]">
                                                                                             {step.duration} min en {isFocus ? 'Enfoque' : 'Intervalo'}
                                                                                         </div>
                                                                                         {isFocus && subTraitName && (
-                                                                                            <div className="text-[7px] text-cyan-400 mt-0.5 uppercase tracking-wide truncate">
+                                                                                            <div className="text-[7px] text-cyan-400 mt-0.5 uppercase tracking-wide truncate max-w-[90px]">
                                                                                                 🎯 {subTraitName}
                                                                                             </div>
                                                                                         )}
@@ -934,7 +934,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                                                 newRoutine.splice(idx + 1, 0, insertedStep);
                                                                                                 setFocusRoutine(newRoutine);
                                                                                             }}
-                                                                                            className="w-5 h-5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-bold text-xs shadow-md border border-cyan-400/30 transition-transform active:scale-90"
+                                                                                            className="w-3.5 h-3.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-black text-[8px] shadow-sm border border-cyan-400/30 transition-transform active:scale-90"
                                                                                             title="Insertar paso de rutina"
                                                                                         >
                                                                                             +

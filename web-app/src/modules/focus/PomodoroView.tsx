@@ -237,21 +237,28 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
                         >
                           <div 
                             className={cn(
-                              "absolute w-2 h-2 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-sm transition-all",
-                              isSelected ? "bg-white border-cyan-400 scale-125" : isFocus ? "bg-cyan-500 border-cyan-400" : "bg-amber-500 border-amber-400"
+                              "absolute w-3 h-3 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-sm transition-all",
+                              isSelected ? "bg-white border-cyan-400 scale-150" : isFocus ? "bg-cyan-500 border-cyan-400" : "bg-amber-500 border-amber-400"
                             )}
-                            style={isFocus ? { left: '-4px' } : { right: '-4px' }}
+                            style={isFocus ? { left: '-6px' } : { right: '-6px' }}
                           />
                           <div
                             className={cn(
-                              "p-1.5 rounded-xl border text-[8px] font-bold transition-all max-w-full truncate relative",
+                              "p-1.5 rounded-xl border text-[8px] font-bold transition-all max-w-full relative",
                               isSelected ? "bg-white/10 border-white text-white" : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
                             )}
                           >
-                            <div>{step.duration} min - {isFocus ? 'Enfoque' : 'Descanso'}</div>
-                            {isFocus && subTraitName && <div className="text-[6px] text-cyan-400 mt-0.5">🎯 {subTraitName}</div>}
+                            <div className="truncate max-w-[90px]">
+                              {step.duration} min - {isFocus ? 'Enfoque' : 'Descanso'}
+                            </div>
+                            {isFocus && subTraitName && (
+                              <div className="text-[6px] text-cyan-400 mt-0.5 truncate max-w-[90px]">
+                                🎯 {subTraitName}
+                              </div>
+                            )}
                             {isSelected && (
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSteps(steps.filter(s => s.id !== step.id));
@@ -283,7 +290,7 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
                                   newSteps.splice(idx + 1, 0, insertedStep);
                                   setSteps(newSteps);
                               }}
-                              className="w-5 h-5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-bold text-xs shadow-md border border-cyan-400/30 transition-transform active:scale-90"
+                              className="w-3.5 h-3.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-black text-[8px] shadow-sm border border-cyan-400/30 transition-transform active:scale-90"
                               title="Insertar paso de rutina"
                             >
                               +
@@ -726,6 +733,7 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
   onAddManualSession={onAddManualSession}
   onEditSession={onEditSession}
   customHeaderTitle={customHeader}
+  onEditRoutine={() => setIsRoutineModalOpen(true)}
   />
  </div>
 
