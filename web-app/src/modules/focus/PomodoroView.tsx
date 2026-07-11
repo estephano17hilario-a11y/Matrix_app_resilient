@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Project, Attribute, Quest } from '../../types';
 import { ActiveSessionView } from './components/ActiveSessionView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Zap } from 'lucide-react';
+import { ChevronDown, Zap, Clock, X, Hourglass, Plus, Trash2, Save, Calendar, Check, Edit3 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 
@@ -27,7 +28,6 @@ interface RoutineSessionModalProps {
 }
 
 const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attributes, onClose, onUpdateProject }) => {
-  const { t, i18n } = useTranslation();
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const currentWeekday = today.getDay(); // 0 Sunday, 1 Monday...

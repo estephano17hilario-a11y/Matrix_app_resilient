@@ -465,11 +465,20 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     }
   }, [attribute, project.color]);
 
-  const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false, subTraitId?: string) => {
+  const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStopOrSubTrait?: boolean | string, subTraitId?: string) => {
   const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
   if (safeDuration < 5) return;
-  if (!subTraitId && sessionRecordedRef.current) return;
-  if (!subTraitId) sessionRecordedRef.current = true;
+  
+  let isManualStop = false;
+  let finalSubTraitId = subTraitId;
+  if (typeof isManualStopOrSubTrait === 'boolean') {
+    isManualStop = isManualStopOrSubTrait;
+  } else if (typeof isManualStopOrSubTrait === 'string') {
+    finalSubTraitId = isManualStopOrSubTrait;
+  }
+
+  if (!finalSubTraitId && sessionRecordedRef.current) return;
+  if (!finalSubTraitId) sessionRecordedRef.current = true;
   
   // Only play alarm and show external notification if it finished naturally
   if (!isManualStop) {
@@ -494,9 +503,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   }
  
   // If a specific sub-trait was pre-assigned to this routine step, use it directly!
-  if (subTraitId) {
+  if (finalSubTraitId) {
     runFocusFlyingIcons();
-    onCompleteSession(safeDuration, mode, subTraitId);
+    onCompleteSession(safeDuration, mode, finalSubTraitId);
   } else if (hasSubTraits) {
     setPendingSessionData({ duration: safeDuration, mode });
   } else {
@@ -876,6 +885,11 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
  {/* Time Display */}
  <div className="relative z-10 flex flex-col items-center pointer-events-auto">
+    {routineSteps && routineSteps.length > 0 && (
+        <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest leading-none mb-2">
+            {routineSteps[currentStepIdx]?.type === 'FOCUS' ? '🎯 Enfoque' : '☕ Descanso'} ({currentStepIdx + 1}/{routineSteps.length})
+        </span>
+    )}
  {isEditingTime ? (
  <div className="flex items-center justify-center relative">
  <input

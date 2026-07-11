@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap, Minus, Sliders } from 'lucide-react';
+import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
@@ -843,7 +843,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                 <div className="text-[10px] text-white/30 italic py-4 relative z-10">Sin pasos. Agrega enfoques o intervalos abajo.</div>
                                                             ) : (
                                                                 <div className="w-full flex flex-col gap-3 px-6 my-2 relative z-10">
-                                                                    {focusRoutine.map((step, idx) => {
+                                                                    {focusRoutine.map((step) => {
                                                                         const isFocus = step.type === 'FOCUS';
                                                                         const isSelected = selectedStepId === step.id;
                                                                         const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;

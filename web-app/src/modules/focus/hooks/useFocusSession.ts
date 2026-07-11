@@ -15,10 +15,12 @@ export interface FocusSessionState {
     startTime: number | null; // For Stopwatch reference
     targetTime: number | null; // For Pomo reference
     lastUpdated: number;
+    currentStepIdx?: number;
 }
 
 const STORAGE_PREFIX = 'matrix_focus_session_';
 const NOTIFICATION_ID = 9999; // Fixed ID to easily cancel the focus notification
+const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
 
 export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH', subTraitId?: string) => void, projectIcon?: string) => {
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
