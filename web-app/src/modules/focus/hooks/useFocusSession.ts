@@ -20,11 +20,60 @@ export interface FocusSessionState {
 const STORAGE_PREFIX = 'matrix_focus_session_';
 const NOTIFICATION_ID = 9999; // Fixed ID to easily cancel the focus notification
 
-export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH') => void, projectIcon?: string) => {
-    // Initialize state from props first
+export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH', subTraitId?: string) => void, projectIcon?: string) => {
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
-    const [timeLeft, setTimeLeft] = useState(project.pomoDuration * 60);
-    const [totalDuration, setTotalDuration] = useState(project.pomoDuration * 60);
+
+    // Resolve active routine steps based on active settings (TEMP, WEEKDAY or DEFAULT)
+    const resolveActiveRoutineSteps = useCallback((proj: Project) => {
+        if (proj.id === QUICK_FOCUS_PROJECT_ID) return [];
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const weekdayIndex = today.getDay(); // 0 is Sunday, 1 is Monday...
+
+        const rMode = localStorage.getItem(`matrix_project_routine_mode_${proj.id}`) || 'DEFAULT';
+        if (rMode === 'TEMP') {
+            const tempSaved = localStorage.getItem(`matrix_temp_routine_${proj.id}_${todayStr}`);
+            if (tempSaved) {
+                try {
+                    return JSON.parse(tempSaved);
+                } catch (e) {
+                    console.error("Failed to parse temp routine", e);
+                }
+            }
+        }
+
+        if (rMode === 'WEEKDAY') {
+            const weekdaySaved = localStorage.getItem(`matrix_project_routine_${proj.id}_weekday_${weekdayIndex}`);
+            if (weekdaySaved) {
+                try {
+                    return JSON.parse(weekdaySaved);
+                } catch (e) {
+                    console.error("Failed to parse weekday routine", e);
+                }
+            }
+        }
+
+        // Fallback to project default focusRoutine if today matches the active days
+        if (proj.focusRoutineDays && proj.focusRoutineDays.includes(weekdayIndex)) {
+            return proj.focusRoutine || [];
+        }
+
+        return [];
+    }, []);
+
+    const [routineSteps, setRoutineSteps] = useState<any[]>(() => resolveActiveRoutineSteps(project));
+    const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
+
+    // Set initial timer values
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const steps = resolveActiveRoutineSteps(project);
+        return steps.length > 0 ? steps[0].duration * 60 : project.pomoDuration * 60;
+    });
+    const [totalDuration, setTotalDuration] = useState(() => {
+        const steps = resolveActiveRoutineSteps(project);
+        return steps.length > 0 ? steps[0].duration * 60 : project.pomoDuration * 60;
+    });
+
     const [isActive, setIsActive] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     
@@ -77,9 +126,18 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
                     };
                     const timeStr = formatTimeStr(timeLeft);
-                    const titleText = isPaused 
+                    
+                    let titleText = isPaused 
                         ? `Enfoque Pausado: ${project.title} ⏸️`
                         : `Enfoque Activo: ${project.title} ⏱️`;
+                    
+                    const steps = resolveActiveRoutineSteps(project);
+                    const currentStep = steps[currentStepIdx];
+                    if (steps.length > 0 && currentStep) {
+                        const stepTypeLabel = currentStep.type === 'FOCUS' ? 'Enfoque' : 'Descanso';
+                        titleText = `${stepTypeLabel} [Paso ${currentStepIdx + 1}/${steps.length}]: ${project.title}`;
+                    }
+
                     const bodyText = mode === 'POMO' 
                         ? `Tiempo restante: ${timeStr}`
                         : `Tiempo transcurrido: ${timeStr}`;
@@ -121,12 +179,18 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                 
                 await cancelLocalNotification(); // Clear previous ones just in case
                 
+                const steps = resolveActiveRoutineSteps(project);
+                const currentStep = steps[currentStepIdx];
+                const notifBody = steps.length > 0 && currentStep
+                    ? `Tu paso de ${currentStep.type === 'FOCUS' ? 'Enfoque' : 'Descanso'} en ${project.title} ha finalizado.`
+                    : `Your session for ${project.title} has finished. Claim your victory!`;
+
                 await LocalNotifications.schedule({
                     notifications: [
                         {
                             id: NOTIFICATION_ID,
                             title: 'Focus Complete! 🎯',
-                            body: `Your session for ${project.title} has finished. Claim your victory!`,
+                            body: notifBody,
                             schedule: { at: new Date(targetTimeMs) },
                             sound: 'beep.wav',
                             smallIcon: 'ic_stat_lux',
@@ -145,9 +209,15 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     const resetSession = useCallback((customMode?: 'POMO' | 'STOPWATCH') => {
         const nextMode = customMode || mode;
         setMode(nextMode);
+        
+        const steps = resolveActiveRoutineSteps(project);
+        setRoutineSteps(steps);
+        setCurrentStepIdx(0);
+
         if (nextMode === 'POMO') {
-            setTimeLeft(project.pomoDuration * 60);
-            setTotalDuration(project.pomoDuration * 60);
+            const initial = steps.length > 0 ? steps[0].duration * 60 : project.pomoDuration * 60;
+            setTimeLeft(initial);
+            setTotalDuration(initial);
         } else {
             setTimeLeft(0);
             setTotalDuration(0);
@@ -157,7 +227,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         localStorage.removeItem(STORAGE_KEY);
         cancelLocalNotification();
         cancelOngoingNotification();
-    }, [project.pomoDuration, STORAGE_KEY, mode]);
+    }, [project, STORAGE_KEY, mode, resolveActiveRoutineSteps]);
 
     const toggleTimer = useCallback(() => {
         if (!isActive) {
@@ -174,6 +244,10 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
     // 1. Load State on Mount (or Project Change)
     useEffect(() => {
+        const steps = resolveActiveRoutineSteps(project);
+        setRoutineSteps(steps);
+        setCurrentStepIdx(0);
+
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             try {
@@ -185,6 +259,10 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                     localStorage.removeItem(STORAGE_KEY);
                     resetSession();
                     return;
+                }
+
+                if (session.currentStepIdx !== undefined) {
+                    setCurrentStepIdx(session.currentStepIdx);
                 }
 
                 if (session.isActive && !session.isPaused) {
@@ -217,7 +295,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
     }, [project.id]);
 
-    // 2. Listen to App State Change (Foreground/Background)
+    // 2. Listen to App State Change (Foreground/Background Catch-Up)
     useEffect(() => {
         const appStateListener = App.addListener('appStateChange', ({ isActive: isAppActive }) => {
             if (isAppActive) {
@@ -230,17 +308,57 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                         
                         if (session.isActive && !session.isPaused) {
                             lastTickRef.current = now; // Reset lastTickRef to prevent double-counting background duration on next interval tick!
+                            
                             if (session.mode === 'POMO') {
                                 const target = session.targetTime || (now + session.timeLeft * 1000);
                                 const remaining = Math.max(0, Math.ceil((target - now) / 1000));
-                                setTimeLeft(remaining);
                                 
-                                // Check if it finished while in background
-                                if (remaining <= 0) {
-                                    setIsActive(false);
-                                    setIsPaused(false);
-                                    if (onCompleteRef.current) {
-                                        onCompleteRef.current(session.totalDuration, 'POMO');
+                                if (remaining > 0) {
+                                    setTimeLeft(remaining);
+                                } else {
+                                    // Segment or routine expired in background
+                                    const steps = resolveActiveRoutineSteps(project);
+                                    if (steps.length === 0) {
+                                        setTimeLeft(0);
+                                        setIsActive(false);
+                                        setIsPaused(false);
+                                        if (onCompleteRef.current) {
+                                            onCompleteRef.current(session.totalDuration, 'POMO');
+                                        }
+                                    } else {
+                                        // We have focus routine steps! We calculate how much elapsed time occurred and step forward
+                                        const totalElapsed = session.totalDuration - session.timeLeft + Math.floor((now - session.lastUpdated) / 1000);
+                                        let tempStepIdx = session.currentStepIdx || 0;
+                                        let remainingElapsed = totalElapsed;
+                                        
+                                        while (tempStepIdx < steps.length) {
+                                            const stepDuration = steps[tempStepIdx].duration * 60;
+                                            if (remainingElapsed >= stepDuration) {
+                                                remainingElapsed -= stepDuration;
+                                                // Log focus step completion
+                                                if (steps[tempStepIdx].type === 'FOCUS') {
+                                                    if (onCompleteRef.current) {
+                                                        onCompleteRef.current(stepDuration, 'POMO', steps[tempStepIdx].subAttribute);
+                                                    }
+                                                }
+                                                tempStepIdx++;
+                                            } else {
+                                                // Catch up and land on this step index
+                                                setCurrentStepIdx(tempStepIdx);
+                                                const stepRemaining = stepDuration - remainingElapsed;
+                                                setTimeLeft(stepRemaining);
+                                                setTotalDuration(stepDuration);
+                                                setIsActive(true);
+                                                setIsPaused(false);
+                                                return;
+                                            }
+                                        }
+                                        
+                                        // Completed all timeline steps in background
+                                        setCurrentStepIdx(steps.length - 1);
+                                        setTimeLeft(0);
+                                        setIsActive(false);
+                                        setIsPaused(false);
                                     }
                                 }
                             } else {
@@ -277,7 +395,8 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                 totalDuration: mode === 'STOPWATCH' ? 0 : totalDuration,
                 startTime,
                 targetTime,
-                lastUpdated: now
+                lastUpdated: now,
+                currentStepIdx
             };
             
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -293,7 +412,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         };
 
         syncState();
-    }, [isActive, isPaused, mode, totalDuration, project.id, projectIcon]);
+    }, [isActive, isPaused, mode, totalDuration, project.id, projectIcon, currentStepIdx]);
 
     // 4. Timer Logic
     useEffect(() => {
@@ -311,16 +430,42 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
                         if (mode === 'POMO') {
                             const next = prev - delta;
                             if (next <= 0) {
-                                console.log("✅ Timer Finished (0s reached)", { totalDuration, mode });
-                                setIsActive(false);
-                                setIsPaused(false);
-                                if (onCompleteRef.current) {
-                                    console.log("📞 Calling onComplete callback");
-                                    onCompleteRef.current(totalDuration, 'POMO');
-                                } else {
-                                    console.warn("⚠️ onComplete callback is missing!");
+                                console.log("✅ Timer Finished (0s reached)", { currentStepIdx, mode });
+                                
+                                const steps = resolveActiveRoutineSteps(project);
+                                const currentStep = steps[currentStepIdx];
+                                
+                                // Complete segment: If it's a FOCUS step, log it and earn XP
+                                if (currentStep && currentStep.type === 'FOCUS') {
+                                    if (onCompleteRef.current) {
+                                        onCompleteRef.current(currentStep.duration * 60, 'POMO', currentStep.subAttribute);
+                                    }
                                 }
-                                return 0;
+
+                                // Transition to next step if available
+                                if (steps.length > 0 && currentStepIdx < steps.length - 1) {
+                                    const nextIdx = currentStepIdx + 1;
+                                    setCurrentStepIdx(nextIdx);
+                                    const nextStep = steps[nextIdx];
+                                    const nextDuration = nextStep.duration * 60;
+                                    
+                                    setTimeLeft(nextDuration);
+                                    setTotalDuration(nextDuration);
+                                    setIsActive(true);
+                                    setIsPaused(false);
+                                    
+                                    // Return next duration to continue the countdown timer
+                                    return nextDuration;
+                                } else {
+                                    // Finished entire routine
+                                    setIsActive(false);
+                                    setIsPaused(false);
+                                    
+                                    if (steps.length === 0 && onCompleteRef.current) {
+                                        onCompleteRef.current(totalDuration, 'POMO');
+                                    }
+                                    return 0;
+                                }
                             }
                             return next;
                         } else {
@@ -335,7 +480,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
-    }, [isActive, isPaused, mode, totalDuration, project.id]);
+    }, [isActive, isPaused, mode, totalDuration, project.id, currentStepIdx, routineSteps]);
 
     // Sync ongoing notification on tick/state change (Web only)
     useEffect(() => {
@@ -458,6 +603,26 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         };
     }, [stopSession]);
 
+    // Listen to custom window routine updates to refresh steps dynamically
+    useEffect(() => {
+        const handleRoutineUpdate = () => {
+            console.log("🔄 Reloading routine steps dynamically...");
+            const steps = resolveActiveRoutineSteps(project);
+            setRoutineSteps(steps);
+            
+            // If session is NOT running, sync initial duration to the first step
+            if (!isActive && !isPaused) {
+                const initial = steps.length > 0 ? steps[0].duration * 60 : project.pomoDuration * 60;
+                setTimeLeft(initial);
+                setTotalDuration(initial);
+            }
+        };
+
+        window.addEventListener(`matrix_focus_routine_updated_${project.id}`, handleRoutineUpdate);
+        return () => {
+            window.removeEventListener(`matrix_focus_routine_updated_${project.id}`, handleRoutineUpdate);
+        };
+    }, [project.id, isActive, isPaused, resolveActiveRoutineSteps]);
 
     return {
         mode,
@@ -471,6 +636,11 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         toggleTimer,
         stopSession,
         resetSession,
+        routineSteps,
+        currentStepIdx,
+        setCurrentStepIdx,
+        setRoutineSteps,
+        resolveActiveRoutineSteps
     };
 };
 

@@ -465,42 +465,45 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     }
   }, [attribute, project.color]);
 
- const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false) => {
- const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
- if (safeDuration < 5) return;
- if (sessionRecordedRef.current) return;
- sessionRecordedRef.current = true;
+  const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStop: boolean = false, subTraitId?: string) => {
+  const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
+  if (safeDuration < 5) return;
+  if (!subTraitId && sessionRecordedRef.current) return;
+  if (!subTraitId) sessionRecordedRef.current = true;
+  
+  // Only play alarm and show external notification if it finished naturally
+  if (!isManualStop) {
+  playAlarm(); // Call the custom beautiful alarm sound
  
- // Only play alarm and show external notification if it finished naturally
- if (!isManualStop) {
- playAlarm(); // Call the custom beautiful alarm sound
-
- // Show a web notification if permitted, so they know if they are in another tab
- if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
- try {
- const notifTitle = i18n.language === 'es' ? '¡Enfoque Completado!' : 'Focus Complete!';
- const notifBody = i18n.language === 'es' 
-   ? `Terminaste tu sesión para ${project.title}. ¡Reclama tu victoria!`
-   : `You finished your session for ${project.title}. Claim victory!`;
- new Notification(notifTitle, {
- body: notifBody,
- icon: '/favicon.ico',
- tag: 'focus-complete'
- });
- } catch (e) {
- console.error("Failed to show web notification", e);
- }
- }
- }
-
- // If attribute has sub-traits, show picker first
- if (hasSubTraits) {
-   setPendingSessionData({ duration: safeDuration, mode });
- } else {
-   runFocusFlyingIcons();
-   onCompleteSession(safeDuration, mode, undefined);
- }
- }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons]);
+  // Show a web notification if permitted, so they know if they are in another tab
+  if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  try {
+  const notifTitle = i18n.language === 'es' ? '¡Enfoque Completado!' : 'Focus Complete!';
+  const notifBody = i18n.language === 'es' 
+    ? `Terminaste tu sesión para ${project.title}. ¡Reclama tu victoria!`
+    : `You finished your session for ${project.title}. Claim victory!`;
+  new Notification(notifTitle, {
+  body: notifBody,
+  icon: '/favicon.ico',
+  tag: 'focus-complete'
+  });
+  } catch (e) {
+  console.error("Failed to show web notification", e);
+  }
+  }
+  }
+ 
+  // If a specific sub-trait was pre-assigned to this routine step, use it directly!
+  if (subTraitId) {
+    runFocusFlyingIcons();
+    onCompleteSession(safeDuration, mode, subTraitId);
+  } else if (hasSubTraits) {
+    setPendingSessionData({ duration: safeDuration, mode });
+  } else {
+    runFocusFlyingIcons();
+    onCompleteSession(safeDuration, mode, undefined);
+  }
+  }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons]);
 
  // Helper to get emoji for attribute
  const getTraitEmoji = (id: string) => {
@@ -523,18 +526,37 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
  const themeColor = project.color || attribute?.color || '#3b82f6';
 
- const {
- mode,
- setMode,
- timeLeft,
- setTimeLeft,
- totalDuration,
- setTotalDuration,
- isActive,
- isPaused,
- toggleTimer,
- stopSession
- } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
+  const {
+    mode,
+    setMode,
+    timeLeft,
+    setTimeLeft,
+    totalDuration,
+    setTotalDuration,
+    isActive,
+    isPaused,
+    toggleTimer,
+    stopSession,
+    routineSteps,
+    currentStepIdx
+  } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
+
+  // Calculate completed & forecasted pomodoros for today
+  const { forecastTarget, actualCompleted } = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Filter active/incomplete quests for this project to get forecasted pomodoros
+    const projectQuests = quests.filter(q => q.projectId === project.id);
+    const forecast = projectQuests.reduce((acc, q) => acc + (q.pomodoroTarget || 0), 0) || 4;
+    
+    // Count completed sessions today
+    const completedSessions = project.sessions?.filter(s => s.date && s.date.includes(todayStr) && s.type === 'POMO').length || 0;
+    
+    return {
+      forecastTarget: forecast,
+      actualCompleted: completedSessions
+    };
+  }, [quests, project.id, project.sessions]);
 
  useEffect(() => {
  if (isEditingTime && inputRef.current) {
@@ -892,8 +914,25 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       ? (i18n.language === 'es' ? 'Ajustar Duración' : 'Set Duration') 
       : (i18n.language === 'es' ? 'Listo' : 'Ready'))}
  </div>
- </div>
- </div>
+ 
+  {/* Today's Forecasted / Completed Pomodoros tracker */}
+  <div className="mt-4 flex flex-col items-center gap-1 bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl backdrop-blur-md shadow-md animate-fade-in">
+      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+          🍅 {i18n.language === 'es' ? 'Pomodoros de Hoy' : 'Today\'s Pomodoros'}
+      </span>
+      <div className="flex items-baseline gap-0.5 text-white font-mono leading-none">
+          <span className="text-base font-black text-cyan-400">{actualCompleted}</span>
+          <span className="text-[10px] text-white/30">/</span>
+          <span className="text-xs font-bold text-white/60">{forecastTarget}</span>
+      </div>
+      {activeTask && (
+          <div className="text-[7px] font-bold text-rose-400 bg-rose-500/5 border border-rose-500/15 px-1.5 py-0.5 rounded-full uppercase tracking-wide mt-0.5">
+              Tarea: {activeTask.pomodoroCompleted || 0} / {activeTask.pomodoroTarget || 0}
+          </div>
+      )}
+  </div>
+  </div>
+  </div>
  </div>
 
  {/* Controls Bar */}

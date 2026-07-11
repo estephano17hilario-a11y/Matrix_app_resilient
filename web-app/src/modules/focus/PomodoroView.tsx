@@ -19,9 +19,419 @@ interface PomodoroViewProps {
  initialProjectId?: string | null;
 }
 
-const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
+interface RoutineSessionModalProps {
+  project: Project;
+  attributes: Attribute[];
+  onClose: () => void;
+  onUpdateProject: (p: Project) => void;
+}
 
-import { createPortal } from 'react-dom';
+const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attributes, onClose, onUpdateProject }) => {
+  const { t, i18n } = useTranslation();
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const currentWeekday = today.getDay(); // 0 Sunday, 1 Monday...
+
+  // State to track selected mode: 'DEFAULT' | 'TEMP' | 'WEEKDAY'
+  const [routineMode, setRoutineMode] = useState<'DEFAULT' | 'TEMP' | 'WEEKDAY'>(() => {
+    return (localStorage.getItem(`matrix_project_routine_mode_${project.id}`) as any) || 'DEFAULT';
+  });
+
+  // State to track selected weekday for editing (defaults to today's weekday)
+  const [selectedWeekday, setSelectedWeekday] = useState<number>(currentWeekday);
+
+  // Active steps loaded based on mode & weekday
+  const [steps, setSteps] = useState<any[]>([]);
+  const [activeDays, setActiveDays] = useState<number[]>([]);
+
+  // Step editor states
+  const [duration, setDuration] = useState<number>(25);
+  const [stepType, setStepType] = useState<'FOCUS' | 'BREAK'>('FOCUS');
+  const [subTrait, setSubTrait] = useState<string | undefined>(undefined);
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
+
+  // Load steps depending on selected mode and selected weekday
+  const loadStepsForMode = () => {
+    if (routineMode === 'TEMP') {
+      const tempSaved = localStorage.getItem(`matrix_temp_routine_${project.id}_${todayStr}`);
+      if (tempSaved) {
+        try {
+          setSteps(JSON.parse(tempSaved));
+        } catch (e) {
+          setSteps([]);
+        }
+      } else {
+        // Fallback to project routine
+        setSteps(project.focusRoutine || []);
+      }
+    } else if (routineMode === 'WEEKDAY') {
+      const weekdaySaved = localStorage.getItem(`matrix_project_routine_${project.id}_weekday_${selectedWeekday}`);
+      if (weekdaySaved) {
+        try {
+          setSteps(JSON.parse(weekdaySaved));
+        } catch (e) {
+          setSteps([]);
+        }
+      } else {
+        // Fallback to project routine
+        setSteps(project.focusRoutine || []);
+      }
+    } else {
+      // DEFAULT project mode
+      setSteps(project.focusRoutine || []);
+      setActiveDays(project.focusRoutineDays || []);
+    }
+  };
+
+  useEffect(() => {
+    loadStepsForMode();
+  }, [routineMode, selectedWeekday, project]);
+
+  const selectedAttr = attributes.find(a => a.id === project.attribute);
+  const subTraits = selectedAttr?.subTraits || [];
+
+  const DAYS = [
+    { label: 'D', index: 0 },
+    { label: 'L', index: 1 },
+    { label: 'M', index: 2 },
+    { label: 'M', index: 3 },
+    { label: 'J', index: 4 },
+    { label: 'V', index: 5 },
+    { label: 'S', index: 6 }
+  ];
+
+  const handleSaveAndApply = () => {
+    // 1. Save Mode
+    localStorage.setItem(`matrix_project_routine_mode_${project.id}`, routineMode);
+
+    // 2. Save Steps depending on Mode
+    if (routineMode === 'TEMP') {
+      localStorage.setItem(`matrix_temp_routine_${project.id}_${todayStr}`, JSON.stringify(steps));
+    } else if (routineMode === 'WEEKDAY') {
+      localStorage.setItem(`matrix_project_routine_${project.id}_weekday_${selectedWeekday}`, JSON.stringify(steps));
+    } else {
+      // DEFAULT: update project default routine in database
+      const updatedProject = {
+        ...project,
+        focusRoutine: steps,
+        focusRoutineDays: activeDays
+      };
+      onUpdateProject(updatedProject);
+    }
+
+    // Force active focus session hook to reload steps immediately
+    window.dispatchEvent(new CustomEvent(`matrix_focus_routine_updated_${project.id}`));
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 text-white">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="w-full max-w-md bg-[#0a0a0c] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚙️</span>
+            <div>
+              <h3 className="font-black text-sm uppercase tracking-wider">Configuración de Rutina</h3>
+              <p className="text-[10px] text-white/40 font-medium">Modifica los intervalos y descansos de tu sesión</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors animate-fade-in"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+          {/* Mode Selector */}
+          <div className="space-y-1.5">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Modo de Rutina:</span>
+            <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+              {[
+                { id: 'DEFAULT', label: 'Por Defecto' },
+                { id: 'TEMP', label: 'Solo Hoy (Temp)' },
+                { id: 'WEEKDAY', label: 'Por Día' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setRoutineMode(m.id as any)}
+                  className={cn(
+                    "py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",
+                    routineMode === m.id 
+                      ? "bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 shadow-md"
+                      : "bg-transparent border border-transparent text-white/40 hover:text-white/60"
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Weekday selector for WEEKDAY mode */}
+          {routineMode === 'WEEKDAY' && (
+            <div className="space-y-1.5 animate-fade-in">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Selecciona Día a Editar:</span>
+              <div className="flex justify-between bg-black/40 p-1.5 rounded-xl border border-white/5">
+                {DAYS.map(d => (
+                  <button
+                    key={d.index}
+                    onClick={() => setSelectedWeekday(d.index)}
+                    className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black transition-all border",
+                      selectedWeekday === d.index
+                        ? "bg-cyan-500 border-cyan-400 text-black shadow-[0_0_8px_rgba(6,182,212,0.4)]"
+                        : "bg-white/5 border-transparent text-slate-400 hover:bg-white/10"
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Timeline View */}
+          <div className="space-y-1.5">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Pasos de Enfoque (Timeline):</span>
+            <div className="flex flex-col items-center py-2 bg-black/40 rounded-2xl border border-white/5 relative overflow-hidden">
+              <div className="absolute top-8 bottom-8 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
+              <div className="relative z-10 bg-[#161622] border border-white/10 px-2 py-0.5 rounded-full text-[7px] font-black text-white uppercase tracking-wider mb-3">START</div>
+              
+              {steps.length === 0 ? (
+                <div className="text-[9px] text-white/30 italic py-3 relative z-10">Sin pasos. Agrega enfoques o intervalos abajo.</div>
+              ) : (
+                <div className="w-full flex flex-col gap-2 px-5 my-1 relative z-10">
+                  {steps.map(step => {
+                    const isFocus = step.type === 'FOCUS';
+                    const isSelected = editingStepId === step.id;
+                    const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
+                    return (
+                      <div
+                        key={step.id}
+                        onClick={() => {
+                          setEditingStepId(step.id);
+                          setDuration(step.duration);
+                          setStepType(step.type);
+                          setSubTrait(step.subAttribute);
+                        }}
+                        className={cn(
+                          "w-1/2 flex items-center relative cursor-pointer group",
+                          isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
+                        )}
+                      >
+                        <div 
+                          className={cn(
+                            "absolute w-2 h-2 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-sm transition-all",
+                            isSelected ? "bg-white border-cyan-400 scale-125" : isFocus ? "bg-cyan-500 border-cyan-400" : "bg-amber-500 border-amber-400"
+                          )}
+                          style={isFocus ? { left: '-4px' } : { right: '-4px' }}
+                        />
+                        <div
+                          className={cn(
+                            "p-1.5 rounded-xl border text-[8px] font-bold transition-all max-w-full truncate relative",
+                            isSelected ? "bg-white/10 border-white text-white" : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                          )}
+                        >
+                          <div>{step.duration} min - {isFocus ? 'Enfoque' : 'Descanso'}</div>
+                          {isFocus && subTraitName && <div className="text-[6px] text-cyan-400 mt-0.5">🎯 {subTraitName}</div>}
+                          {isSelected && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSteps(steps.filter(s => s.id !== step.id));
+                                setEditingStepId(null);
+                              }}
+                              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[7px]"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="relative z-10 bg-[#161622] border border-white/10 px-2 py-0.5 rounded-full text-[7px] font-black text-white uppercase tracking-wider mt-3">END</div>
+            </div>
+          </div>
+
+          {/* Steps Editor Form */}
+          <div className="bg-black/40 border border-white/5 rounded-2xl p-3 space-y-2.5">
+            <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">
+              {editingStepId ? 'Editar Paso Seleccionado' : 'Agregar Nuevo Paso'}
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5">
+              <button 
+                onClick={() => setStepType('FOCUS')}
+                className={cn(
+                  "flex-1 py-1 rounded-md text-[9px] font-bold border transition-all uppercase tracking-wider",
+                  stepType === 'FOCUS' ? "bg-cyan-500/20 border-cyan-500 text-cyan-300" : "bg-transparent border-white/10 text-slate-500"
+                )}
+              >
+                Enfoque
+              </button>
+              <button 
+                onClick={() => setStepType('BREAK')}
+                className={cn(
+                  "flex-1 py-1 rounded-md text-[9px] font-bold border transition-all uppercase tracking-wider",
+                  stepType === 'BREAK' ? "bg-amber-500/20 border-amber-500 text-amber-300" : "bg-transparent border-white/10 text-slate-500"
+                )}
+              >
+                Descanso
+              </button>
+            </div>
+
+            {stepType === 'FOCUS' && subTraits.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide">Sub-Rasgo Exclusivo:</span>
+                <div className="flex flex-wrap gap-1">
+                  <button 
+                    onClick={() => setSubTrait(undefined)}
+                    className={cn(
+                      "px-1 py-0.5 rounded text-[7px] font-bold border transition-all",
+                      subTrait === undefined ? "bg-white/15 border-white text-white" : "bg-transparent border-white/10 text-slate-500"
+                    )}
+                  >
+                    Ninguno
+                  </button>
+                  {subTraits.map(st => (
+                    <button 
+                      key={st.id}
+                      onClick={() => setSubTrait(st.id)}
+                      className={cn(
+                        "px-1.5 py-0.5 rounded text-[7px] font-bold border transition-all",
+                        subTrait === st.id ? "bg-cyan-500/20 border-cyan-400 text-cyan-300" : "bg-transparent border-white/10 text-slate-500"
+                      )}
+                    >
+                      {st.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Duration picker */}
+            <div className="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/5">
+              <button 
+                onClick={() => setDuration(prev => Math.max(1, prev - 1))}
+                className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
+              >
+                -
+              </button>
+              <div className="text-center leading-none">
+                <span className="text-xs font-black text-white font-mono">{duration}</span>
+                <span className="text-[8px] text-slate-500 ml-1 font-bold">MIN</span>
+              </div>
+              <button 
+                onClick={() => setDuration(prev => Math.min(180, prev + 1))}
+                className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
+              >
+                +
+              </button>
+            </div>
+
+            {editingStepId ? (
+              <div className="flex gap-1.5">
+                <button 
+                  onClick={() => {
+                    setSteps(steps.map(s => s.id === editingStepId ? { ...s, type: stepType, duration, subAttribute: stepType === 'FOCUS' ? subTrait : undefined } : s));
+                    setEditingStepId(null);
+                  }}
+                  className="flex-1 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md"
+                >
+                  Guardar
+                </button>
+                <button 
+                  onClick={() => setEditingStepId(null)}
+                  className="px-2 py-1 rounded-lg bg-white/10 text-white font-bold text-[9px] uppercase tracking-wider"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => {
+                  const newStep = {
+                    id: Math.random().toString(),
+                    type: stepType,
+                    duration,
+                    subAttribute: stepType === 'FOCUS' ? subTrait : undefined
+                  };
+                  setSteps([...steps, newStep]);
+                  setSubTrait(undefined);
+                }}
+                className="w-full py-1 rounded-lg bg-cyan-600 text-white font-bold text-[9px] uppercase tracking-wider hover:bg-cyan-500 transition-colors shadow-md"
+              >
+                Agregar Paso
+              </button>
+            )}
+          </div>
+
+          {/* Active Days configuration for DEFAULT mode only */}
+          {routineMode === 'DEFAULT' && (
+            <div className="space-y-1.5 border-t border-white/5 pt-2">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Días activos de la rutina:</span>
+              <div className="flex justify-between">
+                {DAYS.map(d => {
+                  const isSelected = activeDays.includes(d.index);
+                  return (
+                    <button
+                      key={d.index}
+                      onClick={() => {
+                        if (activeDays.includes(d.index)) {
+                          setActiveDays(activeDays.filter(x => x !== d.index));
+                        } else {
+                          setActiveDays([...activeDays, d.index].sort((a,b)=>a-b));
+                        }
+                      }}
+                      className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border transition-all",
+                        isSelected 
+                          ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.4)]"
+                          : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-white/5 shrink-0 flex gap-2">
+          <button
+            onClick={handleSaveAndApply}
+            className="flex-1 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all"
+          >
+            Aplicar Rutina
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs uppercase tracking-wider"
+          >
+            Cerrar
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
 
 export const PomodoroView: React.FC<PomodoroViewProps> = ({
  projects,
@@ -36,8 +446,8 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  initialProjectId
 }) => {
  const { t } = useTranslation();
- // FORCE INITIAL STATE to use prop if available
  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => initialProjectId || null);
+ const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
 
  // EFFECT: Sync with prop if it changes later (optional but safe)
  React.useEffect(() => {
@@ -180,9 +590,18 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  </AnimatePresence>
  </>
  )}
- </div>
- </div>
- );
+  {/* "Rutina" trigger link */}
+  {activeProject.id !== QUICK_FOCUS_PROJECT_ID && (
+    <button 
+      onClick={() => setIsRoutineModalOpen(true)}
+      className="mt-1 text-[9px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest bg-cyan-500/10 hover:bg-cyan-500/15 border border-cyan-500/20 px-2.5 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-sm"
+    >
+      <span>🔄 Rutina</span>
+    </button>
+  )}
+  </div>
+  </div>
+  );
 
  // Use Portal to ensure it is always on top and centered relative to viewport
  // avoiding scroll context issues from parent containers
@@ -214,6 +633,17 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
   customHeaderTitle={customHeader}
   />
  </div>
+
+ <AnimatePresence>
+   {isRoutineModalOpen && (
+     <RoutineSessionModal 
+       project={activeProject}
+       attributes={attributes}
+       onClose={() => setIsRoutineModalOpen(false)}
+       onUpdateProject={onUpdateProject}
+     />
+   )}
+ </AnimatePresence>
  </div>,
  document.body
  );
