@@ -3334,12 +3334,14 @@ export const useDashboardLogic = () => {
         });
     }, [user?.id]);
 
-    const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string) => {
-        console.log("🏁 [SESSION COMPLETE] Triggered", { projectId, durationSeconds, type });
+    const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string, isCompletedNaturally?: boolean) => {
+        console.log("🏁 [SESSION COMPLETE] Triggered", { projectId, durationSeconds, type, isCompletedNaturally });
 
-        // Increment task pomodoro if active
+        const finishedNaturally = isCompletedNaturally !== false;
+
+        // Increment task pomodoro if active and completed naturally
         const activeTaskId = localStorage.getItem('matrix_active_focus_task_id');
-        if (activeTaskId) {
+        if (activeTaskId && type === 'POMO' && finishedNaturally) {
             setQuests(prevQuests => {
                 const updatedQuests = prevQuests.map(q => {
                     if (q.id === activeTaskId) {

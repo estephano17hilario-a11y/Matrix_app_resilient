@@ -15,7 +15,7 @@ interface ActiveSessionViewProps {
  attribute?: Attribute;
  quests: Quest[];
  onExit: () => void;
- onCompleteSession: (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
+ onCompleteSession: (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string, isCompletedNaturally?: boolean) => void;
  onUpdateProject: (p: Project) => void;
  onDeleteSession?: (projectId: string, sessionId: string) => void;
  onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void;
@@ -152,10 +152,11 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 }) => {
  const { t, i18n } = useTranslation();
  const [showHistory, setShowHistory] = useState(false);
+ const [showRoadmap, setShowRoadmap] = useState(true);
  const [isEditingTime, setIsEditingTime] = useState(false);
  const [editTimeValue, setEditTimeValue] = useState('25');
  const [showFocusProtectionModal, setShowFocusProtectionModal] = useState(false);
- const [pendingSessionData, setPendingSessionData] = useState<{ duration: number; mode: 'POMO' | 'STOPWATCH' } | null>(null);
+ const [pendingSessionData, setPendingSessionData] = useState<{ duration: number; mode: 'POMO' | 'STOPWATCH'; isCompletedNaturally?: boolean } | null>(null);
 
   const [showAmbientPanel, setShowAmbientPanel] = useState(false);
   const [currentAmbientTrack, setCurrentAmbientTrack] = useState<string>('none');
@@ -505,12 +506,12 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   // If a specific sub-trait was pre-assigned to this routine step, use it directly!
   if (finalSubTraitId) {
     runFocusFlyingIcons();
-    onCompleteSession(safeDuration, mode, finalSubTraitId);
+    onCompleteSession(safeDuration, mode, finalSubTraitId, isCompletedNaturally);
   } else if (hasSubTraits) {
-    setPendingSessionData({ duration: safeDuration, mode });
+    setPendingSessionData({ duration: safeDuration, mode, isCompletedNaturally });
   } else {
     runFocusFlyingIcons();
-    onCompleteSession(safeDuration, mode, undefined);
+    onCompleteSession(safeDuration, mode, undefined, isCompletedNaturally);
   }
   }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons]);
 
@@ -653,7 +654,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       const elapsed = getElapsedSeconds(mode);
       if (elapsed >= 5) {
         runFocusFlyingIcons();
-        onCompleteSession(elapsed, mode, undefined);
+        onCompleteSession(elapsed, mode, undefined, false);
       }
       stopSession();
     }
@@ -906,7 +907,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  ) : (
  <div 
  onClick={() => {
- if (!isActive) {
+ if (!isActive && mode === 'POMO') {
  setEditTimeValue(Math.floor(timeLeft / 60).toString());
  setIsEditingTime(true);
  }
@@ -945,6 +946,50 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
           </div>
       )}
   </div>
+  
+  {/* ROADMAP DRAWER (Request 3) */}
+  {routineSteps && routineSteps.length > 0 && (
+    <div className="mt-3 w-full max-w-[180px] bg-black/60 border border-white/5 rounded-2xl p-2 backdrop-blur-md shadow-lg flex flex-col gap-1 relative z-30 transition-all select-none pointer-events-auto">
+      <button
+        type="button"
+        onClick={() => setShowRoadmap(!showRoadmap)}
+        className="w-full flex items-center justify-between text-[7px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 transition-colors"
+      >
+        <span>🗺️ {i18n.language === 'es' ? 'Roadmap de Rutina' : 'Routine Roadmap'}</span>
+        <span className="text-[6px] text-white/40">{showRoadmap ? '▼ Ocultar' : '▲ Mostrar'}</span>
+      </button>
+      
+      {showRoadmap && (
+        <div className="flex flex-col gap-1 pt-1 border-t border-white/5 max-h-[85px] overflow-y-auto pr-0.5 scrollbar-thin">
+          {routineSteps.map((step, idx) => {
+            const isCurrent = idx === currentStepIdx;
+            const isFocus = step.type === 'FOCUS';
+            return (
+              <div 
+                key={step.id || idx}
+                className={cn(
+                  "flex items-center gap-1 p-1 rounded-lg border text-[7px] transition-all",
+                  isCurrent 
+                    ? "bg-cyan-500/10 border-cyan-400 text-cyan-300 font-bold scale-[1.02] shadow-[0_0_8px_rgba(6,182,212,0.2)]" 
+                    : "bg-white/[0.02] border-white/5 text-white/50"
+                )}
+              >
+                <span className="text-[7px]">{isFocus ? '🎯' : '☕'}</span>
+                <div className="flex-1 flex justify-between items-center gap-1">
+                  <span className="truncate">{isFocus ? 'Enfoque' : 'Descanso'} ({step.duration}m)</span>
+                  {isCurrent && (
+                    <span className="text-[5px] font-black uppercase bg-cyan-500 text-black px-0.5 rounded tracking-wide shrink-0 animate-pulse">
+                      Activo
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  )}
   </div>
   </div>
  </div>
@@ -1076,7 +1121,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
        themeColor={themeColor}
        onConfirm={(subTraitId) => {
          runFocusFlyingIcons();
-         onCompleteSession(pendingSessionData.duration, pendingSessionData.mode, subTraitId);
+         onCompleteSession(pendingSessionData.duration, pendingSessionData.mode, subTraitId, pendingSessionData.isCompletedNaturally);
          setPendingSessionData(null);
        }}
      />

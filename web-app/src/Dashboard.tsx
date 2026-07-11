@@ -396,7 +396,7 @@ export default function Dashboard() {
  
  const handleFocusModeChange = useCallback((attr: string | null) => logicRef.current.handleFocusModeChange(attr), []);
  const addNotification = useCallback((n: any) => logicRef.current.addNotification(n), []);
- const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string) => logicRef.current.handleCompleteSession(projectId, durationSeconds, type, subTraitId), []);
+ const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string, isCompletedNaturally?: boolean) => logicRef.current.handleCompleteSession(projectId, durationSeconds, type, subTraitId, isCompletedNaturally), []);
  const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string, subTraitId?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate, subTraitId), []);
  const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
  const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);

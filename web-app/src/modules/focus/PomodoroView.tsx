@@ -45,7 +45,10 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
   const [activeDays, setActiveDays] = useState<number[]>([]);
 
   // Step editor states
-  const [duration, setDuration] = useState<number>(25);
+  const [focusDuration, setFocusDuration] = useState<number>(25);
+  const [breakDuration, setBreakDuration] = useState<number>(5);
+  const [isEditingDurationManual, setIsEditingDurationManual] = useState(false);
+  const [manualDurationInput, setManualDurationInput] = useState<string>('25');
   const [stepType, setStepType] = useState<'FOCUS' | 'BREAK'>('FOCUS');
   const [subTrait, setSubTrait] = useState<string | undefined>(undefined);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
@@ -210,53 +213,84 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
                 <div className="text-[9px] text-white/30 italic py-3 relative z-10">Sin pasos. Agrega enfoques o intervalos abajo.</div>
               ) : (
                 <div className="w-full flex flex-col gap-2 px-5 my-1 relative z-10">
-                  {steps.map(step => {
+                  {steps.map((step, idx) => {
                     const isFocus = step.type === 'FOCUS';
                     const isSelected = editingStepId === step.id;
                     const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
                     return (
-                      <div
-                        key={step.id}
-                        onClick={() => {
-                          setEditingStepId(step.id);
-                          setDuration(step.duration);
-                          setStepType(step.type);
-                          setSubTrait(step.subAttribute);
-                        }}
-                        className={cn(
-                          "w-1/2 flex items-center relative cursor-pointer group",
-                          isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
-                        )}
-                      >
-                        <div 
-                          className={cn(
-                            "absolute w-2 h-2 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-sm transition-all",
-                            isSelected ? "bg-white border-cyan-400 scale-125" : isFocus ? "bg-cyan-500 border-cyan-400" : "bg-amber-500 border-amber-400"
-                          )}
-                          style={isFocus ? { left: '-4px' } : { right: '-4px' }}
-                        />
+                      <React.Fragment key={step.id}>
                         <div
+                          onClick={() => {
+                            setEditingStepId(step.id);
+                            if (step.type === 'FOCUS') {
+                              setFocusDuration(step.duration);
+                            } else {
+                              setBreakDuration(step.duration);
+                            }
+                            setStepType(step.type);
+                            setSubTrait(step.subAttribute);
+                          }}
                           className={cn(
-                            "p-1.5 rounded-xl border text-[8px] font-bold transition-all max-w-full truncate relative",
-                            isSelected ? "bg-white/10 border-white text-white" : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                            "w-1/2 flex items-center relative cursor-pointer group",
+                            isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
                           )}
                         >
-                          <div>{step.duration} min - {isFocus ? 'Enfoque' : 'Descanso'}</div>
-                          {isFocus && subTraitName && <div className="text-[6px] text-cyan-400 mt-0.5">🎯 {subTraitName}</div>}
-                          {isSelected && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSteps(steps.filter(s => s.id !== step.id));
-                                setEditingStepId(null);
-                              }}
-                              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[7px]"
-                            >
-                              ✕
-                            </button>
-                          )}
+                          <div 
+                            className={cn(
+                              "absolute w-2 h-2 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-sm transition-all",
+                              isSelected ? "bg-white border-cyan-400 scale-125" : isFocus ? "bg-cyan-500 border-cyan-400" : "bg-amber-500 border-amber-400"
+                            )}
+                            style={isFocus ? { left: '-4px' } : { right: '-4px' }}
+                          />
+                          <div
+                            className={cn(
+                              "p-1.5 rounded-xl border text-[8px] font-bold transition-all max-w-full truncate relative",
+                              isSelected ? "bg-white/10 border-white text-white" : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                            )}
+                          >
+                            <div>{step.duration} min - {isFocus ? 'Enfoque' : 'Descanso'}</div>
+                            {isFocus && subTraitName && <div className="text-[6px] text-cyan-400 mt-0.5">🎯 {subTraitName}</div>}
+                            {isSelected && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSteps(steps.filter(s => s.id !== step.id));
+                                  setEditingStepId(null);
+                                }}
+                                className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[7px]"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
+
+                        {/* Plus button between elements (Request 1) */}
+                        {idx < steps.length - 1 && (
+                          <div className="w-full flex justify-center py-1 relative z-25">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  const nextType = step.type === 'FOCUS' ? 'BREAK' : 'FOCUS';
+                                  const nextDuration = nextType === 'FOCUS' ? focusDuration : breakDuration;
+                                  const insertedStep = {
+                                    id: Math.random().toString(),
+                                    type: nextType,
+                                    duration: nextDuration
+                                  };
+                                  const newSteps = [...steps];
+                                  newSteps.splice(idx + 1, 0, insertedStep);
+                                  setSteps(newSteps);
+                              }}
+                              className="w-5 h-5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-bold text-xs shadow-md border border-cyan-400/30 transition-transform active:scale-90"
+                              title="Insertar paso de rutina"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -324,17 +358,73 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
             {/* Duration picker */}
             <div className="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/5">
               <button 
-                onClick={() => setDuration(prev => Math.max(1, prev - 1))}
+                type="button"
+                onClick={() => {
+                  if (stepType === 'FOCUS') {
+                    setFocusDuration(prev => Math.max(1, prev - 1));
+                  } else {
+                    setBreakDuration(prev => Math.max(1, prev - 1));
+                  }
+                }}
                 className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
               >
                 -
               </button>
-              <div className="text-center leading-none">
-                <span className="text-xs font-black text-white font-mono">{duration}</span>
-                <span className="text-[8px] text-slate-500 ml-1 font-bold">MIN</span>
-              </div>
+              {isEditingDurationManual ? (
+                <input
+                  type="number"
+                  value={manualDurationInput}
+                  onChange={(e) => setManualDurationInput(e.target.value)}
+                  onBlur={() => {
+                    const val = parseInt(manualDurationInput);
+                    if (!isNaN(val) && val > 0) {
+                      if (stepType === 'FOCUS') {
+                        setFocusDuration(val);
+                      } else {
+                        setBreakDuration(val);
+                      }
+                    }
+                    setIsEditingDurationManual(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt(manualDurationInput);
+                      if (!isNaN(val) && val > 0) {
+                        if (stepType === 'FOCUS') {
+                          setFocusDuration(val);
+                        } else {
+                          setBreakDuration(val);
+                        }
+                      }
+                      setIsEditingDurationManual(false);
+                    }
+                  }}
+                  className="w-16 bg-white/10 border border-white/20 rounded text-center text-xs font-bold text-white outline-none"
+                  autoFocus
+                />
+              ) : (
+                <div 
+                  onClick={() => {
+                    setManualDurationInput(stepType === 'FOCUS' ? focusDuration.toString() : breakDuration.toString());
+                    setIsEditingDurationManual(true);
+                  }}
+                  className="text-center leading-none cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <span className="text-xs font-black text-white font-mono">
+                    {stepType === 'FOCUS' ? focusDuration : breakDuration}
+                  </span>
+                  <span className="text-[8px] text-slate-500 ml-1 font-bold">MIN</span>
+                </div>
+              )}
               <button 
-                onClick={() => setDuration(prev => Math.min(180, prev + 1))}
+                type="button"
+                onClick={() => {
+                  if (stepType === 'FOCUS') {
+                    setFocusDuration(prev => Math.min(180, prev + 1));
+                  } else {
+                    setBreakDuration(prev => Math.min(180, prev + 1));
+                  }
+                }}
                 className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center font-bold text-xs"
               >
                 +
@@ -344,8 +434,10 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
             {editingStepId ? (
               <div className="flex gap-1.5">
                 <button 
+                  type="button"
                   onClick={() => {
-                    setSteps(steps.map(s => s.id === editingStepId ? { ...s, type: stepType, duration, subAttribute: stepType === 'FOCUS' ? subTrait : undefined } : s));
+                    const currentDur = stepType === 'FOCUS' ? focusDuration : breakDuration;
+                    setSteps(steps.map(s => s.id === editingStepId ? { ...s, type: stepType, duration: currentDur, subAttribute: stepType === 'FOCUS' ? subTrait : undefined } : s));
                     setEditingStepId(null);
                   }}
                   className="flex-1 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider shadow-md"
@@ -353,6 +445,7 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
                   Guardar
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setEditingStepId(null)}
                   className="px-2 py-1 rounded-lg bg-white/10 text-white font-bold text-[9px] uppercase tracking-wider"
                 >
@@ -361,11 +454,13 @@ const RoutineSessionModal: React.FC<RoutineSessionModalProps> = ({ project, attr
               </div>
             ) : (
               <button 
+                type="button"
                 onClick={() => {
+                  const currentDur = stepType === 'FOCUS' ? focusDuration : breakDuration;
                   const newStep = {
                     id: Math.random().toString(),
                     type: stepType,
-                    duration,
+                    duration: currentDur,
                     subAttribute: stepType === 'FOCUS' ? subTrait : undefined
                   };
                   setSteps([...steps, newStep]);
@@ -514,10 +609,10 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
 
  const activeAttribute = attributes.find(a => a.id === activeProject.attribute);
 
- const handleSessionComplete = (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => {
- const targetId = selectedProject ? selectedProject.id : null;
- onCompleteSession(targetId, duration, type, subTraitId);
- };
+  const handleSessionComplete = (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string, isCompletedNaturally?: boolean) => {
+  const targetId = selectedProject ? selectedProject.id : null;
+  onCompleteSession(targetId, duration, type, subTraitId, isCompletedNaturally);
+  };
 
  // Custom Header Logic (LOCKED to Initial Project if provided)
  const customHeader = (

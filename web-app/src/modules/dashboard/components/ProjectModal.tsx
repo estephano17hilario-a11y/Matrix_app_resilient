@@ -53,7 +53,10 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     const [focusRoutineDays, setFocusRoutineDays] = useState<number[]>([]);
     const [showAdvancedPomo, setShowAdvancedPomo] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-    const [timelineDuration, setTimelineDuration] = useState<number>(25);
+    const [timelineFocusDuration, setTimelineFocusDuration] = useState<number>(25);
+    const [timelineBreakDuration, setTimelineBreakDuration] = useState<number>(5);
+    const [isEditingTimelineDurationManual, setIsEditingTimelineDurationManual] = useState(false);
+    const [manualTimelineDurationInput, setManualTimelineDurationInput] = useState<string>('25');
     const [timelineStepType, setTimelineStepType] = useState<'FOCUS' | 'BREAK'>('FOCUS');
     const [timelineSubTrait, setTimelineSubTrait] = useState<string | undefined>(undefined);
     
@@ -843,70 +846,102 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                 <div className="text-[10px] text-white/30 italic py-4 relative z-10">Sin pasos. Agrega enfoques o intervalos abajo.</div>
                                                             ) : (
                                                                 <div className="w-full flex flex-col gap-3 px-6 my-2 relative z-10">
-                                                                    {focusRoutine.map((step) => {
+                                                                    {focusRoutine.map((step, idx) => {
                                                                         const isFocus = step.type === 'FOCUS';
                                                                         const isSelected = selectedStepId === step.id;
                                                                         const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
 
                                                                         return (
-                                                                            <div 
-                                                                                key={step.id} 
-                                                                                onClick={() => {
-                                                                                    setSelectedStepId(step.id);
-                                                                                    setTimelineDuration(step.duration);
-                                                                                    setTimelineStepType(step.type);
-                                                                                    setTimelineSubTrait(step.subAttribute);
-                                                                                }}
-                                                                                className={cn(
-                                                                                    "w-1/2 flex items-center relative cursor-pointer group",
-                                                                                    isFocus ? "self-end justify-start pl-4" : "self-start justify-end pr-4 text-right"
-                                                                                )}
-                                                                            >
-                                                                                {/* Indicator Dot on Timeline */}
+                                                                            <React.Fragment key={step.id}>
                                                                                 <div 
+                                                                                    onClick={() => {
+                                                                                        setSelectedStepId(step.id);
+                                                                                        if (step.type === 'FOCUS') {
+                                                                                            setTimelineFocusDuration(step.duration);
+                                                                                        } else {
+                                                                                            setTimelineBreakDuration(step.duration);
+                                                                                        }
+                                                                                        setTimelineStepType(step.type);
+                                                                                        setTimelineSubTrait(step.subAttribute);
+                                                                                    }}
                                                                                     className={cn(
-                                                                                        "absolute w-2.5 h-2.5 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-md transition-all",
-                                                                                        isFocus ? "-left-1.25" : "-right-1.25",
-                                                                                        isSelected 
-                                                                                            ? "bg-white border-cyan-400 scale-125" 
-                                                                                            : isFocus 
-                                                                                                ? "bg-cyan-500 border-cyan-400" 
-                                                                                                : "bg-amber-500 border-amber-400"
-                                                                                    )}
-                                                                                    style={isFocus ? { left: '-5px' } : { right: '-5px' }}
-                                                                                />
-
-                                                                                {/* Card body */}
-                                                                                <div 
-                                                                                    className={cn(
-                                                                                        "p-2 rounded-xl border text-[9px] font-bold transition-all shadow-md max-w-full truncate relative",
-                                                                                        isSelected 
-                                                                                            ? "bg-white/10 border-white text-white scale-102" 
-                                                                                            : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                                                                                        "w-1/2 flex items-center relative cursor-pointer group",
+                                                                                        isFocus ? "self-end justify-start pl-4" : "self-start justify-end pr-4 text-right"
                                                                                     )}
                                                                                 >
-                                                                                    <div>
-                                                                                        {step.duration} min en {isFocus ? 'Enfoque' : 'Intervalo'}
-                                                                                    </div>
-                                                                                    {isFocus && subTraitName && (
-                                                                                        <div className="text-[7px] text-cyan-400 mt-0.5 uppercase tracking-wide truncate">
-                                                                                            🎯 {subTraitName}
+                                                                                    {/* Indicator Dot on Timeline */}
+                                                                                    <div 
+                                                                                        className={cn(
+                                                                                            "absolute w-2.5 h-2.5 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-md transition-all",
+                                                                                            isFocus ? "-left-1.25" : "-right-1.25",
+                                                                                            isSelected 
+                                                                                                ? "bg-white border-cyan-400 scale-125" 
+                                                                                                : isFocus 
+                                                                                                    ? "bg-cyan-500 border-cyan-400" 
+                                                                                                    : "bg-amber-500 border-amber-400"
+                                                                                        )}
+                                                                                        style={isFocus ? { left: '-5px' } : { right: '-5px' }}
+                                                                                    />
+
+                                                                                    {/* Card body */}
+                                                                                    <div 
+                                                                                        className={cn(
+                                                                                            "p-2 rounded-xl border text-[9px] font-bold transition-all shadow-md max-w-full truncate relative",
+                                                                                            isSelected 
+                                                                                                ? "bg-white/10 border-white text-white scale-102" 
+                                                                                                : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                                                                                        )}
+                                                                                    >
+                                                                                        <div>
+                                                                                            {step.duration} min en {isFocus ? 'Enfoque' : 'Intervalo'}
                                                                                         </div>
-                                                                                    )}
-                                                                                    {isSelected && (
-                                                                                        <button 
+                                                                                        {isFocus && subTraitName && (
+                                                                                            <div className="text-[7px] text-cyan-400 mt-0.5 uppercase tracking-wide truncate">
+                                                                                                🎯 {subTraitName}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {isSelected && (
+                                                                                            <button 
+                                                                                                type="button"
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setFocusRoutine(focusRoutine.filter(s => s.id !== step.id));
+                                                                                                    setSelectedStepId(null);
+                                                                                                }}
+                                                                                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[8px] hover:bg-red-500 transition-colors shadow-md"
+                                                                                            >
+                                                                                                ✕
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* Plus button between elements (Request 1) */}
+                                                                                {idx < focusRoutine.length - 1 && (
+                                                                                    <div className="w-full flex justify-center py-1 relative z-25">
+                                                                                        <button
+                                                                                            type="button"
                                                                                             onClick={(e) => {
                                                                                                 e.stopPropagation();
-                                                                                                setFocusRoutine(focusRoutine.filter(s => s.id !== step.id));
-                                                                                                setSelectedStepId(null);
+                                                                                                const nextType = step.type === 'FOCUS' ? 'BREAK' : 'FOCUS';
+                                                                                                const nextDuration = nextType === 'FOCUS' ? timelineFocusDuration : timelineBreakDuration;
+                                                                                                const insertedStep = {
+                                                                                                    id: Math.random().toString(),
+                                                                                                    type: nextType,
+                                                                                                    duration: nextDuration
+                                                                                                };
+                                                                                                const newRoutine = [...focusRoutine];
+                                                                                                newRoutine.splice(idx + 1, 0, insertedStep);
+                                                                                                setFocusRoutine(newRoutine);
                                                                                             }}
-                                                                                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[8px] hover:bg-red-500 transition-colors shadow-md"
+                                                                                            className="w-5 h-5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center font-bold text-xs shadow-md border border-cyan-400/30 transition-transform active:scale-90"
+                                                                                            title="Insertar paso de rutina"
                                                                                         >
-                                                                                            ✕
+                                                                                            +
                                                                                         </button>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </React.Fragment>
                                                                         );
                                                                     })}
                                                                 </div>
@@ -986,17 +1021,73 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                             {/* Minus/Plus picker */}
                                                             <div className="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/5">
                                                                 <button 
-                                                                    onClick={() => setTimelineDuration(prev => Math.max(1, prev - 1))}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (timelineStepType === 'FOCUS') {
+                                                                            setTimelineFocusDuration(prev => Math.max(1, prev - 1));
+                                                                        } else {
+                                                                            setTimelineBreakDuration(prev => Math.max(1, prev - 1));
+                                                                        }
+                                                                    }}
                                                                     className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold text-xs"
                                                                 >
                                                                     -
                                                                 </button>
-                                                                <div className="text-center">
-                                                                    <span className="text-xs font-black text-white font-mono">{timelineDuration}</span>
-                                                                    <span className="text-[8px] text-slate-500 ml-1 font-bold">MINUTOS</span>
-                                                                </div>
+                                                                {isEditingTimelineDurationManual ? (
+                                                                    <input
+                                                                        type="number"
+                                                                        value={manualTimelineDurationInput}
+                                                                        onChange={(e) => setManualTimelineDurationInput(e.target.value)}
+                                                                        onBlur={() => {
+                                                                            const val = parseInt(manualTimelineDurationInput);
+                                                                            if (!isNaN(val) && val > 0) {
+                                                                                if (timelineStepType === 'FOCUS') {
+                                                                                    setTimelineFocusDuration(val);
+                                                                                } else {
+                                                                                    setTimelineBreakDuration(val);
+                                                                                }
+                                                                            }
+                                                                            setIsEditingTimelineDurationManual(false);
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                const val = parseInt(manualTimelineDurationInput);
+                                                                                if (!isNaN(val) && val > 0) {
+                                                                                    if (timelineStepType === 'FOCUS') {
+                                                                                        setTimelineFocusDuration(val);
+                                                                                    } else {
+                                                                                        setTimelineBreakDuration(val);
+                                                                                    }
+                                                                                }
+                                                                                setIsEditingTimelineDurationManual(false);
+                                                                            }
+                                                                        }}
+                                                                        className="w-16 bg-white/10 border border-white/20 rounded text-center text-xs font-bold text-white outline-none"
+                                                                        autoFocus
+                                                                    />
+                                                                ) : (
+                                                                    <div 
+                                                                        onClick={() => {
+                                                                            setManualTimelineDurationInput(timelineStepType === 'FOCUS' ? timelineFocusDuration.toString() : timelineBreakDuration.toString());
+                                                                            setIsEditingTimelineDurationManual(true);
+                                                                        }}
+                                                                        className="text-center cursor-pointer hover:scale-105 transition-transform"
+                                                                    >
+                                                                        <span className="text-xs font-black text-white font-mono">
+                                                                            {timelineStepType === 'FOCUS' ? timelineFocusDuration : timelineBreakDuration}
+                                                                        </span>
+                                                                        <span className="text-[8px] text-slate-500 ml-1 font-bold">MINUTOS</span>
+                                                                    </div>
+                                                                )}
                                                                 <button 
-                                                                    onClick={() => setTimelineDuration(prev => Math.min(180, prev + 1))}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (timelineStepType === 'FOCUS') {
+                                                                            setTimelineFocusDuration(prev => Math.min(180, prev + 1));
+                                                                        } else {
+                                                                            setTimelineBreakDuration(prev => Math.min(180, prev + 1));
+                                                                        }
+                                                                    }}
                                                                     className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold text-xs"
                                                                 >
                                                                     +
@@ -1006,10 +1097,12 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                             {selectedStepId ? (
                                                                 <div className="flex gap-1.5">
                                                                     <button 
+                                                                        type="button"
                                                                         onClick={() => {
+                                                                            const currentDur = timelineStepType === 'FOCUS' ? timelineFocusDuration : timelineBreakDuration;
                                                                             setFocusRoutine(focusRoutine.map(step => 
                                                                                 step.id === selectedStepId 
-                                                                                    ? { ...step, type: timelineStepType, duration: timelineDuration, subAttribute: timelineStepType === 'FOCUS' ? timelineSubTrait : undefined } 
+                                                                                    ? { ...step, type: timelineStepType, duration: currentDur, subAttribute: timelineStepType === 'FOCUS' ? timelineSubTrait : undefined } 
                                                                                     : step
                                                                             ));
                                                                             setSelectedStepId(null);
@@ -1019,6 +1112,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                         Guardar Paso
                                                                     </button>
                                                                     <button 
+                                                                        type="button"
                                                                         onClick={() => {
                                                                             setSelectedStepId(null);
                                                                         }}
@@ -1029,11 +1123,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                                                 </div>
                                                             ) : (
                                                                 <button 
+                                                                    type="button"
                                                                     onClick={() => {
+                                                                        const currentDur = timelineStepType === 'FOCUS' ? timelineFocusDuration : timelineBreakDuration;
                                                                         const newStep = {
                                                                             id: Math.random().toString(),
                                                                             type: timelineStepType,
-                                                                            duration: timelineDuration,
+                                                                            duration: currentDur,
                                                                             subAttribute: timelineStepType === 'FOCUS' ? timelineSubTrait : undefined
                                                                         };
                                                                         setFocusRoutine([...focusRoutine, newStep]);
