@@ -555,22 +555,6 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     currentStepIdx
   } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
-  // Calculate completed & forecasted pomodoros for today
-  const { forecastTarget, actualCompleted } = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    // Filter active/incomplete quests for this project to get forecasted pomodoros
-    const projectQuests = quests.filter(q => q.projectId === project.id);
-    const forecast = projectQuests.reduce((acc, q) => acc + (q.pomodoroTarget || 0), 0) || 4;
-    
-    // Count completed sessions today
-    const completedSessions = project.sessions?.filter(s => s.date && s.date.includes(todayStr) && s.type === 'POMO').length || 0;
-    
-    return {
-      forecastTarget: forecast,
-      actualCompleted: completedSessions
-    };
-  }, [quests, project.id, project.sessions]);
 
  useEffect(() => {
  if (isEditingTime && inputRef.current) {
@@ -890,16 +874,16 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   {/* Time Display */}
   {(() => {
     const totalSteps = routineSteps ? routineSteps.length : 0;
-    const dynamicGap = totalSteps <= 2 ? 'gap-8 py-2' : totalSteps === 3 ? 'gap-5 py-1' : 'gap-2.5';
+    const dynamicGap = totalSteps <= 2 ? 'gap-12 py-3' : totalSteps === 3 ? 'gap-7 py-2' : 'gap-2.5';
     const dynamicPaddingClass = totalSteps <= 2 ? 'p-1.5 text-[8.5px] rounded-xl' : 'p-1 text-[7px] rounded-lg';
-    const dynamicCardHeight = totalSteps <= 2 ? 'max-h-[175px]' : 'max-h-[160px]';
+    const dynamicCardHeight = totalSteps <= 2 ? 'max-h-[195px]' : 'max-h-[175px]';
 
     return (
       <div className="relative z-10 flex flex-col items-center pointer-events-auto w-full max-w-[260px] h-[240px] justify-center">
         {activeCircleView === 'ROADMAP' && routineSteps && routineSteps.length > 0 ? (
           <div className="w-full flex flex-col items-center select-none animate-fade-in relative z-30">
-            {/* Header with Editar button */}
-            <div className="w-full flex flex-col items-center justify-center gap-1 pb-1.5 border-b border-white/10 mb-3 shrink-0 relative">
+            {/* Header with Editar button on the side */}
+            <div className="w-full flex items-center justify-center pb-1 border-b border-white/10 mb-1.5 shrink-0 relative">
               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 justify-center text-center">
                 🗺️ {i18n.language === 'es' ? 'Ruta de Enfoque' : 'Focus Roadmap'}
               </span>
@@ -910,7 +894,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                     e.stopPropagation();
                     onEditRoutine();
                   }}
-                  className="text-[7px] font-black text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider transition-all active:scale-95 flex items-center gap-0.5"
+                  className="absolute right-1 text-[6.5px] font-bold text-cyan-400/80 bg-cyan-500/5 hover:bg-cyan-500/15 border border-cyan-500/10 hover:border-cyan-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider transition-all active:scale-95 flex items-center gap-0.5 shadow-sm"
                 >
                   <span>✍️</span>
                   <span>{i18n.language === 'es' ? 'Editar' : 'Edit'}</span>
@@ -919,7 +903,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
             </div>
 
             {/* Roadmap Steps */}
-            <div className={cn("w-full flex flex-col items-center py-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}>
+            <div className={cn("w-full flex flex-col items-center pt-0.5 pb-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}>
               <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
               <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
               
