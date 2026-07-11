@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2, Hexagon } from 'lucide-react';
+import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2, Hexagon, Hourglass, Play } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -139,6 +139,8 @@ export const QuestModal = React.memo(({
     const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
     const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
     const [estimatedTime, setEstimatedTime] = useState(0);
+    const [pomodoroTarget, setPomodoroTarget] = useState<number>(0);
+    const [pomodoroCompleted, setPomodoroCompleted] = useState<number>(0);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -209,6 +211,8 @@ export const QuestModal = React.memo(({
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || toLocalISOString(new Date()));
                 setEstimatedTime(initialValues.estimatedTime || 0);
+                setPomodoroTarget(initialValues.pomodoroTarget || 0);
+                setPomodoroCompleted(initialValues.pomodoroCompleted || 0);
                 setShowInJournaling(initialValues.showInJournaling || false);
                 setJournalIconColor(initialValues.journalIconColor || '#3b82f6');
 
@@ -234,6 +238,8 @@ export const QuestModal = React.memo(({
                 setDifficulty('C');
                 setDeadline(toLocalISOString(new Date()));
                 setEstimatedTime(0);
+                setPomodoroTarget(0);
+                setPomodoroCompleted(0);
                 setRecurrenceType('NONE');
                 setRecurrenceInterval(1);
                 setRecurrenceDays([]);
@@ -306,6 +312,8 @@ export const QuestModal = React.memo(({
                 difficulty,
                 deadline,
                 estimatedTime,
+                pomodoroTarget,
+                pomodoroCompleted,
                 subtasks: [],
                 xpReward: prediction.xp,
                 gold: prediction.coins,
@@ -528,6 +536,37 @@ export const QuestModal = React.memo(({
                                                 onChange={setEstimatedTime}
                                             />
                                         </div>
+
+                                        {/* Pomodoro Target Picker (Only shown if associated with a project) */}
+                                        {projectId && projectId !== 'none' && (
+                                            <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3 space-y-2 mb-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Hourglass size={12} className="text-cyan-400" />
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Pomodoros de Objetivo</span>
+                                                    </div>
+                                                    <span className="text-xs font-mono font-black text-white">{pomodoroTarget || 'Sin Límite'}</span>
+                                                </div>
+                                                <div className="flex items-center justify-center gap-4 bg-black/20 rounded-xl p-2 border border-white/5">
+                                                    <button 
+                                                        onClick={() => setPomodoroTarget(prev => Math.max(0, prev - 1))}
+                                                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className="text-sm font-black font-mono text-white min-w-[20px] text-center">{pomodoroTarget}</span>
+                                                    <button 
+                                                        onClick={() => setPomodoroTarget(prev => Math.min(10, prev + 1))}
+                                                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                                <div className="text-[8px] text-slate-500 font-medium text-center">
+                                                    Servirá como guía de pomodoros para completar la tarea.
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Difficulty Selector */}
                                         <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-1 flex justify-between relative">

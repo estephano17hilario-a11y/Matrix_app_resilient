@@ -617,6 +617,21 @@ export default function Dashboard() {
         } catch (e) {
           console.error('Failed to parse focus-session deep link URL:', e);
         }
+      } else if (event.url && event.url.includes('luxapp://journal')) {
+        try {
+          const urlObj = new URL(event.url);
+          const dateStr = urlObj.searchParams.get('date');
+          console.log('🎯 [Dashboard Deep Link] Routing to JOURNAL for date:', dateStr);
+          if (dateStr) {
+            setCurrentView('NOTES');
+            setNoteViewMode('JOURNAL');
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('open_journal_date', { detail: { dateStr } }));
+            }, 600);
+          }
+        } catch (e) {
+          console.error('Failed to parse journal deep link URL:', e);
+        }
       }
     };
 
@@ -632,7 +647,7 @@ export default function Dashboard() {
         if (listener) listener.remove();
       }).catch(console.error);
     };
-  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive]);
+  }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive, setNoteViewMode]);
 
   // Handle cold start deep links and custom window triggers for focus session
   useEffect(() => {
@@ -651,6 +666,18 @@ export default function Dashboard() {
       setTimeout(() => {
         checkAndStartFocus(savedProjectId);
       }, 600); // 600ms tick to ensure full mounting and loading state settlement
+    }
+
+    const savedJournalDate = localStorage.getItem('cold_start_journal_date');
+    if (savedJournalDate) {
+      localStorage.removeItem('cold_start_journal_date');
+      setTimeout(() => {
+        setCurrentView('NOTES');
+        setNoteViewMode('JOURNAL');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('open_journal_date', { detail: { dateStr: savedJournalDate } }));
+        }, 100);
+      }, 600);
     }
 
     // 2. Listen for runtime custom events from App.tsx
@@ -683,28 +710,35 @@ export default function Dashboard() {
  handleFocusModeChange(null);
  }, [handleFocusModeChange]);
 
- const handleFocusProject = useCallback((projectId: string | null) => {
- const target = projectId ? projects.find(p => p.id === projectId) : undefined;
- 
- if (projectId && !target) {
- console.error("❌ Dashboard: Target project not found for focus", projectId);
- addNotification({ 
- type: 'SYSTEM', 
- label: 'Project not found', 
- icon: AlertTriangle, 
- color: '#ef4444' 
- });
- return;
- }
+ const handleFocusProject = useCallback((projectId: string | null, taskId?: string) => {
+  const target = projectId ? projects.find(p => p.id === projectId) : undefined;
+  
+  if (projectId && !target) {
+  console.error("❌ Dashboard: Target project not found for focus", projectId);
+  addNotification({ 
+  type: 'SYSTEM', 
+  label: 'Project not found', 
+  icon: AlertTriangle, 
+  color: '#ef4444' 
+  });
+  return;
+  }
 
- console.log("⚡ Dashboard: handleFocusProject", { projectId, target, allProjects: projects.length });
- setFocusTargetProjectId(target ? projectId : null);
- setFocusOpenArchived(!!target?.archived);
- setCurrentView('FOCUS');
- setIsDockOpen(false);
- setForceFocusOpen(true);
- handleFocusModeChange(target?.attribute || 'FOCUS');
- }, [projects, handleFocusModeChange, addNotification]);
+  if (taskId && target) {
+  localStorage.setItem('matrix_active_focus_task_id', taskId);
+  setFocusAutoStartProjectId(projectId);
+  setIsPomodoroActive(true);
+  return;
+  }
+
+  console.log("⚡ Dashboard: handleFocusProject", { projectId, target, allProjects: projects.length });
+  setFocusTargetProjectId(target ? projectId : null);
+  setFocusOpenArchived(!!target?.archived);
+  setCurrentView('FOCUS');
+  setIsDockOpen(false);
+  setForceFocusOpen(true);
+  handleFocusModeChange(target?.attribute || 'FOCUS');
+  }, [projects, handleFocusModeChange, addNotification]);
 
  const handleStartFocusProject = useCallback((payload: { projectId?: string | null; smartProjectId?: string | null } | null) => {
  const explicitProjectId = payload?.projectId ?? null;
@@ -2287,6 +2321,7 @@ export default function Dashboard() {
  <PomodoroView 
  projects={projects}
  attributes={attributes}
+ quests={quests}
  onExit={handleExitPomodoro}
  onCompleteSession={handleCompleteSession}
  onUpdateProject={handleUpdateProject}

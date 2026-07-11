@@ -7,6 +7,7 @@
     <!-- ============================================================ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -88,7 +89,12 @@
         <service
             android:name=".FocusService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property 
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" 
+                android:value="Focus timer counting down pomodoros and playing alarm notifications to keep users engaged offline." />
+        </service>
 
         <!-- Widget Settings/Configuration Activity -->
         <activity
@@ -195,8 +201,21 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/project_widget_info" />
         </receiver>
-
-
+        <!-- Journaling Calendar Widget Receiver -->
+        <receiver
+            android:name=".widget.JournalWidgetProvider"
+            android:exported="true"
+            android:label="Matrix Diario Calendario">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_JOURNAL" />
+                <action android:name="com.luxresilient.app.PREV_MONTH" />
+                <action android:name="com.luxresilient.app.NEXT_MONTH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/journal_widget_info" />
+        </receiver>
         <!-- Google Play Services version -->
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
 

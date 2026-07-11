@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, Attribute } from '../../types';
+import { Project, Attribute, Quest } from '../../types';
 import { ActiveSessionView } from './components/ActiveSessionView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap } from 'lucide-react';
@@ -8,6 +8,7 @@ import { cn } from '../../utils/cn';
 interface PomodoroViewProps {
  projects: Project[];
  attributes: Attribute[];
+ quests: Quest[];
  onExit: () => void;
  onCompleteSession: (projectId: string | null, duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
  onUpdateProject: (p: Project) => void;
@@ -24,6 +25,7 @@ import { createPortal } from 'react-dom';
 export const PomodoroView: React.FC<PomodoroViewProps> = ({
  projects,
  attributes,
+ quests,
  onExit,
  onCompleteSession,
  onUpdateProject,
@@ -197,17 +199,18 @@ export const PomodoroView: React.FC<PomodoroViewProps> = ({
  />
 
  <div className="flex-1 relative z-10 overflow-hidden flex items-center justify-center">
- <ActiveSessionView
- project={activeProject}
- attribute={activeAttribute}
- onExit={onExit}
- onCompleteSession={handleSessionComplete}
- onUpdateProject={onUpdateProject}
- onDeleteSession={onDeleteSession}
- onAddManualSession={onAddManualSession}
- onEditSession={onEditSession}
- customHeaderTitle={customHeader}
- />
+  <ActiveSessionView
+  project={activeProject}
+  attribute={activeAttribute}
+  quests={quests}
+  onExit={onExit}
+  onCompleteSession={handleSessionComplete}
+  onUpdateProject={onUpdateProject}
+  onDeleteSession={onDeleteSession}
+  onAddManualSession={onAddManualSession}
+  onEditSession={onEditSession}
+  customHeaderTitle={customHeader}
+  />
  </div>
  </div>,
  document.body

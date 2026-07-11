@@ -157,6 +157,18 @@ export default function App() {
         } catch (e) {
           console.error('Error parsing focus-session from App.tsx:', e);
         }
+      } else if (event.url.includes('luxapp://journal')) {
+        try {
+          const urlObj = new URL(event.url);
+          const dateStr = urlObj.searchParams.get('date');
+          if (dateStr) {
+            console.log('💾 [Deep Link App.tsx] Saving cold start journal date:', dateStr);
+            localStorage.setItem('cold_start_journal_date', dateStr);
+            window.dispatchEvent(new CustomEvent('cold_start_journal_trigger', { detail: { dateStr } }));
+          }
+        } catch (e) {
+          console.error('Error parsing journal from App.tsx:', e);
+        }
       } else if (event.url.includes('com.luxresilient.app://auth/callback')) {
         try {
           let access_token: string | null = null;

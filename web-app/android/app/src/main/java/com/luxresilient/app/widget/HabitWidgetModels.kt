@@ -204,3 +204,11 @@ data class TopProjectData(
     val color: String? = null
 )
 
+data class JournalEntryData(
+    val id: String,
+    val date: String,
+    val mood: String? = null,
+    val theme: String? = null,
+    val tags: List<String>? = null
+)
+

@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Project, Attribute, SubTrait } from '../../../types';
+import { Project, Attribute, SubTrait, Quest } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
@@ -13,6 +13,7 @@ import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 interface ActiveSessionViewProps {
  project: Project;
  attribute?: Attribute;
+ quests: Quest[];
  onExit: () => void;
  onCompleteSession: (duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
  onUpdateProject: (p: Project) => void;
@@ -138,6 +139,7 @@ const SubTraitPickerModal = ({
 export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  project,
  attribute,
+ quests,
  onExit,
  onCompleteSession,
  onUpdateProject,
@@ -154,6 +156,18 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  const [editTimeValue, setEditTimeValue] = useState('25');
  const [showFocusProtectionModal, setShowFocusProtectionModal] = useState(false);
  const [pendingSessionData, setPendingSessionData] = useState<{ duration: number; mode: 'POMO' | 'STOPWATCH' } | null>(null);
+
+  const [showAmbientPanel, setShowAmbientPanel] = useState(false);
+  const [currentAmbientTrack, setCurrentAmbientTrack] = useState<string>('none');
+  const [ambientVolume, setAmbientVolume] = useState<number>(0.5);
+
+  const activeTaskId = useMemo(() => localStorage.getItem('matrix_active_focus_task_id'), []);
+  const activeTask = useMemo(() => activeTaskId ? quests.find((q: Quest) => q.id === activeTaskId) : null, [activeTaskId, quests]);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const ambientGainNodeRef = useRef<GainNode | null>(null);
+  const activeSoundNodesRef = useRef<any[]>([]);
+  const cricketsIntervalRef = useRef<any>(null);
  
  // SMART PERMISSIONS STATE
  const [permissions, setPermissions] = useState({
@@ -202,6 +216,196 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  document.addEventListener('resume', handleResume);
  return () => document.removeEventListener('resume', handleResume);
  }, [checkAllPermissions]);
+
+  // ─── AMBIENT AUDIO SYNTHESIZER AND TASK STORAGE CLEANUP ───
+  const handleVolumeChange = (val: number) => {
+    setAmbientVolume(val);
+    if (ambientGainNodeRef.current && audioCtxRef.current) {
+      ambientGainNodeRef.current.gain.setValueAtTime(val, audioCtxRef.current.currentTime);
+    }
+  };
+
+  const stopActiveAmbientSounds = useCallback(() => {
+    if (cricketsIntervalRef.current) {
+      clearInterval(cricketsIntervalRef.current);
+      cricketsIntervalRef.current = null;
+    }
+    activeSoundNodesRef.current.forEach(node => {
+      try {
+        if (node.stop) {
+          node.stop();
+        }
+        node.disconnect();
+      } catch (e) {}
+    });
+    activeSoundNodesRef.current = [];
+  }, []);
+
+  const handleSelectAmbientTrack = useCallback((trackId: string) => {
+    setCurrentAmbientTrack(trackId);
+    stopActiveAmbientSounds();
+    
+    if (trackId === 'none') return;
+    
+    try {
+      if (!audioCtxRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        audioCtxRef.current = new AudioContextClass();
+      }
+      
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      if (!ambientGainNodeRef.current) {
+        ambientGainNodeRef.current = ctx.createGain();
+        ambientGainNodeRef.current.connect(ctx.destination);
+      }
+      ambientGainNodeRef.current.gain.setValueAtTime(ambientVolume, ctx.currentTime);
+      
+      const outputNode = ambientGainNodeRef.current;
+
+      if (trackId === 'rain') {
+        const bufferSize = 2 * ctx.sampleRate;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+          b6 = white * 0.115926;
+          output[i] = pink * 0.12; 
+        }
+        
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.loop = true;
+        
+        const lpFilter = ctx.createBiquadFilter();
+        lpFilter.type = 'lowpass';
+        lpFilter.frequency.setValueAtTime(900, ctx.currentTime);
+        
+        noiseSource.connect(lpFilter);
+        lpFilter.connect(outputNode);
+        noiseSource.start(0);
+        
+        activeSoundNodesRef.current = [noiseSource, lpFilter];
+      } 
+      else if (trackId === 'crickets') {
+        const bufferSize = 2 * ctx.sampleRate;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * 0.01;
+        }
+        const noiseNode = ctx.createBufferSource();
+        noiseNode.buffer = noiseBuffer;
+        noiseNode.loop = true;
+        noiseNode.connect(outputNode);
+        noiseNode.start(0);
+        
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(3700, ctx.currentTime);
+        
+        const chirpGain = ctx.createGain();
+        chirpGain.gain.setValueAtTime(0, ctx.currentTime);
+        
+        const pulseCount = 3;
+        const pulseDuration = 0.025;
+        const pulseSpacing = 0.045;
+        
+        const schedule = () => {
+          let start = ctx.currentTime;
+          for (let t = 0; t < 10; t += 1.5) {
+            const chirpStart = start + t;
+            for (let p = 0; p < pulseCount; p++) {
+              const pStart = chirpStart + (p * pulseSpacing);
+              chirpGain.gain.setValueAtTime(0, pStart);
+              chirpGain.gain.linearRampToValueAtTime(0.15, pStart + 0.003);
+              chirpGain.gain.exponentialRampToValueAtTime(0.0001, pStart + pulseDuration);
+            }
+          }
+        };
+        
+        schedule();
+        cricketsIntervalRef.current = setInterval(schedule, 8500);
+        
+        const bandpass = ctx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.setValueAtTime(3700, ctx.currentTime);
+        bandpass.Q.setValueAtTime(4, ctx.currentTime);
+        
+        osc.connect(chirpGain);
+        chirpGain.connect(bandpass);
+        bandpass.connect(outputNode);
+        osc.start(0);
+        
+        activeSoundNodesRef.current = [noiseNode, osc, chirpGain, bandpass];
+      } 
+      else if (trackId === 'drone') {
+        const freqs = [65.4, 98.0, 130.8, 196.0];
+        const nodesList: any[] = [];
+        
+        freqs.forEach((freq, index) => {
+          const osc = ctx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq + (Math.random() * 0.3 - 0.15), ctx.currentTime);
+          
+          const gainNode = ctx.createGain();
+          gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+          
+          const lfo = ctx.createOscillator();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(0.035 + (index * 0.008), ctx.currentTime);
+          
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.setValueAtTime(0.03, ctx.currentTime);
+          
+          lfo.connect(lfoGain);
+          lfoGain.connect(gainNode.gain);
+          
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(220, ctx.currentTime);
+          
+          osc.connect(lp);
+          lp.connect(gainNode);
+          gainNode.connect(outputNode);
+          
+          osc.start(0);
+          lfo.start(0);
+          
+          nodesList.push(osc, lfo, lfoGain, gainNode, lp);
+        });
+        
+        activeSoundNodesRef.current = nodesList;
+      }
+    } catch (e) {
+      console.error("Failed to generate synthesized sound", e);
+    }
+  }, [ambientVolume, stopActiveAmbientSounds]);
+
+  // Clean up audio and active task on unmount
+  useEffect(() => {
+    return () => {
+      stopActiveAmbientSounds();
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close();
+        } catch (e) {}
+      }
+      localStorage.removeItem('matrix_active_focus_task_id');
+    };
+  }, [stopActiveAmbientSounds]);
 
  // Handlers for Smart Buttons
  const handleEnableNotifications = async () => {
@@ -498,11 +702,17 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  {customHeaderTitle}
  </div>
  ) : (
- <div className="flex flex-col items-center gap-2">
- <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-white/10 border border-white/10 shadow-md">
- <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
- <span className="text-xs font-black text-white uppercase tracking-widest">{project.title}</span>
- </div>
+  <div className="flex flex-col items-center gap-2">
+  <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-white/10 border border-white/10 shadow-md">
+  <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
+  <span className="text-xs font-black text-white uppercase tracking-widest">{project.title}</span>
+  </div>
+  
+  {activeTask && (
+      <div className="text-[10px] font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full uppercase tracking-wider mt-0.5 animate-pulse shadow-md max-w-[200px] truncate">
+          Tarea asignada: {activeTask.title}
+      </div>
+  )}
  
  {/* SMART NOTIFICATION PROMPT */}
  <AnimatePresence>
@@ -723,14 +933,86 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  </div>
  </motion.button>
  
- <motion.button 
- whileHover={{ scale: 1.1 }}
- whileTap={{ scale: 0.9 }}
- className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10 flex items-center justify-center transition-colors shadow-md"
- >
- <Volume2 size={24} />
- </motion.button>
- </div>
+  <motion.button 
+  whileHover={{ scale: 1.1 }}
+  whileTap={{ scale: 0.9 }}
+  onClick={() => setShowAmbientPanel(!showAmbientPanel)}
+  className={cn(
+      "w-16 h-16 rounded-full border flex items-center justify-center transition-colors shadow-md relative",
+      showAmbientPanel || currentAmbientTrack !== 'none'
+          ? "bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold"
+          : "bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10"
+  )}
+  >
+  <Volume2 size={24} />
+  </motion.button>
+
+  {/* Ambient Sound Popover Overlay */}
+  <AnimatePresence>
+      {showAmbientPanel && (
+          <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              className="absolute bottom-36 right-8 w-60 bg-[#141424] border border-white/10 rounded-2xl p-3 shadow-2xl z-[600] flex flex-col gap-3 pointer-events-auto"
+          >
+              <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sonidos Ambientales</span>
+                  <button 
+                      onClick={() => setShowAmbientPanel(false)}
+                      className="text-[10px] font-bold text-slate-500 hover:text-white"
+                  >
+                      Cerrar
+                  </button>
+              </div>
+
+              {/* Volume Slider */}
+              <div className="space-y-1.5 text-left">
+                  <div className="flex justify-between text-[8px] font-bold text-slate-500 uppercase">
+                      <span>Volumen</span>
+                      <span>{Math.round(ambientVolume * 100)}%</span>
+                  </div>
+                  <input 
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={ambientVolume}
+                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                  />
+              </div>
+
+              {/* Tracks List */}
+              <div className="flex flex-col gap-1.5">
+                  {[
+                      { id: 'none', name: 'Silencio (None)', icon: '🔇' },
+                      { id: 'rain', name: 'Lluvia Relajante (Rain)', icon: '🌧️' },
+                      { id: 'crickets', name: 'Grillos de Bosque (Crickets)', icon: '🦗' },
+                      { id: 'drone', name: 'Deep Drone Meditativo', icon: '🧘' }
+                  ].map(track => {
+                      const isTrackActive = currentAmbientTrack === track.id;
+                      return (
+                          <button
+                              key={track.id}
+                              onClick={() => handleSelectAmbientTrack(track.id)}
+                              className={cn(
+                                  "w-full flex items-center gap-3 px-3 py-2 rounded-xl border text-[10px] font-bold transition-all text-left",
+                                  isTrackActive 
+                                      ? "bg-cyan-500/10 border-cyan-500 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.1)]" 
+                                      : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
+                              )}
+                          >
+                              <span className="text-xs">{track.icon}</span>
+                              <span>{track.name}</span>
+                          </button>
+                      );
+                  })}
+              </div>
+          </motion.div>
+      )}
+  </AnimatePresence>
+  </div>
 
  {/* Sub-Trait Picker Overlay (after session ends) */}
  <AnimatePresence>

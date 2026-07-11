@@ -175,6 +175,62 @@ class SupabaseWidgetClient(private val context: Context) {
     }
 
     /**
+     * Fetch all journal entries for the authenticated user
+     */
+    fun fetchJournal(): List<JournalEntryData> {
+        val cached = readFromLocalCache<JournalEntryData>("journal", object : TypeToken<List<JournalEntryData>>() {}.type)
+        if (cached != null) {
+            Log.d(TAG, "fetchJournal: Loaded ${cached.size} entries from local CapacitorStorage cache")
+            return cached
+        }
+
+        var (userId, accessToken) = getCredentials()
+        if (userId == null || accessToken == null) {
+            Log.w(TAG, "No credentials available")
+            return emptyList()
+        }
+
+        return try {
+            val encodedUserId = URLEncoder.encode(userId, "UTF-8")
+            val url = "$SUPABASE_URL$REST_PATH/user_collections?user_id=eq.$encodedUserId&collection_name=eq.journal&deleted=eq.false&select=id,data"
+            
+            var response = makeGetRequest(url, accessToken)
+            if (response == null) {
+                Log.w(TAG, "GET journal failed. Attempting token refresh...")
+                val newAccessToken = refreshAccessToken()
+                if (newAccessToken != null) {
+                    response = makeGetRequest(url, newAccessToken)
+                }
+            }
+
+            if (response == null) {
+                Log.w(TAG, "No response from Supabase after token refresh")
+                return emptyList()
+            }
+
+            val jsonArray = JsonParser.parseString(response).asJsonArray
+            val items = mutableListOf<JournalEntryData>()
+            for (element in jsonArray) {
+                val obj = element.asJsonObject
+                val data = obj.getAsJsonObject("data")
+                if (data != null) {
+                    try {
+                        val item = gson.fromJson(data, JournalEntryData::class.java)
+                        items.add(item)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing journal item: ${e.message}")
+                    }
+                }
+            }
+            writeToLocalCache("journal", items)
+            items
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching journal: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
      * Fetch all attributes for the user (to get custom colors)
      */
     fun fetchAttributes(): Map<String, AttributeData> {

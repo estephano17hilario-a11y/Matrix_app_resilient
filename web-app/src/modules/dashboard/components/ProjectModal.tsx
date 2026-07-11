@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap } from 'lucide-react';
+import { X, Briefcase, Plus, Target, ChevronDown, ChevronUp, Hourglass, Bell, Calendar, Calculator, Loader2, CheckCircle2, Zap, Minus, Sliders } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
@@ -48,6 +48,13 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     const [pomoDuration, setPomoDuration] = useState<number | string>(25);
     const [reminder, setReminder] = useState('');
     const [impact, setImpact] = useState(1);
+    
+    const [focusRoutine, setFocusRoutine] = useState<any[]>([]);
+    const [focusRoutineDays, setFocusRoutineDays] = useState<number[]>([]);
+    const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+    const [timelineDuration, setTimelineDuration] = useState<number>(25);
+    const [timelineStepType, setTimelineStepType] = useState<'FOCUS' | 'BREAK'>('FOCUS');
+    const [timelineSubTrait, setTimelineSubTrait] = useState<string | undefined>(undefined);
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -99,6 +106,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                 setReminder(initialData.reminder || '');
                 setImpact(initialData.impact || 1);
                 if (initialData.workingDays) setWorkingDays(initialData.workingDays);
+                setFocusRoutine(initialData.focusRoutine || []);
+                setFocusRoutineDays(initialData.focusRoutineDays || []);
             } else {
                 setTitle('');
                 setDesc('');
@@ -114,6 +123,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                 setPomoDuration(25);
                 setReminder('');
                 setImpact(1);
+                setFocusRoutine([]);
+                setFocusRoutineDays([]);
             }
         }
     }, [isOpen, initialData]);
@@ -219,7 +230,9 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                 reminder, 
                 impact,
                 workingDays: goalFreq === 'DAILY' ? undefined : workingDays,
-                smartProjectId: smartProjectId || undefined
+                smartProjectId: smartProjectId || undefined,
+                focusRoutine,
+                focusRoutineDays
             });
             onClose();
         } catch (error) {
@@ -767,6 +780,272 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                                             }} onBlur={() => {
                                                 if (pomoDuration === '') setPomoDuration(25);
                                             }} className="w-10 bg-transparent border-b border-white/20 text-white font-mono text-xs text-center focus:border-white outline-none" /></div>
+                                        </div>
+
+                                        {/* Focus Routine Timeline */}
+                                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Hourglass size={14} className="text-cyan-400" />
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Rutina de Enfoque (Timeline)</span>
+                                                </div>
+                                                {focusRoutine.length > 0 && (
+                                                    <button 
+                                                        onClick={() => { setFocusRoutine([]); setSelectedStepId(null); }}
+                                                        className="text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors"
+                                                    >
+                                                        Limpiar
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Vertical Timeline container */}
+                                            <div className="flex flex-col items-center py-2 bg-black/40 rounded-xl border border-white/5 relative overflow-hidden">
+                                                {/* Vertical center line */}
+                                                <div className="absolute top-10 bottom-10 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
+
+                                                {/* Start Node */}
+                                                <div className="relative z-10 bg-[#161622] border border-white/15 px-2.5 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-wider mb-4 shadow-md">
+                                                    START
+                                                </div>
+
+                                                {/* Timeline Nodes */}
+                                                {focusRoutine.length === 0 ? (
+                                                    <div className="text-[10px] text-white/30 italic py-4 relative z-10">Sin pasos. Agrega enfoques o intervalos abajo.</div>
+                                                ) : (
+                                                    <div className="w-full flex flex-col gap-3 px-6 my-2 relative z-10">
+                                                        {focusRoutine.map((step, idx) => {
+                                                            const isFocus = step.type === 'FOCUS';
+                                                            const isSelected = selectedStepId === step.id;
+                                                            const subTraitName = step.subAttribute ? subTraits.find(st => st.id === step.subAttribute)?.name : null;
+
+                                                            return (
+                                                                <div 
+                                                                    key={step.id} 
+                                                                    onClick={() => {
+                                                                        setSelectedStepId(step.id);
+                                                                        setTimelineDuration(step.duration);
+                                                                        setTimelineStepType(step.type);
+                                                                        setTimelineSubTrait(step.subAttribute);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-1/2 flex items-center relative cursor-pointer group",
+                                                                        isFocus ? "self-end justify-start pl-4" : "self-start justify-end pr-4 text-right"
+                                                                    )}
+                                                                >
+                                                                    {/* Indicator Dot on Timeline */}
+                                                                    <div 
+                                                                        className={cn(
+                                                                            "absolute w-2.5 h-2.5 rounded-full border top-1/2 -translate-y-1/2 z-20 shadow-md transition-all",
+                                                                            isFocus ? "-left-1.25" : "-right-1.25",
+                                                                            isSelected 
+                                                                                ? "bg-white border-cyan-400 scale-125" 
+                                                                                : isFocus 
+                                                                                    ? "bg-cyan-500 border-cyan-400" 
+                                                                                    : "bg-amber-500 border-amber-400"
+                                                                        )}
+                                                                        style={isFocus ? { left: '-5px' } : { right: '-5px' }}
+                                                                    />
+
+                                                                    {/* Card body */}
+                                                                    <div 
+                                                                        className={cn(
+                                                                            "p-2 rounded-xl border text-[9px] font-bold transition-all shadow-md max-w-full truncate relative",
+                                                                            isSelected 
+                                                                                ? "bg-white/10 border-white text-white scale-102" 
+                                                                                : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.05]"
+                                                                        )}
+                                                                    >
+                                                                        <div>
+                                                                            {step.duration} min en {isFocus ? 'Enfoque' : 'Intervalo'}
+                                                                        </div>
+                                                                        {isFocus && subTraitName && (
+                                                                            <div className="text-[7px] text-cyan-400 mt-0.5 uppercase tracking-wide truncate">
+                                                                                🎯 {subTraitName}
+                                                                            </div>
+                                                                        )}
+                                                                        {isSelected && (
+                                                                            <button 
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setFocusRoutine(focusRoutine.filter(s => s.id !== step.id));
+                                                                                    setSelectedStepId(null);
+                                                                                }}
+                                                                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-white text-[8px] hover:bg-red-500 transition-colors shadow-md"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {/* Finish Node */}
+                                                <div className="relative z-10 bg-[#161622] border border-white/15 px-2.5 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-wider mt-4 shadow-md">
+                                                    FINALIZAR
+                                                </div>
+                                            </div>
+
+                                            {/* Timeline Editor Control */}
+                                            <div className="bg-black/40 border border-white/5 rounded-xl p-2.5 space-y-2">
+                                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">
+                                                    {selectedStepId ? 'Editar Paso Seleccionado' : 'Agregar Nuevo Paso'}
+                                                </div>
+
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button 
+                                                        onClick={() => setTimelineStepType('FOCUS')}
+                                                        className={cn(
+                                                            "flex-1 py-1 rounded-md text-[9px] font-bold border transition-all uppercase tracking-wider",
+                                                            timelineStepType === 'FOCUS' 
+                                                                ? "bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.2)]" 
+                                                                : "bg-transparent border-white/10 text-slate-500 hover:border-white/20"
+                                                        )}
+                                                    >
+                                                        Enfoque
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setTimelineStepType('BREAK')}
+                                                        className={cn(
+                                                            "flex-1 py-1 rounded-md text-[9px] font-bold border transition-all uppercase tracking-wider",
+                                                            timelineStepType === 'BREAK' 
+                                                                ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.2)]" 
+                                                                : "bg-transparent border-white/10 text-slate-500 hover:border-white/20"
+                                                        )}
+                                                    >
+                                                        Intervalo
+                                                    </button>
+                                                </div>
+
+                                                {/* Sub-Trait assignment dropdown for FOCUS steps */}
+                                                {timelineStepType === 'FOCUS' && subTraits.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wide">Asignar Sub-Rasgo Exclusivo:</span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            <button 
+                                                                onClick={() => setTimelineSubTrait(undefined)}
+                                                                className={cn(
+                                                                    "px-1.5 py-0.5 rounded text-[8px] font-bold border transition-all",
+                                                                    timelineSubTrait === undefined 
+                                                                        ? "bg-white/15 border-white text-white" 
+                                                                        : "bg-transparent border-white/10 text-slate-500"
+                                                                )}
+                                                            >
+                                                                Ninguno (Principal)
+                                                            </button>
+                                                            {subTraits.map(st => (
+                                                                <button 
+                                                                    key={st.id}
+                                                                    onClick={() => setTimelineSubTrait(st.id)}
+                                                                    className={cn(
+                                                                        "px-1.5 py-0.5 rounded text-[8px] font-bold border transition-all",
+                                                                        timelineSubTrait === st.id 
+                                                                            ? "bg-cyan-500/20 border-cyan-400 text-cyan-300" 
+                                                                            : "bg-transparent border-white/10 text-slate-500"
+                                                                    )}
+                                                                >
+                                                                    {st.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Minus/Plus picker */}
+                                                <div className="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/5">
+                                                    <button 
+                                                        onClick={() => setTimelineDuration(prev => Math.max(1, prev - 1))}
+                                                        className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold text-xs"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <div className="text-center">
+                                                        <span className="text-xs font-black text-white font-mono">{timelineDuration}</span>
+                                                        <span className="text-[8px] text-slate-500 ml-1 font-bold">MINUTOS</span>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => setTimelineDuration(prev => Math.min(180, prev + 1))}
+                                                        className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold text-xs"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+
+                                                {selectedStepId ? (
+                                                    <div className="flex gap-1.5">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setFocusRoutine(focusRoutine.map(step => 
+                                                                    step.id === selectedStepId 
+                                                                        ? { ...step, type: timelineStepType, duration: timelineDuration, subAttribute: timelineStepType === 'FOCUS' ? timelineSubTrait : undefined } 
+                                                                        : step
+                                                                ));
+                                                                setSelectedStepId(null);
+                                                            }}
+                                                            className="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[9px] uppercase tracking-wider hover:bg-emerald-500 transition-colors shadow-md"
+                                                        >
+                                                            Guardar Paso
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setSelectedStepId(null);
+                                                            }}
+                                                            className="px-3 py-1.5 rounded-lg bg-white/10 text-white/80 font-bold text-[9px] uppercase tracking-wider hover:bg-white/15 transition-colors"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newStep = {
+                                                                id: Math.random().toString(),
+                                                                type: timelineStepType,
+                                                                duration: timelineDuration,
+                                                                subAttribute: timelineStepType === 'FOCUS' ? timelineSubTrait : undefined
+                                                            };
+                                                            setFocusRoutine([...focusRoutine, newStep]);
+                                                            setTimelineSubTrait(undefined);
+                                                        }}
+                                                        className="w-full py-1.5 rounded-lg bg-cyan-600 text-white font-bold text-[9px] uppercase tracking-wider hover:bg-cyan-500 transition-colors shadow-md"
+                                                    >
+                                                        Agregar Paso
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Days selection for Routine */}
+                                            <div className="space-y-1.5 border-t border-white/5 pt-2">
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Días activos de la rutina:</span>
+                                                <div className="flex justify-between">
+                                                    {DAYS.map(({ label, index }) => {
+                                                        const isSelected = focusRoutineDays.includes(index);
+                                                        return (
+                                                            <button 
+                                                                key={index} 
+                                                                onClick={() => {
+                                                                    if (focusRoutineDays.includes(index)) {
+                                                                        setFocusRoutineDays(focusRoutineDays.filter(d => d !== index));
+                                                                    } else {
+                                                                        setFocusRoutineDays([...focusRoutineDays, index].sort((a,b) => a-b));
+                                                                    }
+                                                                }} 
+                                                                className={cn(
+                                                                    "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold transition-all border",
+                                                                    isSelected 
+                                                                        ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_5px_rgba(6,182,212,0.4)]" 
+                                                                        : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"
+                                                                )}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Reminder */}

@@ -3337,6 +3337,28 @@ export const useDashboardLogic = () => {
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string) => {
         console.log("🏁 [SESSION COMPLETE] Triggered", { projectId, durationSeconds, type });
 
+        // Increment task pomodoro if active
+        const activeTaskId = localStorage.getItem('matrix_active_focus_task_id');
+        if (activeTaskId) {
+            setQuests(prevQuests => {
+                const updatedQuests = prevQuests.map(q => {
+                    if (q.id === activeTaskId) {
+                        const pomodoroCompleted = (q.pomodoroCompleted || 0) + 1;
+                        console.log(`🎯 [TASK POMODORO COMPLETE] Incremented pomodoroCompleted to ${pomodoroCompleted} for task:`, q.title);
+                        return {
+                            ...q,
+                            pomodoroCompleted
+                        };
+                    }
+                    return q;
+                });
+                if (user?.id) {
+                    PersistenceService.saveCollection(user.id, 'quests', updatedQuests);
+                }
+                return updatedQuests;
+            });
+        }
+
         // LIMIT CHECK
         const today = toLocalISOString(new Date());
         let currentLimits = dailyLimits;

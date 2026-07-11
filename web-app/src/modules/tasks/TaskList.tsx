@@ -25,7 +25,7 @@ interface TaskListProps {
  onDeleteQuest?: (id: string) => void;
  onEditQuest?: (quest: Quest) => void;
  onAddQuest?: () => void;
- onFocusProject?: (projectId: string) => void;
+ onFocusProject?: (projectId: string, taskId?: string) => void;
  defaultChartViews?: any;
 }
 

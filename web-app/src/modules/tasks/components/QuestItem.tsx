@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar, Play, Hourglass } from 'lucide-react';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Quest, Attribute, Project } from '../../../types';
@@ -21,7 +21,7 @@ interface QuestItemProps {
   onComplete: (e: React.MouseEvent, q: Quest) => void;
   onDelete?: (id: string) => void;
   onEdit?: (quest: Quest) => void;
-  onFocusProject?: (projectId: string) => void;
+  onFocusProject?: (projectId: string, taskId?: string) => void;
   isLite?: boolean;
 }
 
@@ -209,6 +209,31 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                 </span>
             </div>
             
+            {/* Pomodoro target circles indicator */}
+            {quest.pomodoroTarget ? (
+              <div className="flex items-center gap-1 mb-1 animate-in fade-in duration-200">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: quest.pomodoroTarget }).map((_, idx) => {
+                    const isCompleted = idx < (quest.pomodoroCompleted || 0);
+                    return (
+                      <div 
+                        key={idx}
+                        className={cn(
+                          "w-2 h-2 rounded-full border shadow-sm transition-colors",
+                          isCompleted 
+                            ? "bg-rose-500 border-rose-400 shadow-rose-500/20" 
+                            : "bg-white/5 border-white/10"
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+                <span className="text-[9px] font-bold text-rose-400 font-mono ml-0.5">
+                  {quest.pomodoroCompleted || 0}/{quest.pomodoroTarget}
+                </span>
+              </div>
+            ) : null}
+            
             <div className="flex items-center gap-3 shrink-0">
                  {/* Trait / Strategy Badge - Row 2 */}
                 {(attribute || smartProject) && (
@@ -268,6 +293,22 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                     </button>
                 )}
              </div>
+
+             {/* Play Button to start Focus on the associated project */}
+             {quest.projectId && !quest.completed && (
+                 <button
+                     onClick={(e) => {
+                         e.stopPropagation();
+                         if (onFocusProject) {
+                             onFocusProject(quest.projectId!, quest.id);
+                         }
+                     }}
+                     className="w-7 h-7 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-105 shadow-md shadow-rose-600/20 shrink-0"
+                     title="Iniciar Enfoque"
+                 >
+                     <Play size={10} fill="currentColor" className="ml-[1.5px]" />
+                 </button>
+             )}
 
              <ChevronDown 
                 size={16} 

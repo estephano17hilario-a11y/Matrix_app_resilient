@@ -431,6 +431,24 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      setDraftTheme(entry?.theme || 'slate'); 
      onInteractionStart(); 
    }, [journalEntryMap, onInteractionStart]);
+
+  useEffect(() => {
+    const handleOpenDate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.dateStr) {
+        const parts = detail.dateStr.split('-');
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          const targetDate = new Date(year, month, day);
+          openJournal(targetDate);
+        }
+      }
+    };
+    window.addEventListener('open_journal_date', handleOpenDate);
+    return () => window.removeEventListener('open_journal_date', handleOpenDate);
+  }, [openJournal]);
  
  const handleSave = () => { 
  if (editorMode === 'NOTE' && draftId) { 

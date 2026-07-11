@@ -66,6 +66,8 @@ export interface Quest {
   smartProjectId?: string;
   color?: string; // Optional UI color override
   estimatedTime?: number; // Minutes
+  pomodoroTarget?: number;
+  pomodoroCompleted?: number;
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
   showInJournaling?: boolean;
@@ -167,6 +169,13 @@ export interface BadHabit {
   customColor?: string;
 }
 
+export interface FocusRoutineStep {
+  id: string;
+  type: 'FOCUS' | 'BREAK';
+  duration: number; // minutes
+  subAttribute?: string; // Optional specific sub-trait ID
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -198,6 +207,8 @@ export interface Project {
   streak?: number;
   lastStreakDate?: string;
   longestStreak?: number;
+  focusRoutine?: FocusRoutineStep[];
+  focusRoutineDays?: number[];
 }
 
 export interface Session {
