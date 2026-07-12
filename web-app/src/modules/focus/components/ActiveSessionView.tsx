@@ -1084,11 +1084,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  onClick={toggleTimer} 
  className="w-24 h-24 rounded-[3rem] flex items-center justify-center z-20 relative group overflow-hidden border"
  style={{ 
-  backgroundColor: isActive && !isPaused 
-    ? themeColor 
-    : (project.id !== QUICK_FOCUS_PROJECT_ID ? `${themeColor}20` : 'rgba(255,255,255,0.1)'),
+  backgroundColor: project.id !== QUICK_FOCUS_PROJECT_ID ? themeColor : 'rgba(255,255,255,0.1)',
   borderColor: project.id !== QUICK_FOCUS_PROJECT_ID ? themeColor : 'rgba(255,255,255,0.1)',
-  boxShadow: 'none'
+  boxShadow: project.id !== QUICK_FOCUS_PROJECT_ID ? `0 0 25px ${themeColor}40` : 'none'
   }}
  >
  {/* Inner glow div to replace CSS shadow */}
@@ -1102,7 +1100,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  {isActive && !isPaused ? (
  <Pause size={36} fill="currentColor" className="text-white drop-shadow-md" />
  ) : (
- <Play size={36} fill={project.id !== QUICK_FOCUS_PROJECT_ID ? themeColor : 'currentColor'} className="ml-2 text-white drop-shadow-md" style={project.id !== QUICK_FOCUS_PROJECT_ID ? { color: themeColor } : {}} />
+ <Play size={36} fill="currentColor" className="ml-2 text-white drop-shadow-md" />
  )}
  </div>
  </motion.button>

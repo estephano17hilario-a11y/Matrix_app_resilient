@@ -357,10 +357,10 @@ export const QuestModal = React.memo(({
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="relative z-10 w-full max-w-[360px]"
+                        className="relative z-10 w-full max-w-[360px] max-h-[90vh] flex flex-col"
                     >
                         <div
-                            className="rounded-[2rem] overflow-hidden flex flex-col max-h-[90vh] relative transition-all duration-200"
+                            className="rounded-[2rem] overflow-hidden flex flex-col h-full max-h-full relative transition-all duration-200"
                             style={{
                                 background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
                                 border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
