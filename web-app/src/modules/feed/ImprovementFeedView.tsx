@@ -416,7 +416,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               e.stopPropagation();
               setShowFormulaModal(true);
             }}
-            className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95 transition-transform"
+            className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95"
             title={t('feed.viewFormulaTooltip')}
           >
             <Info size={16} />

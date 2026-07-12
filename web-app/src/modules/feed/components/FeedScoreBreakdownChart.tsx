@@ -87,7 +87,7 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
       transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Top glow accent */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-orange-500/60 via-emerald-500/60 via-indigo-500/60 to-cyan-500/60" />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-orange-500/60 via-indigo-500/60 to-cyan-500/60" />
       
       {/* Ambient glows */}
       <div 

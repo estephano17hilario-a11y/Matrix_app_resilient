@@ -835,16 +835,17 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  >
  {t('focus.focusUpper', 'FOCUS')}
  </button>
- <button 
- type="button"
- onClick={(e) => {
- e.preventDefault();
- e.stopPropagation();
- setMode('STOPWATCH');
- setTimeLeft(0);
- setTotalDuration(0);
- }}
- className={cn(
+  <button 
+  type="button"
+  onClick={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  setMode('STOPWATCH');
+  setTimeLeft(0);
+  setTotalDuration(0);
+  setActiveCircleView('TIMER');
+  }}
+  className={cn(
  "px-6 py-2 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-200",
  mode === 'STOPWATCH' ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/70"
  )}
@@ -1049,7 +1050,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   })()}
 
   {/* Cambiar Vista toggle button placed in the chord of the circle */}
-  {routineSteps && routineSteps.length > 0 && (
+  {routineSteps && routineSteps.length > 0 && mode === 'POMO' && (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
       <button
         type="button"
@@ -1079,11 +1080,14 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  whileHover={{ scale: 1.05 }}
  whileTap={{ scale: 0.95 }}
  onClick={toggleTimer} 
- className="w-24 h-24 rounded-[3rem] flex items-center justify-center z-20 relative group overflow-hidden border border-white/10"
+ className="w-24 h-24 rounded-[3rem] flex items-center justify-center z-20 relative group overflow-hidden border"
  style={{ 
- backgroundColor: isActive && !isPaused ? themeColor : 'rgba(255,255,255,0.1)',
- boxShadow: 'none'
- }}
+  backgroundColor: isActive && !isPaused 
+    ? themeColor 
+    : (project.id !== QUICK_FOCUS_PROJECT_ID ? `${themeColor}20` : 'rgba(255,255,255,0.1)'),
+  borderColor: project.id !== QUICK_FOCUS_PROJECT_ID ? themeColor : 'rgba(255,255,255,0.1)',
+  boxShadow: 'none'
+  }}
  >
  {/* Inner glow div to replace CSS shadow */}
  {isActive && !isPaused && (
@@ -1096,7 +1100,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  {isActive && !isPaused ? (
  <Pause size={36} fill="currentColor" className="text-white drop-shadow-md" />
  ) : (
- <Play size={36} fill="currentColor" className="ml-2 text-white drop-shadow-md" />
+ <Play size={36} fill={project.id !== QUICK_FOCUS_PROJECT_ID ? themeColor : 'currentColor'} className="ml-2 text-white drop-shadow-md" style={project.id !== QUICK_FOCUS_PROJECT_ID ? { color: themeColor } : {}} />
  )}
  </div>
  </motion.button>

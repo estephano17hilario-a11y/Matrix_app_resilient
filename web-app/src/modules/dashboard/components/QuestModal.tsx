@@ -412,7 +412,7 @@ export const QuestModal = React.memo(({
                                     <div className="h-10 rounded-xl bg-white/5 w-full" />
                                 </div>
                             ) : (
-                                <div className="overflow-y-auto no-scrollbar px-4 pb-4 space-y-4">
+                                <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 pb-4 space-y-4">
                                     {/* Reward Prediction */}
                                     <div>
                                         <RewardPredictionPill
