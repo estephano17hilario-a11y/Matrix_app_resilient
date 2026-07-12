@@ -35,6 +35,8 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import FocusSession from '@/plugins/FocusPlugin';
 import toast from 'react-hot-toast';
 
+const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
+
 // Sub-trait picker modal shown after a session ends
 const SubTraitPickerModal = ({ 
   subTraits, 
