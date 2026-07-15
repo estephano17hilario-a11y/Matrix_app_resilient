@@ -367,7 +367,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                       return !item.days || item.days.length === 0 || item.days.includes(today);
                   }).map(item => {
                       const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
-                      const isCompleted = item.completed || item.history?.includes(todayKey);
+                      const isCompleted = !!(item.completed || item.history?.includes(todayKey));
                       const isSkipped = item.skippedHistory?.includes(todayKey);
                       const isDoneOrSkipped = isCompleted || isSkipped;
                       
@@ -395,7 +395,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                   {item.text}
                                   {item.intervalType && item.intervalType !== 'NONE' && (
                                       <span className="text-[9px] text-cyan-400 font-mono ml-1.5 font-bold">
-                                          ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+                                          ({Math.max(0, (item.intervalCount ?? 0) - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount ?? 0})
                                       </span>
                                   )}
                                   {isSkipped && (
@@ -508,7 +508,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                 return !item.days || item.days.length === 0 || item.days.includes(today);
                             }).map(item => {
                                 const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
-                                const isCompleted = item.completed || item.history?.includes(todayKey);
+                                const isCompleted = !!(item.completed || item.history?.includes(todayKey));
                                 const isSkipped = item.skippedHistory?.includes(todayKey);
                                 const isDoneOrSkipped = isCompleted || isSkipped;
                                 
@@ -536,7 +536,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                             {item.text}
                                             {item.intervalType && item.intervalType !== 'NONE' && (
                                                 <span className="text-[10px] text-cyan-400 font-mono ml-2 font-bold">
-                                                    ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+                                                    ({Math.max(0, (item.intervalCount ?? 0) - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount ?? 0})
                                                 </span>
                                             )}
                                             {isSkipped && (

@@ -393,6 +393,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
 // --- SUB-COMPONENT: NODE ---
 const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
+    const { t } = useTranslation();
     const isCurrent = node.status === 'current';
     const isLocked = node.status === 'locked';
     const isCompleted = node.status === 'completed';

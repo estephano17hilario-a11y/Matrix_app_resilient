@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Check, ArrowUp, Minus, Plus } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 interface ValidationModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface ValidationModalProps {
 }
 
 export const ValidationModal = React.memo(({ isOpen, habit, onClose, attributes, valTempValue, setValTempValue, setValidationHabit, onValidate }: ValidationModalProps) => {
+    const { t } = useTranslation();
     // To prevent mobile ghost clicks from closing the modal immediately after mounting,
     // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
     // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.

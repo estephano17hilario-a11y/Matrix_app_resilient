@@ -3,7 +3,7 @@ import { UserStats } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
 import { persistenceService } from './persistenceService';
 import { TRAITS_LIST } from '../modules/dashboard/constants';
-import { calculateSubTraitMaxXp, calculateAttributeMaxXp, calculateXpForLevel, calculateNextLevelXp } from '../utils/leveling';
+import { calculateNextLevelXp } from '../utils/leveling';
 
 const TRAIT_ICON_NAMES: Record<string, string> = {
     DISCIPLINA: 'Target',
@@ -498,12 +498,38 @@ export const TransactionService = {
             const attrs = await persistenceService.attributes.getAll(userId);
             const attr = attrs?.find(a => a.id === attributeUpdates.id);
             if (attr) {
+                // Prevent progress downgrades
+                const currentProgress = (attr.level || 1) * 1000000 + (attr.xp || 0);
+                const newProgress = (attributeUpdates.level || 1) * 1000000 + (attributeUpdates.xp || 0);
+                
+                const finalLevel = Math.max(attr.level || 1, attributeUpdates.level);
+                const finalXp = newProgress > currentProgress ? attributeUpdates.xp : (attr.xp || 0);
+                const finalMaxXp = newProgress > currentProgress ? attributeUpdates.maxXp : (attr.maxXp || 80);
+
+                // Handle subtraits: keep higher progress for each subtrait
+                let finalSubTraits = attr.subTraits ? [...attr.subTraits] : [];
+                if (attributeUpdates.subTraits) {
+                    attributeUpdates.subTraits.forEach(updateSub => {
+                        const idx = finalSubTraits.findIndex(s => s.id === updateSub.id);
+                        if (idx === -1) {
+                            finalSubTraits.push(updateSub);
+                        } else {
+                            const currentSub = finalSubTraits[idx];
+                            const currentSubProg = (currentSub.level || 1) * 1000000 + (currentSub.xp || 0);
+                            const updateSubProg = (updateSub.level || 1) * 1000000 + (updateSub.xp || 0);
+                            if (updateSubProg > currentSubProg) {
+                                finalSubTraits[idx] = updateSub;
+                            }
+                        }
+                    });
+                }
+
                 await persistenceService.attributes.save(userId, {
                     ...attr,
-                    xp: attributeUpdates.xp,
-                    level: attributeUpdates.level,
-                    maxXp: attributeUpdates.maxXp,
-                    subTraits: attributeUpdates.subTraits || attr.subTraits,
+                    xp: finalXp,
+                    level: finalLevel,
+                    maxXp: finalMaxXp,
+                    subTraits: finalSubTraits,
                     history: attributeUpdates.history || attr.history
                 });
             } else {
@@ -527,7 +553,7 @@ export const TransactionService = {
         }
     },
 
-    halveStats: async (userId: string, currentAttributes: any[], currentLevel: number) => {
+    halveStats: async (userId: string, _currentAttributes: any[], currentLevel: number) => {
         try {
             console.log("🛡️ [TransactionService] halveStats called, but stats halving/penalties are DISABLED to ensure data persistence.");
             

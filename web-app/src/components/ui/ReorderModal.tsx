@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, GripVertical, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ReorderItemBase {
  id: string;
@@ -26,6 +27,7 @@ export const ReorderModal = <T extends ReorderItemBase>({
  title,
  getItemColor
 }: ReorderModalProps<T>) => {
+ const { t } = useTranslation();
  const [orderedItems, setOrderedItems] = useState<T[]>(items);
 
  useEffect(() => {

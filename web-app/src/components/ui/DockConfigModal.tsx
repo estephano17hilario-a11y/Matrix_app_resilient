@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 
 export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED';
@@ -47,6 +48,7 @@ interface DockConfigModalProps {
 }
 
 export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigModalProps) => {
+ const { t } = useTranslation();
  const [localConfig, setLocalConfig] = useState<DockConfig>(config);
  const [activeTab, setActiveTab] = useState<'organize' | 'expanded'>('organize');
  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);

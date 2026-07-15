@@ -189,7 +189,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
  <div className="p-4 space-y-1.5 overflow-y-auto no-scrollbar flex-1">
   {visibleItems.map((item, index) => {
   const itemColor = item.color || habitColor;
-  const isCompleted = item.completed || item.history?.includes(todayKey);
+  const isCompleted = !!(item.completed || item.history?.includes(todayKey));
   const isSkipped = item.skippedHistory?.includes(todayKey);
   const isDoneOrSkipped = isCompleted || isSkipped;
   
@@ -252,7 +252,7 @@ export const ChecklistModal: React.FC<ChecklistModalProps> = ({ habit, isOpen, o
   {item.text}
   {item.intervalType && item.intervalType !== 'NONE' && (
       <span className="text-xs text-cyan-400 font-mono ml-2 font-black">
-          ({Math.max(0, item.intervalCount - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount})
+          ({Math.max(0, (item.intervalCount ?? 0) - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount ?? 0})
       </span>
   )}
   {isSkipped && (

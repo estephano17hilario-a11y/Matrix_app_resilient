@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ShieldCheck, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 import { hashPin } from '../../utils/crypto';
 
@@ -27,6 +28,7 @@ export const SecurityGate = memo(({
     isRecoveryAllowed = false,
     onRecovery
 }: SecurityGateProps) => {
+    const { t } = useTranslation();
     const [input, setInput] = useState('');
     const [error, setError] = useState(false);
     const [success, setSuccess] = useState(false);

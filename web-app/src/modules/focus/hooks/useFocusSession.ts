@@ -224,16 +224,20 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
     };
 
-    const resetSession = useCallback((customMode?: 'POMO' | 'STOPWATCH') => {
+    const resetSession = useCallback((customMode?: 'POMO' | 'STOPWATCH', resetRoutine = true) => {
         const nextMode = customMode || mode;
         setMode(nextMode);
         
         const steps = resolveActiveRoutineSteps(project);
         setRoutineSteps(steps);
-        setCurrentStepIdx(0);
+        
+        if (resetRoutine) {
+            setCurrentStepIdx(0);
+        }
 
         if (nextMode === 'POMO') {
-            const initial = steps.length > 0 ? steps[0].duration * 60 : project.pomoDuration * 60;
+            const stepIdx = resetRoutine ? 0 : currentStepIdx;
+            const initial = steps.length > 0 ? (steps[stepIdx]?.duration || project.pomoDuration) * 60 : project.pomoDuration * 60;
             setTimeLeft(initial);
             setTotalDuration(initial);
         } else {
@@ -242,10 +246,61 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         }
         setIsActive(false);
         setIsPaused(false);
-        localStorage.removeItem(STORAGE_KEY);
+
+        if (resetRoutine) {
+            localStorage.removeItem(STORAGE_KEY);
+        } else {
+            // Save state but preserve currentStepIdx
+            const now = Date.now();
+            const state: FocusSessionState = {
+                projectId: project.id,
+                mode: nextMode,
+                isActive: false,
+                isPaused: false,
+                timeLeft: nextMode === 'POMO' ? (steps[currentStepIdx]?.duration || project.pomoDuration) * 60 : 0,
+                totalDuration: nextMode === 'POMO' ? (steps[currentStepIdx]?.duration || project.pomoDuration) * 60 : 0,
+                startTime: null,
+                targetTime: null,
+                lastUpdated: now,
+                currentStepIdx
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
         cancelLocalNotification();
         cancelOngoingNotification();
-    }, [project, STORAGE_KEY, mode, resolveActiveRoutineSteps]);
+    }, [project, STORAGE_KEY, mode, resolveActiveRoutineSteps, currentStepIdx]);
+
+    const changeStep = useCallback((idx: number) => {
+        const steps = resolveActiveRoutineSteps(project);
+        if (idx < 0 || idx >= steps.length) return;
+        
+        setCurrentStepIdx(idx);
+        if (mode === 'POMO') {
+            const duration = steps[idx].duration * 60;
+            setTimeLeft(duration);
+            setTotalDuration(duration);
+        }
+        
+        // Sync to localStorage
+        const now = Date.now();
+        const state: FocusSessionState = {
+            projectId: project.id,
+            mode,
+            isActive: false,
+            isPaused: false,
+            timeLeft: mode === 'POMO' ? steps[idx].duration * 60 : 0,
+            totalDuration: mode === 'POMO' ? steps[idx].duration * 60 : 0,
+            startTime: null,
+            targetTime: null,
+            lastUpdated: now,
+            currentStepIdx: idx
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setIsActive(false);
+        setIsPaused(false);
+        cancelLocalNotification();
+        cancelOngoingNotification();
+    }, [project, mode, STORAGE_KEY, resolveActiveRoutineSteps]);
 
     const toggleTimer = useCallback(() => {
         if (!isActive) {
@@ -257,7 +312,7 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     }, [isActive]);
 
     const stopSession = useCallback(() => {
-        resetSession(mode);
+        resetSession(mode, false);
     }, [resetSession, mode]);
 
     // 1. Load State on Mount (or Project Change)
@@ -658,7 +713,8 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         currentStepIdx,
         setCurrentStepIdx,
         setRoutineSteps,
-        resolveActiveRoutineSteps
+        resolveActiveRoutineSteps,
+        changeStep
     };
 };
 

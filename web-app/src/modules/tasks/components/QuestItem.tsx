@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar, Play, Hourglass } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar, Play } from 'lucide-react';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Quest, Attribute, Project } from '../../../types';

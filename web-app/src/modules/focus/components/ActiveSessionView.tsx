@@ -576,7 +576,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     toggleTimer,
     stopSession,
     routineSteps,
-    currentStepIdx
+    currentStepIdx,
+    changeStep
   } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
   // Re-check scroll indicator whenever routine steps change while in ROADMAP view
@@ -960,8 +961,9 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                     return (
                       <div
                         key={step.id || idx}
+                        onClick={() => changeStep(idx)}
                         className={cn(
-                          "w-1/2 flex items-center relative",
+                          "w-1/2 flex items-center relative cursor-pointer hover:opacity-85 transition-all active:scale-[0.98]",
                           isFocus ? "self-end justify-start pl-3" : "self-start justify-end pr-3 text-right"
                         )}
                       >

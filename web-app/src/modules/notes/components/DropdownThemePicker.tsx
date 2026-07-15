@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Project } from '../../../types';
+import { useTranslation } from 'react-i18next';
 
 // Moved constants here or import them if they are shared
 export const NOTE_THEMES = [
@@ -19,6 +20,7 @@ export const NOTE_THEMES = [
 ];
 
 export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activeProject, onSelectProject }: { currentTheme: string, onSelect: (id: string) => void, projects: Project[] | null, activeProject: string | undefined, onSelectProject: (id: string | undefined) => void }) => {
+ const { t } = useTranslation();
  const [isOpen, setIsOpen] = useState(false);
  const activeColor = NOTE_THEMES.find(t => t.id === currentTheme)?.color || '#fff';
  

@@ -2,12 +2,14 @@ import React from 'react';
 import { DailyLimits } from '../../types/User';
 import { Zap, Coins, Dna } from 'lucide-react';
 import { TourLightbulb } from '../../components/TourLightbulb';
+import { useTranslation } from 'react-i18next';
 
 interface FocusLimitsProps {
   dailyLimits: DailyLimits;
 }
 
 export const FocusLimits: React.FC<FocusLimitsProps> = ({ dailyLimits }) => {
+  const { t } = useTranslation();
   const currentXP = dailyLimits?.focusXp || 0;
   const currentTP = dailyLimits?.focusTraitPoints || 0;
   const currentCoins = dailyLimits?.focusGold || 0;

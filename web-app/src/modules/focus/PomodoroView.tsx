@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project, Attribute, Quest } from '../../types';
 import { ActiveSessionView } from './components/ActiveSessionView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Zap, Clock, X, Hourglass, Plus, Trash2, Save, Calendar, Check, Edit3 } from 'lucide-react';
+import { ChevronDown, Zap } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 
@@ -12,7 +12,7 @@ interface PomodoroViewProps {
  attributes: Attribute[];
  quests: Quest[];
  onExit: () => void;
- onCompleteSession: (projectId: string | null, duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string) => void;
+ onCompleteSession: (projectId: string | null, duration: number, type: 'POMO' | 'STOPWATCH', subTraitId?: string, isCompletedNaturally?: boolean) => void;
  onUpdateProject: (p: Project) => void;
  onDeleteSession?: (projectId: string, sessionId: string) => void;
  onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void;

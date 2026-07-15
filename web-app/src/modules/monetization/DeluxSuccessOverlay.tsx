@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Unlock, Zap, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useTranslation } from 'react-i18next';
 
 interface DeluxSuccessOverlayProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface DeluxSuccessOverlayProps {
 }
 
 export const DeluxSuccessOverlay: React.FC<DeluxSuccessOverlayProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [stage, setStage] = useState(0);
 
   useEffect(() => {

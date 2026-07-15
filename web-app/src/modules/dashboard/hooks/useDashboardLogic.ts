@@ -2563,7 +2563,6 @@ export const useDashboardLogic = () => {
                         const isSuccess = targetType === 'neutral' ? balance >= 0 : balance > 0;
                         
                         let updatedStreak = habit.streak || 0;
-                        let relapsed = false;
                         let updatedHistory = [...(habit.history || [])];
 
                         if (isSuccess) {
@@ -2603,7 +2602,6 @@ export const useDashboardLogic = () => {
                             }
                         } else {
                             updatedStreak = 0;
-                            relapsed = true;
                             updatedHistory.push(lastChecked.toISOString().split('T')[0]);
 
                             const penalty = habit.penalties || { hp: 15, xp: 30, gold: 60 };
@@ -3080,6 +3078,11 @@ export const useDashboardLogic = () => {
 
     const updateAttributeXp = useCallback((attrId: string, amount: number, subAttrId?: string) => {
         if (!user?.id || user.isSkeleton) return;
+        
+        if (amount <= 0) {
+            console.log(`⚠️ Ignored negative/zero trait XP update for ${attrId}: ${amount}`);
+            return;
+        }
         
         if (attrId && attrId.includes(',')) {
             const attrIds = attrId.split(',').map(s => s.trim()).filter(Boolean);

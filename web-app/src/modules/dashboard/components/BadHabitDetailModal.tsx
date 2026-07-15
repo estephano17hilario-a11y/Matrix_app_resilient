@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Skull, TrendingUp, Flame, Clock } from 'lucide-react';
 import { BadHabit, Attribute } from '../../../types';
+import { useTranslation } from 'react-i18next';
 import { differenceInDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -21,6 +22,7 @@ export const BadHabitDetailModal: React.FC<BadHabitDetailModalProps> = ({
  attributes,
  attribute
 }) => {
+ const { t } = useTranslation();
  const stats = useMemo(() => {
  if (!habit) return null;
  

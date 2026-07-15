@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface MoodSnakeChartProps {
     data: {
@@ -30,6 +31,7 @@ const getControlPoints = (p1: any, p2: any, p3: any, t = 0.3) => {
 };
 
 export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
+    const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
