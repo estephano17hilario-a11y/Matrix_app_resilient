@@ -197,7 +197,7 @@ export default function Dashboard() {
 
  const { t, i18n } = useTranslation();
  // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
- const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS']));
+ const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'ACHIEVEMENTS', 'STORE', 'FEED']));
  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
  const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
@@ -1617,14 +1617,17 @@ export default function Dashboard() {
  )}
 
  
- <main className={`relative ${isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')} ${currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'max-w-none' : APP_MAX_WIDTH} mx-auto min-h-screen pt-2 pb-0 flex flex-col ${currentView === 'FOCUS' || currentView === 'ACHIEVEMENTS' || currentView === 'HABITS' ? 'px-0 gap-0' : `px-4 sm:px-6 ${showProfile ? 'gap-4' : 'gap-2'}`}`}>
+ <main className={cn(
+    "relative w-full mx-auto min-h-screen pt-2 pb-0 flex flex-col",
+    isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')
+  )}>
 
   <div 
     className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}
     style={{ visibility: isBackgroundHidden ? 'hidden' : 'visible' }}
   >
  {/* ⚡ TASKS VIEW (Always loaded initially) */}
- <ViewContainer isActive={currentView === 'TASKS'} className="h-full">
+  <ViewContainer isActive={currentView === 'TASKS'} className={cn("h-full px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH, showProfile ? 'gap-4' : 'gap-2')}>
  <div className="flex flex-col gap-4 h-full min-h-0">
 
  {/* ⚡ TASK SECTION SWITCHER */}
@@ -1736,7 +1739,7 @@ export default function Dashboard() {
 
  {/* HABITS */}
  {(loadedViews.has('HABITS') || currentView === 'HABITS') && (
- <ViewContainer isActive={currentView === 'HABITS'}>
+  <ViewContainer isActive={currentView === 'HABITS'} className="w-full max-w-none px-0 gap-0">
  {/* SECTION SWITCHER (RESTORED) */}
  {habitSectionControl === 'VISIBLE' && (
  <div className="flex justify-center pt-2 pb-1 z-10 relative">
@@ -1792,7 +1795,7 @@ export default function Dashboard() {
  )}
 
  {/* FOCUS */}
- <ViewContainer isActive={currentView === 'FOCUS'} className="h-full pt-0" variant="minimal">
+  <ViewContainer isActive={currentView === 'FOCUS'} className="w-full h-full pt-0 px-0 gap-0 max-w-none" variant="minimal">
  <Suspense fallback={<SuspenseFallback />}>
  <FocusView 
  projects={projects} 
@@ -1826,7 +1829,7 @@ export default function Dashboard() {
 
  {/* NOTES */}
  {(loadedViews.has('NOTES') || currentView === 'NOTES') && (
- <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className="h-full pt-0 flex-1">
+  <ViewContainer isActive={currentView === 'NOTES'} id="NOTES" className={cn("h-full pt-0 flex-1 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
  <Suspense fallback={<SuspenseFallback />}>
  <NotesView 
  onInteractionStart={handleInteractionStart}
@@ -1848,7 +1851,7 @@ export default function Dashboard() {
 
  {/* ACHIEVEMENTS */}
  {(loadedViews.has('ACHIEVEMENTS') || currentView === 'ACHIEVEMENTS') && (
- <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} id="ACHIEVEMENTS" className="h-full pt-0 flex-1">
+  <ViewContainer isActive={currentView === 'ACHIEVEMENTS'} id="ACHIEVEMENTS" className="w-full h-full pt-0 flex-1 px-0 gap-0 max-w-none">
  <Suspense fallback={<SuspenseFallback />}>
  <AchievementsScreen />
  </Suspense>
@@ -1857,7 +1860,7 @@ export default function Dashboard() {
 
  {/* STORE */}
  {(loadedViews.has('STORE') || currentView === 'STORE') && (
- <ViewContainer isActive={currentView === 'STORE'} id="STORE" className="h-full pt-0">
+  <ViewContainer isActive={currentView === 'STORE'} id="STORE" className={cn("h-full pt-0 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
  <Suspense fallback={<SuspenseFallback />}>
  <StoreScreen onNavigate={(view) => setCurrentView(view)} />
  </Suspense>
@@ -1866,7 +1869,7 @@ export default function Dashboard() {
 
  {/* FEED DE MEJORA */}
  {(loadedViews.has('FEED') || currentView === 'FEED') && (
- <ViewContainer isActive={currentView === 'FEED'} id="FEED" className="h-full pt-0 flex-1">
+  <ViewContainer isActive={currentView === 'FEED'} id="FEED" className={cn("h-full pt-0 flex-1 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
  <Suspense fallback={<SuspenseFallback />}>
  <ImprovementFeedView
  userId={user?.id}

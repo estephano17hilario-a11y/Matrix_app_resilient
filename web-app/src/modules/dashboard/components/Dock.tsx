@@ -249,18 +249,18 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <motion.div 
  initial={false}
  animate={{ 
- height: isOpen ? dynamicHeight : 72,
  width: '92vw',
- maxWidth: 380,
- borderRadius: 36
- }}
- transition={{ 
- type: "spring", 
- stiffness: 300, 
- damping: 28
+ maxWidth: 380
  }}
   className="pointer-events-none relative border border-white/[0.10] shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] overflow-hidden backdrop-blur-xl bg-black/50"
-  style={{ willChange: 'transform, height', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+  style={{ 
+    height: isOpen ? `${dynamicHeight}px` : '72px',
+    borderRadius: '36px',
+    transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+    willChange: 'height, border-radius', 
+    backdropFilter: 'blur(16px)', 
+    WebkitBackdropFilter: 'blur(16px)' 
+  }}
   >
   {/* Fake-glass: top highlight line */}
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
@@ -345,19 +345,19 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  >
  {/* Contenedor Animado */} 
  <motion.div 
-    layout
     initial={false}
-    animate={{
-      height: isOpen ? dynamicHeight : 70,
-      borderRadius: isOpen ? 32 : 34
+    className={` 
+    pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
+    border border-white/[0.10] overflow-hidden backdrop-blur-xl bg-black/50
+    ${isOpen ? 'aura-active' : ''} 
+    `}
+    style={{ 
+      height: isOpen ? `${dynamicHeight}px` : '70px',
+      borderRadius: isOpen ? '32px' : '34px',
+      transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+      willChange: 'height, border-radius', 
+      backgroundColor: 'rgba(0,0,0,0.07)' 
     }}
-  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-  style={{ willChange: 'transform, height', backgroundColor: 'rgba(0,0,0,0.07)' }}
-  className={` 
-  pointer-events-auto relative aura-container box-border w-[85vw] max-w-[320px] shadow-2xl 
-  border border-white/[0.10] overflow-hidden backdrop-blur-xl bg-black/50
-  ${isOpen ? 'aura-active' : ''} 
-  `}
   > 
   {/* Fake-glass: top highlight line */}
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
@@ -451,24 +451,23 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <motion.div 
  initial={false}
  animate={{ 
- height: isOpen ? dynamicHeight : 72,
- borderRadius: isOpen ? 32 : 36,
  width: '85vw',
  maxWidth: 320
 }}
- transition={liquidSpring}
  className={containerClass}
- style={{ overflow: 'visible', willChange: 'height, border-radius' }}
+ style={{ 
+   overflow: 'visible', 
+   height: isOpen ? `${dynamicHeight}px` : '72px',
+   borderRadius: isOpen ? '32px' : '36px',
+   transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+   willChange: 'height, border-radius' 
+ }}
  >
-   <motion.div 
-   initial={false}
-   animate={{ 
-   borderRadius: isOpen ? 32 : 36
-   }}
-   transition={liquidSpring}
+   <div 
    className="absolute inset-0 z-10 pointer-events-none overflow-hidden"
    style={{ 
-     borderRadius: isOpen ? 32 : 36,
+     borderRadius: isOpen ? '32px' : '36px',
+     transition: 'border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
      willChange: 'border-radius'
    }}
    >
@@ -479,15 +478,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
           backgroundColor: 'rgba(0, 0, 0, 0.45)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          borderRadius: isOpen ? 32 : 36,
           transform: 'translateZ(0)',
           backfaceVisibility: 'hidden'
         }}
       />
       {/* Fake-glass: top highlight line */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" style={{ borderRadius: isOpen ? 32 : 36 }} />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
       {/* Fake-glass: sheen overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" style={{ borderRadius: isOpen ? 32 : 36 }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
       <div className="relative w-full h-full pointer-events-auto">
   <motion.div 
   initial={false}
@@ -541,7 +539,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   </div>
   </div>
   </div>
-  </motion.div>
+  </div>
  </motion.div>
  </motion.div>
  </>

@@ -155,9 +155,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         PersistenceService.saveCollectionSafe(user.id, 'notes', computedNextNotes);
 
         if (!isNew) {
-            await persistenceService.notes.update(user.id, note.id, note);
+            persistenceService.notes.update(user.id, note.id, note).catch(err => console.error("Error updating note:", err));
         } else {
-            await persistenceService.notes.save(user.id, note);
+            persistenceService.notes.save(user.id, note).catch(err => console.error("Error saving note:", err));
         }
         return { isNew };
     }, [user?.id]);
@@ -172,7 +172,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         PersistenceService.saveCollectionSafe(user.id, 'notes', computedNextNotes);
 
         // Persistence
-        await persistenceService.notes.delete(user.id, noteId);
+        persistenceService.notes.delete(user.id, noteId).catch(err => console.error("Error deleting note:", err));
     }, [user?.id]);
 
     const updateJournal = useCallback(async (entry: JournalEntry) => {
@@ -200,9 +200,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         PersistenceService.saveCollectionSafe(user.id, 'journal', computedNextEntries);
 
         if (!isNew) {
-            await persistenceService.journal.update(user.id, entry.id, entry);
+            persistenceService.journal.update(user.id, entry.id, entry).catch(err => console.error("Error updating journal:", err));
         } else {
-            await persistenceService.journal.save(user.id, entry);
+            persistenceService.journal.save(user.id, entry).catch(err => console.error("Error saving journal:", err));
         }
         return { isNew };
     }, [user?.id]);

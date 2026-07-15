@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -15,7 +15,7 @@ import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { NotesProvider } from '@/modules/notes/context/NotesContext';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { MotionConfig } from 'framer-motion';
+import { MotionConfig, motion, AnimatePresence } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
@@ -82,6 +82,17 @@ const AppRoutes = () => {
       );
     }
 
+    const [showSplash, setShowSplash] = useState(true);
+
+    useEffect(() => {
+      if (dashboardUnlocked) {
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }, [dashboardUnlocked]);
+
     // Show LoadingScreen ONLY on the very first load (before dashboardUnlocked latches).
     // Once dashboardUnlocked=true, we ALWAYS render the Dashboard tree — never a LoadingScreen.
     // This prevents Dashboard unmounts from destroying modal state mid-interaction.
@@ -95,6 +106,19 @@ const AppRoutes = () => {
           <EconomyProvider>
             <NotesProvider>
               <Dashboard />
+              <AnimatePresence>
+                {showSplash && (
+                  <motion.div
+                    key="startup-splash-overlay"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    className="fixed inset-0 z-[9999] pointer-events-auto"
+                  >
+                    <LoadingScreen />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </NotesProvider>
           </EconomyProvider>
         </LuxProvider>

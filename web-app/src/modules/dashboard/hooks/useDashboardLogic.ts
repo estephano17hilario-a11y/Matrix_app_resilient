@@ -2224,9 +2224,9 @@ export const useDashboardLogic = () => {
         // Optimistic update
         setAttributes(prev => [...prev, newAttr]);
 
-        // Save to DB
-        if (!user?.id) return;
-        await persistenceService.attributes.save(user.id, newAttr);
+        if (user?.id) {
+            persistenceService.attributes.save(user.id, newAttr).catch(err => console.error("Error saving restored attribute:", err));
+        }
     };
 
     const addCustomAttribute = async (attrData: Omit<Attribute, 'id' | 'level' | 'xp' | 'maxXp'>) => {
@@ -2249,7 +2249,7 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
             return next;
         });
-        await persistenceService.attributes.save(user.id, newAttr);
+        persistenceService.attributes.save(user.id, newAttr).catch(err => console.error("Error saving custom attribute:", err));
     };
 
     const removeAttribute = async (traitId: string) => {
@@ -3269,25 +3269,24 @@ export const useDashboardLogic = () => {
             console.warn("useDashboardLogic: No user.id found, skipping addSubTrait");
             return;
         }
+        const newSub = {
+            id: 'SUB_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            name,
+            level: 1,
+            xp: 0,
+            maxXp: calculateSubTraitMaxXp(1), // Starting level 1 max xp
+            iconName: iconName || 'Hexagon'
+        };
+        let updatedAttr: Attribute | null = null;
         setAttributes(prev => {
             console.log("useDashboardLogic: setAttributes updating, current list length:", prev.length);
             const next = prev.map(attr => {
                 if (attr.id === parentAttrId) {
                     const subTraits = attr.subTraits ? [...attr.subTraits] : [];
-                    const newSub = {
-                        id: 'SUB_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                        name,
-                        level: 1,
-                        xp: 0,
-                        maxXp: calculateSubTraitMaxXp(1), // Starting level 1 max xp
-                        iconName: iconName || 'Hexagon'
-                    };
-                    const updatedAttr = {
+                    updatedAttr = {
                         ...attr,
                         subTraits: [...subTraits, newSub]
                     };
-                    console.log("useDashboardLogic: Saving updated attribute to Local DB & Supabase:", updatedAttr);
-                    persistenceService.attributes.save(user.id, updatedAttr);
                     return updatedAttr;
                 }
                 return attr;
@@ -3296,10 +3295,15 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
             return next;
         });
+        if (updatedAttr) {
+            console.log("useDashboardLogic: Saving updated attribute to Local DB & Supabase:", updatedAttr);
+            persistenceService.attributes.save(user.id, updatedAttr).catch(e => console.error("Error saving subtrait:", e));
+        }
     }, [user?.id]);
 
     const updateSubTrait = useCallback(async (parentAttrId: string, subTraitId: string, updates: any) => {
         if (!user?.id) return;
+        let updatedAttr: Attribute | null = null;
         setAttributes(prev => {
             const next = prev.map(attr => {
                 if (attr.id === parentAttrId) {
@@ -3309,8 +3313,7 @@ export const useDashboardLogic = () => {
                         }
                         return st;
                     }) : [];
-                    const updatedAttr = { ...attr, subTraits };
-                    persistenceService.attributes.save(user.id, updatedAttr);
+                    updatedAttr = { ...attr, subTraits };
                     return updatedAttr;
                 }
                 return attr;
@@ -3318,16 +3321,19 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
             return next;
         });
+        if (updatedAttr) {
+            persistenceService.attributes.save(user.id, updatedAttr).catch(e => console.error("Error updating subtrait:", e));
+        }
     }, [user?.id]);
 
     const deleteSubTrait = useCallback(async (parentAttrId: string, subTraitId: string) => {
         if (!user?.id) return;
+        let updatedAttr: Attribute | null = null;
         setAttributes(prev => {
             const next = prev.map(attr => {
                 if (attr.id === parentAttrId) {
                     const subTraits = attr.subTraits ? attr.subTraits.filter(st => st.id !== subTraitId) : [];
-                    const updatedAttr = { ...attr, subTraits };
-                    persistenceService.attributes.save(user.id, updatedAttr);
+                    updatedAttr = { ...attr, subTraits };
                     return updatedAttr;
                 }
                 return attr;
@@ -3335,6 +3341,9 @@ export const useDashboardLogic = () => {
             PersistenceService.saveCollection(user.id, 'attributes', next.map(({ icon, ...rest }) => rest));
             return next;
         });
+        if (updatedAttr) {
+            persistenceService.attributes.save(user.id, updatedAttr).catch(e => console.error("Error deleting subtrait:", e));
+        }
     }, [user?.id]);
 
     const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string, isCompletedNaturally?: boolean) => {
@@ -5540,9 +5549,9 @@ export const useDashboardLogic = () => {
         }
 
         try {
-            await persistenceService.quests.delete(user.id, questId);
+            persistenceService.quests.delete(user.id, questId).catch(err => console.error("Error deleting quest:", err));
         } catch (error) {
-            console.error("Error deleting quest:", error);
+            console.error("Error deleting quest catch block:", error);
         }
     }, [user]);
 
@@ -6007,19 +6016,22 @@ export const useDashboardLogic = () => {
                         habitsCompleted: Math.max(0, (dailyLim.habitsCompleted || 0) - 1)
                     }
                 };
-                const { error: updateErr } = await supabase.from('users')
+            Promise.resolve(
+                supabase.from('users')
                     .update({ stats: updatedStats })
-                    .eq('id', user.id);
-                if (updateErr) throw updateErr;
-            } catch (e: any) {
-                console.error("Failed to update daily limits after habit deletion", e);
-            }
+                    .eq('id', user.id)
+            )
+            .then(({ error }) => { if (error) throw error; })
+            .catch((e: any) => console.error("Failed to update daily limits after habit deletion", e));
+        } catch (e: any) {
+            console.error("Failed to update daily limits after habit deletion", e);
         }
+    }
 
         try {
-            await persistenceService.habits.delete(user.id, habitId);
+            persistenceService.habits.delete(user.id, habitId).catch(err => console.error("Error deleting habit:", err));
         } catch (error) {
-            console.error("Error deleting habit:", error);
+            console.error("Error deleting habit catch block:", error);
         }
     }, [user, habits, dailyLimits]);
 
@@ -6438,7 +6450,7 @@ export const useDashboardLogic = () => {
             return newBadHabits;
         });
 
-        await persistenceService.badHabits.save(user.id, badHabit);
+        persistenceService.badHabits.save(user.id, badHabit).catch(err => console.error("Error saving bad habit:", err));
         setActiveModal(null);
     }, [user?.id, addNotification, spawnParticles]);
 
@@ -6558,7 +6570,7 @@ export const useDashboardLogic = () => {
             return newBadHabits;
         });
 
-        await persistenceService.badHabits.save(user.id, updatedHabit);
+        persistenceService.badHabits.save(user.id, updatedHabit).catch(err => console.error("Error saving relapsed bad habit:", err));
 
     }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, player.level, attributes]);
 
@@ -6579,7 +6591,7 @@ export const useDashboardLogic = () => {
             return newBadHabits;
         });
 
-        await persistenceService.badHabits.save(user.id, updatedHabit);
+        persistenceService.badHabits.save(user.id, updatedHabit).catch(err => console.error("Error updating bad habit balance:", err));
 
         if (diff !== 0) {
             const isPositive = diff > 0;
@@ -6671,7 +6683,7 @@ export const useDashboardLogic = () => {
         });
 
         // Also remove from Supabase
-        await persistenceService.badHabits.delete(user.id, id);
+        persistenceService.badHabits.delete(user.id, id).catch(err => console.error("Error deleting bad habit:", err));
     }, [user?.id]);
 
     const handleReorderHabits = useCallback(async (newOrder: Habit[]) => {
