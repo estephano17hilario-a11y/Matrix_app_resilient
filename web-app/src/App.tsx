@@ -18,6 +18,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MotionConfig, motion, AnimatePresence } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
+import { cn } from '@/utils/cn';
 
 import { AuroraBackground } from '@/components/AuroraBackground';
 import Dashboard from './Dashboard';
@@ -56,6 +57,24 @@ const AppRoutes = () => {
     }
   }, [isLoading, profile, isInitializing]);
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Reset splash screen status on logout so it triggers again on next login
+  useEffect(() => {
+    if (!canEnterLux) {
+      setShowSplash(true);
+    }
+  }, [canEnterLux]);
+
+  useEffect(() => {
+    if (dashboardUnlocked) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [dashboardUnlocked]);
+
   // If Supabase is still thinking about the session, don't render ANYTHING.
   // The native Splash Screen will stay visible, preventing flicker.
   if (isInitializing) {
@@ -82,17 +101,6 @@ const AppRoutes = () => {
       );
     }
 
-    const [showSplash, setShowSplash] = useState(true);
-
-    useEffect(() => {
-      if (dashboardUnlocked) {
-        const timer = setTimeout(() => {
-          setShowSplash(false);
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
-    }, [dashboardUnlocked]);
-
     // Show LoadingScreen ONLY on the very first load (before dashboardUnlocked latches).
     // Once dashboardUnlocked=true, we ALWAYS render the Dashboard tree — never a LoadingScreen.
     // This prevents Dashboard unmounts from destroying modal state mid-interaction.
@@ -105,7 +113,9 @@ const AppRoutes = () => {
         <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <NotesProvider>
-              <Dashboard />
+              <div className={cn("w-full h-full transition-opacity duration-500", showSplash ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                <Dashboard />
+              </div>
               <AnimatePresence>
                 {showSplash && (
                   <motion.div

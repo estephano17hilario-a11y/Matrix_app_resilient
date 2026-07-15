@@ -27,6 +27,18 @@ export interface ThemeConfig {
   isSolid?: boolean; // If true, disables orbs/aurora effects for a flat look
 }
 
+export const THEME_PRICES: Record<ThemeCategory, number> = {
+  minimal: 500,
+  nature: 1250,
+  flow: 1250,
+  orbs: 2000,
+  holo: 3000,
+  cosmic: 5000,
+};
+
+export const DEFAULT_UNLOCKED_THEMES: ThemeId[] = ['ether', 'stealth', 'modern_dark', 'modern_light'];
+
+
 export const THEMES: Record<ThemeId, ThemeConfig> = {
   ether: {
     id: 'ether',
@@ -74,7 +86,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'sunset',
     name: 'Sunset',
     description: 'Solar warmth',
-    category: 'flow',
+    category: 'orbs',
     colors: {
       bgDepth: '25 10 10', // Deep reddish brown
       primaryGlow: '255 80 0', // Bright Orange
@@ -89,6 +101,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Stealth',
     description: 'Tactical Monochrome',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '8 8 8', // Dark Grey
       primaryGlow: '255 255 255', // Pure White
@@ -103,6 +116,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Apple',
     description: 'Titanium & Silver',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '25 25 28', // Titanium Grey
       primaryGlow: '255 255 255',
@@ -172,7 +186,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'glassmorphism_premium',
     name: 'Glass Premium',
     description: 'Crystal Clear',
-    category: 'minimal',
+    category: 'orbs',
     colors: {
       bgDepth: '40 40 50', // Lighter Grey-Blue for contrast
       primaryGlow: '255 255 255',
@@ -229,6 +243,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Enterprise',
     description: 'Corporate Blue',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '10 20 45', // Strong Navy
       primaryGlow: '60 120 255', // Royal Blue
@@ -242,7 +257,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'dorado',
     name: 'Dorado',
     description: 'Golden Hour',
-    category: 'flow',
+    category: 'orbs',
     colors: {
       bgDepth: '30 20 5', // Dark Gold/Brown
       primaryGlow: '255 200 0', // Gold
@@ -257,6 +272,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Serio',
     description: 'Executive Black',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '10 10 12',
       primaryGlow: '200 200 200',
@@ -271,6 +287,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'OLED',
     description: 'True Black Mastery',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '0 0 0',
       primaryGlow: '255 255 255',
@@ -284,7 +301,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'amy',
     name: 'San Valentin',
     description: 'Amor & Pasión',
-    category: 'flow',
+    category: 'orbs',
     colors: {
       bgDepth: '20 5 10', // Deep romantic red/burgundy
       primaryGlow: '244 63 94', // Rose-500 (Bright red/pink)
@@ -385,7 +402,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'luxury',
     name: 'Luxury',
     description: 'Gold & Velvet',
-    category: 'flow',
+    category: 'orbs',
     colors: {
       bgDepth: '15 10 5', // Deep Brown/Black
       primaryGlow: '255 215 0', // Gold
@@ -400,6 +417,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     name: 'Graphite',
     description: 'Industrial Focus',
     category: 'minimal',
+    isSolid: true,
     colors: {
       bgDepth: '30 32 34', // Gunmetal
       primaryGlow: '160 170 180', // Steel Blue-Grey

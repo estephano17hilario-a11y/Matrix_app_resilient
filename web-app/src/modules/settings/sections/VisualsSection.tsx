@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
-import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Lock } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTheme } from '@/context/ThemeContext';
-import { THEMES, ThemeId } from '../../../config/themes';
+import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/context/AuthContext';
+import { useEconomy } from '@/context/EconomyContext';
+import toast from 'react-hot-toast';
+import confetti from 'canvas-confetti';
 
 type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -21,9 +25,15 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
 
 export const VisualsSection = () => {
   const { t } = useTranslation();
+  const { profile } = useAuth();
+  const { purchase } = useEconomy();
   const { currentTheme, setTheme, vividMode, toggleVividMode } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
+  
+  // Inline theme purchase states
+  const [themeToPurchase, setThemeToPurchase] = useState<ThemeConfig | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const handlePreview = (e: React.MouseEvent, themeId: ThemeId) => {
     e.stopPropagation();
@@ -45,6 +55,13 @@ export const VisualsSection = () => {
     };
   }, [previewTheme]);
 
+  const unlockedItems = profile?.unlocked_store_items || profile?.unlockedStoreItems || [];
+
+  const getThemeDisplayPrice = (themeId: ThemeId, category: ThemeCategory): number => {
+    if (DEFAULT_UNLOCKED_THEMES.includes(themeId)) return 0;
+    return THEME_PRICES[category] || 0;
+  };
+
   const filteredThemes = Object.values(THEMES).filter(theme => {
     if (selectedCategory === 'all') return true;
     if (selectedCategory === 'cosmic') return theme.category === 'cosmic';
@@ -55,8 +72,65 @@ export const VisualsSection = () => {
     return true;
   });
 
+  const sortedThemes = [...filteredThemes].sort((a, b) => {
+    const priceA = getThemeDisplayPrice(a.id, a.category);
+    const priceB = getThemeDisplayPrice(b.id, b.category);
+    if (priceA !== priceB) {
+      return priceA - priceB;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  const handleSelectTheme = (theme: ThemeConfig) => {
+    const isUnlocked = DEFAULT_UNLOCKED_THEMES.includes(theme.id) || unlockedItems.includes(theme.id);
+    if (isUnlocked) {
+      setTheme(theme.id);
+    } else {
+      setThemeToPurchase(theme);
+    }
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!themeToPurchase || !profile?.stats) return;
+    const price = THEME_PRICES[themeToPurchase.category] || 0;
+    const currentGold = profile.stats.gold || 0;
+
+    if (currentGold < price) {
+      toast.error(t('store.insufficientFunds', 'Fondos insuficientes (Oro)'));
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const themeStoreItem = {
+        id: themeToPurchase.id,
+        name: themeToPurchase.name,
+        description: themeToPurchase.description,
+        price: price,
+        category: 'theme' as const
+      };
+
+      const success = await purchase(themeStoreItem);
+      if (success) {
+        setTheme(themeToPurchase.id);
+        setThemeToPurchase(null);
+        toast.success(t('store.purchaseSuccess', '¡Tema adquirido con éxito!'));
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to purchase theme:", err);
+      toast.error(t('store.purchaseError', 'Error al realizar la compra'));
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 pb-4">
+    <div className="space-y-8 pb-4 relative">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">{t('settings.tabs.design', 'Visual')}</h2>
         <p className="text-white/40 text-sm">{t('settings.visualDesc', 'Customize themes and display settings.')}</p>
@@ -101,9 +175,19 @@ export const VisualsSection = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.visualTheme', 'Themes')}</h3>
-            <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1">
+              <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.visualTheme', 'Themes')}</h3>
+              <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+            </div>
+            {profile?.stats && (
+              <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 rounded-full shrink-0 shadow-sm">
+                <Coins size={12} className="text-yellow-400 animate-pulse" />
+                <span className="text-xs font-black text-yellow-300 tracking-tight">
+                  {profile.stats.gold || 0}
+                </span>
+              </div>
+            )}
           </div>
 
           {previewTheme && typeof document !== 'undefined' && createPortal(
@@ -150,12 +234,15 @@ export const VisualsSection = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {filteredThemes.map((theme) => {
+            {sortedThemes.map((theme) => {
               const isActive = currentTheme === theme.id;
+              const isUnlocked = DEFAULT_UNLOCKED_THEMES.includes(theme.id) || unlockedItems.includes(theme.id);
+              const price = getThemeDisplayPrice(theme.id, theme.category);
+
               return (
                 <motion.div
                   key={theme.id}
-                  onClick={() => setTheme(theme.id)}
+                  onClick={() => handleSelectTheme(theme)}
                   role="button"
                   tabIndex={0}
                   whileHover={{ scale: 1.02 }}
@@ -175,6 +262,16 @@ export const VisualsSection = () => {
                       {theme.name}
                     </span>
                   </div>
+
+                  {!isUnlocked && (
+                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 shadow-md z-10 pointer-events-none">
+                      <Lock size={10} className="text-white/60" />
+                      <Coins size={10} className="text-yellow-500 animate-pulse" />
+                      <span className="text-[10px] font-extrabold text-yellow-400">
+                        {price}
+                      </span>
+                    </div>
+                  )}
 
                   <button
                     onClick={(e) => handlePreview(e, theme.id)}
@@ -200,6 +297,76 @@ export const VisualsSection = () => {
           </div>
         </div>
       </div>
+
+      {/* Theme Purchase Confirmation Modal */}
+      <AnimatePresence>
+        {themeToPurchase && (
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in pointer-events-auto">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm bg-gradient-to-b from-[#18181b] to-[#09090b] border border-white/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-center"
+            >
+              {/* Glow behind */}
+              <div 
+                className="absolute -top-12 -left-12 w-40 h-40 rounded-full opacity-20 pointer-events-none filter blur-2xl"
+                style={{ background: themeToPurchase.gradient }}
+              />
+              
+              {/* Theme Preview Box */}
+              <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-inner mb-5 relative flex items-center justify-center group">
+                <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ background: themeToPurchase.gradient }} />
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+                <span className="relative z-10 text-white font-black tracking-widest text-lg uppercase drop-shadow-md">
+                  {themeToPurchase.name}
+                </span>
+              </div>
+
+              {/* Details */}
+              <h3 className="text-xl font-black text-white tracking-tight mb-2">
+                {t('settings.unlockTheme', 'Unlock Theme')}
+              </h3>
+              <p className="text-sm text-white/50 mb-6 px-2 leading-relaxed">
+                {themeToPurchase.description}
+              </p>
+
+              {/* Cost info */}
+              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/5 rounded-2xl py-3.5 px-5 w-fit mx-auto mb-8 shadow-sm">
+                <Coins size={22} className="text-yellow-400 animate-bounce" />
+                <span className="text-2xl font-black text-yellow-300 tracking-tight">
+                  {THEME_PRICES[themeToPurchase.category]}
+                </span>
+                <span className="text-xs font-bold text-white/40 uppercase tracking-wider">
+                  {t('economy.gold', 'Gold')}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleConfirmPurchase}
+                  disabled={isPurchasing}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-xs uppercase tracking-widest hover:from-yellow-600 hover:to-amber-600 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/10"
+                >
+                  {isPurchasing ? (
+                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    t('store.buyNow', 'Confirm Purchase')
+                  )}
+                </button>
+                <button
+                  onClick={() => setThemeToPurchase(null)}
+                  disabled={isPurchasing}
+                  className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-xs uppercase tracking-widest transition-all border border-white/5 active:scale-[0.98]"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
