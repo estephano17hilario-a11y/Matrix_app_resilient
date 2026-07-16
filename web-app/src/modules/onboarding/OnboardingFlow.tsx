@@ -77,11 +77,7 @@ export function OnboardingFlow() {
   // --- HARDWARE BACK BUTTON HANDLER ---
   useEffect(() => {
     const handleBackButton = async () => {
-        if (step === 'tutorial') {
-            setStep('background');
-        } else if (step === 'background') {
-            setStep('traits');
-        } else if (step === 'traits') {
+        if (step === 'traits') {
             setStep('avatar');
         } else if (step === 'avatar') {
             App.exitApp();
@@ -113,9 +109,7 @@ export function OnboardingFlow() {
       if (freeSelected.length < 1) {
          return;
       }
-      setStep('background');
-    } else if (step === 'background') {
-      setStep('tutorial');
+      handleSubmit();
     }
   };
 
@@ -204,9 +198,9 @@ export function OnboardingFlow() {
     if (typeof window !== 'undefined') {
         localStorage.setItem('lux_last_view', 'TASKS');
         localStorage.setItem('matrix_last_view', 'TASKS');
-        // Reset tutorial keys to force dashboard tour for this user
-        localStorage.removeItem(`matrix_stats_tutorial_seen_${userId}`);
-        localStorage.removeItem(`matrix_tour_seen_${userId}`);
+        // Mark tutorial keys as seen so they do NOT automatically appear for this user
+        localStorage.setItem(`matrix_stats_tutorial_seen_${userId}`, 'true');
+        localStorage.setItem(`matrix_tour_seen_${userId}`, 'true');
     }
 
     // 🔥 2. OPTIMISTIC UPDATE: Instantly trigger navigation and update UI
@@ -288,10 +282,9 @@ export function OnboardingFlow() {
                 exit={{ opacity: 0, y: -20 }}
                 className="absolute top-0 left-0 right-0 flex justify-center gap-2 py-10 z-[60] pointer-events-none"
               >
-                  {/* Visual Steps: Avatar -> Traits -> Tutorial */}
+                  {/* Visual Steps: Avatar -> Traits */}
                   <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'avatar' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
                   <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'traits' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
-                  <div className={`h-1.5 w-16 rounded-full transition-all duration-200 ${step === 'tutorial' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
               </motion.div>
           )}
         </AnimatePresence>

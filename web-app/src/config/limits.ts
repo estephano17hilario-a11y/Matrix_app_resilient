@@ -9,4 +9,4 @@ export const FREE_LIMITS = {
 
 // ⚡ GLOBAL OVERRIDE: Unlock PRO for everyone
 // Set to false to reactivate the subscription model.
-export const ENABLE_GLOBAL_PRO = true;
+export const ENABLE_GLOBAL_PRO = false;

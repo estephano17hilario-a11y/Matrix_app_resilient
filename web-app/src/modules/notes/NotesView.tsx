@@ -910,7 +910,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </AnimatePresence>
 
  {subView === 'NOTES' && (
- <div ref={notesContainerRef} className="flex-1 overflow-y-auto no-scrollbar pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
+ <div ref={notesContainerRef} className="flex-1 pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
  {isLocked ? (
  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
  <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
@@ -1130,7 +1130,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  </>
  ) : (
- <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-24 animate-in slide-in-from-right-8 duration-200">
+ <div className="flex-1 px-4 pb-24 animate-in slide-in-from-right-8 duration-200">
  <div className="relative">
  {/* Notebook Binding Effect */}
  <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
