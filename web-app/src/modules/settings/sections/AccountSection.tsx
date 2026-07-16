@@ -12,6 +12,7 @@ import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
+import { deductGoldForNameChange } from '../../../services/economyService';
 
 export const AccountSection = () => {
   const { t } = useTranslation();
@@ -119,22 +120,68 @@ export const AccountSection = () => {
       return;
     }
 
+    const targetId = user?.id || profile?.uid || profile?.id;
+    if (!targetId) {
+      setIsEditingName(false);
+      return;
+    }
+
+    // Check name change cost
+    const nameChangesCount = profile?.preferences?.nameChangesCount || 0;
+    const currentGold = profile?.stats?.gold || 0;
+    const price = 2000;
+
+    let confirmMsg = '';
+    if (nameChangesCount === 0) {
+      confirmMsg = t('settings.confirmNameFirstFree', `Tu primer cambio de nombre es GRATIS. ¿Deseas cambiar tu nombre a "${newName}"?`);
+    } else {
+      if (currentGold < price) {
+        toast.error(t('settings.insufficientGoldName', `Necesitas ${price} de oro para cambiar tu nombre.`));
+        return;
+      }
+      confirmMsg = t('settings.confirmNameCost', `Cambiar tu nombre costará ${price} de oro. ¿Deseas cambiar tu nombre a "${newName}"?`);
+    }
+
+    const confirmChange = window.confirm(confirmMsg);
+    if (!confirmChange) return;
+
     setIsSavingName(true);
     try {
+      // 1. Deduct gold and increment change count on Supabase
+      const res = await deductGoldForNameChange(targetId);
+      if (!res.success) {
+        throw new Error(res.error || "Gold deduction failed");
+      }
+
+      // 2. Update display_name in Auth metadata
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const { error: authError } = await supabase.auth.updateUser({ data: { display_name: newName } });
         if (authError) throw authError;
       }
 
-      const targetId = user?.id || profile?.uid || profile?.id;
-      if (targetId) {
-        const { error: dbError } = await supabase.from('users').update({ display_name: newName }).eq('id', targetId);
-        if (dbError) throw dbError;
+      // 3. Update display_name in users table
+      const { error: dbError } = await supabase.from('users').update({ display_name: newName }).eq('id', targetId);
+      if (dbError) throw dbError;
 
-        updateProfileLocally({ displayName: newName });
-        updateLuxLocally({ displayName: newName });
-        toast.success(t('settings.nameUpdated', 'Nombre de perfil actualizado con éxito'));
+      // 4. Update local state
+      updateProfileLocally({ 
+        displayName: newName,
+        stats: {
+          ...(profile?.stats || {}),
+          gold: res.newGold
+        },
+        preferences: {
+          ...(profile?.preferences || {}),
+          nameChangesCount: res.nameChangesCount
+        }
+      });
+      updateLuxLocally({ displayName: newName });
+      
+      if (res.cost > 0) {
+        toast.success(t('settings.nameUpdatedWithCost', `Nombre actualizado. Se dedujeron ${res.cost} de oro.`));
+      } else {
+        toast.success(t('settings.nameUpdatedFree', 'Nombre de perfil actualizado con éxito (Gratis).'));
       }
 
       setIsEditingName(false);

@@ -483,13 +483,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const nextEsPro = true;
 
           // 1. Instantly upgrade local profile state to PRO to unlock features
-          if (currentProfile.plan !== nextPlan || currentProfile.es_pro !== nextEsPro) {
+          if (currentProfile.plan !== nextPlan || currentProfile.es_pro !== nextEsPro || currentProfile.revenuecat_app_user_id !== currentProfile.id) {
             console.log(`[RevenueCat Sync] User is premium in RevenueCat. Optimistically updating local profile to PRO.`);
-            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro });
+            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro, revenuecat_app_user_id: currentProfile.id });
           }
 
           // 2. Perform DB update in the background (fire-and-forget) to keep client synchronized with server
-          if (!dbIsPro) {
+          if (!dbIsPro || currentProfile.revenuecat_app_user_id !== currentProfile.id) {
             console.log(`[RevenueCat Sync] Upgrading Supabase DB to PRO in the background...`);
             (async () => {
               for (let attempt = 1; attempt <= 3; attempt++) {
@@ -497,7 +497,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   console.log(`[RevenueCat Sync DB Update] Attempting (attempt ${attempt}/3)...`);
                   const { error } = await supabase
                     .from('users')
-                    .update({ plan: nextPlan, es_pro: nextEsPro, planExpiryDate: null })
+                    .update({ 
+                      plan: nextPlan, 
+                      es_pro: nextEsPro, 
+                      planExpiryDate: null,
+                      revenuecat_app_user_id: currentProfile.id 
+                    })
                     .eq('id', currentProfile.id);
                     
                   if (error) throw error;
@@ -512,8 +517,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               }
             })();
           }
-        } else if (dbIsPro) {
-          console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (relying on DB/Webhook/MercadoPago source of truth).");
+        } else {
+          // If NOT active in RevenueCat, but they currently have their own app ID registered as the RevenueCat purchase holder,
+          // it means their subscription was cancelled, expired, or transferred to another account.
+          // In this case, we MUST downgrade them back to FREE.
+          if (dbIsPro && currentProfile.revenuecat_app_user_id === currentProfile.id) {
+            console.log(`[RevenueCat Sync] User is no longer premium in RevenueCat. Downgrading to FREE.`);
+            
+            const nextPlan = 'FREE';
+            const nextEsPro = false;
+            
+            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro, revenuecat_app_user_id: null });
+            
+            (async () => {
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  const { error } = await supabase
+                    .from('users')
+                    .update({ 
+                      plan: nextPlan, 
+                      es_pro: nextEsPro, 
+                      revenuecat_app_user_id: null 
+                    })
+                    .eq('id', currentProfile.id);
+                  if (error) throw error;
+                  console.log(`[RevenueCat Sync] Supabase DB successfully downgraded to FREE.`);
+                  break;
+                } catch (err) {
+                  console.error(`[RevenueCat Sync Downgrade Update] Failed at attempt ${attempt}:`, err);
+                  if (attempt < 3) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                  }
+                }
+              }
+            })();
+          } else if (dbIsPro) {
+            console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (revenuecat_app_user_id is not set, meaning it is a manual or MercadoPago upgrade).");
+          }
         }
       } catch (e) {
         // 🔐 CRITICAL: If RevenueCat throws ANY error (network, config, etc.),

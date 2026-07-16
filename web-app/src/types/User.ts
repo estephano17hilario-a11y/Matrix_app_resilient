@@ -42,6 +42,7 @@ export interface UserProfile {
   id: string; // Used to be uid, migrated to Supabase id
   uid: string; // Kept for backward compatibility
   email: string | null;
+  revenuecat_app_user_id?: string | null;
   displayName: string | null;
   photoURL: string | null;
   avatarId?: string; // ID del avatar seleccionado (interno)

@@ -104,9 +104,8 @@ export function OnboardingFlow() {
 
   const handleNext = async () => {
     if (step === 'traits') {
-      // Need at least 1 free trait selected (DISCIPLINA + RESILIENCIA already counted)
-      const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
-      if (freeSelected.length < 1) {
+      // Must select at least 3 and at most 4 traits in total
+      if (selectedTraits.length < 3 || selectedTraits.length > 4) {
          return;
       }
       handleSubmit();
@@ -119,10 +118,8 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      // Count only FREE (non-locked) selected traits
-      const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
-      if (freeSelected.length >= 4) {
-        // Already at max 4 free traits — do NOT add more
+      // Limit to 4 total selected traits
+      if (selectedTraits.length >= 4) {
         return;
       }
       setSelectedTraits([...selectedTraits, id]);
@@ -332,21 +329,21 @@ export function OnboardingFlow() {
                             {t('onboarding.traits.title', 'Choose your Traits')}
                         </h1>
                         <p className="text-white/60 text-lg font-light tracking-wide">
-                            {t('onboarding.traits.subtitle', { count: selectedTraits.filter(id => !lockedTraitIds.includes(id)).length })}
+                            {t('onboarding.traits.subtitle', `Elige tus rasgos para empezar`)}
                         </p>
-                        <p className="text-white/30 text-sm mt-1">
-                            {t('onboarding.traits.maxHint', 'Elige hasta 4 rasgos')}
+                        <p className="text-white/35 text-sm mt-1 font-bold">
+                            {t('onboarding.traits.maxHint', 'Mínimo 3 y máximo 4 rasgos en total (ya tienes 2 fijos)')}
                         </p>
                       </motion.div>
                       
-                      {selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1 && (
+                      {selectedTraits.length < 3 && (
                          <motion.div 
                             key="traits-validation"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="text-sm text-red-300 mt-2 font-medium bg-red-500/15 py-2 px-4 rounded-full inline-block border border-red-500/30 bg-gradient-to-b from-white/5 to-transparent"
                          >
-                           {t('common.selectAtLeast', { count: 1 }) || `Selecciona al menos 1 rasgo`}
+                           {t('common.selectAtLeastThree', 'Selecciona al menos 3 rasgos en total')}
                          </motion.div>
                       )}
                   </div>
@@ -687,26 +684,26 @@ export function OnboardingFlow() {
                   e.stopPropagation();
                   handleNext();
                 }}
-                disabled={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1}
-                whileHover={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? { scale: 1.02 } : {}}
-                whileTap={selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? { scale: 0.98 } : {}}
+                disabled={selectedTraits.length < 3 || selectedTraits.length > 4}
+                whileHover={selectedTraits.length >= 3 && selectedTraits.length <= 4 ? { scale: 1.02 } : {}}
+                whileTap={selectedTraits.length >= 3 && selectedTraits.length <= 4 ? { scale: 0.98 } : {}}
                 className={`
                   pointer-events-auto relative px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 overflow-hidden border
-                  ${selectedTraits.filter(t => !lockedTraitIds.includes(t)).length < 1
+                  ${(selectedTraits.length < 3 || selectedTraits.length > 4)
                     ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
                     : 'bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10'
                   }
                 `}
               >
                 {/* Glow Effect - Optimized */}
-                {selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 && (
+                {selectedTraits.length >= 3 && selectedTraits.length <= 4 && (
                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] transition-transform duration-200 group-hover:translate-x-[100%]" />
                  )}
                 
                 <span>
                   {t('common.continue', 'Continuar')}
                 </span>
-                <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.filter(t => !lockedTraitIds.includes(t)).length >= 1 ? 'group-hover:translate-x-1' : ''}`} />
+                <ArrowRight className={`w-5 h-5 transition-transform ${selectedTraits.length >= 3 && selectedTraits.length <= 4 ? 'group-hover:translate-x-1' : ''}`} />
               </motion.button>
             </motion.div>
           )}

@@ -3,7 +3,7 @@ export const FREE_LIMITS = {
     PROJECTS: 3,
     HABITS: 5,
     NOTES: 7, // for special events
-    ACTIVE_TRAITS: 16,
+    ACTIVE_TRAITS: 4,
     TRAIT_CHANGES_PER_WEEK: 1000,
 };
 

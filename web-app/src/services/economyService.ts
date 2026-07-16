@@ -196,3 +196,118 @@ export const consumeItem = async (userId: string, itemId: string, _effect: Store
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Deducts gold for changing the profile avatar (costs 1500 gold).
+ */
+export const deductGoldForAvatarChange = async (userId: string) => {
+  try {
+    const { data: userData, error: fetchError } = await supabase
+      .from('users')
+      .select('stats')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError || !userData) {
+      throw new Error(fetchError?.message || "User not found");
+    }
+
+    const currentGold = userData.stats?.gold || 0;
+    const price = 1500;
+
+    if (currentGold < price) {
+      throw new Error(`Necesitas ${price} de oro para cambiar tu avatar.`);
+    }
+
+    const newGold = currentGold - price;
+    const newStats = {
+      ...(userData.stats || {}),
+      gold: newGold
+    };
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ stats: newStats })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return { success: true, newGold };
+  } catch (error: any) {
+    console.error("Avatar gold deduction failed:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Checks name change cost and deducts gold if it's not the first change (first is free, subsequent cost 2000 gold).
+ */
+export const deductGoldForNameChange = async (userId: string) => {
+  try {
+    const { data: userData, error: fetchError } = await supabase
+      .from('users')
+      .select('stats, preferences')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError || !userData) {
+      throw new Error(fetchError?.message || "User not found");
+    }
+
+    const preferences = userData.preferences || {};
+    const nameChangesCount = preferences.nameChangesCount || 0;
+
+    if (nameChangesCount === 0) {
+      // First time is free, just increment count
+      const newPreferences = {
+        ...preferences,
+        nameChangesCount: 1
+      };
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ preferences: newPreferences })
+        .eq('id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return { success: true, cost: 0, newGold: userData.stats?.gold || 0, nameChangesCount: 1 };
+    } else {
+      // Costs 2000 gold
+      const currentGold = userData.stats?.gold || 0;
+      const price = 2000;
+
+      if (currentGold < price) {
+        throw new Error(`Necesitas ${price} de oro para cambiar tu nombre.`);
+      }
+
+      const newGold = currentGold - price;
+      const newStats = {
+        ...(userData.stats || {}),
+        gold: newGold
+      };
+      const newPreferences = {
+        ...preferences,
+        nameChangesCount: nameChangesCount + 1
+      };
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ stats: newStats, preferences: newPreferences })
+        .eq('id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return { success: true, cost: price, newGold, nameChangesCount: nameChangesCount + 1 };
+    }
+  } catch (error: any) {
+    console.error("Name change gold deduction failed:", error);
+    return { success: false, error: error.message };
+  }
+};

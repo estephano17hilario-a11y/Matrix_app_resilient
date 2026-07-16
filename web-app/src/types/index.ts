@@ -293,6 +293,7 @@ export interface UserStats {
 export interface UserProfile {
   uid: string;
   email: string | null;
+  revenuecat_app_user_id?: string | null;
   displayName: string | null;
   photoURL: string | null;
   stats: UserStats;

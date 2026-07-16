@@ -5,6 +5,8 @@ import { AVAILABLE_AVATARS } from '../../../config/avatars';
 import { useAuth } from '@/context/AuthContext';
 import { doc, setDoc, db } from '@/services/supabase';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-hot-toast';
+import { deductGoldForAvatarChange } from '../../../services/economyService';
 
 interface AvatarCarouselQuickProps {
   onClose?: () => void;
@@ -29,25 +31,51 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
   const handleSelect = useCallback(async (avatarId: string) => {
     if (avatarId === profile?.avatarId) return;
 
-    setIsSaving(true);
-    updateProfileLocally({ avatarId });
-
     if (!user) {
-      setIsSaving(false);
       onClose?.();
       return;
     }
 
+    const currentGold = profile?.stats?.gold || 0;
+    const price = 1500;
+
+    if (currentGold < price) {
+      toast.error(t('settings.insufficientGoldAvatar', `Necesitas ${price} de oro para cambiar tu avatar.`));
+      return;
+    }
+
+    const confirmChange = window.confirm(t('settings.confirmAvatarCost', `Cambiar tu avatar costará ${price} de oro. ¿Deseas continuar?`));
+    if (!confirmChange) return;
+
+    setIsSaving(true);
+
     try {
+      const res = await deductGoldForAvatarChange(user.id);
+      if (!res.success) {
+        throw new Error(res.error || "Gold deduction failed");
+      }
+
+      // Update avatarId in DB
       const userRef = doc(db, 'users', user.id);
       await setDoc(userRef, { avatarId }, { merge: true });
+
+      // Update local state (including new gold balance)
+      updateProfileLocally({ 
+        avatarId,
+        stats: {
+          ...(profile?.stats || {}),
+          gold: res.newGold
+        }
+      });
+      toast.success(t('settings.avatarUpdatedSuccess', 'Avatar actualizado y oro deducido correctamente.'));
       onClose?.();
-    } catch (error) {
-      console.warn("Avatar persistence failed:", error);
+    } catch (error: any) {
+      console.warn("Avatar purchase failed:", error);
+      toast.error(error.message || t('settings.avatarUpdateFailed', 'Error al actualizar el avatar.'));
     } finally {
       setIsSaving(false);
     }
-  }, [user, profile?.avatarId, updateProfileLocally, onClose]);
+  }, [user, profile, updateProfileLocally, onClose, t]);
 
   const handleNext = () => {
     setCurrentIndex(prev => (prev + 1) % AVAILABLE_AVATARS.length);
