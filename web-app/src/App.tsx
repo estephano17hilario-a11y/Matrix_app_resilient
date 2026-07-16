@@ -63,6 +63,7 @@ const AppRoutes = () => {
   useEffect(() => {
     if (!canEnterLux) {
       setShowSplash(true);
+      dashboardUnlockedRef.current = false;
     }
   }, [canEnterLux]);
 
@@ -113,7 +114,7 @@ const AppRoutes = () => {
         <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <NotesProvider>
-              <div className={cn("w-full h-full transition-opacity duration-500", showSplash ? "opacity-0 pointer-events-none" : "opacity-100")}>
+              <div className={cn("w-full h-full transition-all duration-500", showSplash ? "invisible opacity-0 pointer-events-none" : "visible opacity-100")}>
                 <Dashboard />
               </div>
               <AnimatePresence>

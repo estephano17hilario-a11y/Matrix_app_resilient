@@ -4,7 +4,7 @@ export type ThemeId =
   | 'ether' | 'matrix' | 'digital_rain' | 'sunset' | 'stealth' | 'apple' | 'apple_intelligence' 
   | 'revolut' | 'cupertino' | 'vision_pro' | 'glassmorphism_premium' | 'cristales' 
   | 'liquid_glass' | 'neon' | 'enterprise' | 'dorado' | 'serio' | 'oled' 
-  | 'spotlight' | 'nebula' | 'aurora' | 'amy' | 'modern_dark' | 'modern_light' 
+  | 'spotlight' | 'nebula' | 'aurora' | 'amy' | 'modern_dark'
   | 'luxury' | 'graphite' | 'simple_dark'
   | 'midnight_flow' | 'titanium_flow' | 'velvet_flow' | 'oceanic_flow' | 'phantom_flow' | 'ember_flow'
   | 'holo_spectrum' | 'holo_vision' | 'holo_midnight' | 'holo_blush' | 'holo_frost'
@@ -36,7 +36,7 @@ export const THEME_PRICES: Record<ThemeCategory, number> = {
   cosmic: 5000,
 };
 
-export const DEFAULT_UNLOCKED_THEMES: ThemeId[] = ['ether', 'stealth', 'modern_dark', 'modern_light'];
+export const DEFAULT_UNLOCKED_THEMES: ThemeId[] = ['ether', 'stealth', 'modern_dark'];
 
 
 export const THEMES: Record<ThemeId, ThemeConfig> = {
@@ -367,21 +367,6 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
       textPrimary: '255 255 255',
     },
     gradient: 'linear-gradient(135deg, #1a1b1e 0%, #374151 100%)',
-  },
-  modern_light: {
-    id: 'modern_light',
-    name: 'Modern Light',
-    description: 'Clean Minimalist',
-    category: 'minimal',
-    isSolid: true,
-    colors: {
-      bgDepth: '252 252 252', // Almost Pure White for max contrast
-      primaryGlow: '0 0 0', // Black
-      secondaryGlow: '60 60 60', // Darker Grey for visibility
-      glassTint: '240 240 240', // Slightly visible glass
-      textPrimary: '0 0 0', // Pure Black Text
-    },
-    gradient: 'linear-gradient(135deg, #ffffff 0%, #e5e5ea 100%)',
   },
   simple_dark: {
     id: 'simple_dark',

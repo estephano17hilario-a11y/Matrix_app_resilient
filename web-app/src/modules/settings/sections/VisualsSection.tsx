@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Lock } from 'lucide-react';
+import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
@@ -54,6 +54,18 @@ export const VisualsSection = () => {
       document.body.classList.remove('theme-preview-active');
     };
   }, [previewTheme]);
+
+  // Lock body scroll when purchase modal is open to prevent scrolling in background
+  useEffect(() => {
+    if (themeToPurchase) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [themeToPurchase]);
 
   const unlockedItems = profile?.unlocked_store_items || profile?.unlockedStoreItems || [];
 
@@ -233,75 +245,84 @@ export const VisualsSection = () => {
             })}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-5">
             {sortedThemes.map((theme) => {
               const isActive = currentTheme === theme.id;
               const isUnlocked = DEFAULT_UNLOCKED_THEMES.includes(theme.id) || unlockedItems.includes(theme.id);
               const price = getThemeDisplayPrice(theme.id, theme.category);
 
               return (
-                <motion.div
+                <div 
                   key={theme.id}
                   onClick={() => handleSelectTheme(theme)}
-                  role="button"
-                  tabIndex={0}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={cn(
-                    "relative aspect-[4/3] rounded-[16px] overflow-hidden border transition-all text-left group shadow-md cursor-pointer",
-                    isActive ? "border-white/50 ring-2 ring-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]" : "border-white/[0.05] hover:border-white/30"
-                  )}
+                  className="flex flex-col group cursor-pointer"
                 >
-                  <div className="absolute inset-0 transition-transform duration-200 group-hover:scale-110" style={{ background: theme.gradient }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                  
-                  {isActive && <div className="absolute inset-0 border-[2px] border-white/20 rounded-[16px]" />}
-                  
-                  <div className="absolute inset-0 p-3 flex flex-col justify-end">
-                    <span className="text-xs font-bold text-white tracking-wider uppercase drop-shadow-md pointer-events-none">
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      "relative aspect-[16/11] rounded-[16px] overflow-hidden border transition-all text-left shadow-md",
+                      isActive ? "border-white/50 ring-2 ring-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]" : "border-white/[0.05] hover:border-white/30"
+                    )}
+                  >
+                    <div className="absolute inset-0 transition-transform duration-200 group-hover:scale-110" style={{ background: theme.gradient }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    
+                    {isActive && <div className="absolute inset-0 border-[2px] border-white/20 rounded-[16px]" />}
+
+                    {/* Eye Preview Button */}
+                    <button
+                      onClick={(e) => handlePreview(e, theme.id)}
+                      className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-white/20 hover:scale-110 shadow-lg z-20"
+                      title={t('settings.previewTheme', 'Preview Theme')}
+                    >
+                      <Eye size={14} className="text-white" />
+                    </button>
+                    
+                    {/* Checkmark for Active Theme */}
+                    {isActive && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-[0_2px_5px_rgba(0,0,0,0.5)] z-10"
+                      >
+                        <Check size={12} strokeWidth={4} className="text-black" />
+                      </motion.div>
+                    )}
+                  </motion.div>
+
+                  {/* Metadata below card */}
+                  <div className="mt-2 px-1 flex flex-col">
+                    <span className="text-xs font-bold text-white truncate group-hover:text-white/90 transition-colors">
                       {theme.name}
                     </span>
-                  </div>
-
-                  {!isUnlocked && (
-                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 flex items-center gap-1 shadow-md z-10 pointer-events-none">
-                      <Lock size={10} className="text-white/60" />
-                      <Coins size={10} className="text-yellow-500 animate-pulse" />
-                      <span className="text-[10px] font-extrabold text-yellow-400">
-                        {price}
-                      </span>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {isUnlocked ? (
+                        <span className="text-[10px] font-bold text-emerald-400">
+                          {isActive ? t('settings.themeActive', 'Activo') : t('settings.themeUnlocked', 'Adquirido')}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Coins size={10} className="text-yellow-400 animate-pulse" />
+                          <span className="text-[10px] font-black text-yellow-400">
+                            {price}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  <button
-                    onClick={(e) => handlePreview(e, theme.id)}
-                    className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-white/20 hover:scale-110 shadow-lg z-20"
-                    title={t('settings.previewTheme', 'Preview Theme')}
-                  >
-                    <Eye size={14} className="text-white" />
-                  </button>
-                  
-                  {isActive && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-[0_2px_5px_rgba(0,0,0,0.5)] z-10"
-                    >
-                      <Check size={12} strokeWidth={4} className="text-black" />
-                    </motion.div>
-                  )}
-                </motion.div>
+                  </div>
+                </div>
               );
             })}
           </div>
         </div>
       </div>
 
-      {/* Theme Purchase Confirmation Modal */}
+      {/* Theme Purchase Confirmation Modal in Portal */}
       <AnimatePresence>
-        {themeToPurchase && (
-          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in pointer-events-auto">
+        {themeToPurchase && typeof window !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md pointer-events-auto overflow-hidden touch-none" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -364,7 +385,8 @@ export const VisualsSection = () => {
                 </button>
               </div>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
     </div>
