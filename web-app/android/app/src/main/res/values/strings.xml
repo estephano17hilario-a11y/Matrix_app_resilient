@@ -8,4 +8,6 @@
     <string name="focus_service_description">Lux mantiene el temporizador de sesiones de enfoque activo para sincronizar hábitos y estadísticas de productividad en segundo plano.</string>
     <string name="widget_habits_description">Muestra tus hábitos del día con acciones rápidas</string>
     <string name="widget_habits_title">Lux · Protocolos</string>
+    <string name="widget_score_title">Lux · Score</string>
+    <string name="widget_score_description">Muestra tu Score de productividad actualizado</string>
 </resources>

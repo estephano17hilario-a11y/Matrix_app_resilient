@@ -21,7 +21,7 @@ import { TaskList } from './modules/tasks/TaskList';
 import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
 import { calculateLiveProductivityScore } from './utils/productivityScore';
-import { ScoreWidget } from './modules/dashboard/components/ScoreWidget';
+import WidgetAuthBridge from './plugins/WidgetBridgePlugin';
 import { Dock } from './modules/dashboard/components/Dock';
 import { DockConfigModal } from './components/ui/DockConfigModal';
 import { QuestModal } from './modules/dashboard/components/QuestModal';
@@ -378,6 +378,12 @@ export default function Dashboard() {
   const liveScore = useMemo(() => {
     return Math.round(calculateLiveProductivityScore(quests, habits, projects, dailyLimits));
   }, [quests, habits, projects, dailyLimits]);
+
+  // Sync the updated score with the native Android widget
+  useEffect(() => {
+    WidgetAuthBridge.updateScore({ score: liveScore })
+      .catch(err => console.error("Failed to update widget score:", err));
+  }, [liveScore]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);
@@ -1603,30 +1609,14 @@ export default function Dashboard() {
  APP_MAX_WIDTH,
  "relative z-[290]"
  )}>
- <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-stretch">
-    <div className="md:col-span-2">
-      <PlayerHUD 
-      attributes={attributes}
-      defaultChartMode={defaultChartMode}
-      onAddSubTrait={addSubTrait}
-      onUpdateSubTrait={updateSubTrait}
-      onDeleteSubTrait={deleteSubTrait}
-      onOpenProgress={() => setIsProgressOpen(true)}
-      />
-    </div>
-    <div className="md:col-span-1 flex">
-      <ScoreWidget 
-      score={liveScore} 
-      size="2x2"
-      className="hidden md:flex w-full h-full"
-      />
-      <ScoreWidget 
-      score={liveScore} 
-      size="2x1"
-      className="flex md:hidden w-full"
-      />
-    </div>
- </div>
+ <PlayerHUD 
+ attributes={attributes}
+ defaultChartMode={defaultChartMode}
+ onAddSubTrait={addSubTrait}
+ onUpdateSubTrait={updateSubTrait}
+ onDeleteSubTrait={deleteSubTrait}
+ onOpenProgress={() => setIsProgressOpen(true)}
+ />
  </div>
  </div>
  )}

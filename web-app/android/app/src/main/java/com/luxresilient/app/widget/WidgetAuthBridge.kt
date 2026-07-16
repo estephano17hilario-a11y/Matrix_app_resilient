@@ -93,6 +93,37 @@ class WidgetAuthBridge : Plugin() {
         }
     }
 
+    /**
+     * Update the productivity score and refresh score widgets
+     */
+    @PluginMethod
+    fun updateScore(call: PluginCall) {
+        val score = call.getInt("score")
+        if (score == null) {
+            call.reject("score is required")
+            return
+        }
+
+        try {
+            val context = activity ?: context
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().putInt("productivity_score", score).apply()
+            
+            Log.d(TAG, "Score updated in widget shared preferences: $score")
+            
+            // Broadcast refresh to ScoreWidgetProvider
+            val intent = Intent(context, ScoreWidgetProvider::class.java).apply {
+                action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
+            }
+            context.sendBroadcast(intent)
+            
+            call.resolve()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update score: ${e.message}", e)
+            call.reject("Failed to update score: ${e.message}")
+        }
+    }
+
     override fun handleOnResume() {
         super.handleOnResume()
         Log.d(TAG, "Capacitor activity resumed - refreshing widgets")
@@ -106,7 +137,7 @@ class WidgetAuthBridge : Plugin() {
     }
 
     /**
-     * Send broadcast to refresh all habit widgets
+     * Send broadcast to refresh all habit and score widgets
      */
     private fun refreshWidgets(context: Context) {
         try {
@@ -115,12 +146,29 @@ class WidgetAuthBridge : Plugin() {
             }
             context.sendBroadcast(intent)
 
-            // Also notify AppWidgetManager
+            // Also broadcast to ScoreWidgetProvider
+            val scoreIntent = Intent(context, ScoreWidgetProvider::class.java).apply {
+                action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
+            }
+            context.sendBroadcast(scoreIntent)
+
+            // Also notify AppWidgetManager for Habit list widgets
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val widgetComponent = ComponentName(context, HabitWidgetProvider::class.java)
             val widgetIds = appWidgetManager.getAppWidgetIds(widgetComponent)
             if (widgetIds.isNotEmpty()) {
                 appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_habit_list)
+            }
+
+            // Also notify AppWidgetManager for Score widgets
+            val scoreComponent = ComponentName(context, ScoreWidgetProvider::class.java)
+            val scoreWidgetIds = appWidgetManager.getAppWidgetIds(scoreComponent)
+            if (scoreWidgetIds.isNotEmpty()) {
+                val updateIntent = Intent(context, ScoreWidgetProvider::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, scoreWidgetIds)
+                }
+                context.sendBroadcast(updateIntent)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error refreshing widgets: ${e.message}")

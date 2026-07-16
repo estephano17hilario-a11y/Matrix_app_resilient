@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_score_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Overall frosted background image -->
+    <ImageView
+        android:id="@+id/score_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_background" />
+
+    <!-- Unconfigured/Loading/Locked State -->
+    <LinearLayout
+        android:id="@+id/score_login_required"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒"
+            android:textSize="20sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Abre Lux"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <!-- Configured State -->
+    <FrameLayout
+        android:id="@+id/score_configured_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible">
+
+        <!-- VERTICAL LAYOUT (for 2x2, 3x3, 1x2, 1x1 etc) -->
+        <LinearLayout
+            android:id="@+id/score_layout_vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="6dp"
+            android:visibility="visible">
+
+            <TextView
+                android:id="@+id/score_widget_title_vert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SCORE"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:layout_marginBottom="4dp" />
+
+            <FrameLayout
+                android:layout_width="60dp"
+                android:layout_height="60dp">
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/widget_progress_circle" />
+                <TextView
+                    android:id="@+id/score_widget_value_vert"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/score_widget_sub_vert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rendimiento"
+                android:textColor="#66FFFFFF"
+                android:textSize="9sp"
+                android:layout_marginTop="4dp"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <!-- HORIZONTAL LAYOUT (for 2x1, 3x1 etc) -->
+        <LinearLayout
+            android:id="@+id/score_layout_horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp">
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/widget_progress_circle" />
+                <TextView
+                    android:id="@+id/score_widget_value_horiz"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/score_widget_title_horiz"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RENDIMIENTO"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/score_widget_sub_horiz"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Matrix Score"
+                    android:textColor="#66FFFFFF"
+                    android:textSize="9sp"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>
