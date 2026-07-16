@@ -70,6 +70,7 @@ export interface UserProfile {
       count: number;
       weekStart: number;
     };
+    nameChangesCount?: number;
   };
   dailyLimits?: DailyLimits;
   unlockedAchievements?: string[];

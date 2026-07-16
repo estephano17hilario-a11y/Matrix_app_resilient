@@ -299,4 +299,5 @@ export interface UserProfile {
   stats: UserStats;
   unlockedStoreItems?: string[];
   createdAt?: number;
+  preferences?: any;
 }

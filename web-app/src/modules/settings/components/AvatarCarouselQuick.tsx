@@ -51,7 +51,7 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
 
     try {
       const res = await deductGoldForAvatarChange(user.id);
-      if (!res.success) {
+      if (!res.success || res.newGold === undefined || !profile) {
         throw new Error(res.error || "Gold deduction failed");
       }
 
@@ -63,7 +63,7 @@ export const AvatarCarouselQuick: React.FC<AvatarCarouselQuickProps> = ({ onClos
       updateProfileLocally({ 
         avatarId,
         stats: {
-          ...(profile?.stats || {}),
+          ...profile.stats,
           gold: res.newGold
         }
       });

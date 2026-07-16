@@ -149,7 +149,7 @@ export const AccountSection = () => {
     try {
       // 1. Deduct gold and increment change count on Supabase
       const res = await deductGoldForNameChange(targetId);
-      if (!res.success) {
+      if (!res.success || res.newGold === undefined || res.cost === undefined || res.nameChangesCount === undefined || !profile) {
         throw new Error(res.error || "Gold deduction failed");
       }
 
@@ -168,11 +168,11 @@ export const AccountSection = () => {
       updateProfileLocally({ 
         displayName: newName,
         stats: {
-          ...(profile?.stats || {}),
+          ...profile.stats,
           gold: res.newGold
         },
         preferences: {
-          ...(profile?.preferences || {}),
+          ...(profile.preferences || {}),
           nameChangesCount: res.nameChangesCount
         }
       });
