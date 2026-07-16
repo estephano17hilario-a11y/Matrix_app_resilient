@@ -48,8 +48,10 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
     let height = window.innerHeight;
 
     const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+      // Scale down canvas dimensions for massive performance boost
+      // A resolution of 25% of screen size is perfectly sufficient for blurry background orbs
+      width = Math.ceil(window.innerWidth * 0.25);
+      height = Math.ceil(window.innerHeight * 0.25);
       canvas.width = width;
       canvas.height = height;
     };
@@ -73,9 +75,18 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
     });
 
     let isPaused = false;
+    let lastRenderTime = 0;
 
-    const render = () => {
+    const render = (timestamp: number = 0) => {
       if (isPaused) return;
+
+      animationFrameId = requestAnimationFrame(render);
+
+      // Limit background updates to 30 FPS (every 33ms) for maximum battery and CPU saving
+      if (timestamp - lastRenderTime < 33) {
+        return;
+      }
+      lastRenderTime = timestamp;
 
       time += 0.8;
       const w = width;
@@ -111,7 +122,6 @@ export const MeshBackground: React.FC<MeshBackgroundProps> = memo(({ className }
       });
 
       ctx.globalCompositeOperation = 'source-over';
-      animationFrameId = requestAnimationFrame(render);
     };
 
     const handleVisibilityChange = () => {

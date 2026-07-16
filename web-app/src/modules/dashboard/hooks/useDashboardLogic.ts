@@ -1212,42 +1212,81 @@ export const useDashboardLogic = () => {
                         });
                     }).length;
 
-                    const yesterdayScore = calculateLiveProductivityScore(currentQuests, currentHabits, currentProjects, dailyLimits, yesterdayDate);
+                    const currentFeed = PersistenceService.getCollection<any>(user.id, 'dailyFeed') || [];
+                    const existingEntry = currentFeed.find((e: any) => e.date === lastDate);
 
-                    const feedEntry = {
-                        id: `feed_${lastDate}`,
-                        date: lastDate,
-                        tasksCompleted: tasksCompletedOnDay,
-                        tasksTotal: currentQuests.filter(q => !q.completed).length + tasksCompletedOnDay,
-                        focusMinutes: Math.round(Math.max(Number(dailyLimits.focusSeconds || 0), focusSecondsOnDay) / 60),
-                        focusSessions: topProjects.length,
-                        habitsCompleted: habitsCompletedOnDay,
-                        habitsTotal: currentHabits.filter(h => isHabitActive(h, yesterdayDate)).length,
-                        subHabitsCompleted,
-                        subHabitsTotal,
-                        xpEarned: Number(dailyLimits.totalXp || 0) || (Number(dailyLimits.taskXp || 0) + Number(dailyLimits.focusXp || 0) + Number(dailyLimits.habitXp || 0)),
-                        goldEarned: Number(dailyLimits.totalGold || 0) || (Number(dailyLimits.taskGold || 0) + Number(dailyLimits.focusGold || 0) + Number(dailyLimits.habitGold || 0)),
-                        tpEarned: Number(dailyLimits.totalTraitPoints || 0) || (Number(dailyLimits.taskTraitPoints || 0) + Number(dailyLimits.focusTraitPoints || 0) + Number(dailyLimits.habitTraitPoints || 0)),
-                        streak: user.stats?.streak || 0,
-                        topProjects,
-                        completedTaskTitles: currentQuests.filter(q => {
+                    const finalTasksCompleted = Math.max(existingEntry?.tasksCompleted || 0, tasksCompletedOnDay);
+                    const finalTasksTotal = Math.max(existingEntry?.tasksTotal || 0, currentQuests.filter(q => !q.completed).length + tasksCompletedOnDay);
+                    const finalFocusMinutes = Math.max(existingEntry?.focusMinutes || 0, Math.round(Math.max(Number(dailyLimits.focusSeconds || 0), focusSecondsOnDay) / 60));
+                    const finalFocusSessions = Math.max(existingEntry?.focusSessions || 0, topProjects.length);
+                    const finalHabitsCompleted = Math.max(existingEntry?.habitsCompleted || 0, habitsCompletedOnDay);
+                    const finalHabitsTotal = Math.max(existingEntry?.habitsTotal || 0, currentHabits.filter(h => isHabitActive(h, yesterdayDate)).length);
+                    const finalSubHabitsCompleted = Math.max(existingEntry?.subHabitsCompleted || 0, subHabitsCompleted);
+                    const finalSubHabitsTotal = Math.max(existingEntry?.subHabitsTotal || 0, subHabitsTotal);
+                    const finalXpEarned = Math.max(existingEntry?.xpEarned || 0, Number(dailyLimits.totalXp || 0) || (Number(dailyLimits.taskXp || 0) + Number(dailyLimits.focusXp || 0) + Number(dailyLimits.habitXp || 0)));
+                    const finalGoldEarned = Math.max(existingEntry?.goldEarned || 0, Number(dailyLimits.totalGold || 0) || (Number(dailyLimits.taskGold || 0) + Number(dailyLimits.focusGold || 0) + Number(dailyLimits.habitGold || 0)));
+                    const finalTpEarned = Math.max(existingEntry?.tpEarned || 0, Number(dailyLimits.totalTraitPoints || 0) || (Number(dailyLimits.taskTraitPoints || 0) + Number(dailyLimits.focusTraitPoints || 0) + Number(dailyLimits.habitTraitPoints || 0)));
+
+                    const mergedTaskTitles = Array.from(new Set([
+                        ...(existingEntry?.completedTaskTitles || []),
+                        ...currentQuests.filter(q => {
                             if (!q.completed || !q.completedAt) return false;
                             try {
                                 return toLocalISOString(new Date(q.completedAt)) === lastDate;
                             } catch (e) {
                                 return false;
                             }
-                        }).map(q => q.title).slice(0, 5),
-                        completedHabitTitles: currentHabits.filter(h => {
-                            if (h.archived || !h.completedToday) return false;
-                            return true;
-                        }).map(h => h.title).slice(0, 5),
-                        createdAt: Date.now(),
-                        score: yesterdayScore
+                        }).map(q => q.title)
+                    ])).slice(0, 5);
+
+                    const mergedHabitTitles = Array.from(new Set([
+                        ...(existingEntry?.completedHabitTitles || []),
+                        ...currentHabits.filter(h => {
+                            if (h.archived) return false;
+                            const history = h.history || [];
+                            return history.some(d => {
+                                try {
+                                    return toLocalISOString(new Date(d)) === lastDate || d.startsWith(lastDate);
+                                } catch (e) {
+                                    return d.startsWith(lastDate);
+                                }
+                            });
+                        }).map(h => h.title)
+                    ])).slice(0, 5);
+
+                    const finalBreakdown = getDetailedScoreBreakdown({
+                        tasksCompleted: finalTasksCompleted,
+                        tasksTotal: finalTasksTotal,
+                        focusMinutes: finalFocusMinutes,
+                        habitsCompleted: finalHabitsCompleted,
+                        habitsTotal: finalHabitsTotal,
+                        subHabitsCompleted: finalSubHabitsCompleted,
+                        subHabitsTotal: finalSubHabitsTotal
+                    }, false, currentQuests, currentHabits, currentProjects);
+                    const finalScore = finalBreakdown.total;
+
+                    const feedEntry = {
+                        id: `feed_${lastDate}`,
+                        date: lastDate,
+                        tasksCompleted: finalTasksCompleted,
+                        tasksTotal: finalTasksTotal,
+                        focusMinutes: finalFocusMinutes,
+                        focusSessions: finalFocusSessions,
+                        habitsCompleted: finalHabitsCompleted,
+                        habitsTotal: finalHabitsTotal,
+                        subHabitsCompleted: finalSubHabitsCompleted,
+                        subHabitsTotal: finalSubHabitsTotal,
+                        xpEarned: finalXpEarned,
+                        goldEarned: finalGoldEarned,
+                        tpEarned: finalTpEarned,
+                        streak: Math.max(existingEntry?.streak || 0, user.stats?.streak || 0),
+                        topProjects: existingEntry?.topProjects?.length ? existingEntry.topProjects : topProjects,
+                        completedTaskTitles: mergedTaskTitles,
+                        completedHabitTitles: mergedHabitTitles,
+                        createdAt: existingEntry?.createdAt || Date.now(),
+                        score: finalScore
                     };
 
-                    // Update local cache optimistically
-                    const currentFeed = PersistenceService.getCollection<any>(user.id, 'dailyFeed') || [];
                     const updatedFeed = [feedEntry, ...currentFeed.filter((e: any) => e.date !== lastDate)].sort((a, b) => b.date.localeCompare(a.date));
                     PersistenceService.saveCollection(user.id, 'dailyFeed', updatedFeed);
 

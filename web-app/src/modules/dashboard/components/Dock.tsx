@@ -243,7 +243,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={{ type: "spring", stiffness: 300, damping: 28 }}
- className="fixed bottom-10 left-0 right-0 z-[400] flex justify-center pointer-events-none"
+ className="fixed bottom-[42px] left-0 right-0 z-[400] flex justify-center pointer-events-none"
  style={{ willChange: "transform", pointerEvents }}
  >
  <motion.div 
@@ -257,7 +257,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     height: isOpen ? `${dynamicHeight}px` : '72px',
     borderRadius: '36px',
     transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-    willChange: 'height, border-radius', 
+    willChange: 'height, border-radius, transform', 
+    transform: 'translate3d(0, 0, 0)',
+    backfaceVisibility: 'hidden',
+    WebkitBackfaceVisibility: 'hidden',
     backdropFilter: 'blur(16px)', 
     WebkitBackdropFilter: 'blur(16px)' 
   }}
@@ -340,7 +343,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={{ type: "spring", stiffness: 300, damping: 30 }}
- className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center" 
+ className="fixed bottom-[26px] left-0 right-0 z-[400] flex justify-center" 
  style={{ pointerEvents, willChange: "transform" }}
  >
  {/* Contenedor Animado */} 
@@ -355,7 +358,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       height: isOpen ? `${dynamicHeight}px` : '70px',
       borderRadius: isOpen ? '32px' : '34px',
       transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-      willChange: 'height, border-radius', 
+      willChange: 'height, border-radius, transform', 
+      transform: 'translate3d(0, 0, 0)',
+      backfaceVisibility: 'hidden',
+      WebkitBackfaceVisibility: 'hidden',
       backgroundColor: 'rgba(0,0,0,0.07)' 
     }}
   > 
@@ -445,7 +451,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={liquidSpring}
- className="fixed bottom-6 left-0 right-0 z-[400] flex justify-center transform-gpu"
+ className="fixed bottom-[26px] left-0 right-0 z-[400] flex justify-center transform-gpu"
  style={{ pointerEvents }}
  >
  <motion.div 

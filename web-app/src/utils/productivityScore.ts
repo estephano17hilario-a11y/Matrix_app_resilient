@@ -319,7 +319,14 @@ export function calculateLiveProductivityScore(
   });
   const focusMinutes = Math.round(Math.max(Number(safeLimits.focusSeconds || 0), focusSecondsFromSessions) / 60);
 
-  const habitsCompleted = safeHabits.filter(h => !h.archived && h.completedToday).length;
+  const isTargetToday = toLocalISOString(new Date()) === today;
+
+  const habitsCompleted = safeHabits.filter(h => {
+    if (h.archived) return false;
+    if (isTargetToday) return !!h.completedToday;
+    const todayKey = getHistoryDateKey(today);
+    return h.history?.some(d => getHistoryDateKey(d) === todayKey);
+  }).length;
   const habitsTotal = safeHabits.filter(h => !h.archived).length;
 
   let subHabitsCompleted = 0;
@@ -330,7 +337,7 @@ export function calculateLiveProductivityScore(
     if (h.type === 'CHECKLIST' && h.checklist) {
       const isActive = isHabitActive(h, date);
       if (isActive) {
-        const todayKey = getHistoryDateKey(toLocalISOString(date));
+        const todayKey = getHistoryDateKey(today);
         const activeChecklist = h.checklist.filter(sub => {
           if (sub.intervalType === 'WEEKLY' || sub.intervalType === 'MONTHLY') {
             const isDoneToday = sub.history?.includes(todayKey) || sub.skippedHistory?.includes(todayKey);
@@ -346,7 +353,7 @@ export function calculateLiveProductivityScore(
           if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
             return item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
           }
-          return item.completed;
+          return isTargetToday ? item.completed : !!item.history?.includes(todayKey);
         }).length;
       }
     }
