@@ -320,75 +320,86 @@ export const VisualsSection = () => {
       </div>
 
       {/* Theme Purchase Confirmation Modal in Portal */}
-      <AnimatePresence>
-        {themeToPurchase && typeof window !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md pointer-events-auto overflow-hidden touch-none" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {themeToPurchase && (
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm bg-gradient-to-b from-[#18181b] to-[#09090b] border border-white/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-center"
+              key="theme-purchase-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[120000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md pointer-events-auto overflow-hidden touch-none"
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             >
-              {/* Glow behind */}
-              <div 
-                className="absolute -top-12 -left-12 w-40 h-40 rounded-full opacity-20 pointer-events-none filter blur-2xl"
-                style={{ background: themeToPurchase.gradient }}
-              />
-              
-              {/* Theme Preview Box */}
-              <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-inner mb-5 relative flex items-center justify-center group">
-                <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ background: themeToPurchase.gradient }} />
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-                <span className="relative z-10 text-white font-black tracking-widest text-lg uppercase drop-shadow-md">
-                  {themeToPurchase.name}
-                </span>
-              </div>
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                className="w-full max-w-sm bg-gradient-to-b from-[#18181b] to-[#09090b] border border-white/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-center"
+              >
+                {/* Glow behind */}
+                <div 
+                  className="absolute -top-12 -left-12 w-40 h-40 rounded-full opacity-20 pointer-events-none filter blur-2xl"
+                  style={{ background: themeToPurchase.gradient }}
+                />
+                
+                {/* Theme Preview Box */}
+                <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-inner mb-5 relative flex items-center justify-center group">
+                  <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ background: themeToPurchase.gradient }} />
+                  <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+                  <span className="relative z-10 text-white font-black tracking-widest text-lg uppercase drop-shadow-md">
+                    {themeToPurchase.name}
+                  </span>
+                </div>
 
-              {/* Details */}
-              <h3 className="text-xl font-black text-white tracking-tight mb-2">
-                {t('settings.unlockTheme', 'Unlock Theme')}
-              </h3>
-              <p className="text-sm text-white/50 mb-6 px-2 leading-relaxed">
-                {themeToPurchase.description}
-              </p>
+                {/* Details */}
+                <h3 className="text-xl font-black text-white tracking-tight mb-2">
+                  {t('settings.unlockTheme', 'Unlock Theme')}
+                </h3>
+                <p className="text-sm text-white/50 mb-6 px-2 leading-relaxed">
+                  {themeToPurchase.description}
+                </p>
 
-              {/* Cost info */}
-              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/5 rounded-2xl py-3.5 px-5 w-fit mx-auto mb-8 shadow-sm">
-                <Coins size={22} className="text-yellow-400 animate-bounce" />
-                <span className="text-2xl font-black text-yellow-300 tracking-tight">
-                  {THEME_PRICES[themeToPurchase.category]}
-                </span>
-                <span className="text-xs font-bold text-white/40 uppercase tracking-wider">
-                  {t('economy.gold', 'Gold')}
-                </span>
-              </div>
+                {/* Cost info */}
+                <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/5 rounded-2xl py-3.5 px-5 w-fit mx-auto mb-8 shadow-sm">
+                  <Coins size={22} className="text-yellow-400 animate-bounce" />
+                  <span className="text-2xl font-black text-yellow-300 tracking-tight">
+                    {THEME_PRICES[themeToPurchase.category]}
+                  </span>
+                  <span className="text-xs font-bold text-white/40 uppercase tracking-wider">
+                    {t('economy.gold', 'Gold')}
+                  </span>
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={handleConfirmPurchase}
-                  disabled={isPurchasing}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-xs uppercase tracking-widest hover:from-yellow-600 hover:to-amber-600 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/10"
-                >
-                  {isPurchasing ? (
-                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    t('store.buyNow', 'Confirm Purchase')
-                  )}
-                </button>
-                <button
-                  onClick={() => setThemeToPurchase(null)}
-                  disabled={isPurchasing}
-                  className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-xs uppercase tracking-widest transition-all border border-white/5 active:scale-[0.98]"
-                >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-              </div>
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleConfirmPurchase}
+                    disabled={isPurchasing}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-xs uppercase tracking-widest hover:from-yellow-600 hover:to-amber-600 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/10"
+                  >
+                    {isPurchasing ? (
+                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      t('store.buyNow', 'Confirm Purchase')
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setThemeToPurchase(null)}
+                    disabled={isPurchasing}
+                    className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-xs uppercase tracking-widest transition-all border border-white/5 active:scale-[0.98]"
+                  >
+                    {t('common.cancel', 'Cancel')}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
