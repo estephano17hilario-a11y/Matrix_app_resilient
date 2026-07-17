@@ -69,11 +69,8 @@
 
             <FrameLayout
                 android:layout_width="60dp"
-                android:layout_height="60dp">
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/widget_progress_circle" />
+                android:layout_height="60dp"
+                android:background="@drawable/widget_progress_circle">
                 <TextView
                     android:id="@+id/score_widget_value_vert"
                     android:layout_width="wrap_content"
@@ -109,11 +106,8 @@
             <FrameLayout
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="8dp">
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/widget_progress_circle" />
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_progress_circle">
                 <TextView
                     android:id="@+id/score_widget_value_horiz"
                     android:layout_width="wrap_content"
