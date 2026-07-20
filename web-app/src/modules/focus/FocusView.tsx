@@ -159,23 +159,6 @@ export const FocusView = React.memo(({
                         </div>
                     );
                 })}
-                
-                {/* New Project Silhouette Card */}
-                {!showArchived && (
-                    <div className="w-full">
-                        <div 
-                            onClick={() => onOpenProjectModal()}
-                            className="relative z-10 h-full min-h-[140px] rounded-[32px] border-[3px] border-dashed border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer group flex flex-col items-center justify-center gap-3 active:scale-95"
-                        >
-                            <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
-                                <Plus size={24} className="text-white/20 group-hover:text-white/40 transition-colors" />
-                            </div>
-                            <span className="text-xs font-bold text-white/20 group-hover:text-white/40 uppercase tracking-widest transition-colors">
-                                {t('focus.createNewProject', 'Create New Project')}
-                            </span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {onReorder && isReorderModalOpen && (

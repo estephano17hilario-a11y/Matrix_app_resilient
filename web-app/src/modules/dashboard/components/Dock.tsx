@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Plus, ChevronDown } from 'lucide-react';
+import { Crosshair, Plus, ChevronDown, Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
@@ -280,18 +280,27 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  transition={{ type: "spring", stiffness: 80, damping: 20, mass: 1, delay: isOpen ? 0.05 : 0 }}
  className="absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2"
  >
- <button onClick={(e) => handleModal('QUEST', e)} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center text-orange-400 border border-orange-500/20 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(249,115,22,0.2)]">
- <Crosshair size={20} />
- </div>
- <div className="text-left">
- <span className="block text-white font-bold text-sm">{t('dock.newMission', 'New Mission')}</span>
- <span className="text-[10px] text-white/40 uppercase tracking-wider">{t('dock.singleTask', 'Single Task')}</span>
- </div>
- </div>
- <Plus size={18} className="text-white/20 group-hover:text-white transition-colors" />
- </button>
+ <button onClick={(e) => handleModal('QUEST', e)} className="relative z-10 col-span-1 p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
+  <div className="flex items-center gap-2">
+  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center text-orange-400 border border-orange-500/20 group-hover:scale-110 transition-transform">
+  <Crosshair size={16} />
+  </div>
+  <div className="text-left">
+  <span className="block text-white font-bold text-xs">{t('dock.newMission', 'Misión')}</span>
+  </div>
+  </div>
+  </button>
+  
+  <button onClick={(e) => handleModal('RIVALS', e)} className="relative z-10 col-span-1 p-2.5 rounded-2xl bg-gradient-to-r from-red-500/10 to-orange-500/10 hover:bg-white/10 transition-colors border border-orange-500/20 flex items-center justify-between group">
+  <div className="flex items-center gap-2">
+  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500/20 to-red-500/20 flex items-center justify-center text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+  <Swords size={16} />
+  </div>
+  <div className="text-left">
+  <span className="block text-white font-bold text-xs">Duelos</span>
+  </div>
+  </div>
+  </button>
  
  {expandedItems.map((id, index) => {
  const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
@@ -377,17 +386,19 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  transition-all duration-300 ease-out transform-gpu
  ${isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'} 
  `}> 
- <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
- <div className="flex items-center gap-3">
- <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
- <Crosshair size={18} />
- </div>
- <div className="text-left">
- <span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission') || 'Nueva Misión'}</span>
- </div>
- </div>
- <Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
- </button>
+  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-1 h-14 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[18px] flex items-center gap-2 px-3 border border-white/5 group relative overflow-hidden shadow-md">
+  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
+  <Crosshair size={14} />
+  </div>
+  <span className="text-white font-bold text-xs">{t('dock.newMission') || 'Misión'}</span>
+  </button>
+
+  <button onClick={(e) => { handleModal('RIVALS', e); }} className="col-span-1 h-14 bg-gradient-to-r from-red-500/10 to-orange-500/10 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[18px] flex items-center gap-2 px-3 border border-orange-500/20 group relative overflow-hidden shadow-md">
+  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
+  <Swords size={14} />
+  </div>
+  <span className="text-white font-bold text-xs">Duelos</span>
+  </button>
 
  {expandedItems.map((id, index) => {
  const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
@@ -508,8 +519,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
   >
   
-  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
-  <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
+  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-1 h-14 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[18px] flex items-center gap-2 px-3 border border-white/5 group relative overflow-hidden shadow-sm">
+  <div className="w-7 h-7 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0"><Crosshair size={14} /></div>
+  <span className="text-white font-bold text-xs">{t('dock.newMission', 'Misión')}</span>
+  </button>
+
+  <button onClick={(e) => { handleModal('RIVALS', e); }} className="col-span-1 h-14 bg-gradient-to-r from-red-500/10 to-orange-500/10 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[18px] flex items-center gap-2 px-3 border border-orange-500/20 group relative overflow-hidden shadow-sm">
+  <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0"><Swords size={14} /></div>
+  <span className="text-white font-bold text-xs">Duelos</span>
   </button>
   {expandedItems.map((id, index) => {
   const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;

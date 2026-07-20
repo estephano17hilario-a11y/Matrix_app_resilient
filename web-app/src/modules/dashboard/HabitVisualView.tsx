@@ -874,12 +874,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {!showArchived && activeHabits.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 flex flex-col items-center gap-4">
                                     <p>{t('habits.empty')}</p>
-                                    <button 
-                                        onClick={onCreateHabit}
-                                        className="px-6 py-2 bg-indigo-500/20 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-indigo-500/30 transition-colors"
-                                    >
-                                        {t('habits.createProtocol', 'Crear Protocolo')}
-                                    </button>
                                 </div>
                             )}
 

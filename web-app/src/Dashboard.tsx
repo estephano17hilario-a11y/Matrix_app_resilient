@@ -30,6 +30,7 @@ import { ProjectModal } from './modules/dashboard/components/ProjectModal';
 import { ValidationModal } from './modules/dashboard/components/ValidationModal';
 import { BadHabitWizard } from './modules/dashboard/components/BadHabitWizard';
 import { RelapseModal } from './modules/dashboard/components/RelapseModal';
+import { RivalsModal } from './modules/rivals/components/RivalsModal';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
 import { Quest, Habit, BadHabit, Project, Attribute } from './types';
@@ -2016,6 +2017,14 @@ export default function Dashboard() {
     onConfirm={handleProjectConfirmAndReset} 
     onDelete={handleDeleteProjectRequest}
     initialData={modalInitialContext || undefined}
+  />
+
+  <RivalsModal
+    isOpen={activeModal === 'RIVALS'}
+    onClose={() => setActiveModal(null)}
+    userTasksCompleted={quests.filter(q => q.completed).length}
+    userFocusMinutes={dailyLimits?.stats?.focusMinutes || 120}
+    userHabitPct={Math.round((habits.filter(h => h.completedToday).length / Math.max(1, habits.length)) * 100)}
   />
 
   <BadHabitWizard 
