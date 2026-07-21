@@ -113,6 +113,8 @@ class WidgetConfigActivity : Activity() {
         try {
             val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)
             val className = providerInfo?.provider?.className ?: ""
+            val isRivalsWidget = className.contains("RivalsWidgetProvider")
+            val isScoreWidget = className.contains("ScoreWidgetProvider")
             val isProjectWidget = className.contains("ProjectWidgetProvider")
             val isFocusWidget = className.contains("FocusWidgetProvider")
             val isTaskWidget = className.contains("TaskWidgetProvider")
@@ -130,6 +132,10 @@ class WidgetConfigActivity : Activity() {
                 txtConfigTitle.text = "Ajustes de Hábitos"
             } else if (isJournalWidget) {
                 txtConfigTitle.text = "Ajustes de Diario"
+            } else if (isScoreWidget) {
+                txtConfigTitle.text = "Ajustes de Score"
+            } else if (isRivalsWidget) {
+                txtConfigTitle.text = "Ajustes de Duelos"
             } else {
                 txtConfigTitle.text = "Ajustes de Widget"
             }
@@ -153,7 +159,7 @@ class WidgetConfigActivity : Activity() {
                 habitsSectionContainer2.visibility = View.GONE
                 tasksSectionContainer.visibility = View.VISIBLE
                 cardOpacityContainer.visibility = View.VISIBLE
-            } else if (isJournalWidget) {
+            } else if (isJournalWidget || isScoreWidget || isRivalsWidget) {
                 projectSelectContainer.visibility = View.GONE
                 habitsSectionContainer1.visibility = View.GONE
                 habitsSectionContainer2.visibility = View.GONE
@@ -225,6 +231,18 @@ class WidgetConfigActivity : Activity() {
                 action = JournalWidgetProvider.ACTION_REFRESH_JOURNAL
             }
             sendBroadcast(refreshJournalIntent)
+
+            // Broadcast refresh for score
+            val refreshScoreIntent = Intent(this, ScoreWidgetProvider::class.java).apply {
+                action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
+            }
+            sendBroadcast(refreshScoreIntent)
+
+            // Broadcast refresh for rivals
+            val refreshRivalsIntent = Intent(this, RivalsWidgetProvider::class.java).apply {
+                action = RivalsWidgetProvider.ACTION_REFRESH_RIVALS
+            }
+            sendBroadcast(refreshRivalsIntent)
 
             // Success result if called as a widget configuration activity
             if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {

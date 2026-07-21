@@ -693,8 +693,14 @@ export default function Dashboard() {
       }, 600);
     }
 
-    const handleOpenDockConfig = () => setIsDockConfigOpen(true);
-    const handleOpenSettings = () => setIsSettingsOpen(true);
+    const handleOpenDockConfig = () => {
+      setIsDockOpen(false);
+      setIsDockConfigOpen(true);
+    };
+    const handleOpenSettings = () => {
+      setIsDockOpen(false);
+      setIsSettingsOpen(true);
+    };
     const handleOpenStore = () => setCurrentView('STORE');
     const handleOpenFeed = () => setCurrentView('FEED');
     const handleOpenNotes = () => setCurrentView('NOTES');
@@ -741,6 +747,11 @@ export default function Dashboard() {
   // FIX: Lift Focus State to Dashboard
   const handleOpenModal = useCallback((modal: string) => {
     console.log(`🌀 [Dashboard UI] handleOpenModal called for modal: "${modal}"`);
+    if (modal === 'SETTINGS') {
+      setIsDockOpen(false);
+      setIsSettingsOpen(true);
+      return;
+    }
     setModalInitialContext(null);
     setActiveModal(modal as any);
   }, [setActiveModal]);
@@ -1175,10 +1186,16 @@ export default function Dashboard() {
  }, [smartProjects, user?.id, setSmartProjects, setQuests, t, handleDeleteSmartProject]);
 
  const handleDockViewChange = useCallback((view: string) => {
- setFocusOpenArchived(false);
- if (view !== 'FOCUS') {
- setForceFocusOpen(false);
- }
+  if (view === 'SETTINGS') {
+    setIsDockOpen(false);
+    setIsSettingsOpen(true);
+    return;
+  }
+
+  setFocusOpenArchived(false);
+  if (view !== 'FOCUS') {
+  setForceFocusOpen(false);
+  }
 
  if (view === 'STRATEGY') {
  setCurrentView('TASKS');
@@ -1985,7 +2002,10 @@ export default function Dashboard() {
  
   <DockConfigModal
     isOpen={isDockConfigOpen}
-    onClose={() => setIsDockConfigOpen(false)}
+    onClose={() => {
+      setIsDockConfigOpen(false);
+      setIsDockOpen(false);
+    }}
     config={dockConfig}
     onSave={updateDockConfig}
   />

@@ -107,7 +107,9 @@ class WidgetAuthBridge : Plugin() {
         try {
             val context = activity ?: context
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
             prefs.edit().putInt("productivity_score", score).apply()
+            capPrefs.edit().putInt("productivity_score", score).apply()
             
             Log.d(TAG, "Score updated in widget shared preferences: $score")
             
@@ -116,6 +118,17 @@ class WidgetAuthBridge : Plugin() {
                 action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
             }
             context.sendBroadcast(intent)
+
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val scoreComponent = ComponentName(context, ScoreWidgetProvider::class.java)
+            val scoreWidgetIds = appWidgetManager.getAppWidgetIds(scoreComponent)
+            if (scoreWidgetIds.isNotEmpty()) {
+                val updateIntent = Intent(context, ScoreWidgetProvider::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, scoreWidgetIds)
+                }
+                context.sendBroadcast(updateIntent)
+            }
             
             call.resolve()
         } catch (e: Exception) {
@@ -131,19 +144,19 @@ class WidgetAuthBridge : Plugin() {
     fun updateRivalsData(call: PluginCall) {
         val rivalName = call.getString("rivalName") ?: "Francesco Cirillo"
         val rivalAvatar = call.getString("rivalAvatar") ?: "⌛"
-        val rivalLevel = call.getInt("rivalLevel", 1)
+        val rivalLevel = call.getInt("rivalLevel") ?: 1
         val rivalActivity = call.getString("rivalActivity") ?: "🔴 En Enfoque Profundo"
 
-        val userTasks = call.getInt("userTasks", 0)
-        val targetTasks = call.getInt("targetTasks", 1)
+        val userTasks = call.getInt("userTasks") ?: 0
+        val targetTasks = call.getInt("targetTasks") ?: 1
 
-        val userFocus = call.getDouble("userFocus", 0.0).toFloat()
-        val targetFocus = call.getDouble("targetFocus", 1.0).toFloat()
+        val userFocus = (call.getDouble("userFocus") ?: 0.0).toFloat()
+        val targetFocus = (call.getDouble("targetFocus") ?: 1.0).toFloat()
 
-        val userHabits = call.getInt("userHabits", 0)
-        val targetHabits = call.getInt("targetHabits", 25)
+        val userHabits = call.getInt("userHabits") ?: 0
+        val targetHabits = call.getInt("targetHabits") ?: 25
 
-        val isVictory = call.getBoolean("isVictory", false)
+        val isVictory = call.getBoolean("isVictory") ?: false
 
         try {
             val context = activity ?: context

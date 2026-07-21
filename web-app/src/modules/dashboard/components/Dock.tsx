@@ -55,10 +55,15 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
  const handleView = (v: string) => { onChangeView(v); onToggle(false); };
  
- const handleSmartNav = (v: string) => {
- onChangeView(v);
- onToggle(false);
- };
+  const handleSmartNav = (v: string) => {
+    if (v === 'SETTINGS') {
+      onOpenModal('SETTINGS');
+      onToggle(false);
+      return;
+    }
+    onChangeView(v);
+    onToggle(false);
+  };
 
  const handleModal = (m: string, e?: React.MouseEvent) => {
     console.log(`➕ [Dock UI] handleModal called for: "${m}"`);
@@ -162,13 +167,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
 
  const Backdrop = () => (
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !isHidden && pointerEvents !== 'none' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className={`fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm ${pointerEvents === 'none' ? 'pointer-events-none' : ''}`}
+            className="fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm pointer-events-auto"
             onClick={() => {
               console.log("➕ [Dock UI] Backdrop clicked. Closing Dock.");
               onToggle(false);
@@ -214,6 +219,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
   else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
   else if (id === 'FEED') { label = 'Feed'; }
+  else if (id === 'SETTINGS') { action = (e) => handleModal('SETTINGS', e); label = 'Config'; }
 
  return renderExpandedMenuButton(id, label, Icon, color, bgColor, borderColor, action, isFullWidth);
  };
@@ -241,6 +247,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
   else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
   else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
+  else if (id === 'SETTINGS') { action = (e) => handleModal('SETTINGS', e); label = 'Config'; }
 
  return (
  <button 

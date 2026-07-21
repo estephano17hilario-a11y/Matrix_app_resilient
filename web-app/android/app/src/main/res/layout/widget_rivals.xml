@@ -68,7 +68,7 @@
                 android:id="@+id/rival_level_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/widget_score_bg"
+                android:background="@drawable/widget_glass_bg"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:text="Lvl 1"

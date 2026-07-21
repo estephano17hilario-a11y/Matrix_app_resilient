@@ -389,6 +389,11 @@ class WidgetActionActivity : Activity() {
             action = HabitWidgetProvider.ACTION_REFRESH
         }
         sendBroadcast(intent)
+
+        val scoreIntent = Intent(this, ScoreWidgetProvider::class.java).apply {
+            action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
+        }
+        sendBroadcast(scoreIntent)
     }
 
     private fun getHabitColor(habit: HabitData): String {

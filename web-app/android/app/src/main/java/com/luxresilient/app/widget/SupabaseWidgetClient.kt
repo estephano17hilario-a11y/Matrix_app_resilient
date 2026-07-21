@@ -74,7 +74,7 @@ class SupabaseWidgetClient(private val context: Context) {
         }
     }
 
-    private fun getCredentials(): Pair<String?, String?> {
+    fun getCredentials(): Pair<String?, String?> {
         // ALWAYS check CapacitorStorage first as it is the Single Source of Truth
         try {
             val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
