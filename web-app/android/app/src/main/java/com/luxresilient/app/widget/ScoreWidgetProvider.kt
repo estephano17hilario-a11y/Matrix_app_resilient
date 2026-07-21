@@ -71,13 +71,20 @@ class ScoreWidgetProvider : AppWidgetProvider() {
             userId = credentials.first
         }
 
-        var score = prefs.getInt("productivity_score", -1)
-        if (score < 0 && capPrefs.contains("productivity_score")) {
-            score = try { capPrefs.getInt("productivity_score", -1) } catch (e: Exception) { -1 }
+        var score = -1
+        try {
+            score = prefs.getInt("productivity_score", -1)
+        } catch (e: Exception) {
+            score = prefs.getString("productivity_score", null)?.toIntOrNull() ?: -1
         }
-        if (score < 0) {
-            val strScore = prefs.getString("productivity_score", null) ?: capPrefs.getString("productivity_score", null)
-            score = strScore?.toIntOrNull() ?: -1
+
+        if (score < 0 && capPrefs.contains("productivity_score")) {
+            try {
+                score = capPrefs.getInt("productivity_score", -1)
+            } catch (e: Exception) {
+                val str = capPrefs.getString("productivity_score", null)
+                score = str?.toIntOrNull() ?: -1
+            }
         }
 
         if (score < 0 && !userId.isNullOrEmpty()) {
@@ -106,8 +113,8 @@ class ScoreWidgetProvider : AppWidgetProvider() {
         views.setViewVisibility(R.id.score_login_required, View.GONE)
         views.setViewVisibility(R.id.score_configured_layout, View.VISIBLE)
 
-        // Set score string
-        val scoreStr = if (score >= 0) score.toString() else "--"
+        // Set score percentage string (matching feed score %)
+        val scoreStr = if (score >= 0) "$score%" else "--"
         views.setTextViewText(R.id.score_widget_value_vert, scoreStr)
         views.setTextViewText(R.id.score_widget_value_horiz, scoreStr)
 
