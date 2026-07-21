@@ -15,14 +15,38 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/rival_avatar_1x1"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/widget_avatar_bg"
-            android:gravity="center"
-            android:text="⌛"
-            android:textSize="18sp" />
+        <!-- Duel Avatars side-by-side -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:gravity="center"
+                android:text="🛡️"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="2dp"
+                android:layout_marginRight="2dp"
+                android:text="⚔️"
+                android:textColor="#FFB703"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/rival_avatar_1x1"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:gravity="center"
+                android:text="⌛"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/rival_name_1x1"
@@ -33,25 +57,25 @@
             android:maxLines="1"
             android:text="Rival"
             android:textColor="#FFFFFF"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/rivals_stats_1x1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="1dp"
             android:text="T: 0 v 0"
             android:textColor="#60A5FA"
-            android:textSize="9sp"
+            android:textSize="8sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/rivals_status_1x1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="⚔️ En Duelo"
+            android:layout_marginTop="1dp"
+            android:text="⚔️ Duelo"
             android:textColor="#F59E0B"
             android:textSize="8sp"
             android:textStyle="bold" />
@@ -70,12 +94,12 @@
 
         <TextView
             android:id="@+id/rival_avatar_horiz"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/widget_avatar_bg"
             android:gravity="center"
             android:text="⌛"
-            android:textSize="20sp" />
+            android:textSize="18sp" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -93,7 +117,7 @@
                 android:maxLines="1"
                 android:text="Francesco Cirillo"
                 android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -119,206 +143,264 @@
                 android:layout_height="wrap_content"
                 android:text="T: 0 v 0 | F: 0h v 0h"
                 android:textColor="#60A5FA"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/rivals_status_horiz"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="⚔️ DUELO EN CURSO"
+                android:layout_marginTop="1dp"
+                android:text="⚔️ DUELO"
                 android:textColor="#F59E0B"
                 android:textSize="8sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- FULL 2x2+ GRID LAYOUT -->
+    <!-- FULL 2x2+ GRID LAYOUT (Frosted Duel Arena UI) -->
     <LinearLayout
         android:id="@+id/rivals_layout_full"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingLeft="4dp"
         android:paddingRight="4dp"
         android:visibility="visible">
 
-        <!-- Rival Info Header -->
+        <!-- Header: Title and activity status -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingBottom="4dp">
+            android:paddingBottom="2dp">
 
-            <!-- Avatar Circle -->
             <TextView
-                android:id="@+id/rival_avatar_text"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:background="@drawable/widget_avatar_bg"
-                android:gravity="center"
-                android:text="⌛"
-                android:textSize="22sp" />
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚔️ DUELO MATRIZ"
+                android:textColor="#FFB703"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
+            <TextView
+                android:id="@+id/rival_level_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/widget_glass_bg"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:text="Lvl 1"
+                android:textColor="#FFB703"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Activity status description -->
+        <TextView
+            android:id="@+id/rival_activity_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="🔴 En Enfoque Profundo"
+            android:textColor="#80FFFFFF"
+            android:textSize="8sp"
+            android:layout_marginTop="1dp" />
+
+        <!-- Divider line -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            android:background="#15FFFFFF" />
+
+        <!-- SPLIT VS DUEL LAYOUT -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:weightSum="10">
+
+            <!-- LEFT COLUMN: TÚ (PLAYER) -->
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:paddingLeft="8dp"
-                android:paddingRight="4dp">
+                android:layout_height="match_parent"
+                android:layout_weight="4"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/widget_avatar_bg"
+                    android:gravity="center"
+                    android:text="🛡️"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Tú"
+                    android:textColor="#A0FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <!-- User Stats -->
+                <TextView
+                    android:id="@+id/user_tasks_vert"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/user_focus_vert"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.0h"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/user_habits_vert"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- MIDDLE COLUMN: VS & LABELS -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/widget_refresh_bg"
+                    android:gravity="center"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="4dp"
+                    android:text="VS"
+                    android:textColor="#FFB703"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:text="Tareas"
+                    android:textColor="#50FFFFFF"
+                    android:textSize="7sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Foco"
+                    android:textColor="#50FFFFFF"
+                    android:textSize="7sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hábitos"
+                    android:textColor="#50FFFFFF"
+                    android:textSize="7sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- RIGHT COLUMN: RIVAL -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="4"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/rival_avatar_text"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/widget_avatar_bg"
+                    android:gravity="center"
+                    android:text="⌛"
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/rival_name_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="Francesco Cirillo"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/rival_activity_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="🔴 En Enfoque Profundo"
-                    android:textColor="#F59E0B"
+                    android:textColor="#A0FFFFFF"
                     android:textSize="9sp"
                     android:textStyle="bold" />
-            </LinearLayout>
 
-            <!-- Level Badge -->
-            <TextView
-                android:id="@+id/rival_level_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/widget_glass_bg"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:text="Lvl 1"
-                android:textColor="#FFB703"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Divider Line -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:background="#22FFFFFF" />
-
-        <!-- Live Comparison Stats Row -->
-        <LinearLayout
-            android:id="@+id/rivals_stats_row"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingTop="2dp"
-            android:weightSum="3">
-
-            <!-- Tareas Stat -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
+                <!-- Rival Stats -->
                 <TextView
+                    android:id="@+id/rival_tasks_vert"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TAREAS (TÚ v RIVAL)"
-                    android:textColor="#94A3B8"
-                    android:textSize="7sp"
+                    android:layout_marginTop="3dp"
+                    android:text="0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/rivals_tasks_val"
+                    android:id="@+id/rival_focus_vert"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 v 0"
-                    android:textColor="#60A5FA"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Focus Stat -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="FOCO (TÚ v RIVAL)"
-                    android:textColor="#94A3B8"
-                    android:textSize="7sp"
+                    android:text="0.0h"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/rivals_focus_val"
+                    android:id="@+id/rival_habits_vert"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0h v 0h"
-                    android:textColor="#C084FC"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Habits Stat -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="HÁBITOS (TÚ v RIVAL)"
-                    android:textColor="#94A3B8"
-                    android:textSize="7sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/rivals_habits_val"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0% v 0%"
-                    android:textColor="#FB923C"
-                    android:textSize="13sp"
+                    android:text="0%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Victory / In-Progress Status Banner -->
+        <!-- Dueling Status Banner -->
         <TextView
             android:id="@+id/rivals_status_banner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:background="#1DF59E0B"
+            android:layout_marginTop="2dp"
+            android:background="#15FFFFFF"
             android:gravity="center"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             android:text="⚔️ DUELO EN CURSO"
             android:textColor="#F59E0B"
-            android:textSize="9sp"
+            android:textSize="8sp"
             android:textStyle="bold" />
     </LinearLayout>
 

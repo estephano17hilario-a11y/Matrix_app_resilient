@@ -149,6 +149,7 @@ data class TaskData(
     val subAttribute: String? = null,
     val isSmartQuest: Boolean? = false,
     val deadline: String? = null,
+    val completedAt: String? = null,
     val archived: Boolean? = false,
     val order: Int? = null,
     val projectId: String? = null
@@ -174,6 +175,8 @@ data class ProjectData(
     val breakDuration: Int = 5,
     val totalTime: Int = 0,
     val streak: Int = 0,
+    val archived: Boolean? = false,
+    val deleted: Boolean? = false,
     val sessions: List<SessionData>? = null
 )
 
@@ -195,6 +198,7 @@ data class DailyFeedEntryData(
     val habitsTotal: Int = 0,
     val xpEarned: Int = 0,
     val goldEarned: Int = 0,
+    val score: Double? = null,
     val topProjects: List<TopProjectData>? = null
 )
 

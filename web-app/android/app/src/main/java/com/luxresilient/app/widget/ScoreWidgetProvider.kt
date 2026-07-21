@@ -169,39 +169,122 @@ class ScoreWidgetProvider : AppWidgetProvider() {
     private fun calculateNativeScore(context: Context): Int {
         return try {
             val client = SupabaseWidgetClient(context)
+            val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+
+            // 1. Try to load today's exact feed score from local/Supabase cached dailyFeed entry
+            val feeds = client.fetchDailyFeed()
+            val todayFeed = feeds.find { it.date == todayStr }
+            if (todayFeed != null && todayFeed.score != null) {
+                Log.d(TAG, "calculateNativeScore: Found today's feed entry. Score = ${todayFeed.score}")
+                return Math.round(todayFeed.score).toInt()
+            }
+
+            // 2. Fallback to calculating the exact TS formula locally
             val habits = client.fetchHabits()
             val tasks = client.fetchTasks(includeCompleted = true)
+            val projects = client.fetchProjects()
 
-            var total = 0
-            var completed = 0
-
-            for (h in habits) {
-                total++
-                if (h.completedToday == true) {
-                    completed++
+            var tasksCompleted = 0
+            var tasksTotal = 0
+            for (t in tasks) {
+                if (t.archived == true) continue
+                val isCompletedToday = t.completed && t.completedAt?.startsWith(todayStr) == true
+                val isDueToday = t.deadline == null || t.deadline.startsWith(todayStr)
+                
+                if (isCompletedToday) {
+                    tasksCompleted++
+                    tasksTotal++
+                } else if (!t.completed && isDueToday) {
+                    tasksTotal++
                 }
             }
 
-            val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-            for (t in tasks) {
-                if (t.archived == true) continue
-                val taskDate = t.deadline
-                if (taskDate == null || taskDate.startsWith(todayStr)) {
-                    total++
-                    if (t.completed) {
-                        completed++
+            var habitsCompleted = 0
+            var habitsTotal = 0
+            for (h in habits) {
+                if (h.archived == true) continue
+                habitsTotal++
+                if (h.completedToday == true) {
+                    habitsCompleted++
+                }
+            }
+
+            // Focus Minutes & Target
+            var focusTargetMinutes = 0
+            var focusMinutes = 0
+            val cal = java.util.Calendar.getInstance()
+            val dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK) // 1=Sun, 2=Mon, ..., 7=Sat
+            val jsDow = dayOfWeek - 1 // JS: 0=Sun, 1=Mon, ..., 6=Sat
+
+            for (p in projects) {
+                if (p.archived == true || p.deleted == true) continue
+                val activeDays = p.workingDays ?: emptyList()
+                val isActiveToday = activeDays.isEmpty() || activeDays.contains(jsDow)
+                if (isActiveToday) {
+                    val target = p.goalTarget ?: 0
+                    if (target > 0) {
+                        focusTargetMinutes += target
+                        val sessions = p.sessions ?: emptyList()
+                        val todaySessions = sessions.filter { it.date?.startsWith(todayStr) == true }
+                        val todayDurationSeconds = todaySessions.sumOf { it.duration }
+                        focusMinutes += Math.round(todayDurationSeconds.toDouble() / 60.0).toInt()
                     }
                 }
             }
 
-            if (total > 0) {
-                val pct = (completed.toDouble() / total.toDouble()) * 100.0
-                Math.round(pct).toInt()
+            val hasTasks = tasksTotal > 0
+            val hasFocus = focusTargetMinutes > 0
+
+            var taskWeight = 0.0
+            var habitWeight = 0.0
+            var focusWeight = 0.0
+
+            if (hasTasks && hasFocus) {
+                taskWeight = 20.0
+                habitWeight = 40.0
+                focusWeight = 40.0
+            } else if (!hasTasks && hasFocus) {
+                taskWeight = 0.0
+                habitWeight = 45.0
+                focusWeight = 55.0
+            } else if (hasTasks && !hasFocus) {
+                taskWeight = 30.0
+                habitWeight = 70.0
+                focusWeight = 0.0
             } else {
-                100
+                taskWeight = 0.0
+                habitWeight = 100.0
+                focusWeight = 0.0
             }
+
+            val tasksScore = if (hasTasks) (tasksCompleted.toDouble() / tasksTotal.toDouble()) * taskWeight else 0.0
+            val habitsScore = if (habitsTotal > 0) (habitsCompleted.toDouble() / habitsTotal.toDouble()) * habitWeight else habitWeight
+            val focusScore = if (hasFocus) {
+                var acc = 0.0
+                for (p in projects) {
+                    if (p.archived == true || p.deleted == true) continue
+                    val activeDays = p.workingDays ?: emptyList()
+                    val isActiveToday = activeDays.isEmpty() || activeDays.contains(jsDow)
+                    if (isActiveToday) {
+                        val target = p.goalTarget ?: 0
+                        if (target > 0) {
+                            val share = target.toDouble() / focusTargetMinutes.toDouble()
+                            val sessions = p.sessions ?: emptyList()
+                            val todaySessions = sessions.filter { it.date?.startsWith(todayStr) == true }
+                            val todayMins = Math.round(todaySessions.sumOf { it.duration }.toDouble() / 60.0).toInt()
+                            val comp = Math.min(todayMins.toDouble() / target.toDouble(), 1.0)
+                            acc += share * comp * focusWeight
+                        }
+                    }
+                }
+                acc
+            } else 0.0
+
+            val totalScore = tasksScore + habitsScore + focusScore
+            Log.d(TAG, "calculateNativeScore (calculated fallback): $totalScore (tasks: $tasksScore, habits: $habitsScore, focus: $focusScore)")
+            Math.round(totalScore).toInt()
         } catch (e: Exception) {
-            Log.e(TAG, "Error calculating native score: ${e.message}")
+            Log.e(TAG, "Error calculating native score: ${e.message}", e)
             -1
         }
     }

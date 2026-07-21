@@ -101,15 +101,21 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             else -> 0xFFF59E0B.toInt() // Amber Gold
         }
 
-        // 1. Populate Full Grid Layout (2x2+)
+        // 1. Populate Full Grid Layout (2x2+) - Split Screen VS Dueling UI
         views.setTextViewText(R.id.rival_avatar_text, rivalAvatar)
         views.setTextViewText(R.id.rival_name_text, rivalName)
         views.setTextViewText(R.id.rival_level_badge, "Lvl $rivalLevel")
         views.setTextViewText(R.id.rival_activity_text, rivalActivity)
 
-        views.setTextViewText(R.id.rivals_tasks_val, "$userTasks v $rivalTasks")
-        views.setTextViewText(R.id.rivals_focus_val, "${String.format("%.1f", userFocus)}h v ${String.format("%.1f", rivalFocus)}h")
-        views.setTextViewText(R.id.rivals_habits_val, "$userHabits% v $rivalHabits%")
+        // User Side (Left)
+        views.setTextViewText(R.id.user_tasks_vert, "$userTasks")
+        views.setTextViewText(R.id.user_focus_vert, "${String.format("%.1f", userFocus)}h")
+        views.setTextViewText(R.id.user_habits_vert, "$userHabits%")
+
+        // Rival Side (Right)
+        views.setTextViewText(R.id.rival_tasks_vert, "$rivalTasks")
+        views.setTextViewText(R.id.rival_focus_vert, "${String.format("%.1f", rivalFocus)}h")
+        views.setTextViewText(R.id.rival_habits_vert, "$rivalHabits%")
 
         views.setTextViewText(R.id.rivals_status_banner, statusText)
         views.setTextColor(R.id.rivals_status_banner, statusColor)

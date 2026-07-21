@@ -31,6 +31,7 @@ import { ValidationModal } from './modules/dashboard/components/ValidationModal'
 import { BadHabitWizard } from './modules/dashboard/components/BadHabitWizard';
 import { RelapseModal } from './modules/dashboard/components/RelapseModal';
 import { RivalsModal } from './modules/rivals/components/RivalsModal';
+import { useRivalsLogic } from './modules/rivals/hooks/useRivalsLogic';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { useDashboardLogic } from './modules/dashboard/hooks/useDashboardLogic';
 import { Quest, Habit, BadHabit, Project, Attribute } from './types';
@@ -408,6 +409,45 @@ export default function Dashboard() {
       document.removeEventListener('visibilitychange', handleFocusOrVisibility);
     };
   }, [liveScore]);
+
+  // ⚔️ Global Rivals Sync Effect (Background Sync)
+  const todayTasksCompleted = useMemo(() => {
+    return quests.filter(q => {
+      if (!q.completed || !q.completedAt) return false;
+      const completedStr = toLocalISOString(new Date(q.completedAt)).slice(0, 10);
+      const todayStr = toLocalISOString(new Date()).slice(0, 10);
+      return completedStr === todayStr;
+    }).length;
+  }, [quests]);
+
+  const todayFocusMinutes = useMemo(() => {
+    let focusSecondsFromSessions = 0;
+    const today = toLocalISOString(new Date());
+    projects.forEach(p => {
+      if (p.sessions) {
+        const todaySessions = p.sessions.filter(s => {
+          if (!s.date) return false;
+          try {
+            return toLocalISOString(new Date(s.date)) === today;
+          } catch (e) {
+            return false;
+          }
+        });
+        focusSecondsFromSessions += todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+      }
+    });
+    return Math.round(Math.max(Number(dailyLimits?.focusSeconds || 0), focusSecondsFromSessions) / 60);
+  }, [projects, dailyLimits]);
+
+  const todayHabitPct = useMemo(() => {
+    const activeHabits = habits.filter(h => !h.archived);
+    if (activeHabits.length === 0) return 0;
+    const completed = activeHabits.filter(h => h.completedToday).length;
+    return Math.round((completed / activeHabits.length) * 100);
+  }, [habits]);
+
+  // Background hook instanciation triggers widget SharedPreferences sync automatically
+  useRivalsLogic(todayTasksCompleted, todayFocusMinutes, todayHabitPct);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);
