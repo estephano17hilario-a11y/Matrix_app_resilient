@@ -73,7 +73,11 @@ class ScoreWidgetProvider : AppWidgetProvider() {
 
         var score = prefs.getInt("productivity_score", -1)
         if (score < 0 && capPrefs.contains("productivity_score")) {
-            score = capPrefs.getInt("productivity_score", -1)
+            score = try { capPrefs.getInt("productivity_score", -1) } catch (e: Exception) { -1 }
+        }
+        if (score < 0) {
+            val strScore = prefs.getString("productivity_score", null) ?: capPrefs.getString("productivity_score", null)
+            score = strScore?.toIntOrNull() ?: -1
         }
 
         if (score < 0 && !userId.isNullOrEmpty()) {
@@ -182,9 +186,10 @@ class ScoreWidgetProvider : AppWidgetProvider() {
             }
 
             if (total > 0) {
-                (completed * 100) / total
+                val pct = (completed.toDouble() / total.toDouble()) * 10.0
+                Math.round(pct).toInt()
             } else {
-                100
+                10
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating native score: ${e.message}")

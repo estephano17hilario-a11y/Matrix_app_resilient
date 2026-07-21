@@ -380,10 +380,33 @@ export default function Dashboard() {
     return Math.round(calculateLiveProductivityScore(quests, habits, projects, dailyLimits));
   }, [quests, habits, projects, dailyLimits]);
 
-  // Sync the updated score with the native Android widget
+  // Sync the updated score with the native Android widget on liveScore change, app focus, resume, and pause
   useEffect(() => {
-    WidgetAuthBridge.updateScore({ score: liveScore })
-      .catch(err => console.error("Failed to update widget score:", err));
+    const syncScore = () => {
+      if (liveScore !== undefined && liveScore !== null) {
+        WidgetAuthBridge.updateScore({ score: liveScore })
+          .catch(err => console.error("Failed to update widget score:", err));
+      }
+    };
+
+    syncScore();
+
+    const appStateSubscription = App.addListener('appStateChange', (state) => {
+      console.log(`📱 [App State] changed (isActive: ${state.isActive}) -> Syncing widget score: ${liveScore}`);
+      syncScore();
+    });
+
+    const handleFocusOrVisibility = () => syncScore();
+    window.addEventListener('focus', handleFocusOrVisibility);
+    window.addEventListener('blur', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', handleFocusOrVisibility);
+
+    return () => {
+      appStateSubscription.then(sub => sub.remove()).catch(() => {});
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      window.removeEventListener('blur', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
+    };
   }, [liveScore]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
