@@ -11,6 +11,10 @@ export interface RivalLevel {
   rewardXp: number;
   quote: string;
   difficulty: 'FÁCIL' | 'MEDIO' | 'DIFÍCIL' | 'ÉPICO' | 'LEGENDARIO' | 'TITÁN';
+  workStartHour?: number;
+  workEndHour?: number;
+  workStartMinute?: number;
+  workEndMinute?: number;
 }
 
 export const RIVAL_LEVELS: RivalLevel[] = [

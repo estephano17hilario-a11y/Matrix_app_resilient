@@ -694,7 +694,18 @@ export default function Dashboard() {
     }
 
     const handleOpenDockConfig = () => setIsDockConfigOpen(true);
+    const handleOpenSettings = () => setIsSettingsOpen(true);
+    const handleOpenStore = () => setCurrentView('STORE');
+    const handleOpenFeed = () => setCurrentView('FEED');
+    const handleOpenNotes = () => setCurrentView('NOTES');
+    const handleOpenRivals = () => setActiveModal('RIVALS');
+
     window.addEventListener('open-dock-config', handleOpenDockConfig);
+    window.addEventListener('open-settings', handleOpenSettings);
+    window.addEventListener('open-store', handleOpenStore);
+    window.addEventListener('open-feed', handleOpenFeed);
+    window.addEventListener('open-notes', handleOpenNotes);
+    window.addEventListener('open-rivals-modal', handleOpenRivals);
 
     // 2. Listen for runtime custom events from App.tsx
     const handleFocusTrigger = (e: Event) => {
@@ -714,6 +725,12 @@ export default function Dashboard() {
     window.addEventListener('cold_start_focus_trigger', handleFocusTrigger);
     window.addEventListener('cold_start_journal_trigger', handleJournalTrigger);
     return () => {
+      window.removeEventListener('open-dock-config', handleOpenDockConfig);
+      window.removeEventListener('open-settings', handleOpenSettings);
+      window.removeEventListener('open-store', handleOpenStore);
+      window.removeEventListener('open-feed', handleOpenFeed);
+      window.removeEventListener('open-notes', handleOpenNotes);
+      window.removeEventListener('open-rivals-modal', handleOpenRivals);
       window.removeEventListener('cold_start_focus_trigger', handleFocusTrigger);
       window.removeEventListener('cold_start_journal_trigger', handleJournalTrigger);
     };

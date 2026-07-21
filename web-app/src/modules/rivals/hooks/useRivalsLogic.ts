@@ -31,12 +31,13 @@ export function useRivalsLogic(
 
   // Sync state from profile preferences when available
   useEffect(() => {
-    if (profile?.preferences?.rivalsProgress) {
-      const remote = profile.preferences.rivalsProgress as RivalsProgressData;
+    const prefs = profile?.preferences as any;
+    if (prefs?.rivalsProgress) {
+      const remote = prefs.rivalsProgress as RivalsProgressData;
       setProgress(remote);
       setSelectedLevel(remote.unlockedLevel || 1);
     }
-  }, [profile?.preferences?.rivalsProgress]);
+  }, [profile?.preferences]);
 
   // Active level config
   const currentLevelData = useMemo(() => {
@@ -55,13 +56,16 @@ export function useRivalsLogic(
   // Live real-time workday status of selected rival
   const rivalLiveState = useMemo(() => {
     const rival = currentLevelData;
+    const workStartHour = rival.workStartHour ?? 9;
+    const workEndHour = rival.workEndHour ?? 18;
+    const workStartMinute = rival.workStartMinute ?? 0;
     const now = new Date();
     
     const startTime = new Date(now);
-    startTime.setHours(rival.workStartHour, rival.workStartMinute || 0, 0, 0);
+    startTime.setHours(workStartHour, workStartMinute, 0, 0);
 
     const endTime = new Date(now);
-    endTime.setHours(rival.workEndHour, rival.workEndMinute || 0, 0, 0);
+    endTime.setHours(workEndHour, rival.workEndMinute || 0, 0, 0);
 
     if (now < startTime) {
       return {
@@ -70,7 +74,7 @@ export function useRivalsLogic(
         simulatedTasks: 0,
         simulatedFocusMinutes: 0,
         simulatedHabitPct: 0,
-        message: `El rival iniciará su jornada a las ${rival.workStartHour}:${(rival.workStartMinute || 0).toString().padStart(2, '0')}.`,
+        message: `El rival iniciará su jornada a las ${workStartHour}:${workStartMinute.toString().padStart(2, '0')}.`,
         currentActivity: `Preparando bloques de trabajo para su jornada.`
       };
     }
@@ -82,7 +86,7 @@ export function useRivalsLogic(
         simulatedTasks: rival.targetTasks,
         simulatedFocusMinutes: rival.targetFocusMinutes,
         simulatedHabitPct: rival.targetHabitPct,
-        message: `Jornada finalizada (${rival.workStartHour}:00 - ${rival.workEndHour}:00).`,
+        message: `Jornada finalizada (${workStartHour}:00 - ${workEndHour}:00).`,
         currentActivity: `Ha completado su jornada del día. ¡Tienes hasta las 11:59 PM para superarlo!`
       };
     }
@@ -113,7 +117,7 @@ export function useRivalsLogic(
       simulatedTasks,
       simulatedFocusMinutes,
       simulatedHabitPct,
-      message: `En jornada activa (${rival.workStartHour}:00 - ${rival.workEndHour}:00)`,
+      message: `En jornada activa (${workStartHour}:00 - ${workEndHour}:00)`,
       currentActivity
     };
   }, [currentLevelData]);

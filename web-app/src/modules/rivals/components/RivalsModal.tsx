@@ -25,6 +25,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
     selectedLevel,
     setSelectedLevel,
     currentLevelData,
+    rivalLiveState,
     duelEvaluation,
     claimLevelVictory
   } = useRivalsLogic(userTasksCompleted, userFocusMinutes, userHabitPct);
@@ -295,7 +296,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                         Jornada Rival
                       </span>
                       <span className="text-white font-mono font-bold text-xs">
-                        {currentLevelData.workStartHour}:00 - {currentLevelData.workEndHour}:00
+                        {currentLevelData.workStartHour ?? 9}:00 - {currentLevelData.workEndHour ?? 18}:00
                       </span>
                     </div>
 

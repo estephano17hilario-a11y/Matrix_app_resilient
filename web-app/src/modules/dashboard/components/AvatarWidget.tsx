@@ -165,24 +165,38 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
 
     const renderQuickActionButton = (actionKey: string) => {
         let IconComponent = Settings;
-        let onClickAction = () => { if (onNavigate) onNavigate('SETTINGS'); };
+        let onClickAction = () => {
+            if (onNavigate) onNavigate('SETTINGS');
+            window.dispatchEvent(new CustomEvent('open-settings'));
+        };
         let hoverColor = "hover:text-white";
 
         if (actionKey === 'STORE') {
             IconComponent = ShoppingBag;
-            onClickAction = () => { if (onNavigate) onNavigate('STORE'); };
+            onClickAction = () => {
+                if (onNavigate) onNavigate('STORE');
+                window.dispatchEvent(new CustomEvent('open-store'));
+            };
             hoverColor = "hover:text-amber-400";
         } else if (actionKey === 'FEED') {
             IconComponent = Activity;
-            onClickAction = () => { if (onNavigate) onNavigate('FEED'); };
+            onClickAction = () => {
+                if (onNavigate) onNavigate('FEED');
+                window.dispatchEvent(new CustomEvent('open-feed'));
+            };
             hoverColor = "hover:text-teal-400";
         } else if (actionKey === 'RIVALS') {
             IconComponent = Swords;
-            onClickAction = () => { window.dispatchEvent(new CustomEvent('open-rivals-modal')); };
+            onClickAction = () => {
+                window.dispatchEvent(new CustomEvent('open-rivals-modal'));
+            };
             hoverColor = "hover:text-orange-400";
         } else if (actionKey === 'NOTES') {
             IconComponent = PenLine;
-            onClickAction = () => { if (onNavigate) onNavigate('NOTES'); };
+            onClickAction = () => {
+                if (onNavigate) onNavigate('NOTES');
+                window.dispatchEvent(new CustomEvent('open-notes'));
+            };
             hoverColor = "hover:text-emerald-400";
         }
 
