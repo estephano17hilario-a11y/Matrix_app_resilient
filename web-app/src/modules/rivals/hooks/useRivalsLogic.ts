@@ -4,6 +4,7 @@ import { RivalNotificationService } from '../services/rivalNotificationService';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
+import WidgetAuthBridge from '@/plugins/WidgetBridgePlugin';
 
 export interface RivalsProgressData {
   unlockedLevel: number;
@@ -140,6 +141,27 @@ export function useRivalsLogic(
       habitDiff: userHabitPct - rival.targetHabitPct
     };
   }, [currentLevelData, userTasksCompleted, userFocusMinutes, userHabitPct]);
+
+  // Auto-sync native Rivals Widget SharedPreferences
+  useEffect(() => {
+    try {
+      WidgetAuthBridge.updateRivalsData({
+        rivalName: activeUnlockedRival.name,
+        rivalAvatar: activeUnlockedRival.avatar,
+        rivalLevel: activeUnlockedRival.level,
+        rivalActivity: rivalLiveState.currentActivity,
+        userTasks: userTasksCompleted,
+        targetTasks: activeUnlockedRival.targetTasks,
+        userFocus: userFocusMinutes / 60,
+        targetFocus: activeUnlockedRival.targetFocusMinutes / 60,
+        userHabits: userHabitPct,
+        targetHabits: activeUnlockedRival.targetHabitPct,
+        isVictory: duelEvaluation.isVictor
+      }).catch(e => console.error('Failed to sync native rivals widget:', e));
+    } catch (e) {
+      console.error('Error syncing native rivals widget:', e);
+    }
+  }, [activeUnlockedRival, rivalLiveState, userTasksCompleted, userFocusMinutes, userHabitPct, duelEvaluation]);
 
   // Save progress helper
   const saveProgress = useCallback(async (newProgress: RivalsProgressData) => {

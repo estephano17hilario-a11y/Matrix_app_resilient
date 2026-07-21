@@ -124,6 +124,58 @@ class WidgetAuthBridge : Plugin() {
         }
     }
 
+    /**
+     * Update live rivals metrics for the rivals widget
+     */
+    @PluginMethod
+    fun updateRivalsData(call: PluginCall) {
+        val rivalName = call.getString("rivalName") ?: "Francesco Cirillo"
+        val rivalAvatar = call.getString("rivalAvatar") ?: "⌛"
+        val rivalLevel = call.getInt("rivalLevel", 1)
+        val rivalActivity = call.getString("rivalActivity") ?: "🔴 En Enfoque Profundo"
+
+        val userTasks = call.getInt("userTasks", 0)
+        val targetTasks = call.getInt("targetTasks", 1)
+
+        val userFocus = call.getDouble("userFocus", 0.0).toFloat()
+        val targetFocus = call.getDouble("targetFocus", 1.0).toFloat()
+
+        val userHabits = call.getInt("userHabits", 0)
+        val targetHabits = call.getInt("targetHabits", 25)
+
+        val isVictory = call.getBoolean("isVictory", false)
+
+        try {
+            val context = activity ?: context
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("rival_name", rivalName)
+                .putString("rival_avatar", rivalAvatar)
+                .putInt("rival_level", rivalLevel)
+                .putString("rival_activity", rivalActivity)
+                .putInt("user_tasks", userTasks)
+                .putInt("target_tasks", targetTasks)
+                .putFloat("user_focus", userFocus)
+                .putFloat("target_focus", targetFocus)
+                .putInt("user_habits", userHabits)
+                .putInt("target_habits", targetHabits)
+                .putBoolean("is_victory", isVictory)
+                .apply()
+
+            Log.d(TAG, "Rivals data updated in widget preferences: $rivalName ($userTasks/$targetTasks tasks)")
+
+            val intent = Intent(context, RivalsWidgetProvider::class.java).apply {
+                action = RivalsWidgetProvider.ACTION_REFRESH_RIVALS
+            }
+            context.sendBroadcast(intent)
+
+            call.resolve()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update rivals data: ${e.message}", e)
+            call.reject("Failed to update rivals data: ${e.message}")
+        }
+    }
+
     override fun handleOnResume() {
         super.handleOnResume()
         Log.d(TAG, "Capacitor activity resumed - refreshing widgets")
@@ -137,7 +189,7 @@ class WidgetAuthBridge : Plugin() {
     }
 
     /**
-     * Send broadcast to refresh all habit and score widgets
+     * Send broadcast to refresh all habit, score and rivals widgets
      */
     private fun refreshWidgets(context: Context) {
         try {
@@ -151,6 +203,12 @@ class WidgetAuthBridge : Plugin() {
                 action = ScoreWidgetProvider.ACTION_REFRESH_SCORE
             }
             context.sendBroadcast(scoreIntent)
+
+            // Also broadcast to RivalsWidgetProvider
+            val rivalsIntent = Intent(context, RivalsWidgetProvider::class.java).apply {
+                action = RivalsWidgetProvider.ACTION_REFRESH_RIVALS
+            }
+            context.sendBroadcast(rivalsIntent)
 
             // Also notify AppWidgetManager for Habit list widgets
             val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -171,7 +229,7 @@ class WidgetAuthBridge : Plugin() {
                 context.sendBroadcast(updateIntent)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error refreshing widgets: ${e.message}")
+            Log.e(TAG, "Error refreshing widgets: ${e.message}", e)
         }
     }
 }

@@ -10,4 +10,6 @@
     <string name="widget_habits_title">Lux · Protocolos</string>
     <string name="widget_score_title">Lux · Score</string>
     <string name="widget_score_description">Muestra tu Score de productividad actualizado</string>
+    <string name="widget_rivals_title">Lux · Duelos</string>
+    <string name="widget_rivals_description">Muestra tu duelo activo contra las leyendas en tiempo real</string>
 </resources>

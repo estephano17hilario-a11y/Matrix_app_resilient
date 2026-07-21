@@ -61,12 +61,16 @@ class ScoreWidgetProvider : AppWidgetProvider() {
         widgetId: Int
     ) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val userId = prefs.getString("user_id", null)
-        val score = prefs.getInt("productivity_score", -1)
+        val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+        val userId = prefs.getString("user_id", null) ?: capPrefs.getString("user_id", null) ?: capPrefs.getString("user", null)
+        var score = prefs.getInt("productivity_score", -1)
+        if (score < 0 && capPrefs.contains("productivity_score")) {
+            score = capPrefs.getInt("productivity_score", 0)
+        }
 
         val views = RemoteViews(context.packageName, R.layout.widget_score)
 
-        if (userId == null) {
+        if (userId == null && score < 0) {
             views.setViewVisibility(R.id.score_login_required, View.VISIBLE)
             views.setViewVisibility(R.id.score_configured_layout, View.GONE)
             
