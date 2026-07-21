@@ -30,6 +30,25 @@ export const SystemSection = () => {
  const [permissions, setPermissions] = useState({ notifications: false, battery: false, overlay: false });
  const [isNative, setIsNative] = useState(false);
 
+ const [topQuickActions, setTopQuickActions] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('matrix_top_quick_actions');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return ['SETTINGS', 'STORE'];
+  });
+
+  const updateTopQuickActions = (newActions: string[]) => {
+    setTopQuickActions(newActions);
+    localStorage.setItem('matrix_top_quick_actions', JSON.stringify(newActions));
+    window.dispatchEvent(new CustomEvent('top-quick-actions-changed'));
+    toast.success('Acciones rápidas de la cabecera actualizadas');
+  };
+
+  const handleOpenDockConfig = () => {
+    window.dispatchEvent(new CustomEvent('open-dock-config'));
+  };
+
  useEffect(() => {
  const checkNativeStatus = async () => {
  const platform = Capacitor.getPlatform();
@@ -326,6 +345,67 @@ export const SystemSection = () => {
  </button>
  </div>
  </div>
+
+ {/* Customization of Drawer (+) and Top Quick Actions */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+          <LayoutGrid size={18} className="text-purple-400" />
+        </div>
+        <div>
+          <div className="text-base font-bold text-white tracking-tight">Menú Desplegable (+)</div>
+          <div className="text-xs text-white/40 font-medium">Personaliza los accesos rápidos y el orden del botón (+)</div>
+        </div>
+      </div>
+      
+      <button
+        onClick={handleOpenDockConfig}
+        className="px-4 py-2 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5"
+      >
+        <span>Personalizar</span>
+      </button>
+    </div>
+  </div>
+
+  {/* Top HUD Action Icons */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+        <Zap size={18} className="text-amber-400" />
+      </div>
+      <div>
+        <div className="text-base font-bold text-white tracking-tight">Acciones Rápidas del HUD (Cabecera)</div>
+        <div className="text-xs text-white/40 font-medium">Selecciona los 2 íconos rápidos visibles junto a tu avatar</div>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      {[
+        { id: ['SETTINGS', 'STORE'], label: 'Ajustes + Tienda' },
+        { id: ['STORE', 'FEED'], label: 'Tienda + Feed' },
+        { id: ['SETTINGS', 'FEED'], label: 'Ajustes + Feed' },
+        { id: ['STORE', 'RIVALS'], label: 'Tienda + Duelos' },
+        { id: ['SETTINGS', 'RIVALS'], label: 'Ajustes + Duelos' },
+      ].map((opt) => {
+        const isSelected = JSON.stringify(topQuickActions) === JSON.stringify(opt.id);
+        return (
+          <button
+            key={opt.label}
+            onClick={() => updateTopQuickActions(opt.id)}
+            className={cn(
+              "py-2.5 px-3 rounded-xl transition-all text-xs font-bold active:scale-95 border text-center truncate",
+              isSelected
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
+                : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
 
  {/* Default Habit View */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles } from 'lucide-react';
+import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, ShieldAlert } from 'lucide-react';
 import { RIVAL_LEVELS, RivalLevel } from '../config/rivalsConfig';
 import { useRivalsLogic } from '../hooks/useRivalsLogic';
 
@@ -52,33 +52,32 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
         className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
         onClick={onClose}
       >
-        {/* Centered Modal Content Window (Punto 2: Always centered Y-axis in viewport) */}
+        {/* Centered Modal Content Window (Always centered Y-axis in viewport) */}
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 300, damping: 28 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-4xl max-h-[88vh] bg-zinc-950/95 border border-white/15 rounded-3xl flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.9)] my-auto"
+          className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950/95 border border-white/15 rounded-3xl flex flex-col overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.9)] my-auto"
         >
           {/* Top Header */}
           <div className="px-5 py-4 bg-zinc-900/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500/20 via-orange-500/20 to-amber-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.25)]">
                 <Swords size={20} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-white font-black text-lg tracking-wider uppercase">
+                  <h2 className="text-white font-black text-lg tracking-wider uppercase flex items-center gap-2">
                     Duelos de Productividad
                   </h2>
-                  {/* Punto 3: Sleek compact pill badge */}
                   <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
                     30 Niveles
                   </span>
                 </div>
                 <p className="text-white/40 text-xs font-mono">
-                  Supera a las leyendas para dominar la Matrix
+                  Mapa de Batallas & Enfréntate a las Leyendas
                 </p>
               </div>
             </div>
@@ -94,98 +93,141 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
           {/* Scrollable Body */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
             
-            {/* Level Roadmap Selector Section */}
+            {/* Structured Game World Map Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/60 uppercase tracking-widest flex items-center gap-2">
-                  <Trophy size={14} className="text-amber-400" />
-                  Roadmap de Niveles: <span className="text-white">Nivel {progress.unlockedLevel} de 30</span>
+                <span className="text-xs font-bold text-white/70 uppercase tracking-widest flex items-center gap-2">
+                  <Compass size={15} className="text-amber-400 animate-spin-slow" />
+                  Mapa de Niveles: <span className="text-white font-mono font-black">Nivel {progress.unlockedLevel} / 30</span>
                 </span>
-                <span className="text-xs font-mono text-white/40">
+                <span className="text-xs font-mono text-amber-400/90 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
                   Derrotados: {progress.completedLevels.length} / 30
                 </span>
               </div>
 
-              {/* 30 Level Roadmap Carousel */}
-              <div className="relative flex gap-3 overflow-x-auto pb-4 pt-2 scrollbar-none snap-x px-1">
-                {RIVAL_LEVELS.map((rival) => {
-                  const isUnlocked = rival.level <= progress.unlockedLevel;
-                  const isCurrentActive = rival.level === progress.unlockedLevel;
-                  const isDone = progress.completedLevels.includes(rival.level);
-                  const isSelected = rival.level === selectedLevel;
+              {/* 30-Level Game Boss Roadmap Container */}
+              <div className="relative bg-zinc-900/50 border border-white/10 rounded-3xl p-4 overflow-hidden shadow-inner">
+                {/* Glowing Map Path Line */}
+                <div className="absolute top-1/2 left-4 right-4 h-1.5 bg-gradient-to-r from-emerald-500 via-amber-500 to-red-600 -translate-y-1/2 opacity-25 rounded-full pointer-events-none" />
 
-                  return (
-                    <button
-                      key={rival.level}
-                      onClick={() => setSelectedLevel(rival.level)}
-                      className={`
-                        snap-start shrink-0 w-28 p-3 rounded-2xl border transition-all flex flex-col items-center gap-1.5 relative overflow-hidden group text-center
-                        ${isSelected
-                          ? 'bg-gradient-to-b from-white/15 to-white/5 border-amber-400/80 shadow-[0_0_25px_rgba(251,191,36,0.25)] scale-105 z-10'
-                          : isCurrentActive
-                            ? 'bg-amber-500/10 border-amber-500/50 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-                            : isUnlocked
-                              ? 'bg-zinc-900/60 border-white/10 hover:border-white/25 text-white/70'
-                              : 'bg-zinc-950/50 border-white/5 opacity-50 cursor-not-allowed'
-                        }
-                      `}
-                    >
-                      {/* Level Number */}
-                      <div className="absolute top-1.5 left-2 text-[9px] font-black font-mono text-white/40">
-                        #{rival.level}
-                      </div>
+                {/* 30 Level Horizontal Connected Path */}
+                <div className="relative z-10 flex gap-4 overflow-x-auto pb-4 pt-6 scrollbar-none snap-x px-2">
+                  {RIVAL_LEVELS.map((rival) => {
+                    const isUnlocked = rival.level <= progress.unlockedLevel;
+                    const isCurrentActive = rival.level === progress.unlockedLevel;
+                    const isDone = progress.completedLevels.includes(rival.level);
+                    const isSelected = rival.level === selectedLevel;
+                    const isBossLevel = rival.level % 5 === 0;
+                    const isFinalBoss = rival.level === 30;
 
-                      {/* Status Icon */}
-                      <div className="absolute top-1.5 right-2">
-                        {isDone ? (
-                          <CheckCircle size={13} className="text-emerald-400" />
-                        ) : isCurrentActive ? (
-                          <Sparkles size={13} className="text-amber-400 animate-pulse" />
-                        ) : !isUnlocked ? (
-                          <Lock size={12} className="text-zinc-600" />
-                        ) : null}
-                      </div>
+                    return (
+                      <div key={rival.level} className="relative flex flex-col items-center shrink-0">
+                        
+                        {/* Player "TÚ ESTÁS AQUÍ" Floating Indicator */}
+                        {isCurrentActive && (
+                          <motion.div
+                            initial={{ y: -8, opacity: 0 }}
+                            animate={{ y: [ -4, 0, -4 ], opacity: 1 }}
+                            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                            className="absolute -top-6 z-20 flex flex-col items-center pointer-events-none"
+                          >
+                            <span className="text-[8px] font-black text-black bg-amber-400 px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.8)] uppercase tracking-wider whitespace-nowrap">
+                              TÚ ESTÁS AQUÍ
+                            </span>
+                            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-amber-400 -mt-0.5" />
+                          </motion.div>
+                        )}
 
-                      {/* Avatar or Lock Icon */}
-                      <div className="text-2xl mt-2.5">
-                        {isUnlocked ? rival.avatar : '🔒'}
-                      </div>
-
-                      {/* Masked Name for Locked Levels (Punto 4) */}
-                      <span className="text-[10px] font-bold text-white truncate w-full px-1">
-                        {isUnlocked ? rival.name : 'Rival Misterioso'}
-                      </span>
-
-                      {/* Active Level Badge */}
-                      {isCurrentActive && (
-                        <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500 text-black px-1.5 py-0.5 rounded-full shadow-sm">
-                          ACTUAL
-                        </span>
-                      )}
-                      {!isCurrentActive && isUnlocked && (
-                        <span
-                          className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded-md border"
-                          style={{
-                            backgroundColor: `${rival.color}15`,
-                            borderColor: `${rival.color}40`,
-                            color: rival.color
-                          }}
+                        <button
+                          onClick={() => setSelectedLevel(rival.level)}
+                          className={`
+                            snap-start shrink-0 p-3.5 rounded-2xl border transition-all flex flex-col items-center gap-1.5 relative overflow-hidden group text-center
+                            ${isFinalBoss
+                              ? isSelected
+                                ? 'w-36 bg-gradient-to-b from-purple-900/60 via-red-950/60 to-black border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)] scale-105 z-10'
+                                : 'w-36 bg-gradient-to-b from-purple-950/40 to-zinc-950 border-red-500/40 text-red-300'
+                              : isBossLevel
+                                ? isSelected
+                                  ? 'w-32 bg-gradient-to-b from-amber-500/20 to-orange-950/60 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)] scale-105 z-10'
+                                  : 'w-32 bg-zinc-900/90 border-amber-500/40 text-amber-200'
+                                : isSelected
+                                  ? 'w-28 bg-gradient-to-b from-white/15 to-white/5 border-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.2)] scale-105 z-10'
+                                  : isCurrentActive
+                                    ? 'w-28 bg-amber-500/10 border-amber-500/50 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                                    : isUnlocked
+                                      ? 'w-28 bg-zinc-900/60 border-white/10 hover:border-white/25 text-white/70'
+                                      : 'w-28 bg-zinc-950/50 border-white/5 opacity-50 cursor-not-allowed'
+                            }
+                          `}
                         >
-                          {rival.difficulty}
-                        </span>
-                      )}
-                      {!isUnlocked && (
-                        <span className="text-[8px] font-mono uppercase text-zinc-500">
-                          Bloqueado
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                          {/* Level Tag Top Left */}
+                          <div className="absolute top-1.5 left-2 text-[9px] font-black font-mono text-white/50">
+                            #{rival.level}
+                          </div>
+
+                          {/* Status / Crown Badge Top Right */}
+                          <div className="absolute top-1.5 right-2">
+                            {isDone ? (
+                              <CheckCircle size={13} className="text-emerald-400" />
+                            ) : isFinalBoss ? (
+                              <Crown size={14} className="text-red-400 animate-pulse" />
+                            ) : isBossLevel ? (
+                              <Crown size={13} className="text-amber-400" />
+                            ) : isCurrentActive ? (
+                              <Sparkles size={13} className="text-amber-400 animate-pulse" />
+                            ) : !isUnlocked ? (
+                              <Lock size={12} className="text-zinc-600" />
+                            ) : null}
+                          </div>
+
+                          {/* Node Avatar Icon */}
+                          <div className="text-2xl mt-3">
+                            {isUnlocked ? rival.avatar : '🔒'}
+                          </div>
+
+                          {/* Level Name */}
+                          <span className="text-[10px] font-bold text-white truncate w-full px-1 mt-0.5">
+                            {isUnlocked ? rival.name : 'Rival Misterioso'}
+                          </span>
+
+                          {/* Boss Badge or Level Status */}
+                          {isFinalBoss ? (
+                            <span className="text-[7px] font-black tracking-widest uppercase bg-gradient-to-r from-red-600 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-md">
+                              BOSS FINAL 💎
+                            </span>
+                          ) : isBossLevel ? (
+                            <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                              BOSS ARENA 👑
+                            </span>
+                          ) : isCurrentActive ? (
+                            <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500 text-black px-1.5 py-0.5 rounded-full shadow-sm">
+                              ENFRENTAR
+                            </span>
+                          ) : isUnlocked ? (
+                            <span
+                              className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded-md border"
+                              style={{
+                                backgroundColor: `${rival.color}15`,
+                                borderColor: `${rival.color}40`,
+                                color: rival.color
+                              }}
+                            >
+                              {rival.difficulty}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] font-mono uppercase text-zinc-500">
+                              Bloqueado
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Selected Rival Battle Card */}
+            {/* Selected Rival Battle Arena Card */}
             <div
               className="rounded-3xl border p-5 sm:p-6 relative overflow-hidden transition-all shadow-2xl"
               style={{
@@ -193,7 +235,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                 borderColor: `${displayRival.color}35`
               }}
             >
-              {/* Soft Organic Ambient Glow (Punto 1) */}
+              {/* Soft Organic Ambient Glow */}
               <div
                 className="absolute inset-0 pointer-events-none opacity-25 blur-[100px] transition-all"
                 style={{

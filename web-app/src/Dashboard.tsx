@@ -693,6 +693,9 @@ export default function Dashboard() {
       }, 600);
     }
 
+    const handleOpenDockConfig = () => setIsDockConfigOpen(true);
+    window.addEventListener('open-dock-config', handleOpenDockConfig);
+
     // 2. Listen for runtime custom events from App.tsx
     const handleFocusTrigger = (e: Event) => {
       const detail = (e as CustomEvent).detail;

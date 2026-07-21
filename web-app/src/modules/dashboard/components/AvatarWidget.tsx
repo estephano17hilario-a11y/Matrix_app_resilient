@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart, Zap, Flame, Coins, Settings, ShoppingBag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Zap, Flame, Coins, Settings, ShoppingBag, Activity, Swords, PenLine } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DailyLimits } from '@/types/User';
 import { GoldCounter } from '@/modules/store/components/GoldCounter';
@@ -143,6 +143,62 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     }, [displayName, email]);
 
     const scoreVal = typeof productivityScore === 'number' ? productivityScore : 0;
+
+    const [topQuickActions, setTopQuickActions] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem('matrix_top_quick_actions');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return ['SETTINGS', 'STORE'];
+    });
+
+    useEffect(() => {
+        const handleTopActionsChanged = () => {
+            try {
+                const saved = localStorage.getItem('matrix_top_quick_actions');
+                if (saved) setTopQuickActions(JSON.parse(saved));
+            } catch (e) {}
+        };
+        window.addEventListener('top-quick-actions-changed', handleTopActionsChanged);
+        return () => window.removeEventListener('top-quick-actions-changed', handleTopActionsChanged);
+    }, []);
+
+    const renderQuickActionButton = (actionKey: string) => {
+        let IconComponent = Settings;
+        let onClickAction = () => { if (onNavigate) onNavigate('SETTINGS'); };
+        let hoverColor = "hover:text-white";
+
+        if (actionKey === 'STORE') {
+            IconComponent = ShoppingBag;
+            onClickAction = () => { if (onNavigate) onNavigate('STORE'); };
+            hoverColor = "hover:text-amber-400";
+        } else if (actionKey === 'FEED') {
+            IconComponent = Activity;
+            onClickAction = () => { if (onNavigate) onNavigate('FEED'); };
+            hoverColor = "hover:text-teal-400";
+        } else if (actionKey === 'RIVALS') {
+            IconComponent = Swords;
+            onClickAction = () => { window.dispatchEvent(new CustomEvent('open-rivals-modal')); };
+            hoverColor = "hover:text-orange-400";
+        } else if (actionKey === 'NOTES') {
+            IconComponent = PenLine;
+            onClickAction = () => { if (onNavigate) onNavigate('NOTES'); };
+            hoverColor = "hover:text-emerald-400";
+        }
+
+        return (
+            <button
+                key={actionKey}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClickAction();
+                }}
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)] group ${hoverColor}`}
+            >
+                <IconComponent size={16} className="sm:w-5 sm:h-5 transition-colors" />
+            </button>
+        );
+    };
 
     return (
     <>
@@ -293,31 +349,10 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                      </div>
                 </div>
 
-                {/* Quick Actions (Settings & Store) */}
+                {/* Quick Actions (Customizable Top Header Icons) */}
                   <div className="flex items-center gap-2 shrink-0">
-                       <button 
-                           onClick={(e) => {
-                               e.stopPropagation();
-                               if (onNavigate) {
-                                   onNavigate('SETTINGS');
-                               }
-                           }}
-                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)]"
-                       >
-                           <Settings size={16} className="sm:w-5 sm:h-5" />
-                       </button>
-                       <button 
-                           onClick={(e) => {
-                               e.stopPropagation();
-                               if (onNavigate) {
-                                   onNavigate('STORE');
-                               }
-                           }}
-                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)] group"
-                       >
-                           <ShoppingBag size={16} className="sm:w-5 sm:h-5 group-hover:text-amber-400 transition-colors" />
-                       </button>
-                   </div>
+                      {topQuickActions.map(actionKey => renderQuickActionButton(actionKey))}
+                  </div>
             </div>
         </div>
     </div>
