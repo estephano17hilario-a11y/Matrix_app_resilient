@@ -70,7 +70,8 @@ export function useRivalsLogic(
         simulatedTasks: 0,
         simulatedFocusMinutes: 0,
         simulatedHabitPct: 0,
-        message: `El rival aún no inicia su jornada. Empezará a las ${rival.workStartHour}:${(rival.workStartMinute || 0).toString().padStart(2, '0')}.`
+        message: `El rival iniciará su jornada a las ${rival.workStartHour}:${(rival.workStartMinute || 0).toString().padStart(2, '0')}.`,
+        currentActivity: `Preparando bloques de trabajo para su jornada.`
       };
     }
 
@@ -81,7 +82,8 @@ export function useRivalsLogic(
         simulatedTasks: rival.targetTasks,
         simulatedFocusMinutes: rival.targetFocusMinutes,
         simulatedHabitPct: rival.targetHabitPct,
-        message: `El oponente ha terminado su jornada. ¡Tienes hasta las 11:59 PM para superarlo!`
+        message: `Jornada finalizada (${rival.workStartHour}:00 - ${rival.workEndHour}:00).`,
+        currentActivity: `Ha completado su jornada del día. ¡Tienes hasta las 11:59 PM para superarlo!`
       };
     }
 
@@ -94,13 +96,25 @@ export function useRivalsLogic(
     const simulatedFocusMinutes = Math.floor(rival.targetFocusMinutes * ratio);
     const simulatedHabitPct = Math.floor(rival.targetHabitPct * ratio);
 
+    let currentActivity = `Realizando sesión de Enfoque Profundo.`;
+    if (ratio < 0.25) {
+      currentActivity = `Ejecutando su 1er bloque de Enfoque Profundo y planeación diaria.`;
+    } else if (ratio < 0.50) {
+      currentActivity = `Completando hábitos estratégicos matutinos y rutina de disciplina.`;
+    } else if (ratio < 0.75) {
+      currentActivity = `Procesando Tarea Compleja Hardcore (+${simulatedTasks} tarea(s) acumulada(s)).`;
+    } else {
+      currentActivity = `En sprint final de productividad antes de cerrar su jornada.`;
+    }
+
     return {
       status: 'WORKING' as const,
       progressRatio: ratio,
       simulatedTasks,
       simulatedFocusMinutes,
       simulatedHabitPct,
-      message: `En jornada activa (${Math.round(ratio * 100)}% transcurrido)`
+      message: `En jornada activa (${rival.workStartHour}:00 - ${rival.workEndHour}:00)`,
+      currentActivity
     };
   }, [currentLevelData]);
 

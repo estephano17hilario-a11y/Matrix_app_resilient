@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, ShieldAlert } from 'lucide-react';
+import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, ShieldAlert, Clock } from 'lucide-react';
 import { RIVAL_LEVELS, RivalLevel } from '../config/rivalsConfig';
 import { useRivalsLogic } from '../hooks/useRivalsLogic';
 
@@ -285,6 +285,37 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     </p>
                   </div>
                 </div>
+
+                {/* Workday Schedule Status Badge */}
+                {isSelectedUnlocked && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-1.5 w-full sm:w-auto min-w-[240px]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/50 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1.5">
+                        <Clock size={12} className="text-orange-400" />
+                        Jornada Rival
+                      </span>
+                      <span className="text-white font-mono font-bold text-xs">
+                        {currentLevelData.workStartHour}:00 - {currentLevelData.workEndHour}:00
+                      </span>
+                    </div>
+
+                    {/* Progress bar of workday */}
+                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.round(rivalLiveState.progressRatio * 100)}%`,
+                          backgroundColor: currentLevelData.color
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-amber-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                      <span className="truncate">{rivalLiveState.currentActivity}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Duel Target Stats Grid */}
